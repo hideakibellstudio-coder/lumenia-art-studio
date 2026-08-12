@@ -15,7 +15,7 @@ class LocalLayer:
         self.visible = True
         self.locked = False
         self.opacity = 1.0
-        self.blend_mode = "Normal"
+        self.blend_mode = "Atravessar" if is_group else "Normal"
         self.alpha_locked = False
         self.clipping_mask = False
         self.collapsed = False

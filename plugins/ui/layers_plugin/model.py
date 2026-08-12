@@ -125,6 +125,22 @@ class LayerModel(QAbstractItemModel):
             row = 0
         return self.createIndex(row, 0, parent_layer)
 
+    def get_effective_visible(self, layer) -> bool:
+        curr = layer
+        while curr:
+            if not getattr(curr, 'visible', True):
+                return False
+            curr = self.manager.get_layer_by_uid(curr.parent_uid) if curr.parent_uid else None
+        return True
+
+    def get_effective_opacity(self, layer) -> float:
+        op = 1.0
+        curr = layer
+        while curr:
+            op *= getattr(curr, 'opacity', 1.0)
+            curr = self.manager.get_layer_by_uid(curr.parent_uid) if curr.parent_uid else None
+        return op
+
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return None
@@ -162,9 +178,9 @@ class LayerModel(QAbstractItemModel):
                 return len([l for l in self.manager.layers if l.parent_uid == layer.uid])
             return 0
         elif role == ROLE_EFFECTIVE_VISIBLE:
-            return getattr(layer, 'effective_visible', layer.visible)
+            return self.get_effective_visible(layer)
         elif role == ROLE_EFFECTIVE_OPACITY:
-            return getattr(layer, 'effective_opacity', layer.opacity)
+            return self.get_effective_opacity(layer)
         
         return None
 

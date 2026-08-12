@@ -265,7 +265,7 @@ class LayersPanel(QWidget):
                     "Normal": 0, "Multiply": 1, "Multiplicação": 1,
                     "Screen": 2, "Divisão": 2, "Overlay": 3, "Sobreposição": 3,
                     "Darken": 4, "Escurecer": 4, "Lighten": 5, "Clarear": 5,
-                    "Erase": 6, "Borracha": 6
+                    "Erase": 6, "Borracha": 6, "Pass-Through": 7, "Atravessar": 7
                 }
                 mode_idx = blend_map.get(mode_idx, 0)
 

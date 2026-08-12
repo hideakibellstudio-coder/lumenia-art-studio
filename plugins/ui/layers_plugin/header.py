@@ -122,6 +122,7 @@ class LayersHeader(QWidget):
         self.combo_blend.setObjectName("LayersBlendCombo")
         self._all_blend_modes = [
             "Normal",
+            "Atravessar",
             "Multiplicação",
             "Divisão",
             "Sobreposição",

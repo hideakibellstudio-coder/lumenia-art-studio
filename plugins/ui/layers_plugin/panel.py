@@ -203,10 +203,22 @@ class LayersPanel(QWidget):
             self._sync_to_native_engine("lock", layer.uid, new_lock)
 
     def grid_toggle_alpha(self):
-        self._show_status("Recurso 'Alpha Lock' em desenvolvimento.")
+        layer = self.layer_manager.get_active_layer()
+        if layer:
+            idx = self.model._find_index_by_uid(layer.uid)
+            new_val = not layer.alpha_locked
+            self.model.setData(idx, new_val, ROLE_ALPHA_LOCK)
+            self._sync_to_native_engine("alpha_lock", layer.uid, new_val)
+            self._show_status(f"Alpha Lock em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
 
     def grid_toggle_clip(self):
-        self._show_status("Recurso 'Clipping Mask' em desenvolvimento.")
+        layer = self.layer_manager.get_active_layer()
+        if layer:
+            idx = self.model._find_index_by_uid(layer.uid)
+            new_val = not layer.clipping_mask
+            self.model.setData(idx, new_val, ROLE_CLIPPING_MASK)
+            self._sync_to_native_engine("clipping_mask", layer.uid, new_val)
+            self._show_status(f"Clipping Mask em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
 
     # --- Synchronizer com o Motor C++ ALADYN ENGINE ---
     def _sync_to_native_engine(self, action: str, *args):
@@ -258,6 +270,18 @@ class LayersPanel(QWidget):
             if target_layer and target_layer in layer_list:
                 idx = layer_list.index(target_layer)
                 facade.set_layer_lock(idx, bool(locked))
+        elif action == "alpha_lock":
+            uid, val = args[0], args[1]
+            target_layer = self.layer_manager.get_layer_by_uid(uid)
+            if target_layer and target_layer in layer_list:
+                idx = layer_list.index(target_layer)
+                facade.set_layer_alpha_lock(idx, bool(val))
+        elif action == "clipping_mask":
+            uid, val = args[0], args[1]
+            target_layer = self.layer_manager.get_layer_by_uid(uid)
+            if target_layer and target_layer in layer_list:
+                idx = layer_list.index(target_layer)
+                facade.set_layer_clipping_mask(idx, bool(val))
         elif action == "add":
             facade.add_layer()
         elif action == "delete":
@@ -268,6 +292,9 @@ class LayersPanel(QWidget):
         elif action == "move_down":
             if c_idx > 0:
                 facade.reorder_layer(c_idx, c_idx - 1)
+        elif action == "merge_down":
+            idx = args[0]
+            facade.merge_layer_down(idx)
         elif action == "select":
             facade.select_layer(c_idx)
 
@@ -303,7 +330,15 @@ class LayersPanel(QWidget):
                 self._show_status(f"Camada '{layer.name}' movida para baixo.")
 
     def merge_down(self):
-        self._show_status("Recurso 'Mesclar para Baixo' em desenvolvimento.")
+        layer = self.layer_manager.get_active_layer()
+        if layer:
+            layer_list = self.layer_manager.layers
+            if layer in layer_list:
+                c_idx = layer_list.index(layer)
+                if c_idx > 0:
+                    self._sync_to_native_engine("merge_down", c_idx)
+                    if self.layer_manager.merge_down(layer.uid):
+                        self._show_status(f"Camada '{layer.name}' fundida para baixo.")
 
     def _show_status(self, message):
         win = QApplication.activeWindow()

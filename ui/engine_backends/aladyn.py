@@ -114,6 +114,19 @@ class AladynBackend(EngineBackend):
         if self._facade:
             self._facade.clear_canvas()
 
+    def set_layer_alpha_lock(self, index: int, locked: bool) -> None:
+        if self._facade:
+            self._facade.set_layer_alpha_lock(index, locked)
+
+    def set_layer_clipping_mask(self, index: int, clipped: bool) -> None:
+        if self._facade:
+            self._facade.set_layer_clipping_mask(index, clipped)
+
+    def merge_layer_down(self, index: int) -> bool:
+        if self._facade:
+            return self._facade.merge_layer_down(index)
+        return False
+
     def set_canvas_grain_enabled(self, enabled: bool) -> None:
         if self._facade and hasattr(self._facade, "get_canvas_texture"):
             c_tex = self._facade.get_canvas_texture()

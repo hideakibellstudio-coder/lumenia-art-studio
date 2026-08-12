@@ -67,8 +67,11 @@ class LayerItemDelegate(QStyledItemDelegate):
 
         # 1. Background
         if is_selected:
-            painter.fillRect(rect, QColor(bg_darkest))
-            # Barra lateral esquerda indicativa de seleção
+            sel_color = QColor(bg_darkest)
+            painter.fillRect(rect, sel_color)
+            accent_tint = QColor(accent_color)
+            accent_tint.setAlpha(28)
+            painter.fillRect(rect, accent_tint)
             accent_bar = QRect(rect.left(), rect.top(), 3, rect.height() - 1)
             painter.fillRect(accent_bar, QColor(accent_color))
         elif is_hovered:
@@ -122,7 +125,7 @@ class LayerItemDelegate(QStyledItemDelegate):
             fx_icon.paint(painter, thumb_rect.adjusted(6, 4, -6, -4))
         else:
             painter.setBrush(QBrush(QColor("#ffffff")))
-            painter.setPen(QPen(QColor("#4b5563"), 1))
+            painter.setPen(QPen(QColor(border), 1))
             painter.drawRoundedRect(thumb_rect, 2, 2)
             
             thumb_pix = index.data(Qt.DecorationRole)

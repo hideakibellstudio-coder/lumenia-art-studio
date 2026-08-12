@@ -544,12 +544,46 @@ class LayersPanel(QWidget):
         
         self.delegate.set_colors(colors)
         
-        fg_primary = colors.get("text_main", "#f3f4f6")
         self.view.setStyleSheet(f"""
             QTreeView {{
                 background-color: transparent;
                 border: none;
-                outline: 1px dotted {fg_primary};
+                outline: 0;
+            }}
+            QTreeView::item {{
+                background: transparent;
+                border: none;
+                outline: 0;
+            }}
+            QTreeView::item:hover {{
+                background: transparent;
+                border: none;
+                outline: 0;
+            }}
+            QTreeView::item:selected {{
+                background: transparent;
+                border: none;
+                outline: 0;
+            }}
+            QTreeView::item:selected:active {{
+                background: transparent;
+                border: none;
+                outline: 0;
+            }}
+            QTreeView::item:selected:!active {{
+                background: transparent;
+                border: none;
+                outline: 0;
+            }}
+            QTreeView::item:focus {{
+                background: transparent;
+                border: none;
+                outline: 0;
+            }}
+            QTreeView::branch {{
+                background: transparent;
+                border: none;
+                outline: 0;
             }}
             QTreeView::branch:has-children:!has-siblings:closed,
             QTreeView::branch:closed:has-children:has-siblings,

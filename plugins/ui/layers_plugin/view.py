@@ -22,11 +22,47 @@ class LayerTreeView(QTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setHeaderHidden(True)
+        self.setFocusPolicy(Qt.NoFocus)
         self.setStyleSheet("""
             QTreeView {
                 background-color: transparent;
                 border: none;
-                outline: none;
+                outline: 0;
+            }
+            QTreeView::item {
+                background: transparent;
+                border: none;
+                outline: 0;
+            }
+            QTreeView::item:hover {
+                background: transparent;
+                border: none;
+                outline: 0;
+            }
+            QTreeView::item:selected {
+                background: transparent;
+                border: none;
+                outline: 0;
+            }
+            QTreeView::item:selected:active {
+                background: transparent;
+                border: none;
+                outline: 0;
+            }
+            QTreeView::item:selected:!active {
+                background: transparent;
+                border: none;
+                outline: 0;
+            }
+            QTreeView::item:focus {
+                background: transparent;
+                border: none;
+                outline: 0;
+            }
+            QTreeView::branch {
+                background: transparent;
+                border: none;
+                outline: 0;
             }
             QTreeView::branch:has-children:!has-siblings:closed,
             QTreeView::branch:closed:has-children:has-siblings,
@@ -38,7 +74,7 @@ class LayerTreeView(QTreeView):
         self.setIndentation(16)
         self.setRootIsDecorated(False)
         self.setAnimated(True)
-        self.setAllColumnsShowFocus(True)
+        self.setAllColumnsShowFocus(False)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)

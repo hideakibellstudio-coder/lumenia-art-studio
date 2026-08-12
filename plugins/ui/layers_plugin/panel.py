@@ -310,6 +310,7 @@ class LayersPanel(QWidget):
     def add_layer(self, name=None):
         self.layer_manager.add_layer(name)
         self._sync_to_native_engine("add")
+        self._sync_to_native_engine("select")
 
     def add_group(self, name=None):
         self._show_status("Recurso 'Novo Grupo' em desenvolvimento.")
@@ -381,9 +382,15 @@ class LayersPanel(QWidget):
             self.model.setData(idx, new_lock, ROLE_LOCKED)
             self._sync_to_native_engine("lock", uid, new_lock)
         elif action_type == "toggle_alpha":
-            self.model.setData(idx, not layer.alpha_locked, ROLE_ALPHA_LOCK)
+            new_val = not layer.alpha_locked
+            self.model.setData(idx, new_val, ROLE_ALPHA_LOCK)
+            self._sync_to_native_engine("alpha_lock", uid, new_val)
+            self._show_status(f"Alpha Lock em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
         elif action_type == "toggle_clipping_mask":
-            self.model.setData(idx, not layer.clipping_mask, ROLE_CLIPPING_MASK)
+            new_val = not layer.clipping_mask
+            self.model.setData(idx, new_val, ROLE_CLIPPING_MASK)
+            self._sync_to_native_engine("clipping_mask", uid, new_val)
+            self._show_status(f"Clipping Mask em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
         elif action_type == "toggle_collapse":
             is_expanded = self.view.isExpanded(idx)
             self.view.setExpanded(idx, not is_expanded)
@@ -400,6 +407,7 @@ class LayersPanel(QWidget):
 
     def _on_engine_active_layer_changed(self, uid):
         self._sync_header_controls()
+        self._sync_to_native_engine("select")
         QTimer.singleShot(10, lambda: self._select_uid_in_view(uid))
 
     def _select_uid_in_view(self, uid):

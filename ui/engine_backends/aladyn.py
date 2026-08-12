@@ -126,6 +126,16 @@ class AladynBackend(EngineBackend):
         if self._facade:
             self._facade.set_layer_clipping_mask(index, clipped)
 
+    def reorder_layer(self, from_index: int, to_index: int) -> bool:
+        if self._facade:
+            return self._facade.reorder_layer(from_index, to_index)
+        return False
+
+    def reorder_layers(self, new_order: list[int]) -> bool:
+        if self._facade and hasattr(self._facade, "reorder_layers"):
+            return self._facade.reorder_layers(new_order)
+        return False
+
     def merge_layer_down(self, index: int) -> bool:
         if self._facade:
             return self._facade.merge_layer_down(index)

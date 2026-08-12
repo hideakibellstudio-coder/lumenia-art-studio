@@ -125,6 +125,7 @@ class LayersPanel(QWidget):
         # Conexões de Sincronia com o Motor
         self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
         self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
+        self.layer_manager.order_changed.connect(lambda: self._sync_to_native_engine("reorder_all"))
         
         self._sync_header_controls()
         self._ensure_top_selection()
@@ -161,6 +162,7 @@ class LayersPanel(QWidget):
             # Reconecta sinais de sincronia
             self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
             self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
+            self.layer_manager.order_changed.connect(lambda: self._sync_to_native_engine("reorder_all"))
             
             # Sincroniza controles de opacidade e blend mode
             self._sync_header_controls()
@@ -299,17 +301,36 @@ class LayersPanel(QWidget):
                 facade.set_layer_clipping_mask(idx, bool(val))
         elif action == "add":
             facade.add_layer()
+            self._native_uids = [l.uid for l in layer_list]
         elif action == "delete":
             facade.remove_layer(c_idx)
+            self._native_uids = [l.uid for l in layer_list]
         elif action == "move_up":
             if c_idx < facade.get_drawing_layer_count() - 1:
                 facade.reorder_layer(c_idx, c_idx + 1)
+                self._native_uids = [l.uid for l in layer_list]
         elif action == "move_down":
             if c_idx > 0:
                 facade.reorder_layer(c_idx, c_idx - 1)
+                self._native_uids = [l.uid for l in layer_list]
+        elif action == "reorder_all":
+            if hasattr(facade, "reorder_layers"):
+                if not hasattr(self, "_native_uids") or len(self._native_uids) != len(layer_list):
+                    self._native_uids = [l.uid for l in layer_list]
+                if len(layer_list) == len(self._native_uids):
+                    new_indices = []
+                    for l in layer_list:
+                        if l.uid in self._native_uids:
+                            new_indices.append(self._native_uids.index(l.uid))
+                        else:
+                            break
+                    if len(new_indices) == len(layer_list):
+                        facade.reorder_layers(new_indices)
+                        self._native_uids = [l.uid for l in layer_list]
         elif action == "merge_down":
             idx = args[0]
             facade.merge_layer_down(idx)
+            self._native_uids = [l.uid for l in layer_list]
         elif action == "select":
             facade.select_layer(c_idx)
 
@@ -325,6 +346,7 @@ class LayersPanel(QWidget):
         try:
             self._sync_to_native_engine("add")
             self.layer_manager.add_layer(name)
+            self._native_uids = [l.uid for l in self.layer_manager.layers]
             active = self.layer_manager.get_active_layer()
             if active:
                 self._select_uid_in_view(active.uid)

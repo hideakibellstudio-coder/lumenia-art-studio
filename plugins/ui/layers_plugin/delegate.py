@@ -9,14 +9,14 @@ from .model import (
     ROLE_EFFECTIVE_VISIBLE, ROLE_EFFECTIVE_OPACITY, ROLE_IS_FILTER
 )
 
-ROW_HEIGHT = 44
+ROW_HEIGHT = 48
 PADDING = 8
 ICON_SIZE = 20
 THUMB_W = 38
 THUMB_H = 28
 
-STATUS_ICON_SIZE = 18
-SLOT_SPACING = 6
+STATUS_ICON_SIZE = 16
+SLOT_SPACING = 8
 SLOT_WIDTH = STATUS_ICON_SIZE + SLOT_SPACING
 
 class LayerItemDelegate(QStyledItemDelegate):
@@ -31,6 +31,16 @@ class LayerItemDelegate(QStyledItemDelegate):
 
     def sizeHint(self, option, index):
         return QSize(100, ROW_HEIGHT)
+
+    def _get_right_content_x(self, rect: QRect, clip: bool, is_group: bool) -> int:
+        curr_x = rect.left() + PADDING
+        curr_x += ICON_SIZE + 4  # Visibilidade
+        if clip:
+            curr_x += 8
+        else:
+            curr_x += 16
+        curr_x += THUMB_W + PADDING  # Thumbnail
+        return curr_x
 
     def paint(self, painter: QPainter, option, index):
         painter.save()
@@ -108,8 +118,8 @@ class LayerItemDelegate(QStyledItemDelegate):
             is_expanded = option.state & QStyle.State_Open
             arrow = "▼" if is_expanded else "▶"
             painter.drawText(type_rect, Qt.AlignCenter, arrow)
-        
-        curr_x += 16
+        else:
+            curr_x += 16
 
         # --- [3] Preview (Thumb) ---
         thumb_rect = QRect(curr_x, rect.top() + (ROW_HEIGHT - THUMB_H)//2, THUMB_W, THUMB_H)
@@ -131,12 +141,13 @@ class LayerItemDelegate(QStyledItemDelegate):
             thumb_pix = index.data(Qt.DecorationRole)
             if isinstance(thumb_pix, QPixmap) and not thumb_pix.isNull():
                 painter.drawPixmap(thumb_rect.adjusted(1, 1, -1, -1), thumb_pix.scaled(thumb_rect.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        
         curr_x += THUMB_W + PADDING
 
-        # --- [4] Nome da Camada ---
-        status_space = 3 * SLOT_WIDTH
-        name_w = rect.right() - curr_x - status_space - PADDING
-        name_rect = QRect(curr_x, rect.top(), max(0, name_w), ROW_HEIGHT)
+        # --- [4] Duas linhas organizadas à direita da miniatura ---
+        # LINHA 1 (Topo): Nome da Camada
+        name_w = rect.right() - curr_x - PADDING
+        name_rect = QRect(curr_x, rect.top() + 5, max(0, name_w), 18)
 
         if is_filter:
             painter.setPen(QColor(accent_color) if visible else QColor(accent_color).darker(160))
@@ -150,36 +161,59 @@ class LayerItemDelegate(QStyledItemDelegate):
         elided_name = fm.elidedText(str(name), Qt.ElideRight, name_w)
         painter.drawText(name_rect, Qt.AlignVCenter | Qt.AlignLeft, elided_name)
 
-        # --- [5] Active Status (Direita - Slots Fixos) ---
-        def draw_fixed_slot(slot_index, icon_name, active, color):
-            x_pos = rect.right() - ((4 - slot_index) * SLOT_WIDTH)
-            if active:
-                icon_rect = QRect(x_pos + (SLOT_WIDTH - STATUS_ICON_SIZE)//2, 
-                                  rect.top() + (ROW_HEIGHT - STATUS_ICON_SIZE)//2, 
-                                  STATUS_ICON_SIZE, STATUS_ICON_SIZE)
-                icon = get_icon(icon_name, color)
-                icon.paint(painter, icon_rect)
+        # LINHA 2 (Baixo): Ícones de Operações (Clip Mask, Alpha Lock, Lock Layer)
+        icons_y = rect.top() + 26
+        icon_dim = STATUS_ICON_SIZE
 
-        draw_fixed_slot(1, "clip-mask", clip, "#10b981")
-        draw_fixed_slot(2, "lock", locked, accent_color)
-        draw_fixed_slot(3, "alpha-lock", alpha_locked, "#f59e0b")
+        # 1. Clipping Mask Icon
+        clip_rect = QRect(curr_x, icons_y, icon_dim, icon_dim)
+        clip_color = QColor("#10b981") if clip else QColor(text_muted)
+        if not clip:
+            painter.setOpacity(0.35)
+        clip_icon = get_icon("clip-mask", clip_color.name())
+        clip_icon.paint(painter, clip_rect)
+        if not clip:
+            painter.setOpacity(1.0 if eff_vis else 0.4)
+
+        # 2. Alpha Lock Icon
+        alpha_rect = QRect(curr_x + 24, icons_y, icon_dim, icon_dim)
+        alpha_color = QColor("#f59e0b") if alpha_locked else QColor(text_muted)
+        if not alpha_locked:
+            painter.setOpacity(0.35)
+        alpha_icon = get_icon("alpha-lock", alpha_color.name())
+        alpha_icon.paint(painter, alpha_rect)
+        if not alpha_locked:
+            painter.setOpacity(1.0 if eff_vis else 0.4)
+
+        # 3. Lock Layer Icon
+        lock_rect = QRect(curr_x + 48, icons_y, icon_dim, icon_dim)
+        lock_color = QColor(accent_color) if locked else QColor(text_muted)
+        if not locked:
+            painter.setOpacity(0.35)
+        lock_icon = get_icon("lock" if locked else "unlock", lock_color.name())
+        lock_icon.paint(painter, lock_rect)
+        if not locked:
+            painter.setOpacity(1.0 if eff_vis else 0.4)
 
         painter.restore()
 
-    def get_hitboxes(self, rect: QRect, is_group: bool) -> dict:
+    def get_hitboxes(self, rect: QRect, is_group: bool, clip: bool = False) -> dict:
         eye_box = QRect(rect.left() + PADDING, rect.top(), ICON_SIZE + 4, ROW_HEIGHT)
         collapse_box = QRect(rect.left() + PADDING + ICON_SIZE + 4, rect.top(), 16, ROW_HEIGHT) if is_group else QRect()
         
-        clip_box = QRect(rect.right() - (3 * SLOT_WIDTH), rect.top(), SLOT_WIDTH, ROW_HEIGHT)
-        lock_box = QRect(rect.right() - (2 * SLOT_WIDTH), rect.top(), SLOT_WIDTH, ROW_HEIGHT)
-        alpha_box = QRect(rect.right() - (1 * SLOT_WIDTH), rect.top(), SLOT_WIDTH, ROW_HEIGHT)
+        curr_x = self._get_right_content_x(rect, clip, is_group)
+        icons_y = rect.top() + 24
+        
+        clip_box = QRect(curr_x - 2, icons_y - 2, 22, 22)
+        alpha_box = QRect(curr_x + 22, icons_y - 2, 22, 22)
+        lock_box = QRect(curr_x + 46, icons_y - 2, 22, 22)
         
         return {
             'eye': eye_box,
             'collapse': collapse_box,
             'clip': clip_box,
-            'lock': lock_box,
-            'alpha': alpha_box
+            'alpha': alpha_box,
+            'lock': lock_box
         }
 
     def editorEvent(self, event, model, option, index):
@@ -187,8 +221,9 @@ class LayerItemDelegate(QStyledItemDelegate):
             pos = event.pos()
             uid = index.data(ROLE_UID)
             is_group = index.data(ROLE_IS_GROUP)
+            clip = index.data(ROLE_CLIPPING_MASK)
             
-            boxes = self.get_hitboxes(option.rect, is_group)
+            boxes = self.get_hitboxes(option.rect, is_group, clip)
             
             if boxes['eye'].contains(pos):
                 self.actionRequested.emit("toggle_visibility", uid)
@@ -227,7 +262,7 @@ class LayerItemDelegate(QStyledItemDelegate):
                 color: {fg_color};
                 border: 1px solid {accent_color};
                 border-radius: 3px;
-                padding: 1px 5px;
+                padding: 1px 4px;
                 font-size: 11px;
             }}
         """)
@@ -243,21 +278,10 @@ class LayerItemDelegate(QStyledItemDelegate):
 
     def updateEditorGeometry(self, editor, option, index):
         rect = option.rect
-        curr_x = rect.left() + PADDING
-        curr_x += ICON_SIZE + 4  # Visibilidade
-        
         clip = index.data(ROLE_CLIPPING_MASK)
-        if clip:
-            curr_x += 8
-        type_rect_w = 16
-        curr_x += type_rect_w
+        is_group = index.data(ROLE_IS_GROUP)
         
-        curr_x += THUMB_W + PADDING  # Thumbnail
+        curr_x = self._get_right_content_x(rect, clip, is_group)
+        name_w = rect.right() - curr_x - PADDING
         
-        status_space = 3 * SLOT_WIDTH
-        name_w = rect.right() - curr_x - status_space - PADDING
-        
-        editor_h = 24
-        editor_top = rect.top() + (ROW_HEIGHT - editor_h) // 2
-        
-        editor.setGeometry(curr_x, editor_top, max(0, name_w), editor_h)
+        editor.setGeometry(curr_x, rect.top() + 3, max(0, name_w), 20)

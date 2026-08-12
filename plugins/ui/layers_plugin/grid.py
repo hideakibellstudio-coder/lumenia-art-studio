@@ -49,14 +49,14 @@ class LayersPrimaryBox(QWidget):
         
         # --- Grupo 2: Estrutura ---
         self._add_btn(layout, "folder", "Novo Grupo (G)", lambda: self.controller.add_group(None))
-        self._add_btn(layout, "clip-mask", "Clipping Mask", self.controller.grid_toggle_clip)
         layout.addSpacing(2)
         add_separator()
         layout.addSpacing(2)
         
-        # --- Grupo 3: Bloqueios ---
-        self._add_btn(layout, "lock", "Bloquear Camada", self.controller.grid_toggle_lock)
+        # --- Grupo 3: Clipping e Bloqueios ---
+        self._add_btn(layout, "clip-mask", "Clipping Mask", self.controller.grid_toggle_clip)
         self._add_btn(layout, "alpha-lock", "Alpha Lock", self.controller.grid_toggle_alpha)
+        self._add_btn(layout, "lock", "Bloquear Camada", self.controller.grid_toggle_lock)
 
     def _add_btn(self, layout, icon_name, tooltip, callback):
         btn = GridActionButton(None, tooltip)

@@ -191,7 +191,7 @@ class LayerItemDelegate(QStyledItemDelegate):
         lock_color = QColor(accent_color) if locked else QColor(text_muted)
         if not locked:
             painter.setOpacity(0.35)
-        lock_icon = get_icon("lock" if locked else "unlock", lock_color.name())
+        lock_icon = get_icon("lock", lock_color.name())
         lock_icon.paint(painter, lock_rect)
         if not locked:
             painter.setOpacity(1.0 if eff_vis else 0.4)

@@ -76,7 +76,6 @@ class LayersPanel(QWidget):
         self.view.selectionModel().selectionChanged.connect(self._on_view_selection_changed)
         self.delegate.actionRequested.connect(self._on_delegate_action)
         self.model.layoutChanged.connect(self._ensure_top_selection)
-        self.model.rowsInserted.connect(self._ensure_top_selection)
         self.model.modelReset.connect(self._on_model_reset)
         
         self.view.deleteRequested.connect(self.delete_selection)
@@ -183,16 +182,30 @@ class LayersPanel(QWidget):
     def duplicate_selection(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
-            self.layer_manager.duplicate_layer(layer.uid)
-            self._sync_to_native_engine("add")
-            self._show_status(f"Camada '{layer.name}' duplicada.")
+            self._updating_selection = True
+            try:
+                self._sync_to_native_engine("add")
+                new_uid = self.layer_manager.duplicate_layer(layer.uid)
+                self._select_uid_in_view(new_uid)
+                self._sync_to_native_engine("select")
+                self._show_status(f"Camada '{layer.name}' duplicada.")
+            finally:
+                self._updating_selection = False
 
     def delete_selection(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
-            self._sync_to_native_engine("delete")
-            self.layer_manager.remove_layer(layer.uid)
-            self._show_status(f"Camada '{layer.name}' removida.")
+            self._updating_selection = True
+            try:
+                self._sync_to_native_engine("delete")
+                self.layer_manager.remove_layer(layer.uid)
+                active = self.layer_manager.get_active_layer()
+                if active:
+                    self._select_uid_in_view(active.uid)
+                    self._sync_to_native_engine("select")
+                self._show_status(f"Camada '{layer.name}' removida.")
+            finally:
+                self._updating_selection = False
     
     def grid_toggle_lock(self):
         layer = self.layer_manager.get_active_layer()
@@ -308,9 +321,16 @@ class LayersPanel(QWidget):
                 top_w.canvas_widget.update()
 
     def add_layer(self, name=None):
-        self.layer_manager.add_layer(name)
-        self._sync_to_native_engine("add")
-        self._sync_to_native_engine("select")
+        self._updating_selection = True
+        try:
+            self._sync_to_native_engine("add")
+            self.layer_manager.add_layer(name)
+            active = self.layer_manager.get_active_layer()
+            if active:
+                self._select_uid_in_view(active.uid)
+                self._sync_to_native_engine("select")
+        finally:
+            self._updating_selection = False
 
     def add_group(self, name=None):
         self._show_status("Recurso 'Novo Grupo' em desenvolvimento.")
@@ -321,16 +341,26 @@ class LayersPanel(QWidget):
     def move_up(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
-            self._sync_to_native_engine("move_up")
-            if self.layer_manager.move_layer_up(layer.uid):
-                self._show_status(f"Camada '{layer.name}' movida para cima.")
+            self._updating_selection = True
+            try:
+                self._sync_to_native_engine("move_up")
+                if self.layer_manager.move_layer_up(layer.uid):
+                    self._select_uid_in_view(layer.uid)
+                    self._show_status(f"Camada '{layer.name}' movida para cima.")
+            finally:
+                self._updating_selection = False
 
     def move_down(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
-            self._sync_to_native_engine("move_down")
-            if self.layer_manager.move_layer_down(layer.uid):
-                self._show_status(f"Camada '{layer.name}' movida para baixo.")
+            self._updating_selection = True
+            try:
+                self._sync_to_native_engine("move_down")
+                if self.layer_manager.move_layer_down(layer.uid):
+                    self._select_uid_in_view(layer.uid)
+                    self._show_status(f"Camada '{layer.name}' movida para baixo.")
+            finally:
+                self._updating_selection = False
 
     def merge_down(self):
         layer = self.layer_manager.get_active_layer()
@@ -339,9 +369,17 @@ class LayersPanel(QWidget):
             if layer in layer_list:
                 c_idx = layer_list.index(layer)
                 if c_idx > 0:
-                    self._sync_to_native_engine("merge_down", c_idx)
-                    if self.layer_manager.merge_down(layer.uid):
-                        self._show_status(f"Camada '{layer.name}' fundida para baixo.")
+                    self._updating_selection = True
+                    try:
+                        self._sync_to_native_engine("merge_down", c_idx)
+                        if self.layer_manager.merge_down(layer.uid):
+                            active = self.layer_manager.get_active_layer()
+                            if active:
+                                self._select_uid_in_view(active.uid)
+                                self._sync_to_native_engine("select")
+                            self._show_status(f"Camada '{layer.name}' fundida para baixo.")
+                    finally:
+                        self._updating_selection = False
 
     def _show_status(self, message):
         win = QApplication.activeWindow()
@@ -396,19 +434,20 @@ class LayersPanel(QWidget):
             self.view.setExpanded(idx, not is_expanded)
             self.model.setData(idx, is_expanded, ROLE_COLLAPSED)
 
-    def _on_view_selection_changed(self):
-        if self._updating_selection: 
+    def _on_view_selection_changed(self, selected=None, deselected=None):
+        if self._updating_selection or getattr(self.model, '_is_modifying_structure', False): 
             return
-        idx = self.view.currentIndex()
-        if idx.isValid():
-            uid = idx.data(ROLE_UID)
-            self.layer_manager.set_active_layer(uid)
-            self._sync_to_native_engine("select")
+        indexes = self.view.selectionModel().selectedIndexes()
+        if indexes:
+            uid = indexes[0].data(ROLE_UID)
+            if uid:
+                self.layer_manager.set_active_layer(uid)
+                self._sync_to_native_engine("select")
 
     def _on_engine_active_layer_changed(self, uid):
         self._sync_header_controls()
         self._sync_to_native_engine("select")
-        QTimer.singleShot(10, lambda: self._select_uid_in_view(uid))
+        self._select_uid_in_view(uid)
 
     def _select_uid_in_view(self, uid):
         self._updating_selection = True
@@ -435,6 +474,10 @@ class LayersPanel(QWidget):
     def _ensure_top_selection(self):
         if self._updating_selection or not self.layer_manager: 
             return
+        active = self.layer_manager.get_active_layer()
+        if active:
+            self._select_uid_in_view(active.uid)
+            return
         if not self.view.selectionModel().hasSelection():
             index = self.model.index(0, 0)
             if index.isValid():
@@ -448,9 +491,9 @@ class LayersPanel(QWidget):
             return
         active = self.layer_manager.get_active_layer()
         if active:
-            QTimer.singleShot(10, lambda: self._select_uid_in_view(active.uid))
+            self._select_uid_in_view(active.uid)
         else:
-            QTimer.singleShot(10, self._ensure_top_selection)
+            self._ensure_top_selection()
 
     def _apply_theme(self, _=""):
         from ui.core.theme.manager import ThemeManager

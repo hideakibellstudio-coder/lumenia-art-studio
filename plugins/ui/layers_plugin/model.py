@@ -280,18 +280,24 @@ class LayerModel(QAbstractItemModel):
         return True
 
     def _on_layer_added(self, layer):
-        self._rebuild_structure_cache()
-        parent_uid = layer.parent_uid
-        if parent_uid is None:
-            self.beginInsertRows(QModelIndex(), 0, 0)
-            self.endInsertRows()
-        else:
-            parent_index = self._find_index_by_uid(parent_uid)
-            if parent_index.isValid():
-                self.beginInsertRows(parent_index, 0, 0)
+        self._is_modifying_structure = True
+        try:
+            parent_uid = layer.parent_uid
+            if parent_uid is None:
+                self.beginInsertRows(QModelIndex(), 0, 0)
+                self._rebuild_structure_cache()
                 self.endInsertRows()
             else:
-                self.layoutChanged.emit()
+                parent_index = self._find_index_by_uid(parent_uid)
+                if parent_index.isValid():
+                    self.beginInsertRows(parent_index, 0, 0)
+                    self._rebuild_structure_cache()
+                    self.endInsertRows()
+                else:
+                    self._rebuild_structure_cache()
+                    self.layoutChanged.emit()
+        finally:
+            self._is_modifying_structure = False
 
     def _find_index_by_uid(self, uid):
         if uid is None:

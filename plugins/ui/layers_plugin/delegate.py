@@ -36,7 +36,9 @@ class LayerItemDelegate(QStyledItemDelegate):
         curr_x = rect.left() + PADDING
         curr_x += ICON_SIZE + 4  # Visibilidade
         if clip:
-            curr_x += 14
+            curr_x += 16
+        elif is_group:
+            curr_x += 18
         else:
             curr_x += 16
         curr_x += THUMB_W + PADDING  # Thumbnail
@@ -104,21 +106,22 @@ class LayerItemDelegate(QStyledItemDelegate):
         curr_x += ICON_SIZE + 4
 
         # --- [2] Indent & Type Arrow ---
-        type_rect_w = 14
-        type_rect = QRect(curr_x, rect.top(), type_rect_w, ROW_HEIGHT)
         if clip:
+            type_rect = QRect(curr_x, rect.top(), 16, ROW_HEIGHT)
             painter.setPen(QColor(accent_color))
             f = QFont(painter.font().family(), 12)
             painter.setFont(f)
             painter.drawText(type_rect, Qt.AlignCenter, "↳")
-            curr_x += type_rect_w
+            curr_x += 16
         elif is_group:
-            painter.setPen(QColor(text_muted))
-            f = QFont(painter.font().family(), 10)
+            type_rect = QRect(curr_x, rect.top(), 18, ROW_HEIGHT)
+            painter.setPen(QColor(text_color))
+            f = QFont(painter.font().family(), 9, QFont.Bold)
             painter.setFont(f)
             is_expanded = option.state & QStyle.State_Open
             arrow = "▼" if is_expanded else "▶"
             painter.drawText(type_rect, Qt.AlignCenter, arrow)
+            curr_x += 18
         else:
             curr_x += 16
 
@@ -200,7 +203,7 @@ class LayerItemDelegate(QStyledItemDelegate):
 
     def get_hitboxes(self, rect: QRect, is_group: bool, clip: bool = False) -> dict:
         eye_box = QRect(rect.left() + PADDING, rect.top(), ICON_SIZE + 4, ROW_HEIGHT)
-        collapse_box = QRect(rect.left() + PADDING + ICON_SIZE + 4, rect.top(), 16, ROW_HEIGHT) if is_group else QRect()
+        collapse_box = QRect(rect.left() + PADDING + ICON_SIZE + 4, rect.top(), 18, ROW_HEIGHT) if is_group else QRect()
         
         curr_x = self._get_right_content_x(rect, clip, is_group)
         icons_y = rect.top() + 24

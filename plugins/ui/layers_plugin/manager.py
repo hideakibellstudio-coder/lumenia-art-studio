@@ -97,7 +97,11 @@ class LocalLayerManager(QtCore.QObject):
         active = self.get_active_layer()
         if active:
             idx = self.layers.index(active) + 1
-            layer.parent_uid = active.parent_uid
+            if active.is_group:
+                layer.parent_uid = active.uid
+                active.collapsed = False
+            else:
+                layer.parent_uid = active.parent_uid
             self.layers.insert(idx, layer)
         else:
             self.layers.append(layer)
@@ -118,7 +122,11 @@ class LocalLayerManager(QtCore.QObject):
         active = self.get_active_layer()
         if active:
             idx = self.layers.index(active) + 1
-            layer.parent_uid = active.parent_uid
+            if active.is_group:
+                layer.parent_uid = active.uid
+                active.collapsed = False
+            else:
+                layer.parent_uid = active.parent_uid
             self.layers.insert(idx, layer)
         else:
             self.layers.append(layer)

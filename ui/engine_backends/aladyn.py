@@ -136,6 +136,21 @@ class AladynBackend(EngineBackend):
             return self._facade.reorder_layers(new_order)
         return False
 
+    def add_group(self, name: str = "Novo Grupo") -> int:
+        if self._facade and hasattr(self._facade, "add_group"):
+            return self._facade.add_group(name)
+        return -1
+
+    def is_group(self, index: int) -> bool:
+        if self._facade and hasattr(self._facade, "is_group"):
+            return self._facade.is_group(index)
+        return False
+
+    def set_group_pass_through(self, index: int, pass_through: bool) -> bool:
+        if self._facade and hasattr(self._facade, "set_group_pass_through"):
+            return self._facade.set_group_pass_through(index, pass_through)
+        return False
+
     def merge_layer_down(self, index: int) -> bool:
         if self._facade:
             return self._facade.merge_layer_down(index)

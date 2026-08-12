@@ -300,7 +300,15 @@ class LayersPanel(QWidget):
                 idx = layer_list.index(target_layer)
                 facade.set_layer_clipping_mask(idx, bool(val))
         elif action == "add":
-            facade.add_layer()
+            name = args[0] if args else ""
+            facade.add_layer(name)
+            self._native_uids = [l.uid for l in layer_list]
+        elif action == "add_group":
+            name = args[0] if args else "Novo Grupo"
+            if hasattr(facade, "add_group"):
+                facade.add_group(name)
+            else:
+                facade.add_layer(name)
             self._native_uids = [l.uid for l in layer_list]
         elif action == "delete":
             facade.remove_layer(c_idx)
@@ -344,8 +352,9 @@ class LayersPanel(QWidget):
     def add_layer(self, name=None):
         self._updating_selection = True
         try:
-            self._sync_to_native_engine("add")
-            self.layer_manager.add_layer(name)
+            layer_name = name if name else f"Camada {len(self.layer_manager.layers) + 1}"
+            self._sync_to_native_engine("add", layer_name)
+            self.layer_manager.add_layer(layer_name)
             self._native_uids = [l.uid for l in self.layer_manager.layers]
             active = self.layer_manager.get_active_layer()
             if active:
@@ -355,7 +364,19 @@ class LayersPanel(QWidget):
             self._updating_selection = False
 
     def add_group(self, name=None):
-        self._show_status("Recurso 'Novo Grupo' em desenvolvimento.")
+        self._updating_selection = True
+        try:
+            group_name = name if name else "Novo Grupo"
+            self._sync_to_native_engine("add_group", group_name)
+            self.layer_manager.add_group(group_name)
+            self._native_uids = [l.uid for l in self.layer_manager.layers]
+            active = self.layer_manager.get_active_layer()
+            if active:
+                self._select_uid_in_view(active.uid)
+                self._sync_to_native_engine("select")
+            self._show_status(f"Grupo '{group_name}' criado com sucesso.")
+        finally:
+            self._updating_selection = False
 
     def add_filter_layer(self, filter_type=None):
         self._show_status("Recurso 'Camada de Filtro' em desenvolvimento.")

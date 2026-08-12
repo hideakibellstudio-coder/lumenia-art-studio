@@ -1,0 +1,9 @@
+{
+    "WorkspaceCore": true,
+    "ColorPlugin": true,
+    "BrushPlugin": true,
+    "NavigatorPlugin": true,
+    "LayersPlugin": true,
+    "RainbowDynamics": false,
+    "TelemetryPlugin": true
+}

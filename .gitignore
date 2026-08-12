@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# C++ / MSVC Build artifacts
+*.obj
+*.o
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.idb
+
+# Antigravity & IDEs
+.gemini/
+.idea/
+.vscode/
+*.tmp
+*.log

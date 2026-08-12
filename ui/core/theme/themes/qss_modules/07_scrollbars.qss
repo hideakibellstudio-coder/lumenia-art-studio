@@ -1,0 +1,65 @@
+/* ================================================================
+   7. SCROLLBARS (Vertical, Horizontal e Corner)
+   ================================================================ */
+
+/* --- Barra Vertical --- */
+QScrollBar:vertical {
+    background-color: @BG_DARKER;
+    width: 14px;
+    margin: 0px;
+    border-left: 1px solid @BORDER;
+}
+
+QScrollBar::handle:vertical {
+    background-color: @BG_LIGHTEST;
+    min-height: 30px;
+    border-radius: 6px;
+    margin: 1px 2px 1px 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: @FG_TERTIARY;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: none;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/* --- Barra Horizontal --- */
+QScrollBar:horizontal {
+    background-color: @BG_DARKER;
+    height: 14px;
+    margin: 0px;
+    border-top: 1px solid @BORDER;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: @BG_LIGHTEST;
+    min-width: 30px;
+    border-radius: 6px;
+    margin: 2px 1px 2px 1px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: @FG_TERTIARY;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+    background: none;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+/* --- Corner (O quadradinho de encontro das duas barras) --- */
+QAbstractScrollArea::corner {
+    background-color: @BG_DARKER;
+    border: none;
+}

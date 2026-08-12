@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "Lumenia Purple",
+        "author": "Antigravity",
+        "type": "dark"
+    },
+    "colors": {
+        "BG_DARKEST": "#1c1c22",
+        "BG_DARKER": "#24242a",
+        "BG_DARK": "#2b2b34",
+        "BG_MID": "#33333d",
+        "BG_TERTIARY": "#3e3e4a",
+        "BG_LIGHT": "#3c3c47",
+        "BG_LIGHTER": "#484855",
+        "BG_LIGHTEST": "#555563",
+        "FG_PRIMARY": "#f2f2f7",
+        "FG_SECONDARY": "#aeb0bf",
+        "FG_TERTIARY": "#848699",
+        "FG_LINK": "#b785f5",
+        "ACCENT": "#8b5cf6",
+        "ACCENT_HOVER": "#a78bfa",
+        "ACCENT_MUTED": "rgba(139, 92, 246, 0.15)",
+        "DANGER": "#f43f5e",
+        "DANGER_HOVER": "#fb7185",
+        "SUCCESS": "#10b981",
+        "WARNING": "#fbbf24",
+        "BORDER": "#3e3e4a",
+        "BORDER_LIGHT": "#525261",
+        "SHADOW": "rgba(0, 0, 0, 0.4)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

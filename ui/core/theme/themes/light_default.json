@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "Light Clean",
+        "author": "Lumenia",
+        "type": "light"
+    },
+    "colors": {
+        "BG_DARKEST": "#f6f8fa",
+        "BG_DARKER": "#f6f8fa",
+        "BG_DARK": "#f3f4f6",
+        "BG_MID": "#f6f8fa",
+        "BG_TERTIARY": "#ebf0f7",
+        "BG_LIGHT": "#e5e7eb",
+        "BG_LIGHTER": "#d1d5db",
+        "BG_LIGHTEST": "#9ca3af",
+        "FG_PRIMARY": "#1f2328",
+        "FG_SECONDARY": "#656d76",
+        "FG_TERTIARY": "#8c959f",
+        "FG_LINK": "#0969da",
+        "ACCENT": "#0969da",
+        "ACCENT_HOVER": "#005cc5",
+        "ACCENT_MUTED": "rgba(9, 105, 218, 0.15)",
+        "DANGER": "#cf222e",
+        "DANGER_HOVER": "#a40e26",
+        "SUCCESS": "#1a7f37",
+        "WARNING": "#9a6700",
+        "BORDER": "#d0d7de",
+        "BORDER_LIGHT": "#e1e4e8",
+        "SHADOW": "rgba(31, 35, 40, 0.08)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

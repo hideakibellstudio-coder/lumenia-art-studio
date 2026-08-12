@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumenia — GitHub Project Dashboard & Release Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-surface: #161b22;
+            --bg-subtle: #21262d;
+            --border: #30363d;
+            --border-muted: #21262d;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #bc8cff;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --tag-feat: rgba(56, 139, 253, 0.15);
+            --tag-fix: rgba(248, 81, 73, 0.15);
+            --tag-refactor: rgba(188, 140, 255, 0.15);
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'Fira Code', monospace;
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #ffffff;
+            --bg-surface: #f6f8fa;
+            --bg-subtle: #eaeed2;
+            --border: #d0d7de;
+            --border-muted: #d8dee4;
+            --text-main: #1f2328;
+            --text-muted: #656d76;
+            --accent: #0969da;
+            --accent-green: #1a7f37;
+            --accent-purple: #8250df;
+            --accent-orange: #9a6700;
+            --accent-red: #cf222e;
+            --tag-feat: #ddf4ff;
+            --tag-fix: #ffebe9;
+            --tag-refactor: #f3e8ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding-bottom: 60px;
+        }
+
+        header {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-badge {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .project-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            background: var(--bg-subtle);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--border);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: #fff;
+            border-color: transparent;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .stat-box {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-val {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .stat-lbl {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .search-bar:focus {
+            outline: 2px solid var(--accent);
+            border-color: transparent;
+        }
+
+        .commit-list {
+            list-style: none;
+        }
+
+        .commit-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .commit-item:last-child {
+            border-bottom: none;
+        }
+        .commit-item:hover {
+            background: var(--bg-subtle);
+        }
+
+        .commit-title {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .commit-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-feat { background: var(--tag-feat); color: var(--accent); }
+        .badge-fix { background: var(--tag-fix); color: var(--accent-red); }
+        .badge-refactor { background: var(--tag-refactor); color: var(--accent-purple); }
+        .badge-style { background: rgba(210, 153, 34, 0.15); color: var(--accent-orange); }
+
+        .commit-hash {
+            font-family: var(--font-mono);
+            background: var(--bg-subtle);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        .doc-section {
+            margin-bottom: 24px;
+        }
+        .doc-section h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+            color: var(--accent);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .feature-card {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+        }
+        .feature-card h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            background: rgba(110, 118, 129, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-area">
+            <span class="logo-badge">WGPU Surface</span>
+            <span class="project-title">Lumenia / Git Dashboard</span>
+        </div>
+        <div class="header-actions">
+            <span class="btn">🌿 Branch: <strong>feature/engine-features</strong></span>
+            <button class="btn" onclick="toggleTheme()">🌓 Alternar Tema</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="grid-3" style="margin-bottom: 24px;">
+            <div class="stat-box">
+                <div class="stat-val">50</div>
+                <div class="stat-lbl">Commits Registrados</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val" style="color: var(--accent-green);">100%</div>
+                <div class="stat-lbl">Sincronia na Branch Master</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val" style="color: var(--accent-purple);">Workspace V2</div>
+                <div class="stat-lbl">Arquitetura de Plugins</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('commits')">📜 Histórico de Commits</button>
+            <button class="tab-btn" onclick="switchTab('features')">✨ Funcionalidades & Correções</button>
+            <button class="tab-btn" onclick="switchTab('architecture')">🏛️ Arquitetura do Sistema</button>
+        </div>
+
+        <!-- ABA COMMITS -->
+        <div id="tab-commits" class="tab-content active">
+            <div class="card">
+                <input type="text" id="commit-search" class="search-bar" placeholder="🔍 Pesquisar por commit, hash ou funcionalidade (ex: fix, theme, advanced-panel)..." onkeyup="filterCommits()">
+                <ul class="commit-list" id="commit-list-container">
+                    <!-- Gerado via JavaScript -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- ABA FEATURES -->
+        <div id="tab-features" class="tab-content">
+            <div class="card">
+                <div class="doc-section">
+                    <h3>🚀 Principais Recursos Unificados</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h4>🖌️ BrushDropdown Legado</h4>
+                            <p style="font-size: 13px; color: var(--text-muted);">
+                                Grid interno de 3 colunas por cartões (84x58px), 7 abas de categorias por tipo de material com ícones SVG nativos e truncamento inteligente.
+                            </p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>🧰 FloatingToolbar Flutuante</h4>
+                            <p style="font-size: 13px; color: var(--text-muted);">
+                                Cápsula translúcida flutuante estilo Qt.Tool com 10 ferramentas sincronizadas bidirecionalmente e suporte a drag & drop magnético.
+                            </p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>⚙️ AdvancedPanel Inteligente</h4>
+                            <p style="font-size: 13px; color: var(--text-muted);">
+                                Janela flutuante alinhada 10px à direita da gaveta expandida, extensão vertical completa até o rodapé e sistema de checkbox pin nos sliders.
+                            </p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>🎨 ThemeManager & Tokens</h4>
+                            <p style="font-size: 13px; color: var(--text-muted);">
+                                Sistema central de temas JSON (Dark Default, Lumenia Purple, Cyberpunk, Light Default) com ícones reativos e zero hardcodes de cores.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="doc-section">
+                    <h3>🛠️ Correções Críticas Realizadas</h3>
+                    <ul style="padding-left: 20px; font-size: 14px; color: var(--text-muted);">
+                        <li><strong>TypeError Zoom In/Out Fix</strong>: Adicionado parâmetro <code>rot_rad</code> no <code>InputAdapter.update_view()</code>.</li>
+                        <li><strong>Windows DWM Shadows Fix</strong>: Ajustado raio de sombra para 10px e offset 2px eliminando avisos <code>UpdateLayeredWindowIndirect</code>.</li>
+                        <li><strong>Standardized Hover in Light Themes</strong>: Substituído hover preto por <code>ACCENT_MUTED</code> em temas claros.</li>
+                        <li><strong>White Selected Icons</strong>: Ícones de botões selecionados forçados para branco (<code>#ffffff</code>) para máximo contraste.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA ARQUITETURA -->
+        <div id="tab-architecture" class="tab-content">
+            <div class="card">
+                <div class="doc-section">
+                    <h3>🏛️ Estrutura de Diretórios Lumenia V2</h3>
+                    <pre style="font-family: var(--font-mono); background: var(--bg-subtle); padding: 16px; border-radius: 6px; font-size: 13px; overflow-x: auto;">
+Lumenia/
+├── ui/
+│   ├── boundary/orchestrator/main_window.py (Central Container MainWindow)
+│   ├── core/
+│   │   ├── components/
+│   │   │   ├── workspace/workspace_container.py (Core Viewport & Dock Integrator)
+│   │   │   ├── workspace/dock_system.py (Advanced Dock System & Drawers)
+│   │   │   ├── workspace/floating_toolbar.py (Cápsula Flutuante)
+│   │   │   └── brush_dock/ (BrushDropdown & AdvancedPanel)
+│   │   ├── theme/manager.py (ThemeManager & Dynamic Tokens)
+│   │   └── icons.py (DynamicThemeIconEngine)
+└── plugins/
+    ├── system/workspace_core/ (Plugin de Sistema do Workspace)
+    └── ui/ (BrushPlugin, ColorPlugin, LayersPlugin, NavigatorPlugin)
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const commitsData = [{"hash": "c3b1244", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(engine): implementa Raw Input de Tablet de alta frequencia com suporte a Tilt X/Y e process_raw_stylus_event (Fase 6)", "tag": "feat"}, {"hash": "a308431", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(engine): conclui a Fase 5 completa do motor (DirtyRect tracking, Viewport Dab Culling em canvas 4K/8K e 13 Blend Modes estendidos)", "tag": "feat"}, {"hash": "5b51d31", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(engine): conclui a Fase 4 completa do motor (CatmullRomInterpolator com 0-lag ghost points, UndoStack GPU-side de 20 snapshots, Mipmapping e FFI undo/redo)", "tag": "feat"}, {"hash": "5e8fa8e", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(engine): conclui a Fase 3 completa do motor (VelocityDynamics com filtro EMA, JitterCalculator PCG32 posicional e rotacional, PyBrushPreset FFI batching em lock unico e acumulador subpixel f64)", "tag": "feat"}, {"hash": "5139bde", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(engine): conclui a Fase 2 completa do motor (Single-texture ScratchLayer sem ping-pong VRAM, Dab Batching em 1 Render Pass unico por frame, Borracha Real modo Erase no compose shader, cancel_stroke(), resize sync e Vec with_capacity)", "tag": "feat"}, {"hash": "2a87a2c", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(engine): conclui a Fase 1 completa do motor (Bleach Bug fix, zero pressure leak fix, BlendModes com HashMap pipeline cache, brush_rotation com UVs separadas, texture_scale configuravel e spacing clamp)", "tag": "feat"}, {"hash": "9ddd474", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "docs(roadmap): sincroniza detalhadamente todas as fases do roadmap com os 10 itens de prevenção da contra-analise", "tag": "other"}, {"hash": "a03f95f", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "docs(analysis): expande contra-analise tecnica para 10 pontos cobrindo ping-pong textures, Moiré em zoom distante, Catmull-Rom lag e otimizacao FFI de presets", "tag": "other"}, {"hash": "4b72631", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "docs(analysis): adiciona secao de Contra-Analise Tecnica cruzando plano de desenvolvimento com codigo real para prever bugs de WGPU e composicao", "tag": "other"}, {"hash": "85fc915", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "docs(roadmap): atualiza e reorganiza as 6 fases do roadmap incorporando as correcoes executadas e tarefas do deep dive", "tag": "other"}, {"hash": "75da709", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "docs(engine): expande ENGINE_ANALYSIS.md com analise tecnica profunda de fisica 3D, premultiplied alpha bleach bug, gargalos de VRAM por dab e edge cases de camera/viewport", "tag": "other"}, {"hash": "5818770", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "build(bridge): atualiza pyo3 v0.22 -> v0.29 para suporte nativo a Python 3.14 (Bound API e py.detach)", "tag": "other"}, {"hash": "0bbf5dd", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(engine): brush_pressure agora e multiplicador real em add_dab (0.5 default corrigido para 1.0); fix(ui): size slider advanced_panel sincronizado para 1-500px; pressure slider default sincronizado para 100pct; docs: auditoria de fluxo de parametros adicionada ao ENGINE_ANALYSIS", "tag": "fix"}, {"hash": "bfe442d", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "docs(engine): adiciona ENGINE_ANALYSIS.md com auditoria tecnica completa, 12 parametros funcionais, 10 problemas criticos e roadmap de 6 fases", "tag": "other"}, {"hash": "acd0be7", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(workspace): soluciona crash TypeError em zoom_in/zoom_out passando rot_rad ao InputAdapter e elimina avisos UpdateLayeredWindowIndirect no Windows DWM ajustando os limites de sombra em janelas translucidas", "tag": "fix"}, {"hash": "882fd8b", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(theme): corrige o hover de botoes em temas claros para utilizar accent_muted (BG_TERTIARY) eliminando o hover preto e garante que o icone de botoes selecionados fique branco (#ffffff)", "tag": "fix"}, {"hash": "07cf22d", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "refactor(theme): padroniza todas as chamadas de cores via tokens do ThemeManager (border, bg_panel, text_main, accent) eliminando os fallbacks hardcoded e garantindo reatividade aos temas claro/escuro/cyberpunk", "tag": "refactor"}, {"hash": "2a33102", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(advanced-panel): calcula a borda direita global do drawer_container expandido eliminando a sobreposicao e ajusta a altura vertical total do viewport", "tag": "fix"}, {"hash": "be5b655", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(advanced-panel): substitui o glifo texto de engrenagem pelo icone SVG dinamico get_icon('settings') no cabecalho do painel avancado", "tag": "fix"}, {"hash": "801b7be", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(advanced-panel): alinha o painel 10px a direita do left_dock e estende a altura ate a base do viewport (workspace_area.height() - 20px) sem limitar a 650px", "tag": "fix"}, {"hash": "e138917", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(advanced-panel): posiciona o painel de configuracoes avancadas 10px a direita da gaveta inteira com altura estendida no viewport idêntico ao legado", "tag": "fix"}, {"hash": "ab1a057", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(advanced-panel): expande dimensoes para 320x450-650px eliminando cortamento e integra sistema de fixacao dinamica por checkbox (pin) nos sliders com o painel rapido", "tag": "feat"}, {"hash": "bfb6f2f", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(workspace): utiliza Qt.UniqueConnection ao conectar o sinal toolActivated para eliminar o RuntimeWarning de desconexao no PySide6", "tag": "fix"}, {"hash": "eb4e4d1", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(smudge): atualiza o icone SVG principal da chave smudge para o vetor do legado (Smudge.svg) e altera a descricao no painel para Smudge", "tag": "fix"}, {"hash": "312431c", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(icons): padroniza os icones SVG de Borracha (eraser) e Smudge (smudge) no painel com os mesmos vetores do dropdown do legado", "tag": "fix"}, {"hash": "597d428", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(icons): integra os 7 icones SVG exatos das categorias de ferramentas legadas (Lapis, Canetas, Pinceis, Smudges, Borrachas, Pulverizadores e Efeitos) no BrushSelectorPopup", "tag": "feat"}, {"hash": "e898d42", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "feat(brush-dropdown): restaura o grid de 3 colunas, icones SVG e abas do popup legado, e conecta sincronizacao bidirecional do painel para a FloatingToolbar", "tag": "feat"}, {"hash": "5685504", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(brush-dropdown): adiciona Qt.NoDropShadowWindowHint para desativar a sombra retangular nativa CS_DROPSHADOW do Windows DWM no BrushSelectorPopup", "tag": "fix"}, {"hash": "cbbc969", "author": "Lumenia Developer", "date": "2026-07-22", "msg": "fix(brush-panel): remove restricao de alinhamento e expande todos os controles de propriedade ate a borda direita do cartão", "tag": "fix"}, {"hash": "a265668", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(brush-panel): adiciona container sutil ToolColBox nas ferramentas verticais, expande coluna de propriedades e elimina quadrado translucido do popup com margens externas", "tag": "fix"}, {"hash": "54f4fb3", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(brush-panel): remove barra de rolagem e ajusta posicoes dos parametros rapidos", "tag": "fix"}, {"hash": "a5e78e7", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(brush-plugin): atualiza o painel ativo plugins/ui/brush_plugin/panel.py com a coluna vertical de 10 ferramentas e o BrushDropdown do legado", "tag": "fix"}, {"hash": "dc752a9", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(brush-dock): aplica BrushDropdown e grid de 10 ferramentas no BrushDock nativo (properties_dock/dock.py) e corrige trava de reentrancia para sincronizacao instantanea", "tag": "fix"}, {"hash": "760aa37", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "feat(brush-dock): implementa grid completo de 10 ferramentas no BrushSettingsPanel, sincronizacao bidirecional com a FloatingToolbar, dropdown legado de presets e icone de pincel correto", "tag": "feat"}, {"hash": "846c253", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(toolbar): oculta e desvincula botoes reconstruidos para eliminar fantasma de sobreposicao no canto esquerdo da float bar", "tag": "fix"}, {"hash": "0d9be2d", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(toolbar): substitui icones SVG pelos originais do legado, padroniza pilula de arrasto e elimina cantos translucidos e overlap inicial", "tag": "fix"}, {"hash": "99bb8ed", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "feat(toolbar): implementa Barra Flutuante (FloatingToolbar) com janela Qt.Tool, sistema magnetico, icones SVG e dialog de configuracoes", "tag": "feat"}, {"hash": "b4eda66", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): evita animar novamente a gaveta se ela ja estiver aberta e sincroniza a expansao suave da sidebar", "tag": "fix"}, {"hash": "395741d", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): desvincula calculo de posicionamento da gaveta direita do estado de recolhimento da sidebar esquerda", "tag": "fix"}, {"hash": "acd2fce", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): reexibe incondicionalmente a sidebar ao despinar a gaveta", "tag": "fix"}, {"hash": "08c7f25", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): corrige orientacao da animacao de recolhimento da gaveta direita flutuante", "tag": "fix"}, {"hash": "cc60685", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): impede update_unpinned_position de sobrescrever a geometria de gavetas pinadas ao fechar a gaveta oposta", "tag": "fix"}, {"hash": "30d1e2c", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): ajusta QPalette nativa e WA_StyledBackground para eliminar flickering branco na 1a abertura da gaveta", "tag": "fix"}, {"hash": "1701893", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "feat(dock): adiciona recolhimento imediato ao aplicar auto-recolhimento e animacao suave de abertura/fechamento da gaveta", "tag": "feat"}, {"hash": "d0b2980", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(brush): substitui emoji de texto por icone SVG dinâmico get_icon('settings') nos botoes de configuracoes avancadas", "tag": "fix"}, {"hash": "64a7139", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "style(dock): adiciona WA_StyledBackground e bordas discretas na SidebarWidget para delimitacao visual", "tag": "style"}, {"hash": "8650dee", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "style(dock): ajusta alinhamento do titulo do cabecalho da gaveta junto ao botao de pin", "tag": "style"}, {"hash": "1c38e63", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): alinha pilula estritamente no slot de 54px das sidebars para transicao dinamica de hover", "tag": "fix"}, {"hash": "5495837", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "fix(dock): ajusta pilula horizontal no topo e recolhimento automatico ao pinar", "tag": "fix"}, {"hash": "96538f9", "author": "Lumenia Developer", "date": "2026-07-21", "msg": "feat(dock): sistema de gavetas avancado - pilulas, animacao, drag-drop, menu Janela", "tag": "feat"}];
+
+        function renderCommits(items) {
+            const container = document.getElementById('commit-list-container');
+            container.innerHTML = items.map(c => `
+                <li class="commit-item">
+                    <div>
+                        <div class="commit-title">
+                            <span class="badge badge-${c.tag}">${c.tag}</span>
+                            ${c.msg}
+                        </div>
+                        <div class="commit-meta">
+                            <span>👤 ${c.author}</span>
+                            <span>📅 ${c.date}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="commit-hash">${c.hash}</span>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function filterCommits() {
+            const query = document.getElementById('commit-search').value.toLowerCase();
+            const filtered = commitsData.filter(c => 
+                c.msg.toLowerCase().includes(query) || 
+                c.hash.toLowerCase().includes(query) ||
+                c.tag.toLowerCase().includes(query)
+            );
+            renderCommits(filtered);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+        }
+
+        // Inicialização
+        renderCommits(commitsData);
+    </script>
+</body>
+</html>

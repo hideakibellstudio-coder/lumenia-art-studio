@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "Lumenia Light",
+        "author": "Antigravity",
+        "type": "light"
+    },
+    "colors": {
+        "BG_DARKEST": "#fafafa",
+        "BG_DARKER": "#f4f4f5",
+        "BG_DARK": "#e4e4e7",
+        "BG_MID": "#d4d4d8",
+        "BG_TERTIARY": "#d8d8dd",
+        "BG_LIGHT": "#a1a1aa",
+        "BG_LIGHTER": "#71717a",
+        "BG_LIGHTEST": "#52525b",
+        "FG_PRIMARY": "#18181b",
+        "FG_SECONDARY": "#3f3f46",
+        "FG_TERTIARY": "#71717a",
+        "FG_LINK": "#7e22ce",
+        "ACCENT": "#8b5cf6",
+        "ACCENT_HOVER": "#a78bfa",
+        "ACCENT_MUTED": "rgba(139, 92, 246, 0.15)",
+        "DANGER": "#e11d48",
+        "DANGER_HOVER": "#be123c",
+        "SUCCESS": "#16a34a",
+        "WARNING": "#d97706",
+        "BORDER": "#c4c4c9",
+        "BORDER_LIGHT": "#dbdbdf",
+        "SHADOW": "rgba(0, 0, 0, 0.1)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

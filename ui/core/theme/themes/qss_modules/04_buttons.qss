@@ -1,0 +1,88 @@
+/* ================================================================
+   4. BOTÕES
+   ================================================================ */
+QPushButton {
+    background-color: @BG_MID;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+    padding: 6px 16px;
+    font-weight: 500;
+}
+
+QPushButton:hover {
+    background-color: @BG_LIGHT;
+    border: 1px solid @BORDER_LIGHT;
+}
+
+QPushButton:pressed {
+    background-color: @BG_LIGHTER;
+}
+
+QPushButton:disabled {
+    background-color: @BG_DARKEST;
+    color: @FG_TERTIARY;
+    border: 1px solid @TRANSPARENT;
+}
+
+/* Botões de Ação Principal */
+QPushButton#accentButton, QDialogButtonBox QPushButton[text="OK"], QDialogButtonBox QPushButton[text="Aplicar"] {
+    background-color: @ACCENT;
+    color: #ffffff;
+    border: none;
+}
+
+QPushButton#accentButton:hover, QDialogButtonBox QPushButton[text="OK"]:hover, QDialogButtonBox QPushButton[text="Aplicar"]:hover {
+    background-color: @ACCENT_HOVER;
+}
+
+/* ================================================================
+   Botões de Ferramenta (QToolButton) - Comuns em Toolbars e Painéis
+   ================================================================ */
+QToolButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_SMALL;
+    padding: 2px;
+}
+
+QToolButton:hover {
+    background-color: @BG_LIGHT;
+    border: 1px solid @BORDER_LIGHT;
+}
+
+QToolButton:checked {
+    background-color: @ACCENT;
+    border: 1px solid @ACCENT;
+}
+
+QToolButton:pressed {
+    background-color: @BG_DARKEST;
+}
+
+/* --- Padronização de Grid de Botões (Utilities) --- */
+QToolButton[class="GridButton"] {
+    background-color: @BG_DARK;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 4px;
+}
+
+QToolButton[class="GridButton"]:hover {
+    background-color: @BG_MID;
+    border: 1px solid @BORDER_LIGHT;
+}
+
+QToolButton[class="GridButton"]:checked {
+    background-color: @ACCENT;
+    border: 1px solid @ACCENT;
+}
+
+QToolButton[class="GridButton"]:pressed {
+    background-color: @BG_DARKEST;
+}
+
+QToolButton[class="GridButton"]:disabled {
+    background-color: @BG_DARKER;
+    border: 1px solid @TRANSPARENT;
+}

@@ -1,0 +1,117 @@
+/* ================================================================
+   9. JANELA DE GERENCIAMENTO DE PLUGINS
+   ================================================================ */
+
+PluginsWindow {
+    background-color: @BG_DARK;
+}
+
+/* --- Sidebar --- */
+QFrame[class="sidebar"] {
+    background-color: @BG_DARKEST;
+    border-right: 1px solid @BORDER;
+}
+
+/* --- Botões da sidebar --- */
+QPushButton[class="sidebar-btn"] {
+    background-color: transparent;
+    border: none;
+    border-radius: @RADIUS_SMALL;
+    padding: 8px 12px;
+    color: @FG_SECONDARY;
+    text-align: left;
+    font-size: 12px;
+}
+
+QPushButton[class="sidebar-btn"]:hover {
+    background-color: @BG_MID;
+    color: @FG_PRIMARY;
+}
+
+QPushButton[class="sidebar-btn"]:checked {
+    background-color: @BG_MID;
+    color: @ACCENT;
+    font-weight: bold;
+}
+
+QLabel[class="sidebar-title"] {
+    color: @FG_TERTIARY;
+    font-weight: bold;
+    font-size: 10px;
+    margin-bottom: 5px;
+    background-color: transparent;
+}
+
+/* --- Barra de busca --- */
+QLineEdit[class="search-bar"] {
+    background-color: @BG_DARK;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 6px 12px;
+    color: @FG_PRIMARY;
+}
+
+QLineEdit[class="search-bar"]:focus {
+    border-color: @ACCENT;
+}
+
+/* --- Labels hierárquicos --- */
+QLabel[class="h1"] {
+    font-size: 20px;
+    font-weight: bold;
+    color: @FG_PRIMARY;
+    background-color: transparent;
+}
+
+QLabel[class="h2"] {
+    font-size: 14px;
+    font-weight: bold;
+    color: @FG_PRIMARY;
+    background-color: transparent;
+}
+
+QLabel[class="caption"] {
+    font-size: 11px;
+    color: @FG_SECONDARY;
+    background-color: transparent;
+}
+
+/* --- Cards de Plugins --- */
+QFrame[class="plugin-card"] {
+    background-color: @BG_DARK;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+}
+
+QFrame[class="plugin-card"]:hover {
+    border-color: @BORDER_LIGHT;
+    background-color: @BG_MID;
+}
+
+QPushButton#pluginSettingsButton {
+    background-color: transparent;
+    color: @ACCENT;
+    border: none;
+    text-align: right;
+    font-size: 11px;
+    padding: 0;
+}
+
+QPushButton#pluginSettingsButton:hover {
+    color: @ACCENT_HOVER;
+}
+
+/* --- Barra de ações pendentes --- */
+QFrame[class="action-bar"] {
+    background-color: @BG_DARKER;
+    border: 1px solid @BORDER_LIGHT;
+    border-radius: @RADIUS_SMALL;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+QLabel[class="action-bar-label"] {
+    color: @FG_PRIMARY;
+    font-weight: bold;
+    background-color: transparent;
+}

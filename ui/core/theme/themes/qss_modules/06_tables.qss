@@ -1,0 +1,80 @@
+/* ================================================================
+   6. TABELAS (QTableWidget / QTableView)
+   Fonte da verdade para todas as tabelas da aplicação.
+   ================================================================ */
+
+QTableWidget, QTableView {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+    gridline-color: transparent;
+    selection-background-color: @ACCENT_MUTED;
+    selection-color: @FG_PRIMARY;
+    outline: none;
+}
+
+/* Linhas — todas com a mesma cor base, sem alternância nativa */
+QTableWidget::item, QTableView::item {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    padding: 4px 8px;
+    border: none;
+}
+
+QTableWidget::item:hover, QTableView::item:hover {
+    background-color: @BG_LIGHT;
+    color: @FG_PRIMARY;
+}
+
+QTableWidget::item:selected, QTableView::item:selected {
+    background-color: @ACCENT_MUTED;
+    color: @FG_PRIMARY;
+    border-left: 2px solid @ACCENT;
+}
+
+QTableWidget::item:selected:hover, QTableView::item:selected:hover {
+    background-color: @ACCENT_MUTED;
+}
+
+/* Header horizontal */
+QHeaderView {
+    background-color: @BG_DARKER;
+    border: none;
+}
+
+QHeaderView::section {
+    background-color: @BG_DARKER;
+    color: @FG_SECONDARY;
+    padding: 6px 8px;
+    border: none;
+    border-right: 1px solid @BORDER;
+    border-bottom: 1px solid @BORDER;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+QHeaderView::section:hover {
+    background-color: @BG_LIGHT;
+    color: @FG_PRIMARY;
+}
+
+QHeaderView::section:first {
+    border-top-left-radius: @RADIUS_MEDIUM;
+}
+
+QHeaderView::section:last {
+    border-right: none;
+    border-top-right-radius: @RADIUS_MEDIUM;
+}
+
+/* Scrollbars dentro das tabelas */
+QTableWidget QScrollBar:vertical, QTableView QScrollBar:vertical {
+    width: 6px;
+    background: transparent;
+}
+
+QTableWidget QScrollBar::handle:vertical, QTableView QScrollBar::handle:vertical {
+    background: @BORDER_LIGHT;
+    border-radius: 3px;
+}

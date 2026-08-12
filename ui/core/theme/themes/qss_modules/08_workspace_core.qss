@@ -1,0 +1,258 @@
+/* ================================================================
+   8. WORKSPACE CORE (COCKPIT INFRASTRUCTURE)
+   ================================================================ */
+
+/* --- 1. Global Workspace Backgrounds --- */
+*[cssClass="workspace-background"] {
+    background-color: @BG_DARKER;
+}
+
+*[cssClass="canvas-placeholder"] {
+    background-color: @BG_DARKEST;
+    border-left: 1px solid @BG_DARKEST;
+    border-right: 1px solid @BG_DARKEST;
+    /* Adiciona uma ilusão ótica de "poço", colocando os docks num nível acima */
+}
+
+/* --- 2. Workspace Sidebar --- */
+QFrame#WorkspaceSidebar {
+    background-color: @BG_DARKER;
+    border-left: 1px solid @BORDER_LIGHT;
+    border-right: 1px solid @BORDER_LIGHT;
+}
+
+/* O "Drag & Drop Zone" ou barra de ícones */
+QFrame#WorkspaceSidebar QPushButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_MEDIUM;
+    padding: 6px;
+    margin: 2px;
+}
+
+QFrame#WorkspaceSidebar QPushButton:hover {
+    background-color: @BG_LIGHT;
+    border: 1px solid @BORDER;
+}
+
+QFrame#WorkspaceSidebar QPushButton:checked {
+    background-color: @ACCENT;
+    border: 1px solid @ACCENT;
+}
+
+/* --- 3. Workspace Gavetas (Drawers) --- */
+QFrame#WorkspaceDrawer {
+    background-color: @BG_DARKER;
+    border-left: 1px solid @BORDER;
+    border-right: 1px solid @BORDER;
+}
+
+/* Cabeçalho da Gaveta */
+QFrame#WorkspaceDrawerHeader {
+    background-color: @BG_DARKER;
+    border-bottom: 1px solid @BORDER;
+}
+
+QFrame#WorkspaceDrawerHeader QLabel {
+    color: @FG_PRIMARY;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+
+QLabel#DrawerTitle {
+    background-color: transparent;
+    color: @FG_PRIMARY;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+QPushButton#DrawerPinButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_SMALL;
+}
+
+QPushButton#DrawerPinButton:hover {
+    background-color: @BG_LIGHT;
+    border: 1px solid @BORDER;
+}
+
+QPushButton#DrawerPinButton:checked {
+    background-color: @ACCENT;
+    border: 1px solid @BORDER;
+}
+
+/* --- 4. O Container do Plugin Flat --- */
+DockPanelContainer {
+    background-color: transparent;
+    border: none;
+    margin: 0px; 
+}
+
+/* Header visual de separação entre painéis */
+QFrame#DockPanelHeader {
+    background-color: @BG_DARKEST;
+    border-bottom: none;
+}
+
+QLabel#DockPanelTitle {
+    color: @FG_TERTIARY;
+    font-size: 10px;
+    font-weight: 700;
+    background-color: transparent;
+}
+
+/* Linha separadora inferior do header */
+QFrame#DockPanelSeparator {
+    background-color: @BORDER;
+    border: none;
+}
+
+/* --- 5. Floating Toolbar (Industrial Premium Look) --- */
+QFrame#FloatingToolbar {
+    background-color: @BG_MID;
+    border: 1px solid @BORDER_LIGHT;
+    border-radius: @RADIUS_LARGE;
+}
+
+/* O Grip do Grip (Drag Handle) */
+QFrame#FloatingToolbarDragHandle {
+    background-color: @BORDER;
+    border-radius: 2px;
+}
+
+QFrame#FloatingToolbarDragHandle:hover {
+    background-color: @FG_TERTIARY;
+}
+
+/* Botões do Floating Toolbar */
+QFrame#FloatingToolbar QPushButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_MEDIUM;
+    padding: 4px;
+}
+
+QFrame#FloatingToolbar QPushButton:hover {
+    background-color: @BG_LIGHT;
+    border: 1px solid @BORDER;
+}
+
+QFrame#FloatingToolbar QPushButton:checked {
+    background-color: @ACCENT;
+    border: 1px solid @BORDER;
+}
+
+/* --- 6. Floating Panels (Subwindows) --- */
+QFrame#FloatingPanelContainer {
+    background-color: @BG_DARK;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_LARGE;
+}
+
+QFrame#FloatingPanelHeader {
+    background-color: @BG_DARKEST;
+    border-top-left-radius: @RADIUS_LARGE;
+    border-top-right-radius: @RADIUS_LARGE;
+    border-bottom: 1px solid @BORDER;
+}
+
+#FloatingPanelHeader QLabel {
+    color: @FG_SECONDARY;
+    font-weight: bold;
+    font-size: 10px;
+}
+
+#FloatingPanelHeader QPushButton#CloseButton {
+    background-color: transparent;
+    color: @FG_PRIMARY;
+    border-radius: @RADIUS_SMALL;
+}
+
+#FloatingPanelHeader QPushButton#CloseButton:hover {
+    background-color: @DANGER;
+    color: white;
+}
+
+QScrollArea#FloatingPanelScroll {
+    background-color: transparent;
+    border: none;
+}
+
+QWidget#FloatingPanelContent {
+    background-color: transparent;
+}
+
+/* --- 7. Collapsible Sections (Pergaminhos) --- */
+QPushButton#CollapsibleHeader {
+    text-align: left;
+    padding-left: 10px;
+    font-weight: bold;
+    border: none;
+    border-bottom: 1px solid @BORDER_LIGHT;
+    background: @BG_DARKEST;
+    color: @FG_PRIMARY;
+}
+
+QPushButton#CollapsibleHeader:hover {
+    background: @BG_MID;
+}
+
+QFrame#CollapsibleContent {
+    background-color: @BG_DARK;
+}
+
+/* --- 8. Plugins Manager Window --- */
+QWidget#DetailsPanel {
+    background-color: @BG_DARK;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+}
+
+QTextEdit#PluginDetailDescription {
+    background-color: @BG_MID;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 8px;
+}
+
+QLabel#PluginErrorMessage {
+    color: @DANGER;
+    font-weight: bold;
+}
+
+/* --- 9. Botões Especiais de Controle --- */
+QPushButton#btn_advanced_settings {
+    background-color: @BG_MID;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+    font-weight: bold;
+}
+
+QPushButton#btn_advanced_settings:hover {
+    background-color: @BG_LIGHT;
+    border: 1px solid @ACCENT;
+}
+
+/* --- 10. Color Wheel Panel (Design System) --- */
+QLabel#ColorWheelTitle {
+    font-size: 10px;
+    color: @FG_TERTIARY;
+    font-weight: bold;
+}
+
+QFrame#ColorWheelVLine {
+    background-color: @BORDER;
+    min-width: 1px;
+    max-width: 1px;
+    border: none;
+}
+QFrame#ColorWheelHLine {
+    background-color: @BORDER;
+    min-height: 1px;
+    max-height: 1px;
+    border: none;
+}
+

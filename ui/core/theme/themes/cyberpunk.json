@@ -1,0 +1,20 @@
+{
+    "metadata": {
+        "name": "Cyberpunk Neon",
+        "author": "Antigravity",
+        "type": "dark"
+    },
+    "colors": {
+        "bg_main": "#0f051d",
+        "bg_panel": "#190b28",
+        "border": "#ff007f",
+        "border_control": "#ff007f",
+        "text_main": "#00ffff",
+        "text_sec": "#a855f7",
+        "accent": "#ff007f",
+        "accent_hover": "#ff55a5",
+        "accent_bg": "rgba(255, 0, 127, 0.15)",
+        "slider_groove": "#190b28",
+        "slider_handle": "#00ffff"
+    }
+}

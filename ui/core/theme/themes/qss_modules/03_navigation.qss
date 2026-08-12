@@ -1,0 +1,72 @@
+/* ================================================================
+   3. MENUS & TABS
+   ================================================================ */
+QMenuBar {
+    background-color: @BG_DARKER;
+    color: @FG_PRIMARY;
+    border-bottom: 1px solid @BORDER;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+    padding: 6px 12px;
+    border-radius: @RADIUS_SMALL;
+}
+
+QMenuBar::item:selected {
+    background-color: @BG_LIGHT;
+}
+
+QMenu {
+    background-color: @BG_DARK;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 4px 0px;
+}
+
+QMenu::item {
+    padding: 6px 32px 6px 24px;
+    background-color: transparent;
+}
+
+QMenu::item:selected {
+    background-color: @ACCENT;
+    color: #ffffff;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: @BORDER;
+    margin: 4px 0px;
+}
+
+QTabWidget::pane {
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+    background-color: @BG_DARK;
+    top: -1px;
+}
+
+QTabBar::tab {
+    background-color: @BG_MID;
+    color: @FG_SECONDARY;
+    border: 1px solid @BORDER;
+    border-bottom: none;
+    border-top-left-radius: @RADIUS_MEDIUM;
+    border-top-right-radius: @RADIUS_MEDIUM;
+    padding: 8px 16px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:selected {
+    background-color: @BG_DARK;
+    color: @ACCENT;
+    font-weight: bold;
+    border-bottom: 2px solid @ACCENT;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: @BG_LIGHT;
+    color: @FG_PRIMARY;
+}

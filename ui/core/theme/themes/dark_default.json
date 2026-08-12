@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "Dark Premium",
+        "author": "Lumenia",
+        "type": "dark"
+    },
+    "colors": {
+        "BG_DARKEST": "#0d1117",
+        "BG_DARKER": "#161b22",
+        "BG_DARK": "#1c2128",
+        "BG_MID": "#21262d",
+        "BG_TERTIARY": "#2d333b",
+        "BG_LIGHT": "#282e36",
+        "BG_LIGHTER": "#30363d",
+        "BG_LIGHTEST": "#3b424a",
+        "FG_PRIMARY": "#e6edf3",
+        "FG_SECONDARY": "#8b949e",
+        "FG_TERTIARY": "#6e7681",
+        "FG_LINK": "#58a6ff",
+        "ACCENT": "#58a6ff",
+        "ACCENT_HOVER": "#79c0ff",
+        "ACCENT_MUTED": "rgba(88, 166, 255, 0.15)",
+        "DANGER": "#f85149",
+        "DANGER_HOVER": "#ff7b72",
+        "SUCCESS": "#3fb950",
+        "WARNING": "#d29922",
+        "BORDER": "#30363d",
+        "BORDER_LIGHT": "#484f58",
+        "SHADOW": "rgba(0, 0, 0, 0.4)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

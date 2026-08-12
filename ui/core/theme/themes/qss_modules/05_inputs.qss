@@ -1,0 +1,186 @@
+/* ================================================================
+   5. INPUTS, CHECKBOXES & SLIDERS
+   ================================================================ */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+    padding: 6px 8px;
+    selection-background-color: @ACCENT_MUTED;
+    selection-color: @FG_PRIMARY;
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+    border: 1px solid @ACCENT;
+}
+
+/* Input compacto de HEX no Color Wheel */
+QLineEdit#hexInput {
+    font-size: 11px;
+    padding: 2px 5px;
+    font-family: monospace;
+}
+
+
+QCheckBox {
+    color: @FG_PRIMARY;
+    spacing: 8px;
+}
+
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: @RADIUS_SMALL;
+    border: 1px solid @BORDER;
+    background-color: @BG_DARKEST;
+}
+
+QCheckBox::indicator:checked {
+    background-color: @ACCENT;
+    border: 1px solid @ACCENT;
+}
+
+QCheckBox::indicator:hover {
+    border: 1px solid @ACCENT_HOVER;
+}
+
+QRadioButton {
+    color: @FG_PRIMARY;
+    spacing: 8px;
+}
+
+QRadioButton::indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 8px;
+    border: 1px solid @BORDER;
+    background-color: @BG_DARKEST;
+}
+
+QRadioButton::indicator:checked {
+    border: 1px solid @ACCENT;
+    background-color: qradialgradient(cx:0.5, cy:0.5, radius:0.4, fx:0.5, fy:0.5, stop:0 @ACCENT, stop:0.99 @ACCENT, stop:1 @BG_DARKEST);
+}
+
+QRadioButton::indicator:hover {
+    border: 1px solid @ACCENT_HOVER;
+}
+
+QSlider::groove:horizontal {
+    border: none;
+    height: 8px;
+    background-color: @BG_DARKEST;
+    border-radius: 4px;
+}
+
+QSlider::sub-page:horizontal {
+    background-color: @ACCENT;
+    border-radius: 4px;
+}
+
+QSlider::handle:horizontal {
+    background-color: @ACCENT;
+    width: 14px;
+    height: 14px;
+    margin: -3px 0;
+    border-radius: 7px;
+}
+
+QSlider::handle:horizontal:hover {
+    background-color: @ACCENT_HOVER;
+}
+
+/* ================================================================
+   DROPDOWNS (QComboBox)
+   ================================================================ */
+QComboBox {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 4px 10px;
+    min-height: 18px;
+}
+
+QComboBox:hover {
+    border: 1px solid @BORDER_LIGHT;
+    background-color: @BG_DARK;
+}
+
+QComboBox:focus {
+    border: 1px solid @ACCENT;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border-left: 1px solid @BORDER;
+    border-top-right-radius: @RADIUS_SMALL;
+    border-bottom-right-radius: @RADIUS_SMALL;
+}
+
+QComboBox::drop-down:hover {
+    background-color: @BG_MID;
+}
+
+QComboBox QAbstractItemView {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER_LIGHT;
+    border-radius: @RADIUS_SMALL;
+    selection-background-color: @ACCENT;
+    selection-color: #ffffff;
+    outline: none;
+}
+
+/* ================================================================
+   INPUTS NUMÉRICOS (QSpinBox / QDoubleSpinBox)
+   Usados nos painéis de cor (RGBA, HSV, etc.)
+   ================================================================ */
+QSpinBox, QDoubleSpinBox {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 2px 4px;
+    min-width: 40px;
+}
+
+QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 1px solid @ACCENT;
+}
+
+QSpinBox:hover, QDoubleSpinBox:hover {
+    border: 1px solid @BORDER_LIGHT;
+}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button,
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    width: 0px;
+    border: none;
+}
+
+/* ================================================================
+   SEPARADORES DE SEÇÃO (QGroupBox)
+   Padrão visual para agrupar elementos nos painéis
+   ================================================================ */
+QGroupBox {
+    color: @FG_SECONDARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+    margin-top: 8px;
+    padding-top: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 6px;
+    left: 10px;
+    color: @FG_TERTIARY;
+}

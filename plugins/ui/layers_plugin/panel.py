@@ -177,7 +177,7 @@ class LayersPanel(QWidget):
             self._show_status("A camada está bloqueada e não pode ser limpa.")
             return
 
-        self._sync_to_native_engine("clear")
+        self._sync_to_native_engine("clear_layer")
         self._show_status(f"Conteúdo de '{active.name}' limpo.")
 
     def duplicate_selection(self):
@@ -238,6 +238,8 @@ class LayersPanel(QWidget):
 
         if action == "clear":
             facade.clear_canvas()
+        elif action == "clear_layer":
+            facade.clear_layer(c_idx)
         elif action == "opacity":
             val = args[0]
             facade.set_layer_opacity(c_idx, float(val))

@@ -114,6 +114,10 @@ class AladynBackend(EngineBackend):
         if self._facade:
             self._facade.clear_canvas()
 
+    def clear_layer(self, index: int) -> None:
+        if self._facade:
+            self._facade.clear_layer(index)
+
     def set_layer_alpha_lock(self, index: int, locked: bool) -> None:
         if self._facade:
             self._facade.set_layer_alpha_lock(index, locked)

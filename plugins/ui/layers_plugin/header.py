@@ -134,7 +134,7 @@ class LayersHeader(QWidget):
         self.combo_blend.setMinimumWidth(95)
         self.combo_blend.setMaximumWidth(115)
         self.combo_blend.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.combo_blend.currentIndexChanged.connect(self.blendModeChanged.emit)
+        self.combo_blend.currentTextChanged.connect(self.blendModeChanged.emit)
 
         self.slider_op = LayersOpacitySliderWidget()
         self.slider_op.setObjectName("LayersOpacitySlider")

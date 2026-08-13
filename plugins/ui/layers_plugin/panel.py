@@ -325,6 +325,20 @@ class LayersPanel(QWidget):
                     if len(new_indices) == len(layer_list):
                         facade.reorder_layers(new_indices)
                         self._native_uids = [l.uid for l in layer_list]
+            
+            # Sincroniza vínculos hierárquicos de pais no C++
+            if hasattr(facade, "set_layer_parents"):
+                parent_indices = []
+                for l in layer_list:
+                    if l.parent_uid is not None:
+                        p_layer = self.layer_manager.get_layer_by_uid(l.parent_uid)
+                        if p_layer and p_layer in layer_list:
+                            parent_indices.append(layer_list.index(p_layer))
+                        else:
+                            parent_indices.append(-1)
+                    else:
+                        parent_indices.append(-1)
+                facade.set_layer_parents(parent_indices)
         elif action == "merge_down":
             idx = args[0]
             facade.merge_layer_down(idx)

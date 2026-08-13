@@ -136,6 +136,11 @@ class AladynBackend(EngineBackend):
             return self._facade.reorder_layers(new_order)
         return False
 
+    def set_layer_parents(self, parent_indices: list[int]) -> bool:
+        if self._facade and hasattr(self._facade, "set_layer_parents"):
+            return self._facade.set_layer_parents(parent_indices)
+        return False
+
     def add_group(self, name: str = "Novo Grupo") -> int:
         if self._facade and hasattr(self._facade, "add_group"):
             return self._facade.add_group(name)

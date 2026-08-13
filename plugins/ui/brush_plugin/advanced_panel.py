@@ -1034,4 +1034,46 @@ class AdvancedPanel(QtWidgets.QDialog):
                 font-size: 10px;
                 font-weight: 600;
             }}
+            #CollapsContent {{
+                background: transparent;
+            }}
+            QStackedWidget, QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {{
+                background: transparent;
+                background-color: transparent;
+            }}
+            QStackedWidget {{
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }}
+            QScrollArea {{
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }}
+            QScrollArea > QWidget, QScrollArea > QWidget > QWidget {{
+                border-bottom-left-radius: 7px;
+                border-bottom-right-radius: 7px;
+            }}
+            QScrollBar:vertical {{
+                border: none;
+                background: transparent;
+                width: 8px;
+                margin: 4px 4px 12px 0px;
+                border-radius: 4px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {border};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {accent};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                border: none;
+                background: none;
+                height: 0px;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
         """)

@@ -339,6 +339,10 @@ class LayersPanel(QWidget):
             idx = args[0]
             facade.merge_layer_down(idx)
             self._native_uids = [l.uid for l in layer_list]
+        elif action == "duplicate":
+            if hasattr(facade, "duplicate_layer"):
+                facade.duplicate_layer(c_idx)
+            self._native_uids = [l.uid for l in layer_list]
         elif action == "select":
             facade.select_layer(c_idx)
 
@@ -423,6 +427,20 @@ class LayersPanel(QWidget):
                             self._show_status(f"Camada '{layer.name}' fundida para baixo.")
                     finally:
                         self._updating_selection = False
+
+    def duplicate_layer(self):
+        layer = self.layer_manager.get_active_layer()
+        if layer:
+            self._updating_selection = True
+            try:
+                self._sync_to_native_engine("duplicate")
+                new_uid = self.layer_manager.duplicate_layer(layer.uid)
+                if new_uid:
+                    self._select_uid_in_view(new_uid)
+                    self._sync_to_native_engine("select")
+                    self._show_status(f"Camada '{layer.name}' duplicada com sucesso.")
+            finally:
+                self._updating_selection = False
 
     def _show_status(self, message):
         win = QApplication.activeWindow()

@@ -117,6 +117,24 @@ class TestPhase1Layers(unittest.TestCase):
         self.assertEqual(count_after, count_before - 1)
         self.assertEqual(self.facade.get_drawing_layer_count(), count_after)
 
+    def test_05_duplicate_layer_cpp_sync(self):
+        """Testa a duplicação de camadas sincronizando vetor nativo C++."""
+        self.panel.add_layer("Camada Original")
+        py_count_before = len(self.panel.layer_manager.layers)
+        cpp_count_before = self.facade.get_drawing_layer_count()
+
+        self.panel.duplicate_layer()
+
+        py_count_after = len(self.panel.layer_manager.layers)
+        cpp_count_after = self.facade.get_drawing_layer_count()
+
+        self.assertEqual(py_count_after, py_count_before + 1)
+        self.assertEqual(cpp_count_after, cpp_count_before + 1)
+
+        py_names = [l.name for l in self.panel.layer_manager.layers]
+        cpp_names = [self.facade.get_layer_info(i)["name"] for i in range(self.facade.get_drawing_layer_count())]
+        self.assertEqual(py_names, cpp_names)
+
 
 if __name__ == "__main__":
     unittest.main()

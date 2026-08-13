@@ -151,6 +151,11 @@ class AladynBackend(EngineBackend):
             return self._facade.set_group_pass_through(index, pass_through)
         return False
 
+    def duplicate_layer(self, index: int) -> int:
+        if self._facade and hasattr(self._facade, "duplicate_layer"):
+            return self._facade.duplicate_layer(index)
+        return -1
+
     def merge_layer_down(self, index: int) -> bool:
         if self._facade:
             return self._facade.merge_layer_down(index)

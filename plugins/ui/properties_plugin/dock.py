@@ -150,9 +150,14 @@ class BrushDock(QtWidgets.QDockWidget):
         lo.addStretch()
         return col
 
-    def _on_tool(self, tool_id: str):
+    def set_tool_active(self, tool_id: str):
         for tid, btn in self._tool_buttons.items():
             btn.setChecked(tid == tool_id)
+        if hasattr(self, "preset_combo") and self.preset_combo:
+            self.preset_combo.sync_to_tool(tool_id)
+
+    def _on_tool(self, tool_id: str):
+        self.set_tool_active(tool_id)
         self.toolActivated.emit(tool_id)
 
     # ── Properties column ─────────────────────────────────────────────

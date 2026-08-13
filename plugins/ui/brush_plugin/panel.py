@@ -309,13 +309,16 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         return self.tool_col_box
 
     def set_tool_active(self, tool_name: str) -> None:
-        """Sincroniza visualmente a ferramenta ativa no painel sem reemitir sinal em loop."""
+        """Sincroniza visualmente a ferramenta ativa no painel e no dropdown de presets sem reemitir sinal em loop."""
         for tid, btn in self._tool_buttons.items():
             btn.blockSignals(True)
             is_active = (tid == tool_name)
             btn.setChecked(is_active)
             btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="#ffffff" if is_active else "text_main"))
             btn.blockSignals(False)
+
+        if hasattr(self, "preset_combo") and self.preset_combo:
+            self.preset_combo.sync_to_tool(tool_name)
 
     def _on_tool(self, tool_id: str) -> None:
         self.set_tool_active(tool_id)

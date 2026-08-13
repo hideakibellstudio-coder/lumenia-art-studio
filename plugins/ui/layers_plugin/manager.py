@@ -167,13 +167,13 @@ class LocalLayerManager(QtCore.QObject):
 
     def duplicate_layer(self, uid) -> int:
         layer = self.get_layer_by_uid(uid)
-        if not layer or layer.is_group:
+        if not layer:
             return 0
             
         new_uid = self._next_uid
         self._next_uid += 1
         
-        new_layer = LocalLayer(new_uid, f"{layer.name} Copiar")
+        new_layer = LocalLayer(new_uid, f"{layer.name} Copiar", is_group=layer.is_group, is_filter=getattr(layer, 'is_filter', False))
         new_layer.parent_uid = layer.parent_uid
         new_layer.visible = layer.visible
         new_layer.locked = layer.locked
@@ -181,6 +181,11 @@ class LocalLayerManager(QtCore.QObject):
         new_layer.blend_mode = layer.blend_mode
         new_layer.alpha_locked = layer.alpha_locked
         new_layer.clipping_mask = layer.clipping_mask
+        new_layer.collapsed = getattr(layer, 'collapsed', False)
+        
+        # Copia a miniatura gráfica da camada original
+        if hasattr(layer, 'thumb') and layer.thumb and not layer.thumb.isNull():
+            new_layer.thumb = QtGui.QPixmap(layer.thumb)
         
         idx = self.layers.index(layer) + 1
         self.layers.insert(idx, new_layer)

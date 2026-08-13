@@ -435,6 +435,7 @@ class LayersPanel(QWidget):
             try:
                 self._sync_to_native_engine("duplicate")
                 new_uid = self.layer_manager.duplicate_layer(layer.uid)
+                self._native_uids = [l.uid for l in self.layer_manager.layers]
                 if new_uid:
                     self._select_uid_in_view(new_uid)
                     self._sync_to_native_engine("select")

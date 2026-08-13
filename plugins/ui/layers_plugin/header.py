@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QSizePolicy
 from PySide6.QtCore import Qt, Signal, QRect
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont
-from ui.core.widgets.slider.step_button import SliderStepButton
 
-class _LayersOpacityCore(QWidget):
+class LayersOpacitySliderWidget(QWidget):
     """
-    Sub-widget interno que desenha a barra de opacidade preenchida do painel de camadas.
+    Slider customizado para opacidade de camadas no estilo blend box.
+    Retorna valor de 0 a 100 com preenchimento da cor ACCENT.
     """
     valueChanged = Signal(int)
     sliderPressed = Signal()
@@ -95,60 +95,6 @@ class _LayersOpacityCore(QWidget):
                 self._value = val
                 self.valueChanged.emit(val)
                 self.update()
-
-
-class LayersOpacitySliderWidget(QWidget):
-    """
-    Slider customizado para opacidade de camadas no estilo blend box com botões de passo (-) e (+).
-    """
-    valueChanged = Signal(int)
-    sliderPressed = Signal()
-    sliderReleased = Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(3)
-
-        self.btn_minus = SliderStepButton(is_plus=False, style_type="square", size=22, parent=self)
-        self.btn_plus = SliderStepButton(is_plus=True, style_type="square", size=22, parent=self)
-
-        self.core = _LayersOpacityCore(parent=self)
-
-        self.core.valueChanged.connect(self.valueChanged.emit)
-        self.core.sliderPressed.connect(self.sliderPressed.emit)
-        self.core.sliderReleased.connect(self.sliderReleased.emit)
-
-        self.btn_minus.clicked.connect(self._decrement)
-        self.btn_plus.clicked.connect(self._increment)
-
-        layout.addWidget(self.btn_minus)
-        layout.addWidget(self.core, 1)
-        layout.addWidget(self.btn_plus)
-
-        self.setMinimumHeight(22)
-        self.setMaximumHeight(26)
-
-    def _decrement(self):
-        new_val = max(0, self.core.value() - 5)
-        self.setValue(new_val)
-        self.valueChanged.emit(new_val)
-
-    def _increment(self):
-        new_val = min(100, self.core.value() + 5)
-        self.setValue(new_val)
-        self.valueChanged.emit(new_val)
-
-    def setValue(self, val):
-        self.core.setValue(val)
-
-    def value(self):
-        return self.core.value()
-
-    def set_theme_colors(self, bg_color, border_color, accent_color, text_color):
-        self.core.set_theme_colors(bg_color, border_color, accent_color, text_color)
 
 
 class LayersHeader(QWidget):

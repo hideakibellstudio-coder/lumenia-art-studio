@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QSizePolicy
 from PySide6.QtCore import Qt, Signal, QRect
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont
+from ui.core.widgets.slider.step_button import SliderStepButton
 
-class LayersOpacitySliderWidget(QWidget):
+class _LayersOpacityCore(QWidget):
     """
-    Slider customizado para opacidade de camadas no estilo blend box.
-    Retorna valor de 0 a 100 com preenchimento da cor ACCENT.
+    Sub-widget interno que desenha a barra de opacidade preenchida do painel de camadas.
     """
     valueChanged = Signal(int)
     sliderPressed = Signal()
@@ -17,26 +17,25 @@ class LayersOpacitySliderWidget(QWidget):
         self.setMinimumHeight(22)
         self.setMaximumHeight(26)
         self.setCursor(Qt.SplitHCursor)
-        
-        # Resolve as cores do tema ativo na inicialização
+
         from ui.core.theme.manager import ThemeManager
         theme = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {})
         colors = theme.get("colors", {})
-        
+
         self._bg_color = QColor(ThemeManager.instance().resolve_color("bg_panel", colors))
         self._border_color = QColor(ThemeManager.instance().resolve_color("border", colors))
         self._accent_color = QColor(ThemeManager.instance().resolve_color("ACCENT", colors))
         self._text_color = QColor(ThemeManager.instance().resolve_color("text_main", colors))
-        
+
     def setValue(self, val):
         val = max(0, min(100, int(val)))
         if val != self._value:
             self._value = val
             self.update()
-            
+
     def value(self):
         return self._value
-        
+
     def set_theme_colors(self, bg_color, border_color, accent_color, text_color):
         self._bg_color = QColor(bg_color)
         self._border_color = QColor(border_color)
@@ -47,17 +46,15 @@ class LayersOpacitySliderWidget(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        
+
         r = self.rect()
         w = r.width()
         h = r.height()
-        
-        # 1. Desenha o fundo
+
         painter.setPen(QPen(self._border_color, 1))
         painter.setBrush(QBrush(self._bg_color))
         painter.drawRoundedRect(0, 0, w - 1, h - 1, 4, 4)
-        
-        # 2. Desenha preenchimento da opacidade
+
         fill_w = int((self._value / 100.0) * (w - 2))
         if fill_w > 0:
             painter.setClipRect(1, 1, w - 2, h - 2)
@@ -67,31 +64,29 @@ class LayersOpacitySliderWidget(QWidget):
             painter.setBrush(QBrush(fill_color))
             painter.drawRoundedRect(1, 1, fill_w, h - 2, 3, 3)
             painter.setClipping(False)
-            
-        # 3. Desenha texto
+
         painter.setPen(self._text_color)
         font = painter.font()
         font.setPixelSize(12)
         font.setBold(True)
         painter.setFont(font)
 
-        
         text = f"Opacidade: {self._value}%"
         painter.drawText(r, Qt.AlignCenter, text)
-        
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.sliderPressed.emit()
             self._update_value_from_pos(event.position().x())
-            
+
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.sliderReleased.emit()
-            
+
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.LeftButton:
             self._update_value_from_pos(event.position().x())
-            
+
     def _update_value_from_pos(self, x):
         w = self.width()
         if w > 0:
@@ -100,6 +95,60 @@ class LayersOpacitySliderWidget(QWidget):
                 self._value = val
                 self.valueChanged.emit(val)
                 self.update()
+
+
+class LayersOpacitySliderWidget(QWidget):
+    """
+    Slider customizado para opacidade de camadas no estilo blend box com botões de passo (-) e (+).
+    """
+    valueChanged = Signal(int)
+    sliderPressed = Signal()
+    sliderReleased = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
+
+        self.btn_minus = SliderStepButton(is_plus=False, style_type="square", size=22, parent=self)
+        self.btn_plus = SliderStepButton(is_plus=True, style_type="square", size=22, parent=self)
+
+        self.core = _LayersOpacityCore(parent=self)
+
+        self.core.valueChanged.connect(self.valueChanged.emit)
+        self.core.sliderPressed.connect(self.sliderPressed.emit)
+        self.core.sliderReleased.connect(self.sliderReleased.emit)
+
+        self.btn_minus.clicked.connect(self._decrement)
+        self.btn_plus.clicked.connect(self._increment)
+
+        layout.addWidget(self.btn_minus)
+        layout.addWidget(self.core, 1)
+        layout.addWidget(self.btn_plus)
+
+        self.setMinimumHeight(22)
+        self.setMaximumHeight(26)
+
+    def _decrement(self):
+        new_val = max(0, self.core.value() - 5)
+        self.setValue(new_val)
+        self.valueChanged.emit(new_val)
+
+    def _increment(self):
+        new_val = min(100, self.core.value() + 5)
+        self.setValue(new_val)
+        self.valueChanged.emit(new_val)
+
+    def setValue(self, val):
+        self.core.setValue(val)
+
+    def value(self):
+        return self.core.value()
+
+    def set_theme_colors(self, bg_color, border_color, accent_color, text_color):
+        self.core.set_theme_colors(bg_color, border_color, accent_color, text_color)
 
 
 class LayersHeader(QWidget):
@@ -150,6 +199,28 @@ class LayersHeader(QWidget):
         ctrl_row.addWidget(self.slider_op, 1)
         layout.addLayout(ctrl_row)
 
+    def set_values(self, opacity, blend_mode, is_group=False):
+        self.slider_op.blockSignals(True)
+        self.combo_blend.blockSignals(True)
+        try:
+            val = int(opacity * 100 if isinstance(opacity, float) and opacity <= 1.0 else opacity)
+            self.slider_op.setValue(val)
+
+            if is_group:
+                if "Atravessar" not in [self.combo_blend.itemText(i) for i in range(self.combo_blend.count())]:
+                    self.combo_blend.insertItem(1, "Atravessar")
+            else:
+                idx = self.combo_blend.findText("Atravessar")
+                if idx >= 0:
+                    self.combo_blend.removeItem(idx)
+
+            idx = self.combo_blend.findText(blend_mode)
+            if idx >= 0:
+                self.combo_blend.setCurrentIndex(idx)
+        finally:
+            self.slider_op.blockSignals(False)
+            self.combo_blend.blockSignals(False)
+
     def on_theme_changed(self, colors):
         bg_input = colors.get("bg_panel", "#1f2937")
         border = colors.get("border", "#374151")
@@ -163,56 +234,32 @@ class LayersHeader(QWidget):
             text_color=text_primary
         )
 
-        combo_style = f"""
+        sheet = f"""
             QComboBox#LayersBlendCombo {{
                 background-color: {bg_input};
                 color: {text_primary};
                 border: 1px solid {border};
                 border-radius: 4px;
-                padding: 3px 6px;
+                padding: 2px 6px;
                 font-size: 11px;
+                font-weight: 500;
+            }}
+            QComboBox#LayersBlendCombo:hover {{
+                border-color: {accent};
             }}
             QComboBox#LayersBlendCombo::drop-down {{
-                border: none;
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 16px;
+                border-left-width: 0px;
             }}
             QComboBox#LayersBlendCombo QAbstractItemView {{
                 background-color: {bg_input};
                 color: {text_primary};
                 selection-background-color: {accent};
-                selection-color: white;
+                selection-color: #ffffff;
                 border: 1px solid {border};
+                outline: none;
             }}
         """
-        self.combo_blend.setStyleSheet(combo_style)
-
-    def set_values(self, opacity, blend_mode, is_group=False):
-        self.blockSignals(True)
-        self.slider_op.blockSignals(True)
-        self.combo_blend.blockSignals(True)
-
-        if opacity is not None:
-            self.slider_op.setValue(opacity)
-
-        if blend_mode is not None:
-            if isinstance(blend_mode, int):
-                if 0 <= blend_mode < self.combo_blend.count():
-                    self.combo_blend.setCurrentIndex(blend_mode)
-            elif isinstance(blend_mode, str):
-                idx = self.combo_blend.findText(blend_mode)
-                if idx >= 0:
-                    self.combo_blend.setCurrentIndex(idx)
-                else:
-                    try:
-                        idx_int = int(blend_mode)
-                        if 0 <= idx_int < self.combo_blend.count():
-                            self.combo_blend.setCurrentIndex(idx_int)
-                    except ValueError:
-                        pass
-            elif hasattr(blend_mode, "value"):
-                val = int(blend_mode.value)
-                if 0 <= val < self.combo_blend.count():
-                    self.combo_blend.setCurrentIndex(val)
-
-        self.slider_op.blockSignals(False)
-        self.combo_blend.blockSignals(False)
-        self.blockSignals(False)
+        self.combo_blend.setStyleSheet(sheet)

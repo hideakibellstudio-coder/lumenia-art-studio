@@ -1,4 +1,5 @@
 from PySide6 import QtWidgets, QtCore
+from .step_button import SliderStepButton
 
 class NonScrollSlider(QtWidgets.QSlider):
     def wheelEvent(self, event):
@@ -11,12 +12,14 @@ class LabeledSlider(QtWidgets.QWidget):
 
     def __init__(self, label_text: str, min_val: int, max_val: int, default_val: int,
                  value_suffix: str = "", divisor: float = 1.0, parent=None,
-                 param_name: str = "", show_pin: bool = False, default_pinned: bool = False):
+                 param_name: str = "", show_pin: bool = False, default_pinned: bool = False,
+                 step: int = 1):
         super().__init__(parent)
         self.divisor = divisor
         self.suffix = value_suffix
         self.param_name = param_name
         self.show_pin = show_pin
+        self.step_val = step
         
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -48,16 +51,37 @@ class LabeledSlider(QtWidgets.QWidget):
 
         layout.addLayout(header_layout)
         
-        # Slider
+        # Slider Row: [ (-) Round ] [ Slider Track ] [ (+) Round ]
+        slider_row = QtWidgets.QHBoxLayout()
+        slider_row.setContentsMargins(0, 0, 0, 0)
+        slider_row.setSpacing(4)
+
+        self.btn_minus = SliderStepButton(is_plus=False, style_type="round", size=18, parent=self)
+        self.btn_plus = SliderStepButton(is_plus=True, style_type="round", size=18, parent=self)
+
+        self.btn_minus.clicked.connect(self._decrement)
+        self.btn_plus.clicked.connect(self._increment)
+
         self.slider = NonScrollSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(min_val, max_val)
         self.slider.setValue(default_val)
         self.slider.valueChanged.connect(self._on_value_changed)
-        layout.addWidget(self.slider)
+
+        slider_row.addWidget(self.btn_minus)
+        slider_row.addWidget(self.slider)
+        slider_row.addWidget(self.btn_plus)
+
+        layout.addLayout(slider_row)
         
         # Connect to theme changes to keep text accent updated
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
         
+    def _decrement(self):
+        self.slider.setValue(self.slider.value() - self.step_val)
+
+    def _increment(self):
+        self.slider.setValue(self.slider.value() + self.step_val)
+
     def _format_value(self, val: float) -> str:
         if self.divisor == 1.0:
             return f"{int(val)}{self.suffix}"
@@ -83,3 +107,5 @@ class LabeledSlider(QtWidgets.QWidget):
     def setEnabled(self, enabled: bool):
         super().setEnabled(enabled)
         self.slider.setEnabled(enabled)
+        self.btn_minus.setEnabled(enabled)
+        self.btn_plus.setEnabled(enabled)

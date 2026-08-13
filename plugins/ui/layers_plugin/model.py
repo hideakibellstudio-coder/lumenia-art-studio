@@ -210,8 +210,20 @@ class LayerModel(QAbstractItemModel):
             return False
 
         self.dataChanged.emit(index, index, [role])
+        if role in (ROLE_VISIBLE, ROLE_OPACITY, ROLE_LOCKED) and getattr(layer, 'is_group', False):
+            self._notify_descendants_changed(index)
         self.manager.layer_property_changed.emit(layer.uid)
         return True
+
+    def _notify_descendants_changed(self, parent_index):
+        if not parent_index.isValid():
+            return
+        row_count = self.rowCount(parent_index)
+        for r in range(row_count):
+            child_idx = self.index(r, 0, parent_index)
+            if child_idx.isValid():
+                self.dataChanged.emit(child_idx, child_idx, [ROLE_VISIBLE, ROLE_OPACITY, ROLE_EFFECTIVE_VISIBLE, ROLE_EFFECTIVE_OPACITY])
+                self._notify_descendants_changed(child_idx)
 
     def flags(self, index):
         base_flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable | Qt.ItemIsDragEnabled

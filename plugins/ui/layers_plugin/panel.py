@@ -126,6 +126,7 @@ class LayersPanel(QWidget):
         self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
         self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
         self.layer_manager.order_changed.connect(lambda: self._sync_to_native_engine("reorder_all"))
+        self.layer_manager.layer_added.connect(lambda l: self._sync_to_native_engine("reorder_all"))
         
         self._sync_header_controls()
         self._ensure_top_selection()
@@ -163,6 +164,7 @@ class LayersPanel(QWidget):
             self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
             self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
             self.layer_manager.order_changed.connect(lambda: self._sync_to_native_engine("reorder_all"))
+            self.layer_manager.layer_added.connect(lambda l: self._sync_to_native_engine("reorder_all"))
             
             # Sincroniza controles de opacidade e blend mode
             self._sync_header_controls()
@@ -314,31 +316,21 @@ class LayersPanel(QWidget):
         elif action == "reorder_all":
             if hasattr(facade, "reorder_layers"):
                 if not hasattr(self, "_native_uids") or len(self._native_uids) != len(layer_list):
-                    self._native_uids = [l.uid for l in layer_list]
-                if len(layer_list) == len(self._native_uids):
+                    old_uids = [l.uid for l in layer_list]
+                else:
+                    old_uids = self._native_uids
+
+                if len(layer_list) == len(old_uids):
                     new_indices = []
                     for l in layer_list:
-                        if l.uid in self._native_uids:
-                            new_indices.append(self._native_uids.index(l.uid))
+                        if l.uid in old_uids:
+                            new_indices.append(old_uids.index(l.uid))
                         else:
                             break
-                    if len(new_indices) == len(layer_list):
+                    if len(new_indices) == len(layer_list) and new_indices != list(range(len(layer_list))):
                         facade.reorder_layers(new_indices)
-                        self._native_uids = [l.uid for l in layer_list]
-            
-            # Sincroniza vínculos hierárquicos de pais no C++
-            if hasattr(facade, "set_layer_parents"):
-                parent_indices = []
-                for l in layer_list:
-                    if l.parent_uid is not None:
-                        p_layer = self.layer_manager.get_layer_by_uid(l.parent_uid)
-                        if p_layer and p_layer in layer_list:
-                            parent_indices.append(layer_list.index(p_layer))
-                        else:
-                            parent_indices.append(-1)
-                    else:
-                        parent_indices.append(-1)
-                facade.set_layer_parents(parent_indices)
+
+                self._native_uids = [l.uid for l in layer_list]
         elif action == "merge_down":
             idx = args[0]
             facade.merge_layer_down(idx)
@@ -349,6 +341,20 @@ class LayersPanel(QWidget):
             self._native_uids = [l.uid for l in layer_list]
         elif action == "select":
             facade.select_layer(c_idx)
+
+        # Sincroniza vínculos hierárquicos de pais no C++ sempre
+        if hasattr(facade, "set_layer_parents"):
+            parent_indices = []
+            for l in layer_list:
+                if l.parent_uid is not None:
+                    p_layer = self.layer_manager.get_layer_by_uid(l.parent_uid)
+                    if p_layer and p_layer in layer_list:
+                        parent_indices.append(layer_list.index(p_layer))
+                    else:
+                        parent_indices.append(-1)
+                else:
+                    parent_indices.append(-1)
+            facade.set_layer_parents(parent_indices)
 
         # Repinta o CanvasWidget
         for top_w in QApplication.topLevelWidgets():

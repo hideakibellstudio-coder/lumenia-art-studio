@@ -257,9 +257,20 @@ class LocalLayerManager(QtCore.QObject):
         self.set_active_layer(uid)
         return True
 
+    def _get_descendants(self, parent_layer):
+        res = []
+        if not getattr(parent_layer, "is_group", False):
+            return res
+        children = [l for l in self.layers if l.parent_uid == parent_layer.uid]
+        for child in children:
+            res.append(child)
+            if getattr(child, "is_group", False):
+                res.extend(self._get_descendants(child))
+        return res
+
     def merge_down(self, uid) -> bool:
         layer = self.get_layer_by_uid(uid)
-        if not layer or layer.is_group:
+        if not layer:
             return False
             
         idx = self.layers.index(layer)
@@ -267,11 +278,22 @@ class LocalLayerManager(QtCore.QObject):
             return False
             
         target = self.layers[idx - 1]
-        if target.is_group:
-            return False
             
         self.order_about_to_change.emit()
-        self.layers.remove(layer)
+
+        descendants = self._get_descendants(layer)
+        to_remove = [layer] + descendants
+
+        if target.is_group:
+            target_descendants = self._get_descendants(target)
+            to_remove.extend(target_descendants)
+            target.is_group = False
+            target.blend_mode = "Normal"
+
+        for item in to_remove:
+            if item in self.layers:
+                self.layers.remove(item)
+
         self.set_active_layer(target.uid)
         self.order_changed.emit()
         return True

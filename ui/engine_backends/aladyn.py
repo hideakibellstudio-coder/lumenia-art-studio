@@ -161,6 +161,11 @@ class AladynBackend(EngineBackend):
             return self._facade.duplicate_layer(index)
         return -1
 
+    def flatten_group(self, index: int) -> bool:
+        if self._facade and hasattr(self._facade, "flatten_group"):
+            return self._facade.flatten_group(index)
+        return False
+
     def merge_layer_down(self, index: int) -> bool:
         if self._facade:
             return self._facade.merge_layer_down(index)

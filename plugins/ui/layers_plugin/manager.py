@@ -189,10 +189,43 @@ class LocalLayerManager(QtCore.QObject):
         
         idx = self.layers.index(layer) + 1
         self.layers.insert(idx, new_layer)
-        
+
+        # Se a camada duplicada for um grupo, duplica recursivamente seus filhos
+        if layer.is_group:
+            direct_children = [l for l in list(self.layers) if l.parent_uid == layer.uid and l != new_layer]
+            for child in direct_children:
+                self._duplicate_child_recursive(child, new_uid)
+
         self.set_active_layer(new_uid)
         self.layer_added.emit(new_layer)
         return new_uid
+
+    def _duplicate_child_recursive(self, child_layer, new_parent_uid) -> int:
+        child_uid = self._next_uid
+        self._next_uid += 1
+
+        dup_child = LocalLayer(child_uid, child_layer.name, is_group=child_layer.is_group, is_filter=getattr(child_layer, 'is_filter', False))
+        dup_child.parent_uid = new_parent_uid
+        dup_child.visible = child_layer.visible
+        dup_child.locked = child_layer.locked
+        dup_child.opacity = child_layer.opacity
+        dup_child.blend_mode = child_layer.blend_mode
+        dup_child.alpha_locked = child_layer.alpha_locked
+        dup_child.clipping_mask = child_layer.clipping_mask
+        dup_child.collapsed = getattr(child_layer, 'collapsed', False)
+
+        if hasattr(child_layer, 'thumb') and child_layer.thumb and not child_layer.thumb.isNull():
+            dup_child.thumb = QtGui.QPixmap(child_layer.thumb)
+
+        self.layers.append(dup_child)
+        self.layer_added.emit(dup_child)
+
+        if child_layer.is_group:
+            sub_children = [l for l in list(self.layers) if l.parent_uid == child_layer.uid and l != dup_child]
+            for sub_child in sub_children:
+                self._duplicate_child_recursive(sub_child, child_uid)
+
+        return child_uid
 
     def move_layer_up(self, uid) -> bool:
         layer = self.get_layer_by_uid(uid)

@@ -180,9 +180,10 @@ class CanvasWidget(QtWidgets.QWidget):
             if qimg and not qimg.isNull():
                 painter.drawImage(canvas_rect, qimg)
 
-        # 6. Moldura fina de borda do papel
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 100), 1.0 / max(0.01, self.zoom)))
-        painter.drawRect(canvas_rect)
+        # 6. Moldura de borda do papel (opcional, por padrão desativada)
+        if getattr(self, "show_paper_border", False):
+            painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 100), 1.0 / max(0.01, self.zoom)))
+            painter.drawRect(canvas_rect)
 
         painter.restore()
         painter.end()

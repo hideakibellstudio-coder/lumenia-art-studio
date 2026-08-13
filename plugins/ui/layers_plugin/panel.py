@@ -182,17 +182,7 @@ class LayersPanel(QWidget):
         self._show_status(f"Conteúdo de '{active.name}' limpo.")
 
     def duplicate_selection(self):
-        layer = self.layer_manager.get_active_layer()
-        if layer:
-            self._updating_selection = True
-            try:
-                self._sync_to_native_engine("add")
-                new_uid = self.layer_manager.duplicate_layer(layer.uid)
-                self._select_uid_in_view(new_uid)
-                self._sync_to_native_engine("select")
-                self._show_status(f"Camada '{layer.name}' duplicada.")
-            finally:
-                self._updating_selection = False
+        self.duplicate_layer()
 
     def delete_selection(self):
         layer = self.layer_manager.get_active_layer()
@@ -437,11 +427,47 @@ class LayersPanel(QWidget):
                 new_uid = self.layer_manager.duplicate_layer(layer.uid)
                 self._native_uids = [l.uid for l in self.layer_manager.layers]
                 if new_uid:
+                    # Gera thumbnail real para a camada duplicada a partir do buffer C++
+                    self._refresh_layer_thumbnail(new_uid)
                     self._select_uid_in_view(new_uid)
                     self._sync_to_native_engine("select")
                     self._show_status(f"Camada '{layer.name}' duplicada com sucesso.")
             finally:
                 self._updating_selection = False
+
+    def _refresh_layer_thumbnail(self, uid: int):
+        """Gera a miniatura real de uma camada lendo o pixel buffer do motor C++ para aquele índice."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if not backend or not hasattr(backend, "_facade") or not backend._facade:
+            return
+
+        layer = self.layer_manager.get_layer_by_uid(uid)
+        if not layer:
+            return
+
+        layer_list = self.layer_manager.layers
+        try:
+            c_idx = layer_list.index(layer)
+        except ValueError:
+            return
+
+        facade = backend._facade
+        if not hasattr(facade, "get_layer_thumbnail_buffer"):
+            return
+
+        try:
+            raw = facade.get_layer_thumbnail_buffer(c_idx, 38, 28)
+            if raw:
+                from PySide6.QtGui import QImage, QPixmap
+                img = QImage(bytes(raw), 38, 28, 38 * 4, QImage.Format_RGBA8888)
+                if not img.isNull():
+                    layer.thumb = QPixmap.fromImage(img)
+                    idx = self.model._find_index_by_uid(uid)
+                    if idx.isValid():
+                        self.model.dataChanged.emit(idx, idx)
+        except Exception as e:
+            logger.debug(f"[LayersPanel] Falha ao gerar thumbnail real: {e}")
 
     def _show_status(self, message):
         win = QApplication.activeWindow()

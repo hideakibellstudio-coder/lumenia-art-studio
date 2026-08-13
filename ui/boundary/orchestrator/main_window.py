@@ -236,21 +236,48 @@ class MainWindow(QtWidgets.QMainWindow):
             name = params["name"]
             w = params["width"]
             h = params["height"]
+            bg_color = params.get("bg_color", (255, 255, 255, 255))
+            paper_tex = params.get("paper_texture_id", 0)
 
-            doc = self.dm.new_document(w, h, name)
+            doc = self.dm.new_document(
+                width=w,
+                height=h,
+                name=name,
+                bg_color=bg_color,
+                paper_texture_id=paper_tex
+            )
 
-            # Inicializa a Facade C++ com as novas dimensões do documento
+            # Inicializa a Facade C++ com as novas dimensões e papel do documento
             from ui.core.engine.registry import EngineRegistry
             backend = EngineRegistry.instance().get_backend()
             if backend:
                 backend.init_renderer(0, w, h, w, h)
                 if hasattr(backend, "_facade") and backend._facade:
                     backend._facade.clear_canvas()
-                    paper_tex = params.get("paper_texture_id", 0)
+
+                    # Aplica a cor inicial do papel selecionada no diálogo
+                    r, g, b, a = bg_color
+                    if hasattr(backend, "set_background_color"):
+                        backend.set_background_color(r, g, b, a)
+                    elif hasattr(backend._facade, "set_background_color"):
+                        backend._facade.set_background_color(r, g, b, a)
+
+                    # Visibilidade do fundo (falso se for transparente com a == 0)
+                    is_vis = (a > 0)
+                    if hasattr(backend._facade, "set_background_visibility"):
+                        backend._facade.set_background_visibility(is_vis)
+
+                    # Aplica textura se selecionada
                     if paper_tex > 0:
                         backend._facade.set_canvas_height_preset(paper_tex)
+                        if hasattr(backend, "set_canvas_grain_enabled"):
+                            backend.set_canvas_grain_enabled(True)
+                        if hasattr(backend._facade, "get_canvas_texture"):
+                            c_tex = backend._facade.get_canvas_texture()
+                            if c_tex:
+                                c_tex.canvas_grain_enabled = True
 
-                # Mantém e aplica a cor de tinta ativa do usuário (Preto por padrão)
+                # Mantém e aplica a cor de tinta ativa do usuário
                 if self.workspace and hasattr(self.workspace, "_saved_color"):
                     color = self.workspace._saved_color
                     backend.set_brush_color(color.redF(), color.greenF(), color.blueF())

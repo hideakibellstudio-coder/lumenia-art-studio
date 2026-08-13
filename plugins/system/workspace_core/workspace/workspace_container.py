@@ -746,6 +746,13 @@ class WorkspaceContainer(QtWidgets.QWidget):
             self._properties_dock.navigator.set_has_document(True)
         if hasattr(self, "_layers_panel") and self._layers_panel:
             self._layers_panel.set_layer_manager(doc.layer_manager)
+            if hasattr(self._layers_panel, "paper_widget"):
+                pw = self._layers_panel.paper_widget
+                p_col = getattr(doc, "paper_color", QtGui.QColor(255, 255, 255, 255))
+                p_vis = getattr(doc, "paper_visible", True)
+                p_tex = getattr(doc, "paper_texture_id", 0)
+                p_ena = getattr(doc, "paper_texture_enabled", False)
+                pw.set_paper_state(color=p_col, visible=p_vis, preset_id=p_tex, enabled=p_ena)
         if hasattr(self, "_navigator_panel") and self._navigator_panel:
             self._navigator_panel.set_has_document(True)
 

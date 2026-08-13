@@ -324,6 +324,21 @@ class PaperLayerWidget(QWidget):
         self.vis_btn.setIcon(icon)
         self.vis_btn.setIconSize(QSize(16, 16))
 
+    def set_paper_state(self, color=None, visible=None, preset_id=None, enabled=None):
+        if color is not None:
+            self.color = color
+            self.color_btn.color = color
+            self.color_btn.update()
+        if visible is not None:
+            self.visible = visible
+            self._update_vis_icon()
+        if preset_id is not None:
+            self.preset_id = preset_id
+        if enabled is not None:
+            self.enabled = enabled
+            self.tex_btn.set_has_texture(self.enabled and self.preset_id > 0)
+        self._sync_state()
+
     def _show_texture_popup(self):
         popup = TexturePopup(
             self,
@@ -415,6 +430,11 @@ class PaperLayerWidget(QWidget):
                 backend._facade.set_background_visibility(self.visible)
             elif hasattr(backend._facade, "set_background_visible"):
                 backend._facade.set_background_visible(self.visible)
+
+            if hasattr(backend, "set_background_color"):
+                backend.set_background_color(self.color.red(), self.color.green(), self.color.blue(), self.color.alpha())
+            elif hasattr(backend._facade, "set_background_color"):
+                backend._facade.set_background_color(self.color.red(), self.color.green(), self.color.blue(), self.color.alpha())
 
             effective_preset = self.preset_id if self.enabled else 0
             backend._facade.set_canvas_height_preset(effective_preset)

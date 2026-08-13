@@ -23,3 +23,10 @@ class Document(QtCore.QObject):
         
         # Cor ativa salva
         self.saved_color = None
+
+        # Papel de Fundo (Layer 0)
+        from PySide6.QtGui import QColor
+        self.paper_color = QColor(255, 255, 255, 255)
+        self.paper_visible = True
+        self.paper_texture_id = 0
+        self.paper_texture_enabled = False

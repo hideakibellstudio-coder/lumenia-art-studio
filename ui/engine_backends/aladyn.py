@@ -161,6 +161,10 @@ class AladynBackend(EngineBackend):
             return self._facade.merge_layer_down(index)
         return False
 
+    def set_background_color(self, r: int, g: int, b: int, a: int = 255) -> None:
+        if self._facade and hasattr(self._facade, "set_background_color"):
+            self._facade.set_background_color(int(r), int(g), int(b), int(a))
+
     def set_canvas_grain_enabled(self, enabled: bool) -> None:
         if self._facade and hasattr(self._facade, "get_canvas_texture"):
             c_tex = self._facade.get_canvas_texture()

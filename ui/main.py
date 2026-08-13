@@ -2,15 +2,11 @@ import sys
 import os
 import logging
 
-# Adiciona o diretório pai para que 'ui' possa ser importado como um pacote
+# Adiciona o diretório pai (Lumenia/) para que 'ui' possa ser importado como pacote
+# e para que aladyn_engine_native.pyd seja encontrado — único local canônico do binário
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-
-# Garante que o próprio diretório ui/ esteja no path para carregar a extensão engine_core
-ui_dir = os.path.dirname(os.path.abspath(__file__))
-if ui_dir not in sys.path:
-    sys.path.insert(0, ui_dir)
 
 from PySide6 import QtWidgets
 from ui.core.logger import setup_senior_logging, get_logger

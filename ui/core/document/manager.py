@@ -20,13 +20,30 @@ class DocumentManager(QtCore.QObject):
         self._active_document = None
         self._counter = 0
 
-    def new_document(self, width: int = 1920, height: int = 1080, name: str = None) -> Document:
+    def new_document(
+        self,
+        width: int = 1920,
+        height: int = 1080,
+        name: str = None,
+        bg_color: tuple[int, int, int, int] | None = None,
+        paper_texture_id: int = 0
+    ) -> Document:
         self._counter += 1
         uid = f"doc_{self._counter}"
         if not name:
             name = f"Sem Título {self._counter}"
             
         doc = Document(uid, name, width, height)
+
+        if bg_color is not None:
+            from PySide6.QtGui import QColor
+            doc.paper_color = QColor(*bg_color)
+            if bg_color[3] == 0:  # Transparente
+                doc.paper_visible = False
+
+        if paper_texture_id > 0:
+            doc.paper_texture_id = paper_texture_id
+            doc.paper_texture_enabled = True
         
         # Garante exatamente uma camada padrão inicial (Camada 1)
         if len(doc.layer_manager.layers) == 0:

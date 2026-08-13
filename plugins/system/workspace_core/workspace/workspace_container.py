@@ -546,6 +546,32 @@ class WorkspaceContainer(QtWidgets.QWidget):
 
         self.canvas_widget.manual_pressure = s.slider_pressure.value()
 
+    # ── Operações de Desfazer / Refazer ──────────────────────────────────────
+
+    def undo(self) -> None:
+        """Executa a operação de desfazer no backend nativo."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "undo"):
+            ok = backend.undo()
+            if ok:
+                self.canvas_widget.update()
+                self._on_status_notification("Desfazer executado com sucesso.")
+            else:
+                self._on_status_notification("Nada a desfazer.")
+
+    def redo(self) -> None:
+        """Executa a operação de refazer no backend nativo."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "redo"):
+            ok = backend.redo()
+            if ok:
+                self.canvas_widget.update()
+                self._on_status_notification("Refazer executado com sucesso.")
+            else:
+                self._on_status_notification("Nada a refazer.")
+
     # ── Handlers de câmera ────────────────────────────────────────────────
 
     def reset_view(self) -> None:

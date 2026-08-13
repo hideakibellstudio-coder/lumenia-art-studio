@@ -193,6 +193,16 @@ class AladynBackend(EngineBackend):
         if self._facade:
             self._facade.set_engine_type(type_id)
 
+    def undo(self) -> bool:
+        if self._facade and hasattr(self._facade, "undo"):
+            return self._facade.undo()
+        return False
+
+    def redo(self) -> bool:
+        if self._facade and hasattr(self._facade, "redo"):
+            return self._facade.redo()
+        return False
+
     def get_active_engine_type(self) -> int:
         if self._facade:
             return self._facade.get_active_engine_type()

@@ -105,10 +105,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addToolBar(QtCore.Qt.TopToolBarArea, self.tool_sidebar)
         self.tool_sidebar.brushSelected.connect(self.select_brush_tool)
         self.tool_sidebar.eraserSelected.connect(self.select_eraser_tool)
+        self.tool_sidebar.undoRequested.connect(self.undo)
+        self.tool_sidebar.redoRequested.connect(self.redo)
         self.tool_sidebar.zoomInRequested.connect(self.zoom_in)
         self.tool_sidebar.zoomOutRequested.connect(self.zoom_out)
         self.tool_sidebar.resetRequested.connect(self.reset_view)
         self.tool_sidebar.clearRequested.connect(self.clear_screen)
+
+        # ── Atalhos de Teclado Globais (Undo / Redo) ─────────────────────
+        self.shortcut_undo = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Z"), self)
+        self.shortcut_undo.activated.connect(self.undo)
+
+        self.shortcut_redo_y = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Y"), self)
+        self.shortcut_redo_y.activated.connect(self.redo)
+
+        self.shortcut_redo_shift_z = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Shift+Z"), self)
+        self.shortcut_redo_shift_z.activated.connect(self.redo)
 
         # ── Status Bar ────────────────────────────────────────────────────
         self.status_bar = StatusBar(self)
@@ -194,6 +206,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def zoom_out(self) -> None:
         self.workspace.zoom_out()
+
+    # ── Desfazer / Refazer ────────────────────────────────────────────────
+
+    def undo(self) -> None:
+        if self.workspace:
+            self.workspace.undo()
+
+    def redo(self) -> None:
+        if self.workspace:
+            self.workspace.redo()
 
     # ── Canvas ────────────────────────────────────────────────────────────
 

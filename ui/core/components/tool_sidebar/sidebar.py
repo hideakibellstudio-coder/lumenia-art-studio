@@ -4,6 +4,8 @@ from ui.core.icons import get_icon
 class ToolSidebar(QtWidgets.QToolBar):
     brushSelected = QtCore.Signal()
     eraserSelected = QtCore.Signal()
+    undoRequested = QtCore.Signal()
+    redoRequested = QtCore.Signal()
     zoomInRequested = QtCore.Signal()
     zoomOutRequested = QtCore.Signal()
     resetRequested = QtCore.Signal()
@@ -37,6 +39,20 @@ class ToolSidebar(QtWidgets.QToolBar):
         self.action_eraser.triggered.connect(self._on_eraser_triggered)
         self.addAction(self.action_eraser)
         
+        self.addSeparator()
+
+        # Desfazer (Undo)
+        self.action_undo = QtGui.QAction(get_icon("undo"), "Desfazer (Ctrl+Z)", self)
+        self.action_undo.setToolTip("Desfazer última ação (Ctrl+Z)")
+        self.action_undo.triggered.connect(self.undoRequested.emit)
+        self.addAction(self.action_undo)
+
+        # Refazer (Redo)
+        self.action_redo = QtGui.QAction(get_icon("redo"), "Refazer (Ctrl+Y / Ctrl+Shift+Z)", self)
+        self.action_redo.setToolTip("Refazer ação (Ctrl+Y / Ctrl+Shift+Z)")
+        self.action_redo.triggered.connect(self.redoRequested.emit)
+        self.addAction(self.action_redo)
+
         self.addSeparator()
         
         # Zoom In
@@ -72,8 +88,6 @@ class ToolSidebar(QtWidgets.QToolBar):
         self.action_brush.setChecked(False)
         self.action_eraser.setChecked(True)
         self.eraserSelected.emit()
-
-
 
     def _on_theme_changed(self, theme_name: str):
         # Update all action icons with new theme color

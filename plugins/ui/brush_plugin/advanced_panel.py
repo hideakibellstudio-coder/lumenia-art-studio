@@ -11,6 +11,12 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from .collapsible_section import CollapsibleSection
 
 
+class NonScrollComboBox(QtWidgets.QComboBox):
+    """Subclasse de QComboBox que ignora a roda do mouse para permitir rolagem suave do painel."""
+    def wheelEvent(self, event):
+        event.ignore()
+
+
 class DynamicEngineParamsWidget(QtWidgets.QWidget):
     """Container dinâmico que exibe os sliders exclusivos de cada mini-motor C++."""
 
@@ -481,7 +487,7 @@ class AdvancedPanel(QtWidgets.QDialog):
         so_lo.addWidget(self.sl_min_op)
 
         so_lo.addWidget(QtWidgets.QLabel("Modo de Mesclagem (DabBlendMode):"))
-        self.cmb_blend = QtWidgets.QComboBox()
+        self.cmb_blend = NonScrollComboBox()
         self.cmb_blend.addItems([
             "Normal (Alpha Over)",
             "Multiplicação (Marcador/Feltro)",
@@ -523,7 +529,7 @@ class AdvancedPanel(QtWidgets.QDialog):
         tip_info_lo.setContentsMargins(4, 0, 0, 0)
         tip_info_lo.setSpacing(4)
 
-        self.cmb_shape = QtWidgets.QComboBox()
+        self.cmb_shape = NonScrollComboBox()
         self.cmb_shape.addItems(["Ponta Suave (Radial)", "Ponta Dura (Circular)", "Cerdas Secas", "Quadrado / Chato"])
         self.cmb_shape.currentIndexChanged.connect(self._on_shape_preset_changed)
 
@@ -602,7 +608,7 @@ class AdvancedPanel(QtWidgets.QDialog):
         tex_info_lo.setContentsMargins(4, 0, 0, 0)
         tex_info_lo.setSpacing(4)
 
-        self.cmb_b_grain = QtWidgets.QComboBox()
+        self.cmb_b_grain = NonScrollComboBox()
         self.cmb_b_grain.addItems(["Grão Fino", "Papel Aquarela", "Tela de Óleo", "Ruído Puro"])
         self.cmb_b_grain.currentIndexChanged.connect(self._on_b_grain_preset_changed)
 
@@ -1055,15 +1061,15 @@ class AdvancedPanel(QtWidgets.QDialog):
             }}
             QScrollBar:vertical {{
                 border: none;
-                background: transparent;
-                width: 8px;
-                margin: 4px 4px 12px 0px;
-                border-radius: 4px;
+                background: rgba(0, 0, 0, 0.15);
+                width: 7px;
+                margin: 2px 2px 8px 2px;
+                border-radius: 3px;
             }}
             QScrollBar::handle:vertical {{
-                background: {border};
-                border-radius: 4px;
-                min-height: 20px;
+                background: {muted};
+                border-radius: 3px;
+                min-height: 24px;
             }}
             QScrollBar::handle:vertical:hover {{
                 background: {accent};

@@ -170,6 +170,10 @@ class AladynBackend(EngineBackend):
             return self._facade.is_filter_layer(index)
         return False
 
+    def set_layer_name(self, index: int, name: str) -> None:
+        if self._facade and hasattr(self._facade, "set_layer_name"):
+            self._facade.set_layer_name(index, name)
+
     def is_group(self, index: int) -> bool:
         if self._facade and hasattr(self._facade, "is_group"):
             return self._facade.is_group(index)

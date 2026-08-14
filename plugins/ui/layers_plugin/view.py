@@ -19,11 +19,13 @@ class LayerTreeView(QTreeView):
     addLayerRequested = Signal()
     addGroupRequested = Signal()
     editFilterRequested = Signal(int)
+    renameRequested = Signal(int, object)  # (uid, rect)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setHeaderHidden(True)
         self.setFocusPolicy(Qt.NoFocus)
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setStyleSheet("""
             QTreeView {
                 background-color: transparent;
@@ -193,6 +195,32 @@ class LayerTreeView(QTreeView):
         
         drag.exec(supportedActions)
 
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            pos = event.pos()
+            index = self.indexAt(pos)
+            if index.isValid():
+                rect = self.visualRect(index)
+                delegate = self.itemDelegate(index)
+                if hasattr(delegate, "get_hitboxes"):
+                    from .model import ROLE_IS_GROUP, ROLE_CLIPPING_MASK, ROLE_IS_FILTER, ROLE_UID
+                    is_group = bool(index.data(ROLE_IS_GROUP))
+                    clip = bool(index.data(ROLE_CLIPPING_MASK))
+                    boxes = delegate.get_hitboxes(rect, is_group, clip)
+                    name_box = boxes.get("name")
+                    if name_box and name_box.contains(pos):
+                        uid = index.data(ROLE_UID)
+                        self.renameRequested.emit(int(uid), rect)
+                        return
+
+                    is_filter = bool(index.data(ROLE_IS_FILTER))
+                    if is_filter:
+                        uid = index.data(ROLE_UID)
+                        self.editFilterRequested.emit(int(uid))
+                        return
+
+        super().mouseDoubleClickEvent(event)
+
     def contextMenuEvent(self, event):
         index = self.indexAt(event.pos())
         from ui.core.theme.manager import ThemeManager
@@ -252,7 +280,8 @@ class LayerTreeView(QTreeView):
         if act_edit_filter and action == act_edit_filter:
             self.editFilterRequested.emit(int(uid))
         elif action == act_rename:
-            self.edit(index)
+            rect = self.visualRect(index)
+            self.renameRequested.emit(int(uid), rect)
         elif action == act_duplicate:
             self.duplicateRequested.emit()
         elif action == act_move_up:

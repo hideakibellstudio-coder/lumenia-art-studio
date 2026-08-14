@@ -200,6 +200,14 @@ class LocalLayerManager(QtCore.QObject):
         self.layer_added.emit(new_layer)
         return new_uid
 
+    def rename_layer(self, uid: int, new_name: str) -> bool:
+        layer = self.get_layer_by_uid(uid)
+        if layer and new_name.strip():
+            layer.name = new_name.strip()
+            self.layer_property_changed.emit(uid)
+            return True
+        return False
+
     def _duplicate_child_recursive(self, child_layer, new_parent_uid) -> int:
         child_uid = self._next_uid
         self._next_uid += 1

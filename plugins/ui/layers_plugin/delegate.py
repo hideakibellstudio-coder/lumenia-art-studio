@@ -211,13 +211,15 @@ class LayerItemDelegate(QStyledItemDelegate):
         clip_box = QRect(curr_x - 2, icons_y - 2, 22, 22)
         alpha_box = QRect(curr_x + 22, icons_y - 2, 22, 22)
         lock_box = QRect(curr_x + 46, icons_y - 2, 22, 22)
+        name_box = QRect(curr_x, rect.top() + 2, max(0, rect.right() - curr_x - PADDING), 20)
         
         return {
             'eye': eye_box,
             'collapse': collapse_box,
             'clip': clip_box,
             'alpha': alpha_box,
-            'lock': lock_box
+            'lock': lock_box,
+            'name': name_box
         }
 
     def editorEvent(self, event, model, option, index):

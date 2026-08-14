@@ -1,8 +1,8 @@
 import logging
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QFrame, QDialog, QLabel,
     QDialogButtonBox, QRadioButton, QButtonGroup, QSlider, QHBoxLayout,
-    QGroupBox, QSizePolicy, QApplication)
-from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QTimer
+    QGroupBox, QSizePolicy, QApplication, QLineEdit)
+from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QTimer, QRect, Signal
 
 from .model import (
     LayerModel, ROLE_UID, ROLE_VISIBLE, ROLE_LOCKED,
@@ -17,6 +17,56 @@ from .paper import PaperLayerWidget
 from ui.core.icons import get_icon
 
 logger = logging.getLogger(__name__)
+
+class LayerRenamePopup(QFrame):
+    """Popup flutuante posicionado sobre o rótulo da camada para renomear com precisão."""
+
+    name_changed = Signal(str)
+
+    def __init__(self, current_name: str, target_rect: QRect, parent=None):
+        flags = Qt.Popup | Qt.FramelessWindowHint
+        super().__init__(parent, flags)
+
+        self.input_edit = QLineEdit(current_name, self)
+        self.input_edit.selectAll()
+        self.input_edit.returnPressed.connect(self._on_accept)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.addWidget(self.input_edit)
+
+        from ui.core.theme.manager import ThemeManager
+        tm = ThemeManager.instance()
+        bg_panel = tm.get_color("bg_panel", "#1e1e24")
+        accent = tm.get_color("accent", "#6366f1")
+        text_main = tm.get_color("text_main", "#f3f4f6")
+
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {bg_panel};
+                border: 1.5px solid {accent};
+                border-radius: 4px;
+            }}
+            QLineEdit {{
+                background: transparent;
+                border: none;
+                color: {text_main};
+                font-weight: bold;
+                font-size: 12px;
+            }}
+        """)
+
+        self.setGeometry(target_rect)
+
+    def _on_accept(self):
+        new_name = self.input_edit.text().strip()
+        if new_name:
+            self.name_changed.emit(new_name)
+        self.close()
+
+    def focusOutEvent(self, event):
+        self._on_accept()
+        super().focusOutEvent(event)
 
 class LayersPanel(QWidget):
     def __init__(self, parent=None):
@@ -87,6 +137,7 @@ class LayersPanel(QWidget):
         self.view.addLayerRequested.connect(self.add_layer)
         self.view.addGroupRequested.connect(self.add_group)
         self.view.editFilterRequested.connect(self.open_edit_filter_popup)
+        self.view.renameRequested.connect(self.open_rename_popup)
         self.view.doubleClicked.connect(self._on_item_double_clicked)
         
         left_layout.addWidget(self.view)
@@ -514,6 +565,35 @@ class LayersPanel(QWidget):
                 top_w.workspace.canvas_widget.update()
             elif hasattr(top_w, "canvas_widget"):
                 top_w.canvas_widget.update()
+
+    def open_rename_popup(self, uid: int, rect: QRect):
+        layer = self.layer_manager.get_layer_by_uid(uid)
+        if not layer:
+            return
+
+        global_pos = self.view.viewport().mapToGlobal(rect.topLeft())
+        target_rect = QRect(
+            global_pos.x() + 85,
+            global_pos.y() + 4,
+            max(150, rect.width() - 95),
+            28
+        )
+
+        popup = LayerRenamePopup(layer.name, target_rect, self)
+
+        def on_name_changed(new_name):
+            if self.layer_manager.rename_layer(uid, new_name):
+                c_idx = self.layer_manager.get_c_index_for_layer(uid)
+                if c_idx >= 0:
+                    from ui.core.engine.registry import EngineRegistry
+                    backend = EngineRegistry.instance().get_backend()
+                    if backend and hasattr(backend, "set_layer_name"):
+                        backend.set_layer_name(c_idx, new_name)
+                self.model.layoutChanged.emit()
+
+        popup.name_changed.connect(on_name_changed)
+        popup.show()
+        popup.input_edit.setFocus()
 
     def _on_item_double_clicked(self, index: QModelIndex):
         if not index.isValid():

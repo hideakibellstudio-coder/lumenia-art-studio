@@ -749,6 +749,8 @@ class LayersPanel(QWidget):
             is_expanded = self.view.isExpanded(idx)
             self.view.setExpanded(idx, not is_expanded)
             self.model.setData(idx, is_expanded, ROLE_COLLAPSED)
+        elif action_type == "edit_filter":
+            self.open_edit_filter_popup(uid)
 
     def _on_view_selection_changed(self, selected=None, deselected=None):
         if self._updating_selection or getattr(self.model, '_is_modifying_structure', False): 

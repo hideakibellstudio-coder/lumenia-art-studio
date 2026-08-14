@@ -228,7 +228,7 @@ class LayerItemDelegate(QStyledItemDelegate):
 
     def editorEvent(self, event, model, option, index):
         if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
-            pos = event.pos()
+            pos = event.position().toPoint() if hasattr(event, "position") else event.pos()
             uid = index.data(ROLE_UID)
             is_group = index.data(ROLE_IS_GROUP)
             clip = index.data(ROLE_CLIPPING_MASK)
@@ -242,6 +242,12 @@ class LayerItemDelegate(QStyledItemDelegate):
             if is_group and boxes['collapse'].contains(pos):
                 self.actionRequested.emit("toggle_collapse", uid)
                 return True
+
+            if boxes.get('thumb') and boxes['thumb'].contains(pos):
+                is_filter = bool(index.data(ROLE_IS_FILTER))
+                if is_filter:
+                    self.actionRequested.emit("edit_filter", uid)
+                    return True
                 
             if boxes['clip'].contains(pos):
                 self.actionRequested.emit("toggle_clipping_mask", uid)

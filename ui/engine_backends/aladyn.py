@@ -146,6 +146,30 @@ class AladynBackend(EngineBackend):
             return self._facade.add_group(name)
         return -1
 
+    def add_filter_layer(self, name: str, filter_type_id: int) -> int:
+        if self._facade and hasattr(self._facade, "add_filter_layer"):
+            return self._facade.add_filter_layer(name, filter_type_id)
+        return -1
+
+    def set_filter_params(self, index: int, params: list[float]) -> None:
+        if self._facade and hasattr(self._facade, "set_filter_params"):
+            self._facade.set_filter_params(index, [float(x) for x in params])
+
+    def get_filter_params(self, index: int) -> list[float]:
+        if self._facade and hasattr(self._facade, "get_filter_params"):
+            return list(self._facade.get_filter_params(index))
+        return []
+
+    def get_filter_type(self, index: int) -> int:
+        if self._facade and hasattr(self._facade, "get_filter_type"):
+            return self._facade.get_filter_type(index)
+        return -1
+
+    def is_filter_layer(self, index: int) -> bool:
+        if self._facade and hasattr(self._facade, "is_filter_layer"):
+            return self._facade.is_filter_layer(index)
+        return False
+
     def is_group(self, index: int) -> bool:
         if self._facade and hasattr(self._facade, "is_group"):
             return self._facade.is_group(index)

@@ -18,6 +18,7 @@ class LayerTreeView(QTreeView):
     clearRequested = Signal()
     addLayerRequested = Signal()
     addGroupRequested = Signal()
+    editFilterRequested = Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -223,8 +224,17 @@ class LayerTreeView(QTreeView):
             return
 
         from PySide6.QtWidgets import QMenu
+        from .model import ROLE_IS_FILTER, ROLE_UID
         menu = QMenu(self)
         menu.setStyleSheet(ThemeManager.instance().compile_qss(menu_qss))
+
+        is_filter = bool(index.data(ROLE_IS_FILTER))
+        uid = index.data(ROLE_UID)
+
+        act_edit_filter = None
+        if is_filter:
+            act_edit_filter = menu.addAction("⚙️ Editar Filtro / Ajuste...")
+            menu.addSeparator()
 
         act_rename = menu.addAction("✏️ Renomear")
         act_duplicate = menu.addAction("👥 Duplicar Camada")
@@ -239,7 +249,9 @@ class LayerTreeView(QTreeView):
         act_delete = menu.addAction("🗑️ Excluir Camada")
 
         action = menu.exec(event.globalPos())
-        if action == act_rename:
+        if act_edit_filter and action == act_edit_filter:
+            self.editFilterRequested.emit(int(uid))
+        elif action == act_rename:
             self.edit(index)
         elif action == act_duplicate:
             self.duplicateRequested.emit()

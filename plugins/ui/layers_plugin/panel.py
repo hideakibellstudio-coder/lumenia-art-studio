@@ -86,6 +86,8 @@ class LayersPanel(QWidget):
         self.view.clearRequested.connect(self.grid_clear)
         self.view.addLayerRequested.connect(self.add_layer)
         self.view.addGroupRequested.connect(self.add_group)
+        self.view.editFilterRequested.connect(self.open_edit_filter_popup)
+        self.view.doubleClicked.connect(self._on_item_double_clicked)
         
         left_layout.addWidget(self.view)
         
@@ -393,7 +395,85 @@ class LayersPanel(QWidget):
             self._updating_selection = False
 
     def add_filter_layer(self, filter_type=None):
-        self._show_status("Recurso 'Camada de Filtro' em desenvolvimento.")
+        from ui.core.screens.filters import FilterAdjustmentDialog
+        dialog = FilterAdjustmentDialog(self)
+        dialog.filter_created.connect(self._create_filter_layer)
+        dialog.exec()
+
+    def _create_filter_layer(self, name: str, type_id: int, params: list):
+        self._updating_selection = True
+        try:
+            from ui.core.engine.registry import EngineRegistry
+            backend = EngineRegistry.instance().get_backend()
+            if backend and hasattr(backend, "add_filter_layer"):
+                new_idx = backend.add_filter_layer(name, type_id)
+                if new_idx >= 0:
+                    backend.set_filter_params(new_idx, params)
+
+            self.layer_manager.add_layer(name)
+            active = self.layer_manager.get_active_layer()
+            if active:
+                active.is_filter = True
+                self._select_uid_in_view(active.uid)
+                self._sync_to_native_engine("select")
+            self._show_status(f"Camada de Ajuste '{name}' criada com sucesso.")
+        finally:
+            self._updating_selection = False
+
+    def open_edit_filter_popup(self, uid: int = None):
+        if uid is None:
+            active = self.layer_manager.get_active_layer()
+            if not active:
+                return
+            uid = active.uid
+
+        layer = self.layer_manager.get_layer_by_uid(uid)
+        if not layer:
+            return
+
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if not backend or not hasattr(backend, "_facade") or not backend._facade:
+            return
+
+        layer_list = self.layer_manager.layers
+        try:
+            c_idx = layer_list.index(layer)
+        except ValueError:
+            return
+
+        if not backend.is_filter_layer(c_idx):
+            self._show_status(f"A camada '{layer.name}' não é uma camada de ajuste.")
+            return
+
+        type_id = backend.get_filter_type(c_idx)
+        params = backend.get_filter_params(c_idx)
+
+        from ui.core.screens.filters import FilterEditPopup
+        popup = FilterEditPopup(c_idx, layer.name, type_id, params, self)
+        popup.params_changed.connect(self._on_filter_params_changed)
+        popup.exec()
+
+    def _on_filter_params_changed(self, c_idx: int, params: list):
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_filter_params"):
+            backend.set_filter_params(c_idx, params)
+
+        for top_w in QApplication.topLevelWidgets():
+            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
+                top_w.workspace.canvas_widget.update()
+            elif hasattr(top_w, "canvas_widget"):
+                top_w.canvas_widget.update()
+
+    def _on_item_double_clicked(self, index: QModelIndex):
+        if not index.isValid():
+            return
+        uid = index.data(ROLE_UID)
+        if uid is not None:
+            layer = self.layer_manager.get_layer_by_uid(uid)
+            if layer and (getattr(layer, "is_filter", False) or getattr(layer, "type", None) == "FilterLayer"):
+                self.open_edit_filter_popup(uid)
 
     def move_up(self):
         layer = self.layer_manager.get_active_layer()

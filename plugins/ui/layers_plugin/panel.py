@@ -397,7 +397,56 @@ class LayersPanel(QWidget):
     def add_filter_layer(self, filter_type=None):
         from ui.core.screens.filters import FilterAdjustmentDialog
         dialog = FilterAdjustmentDialog(self)
-        dialog.filter_created.connect(self._create_filter_layer)
+
+        self._preview_filter_idx = -1
+
+        def _repaint():
+            for top_w in QApplication.topLevelWidgets():
+                if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
+                    top_w.workspace.canvas_widget.update()
+                elif hasattr(top_w, "canvas_widget"):
+                    top_w.canvas_widget.update()
+
+        def on_preview_changed(name, type_id, params):
+            from ui.core.engine.registry import EngineRegistry
+            backend = EngineRegistry.instance().get_backend()
+            if not backend or not hasattr(backend, "add_filter_layer"):
+                return
+
+            if self._preview_filter_idx < 0:
+                self._preview_filter_idx = backend.add_filter_layer(f"Preview {name}", type_id)
+            else:
+                curr_type = backend.get_filter_type(self._preview_filter_idx)
+                if curr_type != type_id:
+                    if hasattr(backend, "_facade") and backend._facade:
+                        backend._facade.remove_layer(self._preview_filter_idx)
+                    self._preview_filter_idx = backend.add_filter_layer(f"Preview {name}", type_id)
+
+            if self._preview_filter_idx >= 0:
+                backend.set_filter_params(self._preview_filter_idx, params)
+            _repaint()
+
+        def on_preview_cancelled():
+            if self._preview_filter_idx >= 0:
+                from ui.core.engine.registry import EngineRegistry
+                backend = EngineRegistry.instance().get_backend()
+                if backend and hasattr(backend, "_facade") and backend._facade:
+                    backend._facade.remove_layer(self._preview_filter_idx)
+                self._preview_filter_idx = -1
+                _repaint()
+
+        def on_filter_created(name, type_id, params):
+            if self._preview_filter_idx >= 0:
+                from ui.core.engine.registry import EngineRegistry
+                backend = EngineRegistry.instance().get_backend()
+                if backend and hasattr(backend, "_facade") and backend._facade:
+                    backend._facade.remove_layer(self._preview_filter_idx)
+                self._preview_filter_idx = -1
+            self._create_filter_layer(name, type_id, params)
+
+        dialog.preview_changed.connect(on_preview_changed)
+        dialog.preview_cancelled.connect(on_preview_cancelled)
+        dialog.filter_created.connect(on_filter_created)
         dialog.exec()
 
     def _create_filter_layer(self, name: str, type_id: int, params: list):

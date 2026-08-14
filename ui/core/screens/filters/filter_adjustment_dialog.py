@@ -164,7 +164,9 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
     Diálogo principal de criação de Camadas de Ajuste e Filtros com visual de 2 colunas.
     """
 
-    filter_created = QtCore.Signal(str, int, list)  # (name, type_id, params)
+    filter_created = QtCore.Signal(str, int, list)     # (name, type_id, params)
+    preview_changed = QtCore.Signal(str, int, list)    # (name, type_id, params)
+    preview_cancelled = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -311,6 +313,7 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
             if p.get("type") == "bool":
                 chk = QtWidgets.QCheckBox(p["label"])
                 chk.setChecked(p["default"])
+                chk.toggled.connect(self._emit_preview)
                 self.params_layout.addWidget(chk)
                 self._param_widgets[p["id"]] = chk
             else:
@@ -321,8 +324,21 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
                     p["default"],
                     value_suffix=p.get("suffix", "")
                 )
+                slider.valueChanged.connect(self._emit_preview)
                 self.params_layout.addWidget(slider)
                 self._param_widgets[p["id"]] = slider
+
+        self._emit_preview()
+
+    def _emit_preview(self, *args) -> None:
+        name = self._active_def["name"]
+        type_id = self._active_def["type_id"]
+        params = self.get_current_params()
+        self.preview_changed.emit(name, type_id, params)
+
+    def reject(self) -> None:
+        self.preview_cancelled.emit()
+        super().reject()
 
     def _filter_cards(self, text: str) -> None:
         query = text.strip().lower()

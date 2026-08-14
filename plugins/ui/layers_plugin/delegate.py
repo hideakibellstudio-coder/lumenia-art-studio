@@ -242,12 +242,6 @@ class LayerItemDelegate(QStyledItemDelegate):
             if is_group and boxes['collapse'].contains(pos):
                 self.actionRequested.emit("toggle_collapse", uid)
                 return True
-
-            if boxes.get('thumb') and boxes['thumb'].contains(pos):
-                is_filter = bool(index.data(ROLE_IS_FILTER))
-                if is_filter:
-                    self.actionRequested.emit("edit_filter", uid)
-                    return True
                 
             if boxes['clip'].contains(pos):
                 self.actionRequested.emit("toggle_clipping_mask", uid)

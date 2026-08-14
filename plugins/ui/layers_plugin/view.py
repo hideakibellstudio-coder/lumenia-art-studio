@@ -207,6 +207,7 @@ class LayerTreeView(QTreeView):
                     is_group = bool(index.data(ROLE_IS_GROUP))
                     clip = bool(index.data(ROLE_CLIPPING_MASK))
                     boxes = delegate.get_hitboxes(rect, is_group, clip)
+                    
                     name_box = boxes.get("name")
                     if name_box and name_box.contains(pos):
                         uid = index.data(ROLE_UID)
@@ -214,10 +215,13 @@ class LayerTreeView(QTreeView):
                         return
 
                     is_filter = bool(index.data(ROLE_IS_FILTER))
-                    if is_filter:
+                    thumb_box = boxes.get("thumb")
+                    if is_filter and thumb_box and thumb_box.contains(pos):
                         uid = index.data(ROLE_UID)
                         self.editFilterRequested.emit(int(uid))
                         return
+
+                return
 
         super().mouseDoubleClickEvent(event)
 

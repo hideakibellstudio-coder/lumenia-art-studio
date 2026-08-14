@@ -208,6 +208,9 @@ class LayerItemDelegate(QStyledItemDelegate):
         curr_x = self._get_right_content_x(rect, clip, is_group)
         icons_y = rect.top() + 24
         
+        thumb_x = curr_x - PADDING - THUMB_W
+        thumb_box = QRect(thumb_x, rect.top() + (ROW_HEIGHT - THUMB_H) // 2, THUMB_W, THUMB_H)
+
         clip_box = QRect(curr_x - 2, icons_y - 2, 22, 22)
         alpha_box = QRect(curr_x + 22, icons_y - 2, 22, 22)
         lock_box = QRect(curr_x + 46, icons_y - 2, 22, 22)
@@ -216,6 +219,7 @@ class LayerItemDelegate(QStyledItemDelegate):
         return {
             'eye': eye_box,
             'collapse': collapse_box,
+            'thumb': thumb_box,
             'clip': clip_box,
             'alpha': alpha_box,
             'lock': lock_box,

@@ -138,7 +138,6 @@ class LayersPanel(QWidget):
         self.view.addGroupRequested.connect(self.add_group)
         self.view.editFilterRequested.connect(self.open_edit_filter_popup)
         self.view.renameRequested.connect(self.open_rename_popup)
-        self.view.doubleClicked.connect(self._on_item_double_clicked)
         
         left_layout.addWidget(self.view)
         

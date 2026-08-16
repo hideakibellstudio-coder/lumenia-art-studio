@@ -1,0 +1,51 @@
+#ifndef ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+#define ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+
+#include "IBrushEngine.hpp"
+
+namespace aladyn::engine::document { class Layer; }
+
+namespace aladyn::engine::engines {
+
+// ─── MINI-MOTOR DE SMUDGE / ARRASTO (SmudgeEngine) ──────────────────────────
+//
+// Física: Coleta a cor existente sob o primeiro dab do traço e a arrasta
+// pela tela, misturando gradualmente com as cores do caminho.
+//
+// Parâmetros exclusivos usados:
+//   profile.smudgeParams.colorPickup    (quantidade de cor coletada da tela)
+//   profile.smudgeParams.mixRatio       (mistura entre cor mantida vs cor de destino)
+//   profile.smudgeParams.smudgeStretch  (fator de retenção/alongamento do arrasto)
+//
+// Parâmetros comuns usados:
+//   brushSize, minSizePercent, opacity, hardness, spacingFactor, tip.
+// ───────────────────────────────────────────────────────────────────────────
+class SmudgeEngine final : public IBrushEngine {
+public:
+    SmudgeEngine() = default;
+
+    void renderDab(
+        const raster::Dab& dab,
+        const brush::BrushProfile& profile,
+        const canvas::CanvasTexture& canvasTexture,
+        canvas::TileGrid& tileGrid,
+        const canvas::PixelBuffer* compositeBuffer = nullptr,
+        const raster::PixelContext& ctx = {}
+    ) override;
+
+    [[nodiscard]] brush::EngineType getType() const noexcept override {
+        return brush::EngineType::Smudge;
+    }
+
+    void onBeginStroke() noexcept override {
+        m_hasCarriedColor = false;
+    }
+
+private:
+    bool              m_hasCarriedColor{false};
+    raster::ColorRGBA m_carriedColor{0, 0, 0, 0};
+};
+
+} // namespace aladyn::engine::engines
+
+#endif // ALADYN_ENGINE_SMUDGE_ENGINE_HPP

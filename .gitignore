@@ -10,6 +10,11 @@ build/
 dist/
 *.egg-info/
 
+# Compiled native extensions
+*.pyd
+*.so
+*.dylib
+
 # C++ / MSVC Build artifacts
 *.obj
 *.o

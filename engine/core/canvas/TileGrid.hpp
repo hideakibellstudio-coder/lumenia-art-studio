@@ -1,0 +1,43 @@
+#ifndef ALADYN_ENGINE_TILE_GRID_HPP
+#define ALADYN_ENGINE_TILE_GRID_HPP
+
+#include "Tile.hpp"
+#include "SpatialCuller.hpp"
+#include <unordered_map>
+#include <memory>
+#include <cstdint>
+
+namespace aladyn::engine::canvas {
+
+struct TileIndexHash {
+    std::size_t operator()(const TileIndex& idx) const noexcept {
+        return (static_cast<std::size_t>(idx.x) << 32) ^ static_cast<std::size_t>(idx.y);
+    }
+};
+
+class TileGrid {
+public:
+    TileGrid(int width, int height);
+
+    [[nodiscard]] int getWidth() const noexcept { return m_width; }
+    [[nodiscard]] int getHeight() const noexcept { return m_height; }
+    [[nodiscard]] int getTilesCountX() const noexcept { return m_tilesX; }
+    [[nodiscard]] int getTilesCountY() const noexcept { return m_tilesY; }
+
+    Tile* getTile(int tileX, int tileY);
+    Tile* getOrCreateTile(int tileX, int tileY);
+    
+    void clearAll(raster::ColorRGBA color = {0, 0, 0, 0});
+    void copyFrom(const TileGrid& src);
+
+private:
+    int m_width{0};
+    int m_height{0};
+    int m_tilesX{0};
+    int m_tilesY{0};
+    std::unordered_map<TileIndex, std::unique_ptr<Tile>, TileIndexHash> m_tiles;
+};
+
+} // namespace aladyn::engine::canvas
+
+#endif // ALADYN_ENGINE_TILE_GRID_HPP

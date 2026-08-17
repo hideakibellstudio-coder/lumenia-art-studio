@@ -21,7 +21,12 @@ enum class LayerBlendMode {
     Darken      = 4,  // Escurecer
     Lighten     = 5,  // Clarear
     Erase       = 6,  // Borracha de camada (Alpha Erase)
-    PassThrough = 7   // Atravessar (Modo padrão para Grupos)
+    PassThrough = 7,  // Atravessar (Modo padrão para Grupos)
+    ColorDodge  = 8,  // Subexposição de cor / Brilho Neon
+    ColorBurn   = 9,  // Superexposição de cor / Contraste denso
+    Difference  = 10, // Diferença / Inversão cromática
+    Exclusion   = 11, // Exclusão
+    Add         = 12  // Adicionar / Luz Pura
 };
 
 class LayerNode {

@@ -57,13 +57,19 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
 
     // ─── LAYER BLEND MODE (MODO DE MESCLAGEM DAS CAMADAS DO DOCUMENTO) ───────
     py::enum_<document::LayerBlendMode>(m, "LayerBlendMode")
-        .value("Normal",   document::LayerBlendMode::Normal)
-        .value("Multiply", document::LayerBlendMode::Multiply)
-        .value("Screen",   document::LayerBlendMode::Screen)
-        .value("Overlay",  document::LayerBlendMode::Overlay)
-        .value("Darken",   document::LayerBlendMode::Darken)
-        .value("Lighten",  document::LayerBlendMode::Lighten)
-        .value("Erase",    document::LayerBlendMode::Erase)
+        .value("Normal",      document::LayerBlendMode::Normal)
+        .value("Multiply",    document::LayerBlendMode::Multiply)
+        .value("Screen",      document::LayerBlendMode::Screen)
+        .value("Overlay",     document::LayerBlendMode::Overlay)
+        .value("Darken",      document::LayerBlendMode::Darken)
+        .value("Lighten",     document::LayerBlendMode::Lighten)
+        .value("Erase",       document::LayerBlendMode::Erase)
+        .value("PassThrough", document::LayerBlendMode::PassThrough)
+        .value("ColorDodge",  document::LayerBlendMode::ColorDodge)
+        .value("ColorBurn",   document::LayerBlendMode::ColorBurn)
+        .value("Difference",  document::LayerBlendMode::Difference)
+        .value("Exclusion",   document::LayerBlendMode::Exclusion)
+        .value("Add",         document::LayerBlendMode::Add)
         .export_values();
 
     py::class_<raster::ColorRGBA>(m, "ColorRGBA")

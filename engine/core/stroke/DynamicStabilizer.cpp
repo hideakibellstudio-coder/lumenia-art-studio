@@ -21,4 +21,13 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
     return m_stabilizedPosition;
 }
 
+math::Point2D DynamicStabilizer::predictPosition(math::Point2D currentPos, math::Point2D velocity) const noexcept {
+    if (!m_predictionEnabled) return currentPos;
+    const double dtSec = m_aheadMs / 1000.0;
+    return math::Point2D{
+        currentPos.x + velocity.x * dtSec,
+        currentPos.y + velocity.y * dtSec
+    };
+}
+
 } // namespace aladyn::engine::stroke

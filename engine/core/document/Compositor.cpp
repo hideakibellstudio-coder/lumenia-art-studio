@@ -337,6 +337,31 @@ raster::ColorRGBA Compositor::blendPixel(
             blendG = std::max(sG, dG);
             blendB = std::max(sB, dB);
             break;
+        case LayerBlendMode::ColorDodge:
+            blendR = std::min(1.0, dR / (1.0 - sR + 1e-5));
+            blendG = std::min(1.0, dG / (1.0 - sG + 1e-5));
+            blendB = std::min(1.0, dB / (1.0 - sB + 1e-5));
+            break;
+        case LayerBlendMode::ColorBurn:
+            blendR = 1.0 - std::min(1.0, (1.0 - dR) / (sR + 1e-5));
+            blendG = 1.0 - std::min(1.0, (1.0 - dG) / (sG + 1e-5));
+            blendB = 1.0 - std::min(1.0, (1.0 - dB) / (sB + 1e-5));
+            break;
+        case LayerBlendMode::Difference:
+            blendR = std::abs(dR - sR);
+            blendG = std::abs(dG - sG);
+            blendB = std::abs(dB - sB);
+            break;
+        case LayerBlendMode::Exclusion:
+            blendR = dR + sR - 2.0 * dR * sR;
+            blendG = dG + sG - 2.0 * dG * sG;
+            blendB = dB + sB - 2.0 * dB * sB;
+            break;
+        case LayerBlendMode::Add:
+            blendR = std::min(1.0, dR + sR);
+            blendG = std::min(1.0, dG + sG);
+            blendB = std::min(1.0, dB + sB);
+            break;
         case LayerBlendMode::Normal:
         default:
             blendR = sR; blendG = sG; blendB = sB;

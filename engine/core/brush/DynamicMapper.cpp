@@ -79,4 +79,22 @@ MappedBrushState DynamicMapper::map(
     return MappedBrushState{finalPos, radius, mappedOpacity, rawPressure, angle, color};
 }
 
+std::vector<MappedBrushState> DynamicMapper::map_scatter(
+    const BrushProfile& profile,
+    math::Point2D position,
+    double rawPressure,
+    double normalizedVelocity,
+    double strokeAngle
+) {
+    int count = std::max(1, profile.scatterCount);
+    std::vector<MappedBrushState> states;
+    states.reserve(static_cast<size_t>(count));
+
+    for (int i = 0; i < count; ++i) {
+        states.push_back(map(profile, position, rawPressure, normalizedVelocity, strokeAngle));
+    }
+
+    return states;
+}
+
 } // namespace aladyn::engine::brush

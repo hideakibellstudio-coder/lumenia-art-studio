@@ -62,6 +62,8 @@ struct WatercolorParams {
     double pigmentBleed{0.5};     // Taxa de sangramento/difusão em áreas úmidas (0-1)
     double fringeIntensity{0.4};  // Intensidade do anel de borda escura de secagem (Coffee Ring Effect)
     double granulation{0.3};      // Deposição de pigmento nos vales da textura do papel
+    double wetMixFactor{0.4};     // Fator de mistura com tinta molhada existente no canvas (0-1)
+    double paintDepletion{0.0};   // Taxa de depleção do reservatório de cerda (0-1)
 };
 
 // ─── PARÂMETROS EXCLUSIVOS — ÓLEO & IMPASTO (Fase 5) ───────────────────────
@@ -70,6 +72,8 @@ struct OilParams {
     double bristleGrooves{0.5};     // Profundidade das ranhuras de cerda paralelas ao traço (0-1)
     double viscosity{0.7};          // Viscosidade da tinta (resistência à fusão/arrasto)
     double specularBrilliance{0.5}; // Brilho especular úmido da tinta fresca a óleo
+    double wetMixFactor{0.5};       // Fator de fusão com a cor existente do canvas (0-1)
+    double paintDepletion{0.0};     // Taxa de esgotamento de tinta da cerda ao longo do traço (0-1)
 };
 
 // ─── PERFIL COMPLETO DO PINCEL ──────────────────────────────────────────────

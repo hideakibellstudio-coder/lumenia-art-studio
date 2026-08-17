@@ -24,6 +24,14 @@ public:
         double normalizedVelocity,
         double strokeAngle = 0.0
     ) noexcept;
+
+    static std::vector<MappedBrushState> map_scatter(
+        const BrushProfile& profile,
+        math::Point2D position,
+        double rawPressure,
+        double normalizedVelocity,
+        double strokeAngle = 0.0
+    );
 };
 
 } // namespace aladyn::engine::brush

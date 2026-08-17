@@ -39,10 +39,19 @@ def sync_to_native_engine(panel, action: str, *args):
         mode_idx = args[0]
         if isinstance(mode_idx, str):
             blend_map = {
-                "Normal": 0, "Multiply": 1, "Multiplicação": 1,
-                "Screen": 2, "Divisão": 2, "Overlay": 3, "Sobreposição": 3,
-                "Darken": 4, "Escurecer": 4, "Lighten": 5, "Clarear": 5,
-                "Erase": 6, "Borracha": 6, "Pass-Through": 7, "Atravessar": 7
+                "Normal": 0,
+                "Multiply": 1, "Multiplicação": 1,
+                "Screen": 2, "Divisão": 2,
+                "Overlay": 3, "Sobreposição": 3,
+                "Darken": 4, "Escurecer": 4,
+                "Lighten": 5, "Clarear": 5,
+                "Erase": 6, "Borracha": 6,
+                "Pass-Through": 7, "Atravessar": 7, "PassThrough": 7,
+                "ColorDodge": 8, "Color Dodge": 8, "Subexposição (Dodge)": 8, "Subexposição": 8,
+                "ColorBurn": 9, "Color Burn": 9, "Superexposição (Burn)": 9, "Superexposição": 9,
+                "Difference": 10, "Diferença": 10,
+                "Exclusion": 11, "Exclusão": 11,
+                "Add": 12, "Adicionar (Add)": 12, "Adicionar": 12
             }
             mode_idx = blend_map.get(mode_idx, 0)
 

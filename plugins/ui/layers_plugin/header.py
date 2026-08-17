@@ -123,12 +123,17 @@ class LayersHeader(QWidget):
             "Sobreposição",
             "Escurecer",
             "Clarear",
+            "Subexposição (Dodge)",
+            "Superexposição (Burn)",
+            "Diferença",
+            "Exclusão",
+            "Adicionar (Add)",
             "Borracha"
         ]
         self.combo_blend.addItems(self._all_blend_modes)
         self.combo_blend.setToolTip("Modo de Mesclagem da Camada")
-        self.combo_blend.setMinimumWidth(95)
-        self.combo_blend.setMaximumWidth(115)
+        self.combo_blend.setMinimumWidth(105)
+        self.combo_blend.setMaximumWidth(130)
         self.combo_blend.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.combo_blend.currentTextChanged.connect(self.blendModeChanged.emit)
 

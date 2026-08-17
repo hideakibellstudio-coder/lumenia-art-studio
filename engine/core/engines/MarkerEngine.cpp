@@ -103,24 +103,39 @@ void MarkerEngine::renderDab(
 
                 if (curOpacity <= 0.0) continue;
 
-                // 4. Blending (Multiply para tinta transparente)
+                // 4. Blending Profissional de Marcador (Acúmulo de pigmento sem auto-multiplicação destrutiva)
                 const raster::ColorRGBA dst = buffer.getPixel(px, py);
+
+                const double srcR = static_cast<double>(dab.color.r) / 255.0;
+                const double srcG = static_cast<double>(dab.color.g) / 255.0;
+                const double srcB = static_cast<double>(dab.color.b) / 255.0;
+
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
-                    const double srcR = static_cast<double>(dab.color.r) / 255.0;
-                    const double srcG = static_cast<double>(dab.color.g) / 255.0;
-                    const double srcB = static_cast<double>(dab.color.b) / 255.0;
                     const double dstR = static_cast<double>(dst.r) / 255.0;
                     const double dstG = static_cast<double>(dst.g) / 255.0;
                     const double dstB = static_cast<double>(dst.b) / 255.0;
 
-                    const double multR = srcR * dstR;
-                    const double multG = srcG * dstG;
-                    const double multB = srcB * dstB;
+                    const double diffR = std::abs(srcR - dstR);
+                    const double diffG = std::abs(srcG - dstG);
+                    const double diffB = std::abs(srcB - dstB);
+                    const double maxDiff = std::max({diffR, diffG, diffB});
 
-                    const double outR = dstR * (1.0 - curOpacity) + multR * curOpacity;
-                    const double outG = dstG * (1.0 - curOpacity) + multG * curOpacity;
-                    const double outB = dstB * (1.0 - curOpacity) + multB * curOpacity;
+                    double outR, outG, outB;
+                    if (maxDiff < 0.15) {
+                        // Mesma cor: mantém a cor pura do marcador
+                        outR = srcR;
+                        outG = srcG;
+                        outB = srcB;
+                    } else {
+                        // Cor diferente: multiplicação subtrativa de pigmento
+                        const double multR = srcR * dstR;
+                        const double multG = srcG * dstG;
+                        const double multB = srcB * dstB;
+                        outR = dstR * (1.0 - curOpacity) + multR * curOpacity;
+                        outG = dstG * (1.0 - curOpacity) + multG * curOpacity;
+                        outB = dstB * (1.0 - curOpacity) + multB * curOpacity;
+                    }
 
                     buffer.setPixel(px, py, raster::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
@@ -133,7 +148,7 @@ void MarkerEngine::renderDab(
                 }
 
                 if (dst.a == 0) {
-                    // Pixel transparente: deposita a cor do marcador diretamente
+                    // Pixel transparente: deposita a cor pura do marcador com o alpha do traço
                     buffer.setPixel(px, py, raster::ColorRGBA{
                         dab.color.r,
                         dab.color.g,
@@ -141,31 +156,42 @@ void MarkerEngine::renderDab(
                         static_cast<uint8_t>(std::clamp(curOpacity * 255.0, 0.0, 255.0))
                     });
                 } else {
-                    // Pixel existente: Multiply (multiplicação de pigmentos)
-                    const double srcR = static_cast<double>(dab.color.r) / 255.0;
-                    const double srcG = static_cast<double>(dab.color.g) / 255.0;
-                    const double srcB = static_cast<double>(dab.color.b) / 255.0;
-
                     const double dstR = static_cast<double>(dst.r) / 255.0;
                     const double dstG = static_cast<double>(dst.g) / 255.0;
                     const double dstB = static_cast<double>(dst.b) / 255.0;
+                    const double dstA = static_cast<double>(dst.a) / 255.0;
 
-                    // Blend Multiply
-                    const double multR = srcR * dstR;
-                    const double multG = srcG * dstG;
-                    const double multB = srcB * dstB;
+                    const double diffR = std::abs(srcR - dstR);
+                    const double diffG = std::abs(srcG - dstG);
+                    const double diffB = std::abs(srcB - dstB);
+                    const double maxDiff = std::max({diffR, diffG, diffB});
 
-                    // Interpola entre dst e mult pela opacidade efetiva
-                    const double outR = dstR * (1.0 - curOpacity) + multR * curOpacity;
-                    const double outG = dstG * (1.0 - curOpacity) + multG * curOpacity;
-                    const double outB = dstB * (1.0 - curOpacity) + multB * curOpacity;
-                    const double outA = std::max(static_cast<double>(dst.a), curOpacity * 255.0);
+                    double outR, outG, outB;
+                    double outA;
+
+                    if (maxDiff < 0.15) {
+                        // Intra-Stroke / Mesma tinta: acúmulo de opacidade preservando a cor vibrante
+                        outA = dstA + curOpacity * (1.0 - dstA * 0.5);
+                        outR = srcR;
+                        outG = srcG;
+                        outB = srcB;
+                    } else {
+                        // Inter-Stroke / Tinta diferente: Multiply subtrativo autêntico de marcador
+                        const double multR = srcR * dstR;
+                        const double multG = srcG * dstG;
+                        const double multB = srcB * dstB;
+
+                        outR = dstR * (1.0 - curOpacity) + multR * curOpacity;
+                        outG = dstG * (1.0 - curOpacity) + multG * curOpacity;
+                        outB = dstB * (1.0 - curOpacity) + multB * curOpacity;
+                        outA = std::max(dstA, curOpacity);
+                    }
 
                     buffer.setPixel(px, py, raster::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB * 255.0, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(outA, 0.0, 255.0))
+                        static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
                     });
                 }
                 tileModified = true;

@@ -1,13 +1,24 @@
+"""
+LayersPanel — Painel de Controle de Camadas do Lumenia (Decomposto conforme ARCcC)
+===================================================================================
+Gerencia a lista hierárquica de camadas, visualização em árvore, opacidade e blend mode.
+Decomposto nos submódulos atômicos:
+  - panel_rename_popup.py (Popup flutuante de renomeação)
+  - panel_filter_dialogs.py (Diálogos auxiliares de filtros)
+  - panel_sync.py (Sincronizador C++ nativo)
+"""
+
+from __future__ import annotations
+
 import logging
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QFrame, QDialog, QLabel,
-    QDialogButtonBox, QRadioButton, QButtonGroup, QSlider, QHBoxLayout,
-    QGroupBox, QSizePolicy, QApplication, QLineEdit)
-from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QTimer, QRect, Signal
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QFrame, QHBoxLayout, QSizePolicy, QApplication
+)
+from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QRect
 
 from .model import (
-    LayerModel, ROLE_UID, ROLE_VISIBLE, ROLE_LOCKED,
-    ROLE_OPACITY, ROLE_BLEND, ROLE_IS_GROUP, ROLE_IS_FILTER,
-    ROLE_ALPHA_LOCK, ROLE_CLIPPING_MASK, ROLE_COLLAPSED
+    LayerModel, ROLE_UID, ROLE_OPACITY, ROLE_BLEND,
+    ROLE_VISIBLE, ROLE_LOCKED, ROLE_ALPHA_LOCK, ROLE_CLIPPING_MASK, ROLE_COLLAPSED
 )
 from .delegate import LayerItemDelegate
 from .view import LayerTreeView
@@ -16,59 +27,16 @@ from .grid import LayersPrimaryBox, LayersSecondaryBar
 from .paper import PaperLayerWidget
 from ui.core.icons import get_icon
 
+from .panel_rename_popup import LayerRenamePopup
+from .panel_filter_dialogs import FilterLayerDialog, FilterParamsDialog
+from .panel_sync import sync_to_native_engine, refresh_layer_thumbnail
+
 logger = logging.getLogger(__name__)
 
-class LayerRenamePopup(QFrame):
-    """Popup flutuante posicionado sobre o rótulo da camada para renomear com precisão."""
-
-    name_changed = Signal(str)
-
-    def __init__(self, current_name: str, target_rect: QRect, parent=None):
-        flags = Qt.Popup | Qt.FramelessWindowHint
-        super().__init__(parent, flags)
-
-        self.input_edit = QLineEdit(current_name, self)
-        self.input_edit.selectAll()
-        self.input_edit.returnPressed.connect(self._on_accept)
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 2, 4, 2)
-        layout.addWidget(self.input_edit)
-
-        from ui.core.theme.manager import ThemeManager
-        tm = ThemeManager.instance()
-        bg_panel = tm.get_color("bg_panel", "#1e1e24")
-        accent = tm.get_color("accent", "#6366f1")
-        text_main = tm.get_color("text_main", "#f3f4f6")
-
-        self.setStyleSheet(f"""
-            QFrame {{
-                background-color: {bg_panel};
-                border: 1.5px solid {accent};
-                border-radius: 4px;
-            }}
-            QLineEdit {{
-                background: transparent;
-                border: none;
-                color: {text_main};
-                font-weight: bold;
-                font-size: 12px;
-            }}
-        """)
-
-        self.setGeometry(target_rect)
-
-    def _on_accept(self):
-        new_name = self.input_edit.text().strip()
-        if new_name:
-            self.name_changed.emit(new_name)
-        self.close()
-
-    def focusOutEvent(self, event):
-        self._on_accept()
-        super().focusOutEvent(event)
 
 class LayersPanel(QWidget):
+    """Widget principal do Painel de Camadas."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         
@@ -173,7 +141,6 @@ class LayersPanel(QWidget):
         card_box = PanelCardBox("🥞 Camadas", content_inner, self)
         main_layout.addWidget(card_box)
 
-        
         # Conexões de Sincronia com o Motor
         self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
         self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
@@ -212,13 +179,11 @@ class LayersPanel(QWidget):
             self.paper_widget.setEnabled(True)
             self.primary_box.setEnabled(True)
             
-            # Reconecta sinais de sincronia
             self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
             self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
             self.layer_manager.order_changed.connect(lambda: self._sync_to_native_engine("reorder_all"))
             self.layer_manager.layer_added.connect(lambda l: self._sync_to_native_engine("reorder_all"))
             
-            # Sincroniza controles de opacidade e blend mode
             self._sync_header_controls()
             self._ensure_top_selection()
 
@@ -279,141 +244,8 @@ class LayersPanel(QWidget):
             self._sync_to_native_engine("clipping_mask", layer.uid, new_val)
             self._show_status(f"Clipping Mask em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
 
-    # --- Synchronizer com o Motor C++ ALADYN ENGINE ---
     def _sync_to_native_engine(self, action: str, *args):
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "_facade") or not backend._facade:
-            return
-
-        facade = backend._facade
-        active_layer = self.layer_manager.get_active_layer()
-        layer_list = self.layer_manager.layers
-
-        try:
-            c_idx = layer_list.index(active_layer) if active_layer else facade.get_active_layer_index()
-        except ValueError:
-            c_idx = facade.get_active_layer_index()
-
-        if action == "clear":
-            facade.clear_canvas()
-        elif action == "clear_layer":
-            facade.clear_layer(c_idx)
-        elif action == "opacity":
-            val = args[0]
-            facade.set_layer_opacity(c_idx, float(val))
-        elif action == "blend":
-            mode_idx = args[0]
-            if isinstance(mode_idx, str):
-                blend_map = {
-                    "Normal": 0, "Multiply": 1, "Multiplicação": 1,
-                    "Screen": 2, "Divisão": 2, "Overlay": 3, "Sobreposição": 3,
-                    "Darken": 4, "Escurecer": 4, "Lighten": 5, "Clarear": 5,
-                    "Erase": 6, "Borracha": 6, "Pass-Through": 7, "Atravessar": 7
-                }
-                mode_idx = blend_map.get(mode_idx, 0)
-
-            if hasattr(backend, "_native") and hasattr(backend._native, "LayerBlendMode"):
-                try:
-                    bm_enum = backend._native.LayerBlendMode(int(mode_idx))
-                    facade.set_layer_blend_mode(c_idx, bm_enum)
-                except Exception as e:
-                    logger.debug(f"Layer blend mode set error: {e}")
-        elif action == "visibility":
-            uid, vis = args[0], args[1]
-            target_layer = self.layer_manager.get_layer_by_uid(uid)
-            if target_layer and target_layer in layer_list:
-                idx = layer_list.index(target_layer)
-                facade.set_layer_visibility(idx, bool(vis))
-        elif action == "lock":
-            uid, locked = args[0], args[1]
-            target_layer = self.layer_manager.get_layer_by_uid(uid)
-            if target_layer and target_layer in layer_list:
-                idx = layer_list.index(target_layer)
-                facade.set_layer_lock(idx, bool(locked))
-        elif action == "alpha_lock":
-            uid, val = args[0], args[1]
-            target_layer = self.layer_manager.get_layer_by_uid(uid)
-            if target_layer and target_layer in layer_list:
-                idx = layer_list.index(target_layer)
-                facade.set_layer_alpha_lock(idx, bool(val))
-        elif action == "clipping_mask":
-            uid, val = args[0], args[1]
-            target_layer = self.layer_manager.get_layer_by_uid(uid)
-            if target_layer and target_layer in layer_list:
-                idx = layer_list.index(target_layer)
-                facade.set_layer_clipping_mask(idx, bool(val))
-        elif action == "add":
-            name = args[0] if args else ""
-            facade.add_layer(name)
-            self._native_uids = [l.uid for l in layer_list]
-        elif action == "add_group":
-            name = args[0] if args else "Novo Grupo"
-            if hasattr(facade, "add_group"):
-                facade.add_group(name)
-            else:
-                facade.add_layer(name)
-            self._native_uids = [l.uid for l in layer_list]
-        elif action == "delete":
-            facade.remove_layer(c_idx)
-            self._native_uids = [l.uid for l in layer_list]
-        elif action == "move_up":
-            if c_idx < facade.get_drawing_layer_count() - 1:
-                facade.reorder_layer(c_idx, c_idx + 1)
-                self._native_uids = [l.uid for l in layer_list]
-        elif action == "move_down":
-            if c_idx > 0:
-                facade.reorder_layer(c_idx, c_idx - 1)
-                self._native_uids = [l.uid for l in layer_list]
-        elif action == "reorder_all":
-            if hasattr(facade, "reorder_layers"):
-                if not hasattr(self, "_native_uids") or len(self._native_uids) != len(layer_list):
-                    old_uids = [l.uid for l in layer_list]
-                else:
-                    old_uids = self._native_uids
-
-                if len(layer_list) == len(old_uids):
-                    new_indices = []
-                    for l in layer_list:
-                        if l.uid in old_uids:
-                            new_indices.append(old_uids.index(l.uid))
-                        else:
-                            break
-                    if len(new_indices) == len(layer_list) and new_indices != list(range(len(layer_list))):
-                        facade.reorder_layers(new_indices)
-
-                self._native_uids = [l.uid for l in layer_list]
-        elif action == "merge_down":
-            idx = args[0]
-            facade.merge_layer_down(idx)
-            self._native_uids = [l.uid for l in layer_list]
-        elif action == "duplicate":
-            if hasattr(facade, "duplicate_layer"):
-                facade.duplicate_layer(c_idx)
-            self._native_uids = [l.uid for l in layer_list]
-        elif action == "select":
-            facade.select_layer(c_idx)
-
-        # Sincroniza vínculos hierárquicos de pais no C++ sempre
-        if hasattr(facade, "set_layer_parents"):
-            parent_indices = []
-            for l in layer_list:
-                if l.parent_uid is not None:
-                    p_layer = self.layer_manager.get_layer_by_uid(l.parent_uid)
-                    if p_layer and p_layer in layer_list:
-                        parent_indices.append(layer_list.index(p_layer))
-                    else:
-                        parent_indices.append(-1)
-                else:
-                    parent_indices.append(-1)
-            facade.set_layer_parents(parent_indices)
-
-        # Repinta o CanvasWidget
-        for top_w in QApplication.topLevelWidgets():
-            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                top_w.workspace.canvas_widget.update()
-            elif hasattr(top_w, "canvas_widget"):
-                top_w.canvas_widget.update()
+        sync_to_native_engine(self, action, *args)
 
     def add_layer(self, name=None):
         self._updating_selection = True
@@ -447,7 +279,6 @@ class LayersPanel(QWidget):
     def add_filter_layer(self, filter_type=None):
         from ui.core.screens.filters import FilterAdjustmentDialog
         dialog = FilterAdjustmentDialog(self)
-
         self._preview_filter_idx = -1
 
         def _repaint():
@@ -594,15 +425,6 @@ class LayersPanel(QWidget):
         popup.show()
         popup.input_edit.setFocus()
 
-    def _on_item_double_clicked(self, index: QModelIndex):
-        if not index.isValid():
-            return
-        uid = index.data(ROLE_UID)
-        if uid is not None:
-            layer = self.layer_manager.get_layer_by_uid(uid)
-            if layer and (getattr(layer, "is_filter", False) or getattr(layer, "type", None) == "FilterLayer"):
-                self.open_edit_filter_popup(uid)
-
     def move_up(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
@@ -655,47 +477,12 @@ class LayersPanel(QWidget):
                 new_uid = self.layer_manager.duplicate_layer(layer.uid)
                 self._native_uids = [l.uid for l in self.layer_manager.layers]
                 if new_uid:
-                    # Gera thumbnail real para a camada duplicada a partir do buffer C++
-                    self._refresh_layer_thumbnail(new_uid)
+                    refresh_layer_thumbnail(self, new_uid)
                     self._select_uid_in_view(new_uid)
                     self._sync_to_native_engine("select")
                     self._show_status(f"Camada '{layer.name}' duplicada com sucesso.")
             finally:
                 self._updating_selection = False
-
-    def _refresh_layer_thumbnail(self, uid: int):
-        """Gera a miniatura real de uma camada lendo o pixel buffer do motor C++ para aquele índice."""
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "_facade") or not backend._facade:
-            return
-
-        layer = self.layer_manager.get_layer_by_uid(uid)
-        if not layer:
-            return
-
-        layer_list = self.layer_manager.layers
-        try:
-            c_idx = layer_list.index(layer)
-        except ValueError:
-            return
-
-        facade = backend._facade
-        if not hasattr(facade, "get_layer_thumbnail_buffer"):
-            return
-
-        try:
-            raw = facade.get_layer_thumbnail_buffer(c_idx, 38, 28)
-            if raw:
-                from PySide6.QtGui import QImage, QPixmap
-                img = QImage(bytes(raw), 38, 28, 38 * 4, QImage.Format_RGBA8888)
-                if not img.isNull():
-                    layer.thumb = QPixmap.fromImage(img)
-                    idx = self.model._find_index_by_uid(uid)
-                    if idx.isValid():
-                        self.model.dataChanged.emit(idx, idx)
-        except Exception as e:
-            logger.debug(f"[LayersPanel] Falha ao gerar thumbnail real: {e}")
 
     def _show_status(self, message):
         win = QApplication.activeWindow()
@@ -911,145 +698,3 @@ class LayersPanel(QWidget):
                 border: none;
             }}
         """)
-
-
-# ─── Diálogos de Filter Layer ─────────────────────────────────────────────────
-
-class FilterLayerDialog(QDialog):
-    FILTERS = [
-        ("brightness", "🌕  Brilho / Contraste"),
-        ("huesat",     "🎨  Matiz / Saturação / Luminosidade"),
-        ("pixelate",   "⬛  Pixelizar"),
-        ("invert",     "🔄  Inverter Cores"),
-        ("sharpen",    "🔍  Nitidez (Sharpen)"),
-        ("vignette",   "🌑  Vinheta"),
-    ]
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Adicionar Camada de Filtro")
-        self.setMinimumWidth(320)
-        self.setModal(True)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(8)
-
-        title = QLabel("<b>Escolha o tipo de efeito:</b>")
-        layout.addWidget(title)
-
-        self._btn_group = QButtonGroup(self)
-        self._type_keys = []
-
-        for i, (key, label) in enumerate(self.FILTERS):
-            rb = QRadioButton(label)
-            if i == 0:
-                rb.setChecked(True)
-            self._btn_group.addButton(rb, i)
-            self._type_keys.append(key)
-            layout.addWidget(rb)
-
-        layout.addSpacing(8)
-
-        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
-        layout.addWidget(btns)
-
-    def selected_filter_type(self) -> str:
-        idx = self._btn_group.checkedId()
-        return self._type_keys[idx] if 0 <= idx < len(self._type_keys) else "brightness"
-
-
-class FilterParamsDialog(QDialog):
-    PARAMS = {
-        "brightness": [
-            ("Brilho",    0, -100, 100, 0,   100.0),
-            ("Contraste", 1, -100, 100, 0,   100.0),
-        ],
-        "huesat": [
-            ("Matiz",      0, -180, 180,  0, 1.0),
-            ("Saturação",  1, -100, 100,  0, 100.0),
-            ("Luminosidade",2, -100, 100, 0, 100.0),
-        ],
-        "pixelate": [
-            ("Tamanho do Bloco", 0, 2, 128, 8, 1.0),
-        ],
-        "invert": [],
-        "sharpen": [
-            ("Intensidade", 0, 0, 200, 50, 100.0),
-        ],
-        "vignette": [
-            ("Raio",       0, 0, 100, 70, 100.0),
-            ("Suavidade",  1, 0, 100, 50, 100.0),
-            ("Intensidade",2, 0, 100, 80, 100.0),
-        ],
-    }
-
-    LABELS = {
-        "brightness": "Brilho / Contraste",
-        "huesat":     "Matiz / Saturação",
-        "pixelate":   "Pixelizar",
-        "invert":     "Inverter Cores",
-        "sharpen":    "Nitidez",
-        "vignette":   "Vinheta",
-    }
-
-    def __init__(self, parent, layer_id: int, filter_type: str):
-        super().__init__(parent)
-        self.layer_id = layer_id
-        self.filter_type = filter_type
-        self._params = [0.0] * 8
-
-        label = self.LABELS.get(filter_type, "Filtro")
-        self.setWindowTitle(f"🎛️  {label}")
-        self.setMinimumWidth(340)
-        self.setModal(True)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(10)
-
-        param_defs = self.PARAMS.get(filter_type, [])
-
-        if not param_defs:
-            layout.addWidget(QLabel("Este filtro não tem parâmetros adicionais.\n"
-                                    "Use o slider de Opacidade da camada para controlar a intensidade."))
-        else:
-            group = QGroupBox("Parâmetros")
-            glayout = QVBoxLayout(group)
-            glayout.setSpacing(6)
-
-            for (lbl, slot, mn, mx, dflt, scale) in param_defs:
-                row = QHBoxLayout()
-                row.addWidget(QLabel(lbl))
-
-                slider = QSlider(Qt.Horizontal)
-                slider.setRange(mn, mx)
-                slider.setValue(dflt)
-                slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-                val_lbl = QLabel(str(dflt))
-                val_lbl.setFixedWidth(40)
-                val_lbl.setAlignment(Qt.AlignRight | Qt.AlignBottom)
-
-                row.addWidget(slider)
-                row.addWidget(val_lbl)
-                glayout.addLayout(row)
-
-                def make_handler(s, sl, vl, sc):
-                    def on_change(v):
-                        real_val = v / sc
-                        self._params[s] = real_val
-                        vl.setText(f"{v:+d}" if sc == 1.0 else f"{real_val:+.2f}")
-                        # Envia notificação na barra de status
-                        win = QApplication.activeWindow()
-                        if win and hasattr(win, 'statusBar'):
-                            win.statusBar().showMessage(f"Filtro: Parâmetro {s} ajustado para {real_val} (simulado).", 1000)
-                    sl.valueChanged.connect(on_change)
-                    self._params[s] = dflt / sc
-                make_handler(slot, slider, val_lbl, scale)
-
-            layout.addWidget(group)
-
-        btns = QDialogButtonBox(QDialogButtonBox.Ok)
-        btns.accepted.connect(self.accept)
-        layout.addWidget(btns)

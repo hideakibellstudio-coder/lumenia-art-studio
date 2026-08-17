@@ -15,7 +15,8 @@ std::vector<Dab> DabInterpolator::interpolate(
     const double avgRadius = (startDab.radius + endDab.radius) * 0.5;
     const double diameter = avgRadius * 2.0;
     
-    const double stepSize = std::max(0.5, diameter * std::max(0.005, spacingFactor));
+    const double baseStep = diameter * std::max(0.005, spacingFactor);
+    const double stepSize = std::max(0.5, (diameter > 30.0) ? (baseStep * 0.5) : baseStep);
     const int numSteps = static_cast<int>(std::ceil(distance / stepSize));
 
     if (numSteps <= 1) {

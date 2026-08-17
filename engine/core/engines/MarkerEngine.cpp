@@ -68,24 +68,26 @@ void MarkerEngine::renderDab(
 
                 const double normalizedDist = dist / r;
 
-                // 1. Hardness & Edge Falloff
+                // 1. Hardness & Falloff com interpolação cúbica suave (elimina degraus visíveis)
                 double shapeAlpha = 1.0;
                 const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
                 if (dist > hardSpan) {
-                    shapeAlpha = std::clamp((r - dist) / std::max(0.001, r - hardSpan), 0.0, 1.0);
+                    const double span = std::max(0.001, r - hardSpan);
+                    const double t = std::clamp((r - dist) / span, 0.0, 1.0);
+                    shapeAlpha = t * t * (3.0 - 2.0 * t); // Smoothstep cúbico
                 }
                 if (shapeAlpha <= 0.0) continue;
 
-                // 2. Edge Darkening (Efeito de borda seca do marcador à base de álcool)
+                // 2. Edge Darkening sutil apenas na margem externa capilar
                 double edgeFactor = 1.0;
-                if (edgeDark > 0.0 && normalizedDist > 0.6) {
-                    const double ring = (normalizedDist - 0.6) / 0.4;
-                    edgeFactor += ring * edgeDark * 0.8;
+                if (edgeDark > 0.0 && normalizedDist > 0.8) {
+                    const double ring = (normalizedDist - 0.8) / 0.2;
+                    edgeFactor += std::sin(ring * 3.14159265358979323846) * edgeDark * 0.2;
                 }
 
                 // 3. Solvent Wetness modula a opacidade efetiva por passada
                 const double effectiveOpacity = std::clamp(
-                    dab.opacity * shapeAlpha * edgeFactor * (1.0 - wetness * 0.3),
+                    dab.opacity * shapeAlpha * edgeFactor * (1.0 - wetness * 0.2),
                     0.0, 1.0
                 );
                 double curOpacity = effectiveOpacity;

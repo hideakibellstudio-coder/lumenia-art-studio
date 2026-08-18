@@ -407,6 +407,8 @@ void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
         m_scratchLayerTarget  = nullptr;
     }
 
+    m_strokeDistanceCarryover = 0.0;
+
     // Renderiza o primeiro dab do beginStroke (ponto de toque inicial)
     const math::Rect2D firstDabBounds{
         m_lastDab.position.x - m_lastDab.radius - 2.0,
@@ -610,7 +612,7 @@ void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const r
     const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), clipBaseLayer };
 
     const auto interpolatedDabs = raster::DabInterpolator::interpolate(
-        startDab, endDab, m_brushProfile.spacingFactor
+        startDab, endDab, m_brushProfile.spacingFactor, m_strokeDistanceCarryover
     );
 
     auto& layerGrid  = activeLayer->getTileGrid();

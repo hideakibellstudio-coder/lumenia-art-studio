@@ -143,6 +143,9 @@ private:
     const document::Layer* m_scratchLayerTarget{nullptr}; // ponteiro da camada ativa no início do traço
     document::LayerBlendMode m_scratchBlendMode{document::LayerBlendMode::Normal};
     double           m_scratchOpacity{1.0};
+
+    // ─── CONTINUIDADE DO TRAÇO ─────────────────────────────────────────────
+    double           m_strokeDistanceCarryover{0.0};
 };
 
 } // namespace aladyn::engine::boundary

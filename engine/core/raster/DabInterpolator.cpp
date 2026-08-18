@@ -7,43 +7,69 @@ namespace aladyn::engine::raster {
 std::vector<Dab> DabInterpolator::interpolate(
     const Dab& startDab,
     const Dab& endDab,
-    double spacingFactor
+    double spacingFactor,
+    double& distanceCarryover
 ) {
     std::vector<Dab> dabs;
-    
-    const double distance = startDab.position.distanceTo(endDab.position);
-    const double avgRadius = (startDab.radius + endDab.radius) * 0.5;
-    const double diameter = avgRadius * 2.0;
-    
-    const double baseStep = diameter * std::max(0.005, spacingFactor);
-    const double stepSize = std::max(0.5, (diameter > 30.0) ? (baseStep * 0.5) : baseStep);
-    int numSteps = static_cast<int>(std::ceil(distance / stepSize));
 
-    if (numSteps <= 1) {
-        dabs.push_back(endDab);
+    const double distance = startDab.position.distanceTo(endDab.position);
+    const double safeSpacing = std::max(0.005, spacingFactor);
+
+    // Se o movimento for insignificante (subpixel minúsculo)
+    if (distance < 0.0001) {
         return dabs;
     }
 
-    // Teto de segurança para evitar alocações massivas por spikes de jitter
-    numSteps = std::min(numSteps, 256);
-    dabs.reserve(static_cast<size_t>(numSteps));
+    // Calcula o menor arco angular (shortest angular path)
+    const double diffAngle = std::fmod((endDab.angle - startDab.angle) + 540.0, 360.0) - 180.0;
 
-    for (int i = 1; i <= numSteps; ++i) {
-        const double t = static_cast<double>(i) / static_cast<double>(numSteps);
-        
+    // Raio inicial e passo inicial estimado
+    const double initRadius = std::max(0.001, startDab.radius);
+    double curStep = std::max(0.5, 2.0 * initRadius * safeSpacing);
+
+    // Determina a primeira distância de emissão considerando o resíduo do segmento anterior
+    double d = curStep - distanceCarryover;
+    if (d < 0.0) d = 0.0;
+
+    // Se a distância necessária para o próximo dab exceder este micro-segmento inteiro
+    if (d > distance) {
+        distanceCarryover += distance;
+        return dabs;
+    }
+
+    dabs.reserve(std::min(static_cast<size_t>(std::ceil(distance / curStep) + 2), static_cast<size_t>(256)));
+
+    double lastDabPos = 0.0;
+
+    while (d <= distance) {
+        const double t = (distance > 0.0001) ? std::clamp(d / distance, 0.0, 1.0) : 0.0;
+
         const math::Point2D pos = startDab.position + (endDab.position - startDab.position) * t;
         const double radius = startDab.radius + (endDab.radius - startDab.radius) * t;
         const double opacity = startDab.opacity + (endDab.opacity - startDab.opacity) * t;
         const double pressure = startDab.pressure + (endDab.pressure - startDab.pressure) * t;
-        const double angle = startDab.angle + (endDab.angle - startDab.angle) * t;
-        
-        const uint8_t r = static_cast<uint8_t>(startDab.color.r + (endDab.color.r - startDab.color.r) * t);
-        const uint8_t g = static_cast<uint8_t>(startDab.color.g + (endDab.color.g - startDab.color.g) * t);
-        const uint8_t b = static_cast<uint8_t>(startDab.color.b + (endDab.color.b - startDab.color.b) * t);
-        const uint8_t a = static_cast<uint8_t>(startDab.color.a + (endDab.color.a - startDab.color.a) * t);
+        const double angle = std::fmod(startDab.angle + diffAngle * t + 360.0, 360.0);
+
+        const uint8_t r = static_cast<uint8_t>(std::clamp(startDab.color.r + (endDab.color.r - startDab.color.r) * t, 0.0, 255.0));
+        const uint8_t g = static_cast<uint8_t>(std::clamp(startDab.color.g + (endDab.color.g - startDab.color.g) * t, 0.0, 255.0));
+        const uint8_t b = static_cast<uint8_t>(std::clamp(startDab.color.b + (endDab.color.b - startDab.color.b) * t, 0.0, 255.0));
+        const uint8_t a = static_cast<uint8_t>(std::clamp(startDab.color.a + (endDab.color.a - startDab.color.a) * t, 0.0, 255.0));
 
         dabs.emplace_back(pos, radius, opacity, pressure, angle, startDab.blendMode, ColorRGBA{r, g, b, a});
+
+        lastDabPos = d;
+
+        // Atualiza o passo ideal para o raio do ponto atual de emissão
+        const double safeR = std::max(0.001, radius);
+        curStep = std::max(0.5, 2.0 * safeR * safeSpacing);
+
+        d += curStep;
+
+        if (dabs.size() >= 512) break; // Teto rígido de segurança
     }
+
+    // Calcula o resíduo de distância que sobrou após o último dab emitido
+    distanceCarryover = std::max(0.0, distance - lastDabPos);
 
     return dabs;
 }

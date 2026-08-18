@@ -686,4 +686,168 @@ void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const r
     }
 }
 
+std::vector<uint8_t> PaintEngineFacade::renderStrokePreview(
+    const brush::BrushProfile& profile,
+    int width,
+    int height
+) {
+    if (width <= 0 || height <= 0) return {};
+
+    std::vector<uint8_t> output(static_cast<size_t>(width * height * 4), 0);
+    canvas::TileGrid grid(width, height);
+    canvas::CanvasTexture canvasTex;
+
+    std::unique_ptr<engines::IBrushEngine> engine;
+    switch (profile.engineType) {
+        case brush::EngineType::Inker:
+            engine = std::make_unique<engines::InkerEngine>();
+            break;
+        case brush::EngineType::Pencil:
+            engine = std::make_unique<engines::PencilEngine>();
+            break;
+        case brush::EngineType::Marker:
+            engine = std::make_unique<engines::MarkerEngine>();
+            break;
+        case brush::EngineType::Watercolor:
+            engine = std::make_unique<engines::WatercolorEngine>();
+            break;
+        case brush::EngineType::OilImpasto:
+            engine = std::make_unique<engines::OilImpastoEngine>();
+            break;
+        case brush::EngineType::Eraser:
+            engine = std::make_unique<engines::EraserEngine>();
+            break;
+        case brush::EngineType::Blur:
+            engine = std::make_unique<engines::BlurEngine>();
+            break;
+        case brush::EngineType::Smudge:
+            engine = std::make_unique<engines::SmudgeEngine>();
+            break;
+        case brush::EngineType::Brush:
+        default:
+            break; // Usa DabRenderer base
+    }
+
+    if (engine) {
+        engine->onActivate(profile);
+    }
+
+    // Se for Eraser/Blur/Smudge, cria uma base colorida bonita para demonstrar o efeito
+    if (profile.engineType == brush::EngineType::Eraser ||
+        profile.engineType == brush::EngineType::Blur ||
+        profile.engineType == brush::EngineType::Smudge) {
+        brush::BrushProfile bgProf;
+        bgProf.brushSize = static_cast<double>(height) * 0.7;
+        bgProf.opacity = 1.0;
+        bgProf.hardness = 0.9;
+        bgProf.baseColor = {70, 130, 240, 255};
+        for (int x = 20; x < width - 20; x += 15) {
+            raster::Dab bgDab;
+            bgDab.position = {static_cast<double>(x), static_cast<double>(height) / 2.0};
+            bgDab.radius = bgProf.brushSize / 2.0;
+            bgDab.pressure = 1.0;
+            raster::DabRenderer::renderDab(bgDab, bgProf, canvasTex, grid);
+        }
+    }
+
+    const double margin = 14.0;
+    const double utilW = static_cast<double>(width) - 2.0 * margin;
+    const double amp = (static_cast<double>(height) / 2.0 - 8.0) * 0.7;
+    const double midY = static_cast<double>(height) / 2.0;
+
+    // Escala de raio proporcional à altura do widget
+    const double targetMaxRadius = std::clamp(profile.brushSize * 0.4, 2.0, (static_cast<double>(height) / 2.0) - 4.0);
+
+    const int numSteps = 80;
+    double carryover = 0.0;
+
+    raster::Dab prevDab;
+    bool hasPrev = false;
+
+    auto renderSingleDab = [&](const raster::Dab& d) {
+        if (engine) {
+            engine->renderDab(d, profile, canvasTex, grid, nullptr, {});
+        } else {
+            raster::DabRenderer::renderDab(d, profile, canvasTex, grid);
+        }
+    };
+
+    for (int i = 0; i <= numSteps; ++i) {
+        const double t = static_cast<double>(i) / static_cast<double>(numSteps);
+        const double x = margin + t * utilW;
+        const double y = midY + std::sin(t * 2.0 * 3.141592653589793) * amp;
+        const double pressure = 0.2 + 0.8 * std::sin(t * 3.141592653589793);
+        const double r = targetMaxRadius * pressure;
+
+        double angle = 0.0;
+        if (i < numSteps) {
+            const double nextT = static_cast<double>(i + 1) / static_cast<double>(numSteps);
+            const double nx = margin + nextT * utilW;
+            const double ny = midY + std::sin(nextT * 2.0 * 3.141592653589793) * amp;
+            angle = std::atan2(ny - y, nx - x) * (180.0 / 3.141592653589793);
+        }
+
+        raster::Dab currDab;
+        currDab.position = {x, y};
+        currDab.radius = std::max(0.5, r);
+        currDab.pressure = pressure;
+        currDab.angle = angle;
+
+        if (!hasPrev) {
+            std::vector<raster::Dab> initialDabs = raster::DabInterpolator::interpolate(
+                currDab, currDab, profile.spacingFactor, carryover
+            );
+            for (const auto& d : initialDabs) {
+                renderSingleDab(d);
+            }
+            prevDab = currDab;
+            hasPrev = true;
+        } else {
+            std::vector<raster::Dab> segmentDabs = raster::DabInterpolator::interpolate(
+                prevDab, currDab, profile.spacingFactor, carryover
+            );
+            for (const auto& d : segmentDabs) {
+                renderSingleDab(d);
+            }
+            prevDab = currDab;
+        }
+    }
+
+    // Copia os pixels resultantes do TileGrid para o output buffer
+    const int tilesX = grid.getTilesCountX();
+    const int tilesY = grid.getTilesCountY();
+
+    for (int ty = 0; ty < tilesY; ++ty) {
+        for (int tx = 0; tx < tilesX; ++tx) {
+            const canvas::Tile* tile = grid.getTile(tx, ty);
+            if (!tile) continue;
+
+            const canvas::PixelBuffer& buf = tile->getBuffer();
+            const int startX = tx * canvas::Tile::TILE_SIZE;
+            const int startY = ty * canvas::Tile::TILE_SIZE;
+
+            for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
+                const int gy = startY + py;
+                if (gy >= height) break;
+
+                for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
+                    const int gx = startX + px;
+                    if (gx >= width) break;
+
+                    const raster::ColorRGBA pixel = buf.getPixel(px, py);
+                    if (pixel.a == 0) continue;
+
+                    const size_t outIdx = static_cast<size_t>((gy * width + gx) * 4);
+                    output[outIdx + 0] = pixel.r;
+                    output[outIdx + 1] = pixel.g;
+                    output[outIdx + 2] = pixel.b;
+                    output[outIdx + 3] = pixel.a;
+                }
+            }
+        }
+    }
+
+    return output;
+}
+
 } // namespace aladyn::engine::boundary

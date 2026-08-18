@@ -65,6 +65,15 @@ class NavigatorPreview(QtWidgets.QWidget):
         self._color_empty_bg = QtGui.QColor(ThemeManager.instance().resolve_color("bg_panel", colors))
         self.update()
 
+    def set_artwork(self, pix):
+        if isinstance(pix, QtGui.QImage):
+            self.artwork_pix = QtGui.QPixmap.fromImage(pix)
+        elif isinstance(pix, QtGui.QPixmap):
+            self.artwork_pix = pix
+        else:
+            self.artwork_pix = None
+        self.update()
+
     def update_state(self, zoom, x, y, rotation, flip_x, flip_y, ratio_w=1.0, ratio_h=1.0):
         self.zoom_level = zoom
         self.cam_x = x
@@ -111,14 +120,16 @@ class NavigatorPreview(QtWidgets.QWidget):
         
         # Draw Thumbnail Base (Paper)
         p.setBrush(self._color_paper)
-        p.setPen(QtPenColor := QtGui.QPen(self._color_border, 1))
+        p.setPen(QtGui.QPen(self._color_border, 1))
         p.drawRect(self.draw_rect)
         
-        # Draw Checkerboard/Fallback
-        p.setBrush(self._color_canvas_bg)
-        p.setPen(QtCore.Qt.NoPen)
-        # We can paint a small inner border to represent canvas boundary
-        p.drawRect(self.draw_rect.adjusted(2, 2, -2, -2))
+        # Draw Real Artwork Pixmap or Checkerboard Fallback
+        if self.artwork_pix and not self.artwork_pix.isNull():
+            p.drawPixmap(self.draw_rect.toRect(), self.artwork_pix)
+        else:
+            p.setBrush(self._color_canvas_bg)
+            p.setPen(QtCore.Qt.NoPen)
+            p.drawRect(self.draw_rect.adjusted(2, 2, -2, -2))
         
         # --- VIEWPORT RECTANGLE ---
         if self.has_document:
@@ -468,6 +479,13 @@ class NavigatorPanel(QtWidgets.QWidget):
 
     def fit_to_screen(self):
         self.request_global_fit_view.emit()
+
+    def set_has_document(self, has_doc: bool):
+        self.preview.has_document = has_doc
+        self.preview.update()
+
+    def set_artwork(self, pix):
+        self.preview.set_artwork(pix)
 
     def _refresh_all(self):
         self.preview.update_state(

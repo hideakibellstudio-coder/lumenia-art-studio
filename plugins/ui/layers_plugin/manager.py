@@ -84,6 +84,25 @@ class LocalLayerManager(QtCore.QObject):
                 return l
         return None
 
+    def update_thumbnail(self, uid: int, native_facade=None):
+        """Atualiza a miniatura real da camada a partir dos tiles do motor C++ nativo."""
+        layer = self.get_layer_by_uid(uid)
+        if not layer or layer.is_group or layer.is_filter:
+            return
+
+        if native_facade:
+            try:
+                # No motor nativo C++, m_drawingLayers armazena todas as camadas (incluindo grupos e filtros)
+                layer_idx = self.layers.index(layer) if layer in self.layers else -1
+                if layer_idx >= 0:
+                    raw_bytes = native_facade.get_layer_thumbnail_buffer(layer_idx, 38, 28)
+                    if raw_bytes and len(raw_bytes) == 38 * 28 * 4:
+                        img = QtGui.QImage(raw_bytes, 38, 28, 38 * 4, QtGui.QImage.Format_RGBA8888)
+                        layer.thumb = QtGui.QPixmap.fromImage(img.copy())
+                        self.thumbnail_updated.emit(uid)
+            except Exception as e:
+                logger.debug(f"[LocalLayerManager] Erro ao atualizar miniatura: {e}")
+
     def add_layer(self, name=None) -> int:
         uid = self._next_uid
         self._next_uid += 1

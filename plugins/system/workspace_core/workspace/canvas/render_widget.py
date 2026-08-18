@@ -10,6 +10,8 @@ from ui.core.engine.backend import PointerEvent
 class CanvasWidget(QtWidgets.QWidget):
     zoomChanged = QtCore.Signal(float)
     cameraChanged = QtCore.Signal(float, float, float, float, float, float)  # zoom, pan_x, pan_y, rotation, view_w, view_h
+    strokeStarted = QtCore.Signal()
+    strokeFinished = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -188,8 +190,19 @@ class CanvasWidget(QtWidgets.QWidget):
         painter.restore()
         painter.end()
 
+    def get_canvas_image(self) -> QtGui.QImage | None:
+        """Retorna uma cópia do QImage do canvas renderizado pelo motor."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "get_qimage"):
+            qimg = backend.get_qimage()
+            if qimg and not qimg.isNull():
+                return qimg.copy()
+        return None
+
     # Stroke composition
     def start_stroke(self, screen_x: float, screen_y: float, pressure: float):
+        self.strokeStarted.emit()
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
 
@@ -243,12 +256,14 @@ class CanvasWidget(QtWidgets.QWidget):
                     backend.end_stroke()
                 self.drawing = False
                 self.update()
+                self.strokeFinished.emit()
                 return
 
             if self.bridge_client.renderer is not None:
                 cmd = EndStrokeCommand()
                 self.dispatcher.dispatch(cmd)
         self.drawing = False
+        self.strokeFinished.emit()
 
     # Mouse handling
     def mousePressEvent(self, event):

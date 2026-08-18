@@ -325,6 +325,12 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self.toolActivated.emit(tool_id)
 
 
+    def set_color(self, color: QtGui.QColor) -> None:
+        if hasattr(self, "color_wheel") and self.color_wheel:
+            self.color_wheel.set_color(color)
+        if hasattr(self, "stroke_preview") and self.stroke_preview:
+            self.stroke_preview.update_brush_state(color=[color.redF(), color.greenF(), color.blueF()])
+
     def _on_size_changed(self, val: float) -> None:
         self.sizeChanged.emit(val)
         if self._adv_panel and hasattr(self._adv_panel, "slider_size"):
@@ -332,7 +338,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self._adv_panel.slider_size.setValue(int(val))
             self._adv_panel.slider_size.blockSignals(False)
         if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_preview()
+            self.stroke_preview.update_brush_state(size=val)
 
     def _on_opacity_changed(self, val: float) -> None:
         self.opacityChanged.emit(val / 100.0)
@@ -341,7 +347,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self._adv_panel.slider_opacity.setValue(int(val))
             self._adv_panel.slider_opacity.blockSignals(False)
         if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_preview()
+            self.stroke_preview.update_brush_state(opacity=val / 100.0)
 
     def _on_preset_changed(self, name: str, data: dict) -> None:
         if "brush_size" in data:
@@ -360,7 +366,14 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self._adv_panel.sync_from_engine_profile()
 
         if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_preview()
+            eng_type = data.get("engine_type", 0)
+            sz = data.get("brush_size", self.size_slider.value())
+            op = data.get("opacity", self.opacity_slider.value() / 100.0)
+            hd = data.get("hardness", 0.85)
+            sp = data.get("spacing_factor", 0.10)
+            self.stroke_preview.update_brush_state(
+                size=sz, opacity=op, hardness=hd, spacing=sp, engine_type=eng_type
+            )
 
     def _open_advanced_dialog(self) -> None:
         if self._adv_panel is None:

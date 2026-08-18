@@ -381,4 +381,10 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         })
         .def("get_undo_memory_bytes", &boundary::PaintEngineFacade::getUndoMemoryBytes)
         .def("set_max_undo_memory_mb", &boundary::PaintEngineFacade::setMaxUndoMemoryMB);
+
+    // ─── RENDERIZADOR DE PREVIEW DO TRAÇO EM ALTA FIDELIDADE ─────────────────
+    m.def("render_stroke_preview", [](const brush::BrushProfile& profile, int width, int height) -> py::bytes {
+        auto vec = boundary::PaintEngineFacade::renderStrokePreview(profile, width, height);
+        return py::bytes(reinterpret_cast<const char*>(vec.data()), vec.size());
+    }, py::arg("profile"), py::arg("width") = 260, py::arg("height") = 52);
 }

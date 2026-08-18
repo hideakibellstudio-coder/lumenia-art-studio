@@ -143,6 +143,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
         if hasattr(self.canvas_widget, "strokeFinished"):
             self.canvas_widget.strokeFinished.connect(lambda: self.left_dock.set_painting_state(False))
             self.canvas_widget.strokeFinished.connect(lambda: self.right_dock.set_painting_state(False))
+            self.canvas_widget.strokeFinished.connect(self._on_stroke_finished_sync_previews)
 
         # ── Filtro de clique no canvas para fechar gavetas despinadas ───────
         self.canvas_widget.installEventFilter(self)
@@ -963,3 +964,29 @@ class WorkspaceContainer(QtWidgets.QWidget):
             self._brush_dock.update_thumbnail(is_shape, file_path)
 
         self.canvas_widget.update()
+
+    def _on_stroke_finished_sync_previews(self) -> None:
+        """Sincroniza os previews do Navigator e a miniatura da camada ativa após a conclusão do traço."""
+        try:
+            from ui.core.engine.registry import EngineRegistry
+            backend = EngineRegistry.instance().get_backend()
+            facade = getattr(backend, "_facade", None)
+
+            # 1. Atualiza miniatura da camada ativa no painel de camadas
+            if hasattr(self, "_layers_panel") and self._layers_panel and hasattr(self._layers_panel, "layer_manager"):
+                lm = self._layers_panel.layer_manager
+                if lm and lm.get_active_layer() and facade:
+                    lm.update_thumbnail(lm.get_active_layer().uid, facade)
+
+            # 2. Atualiza snapshot do Navigator
+            if hasattr(self, "_navigator_panel") and self._navigator_panel:
+                if hasattr(self.canvas_widget, "get_canvas_image"):
+                    canvas_img = self.canvas_widget.get_canvas_image()
+                    if canvas_img and not canvas_img.isNull():
+                        self._navigator_panel.set_artwork(canvas_img)
+                elif backend and hasattr(backend, "get_qimage"):
+                    qimg = backend.get_qimage()
+                    if qimg and not qimg.isNull():
+                        self._navigator_panel.set_artwork(qimg)
+        except Exception as e:
+            logger.debug(f"[WorkspaceContainer] Erro ao sincronizar previews: {e}")

@@ -111,6 +111,13 @@ public:
     [[nodiscard]] const uint8_t* getRawPixelData() const noexcept { return m_outputBuffer.getData(); }
     [[nodiscard]] size_t getPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
 
+    // ─── RENDERIZADOR DE PREVIEW DO TRAÇO EM ALTA FIDELIDADE ─────────────────
+    static std::vector<uint8_t> renderStrokePreview(
+        const brush::BrushProfile& profile,
+        int width,
+        int height
+    );
+
 private:
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
     void initEngine(brush::EngineType type);

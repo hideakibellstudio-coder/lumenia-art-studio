@@ -39,6 +39,10 @@ public:
     [[nodiscard]] brush::EngineType getType() const noexcept override {
         return brush::EngineType::Eraser;
     }
+
+    [[nodiscard]] bool usesScratchLayer() const noexcept override {
+        return false; // Borracha precisa modificar diretamente o alpha da camada ativa
+    }
 };
 
 } // namespace aladyn::engine::engines

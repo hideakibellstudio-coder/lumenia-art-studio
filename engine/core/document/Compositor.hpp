@@ -22,8 +22,8 @@ public:
     void compositeRegion(const std::vector<std::unique_ptr<Layer>>& layers, const math::Rect2D& region, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
 
     // Sobrecarga com scratch layer: durante um traço ativo, insere o scratchGrid
-    // como overlay imediatamente acima da camada no índice scratchLayerIndex,
-    // usando o blendMode e opacity dessa camada. A camada ativa original é composta
+    // como overlay imediatamente acima da camada ativa correspondente (activeLayerTarget),
+    // usando o blendMode e opacity configurados. A camada ativa original é composta
     // normalmente (conteúdo pré-existente) e o scratch aparece sobre ela.
     void compositeRegionWithScratch(
         const std::vector<const Layer*>& layers,
@@ -31,7 +31,7 @@ public:
         canvas::PixelBuffer& outputBuffer,
         const raster::ColorRGBA& bgColor,
         const canvas::TileGrid& scratchGrid,
-        int scratchLayerIndex,
+        const Layer* activeLayerTarget,
         LayerBlendMode scratchBlendMode,
         double scratchOpacity
     );

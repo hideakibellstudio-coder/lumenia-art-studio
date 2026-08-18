@@ -30,6 +30,8 @@ public:
     void clearAll(raster::ColorRGBA color = {0, 0, 0, 0});
     // Remove todos os tiles alocados (limpa o scratch sem tocar no layout)
     void clearTiles();
+    // Remove tiles 100% transparentes (liberação de RAM pós-borracha)
+    size_t pruneEmptyTiles();
     void copyFrom(const TileGrid& src);
 
     // Itera sobre todos os tiles alocados (para commitScratch)

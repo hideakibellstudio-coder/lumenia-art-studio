@@ -34,6 +34,15 @@ public:
     [[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
     void setDirty(bool dirty) noexcept { m_dirty = dirty; }
 
+    [[nodiscard]] bool isEmpty() const noexcept {
+        const uint8_t* ptr = m_buffer.getData();
+        const size_t sz = m_buffer.getSizeInBytes();
+        for (size_t i = 3; i < sz; i += 4) {
+            if (ptr[i] != 0) return false;
+        }
+        return true;
+    }
+
 private:
     int m_tileX{0};
     int m_tileY{0};

@@ -44,6 +44,20 @@ void TileGrid::clearTiles() {
     m_tiles.clear();
 }
 
+size_t TileGrid::pruneEmptyTiles() {
+    size_t pruned = 0;
+    auto it = m_tiles.begin();
+    while (it != m_tiles.end()) {
+        if (it->second && it->second->isEmpty()) {
+            it = m_tiles.erase(it);
+            ++pruned;
+        } else {
+            ++it;
+        }
+    }
+    return pruned;
+}
+
 void TileGrid::copyFrom(const TileGrid& src) {
     m_tiles.clear();
     for (const auto& [idx, tile] : src.m_tiles) {

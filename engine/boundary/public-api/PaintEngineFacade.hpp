@@ -136,7 +136,7 @@ private:
     // Apenas motores com usesScratchLayer()==true o utilizam.
     canvas::TileGrid m_scratchGrid;
     bool             m_hasScratch{false};
-    int              m_scratchLayerIndex{-1};   // índice da camada ativa no início do traço
+    const document::Layer* m_scratchLayerTarget{nullptr}; // ponteiro da camada ativa no início do traço
     document::LayerBlendMode m_scratchBlendMode{document::LayerBlendMode::Normal};
     double           m_scratchOpacity{1.0};
 };

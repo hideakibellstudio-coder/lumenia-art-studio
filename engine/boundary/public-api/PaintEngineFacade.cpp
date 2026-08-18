@@ -398,12 +398,13 @@ void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
     const bool useScratch = !m_activeEngine || m_activeEngine->usesScratchLayer();
     if (useScratch) {
         m_scratchGrid.clearTiles();
-        m_hasScratch         = true;
-        m_scratchLayerIndex  = m_layerStack.getActiveIndex();
-        m_scratchBlendMode   = activeLayer->getBlendMode();
-        m_scratchOpacity     = activeLayer->getOpacity() * std::clamp(m_brushProfile.opacity, 0.0, 1.0);
+        m_hasScratch          = true;
+        m_scratchLayerTarget  = activeLayer;
+        m_scratchBlendMode    = activeLayer->getBlendMode();
+        m_scratchOpacity      = activeLayer->getOpacity() * std::clamp(m_brushProfile.opacity, 0.0, 1.0);
     } else {
-        m_hasScratch = false;
+        m_hasScratch          = false;
+        m_scratchLayerTarget  = nullptr;
     }
 
     // Renderiza o primeiro dab do beginStroke (ponto de toque inicial)
@@ -450,6 +451,8 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& event) {
     if (m_hasScratch) {
         commitScratch();
         m_hasScratch = false;
+    } else if (document::Layer* activeLayer = m_layerStack.getActiveLayer()) {
+        activeLayer->getTileGrid().pruneEmptyTiles();
     }
 
     m_isDrawing = false;
@@ -568,6 +571,7 @@ void PaintEngineFacade::commitScratch() {
         if (tileModified) dstTile->setDirty(true);
     });
 
+    layerGrid.pruneEmptyTiles();
     m_scratchGrid.clearTiles();
 }
 
@@ -668,7 +672,7 @@ void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const r
         m_compositor.compositeRegionWithScratch(
             m_layerStack.getAllLayersForComposition(), dirtyBounds,
             m_outputBuffer, m_canvasTexture.backgroundColor,
-            m_scratchGrid, m_scratchLayerIndex,
+            m_scratchGrid, m_scratchLayerTarget,
             m_scratchBlendMode, m_scratchOpacity
         );
     } else {

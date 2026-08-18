@@ -625,17 +625,16 @@ void Compositor::compositeRegion(
 }
 
 // ─── SCRATCH LAYER OVERLAY ──────────────────────────────────────────────────
-// Igual ao compositeRegion normal, mas após compor a camada no índice
-// scratchLayerIndex, compõe o scratchGrid sobre o output com o mesmo
-// blendMode e opacity. Isso exibe a "tinta molhada" do traço atual
-// sem modificar a camada ativa real.
+// Igual ao compositeRegion normal, mas ao encontrar o ponteiro da camada ativa
+// (activeLayerTarget), compõe ela e logo em seguida o scratchGrid sobre o output.
+// Isso é imune a background oculto, grupos, filtros ou deslocamentos de índice.
 void Compositor::compositeRegionWithScratch(
     const std::vector<const Layer*>& layers,
     const math::Rect2D& region,
     canvas::PixelBuffer& outputBuffer,
     const raster::ColorRGBA& bgColor,
     const canvas::TileGrid& scratchGrid,
-    int scratchLayerIndex,
+    const Layer* activeLayerTarget,
     LayerBlendMode scratchBlendMode,
     double scratchOpacity
 ) {
@@ -676,7 +675,7 @@ void Compositor::compositeRegionWithScratch(
         for (int ty = cSTy; ty <= cETy; ++ty) {
             for (int tx = cSTx; tx <= cETx; ++tx) {
                 const canvas::Tile* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
-                if (!tile) continue;
+                if (!tile) continue; // Pula instantaneamente tiles não alocados/vazios
 
                 const canvas::PixelBuffer& tileBuf = tile->getBuffer();
                 const int tilePixelX = tile->getPixelX();
@@ -715,12 +714,9 @@ void Compositor::compositeRegionWithScratch(
         }
     };
 
-    // ─── Composição das camadas na ordem do grafo
-    int layerPosition = 0;
+    // ─── Composição das camadas na ordem exata do grafo
     for (const Layer* layerPtr : layers) {
         if (!layerPtr || !layerPtr->isVisible() || layerPtr->getOpacity() <= 0.0) {
-            if (!layerPtr || (!layerPtr->isFilter() && !layerPtr->isBackground()))
-                ++layerPosition;
             continue;
         }
 
@@ -752,12 +748,10 @@ void Compositor::compositeRegionWithScratch(
         // Compõe a camada real (conteúdo pré-existente ao traço)
         composeTileGrid(layer.getTileGrid(), layerOpacity, blendMode, clipBaseLayer);
 
-        // ─── Após a camada ativa, insere o scratch overlay (tinta do traço atual)
-        if (layerPosition == scratchLayerIndex && scratchOpacity > 0.0) {
+        // ─── Se esta é a camada ativa, insere o scratch overlay (tinta do traço atual)
+        if (layerPtr == activeLayerTarget && scratchOpacity > 0.0) {
             composeTileGrid(scratchGrid, scratchOpacity, scratchBlendMode, clipBaseLayer);
         }
-
-        ++layerPosition;
     }
 }
 

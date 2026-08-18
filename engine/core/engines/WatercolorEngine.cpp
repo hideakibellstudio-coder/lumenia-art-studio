@@ -73,15 +73,14 @@ void WatercolorEngine::renderDab(
                 const double scaledY = rotY / aspect;
                 const double dist = std::sqrt(rotX * rotX + scaledY * scaledY);
 
-                if (dist > effectiveRadius + 1.0) continue;
-
-                const double normDist = dist / effectiveRadius;
+                const double safeEffRadius = std::max(0.001, effectiveRadius);
+                const double normDist = dist / safeEffRadius;
 
                 // 1. Falloff procedural com miolo aquoso suave
                 double shapeAlpha = 1.0;
-                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * effectiveRadius;
+                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeEffRadius;
                 if (dist > hardSpan) {
-                    shapeAlpha = std::clamp((effectiveRadius - dist) / std::max(0.001, effectiveRadius - hardSpan), 0.0, 1.0);
+                    shapeAlpha = std::clamp((safeEffRadius - dist) / std::max(0.001, safeEffRadius - hardSpan), 0.0, 1.0);
                 }
                 if (shapeAlpha <= 0.0) continue;
 

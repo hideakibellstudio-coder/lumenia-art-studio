@@ -125,11 +125,13 @@ void BlurEngine::renderDab(
                 const raster::ColorRGBA origPx = buffer.getPixel(px, py);
                 if (ctx.alphaLocked && origPx.a == 0) continue;
 
-                // Se houver pigmento em algum vizinho
+                // Se o pixel atual e todos os vizinhos forem vazios, não há o que desfocar
+                if (origPx.a == 0 && alphaWeightSum <= 0.0) continue;
+
+                // 1. Cor alvo calculada sobre os pixels vizinhos que realmente contêm pigmento
                 double targetR = origPx.r;
                 double targetG = origPx.g;
                 double targetB = origPx.b;
-                double targetA = ctx.alphaLocked ? static_cast<double>(origPx.a) : (sumA / totalWeight);
 
                 if (alphaWeightSum > 0.0) {
                     targetR = sumR / alphaWeightSum;
@@ -137,10 +139,24 @@ void BlurEngine::renderDab(
                     targetB = sumB / alphaWeightSum;
                 }
 
+                // 2. Suavização das cores cromáticas RGB
                 const double outR = origPx.r * (1.0 - curMixFactor) + targetR * curMixFactor;
                 const double outG = origPx.g * (1.0 - curMixFactor) + targetG * curMixFactor;
                 const double outB = origPx.b * (1.0 - curMixFactor) + targetB * curMixFactor;
-                const double outA = ctx.alphaLocked ? static_cast<double>(origPx.a) : (origPx.a * (1.0 - curMixFactor) + targetA * curMixFactor);
+
+                // 3. Preservação estrita do Alpha (impede erosão/apagamento tipo borracha)
+                double outA = static_cast<double>(origPx.a);
+                if (!ctx.alphaLocked) {
+                    if (origPx.a > 0) {
+                        // Pixel com tinta: seu alpha NUNCA é diminuído por vizinhos vazios
+                        const double smoothedA = sumA / totalWeight;
+                        outA = std::max(static_cast<double>(origPx.a), smoothedA);
+                    } else if (alphaWeightSum > 0.0) {
+                        // Pixel vazio vizinho: recebe uma leve dispersão suave da borda
+                        const double spreadA = (sumA / totalWeight) * curMixFactor * 0.4;
+                        outA = spreadA;
+                    }
+                }
 
                 buffer.setPixel(px, py, raster::ColorRGBA{
                     static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),

@@ -71,8 +71,9 @@ void PencilEngine::renderDab(
 
                 if (dist > r + 1.0) continue;
 
-                const double uDab = std::clamp((rotX + r) / (2.0 * r), 0.0, 1.0);
-                const double vDab = std::clamp((scaledY + r) / (2.0 * r), 0.0, 1.0);
+                const double safeR = std::max(0.001, r);
+                const double uDab = std::clamp((rotX + safeR) / (2.0 * safeR), 0.0, 1.0);
+                const double vDab = std::clamp((scaledY + safeR) / (2.0 * safeR), 0.0, 1.0);
 
                 // 1. FORMA (Shape Alpha com Hardness)
                 double shapeAlpha = 1.0;
@@ -80,9 +81,9 @@ void PencilEngine::renderDab(
                     shapeAlpha = profile.shapeTexture->sampleNormalized(uDab, vDab,
                         texture::TextureWrapMode::Clamp);
                 } else {
-                    const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
+                    const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
                     if (dist > hardSpan) {
-                        shapeAlpha = std::clamp((r - dist) / std::max(0.001, r - hardSpan), 0.0, 1.0);
+                        shapeAlpha = std::clamp((safeR - dist) / std::max(0.001, safeR - hardSpan), 0.0, 1.0);
                     }
                 }
                 if (shapeAlpha <= 0.0) continue;

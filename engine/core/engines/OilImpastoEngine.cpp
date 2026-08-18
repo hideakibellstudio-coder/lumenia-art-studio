@@ -70,13 +70,14 @@ void OilImpastoEngine::renderDab(
 
                 if (dist > r + 1.0) continue;
 
-                const double normDist = dist / r;
+                const double safeR = std::max(0.001, r);
+                const double normDist = dist / safeR;
 
                 // 1. Dureza e Falloff da borda do dab
                 double shapeAlpha = 1.0;
-                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
+                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
                 if (dist > hardSpan) {
-                    shapeAlpha = std::clamp((r - dist) / std::max(0.001, r - hardSpan), 0.0, 1.0);
+                    shapeAlpha = std::clamp((safeR - dist) / std::max(0.001, safeR - hardSpan), 0.0, 1.0);
                 }
                 if (shapeAlpha <= 0.0) continue;
 
@@ -98,8 +99,8 @@ void OilImpastoEngine::renderDab(
                 double specularAdd = 0.0;
                 if (specularBrill > 0.0 && normDist <= 0.85) {
                     // Simulação de reflexo especular direcional (luz vindo do canto superior esquerdo)
-                    const double normalX = rotX / r;
-                    const double normalY = rotY / r;
+                    const double normalX = rotX / safeR;
+                    const double normalY = rotY / safeR;
                     const double lightX = -0.577;
                     const double lightY = -0.577;
                     const double dotL = std::max(0.0, -(normalX * lightX + normalY * lightY));

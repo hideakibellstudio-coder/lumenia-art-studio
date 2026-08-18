@@ -378,5 +378,7 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
                 }
             }
             return py::bytes(reinterpret_cast<const char*>(out.data()), out.size());
-        });
+        })
+        .def("get_undo_memory_bytes", &boundary::PaintEngineFacade::getUndoMemoryBytes)
+        .def("set_max_undo_memory_mb", &boundary::PaintEngineFacade::setMaxUndoMemoryMB);
 }

@@ -72,6 +72,10 @@ public:
 
     bool undo();
     bool redo();
+    [[nodiscard]] bool canUndo() const noexcept;
+    [[nodiscard]] bool canRedo() const noexcept;
+    [[nodiscard]] size_t getUndoMemoryBytes() const noexcept { return m_undoManager.getMemoryUsageBytes(); }
+    void setMaxUndoMemoryMB(size_t mb) noexcept { m_undoManager.setMaxMemoryMB(mb); }
 
     [[nodiscard]] int getActiveLayerIndex() const noexcept { return m_layerStack.getActiveIndex(); }
     [[nodiscard]] int getDrawingLayerCount() const noexcept { return static_cast<int>(m_layerStack.getDrawingLayerCount()); }

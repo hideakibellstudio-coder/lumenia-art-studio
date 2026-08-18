@@ -64,16 +64,15 @@ void MarkerEngine::renderDab(
                 const double scaledY = rotY / aspect;
                 const double dist = std::sqrt(rotX * rotX + scaledY * scaledY);
 
-                if (dist > r + 1.0) continue;
-
-                const double normalizedDist = dist / r;
+                const double safeR = std::max(0.001, r);
+                const double normalizedDist = dist / safeR;
 
                 // 1. Hardness & Falloff com interpolação cúbica suave (elimina degraus visíveis)
                 double shapeAlpha = 1.0;
-                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
+                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
                 if (dist > hardSpan) {
-                    const double span = std::max(0.001, r - hardSpan);
-                    const double t = std::clamp((r - dist) / span, 0.0, 1.0);
+                    const double span = std::max(0.001, safeR - hardSpan);
+                    const double t = std::clamp((safeR - dist) / span, 0.0, 1.0);
                     shapeAlpha = t * t * (3.0 - 2.0 * t); // Smoothstep cúbico
                 }
                 if (shapeAlpha <= 0.0) continue;

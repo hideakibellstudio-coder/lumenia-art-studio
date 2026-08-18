@@ -17,13 +17,15 @@ std::vector<Dab> DabInterpolator::interpolate(
     
     const double baseStep = diameter * std::max(0.005, spacingFactor);
     const double stepSize = std::max(0.5, (diameter > 30.0) ? (baseStep * 0.5) : baseStep);
-    const int numSteps = static_cast<int>(std::ceil(distance / stepSize));
+    int numSteps = static_cast<int>(std::ceil(distance / stepSize));
 
     if (numSteps <= 1) {
         dabs.push_back(endDab);
         return dabs;
     }
 
+    // Teto de segurança para evitar alocações massivas por spikes de jitter
+    numSteps = std::min(numSteps, 256);
     dabs.reserve(static_cast<size_t>(numSteps));
 
     for (int i = 1; i <= numSteps; ++i) {

@@ -28,6 +28,14 @@ void TileUndoManager::recordTileBefore(int layerIndex, int tileX, int tileY, con
     m_currentStep.snapshots.push_back(std::move(snap));
 }
 
+size_t TileUndoManager::calculateStepBytes(const UndoStep& step) noexcept {
+    size_t total = 0;
+    for (const auto& snap : step.snapshots) {
+        total += snap.beforeData.size() + snap.afterData.size();
+    }
+    return total;
+}
+
 void TileUndoManager::commitStep(document::LayerStack& stack) {
     if (!m_isRecording) return;
     m_isRecording = false;
@@ -54,10 +62,16 @@ void TileUndoManager::commitStep(document::LayerStack& stack) {
     }
 
     if (!m_currentStep.snapshots.empty()) {
+        const size_t stepBytes = calculateStepBytes(m_currentStep);
+        m_currentMemoryBytes += stepBytes;
         m_undoStack.push_back(std::move(m_currentStep));
-        if (m_undoStack.size() > m_maxSteps) {
+
+        // Poda por contagem de passos E por teto de memória RAM
+        while ((m_undoStack.size() > m_maxSteps || m_currentMemoryBytes > m_maxMemoryBytes) && m_undoStack.size() > 1) {
+            m_currentMemoryBytes -= calculateStepBytes(m_undoStack.front());
             m_undoStack.pop_front();
         }
+
         m_redoStack.clear(); // Limpa a pilha de refazer ao realizar uma nova ação
     }
 }

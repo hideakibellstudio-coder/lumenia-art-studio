@@ -47,7 +47,8 @@ struct UndoStep {
 
 class TileUndoManager {
 public:
-    explicit TileUndoManager(size_t maxSteps = 50) : m_maxSteps(maxSteps) {}
+    explicit TileUndoManager(size_t maxSteps = 50, size_t maxMemoryMB = 256)
+        : m_maxSteps(maxSteps), m_maxMemoryBytes(maxMemoryMB * 1024 * 1024) {}
 
     void beginStep(const std::string& description = "Stroke");
     void recordTileBefore(int layerIndex, int tileX, int tileY, const uint8_t* data, size_t sizeInBytes);
@@ -62,9 +63,16 @@ public:
     [[nodiscard]] bool canRedo() const noexcept { return !m_redoStack.empty(); }
     [[nodiscard]] size_t getUndoCount() const noexcept { return m_undoStack.size(); }
     [[nodiscard]] size_t getRedoCount() const noexcept { return m_redoStack.size(); }
+    [[nodiscard]] size_t getMemoryUsageBytes() const noexcept { return m_currentMemoryBytes; }
+    void setMaxMemoryMB(size_t mb) noexcept { m_maxMemoryBytes = mb * 1024 * 1024; }
 
 private:
+    static size_t calculateStepBytes(const UndoStep& step) noexcept;
+
     size_t m_maxSteps{50};
+    size_t m_maxMemoryBytes{256 * 1024 * 1024}; // 256 MB de teto padrão
+    size_t m_currentMemoryBytes{0};
+
     bool m_isRecording{false};
     UndoStep m_currentStep;
     std::unordered_set<TileSnapshotKey, TileSnapshotKeyHash> m_recordedTiles;

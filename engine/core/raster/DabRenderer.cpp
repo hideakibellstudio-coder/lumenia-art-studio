@@ -82,17 +82,18 @@ void DabRenderer::renderDab(
 
                 if (distSq <= maxR * maxR) {
                     const double dist = std::sqrt(distSq);
-                    const double uDab = (rotX + r) / (2.0 * r);
-                    const double vDab = (scaledY + r) / (2.0 * r);
+                    const double safeR = std::max(0.001, r);
+                    const double uDab = (rotX + safeR) / (2.0 * safeR);
+                    const double vDab = (scaledY + safeR) / (2.0 * safeR);
 
                     // 1. FORMA DA PONTA (Shape Alpha com Suporte a Hardness)
                     double shapeAlpha = 1.0;
                     if (shapeTex) {
                         shapeAlpha = shapeTex->sampleNormalized(uDab, vDab, texture::TextureWrapMode::Clamp);
                     } else {
-                        const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
+                        const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
                         if (dist > hardSpan) {
-                            shapeAlpha = std::clamp((r - dist) / std::max(0.001, r - hardSpan), 0.0, 1.0);
+                            shapeAlpha = std::clamp((safeR - dist) / std::max(0.001, safeR - hardSpan), 0.0, 1.0);
                         }
                     }
 

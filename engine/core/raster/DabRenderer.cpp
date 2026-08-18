@@ -86,7 +86,7 @@ void DabRenderer::renderDab(
                     const double uDab = (rotX + safeR) / (2.0 * safeR);
                     const double vDab = (scaledY + safeR) / (2.0 * safeR);
 
-                    // 1. FORMA DA PONTA (Shape Alpha com Suporte a Hardness)
+                    // 1. FORMA DA PONTA (Shape Alpha com Suporte a Hardness e Subpixel Anti-aliasing)
                     double shapeAlpha = 1.0;
                     if (shapeTex) {
                         shapeAlpha = shapeTex->sampleNormalized(uDab, vDab, texture::TextureWrapMode::Clamp);
@@ -95,6 +95,11 @@ void DabRenderer::renderDab(
                         if (dist > hardSpan) {
                             shapeAlpha = std::clamp((safeR - dist) / std::max(0.001, safeR - hardSpan), 0.0, 1.0);
                         }
+                    }
+
+                    // Suavização subpixel de 0.5px na borda externa circular
+                    if (dist > safeR - 0.5) {
+                        shapeAlpha *= std::clamp((safeR - dist) / 0.5, 0.0, 1.0);
                     }
 
                     if (shapeAlpha <= 0.0) continue;

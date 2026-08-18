@@ -66,17 +66,14 @@ void InkerEngine::renderDab(
 
                 if (dist > r + 1.0) continue;
 
-                // Anti-aliasing suave por distância — sem hardness threshold,
-                // InkerEngine usa apenas o subpixel de borda (1px de feather)
-                double edgeAlpha;
-                const double feather = std::max(0.5, r * (1.0 - std::clamp(profile.hardness, 0.0, 1.0)) * 0.3 + 0.5);
-                if (dist <= r - feather) {
-                    edgeAlpha = 1.0;
-                } else {
-                    edgeAlpha = std::clamp((r - dist) / feather, 0.0, 1.0);
-                    // taperSmoothing suaviza o caimento de borda
+                // Anti-aliasing suave subpixel de nanquim (corte nítido com feather cúbico subpixel de 0.6px)
+                double edgeAlpha = 1.0;
+                const double feather = std::max(0.6, r * (1.0 - std::clamp(profile.hardness, 0.0, 1.0)) * 0.25 + 0.6);
+                if (dist > r - feather) {
+                    const double t = std::clamp((r - dist) / feather, 0.0, 1.0);
                     const double ts = std::clamp(profile.inkerParams.taperSmoothing, 0.0, 1.0);
-                    edgeAlpha = edgeAlpha * (1.0 - ts) + (edgeAlpha * edgeAlpha) * ts;
+                    // Curva cúbica com modulação de afilamento taperSmoothing
+                    edgeAlpha = t * t * (3.0 - 2.0 * t) * (1.0 - ts * 0.25) + (t * t * t) * (ts * 0.25);
                 }
 
                 if (edgeAlpha <= 0.0) continue;

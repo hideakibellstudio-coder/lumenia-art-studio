@@ -118,16 +118,24 @@ void PencilEngine::renderDab(
                     canvasHeight = canvasTexture.canvasTextureCurve.sample(canvasHeight);
                 }
 
-                // 4. EQUAÇÃO 3D CONTACT — GRAFITE MODULADO POR DUREZA
-                // O lápis enfatiza muito o relevo do papel (canvasHeight elevado ao quadrado)
+                // 4. EQUAÇÃO 3D CONTACT — GRAFITE MODULADO POR DUREZA E TETO DE CARBONO
+                // Lápis duro (2H) possui teto de escuridão cinza prateado (~60%); lápis macio (6B) deposita preto profundo (100%)
+                const double hardnessVal = std::clamp(profile.pencilParams.graphiteHardness, 0.0, 1.0);
+                const double maxDarknessCap = 1.0 - std::clamp(hardnessVal - 0.4, 0.0, 0.6) * 0.65;
+
                 const double combinedHeight = brushHeight * (canvasHeight * canvasHeight);
                 const double threshold = (1.0 - dab.pressure) + hardnessOffset;
                 const double depositedInk = math::MathUtils::smoothstep(
-                    threshold - 0.12, threshold + 0.12, combinedHeight
+                    threshold - 0.14, threshold + 0.14, combinedHeight
                 );
 
+                // Subpixel anti-aliasing na borda extrema do dab
+                if (dist > r - 0.5) {
+                    shapeAlpha *= std::clamp((r - dist) / 0.5, 0.0, 1.0);
+                }
+
                 const double finalAlpha = (static_cast<double>(dab.color.a) / 255.0)
-                    * dab.opacity * shapeAlpha * depositedInk;
+                    * dab.opacity * shapeAlpha * depositedInk * maxDarknessCap;
                 if (finalAlpha <= 0.0) continue;
 
                 double curFinalAlpha = finalAlpha;

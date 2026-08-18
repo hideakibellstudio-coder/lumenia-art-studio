@@ -20,7 +20,13 @@ void MarkerEngine::renderDab(
 
     const double r = dab.radius;
     const double aspect = std::max(0.05, profile.tip.aspectRatio);
-    const double maxR = r / aspect + 2.0;
+
+    const double wetness = std::clamp(profile.markerParams.solventWetness, 0.0, 1.0);
+    const double edgeDark = std::clamp(profile.markerParams.edgeDarkening, 0.0, 1.0);
+
+    // Expansão sutil de solvente de álcool no papel
+    const double effectiveRadius = r * (1.0 + wetness * 0.12);
+    const double maxR = effectiveRadius / aspect + 2.0;
 
     const math::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
@@ -34,9 +40,6 @@ void MarkerEngine::renderDab(
     const double radAngle = -dab.angle * (3.14159265358979323846 / 180.0);
     const double cosA = std::cos(radAngle);
     const double sinA = std::sin(radAngle);
-
-    const double wetness = std::clamp(profile.markerParams.solventWetness, 0.0, 1.0);
-    const double edgeDark = std::clamp(profile.markerParams.edgeDarkening, 0.0, 1.0);
 
     for (const auto& idx : tileIndices) {
         canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
@@ -151,14 +154,14 @@ void MarkerEngine::renderDab(
                     const double dstB = static_cast<double>(dst.b) / 255.0;
                     const double dstA = static_cast<double>(dst.a) / 255.0;
 
-                    // Opacidade do traço suave: mantém a transparência uniforme
-                    const double outA = std::max(dstA, curOpacity);
+                    // Opacidade cumulativa suave do marcador
+                    const double outA = std::clamp(dstA + curOpacity * (1.0 - dstA) * 0.5, 0.0, 1.0);
 
-                    // Escurecimento suave e progressivo de tinta sem manchas pretas
-                    const double buildRate = 0.02 * curOpacity;
-                    const double outR = std::max(minR, dstR - (1.0 - srcR) * buildRate);
-                    const double outG = std::max(minG, dstG - (1.0 - srcG) * buildRate);
-                    const double outB = std::max(minB, dstB - (1.0 - srcB) * buildRate);
+                    // Absorção luminosa da tinta de marcador (Beer-Lambert modificada: saturação rica sem colapso de cor)
+                    const double absorb = curOpacity * 0.06;
+                    const double outR = std::max(minR, dstR * (1.0 - absorb * (1.0 - srcR)));
+                    const double outG = std::max(minG, dstG * (1.0 - absorb * (1.0 - srcG)));
+                    const double outB = std::max(minB, dstB * (1.0 - absorb * (1.0 - srcB)));
 
                     buffer.setPixel(px, py, raster::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),

@@ -161,7 +161,7 @@ void WatercolorEngine::renderDab(
                         static_cast<uint8_t>(std::clamp(curEffectiveOpacity * 255.0, 0.0, 255.0))
                     });
                 } else {
-                    // Glaze: Sobreposição transparente acumulativa (Multiply suave + Alpha Over)
+                    // Glaze: Sobreposição física de aquarela (Veladura subtrativa ponderada por difusão)
                     const double srcR = static_cast<double>(dab.color.r) / 255.0;
                     const double srcG = static_cast<double>(dab.color.g) / 255.0;
                     const double srcB = static_cast<double>(dab.color.b) / 255.0;
@@ -171,16 +171,20 @@ void WatercolorEngine::renderDab(
                     const double dstB = static_cast<double>(dst.b) / 255.0;
                     const double dstA = static_cast<double>(dst.a) / 255.0;
 
-                    // Blend de pigmentos aquosos (Multiply de sub-camadas)
-                    const double glazeR = srcR * dstR;
-                    const double glazeG = srcG * dstG;
-                    const double glazeB = srcB * dstB;
+                    // Blend de pigmentos aquosos com suporte a diluição úmida (waterLevel)
+                    const double subR = srcR * dstR;
+                    const double subG = srcG * dstG;
+                    const double subB = srcB * dstB;
+
+                    const double glazeR = subR * (1.0 - waterLevel * 0.3) + (srcR * 0.5 + dstR * 0.5) * (waterLevel * 0.3);
+                    const double glazeG = subG * (1.0 - waterLevel * 0.3) + (srcG * 0.5 + dstG * 0.5) * (waterLevel * 0.3);
+                    const double glazeB = subB * (1.0 - waterLevel * 0.3) + (srcB * 0.5 + dstB * 0.5) * (waterLevel * 0.3);
 
                     const double mixR = dstR * (1.0 - curEffectiveOpacity) + glazeR * curEffectiveOpacity;
                     const double mixG = dstG * (1.0 - curEffectiveOpacity) + glazeG * curEffectiveOpacity;
                     const double mixB = dstB * (1.0 - curEffectiveOpacity) + glazeB * curEffectiveOpacity;
 
-                    const double outA = std::max(dstA, curEffectiveOpacity);
+                    const double outA = std::clamp(dstA + curEffectiveOpacity * (1.0 - dstA) * 0.4, 0.0, 1.0);
 
                     buffer.setPixel(px, py, raster::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(mixR * 255.0, 0.0, 255.0)),

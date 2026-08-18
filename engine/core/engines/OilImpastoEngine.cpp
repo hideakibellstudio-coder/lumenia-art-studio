@@ -139,13 +139,24 @@ void OilImpastoEngine::renderDab(
                 const double dstB = static_cast<double>(dst.b) / 255.0;
                 const double dstA = static_cast<double>(dst.a) / 255.0;
 
+                // 5. Mistura Úmida na Tela (Wet Oil Mixing) — Pincel carrega fração sutil de tinta fresca subjacente
+                double effSrcR = srcR;
+                double effSrcG = srcG;
+                double effSrcB = srcB;
+                if (dstA > 0.0 && viscosity < 1.0) {
+                    const double pickup = (1.0 - viscosity) * 0.18 * curEffectiveOpacity;
+                    effSrcR = srcR * (1.0 - pickup) + dstR * pickup;
+                    effSrcG = srcG * (1.0 - pickup) + dstG * pickup;
+                    effSrcB = srcB * (1.0 - pickup) + dstB * pickup;
+                }
+
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
                     const double invSrcA = 1.0 - srcA;
 
-                    double outR = (srcR * srcA + dstR * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
-                    double outG = (srcG * srcA + dstG * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
-                    double outB = (srcB * srcA + dstB * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
+                    double outR = (effSrcR * srcA + dstR * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
+                    double outG = (effSrcG * srcA + dstG * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
+                    double outB = (effSrcB * srcA + dstB * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
 
                     buffer.setPixel(px, py, raster::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
@@ -160,9 +171,9 @@ void OilImpastoEngine::renderDab(
                 // Compositing Normal Viscoso com Brilho Especular 3D
                 const double outA = srcA + dstA * (1.0 - srcA);
                 if (outA > 0.0) {
-                    double outR = (srcR * srcA + dstR * dstA * (1.0 - srcA)) / outA + specularAdd;
-                    double outG = (srcG * srcA + dstG * dstA * (1.0 - srcA)) / outA + specularAdd;
-                    double outB = (srcB * srcA + dstB * dstA * (1.0 - srcA)) / outA + specularAdd;
+                    double outR = (effSrcR * srcA + dstR * dstA * (1.0 - srcA)) / outA + specularAdd;
+                    double outG = (effSrcG * srcA + dstG * dstA * (1.0 - srcA)) / outA + specularAdd;
+                    double outB = (effSrcB * srcA + dstB * dstA * (1.0 - srcA)) / outA + specularAdd;
 
                     buffer.setPixel(px, py, raster::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),

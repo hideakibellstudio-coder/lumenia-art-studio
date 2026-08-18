@@ -1,6 +1,7 @@
 #include "EraserEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
 #include "../math/Rect2D.hpp"
+#include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
 #include <algorithm>
@@ -77,10 +78,27 @@ void EraserEngine::renderDab(
                         shapeAlpha = std::clamp((r - dist) / std::max(0.001, r - hardSpan), 0.0, 1.0);
                     }
                 }
+
+                // Subpixel anti-aliasing na extremidade
+                if (dist > r - 0.5) {
+                    shapeAlpha *= std::clamp((r - dist) / 0.5, 0.0, 1.0);
+                }
+
                 if (shapeAlpha <= 0.0) continue;
 
                 // Força de apagamento = opacidade do dab × alpha da forma
-                const double eraseStrength = dab.opacity * shapeAlpha;
+                double eraseStrength = dab.opacity * shapeAlpha;
+                if (ctx.clipBaseLayer) {
+                    const int bTx = (tilePixelX + px) / canvas::Tile::TILE_SIZE;
+                    const int bTy = (tilePixelY + py) / canvas::Tile::TILE_SIZE;
+                    const int bPx = (tilePixelX + px) % canvas::Tile::TILE_SIZE;
+                    const int bPy = (tilePixelY + py) % canvas::Tile::TILE_SIZE;
+                    const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(ctx.clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
+                    if (!bTile) continue;
+                    const double baseA = static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0;
+                    if (baseA <= 0.0) continue;
+                    eraseStrength *= baseA;
+                }
                 if (eraseStrength <= 0.0) continue;
 
                 // DabBlendMode::Erase — reduz alpha do destino proporcionalmente

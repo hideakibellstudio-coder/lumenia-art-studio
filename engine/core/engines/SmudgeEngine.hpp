@@ -2,6 +2,7 @@
 #define ALADYN_ENGINE_SMUDGE_ENGINE_HPP
 
 #include "IBrushEngine.hpp"
+#include "../math/Point2D.hpp"
 
 namespace aladyn::engine::document { class Layer; }
 
@@ -39,11 +40,13 @@ public:
 
     void onBeginStroke() noexcept override {
         m_hasCarriedColor = false;
+        m_lastPosition    = {0.0, 0.0};
     }
 
 private:
     bool              m_hasCarriedColor{false};
     raster::ColorRGBA m_carriedColor{0, 0, 0, 0};
+    math::Point2D     m_lastPosition{0.0, 0.0};
 };
 
 } // namespace aladyn::engine::engines

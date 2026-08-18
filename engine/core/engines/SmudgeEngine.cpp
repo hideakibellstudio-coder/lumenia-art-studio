@@ -5,15 +5,32 @@
 #include "../raster/PixelContext.hpp"
 #include <cmath>
 #include <algorithm>
+#include <vector>
 
 namespace aladyn::engine::engines {
 
-// Helper: Amostragem Gaussiana ponderada de uma área circular na CAMADA ATIVA
+// Amostra segura direta no TileGrid
+static inline raster::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
+    if (globalX < 0 || globalX >= tileGrid.getWidth() || globalY < 0 || globalY >= tileGrid.getHeight()) {
+        return {0, 0, 0, 0};
+    }
+    const int tx  = globalX / canvas::Tile::TILE_SIZE;
+    const int ty  = globalY / canvas::Tile::TILE_SIZE;
+    const int lpx = globalX % canvas::Tile::TILE_SIZE;
+    const int lpy = globalY % canvas::Tile::TILE_SIZE;
+
+    const canvas::Tile* t = const_cast<canvas::TileGrid&>(tileGrid).getTile(tx, ty);
+    return t ? t->getBuffer().getPixel(lpx, lpy) : raster::ColorRGBA{0, 0, 0, 0};
+}
+
+// Amostragem Gaussiana ponderada otimizada da área do dab na CAMADA ATIVA
 static raster::ColorRGBA sampleDabArea(
     double cx, double cy, double radius,
     const canvas::TileGrid& tileGrid
 ) {
     const int iR = static_cast<int>(std::ceil(radius));
+    const int step = std::max(1, iR / 12); // Subamostragem inteligente em pincéis gigantes
+
     const int x0 = static_cast<int>(std::floor(cx)) - iR;
     const int y0 = static_cast<int>(std::floor(cy)) - iR;
     const int x1 = static_cast<int>(std::ceil(cx))  + iR;
@@ -22,26 +39,18 @@ static raster::ColorRGBA sampleDabArea(
     double sumR = 0.0, sumG = 0.0, sumB = 0.0, sumA = 0.0;
     double totalWeight    = 0.0;
     double alphaWeightSum = 0.0;
-    const double sigma    = std::max(1.0, radius * 0.4);
+    const double sigma    = std::max(1.0, radius * 0.45);
+    const double sigmaFactor = 1.0 / (2.0 * sigma * sigma);
 
-    for (int sy = y0; sy <= y1; ++sy) {
+    for (int sy = y0; sy <= y1; sy += step) {
         const double dy = static_cast<double>(sy) + 0.5 - cy;
-        for (int sx = x0; sx <= x1; ++sx) {
+        for (int sx = x0; sx <= x1; sx += step) {
             const double dx   = static_cast<double>(sx) + 0.5 - cx;
-            const double dist = std::sqrt(dx * dx + dy * dy);
-            if (dist > radius + 1.0) continue;
+            const double distSq = dx * dx + dy * dy;
+            if (distSq > (radius + 1.0) * (radius + 1.0)) continue;
 
-            const double w = std::exp(-(dist * dist) / (2.0 * sigma * sigma));
-            raster::ColorRGBA s{0, 0, 0, 0};
-
-            const int tx  = sx / canvas::Tile::TILE_SIZE;
-            const int ty  = sy / canvas::Tile::TILE_SIZE;
-            const int lpx = sx % canvas::Tile::TILE_SIZE;
-            const int lpy = sy % canvas::Tile::TILE_SIZE;
-            if (tx >= 0 && tx < tileGrid.getTilesCountX() && ty >= 0 && ty < tileGrid.getTilesCountY()) {
-                const canvas::Tile* t = const_cast<canvas::TileGrid&>(tileGrid).getTile(tx, ty);
-                if (t) s = t->getBuffer().getPixel(lpx, lpy);
-            }
+            const double w = std::exp(-distSq * sigmaFactor);
+            const raster::ColorRGBA s = getTilePixel(tileGrid, sx, sy);
 
             if (s.a > 0) {
                 const double aNorm = static_cast<double>(s.a) / 255.0;
@@ -61,7 +70,7 @@ static raster::ColorRGBA sampleDabArea(
         static_cast<uint8_t>(std::clamp(sumR / alphaWeightSum, 0.0, 255.0)),
         static_cast<uint8_t>(std::clamp(sumG / alphaWeightSum, 0.0, 255.0)),
         static_cast<uint8_t>(std::clamp(sumB / alphaWeightSum, 0.0, 255.0)),
-        static_cast<uint8_t>(std::clamp((sumA / totalWeight), 0.0, 255.0))
+        static_cast<uint8_t>(std::clamp(sumA / totalWeight, 0.0, 255.0))
     };
 }
 
@@ -107,14 +116,12 @@ void SmudgeEngine::renderDab(
                     m_carriedColor.a * (1.0 - blendRate) + sampledColor.a * blendRate);
             }
         } else {
-            // Área transparente: tinta decai suavemente
-            const double decay = 0.90 + stretch * 0.09;
+            const double decay = 0.92 + stretch * 0.07;
             m_carriedColor.a   = static_cast<uint8_t>(
                 std::clamp(static_cast<double>(m_carriedColor.a) * decay, 0.0, 255.0));
         }
     }
 
-    // Sem tinta coletada -> nada a depositar
     if (m_carriedColor.a == 0) {
         m_lastPosition = dab.position;
         return;
@@ -139,6 +146,9 @@ void SmudgeEngine::renderDab(
     const double cosA     = std::cos(radAngle);
     const double sinA     = std::sin(radAngle);
 
+    const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
+    const double spanInv  = 1.0 / std::max(0.001, r - hardSpan);
+
     for (const auto& idx : tileIndices) {
         canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
         if (!tile) continue;
@@ -155,22 +165,24 @@ void SmudgeEngine::renderDab(
         bool tileModified = false;
 
         for (int py = minY; py <= maxY; ++py) {
-            const double dy = static_cast<double>(tilePixelY + py) + 0.5 - dab.position.y;
+            const int globalY = tilePixelY + py;
+            const double dy   = static_cast<double>(globalY) + 0.5 - dab.position.y;
+
             for (int px = minX; px <= maxX; ++px) {
-                const double dx = static_cast<double>(tilePixelX + px) + 0.5 - dab.position.x;
+                const int globalX = tilePixelX + px;
+                const double dx   = static_cast<double>(globalX) + 0.5 - dab.position.x;
 
                 const double rotX   = dx * cosA - dy * sinA;
                 const double rotY   = dx * sinA + dy * cosA;
                 const double scaledY = rotY / aspect;
-                const double dist   = std::sqrt(rotX * rotX + scaledY * scaledY);
+                const double distSq = rotX * rotX + scaledY * scaledY;
 
-                if (dist > r + 1.0) continue;
+                if (distSq > (r + 1.0) * (r + 1.0)) continue;
+                const double dist = std::sqrt(distSq);
 
                 double shapeAlpha = 1.0;
-                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
                 if (dist > hardSpan) {
-                    const double span = std::max(0.001, r - hardSpan);
-                    const double t    = std::clamp((r - dist) / span, 0.0, 1.0);
+                    const double t = std::clamp((r - dist) * spanInv, 0.0, 1.0);
                     shapeAlpha = t * t * (3.0 - 2.0 * t);
                 }
 
@@ -179,30 +191,27 @@ void SmudgeEngine::renderDab(
 
                 double curDepositFactor = depositFactor;
                 if (ctx.clipBaseLayer) {
-                    const int globalX = tilePixelX + px;
-                    const int globalY = tilePixelY + py;
                     const int bTx = globalX / canvas::Tile::TILE_SIZE;
                     const int bTy = globalY / canvas::Tile::TILE_SIZE;
-                    const int bPx = globalX % canvas::Tile::TILE_SIZE;
-                    const int bPy = globalY % canvas::Tile::TILE_SIZE;
                     const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(ctx.clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
                     if (!bTile) continue;
-                    const double baseA = static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0;
+                    const double baseA = static_cast<double>(bTile->getBuffer().getPixel(
+                        globalX % canvas::Tile::TILE_SIZE,
+                        globalY % canvas::Tile::TILE_SIZE).a) / 255.0;
                     if (baseA <= 0.0) continue;
                     curDepositFactor *= baseA;
                 }
                 if (curDepositFactor <= 0.0) continue;
 
+                // Lookup ultrarrápido O(1) do rastro direcional (sem aninhamento de loops!)
                 raster::ColorRGBA sourceColorForSmear = m_carriedColor;
                 if (moveDist > 0.5 && stretch > 0.05) {
-                    const int sampleX = static_cast<int>(std::round(
-                        static_cast<double>(tilePixelX + px) + smearOffsetX));
-                    const int sampleY = static_cast<int>(std::round(
-                        static_cast<double>(tilePixelY + py) + smearOffsetY));
-                    const raster::ColorRGBA trailSample = sampleDabArea(sampleX, sampleY, 1.0, tileGrid);
+                    const int sampleX = static_cast<int>(std::round(static_cast<double>(globalX) + smearOffsetX));
+                    const int sampleY = static_cast<int>(std::round(static_cast<double>(globalY) + smearOffsetY));
+                    const raster::ColorRGBA trailSample = getTilePixel(tileGrid, sampleX, sampleY);
 
                     if (trailSample.a > 0) {
-                        const double trailMix = stretch * 0.5;
+                        const double trailMix = stretch * 0.4;
                         sourceColorForSmear.r = static_cast<uint8_t>(
                             m_carriedColor.r * (1.0 - trailMix) + trailSample.r * trailMix);
                         sourceColorForSmear.g = static_cast<uint8_t>(

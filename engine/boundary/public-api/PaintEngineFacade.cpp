@@ -401,7 +401,7 @@ void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
         m_hasScratch          = true;
         m_scratchLayerTarget  = activeLayer;
         m_scratchBlendMode    = activeLayer->getBlendMode();
-        m_scratchOpacity      = activeLayer->getOpacity() * std::clamp(m_brushProfile.opacity, 0.0, 1.0);
+        m_scratchOpacity      = activeLayer->getEffectiveOpacity() * std::clamp(m_brushProfile.opacity, 0.0, 1.0);
     } else {
         m_hasScratch          = false;
         m_scratchLayerTarget  = nullptr;

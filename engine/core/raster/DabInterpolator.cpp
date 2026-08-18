@@ -15,8 +15,11 @@ std::vector<Dab> DabInterpolator::interpolate(
     const double distance = startDab.position.distanceTo(endDab.position);
     const double safeSpacing = std::max(0.005, spacingFactor);
 
-    // Se o movimento for insignificante (subpixel minúsculo)
+    // Se o movimento for um clique estacionário / ponto único inicial
     if (distance < 0.0001) {
+        if (distanceCarryover == 0.0) {
+            dabs.push_back(startDab);
+        }
         return dabs;
     }
 

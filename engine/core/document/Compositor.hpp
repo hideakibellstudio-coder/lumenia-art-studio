@@ -9,11 +9,14 @@
 
 namespace aladyn::engine::document {
 
+class FilterLayer;
+
 class Compositor {
 public:
     Compositor(int width, int height);
 
     static raster::ColorRGBA blendPixel(raster::ColorRGBA src, double layerOpacity, raster::ColorRGBA dst, LayerBlendMode mode);
+    static void applyFilterToBuffer(const FilterLayer& filter, canvas::PixelBuffer& buffer, int minX = 0, int maxX = -1, int minY = 0, int maxY = -1);
 
     void composite(const std::vector<const Layer*>& layers, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
     void composite(const std::vector<std::unique_ptr<Layer>>& layers, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});

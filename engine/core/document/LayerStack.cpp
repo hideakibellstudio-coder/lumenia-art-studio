@@ -175,13 +175,31 @@ bool LayerStack::reorderLayers(const std::vector<int>& newOrder) {
     return true;
 }
 
+static bool wouldCreateCycle(const LayerNode* child, const LayerNode* newParent) noexcept {
+    if (!child || !newParent) return false;
+    if (child == newParent) return true;
+    const LayerNode* curr = newParent;
+    int depth = 0;
+    while (curr && depth < 64) {
+        if (curr == child) return true;
+        curr = curr->getParent();
+        ++depth;
+    }
+    return false;
+}
+
 bool LayerStack::setLayerParents(const std::vector<int>& parentIndices) {
     if (parentIndices.size() != m_drawingLayers.size()) return false;
     for (size_t i = 0; i < m_drawingLayers.size(); ++i) {
         if (!m_drawingLayers[i]) continue;
         int parentIdx = parentIndices[i];
         if (parentIdx >= 0 && parentIdx < static_cast<int>(m_drawingLayers.size()) && parentIdx != static_cast<int>(i)) {
-            m_drawingLayers[i]->setParent(m_drawingLayers[parentIdx].get());
+            LayerNode* newParent = m_drawingLayers[parentIdx].get();
+            if (!wouldCreateCycle(m_drawingLayers[i].get(), newParent)) {
+                m_drawingLayers[i]->setParent(newParent);
+            } else {
+                m_drawingLayers[i]->setParent(nullptr); // Previne ciclo de nós
+            }
         } else {
             m_drawingLayers[i]->setParent(nullptr);
         }
@@ -324,6 +342,21 @@ bool LayerStack::mergeLayerDown(int index) {
     Layer* upperLayer = m_drawingLayers[index].get();
     Layer* lowerLayer = m_drawingLayers[index - 1].get();
     if (!upperLayer || !lowerLayer) return false;
+
+    // Se a camada superior for uma FilterLayer, rasteriza o filtro sobre os tiles da camada inferior
+    if (upperLayer->isFilter()) {
+        const auto* filterLayer = dynamic_cast<const FilterLayer*>(upperLayer);
+        if (filterLayer) {
+            auto& lowerGrid = lowerLayer->getTileGrid();
+            lowerGrid.forEachTile([&](const auto& /*idx*/, canvas::Tile& tile) {
+                Compositor::applyFilterToBuffer(*filterLayer, tile.getBuffer());
+                tile.setDirty(true);
+            });
+        }
+        m_drawingLayers.erase(m_drawingLayers.begin() + index);
+        m_activeIndex = index - 1;
+        return true;
+    }
 
     const double upperOpacity = upperLayer->getOpacity();
 

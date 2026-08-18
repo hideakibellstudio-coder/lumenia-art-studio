@@ -45,7 +45,7 @@ static void hsvToRgb(float h, float s, float v, float& r, float& g, float& b) {
     b = b1 + m;
 }
 
-static void applyFilterToBuffer(const FilterLayer& filter, canvas::PixelBuffer& buffer, int minX = 0, int maxX = -1, int minY = 0, int maxY = -1) {
+void Compositor::applyFilterToBuffer(const FilterLayer& filter, canvas::PixelBuffer& buffer, int minX, int maxX, int minY, int maxY) {
     const double opacity = filter.getEffectiveOpacity();
     if (opacity <= 0.0) return;
 
@@ -523,7 +523,7 @@ void Compositor::compositeRegion(
     }
 
     for (const Layer* layerPtr : layers) {
-        if (!layerPtr || !layerPtr->isVisible() || layerPtr->getOpacity() <= 0.0) {
+        if (!layerPtr || !layerPtr->isVisible() || layerPtr->getEffectiveOpacity() <= 0.0) {
             continue;
         }
 
@@ -536,7 +536,7 @@ void Compositor::compositeRegion(
         }
 
         const Layer& layer = *layerPtr;
-        const double layerOpacity = layer.getOpacity();
+        const double layerOpacity = layer.getEffectiveOpacity();
         const LayerBlendMode blendMode = layer.getBlendMode();
         const canvas::TileGrid& grid = layer.getTileGrid();
 
@@ -716,7 +716,7 @@ void Compositor::compositeRegionWithScratch(
 
     // ─── Composição das camadas na ordem exata do grafo
     for (const Layer* layerPtr : layers) {
-        if (!layerPtr || !layerPtr->isVisible() || layerPtr->getOpacity() <= 0.0) {
+        if (!layerPtr || !layerPtr->isVisible() || layerPtr->getEffectiveOpacity() <= 0.0) {
             continue;
         }
 
@@ -727,7 +727,7 @@ void Compositor::compositeRegionWithScratch(
         }
 
         const Layer& layer = *layerPtr;
-        const double layerOpacity = layer.getOpacity();
+        const double layerOpacity = layer.getEffectiveOpacity();
         const LayerBlendMode blendMode = layer.getBlendMode();
 
         // Clip base

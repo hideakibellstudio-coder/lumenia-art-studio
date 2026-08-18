@@ -33,10 +33,9 @@ MappedBrushState DynamicMapper::map(
     double fFlow = profile.pressureFlowEnabled ? profile.pressureFlowCurve.sample(rawPressure) : rawPressure;
     fFlow = std::clamp(fFlow, 0.0, 1.0);
 
-    // ─── OPACIDADE MÍNIMA EM % (AFUNILAMENTO DE VELADURA) ────────────────────
+    // ─── FLUXO E MODULAÇÃO DINÂMICA DA PONTA ────────────────────────────────
     const double minOpPercent = std::clamp(profile.minOpacityPercent, 0.0, 1.0);
-    const double minOpVal = profile.opacity * minOpPercent;
-    const double mappedOpacity = minOpVal + (profile.opacity - minOpVal) * fFlow;
+    const double mappedFlow = minOpPercent + (1.0 - minOpPercent) * fFlow;
 
     // Jitter de Tamanho
     if (profile.tip.jitterSize > 0.0) {
@@ -74,9 +73,9 @@ MappedBrushState DynamicMapper::map(
     }
 
     raster::ColorRGBA color = profile.baseColor;
-    color.a = static_cast<uint8_t>(std::clamp(mappedOpacity * 255.0, 0.0, 255.0));
+    color.a = static_cast<uint8_t>(std::clamp(mappedFlow * 255.0, 0.0, 255.0));
 
-    return MappedBrushState{finalPos, radius, mappedOpacity, rawPressure, angle, color};
+    return MappedBrushState{finalPos, radius, mappedFlow, rawPressure, angle, color};
 }
 
 std::vector<MappedBrushState> DynamicMapper::map_scatter(

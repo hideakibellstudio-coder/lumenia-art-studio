@@ -110,6 +110,8 @@ public:
 private:
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
     void initEngine(brush::EngineType type);
+    // Mescla o scratch layer na camada ativa ao final do traço e o limpa.
+    void commitScratch();
 
     int m_width;
     int m_height;
@@ -128,6 +130,15 @@ private:
     document::Compositor m_compositor;
     canvas::PixelBuffer  m_outputBuffer;
     canvas::TileUndoManager m_undoManager;
+
+    // ─── SCRATCH LAYER (wet layer) ─────────────────────────────────────────
+    // Buffer temporário para acumular dabs durante um traço ativo.
+    // Apenas motores com usesScratchLayer()==true o utilizam.
+    canvas::TileGrid m_scratchGrid;
+    bool             m_hasScratch{false};
+    int              m_scratchLayerIndex{-1};   // índice da camada ativa no início do traço
+    document::LayerBlendMode m_scratchBlendMode{document::LayerBlendMode::Normal};
+    double           m_scratchOpacity{1.0};
 };
 
 } // namespace aladyn::engine::boundary

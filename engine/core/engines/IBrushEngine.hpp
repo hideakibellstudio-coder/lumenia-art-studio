@@ -49,6 +49,11 @@ public:
 
     // Hook opcional chamado ao terminar um traço.
     virtual void onEndStroke() noexcept {}
+
+    // Retorna true se este motor deve renderizar dabs no scratch layer temporário
+    // (ao invés de direto na camada ativa). Blur e Smudge retornam false porque
+    // precisam ler e escrever diretamente na camada/compositeBuffer.
+    [[nodiscard]] virtual bool usesScratchLayer() const noexcept { return true; }
 };
 
 } // namespace aladyn::engine::engines

@@ -624,4 +624,141 @@ void Compositor::compositeRegion(
     compositeRegion(rawPtrs, region, outputBuffer, bgColor);
 }
 
+// ─── SCRATCH LAYER OVERLAY ──────────────────────────────────────────────────
+// Igual ao compositeRegion normal, mas após compor a camada no índice
+// scratchLayerIndex, compõe o scratchGrid sobre o output com o mesmo
+// blendMode e opacity. Isso exibe a "tinta molhada" do traço atual
+// sem modificar a camada ativa real.
+void Compositor::compositeRegionWithScratch(
+    const std::vector<const Layer*>& layers,
+    const math::Rect2D& region,
+    canvas::PixelBuffer& outputBuffer,
+    const raster::ColorRGBA& bgColor,
+    const canvas::TileGrid& scratchGrid,
+    int scratchLayerIndex,
+    LayerBlendMode scratchBlendMode,
+    double scratchOpacity
+) {
+    if (layers.empty()) return;
+
+    bool hasBackground = false;
+    for (const Layer* l : layers) {
+        if (l && l->isBackground() && l->isVisible()) { hasBackground = true; break; }
+    }
+
+    const raster::ColorRGBA bgFill = hasBackground ? bgColor : raster::ColorRGBA{0, 0, 0, 0};
+
+    const int minX = std::max(0, static_cast<int>(std::floor(region.getLeft())) - 2);
+    const int maxX = std::min(m_width - 1, static_cast<int>(std::ceil(region.getRight())) + 2);
+    const int minY = std::max(0, static_cast<int>(std::floor(region.getTop())) - 2);
+    const int maxY = std::min(m_height - 1, static_cast<int>(std::ceil(region.getBottom())) + 2);
+    if (minX > maxX || minY > maxY) return;
+
+    for (int y = minY; y <= maxY; ++y)
+        for (int x = minX; x <= maxX; ++x)
+            outputBuffer.setPixel(x, y, bgFill);
+
+    const int startTileX = minX / canvas::Tile::TILE_SIZE;
+    const int endTileX   = maxX / canvas::Tile::TILE_SIZE;
+    const int startTileY = minY / canvas::Tile::TILE_SIZE;
+    const int endTileY   = maxY / canvas::Tile::TILE_SIZE;
+
+    // Helper local: compõe um TileGrid na outputBuffer na região dirty
+    auto composeTileGrid = [&](const canvas::TileGrid& grid, double opacity, LayerBlendMode mode,
+                                const Layer* clipBase) {
+        const int maxTilesX = grid.getTilesCountX();
+        const int maxTilesY = grid.getTilesCountY();
+        const int cSTx = std::clamp(startTileX, 0, maxTilesX - 1);
+        const int cETx = std::clamp(endTileX,   0, maxTilesX - 1);
+        const int cSTy = std::clamp(startTileY, 0, maxTilesY - 1);
+        const int cETy = std::clamp(endTileY,   0, maxTilesY - 1);
+
+        for (int ty = cSTy; ty <= cETy; ++ty) {
+            for (int tx = cSTx; tx <= cETx; ++tx) {
+                const canvas::Tile* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
+                if (!tile) continue;
+
+                const canvas::PixelBuffer& tileBuf = tile->getBuffer();
+                const int tilePixelX = tile->getPixelX();
+                const int tilePixelY = tile->getPixelY();
+
+                const int tileMinX = std::max(minX, tilePixelX);
+                const int tileMaxX = std::min(maxX, tilePixelX + canvas::Tile::TILE_SIZE - 1);
+                const int tileMinY = std::max(minY, tilePixelY);
+                const int tileMaxY = std::min(maxY, tilePixelY + canvas::Tile::TILE_SIZE - 1);
+
+                for (int globalY = tileMinY; globalY <= tileMaxY; ++globalY) {
+                    const int localY = globalY - tilePixelY;
+                    for (int globalX = tileMinX; globalX <= tileMaxX; ++globalX) {
+                        const int localX = globalX - tilePixelX;
+                        const raster::ColorRGBA src = tileBuf.getPixel(localX, localY);
+                        if (src.a == 0) continue;
+
+                        double curOpacity = opacity;
+                        if (clipBase) {
+                            const int bTx = globalX / canvas::Tile::TILE_SIZE;
+                            const int bTy = globalY / canvas::Tile::TILE_SIZE;
+                            const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(clipBase->getTileGrid()).getTile(bTx, bTy);
+                            if (!bTile) continue;
+                            const double baseA = static_cast<double>(bTile->getBuffer().getPixel(
+                                globalX % canvas::Tile::TILE_SIZE,
+                                globalY % canvas::Tile::TILE_SIZE).a) / 255.0;
+                            if (baseA <= 0.0) continue;
+                            curOpacity *= baseA;
+                        }
+
+                        const raster::ColorRGBA dst = outputBuffer.getPixel(globalX, globalY);
+                        outputBuffer.setPixel(globalX, globalY, blendPixel(src, curOpacity, dst, mode));
+                    }
+                }
+            }
+        }
+    };
+
+    // ─── Composição das camadas na ordem do grafo
+    int layerPosition = 0;
+    for (const Layer* layerPtr : layers) {
+        if (!layerPtr || !layerPtr->isVisible() || layerPtr->getOpacity() <= 0.0) {
+            if (!layerPtr || (!layerPtr->isFilter() && !layerPtr->isBackground()))
+                ++layerPosition;
+            continue;
+        }
+
+        if (layerPtr->isFilter()) {
+            const FilterLayer* filterLayer = dynamic_cast<const FilterLayer*>(layerPtr);
+            if (filterLayer) applyFilterToBuffer(*filterLayer, outputBuffer, minX, maxX, minY, maxY);
+            continue;
+        }
+
+        const Layer& layer = *layerPtr;
+        const double layerOpacity = layer.getOpacity();
+        const LayerBlendMode blendMode = layer.getBlendMode();
+
+        // Clip base
+        const Layer* clipBaseLayer = nullptr;
+        if (layer.isClippingMask()) {
+            auto it = std::find(layers.begin(), layers.end(), layerPtr);
+            if (it != layers.begin()) {
+                for (auto prevIt = it - 1; ; --prevIt) {
+                    if (*prevIt && !(*prevIt)->isBackground() && !(*prevIt)->isClippingMask() && (*prevIt)->isVisible()) {
+                        clipBaseLayer = *prevIt;
+                        break;
+                    }
+                    if (prevIt == layers.begin()) break;
+                }
+            }
+        }
+
+        // Compõe a camada real (conteúdo pré-existente ao traço)
+        composeTileGrid(layer.getTileGrid(), layerOpacity, blendMode, clipBaseLayer);
+
+        // ─── Após a camada ativa, insere o scratch overlay (tinta do traço atual)
+        if (layerPosition == scratchLayerIndex && scratchOpacity > 0.0) {
+            composeTileGrid(scratchGrid, scratchOpacity, scratchBlendMode, clipBaseLayer);
+        }
+
+        ++layerPosition;
+    }
+}
+
 } // namespace aladyn::engine::document

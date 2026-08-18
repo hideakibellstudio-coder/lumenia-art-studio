@@ -35,6 +35,9 @@ public:
     [[nodiscard]] brush::EngineType getType() const noexcept override {
         return brush::EngineType::Blur;
     }
+
+    // Blur lê do compositeBuffer e escreve direto na camada ativa — sem scratch.
+    [[nodiscard]] bool usesScratchLayer() const noexcept override { return false; }
 };
 
 } // namespace aladyn::engine::engines

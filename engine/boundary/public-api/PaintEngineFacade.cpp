@@ -22,7 +22,8 @@ PaintEngineFacade::PaintEngineFacade(int width, int height)
     : m_width(width), m_height(height),
       m_layerStack(width, height),
       m_compositor(width, height),
-      m_outputBuffer(width, height, {255, 255, 255, 255}) {
+      m_outputBuffer(width, height, {255, 255, 255, 255}),
+      m_scratchGrid(width, height) {
 
     initEngine(brush::EngineType::Brush);
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
@@ -383,44 +384,36 @@ void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
     }
 
     // Checagem recursiva de visibilidade e bloqueio de pais
-    bool effVis = activeLayer->isVisible();
+    bool effVis    = activeLayer->isVisible();
     bool effLocked = activeLayer->isLocked();
     const document::LayerNode* curr = activeLayer->getParent();
     while (curr) {
-        if (!curr->isVisible()) effVis = false;
-        if (curr->isLocked()) effLocked = true;
+        if (!curr->isVisible()) effVis    = false;
+        if ( curr->isLocked()) effLocked = true;
         curr = curr->getParent();
     }
+    if (!effVis || effLocked) { m_isDrawing = false; return; }
 
-    if (effVis && !effLocked) {
-        const document::Layer* clipBaseLayer = activeLayer->isClippingMask()
-            ? m_layerStack.getClipBaseLayer(m_layerStack.getActiveIndex())
-            : nullptr;
-
-        const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), clipBaseLayer };
-
-        auto& grid = activeLayer->getTileGrid();
-        
-        // Grava o estado prévio do tile na posição do dab inicial
-        const int tx = static_cast<int>(std::floor(m_lastDab.position.x / canvas::Tile::TILE_SIZE));
-        const int ty = static_cast<int>(std::floor(m_lastDab.position.y / canvas::Tile::TILE_SIZE));
-        const int activeIdx = m_layerStack.getActiveIndex();
-        canvas::Tile* tile = grid.getTile(tx, ty);
-        if (tile) {
-            const auto& buf = tile->getBuffer();
-            m_undoManager.recordTileBefore(activeIdx, tx, ty, buf.getData(), buf.getSizeInBytes());
-        } else {
-            canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
-            m_undoManager.recordTileBefore(activeIdx, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
-        }
-
-        if (m_activeEngine) {
-            m_activeEngine->renderDab(m_lastDab, m_brushProfile, m_canvasTexture, grid, &m_outputBuffer, pCtx);
-        } else {
-            raster::DabRenderer::renderDab(m_lastDab, m_brushProfile, m_canvasTexture, grid, pCtx);
-        }
-        m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    // ─── Inicializa o scratch layer para este traço
+    const bool useScratch = !m_activeEngine || m_activeEngine->usesScratchLayer();
+    if (useScratch) {
+        m_scratchGrid.clearTiles();
+        m_hasScratch         = true;
+        m_scratchLayerIndex  = m_layerStack.getActiveIndex();
+        m_scratchBlendMode   = activeLayer->getBlendMode();
+        m_scratchOpacity     = activeLayer->getOpacity() * std::clamp(m_brushProfile.opacity, 0.0, 1.0);
+    } else {
+        m_hasScratch = false;
     }
+
+    // Renderiza o primeiro dab do beginStroke (ponto de toque inicial)
+    const math::Rect2D firstDabBounds{
+        m_lastDab.position.x - m_lastDab.radius - 2.0,
+        m_lastDab.position.y - m_lastDab.radius - 2.0,
+        (m_lastDab.radius + 2.0) * 2.0,
+        (m_lastDab.radius + 2.0) * 2.0
+    };
+    renderStrokeSegment(m_lastDab, m_lastDab);
 }
 
 TelemetryData PaintEngineFacade::updateStroke(const stroke::PointerEvent& event) {
@@ -452,8 +445,130 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& event) {
     if (!m_isDrawing) return;
     updateStroke(event);
     if (m_activeEngine) m_activeEngine->onEndStroke();
+
+    // ─── Commit da scratch layer na camada ativa
+    if (m_hasScratch) {
+        commitScratch();
+        m_hasScratch = false;
+    }
+
     m_isDrawing = false;
     m_undoManager.commitStep(m_layerStack);
+
+    // Composite final limpo (sem scratch) para sincronizar m_outputBuffer
+    const math::Rect2D fullCanvas{0.0, 0.0,
+        static_cast<double>(m_width), static_cast<double>(m_height)};
+    m_compositor.compositeRegion(
+        m_layerStack.getAllLayersForComposition(), fullCanvas,
+        m_outputBuffer, m_canvasTexture.backgroundColor
+    );
+}
+
+// ─── COMMIT SCRATCH → CAMADA ATIVA ──────────────────────────────────────────
+// Para cada tile do scratch, mescla seu conteúdo sobre o tile correspondente
+// da camada ativa usando composição "over" simples (Normal blend mode).
+// O blend mode real da camada é aplicado pelo Compositor — o scratch é
+// apenas acúmulo de tinta pura, sem reacumulação entre dabs do mesmo traço.
+void PaintEngineFacade::commitScratch() {
+    document::Layer* activeLayer = m_layerStack.getActiveLayer();
+    if (!activeLayer) return;
+
+    auto& layerGrid    = activeLayer->getTileGrid();
+    const int activeIdx = m_layerStack.getActiveIndex();
+    const bool alphaLocked = activeLayer->isAlphaLocked();
+
+    // Clip base para alpha lock por máscara de recorte
+    const document::Layer* clipBaseLayer = activeLayer->isClippingMask()
+        ? m_layerStack.getClipBaseLayer(activeIdx)
+        : nullptr;
+
+    m_scratchGrid.forEachTile([&](const canvas::TileIndex& idx, canvas::Tile& scratchTile) {
+        const canvas::PixelBuffer& scratchBuf = scratchTile.getBuffer();
+        const int tx = idx.x;
+        const int ty = idx.y;
+
+        // Grava undo ANTES de modificar o tile da camada real
+        canvas::Tile* layerTile = layerGrid.getTile(tx, ty);
+        if (layerTile) {
+            const auto& buf = layerTile->getBuffer();
+            m_undoManager.recordTileBefore(activeIdx, tx, ty, buf.getData(), buf.getSizeInBytes());
+        } else {
+            canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
+            m_undoManager.recordTileBefore(activeIdx, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
+        }
+
+        // Cria/obtém o tile destino na camada ativa
+        canvas::Tile* dstTile = layerGrid.getOrCreateTile(tx, ty);
+        if (!dstTile) return;
+        canvas::PixelBuffer& dstBuf = dstTile->getBuffer();
+
+        bool tileModified = false;
+        for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
+            const int globalY = ty * canvas::Tile::TILE_SIZE + py;
+            for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
+                const raster::ColorRGBA scratch = scratchBuf.getPixel(px, py);
+                if (scratch.a == 0) continue;
+
+                const int globalX = tx * canvas::Tile::TILE_SIZE + px;
+
+                // Clip mask: respeita o alpha da camada base
+                if (clipBaseLayer) {
+                    const int bTx = globalX / canvas::Tile::TILE_SIZE;
+                    const int bTy = globalY / canvas::Tile::TILE_SIZE;
+                    const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(
+                        clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
+                    if (!bTile) continue;
+                    const double baseA = static_cast<double>(
+                        bTile->getBuffer().getPixel(
+                            globalX % canvas::Tile::TILE_SIZE,
+                            globalY % canvas::Tile::TILE_SIZE).a) / 255.0;
+                    if (baseA <= 0.0) continue;
+                }
+
+                const raster::ColorRGBA dst = dstBuf.getPixel(px, py);
+
+                if (alphaLocked) {
+                    // Alpha locked: só modifica RGB onde já há tinta
+                    if (dst.a == 0) continue;
+                    const double brushOp = std::clamp(m_brushProfile.opacity, 0.0, 1.0);
+                    const double srcA    = (static_cast<double>(scratch.a) / 255.0) * brushOp;
+                    const double dstA    = static_cast<double>(dst.a)     / 255.0;
+                    const double invSrcA = 1.0 - srcA;
+                    const double denom   = srcA + dstA * invSrcA;
+                    if (denom <= 0.0) continue;
+                    dstBuf.setPixel(px, py, raster::ColorRGBA{
+                        static_cast<uint8_t>(std::clamp(
+                            (scratch.r * srcA + dst.r * dstA * invSrcA) / denom, 0.0, 255.0)),
+                        static_cast<uint8_t>(std::clamp(
+                            (scratch.g * srcA + dst.g * dstA * invSrcA) / denom, 0.0, 255.0)),
+                        static_cast<uint8_t>(std::clamp(
+                            (scratch.b * srcA + dst.b * dstA * invSrcA) / denom, 0.0, 255.0)),
+                        dst.a
+                    });
+                } else {
+                    // Normal "over" compositing: scratch sobre o conteúdo existente
+                    const double brushOp = std::clamp(m_brushProfile.opacity, 0.0, 1.0);
+                    const double srcA = (static_cast<double>(scratch.a) / 255.0) * brushOp;
+                    const double dstA = static_cast<double>(dst.a)     / 255.0;
+                    const double outA = srcA + dstA * (1.0 - srcA);
+                    if (outA <= 0.0) continue;
+                    dstBuf.setPixel(px, py, raster::ColorRGBA{
+                        static_cast<uint8_t>(std::clamp(
+                            (scratch.r * srcA + dst.r * dstA * (1.0 - srcA)) / outA, 0.0, 255.0)),
+                        static_cast<uint8_t>(std::clamp(
+                            (scratch.g * srcA + dst.g * dstA * (1.0 - srcA)) / outA, 0.0, 255.0)),
+                        static_cast<uint8_t>(std::clamp(
+                            (scratch.b * srcA + dst.b * dstA * (1.0 - srcA)) / outA, 0.0, 255.0)),
+                        static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
+                    });
+                }
+                tileModified = true;
+            }
+        }
+        if (tileModified) dstTile->setDirty(true);
+    });
+
+    m_scratchGrid.clearTiles();
 }
 
 void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab) {
@@ -494,24 +609,30 @@ void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const r
         startDab, endDab, m_brushProfile.spacingFactor
     );
 
-    auto& grid = activeLayer->getTileGrid();
+    auto& layerGrid  = activeLayer->getTileGrid();
     const int activeIdx = m_layerStack.getActiveIndex();
 
-    // Grava o estado 'beforeData' de todos os tiles afetados pelo segmento antes de desenhar
-    const int startTileX = static_cast<int>(std::floor((minX - padding) / canvas::Tile::TILE_SIZE));
-    const int endTileX   = static_cast<int>(std::floor((maxX + padding) / canvas::Tile::TILE_SIZE));
-    const int startTileY = static_cast<int>(std::floor((minY - padding) / canvas::Tile::TILE_SIZE));
-    const int endTileY   = static_cast<int>(std::floor((maxY + padding) / canvas::Tile::TILE_SIZE));
+    // ─── Decide o destino dos dabs: scratch (maioria dos motores) ou camada direta (Blur/Smudge)
+    const bool useScratch = m_hasScratch;
+    canvas::TileGrid& targetGrid = useScratch ? m_scratchGrid : layerGrid;
 
-    for (int ty = startTileY; ty <= endTileY; ++ty) {
-        for (int tx = startTileX; tx <= endTileX; ++tx) {
-            canvas::Tile* tile = grid.getTile(tx, ty);
-            if (tile) {
-                const auto& buf = tile->getBuffer();
-                m_undoManager.recordTileBefore(activeIdx, tx, ty, buf.getData(), buf.getSizeInBytes());
-            } else {
-                canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
-                m_undoManager.recordTileBefore(activeIdx, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
+    // Para motores sem scratch (Blur/Smudge), grava undo dos tiles antes de desenhar
+    if (!useScratch) {
+        const int startTileX = static_cast<int>(std::floor((minX - padding) / canvas::Tile::TILE_SIZE));
+        const int endTileX   = static_cast<int>(std::floor((maxX + padding) / canvas::Tile::TILE_SIZE));
+        const int startTileY = static_cast<int>(std::floor((minY - padding) / canvas::Tile::TILE_SIZE));
+        const int endTileY   = static_cast<int>(std::floor((maxY + padding) / canvas::Tile::TILE_SIZE));
+
+        for (int ty = startTileY; ty <= endTileY; ++ty) {
+            for (int tx = startTileX; tx <= endTileX; ++tx) {
+                canvas::Tile* tile = layerGrid.getTile(tx, ty);
+                if (tile) {
+                    const auto& buf = tile->getBuffer();
+                    m_undoManager.recordTileBefore(activeIdx, tx, ty, buf.getData(), buf.getSizeInBytes());
+                } else {
+                    canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
+                    m_undoManager.recordTileBefore(activeIdx, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
+                }
             }
         }
     }
@@ -530,14 +651,33 @@ void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const r
             }
 
             if (m_activeEngine) {
-                m_activeEngine->renderDab(renderDab, m_brushProfile, m_canvasTexture, grid, &m_outputBuffer, pCtx);
+                // Blur/Smudge recebem a camada real como targetGrid; os demais recebem o scratch.
+                // compositeBuffer (m_outputBuffer) é sempre passado para Blur/Smudge o usarem.
+                m_activeEngine->renderDab(renderDab, m_brushProfile, m_canvasTexture,
+                                          targetGrid, &m_outputBuffer, pCtx);
             } else {
-                raster::DabRenderer::renderDab(renderDab, m_brushProfile, m_canvasTexture, grid, pCtx);
+                raster::DabRenderer::renderDab(renderDab, m_brushProfile, m_canvasTexture,
+                                               targetGrid, pCtx);
             }
         }
     }
 
-    m_compositor.compositeRegion(m_layerStack.getAllLayersForComposition(), dirtyBounds, m_outputBuffer, m_canvasTexture.backgroundColor);
+    // ─── Composição para display em tempo real
+    if (useScratch) {
+        // Durante o traço com scratch: exibe [camada ativa existente] + [scratch overlay] + [outras camadas]
+        m_compositor.compositeRegionWithScratch(
+            m_layerStack.getAllLayersForComposition(), dirtyBounds,
+            m_outputBuffer, m_canvasTexture.backgroundColor,
+            m_scratchGrid, m_scratchLayerIndex,
+            m_scratchBlendMode, m_scratchOpacity
+        );
+    } else {
+        // Blur/Smudge: composição normal pois já escreveram direto na camada
+        m_compositor.compositeRegion(
+            m_layerStack.getAllLayersForComposition(), dirtyBounds,
+            m_outputBuffer, m_canvasTexture.backgroundColor
+        );
+    }
 }
 
 } // namespace aladyn::engine::boundary

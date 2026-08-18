@@ -40,6 +40,10 @@ void TileGrid::clearAll(raster::ColorRGBA color) {
     }
 }
 
+void TileGrid::clearTiles() {
+    m_tiles.clear();
+}
+
 void TileGrid::copyFrom(const TileGrid& src) {
     m_tiles.clear();
     for (const auto& [idx, tile] : src.m_tiles) {

@@ -26,9 +26,25 @@ public:
 
     Tile* getTile(int tileX, int tileY);
     Tile* getOrCreateTile(int tileX, int tileY);
-    
+
     void clearAll(raster::ColorRGBA color = {0, 0, 0, 0});
+    // Remove todos os tiles alocados (limpa o scratch sem tocar no layout)
+    void clearTiles();
     void copyFrom(const TileGrid& src);
+
+    // Itera sobre todos os tiles alocados (para commitScratch)
+    template<typename Fn>
+    void forEachTile(Fn&& fn) {
+        for (auto& [idx, tile] : m_tiles) {
+            if (tile) fn(idx, *tile);
+        }
+    }
+    template<typename Fn>
+    void forEachTile(Fn&& fn) const {
+        for (const auto& [idx, tile] : m_tiles) {
+            if (tile) fn(idx, *tile);
+        }
+    }
 
 private:
     int m_width{0};

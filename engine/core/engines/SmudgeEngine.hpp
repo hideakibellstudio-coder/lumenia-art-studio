@@ -38,6 +38,9 @@ public:
         return brush::EngineType::Smudge;
     }
 
+    // Smudge precisa ler/escrever direto na camada ativa para arrastar tinta — sem scratch.
+    [[nodiscard]] bool usesScratchLayer() const noexcept override { return false; }
+
     void onBeginStroke() noexcept override {
         m_hasCarriedColor = false;
         m_lastPosition    = {0.0, 0.0};

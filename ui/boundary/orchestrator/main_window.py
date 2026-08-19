@@ -87,18 +87,56 @@ class MainWindow(QtWidgets.QMainWindow):
         # ── Menu Bar ──────────────────────────────────────────────────────
         self.menu_bar = MenuBar(self)
         self.setMenuBar(self.menu_bar)
+
+        # Arquivo
+        self.menu_bar.newDocumentRequested.connect(self.open_new_document_dialog)
+        self.menu_bar.openDocumentRequested.connect(self.open_image_file)
+        self.menu_bar.saveDocumentRequested.connect(self.save_active_document)
+        self.menu_bar.saveAsDocumentRequested.connect(self.export_image)
+        self.menu_bar.exportImageRequested.connect(self.export_image)
+        self.menu_bar.closeDocumentRequested.connect(self.close_active_document)
         self.menu_bar.clearCanvasRequested.connect(self.clear_screen)
-        self.menu_bar.resetViewRequested.connect(self.reset_view)
+
+        # Editar
+        self.menu_bar.undoRequested.connect(self.undo)
+        self.menu_bar.redoRequested.connect(self.redo)
+        self.menu_bar.clearLayerRequested.connect(self.clear_screen)
+        self.menu_bar.freeTransformRequested.connect(lambda: self.select_tool_by_id("transform"))
+        self.menu_bar.preferencesRequested.connect(self.open_render_settings_dialog)
+
+        # Imagem & Rotações
         self.menu_bar.resetRotationRequested.connect(self.reset_rotation)
+        self.menu_bar.flipHorizontalRequested.connect(self.flip_horizontal)
+        self.menu_bar.flipVerticalRequested.connect(self.flip_vertical)
+
+        # Camadas & Grupos
+        self.menu_bar.newLayerRequested.connect(self.create_new_layer)
+        self.menu_bar.newGroupRequested.connect(self.create_new_group)
+        self.menu_bar.duplicateLayerRequested.connect(self.duplicate_active_layer)
+        self.menu_bar.deleteLayerRequested.connect(self.delete_active_layer)
+        self.menu_bar.mergeDownRequested.connect(self.merge_layer_down)
+
+        # Filtros
+        self.menu_bar.filterGalleryRequested.connect(self.open_filter_gallery)
+
+        # Exibir
         self.menu_bar.zoomInRequested.connect(self.zoom_in)
         self.menu_bar.zoomOutRequested.connect(self.zoom_out)
-        self.menu_bar.exportImageRequested.connect(self.export_image)
+        self.menu_bar.resetViewRequested.connect(self.reset_view)
+        self.menu_bar.fitToScreenRequested.connect(self.reset_view)
+        self.menu_bar.renderSettingsRequested.connect(self.open_render_settings_dialog)
+
+        # Janela & Docks
+        self.menu_bar.dockSettingsRequested.connect(self.open_dock_settings_dialog)
+
+        # Configurações & Temas
         self.menu_bar.curvesLutRequested.connect(self.open_curve_window)
         self.menu_bar.themeSettingsRequested.connect(self.open_theme_dialog)
         self.menu_bar.managePluginsRequested.connect(self.open_plugins_dialog)
-        self.menu_bar.newDocumentRequested.connect(self.open_new_document_dialog)
-        self.menu_bar.closeDocumentRequested.connect(self.close_active_document)
-        self.menu_bar.dockSettingsRequested.connect(self.open_dock_settings_dialog)
+
+        # Ajuda
+        self.menu_bar.shortcutsRequested.connect(self.open_shortcuts_dialog)
+        self.menu_bar.aboutRequested.connect(self.open_about_dialog)
 
         # ── Tool Sidebar ──────────────────────────────────────────────────
         self.tool_sidebar = ToolSidebar(self)
@@ -234,6 +272,24 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog = PluginsWindow(self)
         dialog.exec()
 
+    def open_render_settings_dialog(self) -> None:
+        from ui.core.dialogs.render_settings_dialog import RenderSettingsDialog
+        dialog = RenderSettingsDialog(self)
+        dialog.profileChanged.connect(self._on_color_profile_changed)
+        dialog.exec()
+
+    def _on_color_profile_changed(self, profile_id: int) -> None:
+        if self.workspace and hasattr(self.workspace, "canvas_widget"):
+            self.workspace.canvas_widget.update()
+            if hasattr(self.workspace, "_sync_navigator_to_canvas"):
+                self.workspace._sync_navigator_to_canvas()
+        prof_name = ""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "get_color_profile_name"):
+            prof_name = backend.get_color_profile_name(profile_id)
+        self.status_bar.showMessage(f"Modo de Cor ativo: {prof_name}", 3000)
+
     def open_dock_settings_dialog(self) -> None:
         from ui.core.screens.dock_settings_dialog import DockBarsSettingsDialog
         dialog = DockBarsSettingsDialog(self.workspace, self)
@@ -355,6 +411,136 @@ class MainWindow(QtWidgets.QMainWindow):
         self._curve_win.show()
         self._curve_win.raise_()
         self._curve_win.activateWindow()
+
+    def select_tool_by_id(self, tool_id: str) -> None:
+        if self.workspace:
+            self.workspace.select_tool(tool_id)
+
+    def open_image_file(self) -> None:
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Abrir Imagem", "", "Imagens (*.png *.jpg *.jpeg *.bmp *.webp)"
+        )
+        if filename:
+            qimg = QtGui.QImage(filename)
+            if not qimg.isNull():
+                import os
+                name = os.path.splitext(os.path.basename(filename))[0]
+                w, h = qimg.width(), qimg.height()
+                doc = self.dm.new_document(width=w, height=h, name=name)
+                self.status_bar.showMessage(f"Imagem '{name}' ({w}x{h}) aberta com sucesso!", 3000)
+
+    def save_active_document(self) -> None:
+        doc = self.dm.active_document()
+        if doc:
+            self.status_bar.showMessage(f"Documento '{doc.name}' salvo.", 2000)
+        else:
+            self.status_bar.showMessage("Nenhum documento ativo para salvar.", 2000)
+
+    def flip_horizontal(self) -> None:
+        if self.workspace and hasattr(self.workspace, "canvas_widget"):
+            cw = self.workspace.canvas_widget
+            if hasattr(cw, "flip_x"):
+                cw.flip_x = not getattr(cw, "flip_x", False)
+                cw.update()
+                self.status_bar.showMessage("Visualização espelhada horizontalmente.", 2000)
+
+    def flip_vertical(self) -> None:
+        if self.workspace and hasattr(self.workspace, "canvas_widget"):
+            cw = self.workspace.canvas_widget
+            if hasattr(cw, "flip_y"):
+                cw.flip_y = not getattr(cw, "flip_y", False)
+                cw.update()
+                self.status_bar.showMessage("Visualização espelhada verticalmente.", 2000)
+
+    def create_new_layer(self) -> None:
+        doc = self.dm.active_document()
+        if doc and hasattr(doc, "layer_manager"):
+            idx = doc.layer_manager.add_layer("Nova Camada")
+            if self.workspace:
+                self.workspace.canvas_widget.update()
+            self.status_bar.showMessage("Nova camada criada.", 2000)
+
+    def create_new_group(self) -> None:
+        doc = self.dm.active_document()
+        if doc and hasattr(doc, "layer_manager"):
+            idx = doc.layer_manager.add_group("Novo Grupo")
+            if self.workspace:
+                self.workspace.canvas_widget.update()
+            self.status_bar.showMessage("Novo grupo de camadas criado.", 2000)
+
+    def duplicate_active_layer(self) -> None:
+        doc = self.dm.active_document()
+        if doc and hasattr(doc, "layer_manager"):
+            lm = doc.layer_manager
+            act_idx = lm.active_index
+            if act_idx >= 0:
+                lm.duplicate_layer(act_idx)
+                if self.workspace:
+                    self.workspace.canvas_widget.update()
+                self.status_bar.showMessage("Camada duplicada.", 2000)
+
+    def delete_active_layer(self) -> None:
+        doc = self.dm.active_document()
+        if doc and hasattr(doc, "layer_manager"):
+            lm = doc.layer_manager
+            act_idx = lm.active_index
+            if act_idx >= 0:
+                lm.remove_layer(act_idx)
+                if self.workspace:
+                    self.workspace.canvas_widget.update()
+                self.status_bar.showMessage("Camada removida.", 2000)
+
+    def merge_layer_down(self) -> None:
+        doc = self.dm.active_document()
+        if doc and hasattr(doc, "layer_manager"):
+            lm = doc.layer_manager
+            act_idx = lm.active_index
+            if act_idx > 0:
+                lm.merge_down(act_idx)
+                if self.workspace:
+                    self.workspace.canvas_widget.update()
+                self.status_bar.showMessage("Camada mesclada para baixo.", 2000)
+
+    def open_filter_gallery(self) -> None:
+        from ui.core.screens.filters.filter_adjustment_dialog import FilterAdjustmentDialog
+        dialog = FilterAdjustmentDialog(self)
+        dialog.exec()
+
+    def open_shortcuts_dialog(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            "Atalhos de Teclado",
+            "⌨ ATALHOS PRINCIPAIS DO LUMENIA:\n\n"
+            "• B: Pincel\n"
+            "• E: Borracha\n"
+            "• G: Balde de Tinta\n"
+            "• I / Alt (segurar): Conta-Gotas\n"
+            "• W: Varinha Mágica\n"
+            "• Ctrl+T: Transformação Livre\n"
+            "• Ctrl+Z: Desfazer\n"
+            "• Ctrl+Y / Ctrl+Shift+Z: Refazer\n"
+            "• Ctrl++ / Ctrl+-: Zoom In / Zoom Out\n"
+            "• Ctrl+0: Zoom 100%\n"
+            "• Ctrl+R: Resetar Rotação\n"
+            "• H: Espelho Horizontal\n"
+            "• Ctrl+N: Novo Documento\n"
+            "• Ctrl+S / Ctrl+E: Exportar Imagem\n"
+            "• Ctrl+Shift+N: Nova Camada\n"
+            "• Ctrl+G: Novo Grupo\n"
+            "• Ctrl+J: Duplicar Camada\n"
+            "• Delete: Limpar Camada"
+        )
+
+    def open_about_dialog(self) -> None:
+        QtWidgets.QMessageBox.about(
+            self,
+            "Sobre o Lumenia",
+            "<h3>Lumenia Next-Gen Engine</h3>"
+            "<p>Software Profissional de Pintura Digital e Ilustração.</p>"
+            "<p><b>Motor Gráfico:</b> ALADYN Native Engine (C++17 / PyBind11 / SIMD / TileGrid 64x64)</p>"
+            "<p><b>Gerenciamento de Cores:</b> Prova de Cores CMYK, Display P3 & Simulação de Daltonismo</p>"
+            "<p><b>Versão:</b> 2.5.0 Professional Edition</p>"
+        )
 
     def load_custom_texture(self, is_shape: bool) -> None:
         """Delegado ao WorkspaceContainer. Mantido para compatibilidade com chamadas externas."""

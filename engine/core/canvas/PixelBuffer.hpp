@@ -31,6 +31,15 @@ public:
         std::memset(m_data.data(), 0, m_data.size());
     }
 
+    void resize(int width, int height, raster::ColorRGBA fillColor = {0, 0, 0, 0}) {
+        m_width = width;
+        m_height = height;
+        m_data.assign(static_cast<size_t>(width * height * 4), 0);
+        if (fillColor.r != 0 || fillColor.g != 0 || fillColor.b != 0 || fillColor.a != 0) {
+            fill(fillColor);
+        }
+    }
+
     [[nodiscard]] int getWidth() const noexcept { return m_width; }
     [[nodiscard]] int getHeight() const noexcept { return m_height; }
     [[nodiscard]] uint8_t* getData() noexcept { return m_data.data(); }

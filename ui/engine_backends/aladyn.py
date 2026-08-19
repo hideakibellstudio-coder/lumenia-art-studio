@@ -329,5 +329,40 @@ class AladynBackend(EngineBackend):
                 return QImage(memview, w, h, w * 4, QImage.Format_RGBA8888)
         return None
 
+    # ── Amostragem de Cores (Eyedropper) ─────────────────────────────────
+
+    def pick_color_merged(self, x: int, y: int, sample_radius: int = 0) -> tuple:
+        if self._facade and hasattr(self._facade, "pick_color_merged"):
+            return self._facade.pick_color_merged(int(x), int(y), int(sample_radius))
+        return (0, 0, 0, 0)
+
+    def pick_color_layer(self, layer_index: int, x: int, y: int, sample_radius: int = 0) -> tuple:
+        if self._facade and hasattr(self._facade, "pick_color_layer"):
+            return self._facade.pick_color_layer(int(layer_index), int(x), int(y), int(sample_radius))
+        return (0, 0, 0, 0)
+
+    # ── Gerenciamento de Perfis de Cor (Color Profiles) ───────────────────
+
+    def set_color_profile(self, profile_id: int) -> None:
+        if self._facade and hasattr(self._facade, "set_color_profile"):
+            self._facade.set_color_profile(int(profile_id))
+
+    def get_color_profile(self) -> int:
+        if self._facade and hasattr(self._facade, "get_color_profile"):
+            return self._facade.get_color_profile()
+        return 0
+
+    def get_color_profile_name(self, profile_id: int) -> str:
+        if self._facade and hasattr(self._facade, "get_color_profile_name"):
+            return self._facade.get_color_profile_name(int(profile_id))
+        return "Padrão (sRGB)"
+
+    def get_available_color_profiles(self) -> list[dict]:
+        if self._native and hasattr(self._native, "get_available_color_profiles"):
+            return self._native.get_available_color_profiles()
+        return [
+            {"id": 0, "name": "Padrão (sRGB)", "category": "Digital (RGB)", "description": "Espaço sRGB padrão"}
+        ]
+
     def dispatch(self, command: Any) -> None:
         pass

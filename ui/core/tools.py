@@ -15,7 +15,7 @@ TOOL_META: Dict[str, Dict[str, str]] = {
     "eraser": {"name": "Borracha", "icon": "eraser", "implemented": True},
     "smudge": {"name": "Smudge", "icon": "smudge", "implemented": False},
     "bucket": {"name": "Balde de Tinta", "icon": "bucket", "implemented": False},
-    "eyedrop": {"name": "Conta-Gotas", "icon": "eyedrop", "implemented": False},
+    "eyedrop": {"name": "Conta-Gotas", "icon": "eyedrop", "implemented": True},
     "wand": {"name": "Varinha Mágica", "icon": "wand", "implemented": False},
     "transform": {"name": "Transformar", "icon": "transform", "implemented": False},
     "rect_select": {"name": "Seleção Retangular", "icon": "rect_select", "implemented": False},

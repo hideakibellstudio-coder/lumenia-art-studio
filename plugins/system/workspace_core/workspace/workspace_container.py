@@ -129,11 +129,20 @@ class WorkspaceContainer(QtWidgets.QWidget):
 
         # ── Barra Flutuante (FloatingToolbar - Janela Nativa Qt.Tool) ───────
         from .floating_toolbar import FloatingToolbar
+        from .secondary_tool_bar import SecondaryToolBar
         from ui.core.screens.floating_toolbar_settings_dialog import load_floating_toolbar_settings
         self.floating_toolbar = FloatingToolbar(parent=self)
         self.floating_toolbar.drag_finished.connect(self._on_floating_toolbar_dropped)
         self.floating_toolbar.status_notification.connect(self._on_status_notification)
         QtCore.QTimer.singleShot(0, lambda: self.apply_floating_toolbar_settings(load_floating_toolbar_settings()))
+
+        # ── Barra Secundária Contextual de Ferramentas ───────────────────────
+        self.secondary_toolbar = SecondaryToolBar(parent=self)
+        self.secondary_toolbar.settingsChanged.connect(self._on_tool_settings_changed)
+
+        # ── Conexão do Sinal de Cor Capturada do Canvas (Conta-Gotas) ────────
+        if hasattr(self.canvas_widget, "colorPicked"):
+            self.canvas_widget.colorPicked.connect(self._on_canvas_color_picked)
 
         # ── Stroke Lock: suspende gavetas e pílulas durante pintura ────────
         if hasattr(self.canvas_widget, "strokeStarted"):
@@ -275,6 +284,28 @@ class WorkspaceContainer(QtWidgets.QWidget):
 
         self.floating_toolbar.move(gx, gy)
         self.floating_toolbar.raise_()
+
+        # Posiciona a barra de opções secundária se estiver visível
+        if hasattr(self, "secondary_toolbar") and self.secondary_toolbar.isVisible():
+            sec_w = self.secondary_toolbar.width()
+            sec_h = self.secondary_toolbar.height()
+            if state in ("snapped_bottom", "free"):
+                sec_gx = gx + (tb_w - sec_w) // 2
+                sec_gy = gy - sec_h - 4
+            elif state == "snapped_top":
+                sec_gx = gx + (tb_w - sec_w) // 2
+                sec_gy = gy + tb_h + 4
+            elif state == "snapped_left":
+                sec_gx = gx + tb_w + 4
+                sec_gy = gy + (tb_h - sec_h) // 2
+            elif state == "snapped_right":
+                sec_gx = gx - sec_w - 4
+                sec_gy = gy + (tb_h - sec_h) // 2
+            else:
+                sec_gx = gx
+                sec_gy = gy - sec_h - 4
+            self.secondary_toolbar.move(sec_gx, sec_gy)
+            self.secondary_toolbar.raise_()
 
     def _on_floating_toolbar_dropped(self, global_pos: QtCore.QPoint) -> None:
         """Calcula o encaixe magnético (threshold 50px) ao soltar a barra flutuante."""
@@ -466,13 +497,13 @@ class WorkspaceContainer(QtWidgets.QWidget):
         Registra e monta um painel na doca dinâmica especificada (left ou right).
         Delegado ao AdvancedDockSystem da doca correspondente.
         """
-        # Wiring automático baseado no tipo do widget
-        from plugins.ui.properties_plugin.dock import BrushDock, PropertiesDock
-
-        if isinstance(widget, BrushDock) and self._brush_dock is None:
-            self.connect_brush_dock(widget)
-        elif isinstance(widget, PropertiesDock) and self._properties_dock is None:
-            self.connect_properties_dock(widget)
+        # Wiring automático baseado nas capacidades do widget
+        if hasattr(widget, "preset_combo") or hasattr(widget, "size_slider") or widget.__class__.__name__ in ("BrushDock", "BrushSettingsPanel"):
+            if self._brush_dock is None:
+                self.connect_brush_dock(widget)
+        elif hasattr(widget, "layers") and hasattr(widget, "navigator"):
+            if self._properties_dock is None:
+                self.connect_properties_dock(widget)
         elif hasattr(widget, "camera_changed_by_user"):
             self._navigator_panel = widget
             widget.camera_changed_by_user.connect(self._set_camera_from_navigator)
@@ -482,10 +513,14 @@ class WorkspaceContainer(QtWidgets.QWidget):
             if self.active_document:
                 widget.set_has_document(True)
                 self._sync_navigator_to_canvas()
-        elif hasattr(widget, "set_layer_manager") and not isinstance(widget, PropertiesDock):
+        elif hasattr(widget, "set_layer_manager"):
             self._layers_panel = widget
             if self.active_document:
                 widget.set_layer_manager(self.active_document.layer_manager)
+        elif hasattr(widget, "color_wheel") or hasattr(widget, "set_color"):
+            self._color_panel = widget
+            if self.active_document and hasattr(widget, "set_color"):
+                widget.set_color(getattr(self, "_saved_color", QtGui.QColor(0, 0, 0)))
 
         dock_system = self.left_dock if area == "left" else self.right_dock
         dock_system.add_panel(panel_id, title, widget, icon_path)
@@ -610,7 +645,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
 
     def select_tool(self, tool: str) -> None:
         """
-        Alterna entre as ferramentas ativas (brush, eraser, etc.).
+        Alterna entre as ferramentas ativas (brush, eraser, eyedrop, etc.).
         Sincroniza bidirecionalmente a FloatingToolbar, o BrushDock e a ToolSidebar.
         """
         if getattr(self, "_is_selecting_tool", False):
@@ -621,6 +656,13 @@ class WorkspaceContainer(QtWidgets.QWidget):
             from .floating_toolbar import TOOL_META
 
             self._current_tool = tool
+            if hasattr(self, "canvas_widget"):
+                self.canvas_widget.active_tool = tool
+                if tool == "eyedrop":
+                    self.canvas_widget.setCursor(QtCore.Qt.CrossCursor)
+                else:
+                    self.canvas_widget.unsetCursor()
+
             if tool == "brush":
                 self._apply_brush_color(self._saved_color)
             elif tool == "eraser":
@@ -631,6 +673,10 @@ class WorkspaceContainer(QtWidgets.QWidget):
 
             if hasattr(self, "floating_toolbar") and self.floating_toolbar:
                 self.floating_toolbar.select_tool(tool, notify=False, animate=False)
+
+            if hasattr(self, "secondary_toolbar") and self.secondary_toolbar:
+                self.secondary_toolbar.set_tool(tool)
+                self.update_toolbar_position()
 
             win = self.window()
             if hasattr(win, "tool_sidebar") and win.tool_sidebar:
@@ -648,6 +694,22 @@ class WorkspaceContainer(QtWidgets.QWidget):
                 self._on_status_notification(f"Ferramenta ativa: {meta['name']}")
         finally:
             self._is_selecting_tool = False
+
+    def _on_canvas_color_picked(self, color: QtGui.QColor) -> None:
+        """Chamado quando o conta-gotas captura uma cor do canvas."""
+        self._saved_color = color
+        self._apply_brush_color(color)
+        if hasattr(self, "_brush_dock") and self._brush_dock:
+            self._brush_dock.set_color(color)
+        if hasattr(self, "_color_panel") and self._color_panel and hasattr(self._color_panel, "set_color"):
+            self._color_panel.set_color(color)
+        if hasattr(self, "secondary_toolbar") and self.secondary_toolbar:
+            self.secondary_toolbar.set_captured_color(color)
+
+    def _on_tool_settings_changed(self, tool_id: str, settings: dict) -> None:
+        """Chamado quando as configurações de uma ferramenta mudam na SecondaryToolBar ou no Dock."""
+        if tool_id == "eyedrop":
+            self.canvas_widget._eyedrop_settings.update(settings)
 
     def _sync_navigator_to_canvas(self) -> None:
         """Lê o estado atual da câmera do canvas e empurra para o navigator."""

@@ -3,6 +3,7 @@
 
 #include "../../../engine/boundary/public-api/PaintEngineFacade.hpp"
 #include "../../../engine/core/canvas/Tile.hpp"
+#include "../../../engine/core/color/ColorProfile.hpp"
 
 namespace py = pybind11;
 using namespace aladyn::engine;
@@ -70,6 +71,27 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .value("Difference",  document::LayerBlendMode::Difference)
         .value("Exclusion",   document::LayerBlendMode::Exclusion)
         .value("Add",         document::LayerBlendMode::Add)
+        .export_values();
+
+    // ─── COLOR PROFILE TYPE (PERFIS DE COR & PROVA DE CORES) ─────────────────
+    py::enum_<color::ColorProfileType>(m, "ColorProfileType")
+        .value("Default_sRGB",             color::ColorProfileType::Default_sRGB)
+        .value("Display_P3",               color::ColorProfileType::Display_P3)
+        .value("Generic_CMYK",             color::ColorProfileType::Generic_CMYK)
+        .value("US_SWOP_Web_Coated_v2",    color::ColorProfileType::US_SWOP_Web_Coated_v2)
+        .value("US_SWOP_Web_Coated_G3",    color::ColorProfileType::US_SWOP_Web_Coated_G3)
+        .value("US_SWOP_Web_Coated_G5",    color::ColorProfileType::US_SWOP_Web_Coated_G5)
+        .value("US_GRACOL_Coated_2006",    color::ColorProfileType::US_GRACOL_Coated_2006)
+        .value("US_SWOP_Web_Uncoated_v2",  color::ColorProfileType::US_SWOP_Web_Uncoated_v2)
+        .value("Europe_FOGRA39_Coated",    color::ColorProfileType::Europe_FOGRA39_Coated)
+        .value("Euroscale_Coated_v2",      color::ColorProfileType::Euroscale_Coated_v2)
+        .value("Euroscale_Uncoated_v2",    color::ColorProfileType::Euroscale_Uncoated_v2)
+        .value("Japan_Coated_2011",        color::ColorProfileType::Japan_Coated_2011)
+        .value("Generic_Grayscale",        color::ColorProfileType::Generic_Grayscale)
+        .value("Line_Art_HighContrast",    color::ColorProfileType::Line_Art_HighContrast)
+        .value("ColorBlindness_Protanopia",   color::ColorProfileType::ColorBlindness_Protanopia)
+        .value("ColorBlindness_Deuteranopia", color::ColorProfileType::ColorBlindness_Deuteranopia)
+        .value("ColorBlindness_Tritanopia",   color::ColorProfileType::ColorBlindness_Tritanopia)
         .export_values();
 
     py::class_<raster::ColorRGBA>(m, "ColorRGBA")
@@ -380,7 +402,36 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
             return py::bytes(reinterpret_cast<const char*>(out.data()), out.size());
         })
         .def("get_undo_memory_bytes", &boundary::PaintEngineFacade::getUndoMemoryBytes)
-        .def("set_max_undo_memory_mb", &boundary::PaintEngineFacade::setMaxUndoMemoryMB);
+        .def("set_max_undo_memory_mb", &boundary::PaintEngineFacade::setMaxUndoMemoryMB)
+        // Amostragem de Cores (Eyedropper)
+        .def("pick_color_merged", [](const boundary::PaintEngineFacade& self, int x, int y, int sampleRadius) {
+            auto arr = self.pickColorMerged(x, y, sampleRadius);
+            return py::make_tuple(arr[0], arr[1], arr[2], arr[3]);
+        }, py::arg("x"), py::arg("y"), py::arg("sample_radius") = 0)
+        .def("pick_color_layer", [](const boundary::PaintEngineFacade& self, int layerIndex, int x, int y, int sampleRadius) {
+            auto arr = self.pickColorLayer(layerIndex, x, y, sampleRadius);
+            return py::make_tuple(arr[0], arr[1], arr[2], arr[3]);
+        }, py::arg("layer_index"), py::arg("x"), py::arg("y"), py::arg("sample_radius") = 0)
+        // Gerenciamento de Perfis de Cor (Color Profiles & Soft-Proofing)
+        .def("set_color_profile", [](boundary::PaintEngineFacade& self, int profileId) {
+            self.setColorProfile(profileId);
+        })
+        .def("get_color_profile", &boundary::PaintEngineFacade::getColorProfile)
+        .def("get_color_profile_name", &boundary::PaintEngineFacade::getColorProfileName);
+
+    // ─── CATÁLOGO DE PERFIS DE COR DISPONÍVEIS ──────────────────────────────
+    m.def("get_available_color_profiles", []() {
+        py::list result;
+        for (const auto& p : color::ColorProfileManager::getAvailableProfiles()) {
+            py::dict item;
+            item["id"]          = static_cast<int>(p.type);
+            item["name"]        = p.name;
+            item["category"]    = p.category;
+            item["description"] = p.description;
+            result.append(item);
+        }
+        return result;
+    });
 
     // ─── RENDERIZADOR DE PREVIEW DO TRAÇO EM ALTA FIDELIDADE ─────────────────
     m.def("render_stroke_preview", [](const brush::BrushProfile& profile, int width, int height) -> py::bytes {

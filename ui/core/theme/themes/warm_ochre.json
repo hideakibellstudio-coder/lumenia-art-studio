@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "Warm Studio Ochre",
+        "author": "Lumenia Artists",
+        "type": "dark"
+    },
+    "colors": {
+        "BG_DARKEST": "#1c1917",
+        "BG_DARKER": "#292524",
+        "BG_DARK": "#36312e",
+        "BG_MID": "#44403c",
+        "BG_TERTIARY": "#57534e",
+        "BG_LIGHT": "#6a6560",
+        "BG_LIGHTER": "#78716c",
+        "BG_LIGHTEST": "#8c857f",
+        "FG_PRIMARY": "#f5f5f4",
+        "FG_SECONDARY": "#d6d3d1",
+        "FG_TERTIARY": "#a8a29e",
+        "FG_LINK": "#f59e0b",
+        "ACCENT": "#f59e0b",
+        "ACCENT_HOVER": "#fbbf24",
+        "ACCENT_MUTED": "rgba(245, 158, 11, 0.18)",
+        "DANGER": "#ef4444",
+        "DANGER_HOVER": "#f87171",
+        "SUCCESS": "#22c55e",
+        "WARNING": "#f59e0b",
+        "BORDER": "#44403c",
+        "BORDER_LIGHT": "#57534e",
+        "SHADOW": "rgba(0, 0, 0, 0.5)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

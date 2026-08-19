@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "Paper White Studio",
+        "author": "Lumenia Light",
+        "type": "light"
+    },
+    "colors": {
+        "BG_DARKEST": "#ffffff",
+        "BG_DARKER": "#f8fafc",
+        "BG_DARK": "#f1f5f9",
+        "BG_MID": "#e2e8f0",
+        "BG_TERTIARY": "#cbd5e1",
+        "BG_LIGHT": "#94a3b8",
+        "BG_LIGHTER": "#64748b",
+        "BG_LIGHTEST": "#475569",
+        "FG_PRIMARY": "#0f172a",
+        "FG_SECONDARY": "#334155",
+        "FG_TERTIARY": "#64748b",
+        "FG_LINK": "#2563eb",
+        "ACCENT": "#2563eb",
+        "ACCENT_HOVER": "#1d4ed8",
+        "ACCENT_MUTED": "rgba(37, 99, 235, 0.12)",
+        "DANGER": "#dc2626",
+        "DANGER_HOVER": "#b91c1c",
+        "SUCCESS": "#16a34a",
+        "WARNING": "#d97706",
+        "BORDER": "#e2e8f0",
+        "BORDER_LIGHT": "#cbd5e1",
+        "SHADOW": "rgba(0, 0, 0, 0.08)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

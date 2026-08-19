@@ -24,6 +24,7 @@ cpp_sources = [
     "engine/core/engines/SmudgeEngine.cpp",
     "engine/core/engines/WatercolorEngine.cpp",
     "engine/core/engines/OilImpastoEngine.cpp",
+    "engine/core/color/ColorProfile.cpp",
     "engine/boundary/public-api/PaintEngineFacade.cpp",
     "bridge/core/bindings/engine_bindings.cpp",
 ]

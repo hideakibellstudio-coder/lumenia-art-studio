@@ -16,6 +16,7 @@
 #include "../../core/document/Compositor.hpp"
 #include "../../core/texture/ProceduralTextures.hpp"
 #include "../../core/engines/IBrushEngine.hpp"
+#include "../../core/color/ColorProfile.hpp"
 #include <vector>
 #include <memory>
 
@@ -107,9 +108,18 @@ public:
     [[nodiscard]] int getWidth() const noexcept { return m_width; }
     [[nodiscard]] int getHeight() const noexcept { return m_height; }
 
-    [[nodiscard]] uint8_t* getRawPixelData() noexcept { return m_outputBuffer.getData(); }
-    [[nodiscard]] const uint8_t* getRawPixelData() const noexcept { return m_outputBuffer.getData(); }
-    [[nodiscard]] size_t getPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
+    [[nodiscard]] uint8_t* getRawPixelData() noexcept;
+    [[nodiscard]] const uint8_t* getRawPixelData() const noexcept;
+    [[nodiscard]] size_t getPixelDataSize() const noexcept;
+
+    // ─── GERENCIAMENTO DE PERFIS DE COR & PROVA DE CORES (SOFT-PROOFING) ────
+    void setColorProfile(int profileId);
+    [[nodiscard]] int getColorProfile() const noexcept;
+    [[nodiscard]] std::string getColorProfileName(int profileId) const;
+
+    // ─── CONTA-GOTAS & AMOSTRAGEM DE COR (EYEDROPPER) ──────────────────────
+    [[nodiscard]] std::array<uint8_t, 4> pickColorMerged(int x, int y, int sampleRadius = 0) const;
+    [[nodiscard]] std::array<uint8_t, 4> pickColorLayer(int layerIndex, int x, int y, int sampleRadius = 0) const;
 
     // ─── RENDERIZADOR DE PREVIEW DO TRAÇO EM ALTA FIDELIDADE ─────────────────
     static std::vector<uint8_t> renderStrokePreview(
@@ -140,6 +150,8 @@ private:
     document::LayerStack m_layerStack;
     document::Compositor m_compositor;
     canvas::PixelBuffer  m_outputBuffer;
+    mutable canvas::PixelBuffer m_displayBuffer;
+    color::ColorProfileType m_colorProfile{color::ColorProfileType::Default_sRGB};
     canvas::TileUndoManager m_undoManager;
 
     // ─── SCRATCH LAYER (wet layer) ─────────────────────────────────────────

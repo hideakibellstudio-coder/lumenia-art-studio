@@ -115,6 +115,12 @@ class ThemeManager(QtCore.QObject):
     def current_theme(self) -> str:
         return self._current_theme
 
+    @property
+    def is_dark(self) -> bool:
+        """Retorna True se o tema atual for dark (padrão)."""
+        theme_info = self._themes.get(self._current_theme, {})
+        return theme_info.get("metadata", {}).get("type", "dark") == "dark"
+
     def set_theme(self, theme_name: str):
         self.apply_theme(theme_name)
 

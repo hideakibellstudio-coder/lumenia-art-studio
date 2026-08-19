@@ -8,10 +8,11 @@ from ui.core.engine.backend import PointerEvent
 
 
 class CanvasWidget(QtWidgets.QWidget):
-    zoomChanged = QtCore.Signal(float)
-    cameraChanged = QtCore.Signal(float, float, float, float, float, float)  # zoom, pan_x, pan_y, rotation, view_w, view_h
-    strokeStarted = QtCore.Signal()
+    zoomChanged    = QtCore.Signal(float)
+    cameraChanged  = QtCore.Signal(float, float, float, float, float, float)  # zoom, pan_x, pan_y, rotation, view_w, view_h
+    strokeStarted  = QtCore.Signal()
     strokeFinished = QtCore.Signal()
+    colorPicked    = QtCore.Signal(QtGui.QColor)  # Emitido ao capturar cor com o conta-gotas
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -31,11 +32,24 @@ class CanvasWidget(QtWidgets.QWidget):
         self.bridge_client = BridgeClient.instance()
         self.dispatcher = EngineDispatcher.instance()
 
-        # Drawing state
+        # Drawing & Tools state
+        self.active_tool = "brush"
         self.drawing = False
         self.last_point = None  # (x, y, pressure) in canvas space
         self.brush_size = 60.0   # Matches the default slider size
         self.manual_pressure = 0.50
+
+        # Conta-Gotas & Lupa Dinâmica (Color Loupe 4x HUD)
+        self._eyedropper_active: bool = False
+        self._eyedropper_pos: QtCore.QPointF = QtCore.QPointF()
+        self._eyedrop_old_color: QtGui.QColor = QtGui.QColor(0, 0, 0)
+        self._eyedrop_current_color: QtGui.QColor = QtGui.QColor(0, 0, 0)
+        self._eyedrop_settings: dict = {
+            "sample_size": "1x1 Ponto Único",
+            "sample_radius": 0,
+            "sample_all": True,
+            "show_loupe": True,
+        }
 
         # Canvas dimensions
         self.canvas_w = 1920
@@ -188,7 +202,130 @@ class CanvasWidget(QtWidgets.QWidget):
             painter.drawRect(canvas_rect)
 
         painter.restore()
+
+        # 7. Renderização da Lupa Dinâmica do Conta-Gotas (Color Loupe 4x HUD)
+        if getattr(self, "_eyedropper_active", False) and hasattr(self, "_eyedropper_pos"):
+            if self._eyedrop_settings.get("show_loupe", True):
+                self._render_color_loupe(painter, self._eyedropper_pos)
+
         painter.end()
+
+    def _render_color_loupe(self, painter: QtGui.QPainter, screen_pos: QtCore.QPointF):
+        """Renderiza a Lupa Dinâmica (Color Loupe 4x HUD) com zoom dos pixels, mira e anel bipartido."""
+        cx = screen_pos.x()
+        cy = screen_pos.y() - 55.0  # Eleva a lupa acima do cursor / caneta
+
+        r_outer = 48.0
+        r_inner = 35.0
+
+        # Mantém a lupa 100% visível na janela
+        cx = max(r_outer + 8, min(float(self.width()) - r_outer - 8, cx))
+        cy = max(r_outer + 8, min(float(self.height()) - r_outer - 35, cy))
+
+        # 1. Sombra suave
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtGui.QColor(0, 0, 0, 80))
+        painter.drawEllipse(QtCore.QPointF(cx, cy + 4), r_outer + 2, r_outer + 2)
+
+        # 2. Miniatura ampliada do canvas sob a retícula (Zoom 4x)
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        qimg = backend.get_qimage() if backend and hasattr(backend, "get_qimage") else None
+
+        painter.save()
+        clip_path = QtGui.QPainterPath()
+        clip_path.addEllipse(QtCore.QPointF(cx, cy), r_inner, r_inner)
+        painter.setClipPath(clip_path)
+
+        painter.fillRect(QtCore.QRectF(cx - r_inner, cy - r_inner, r_inner * 2, r_inner * 2), QtGui.QColor(30, 30, 30))
+
+        if qimg and not qimg.isNull():
+            world_evt = self.to_canvas(screen_pos.x(), screen_pos.y(), 1.0, 0.0)
+            wx, wy = int(world_evt.x), int(world_evt.y)
+
+            src_size = 18
+            src_x = wx - src_size // 2
+            src_y = wy - src_size // 2
+            src_rect = QtCore.QRect(src_x, src_y, src_size, src_size)
+            target_rect = QtCore.QRectF(cx - r_inner, cy - r_inner, r_inner * 2, r_inner * 2)
+
+            cropped = qimg.copy(src_rect)
+            if not cropped.isNull():
+                painter.drawImage(target_rect, cropped)
+
+        # 3. Retículo de Mira Central
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 240), 1.5))
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.drawRect(QtCore.QRectF(cx - 3, cy - 3, 6, 6))
+        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 180), 1.0))
+        painter.drawRect(QtCore.QRectF(cx - 4, cy - 4, 8, 8))
+
+        painter.restore()
+
+        # 4. Anel Bipartido de Cores (Topo: Nova Cor | Base: Cor Anterior)
+        cur_color = getattr(self, "_eyedrop_current_color", QtGui.QColor(0, 0, 0))
+        old_color = getattr(self, "_eyedrop_old_color", QtGui.QColor(255, 255, 255))
+
+        ring_thickness = r_outer - r_inner
+        ring_rect = QtCore.QRectF(
+            cx - r_outer + ring_thickness / 2, cy - r_outer + ring_thickness / 2,
+            (r_outer - ring_thickness / 2) * 2, (r_outer - ring_thickness / 2) * 2
+        )
+
+        pen_cur = QtGui.QPen(cur_color, ring_thickness)
+        pen_cur.setCapStyle(QtCore.Qt.FlatCap)
+        painter.setPen(pen_cur)
+        painter.drawArc(ring_rect, 0 * 16, 180 * 16)
+
+        pen_old = QtGui.QPen(old_color, ring_thickness)
+        pen_old.setCapStyle(QtCore.Qt.FlatCap)
+        painter.setPen(pen_old)
+        painter.drawArc(ring_rect, 180 * 16, 180 * 16)
+
+        # Borda externa & divisores
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 140), 1.0))
+        painter.drawEllipse(QtCore.QPointF(cx, cy), r_outer, r_outer)
+        painter.drawEllipse(QtCore.QPointF(cx, cy), r_inner, r_inner)
+        painter.drawLine(QtCore.QPointF(cx - r_outer, cy), QtCore.QPointF(cx - r_inner, cy))
+        painter.drawLine(QtCore.QPointF(cx + r_inner, cy), QtCore.QPointF(cx + r_outer, cy))
+
+        # 5. Badge com Código HEX
+        badge_w, badge_h = 74.0, 18.0
+        badge_rect = QtCore.QRectF(cx - badge_w / 2, cy + r_outer + 4, badge_w, badge_h)
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtGui.QColor(15, 23, 42, 220))
+        painter.drawRoundedRect(badge_rect, 4, 4)
+
+        painter.setPen(QtGui.QColor(255, 255, 255))
+        fnt = QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold)
+        painter.setFont(fnt)
+        painter.drawText(badge_rect, QtCore.Qt.AlignCenter, cur_color.name().upper())
+
+    def _do_eyedrop_sample(self, screen_x: float, screen_y: float) -> QtGui.QColor:
+        """Executa a amostragem de cor nativa com suporte a média de área e emite o sinal."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if not backend:
+            return QtGui.QColor(0, 0, 0)
+
+        world_evt = self.to_canvas(screen_x, screen_y, 1.0, 0.0)
+        wx, wy = int(world_evt.x), int(world_evt.y)
+
+        radius = self._eyedrop_settings.get("sample_radius", 0)
+        sample_all = self._eyedrop_settings.get("sample_all", True)
+
+        if sample_all and hasattr(backend, "pick_color_merged"):
+            res = backend.pick_color_merged(wx, wy, radius)
+        elif hasattr(backend, "pick_color_layer"):
+            res = backend.pick_color_layer(0, wx, wy, radius)
+        else:
+            res = (0, 0, 0, 255)
+
+        r, g, b, a = res[0], res[1], res[2], res[3]
+        col = QtGui.QColor(r, g, b, a)
+        self._eyedrop_current_color = col
+        self.colorPicked.emit(col)
+        return col
 
     def get_canvas_image(self) -> QtGui.QImage | None:
         """Retorna uma cópia do QImage do canvas renderizado pelo motor."""
@@ -270,9 +407,20 @@ class CanvasWidget(QtWidgets.QWidget):
         if event.source() != QtCore.Qt.MouseEventSource.MouseEventNotSynthesized:
             event.ignore()
             return
+
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+
+        # 1. Ativação do Conta-Gotas (Ferramenta eyedrop ou Atalho Alt segurado)
+        if event.button() == QtCore.Qt.LeftButton and (self.active_tool == "eyedrop" or (modifiers & QtCore.Qt.AltModifier)):
+            self._eyedropper_active = True
+            self._eyedropper_pos = event.position()
+            self._eyedrop_old_color = getattr(self, "_eyedrop_current_color", QtGui.QColor(0, 0, 0))
+            self._do_eyedrop_sample(event.position().x(), event.position().y())
+            self.update()
+            return
+
         if event.button() == QtCore.Qt.LeftButton:
-            modifiers = QtWidgets.QApplication.keyboardModifiers()
-            if modifiers in (QtCore.Qt.ShiftModifier, QtCore.Qt.AltModifier):
+            if modifiers & QtCore.Qt.ShiftModifier:
                 self.is_panning = True
                 self.last_mouse_pos = event.position()
             else:
@@ -285,6 +433,14 @@ class CanvasWidget(QtWidgets.QWidget):
         if event.source() != QtCore.Qt.MouseEventSource.MouseEventNotSynthesized:
             event.ignore()
             return
+
+        # Arraste com Conta-Gotas ativo
+        if self._eyedropper_active:
+            self._eyedropper_pos = event.position()
+            self._do_eyedrop_sample(event.position().x(), event.position().y())
+            self.update()
+            return
+
         if self.is_panning:
             delta = event.position() - self.last_mouse_pos
             self.pan_x += delta.x()
@@ -301,6 +457,12 @@ class CanvasWidget(QtWidgets.QWidget):
         if event.source() != QtCore.Qt.MouseEventSource.MouseEventNotSynthesized:
             event.ignore()
             return
+
+        if self._eyedropper_active and event.button() == QtCore.Qt.LeftButton:
+            self._eyedropper_active = False
+            self.update()
+            return
+
         if event.button() == QtCore.Qt.LeftButton and self.drawing:
             self.end_stroke(event.position().x(), event.position().y())
         elif event.button() in (QtCore.Qt.MiddleButton, QtCore.Qt.LeftButton):

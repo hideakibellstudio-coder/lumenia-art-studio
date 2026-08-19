@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "OLED Infinite Dark",
+        "author": "Lumenia Core",
+        "type": "dark"
+    },
+    "colors": {
+        "BG_DARKEST": "#000000",
+        "BG_DARKER": "#0a0a0a",
+        "BG_DARK": "#121212",
+        "BG_MID": "#181818",
+        "BG_TERTIARY": "#222222",
+        "BG_LIGHT": "#2a2a2a",
+        "BG_LIGHTER": "#333333",
+        "BG_LIGHTEST": "#3f3f3f",
+        "FG_PRIMARY": "#ffffff",
+        "FG_SECONDARY": "#a0a0a0",
+        "FG_TERTIARY": "#707070",
+        "FG_LINK": "#ff5252",
+        "ACCENT": "#ff5252",
+        "ACCENT_HOVER": "#ff7979",
+        "ACCENT_MUTED": "rgba(255, 82, 82, 0.15)",
+        "DANGER": "#ff4444",
+        "DANGER_HOVER": "#ff6666",
+        "SUCCESS": "#00e676",
+        "WARNING": "#ffab00",
+        "BORDER": "#222222",
+        "BORDER_LIGHT": "#333333",
+        "SHADOW": "rgba(0, 0, 0, 0.8)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

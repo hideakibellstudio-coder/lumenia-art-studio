@@ -4,6 +4,6 @@
     "BrushPlugin": true,
     "NavigatorPlugin": true,
     "LayersPlugin": true,
-    "RainbowDynamics": false,
-    "TelemetryPlugin": true
+    "TelemetryPlugin": true,
+    "RainbowDynamics": false
 }

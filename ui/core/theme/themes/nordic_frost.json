@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "name": "Nordic Frost",
+        "author": "Nord Community",
+        "type": "dark"
+    },
+    "colors": {
+        "BG_DARKEST": "#242933",
+        "BG_DARKER": "#2e3440",
+        "BG_DARK": "#3b4252",
+        "BG_MID": "#434c5e",
+        "BG_TERTIARY": "#4c566a",
+        "BG_LIGHT": "#5a657d",
+        "BG_LIGHTER": "#687591",
+        "BG_LIGHTEST": "#7685a4",
+        "FG_PRIMARY": "#eceff4",
+        "FG_SECONDARY": "#e5e9f0",
+        "FG_TERTIARY": "#d8dee9",
+        "FG_LINK": "#88c0d0",
+        "ACCENT": "#88c0d0",
+        "ACCENT_HOVER": "#81a1c1",
+        "ACCENT_MUTED": "rgba(136, 192, 208, 0.18)",
+        "DANGER": "#bf616a",
+        "DANGER_HOVER": "#d08770",
+        "SUCCESS": "#a3be8c",
+        "WARNING": "#ebcb8b",
+        "BORDER": "#434c5e",
+        "BORDER_LIGHT": "#4c566a",
+        "SHADOW": "rgba(0, 0, 0, 0.4)",
+        "TRANSPARENT": "transparent"
+    },
+    "metrics": {
+        "RADIUS_SMALL": "4px",
+        "RADIUS_MEDIUM": "6px",
+        "RADIUS_LARGE": "8px",
+        "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
+    }
+}

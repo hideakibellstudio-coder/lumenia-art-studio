@@ -3,6 +3,7 @@
 #include "../../core/raster/DabInterpolator.hpp"
 #include "../../core/raster/DabRenderer.hpp"
 #include "../../core/raster/PixelContext.hpp"
+#include "../../core/color/ColorProfile.hpp"
 #include "../../core/engines/PencilEngine.hpp"
 #include "../../core/engines/InkerEngine.hpp"
 #include "../../core/engines/EraserEngine.hpp"
@@ -23,6 +24,7 @@ PaintEngineFacade::PaintEngineFacade(int width, int height)
       m_layerStack(width, height),
       m_compositor(width, height),
       m_outputBuffer(width, height, {255, 255, 255, 255}),
+      m_displayBuffer(width, height, {255, 255, 255, 255}),
       m_scratchGrid(width, height) {
 
     initEngine(brush::EngineType::Brush);
@@ -285,9 +287,163 @@ void PaintEngineFacade::resizeCanvas(int width, int height) {
     m_width = width;
     m_height = height;
     m_outputBuffer = canvas::PixelBuffer(width, height, m_canvasTexture.backgroundColor);
+    m_displayBuffer = canvas::PixelBuffer(width, height, m_canvasTexture.backgroundColor);
     m_layerStack.resize(width, height);
     m_compositor = document::Compositor(width, height);
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+}
+
+uint8_t* PaintEngineFacade::getRawPixelData() noexcept {
+    if (m_colorProfile == color::ColorProfileType::Default_sRGB) {
+        return m_outputBuffer.getData();
+    }
+    if (m_displayBuffer.getWidth() != m_width || m_displayBuffer.getHeight() != m_height) {
+        m_displayBuffer.resize(m_width, m_height);
+    }
+    color::ColorProfileManager::transformBuffer(
+        m_outputBuffer.getData(),
+        m_displayBuffer.getData(),
+        m_width * m_height,
+        m_colorProfile
+    );
+    return m_displayBuffer.getData();
+}
+
+const uint8_t* PaintEngineFacade::getRawPixelData() const noexcept {
+    if (m_colorProfile == color::ColorProfileType::Default_sRGB) {
+        return m_outputBuffer.getData();
+    }
+    if (m_displayBuffer.getWidth() != m_width || m_displayBuffer.getHeight() != m_height) {
+        m_displayBuffer.resize(m_width, m_height);
+    }
+    color::ColorProfileManager::transformBuffer(
+        m_outputBuffer.getData(),
+        m_displayBuffer.getData(),
+        m_width * m_height,
+        m_colorProfile
+    );
+    return m_displayBuffer.getData();
+}
+
+size_t PaintEngineFacade::getPixelDataSize() const noexcept {
+    return m_outputBuffer.getSizeInBytes();
+}
+
+void PaintEngineFacade::setColorProfile(int profileId) {
+    if (color::ColorProfileManager::isProfileValid(profileId)) {
+        m_colorProfile = static_cast<color::ColorProfileType>(profileId);
+    }
+}
+
+int PaintEngineFacade::getColorProfile() const noexcept {
+    return static_cast<int>(m_colorProfile);
+}
+
+std::string PaintEngineFacade::getColorProfileName(int profileId) const {
+    return color::ColorProfileManager::getProfileName(static_cast<color::ColorProfileType>(profileId));
+}
+
+std::array<uint8_t, 4> PaintEngineFacade::pickColorMerged(int x, int y, int sampleRadius) const {
+    if (m_width <= 0 || m_height <= 0) {
+        return {0, 0, 0, 0};
+    }
+    
+    if (sampleRadius <= 0) {
+        int cx = std::clamp(x, 0, m_width - 1);
+        int cy = std::clamp(y, 0, m_height - 1);
+        auto col = m_outputBuffer.getPixel(cx, cy);
+        return {col.r, col.g, col.b, col.a};
+    }
+
+    uint64_t sumR = 0, sumG = 0, sumB = 0, sumA = 0;
+    uint32_t count = 0;
+
+    int minX = std::max(0, x - sampleRadius);
+    int maxX = std::min(m_width - 1, x + sampleRadius);
+    int minY = std::max(0, y - sampleRadius);
+    int maxY = std::min(m_height - 1, y + sampleRadius);
+
+    for (int py = minY; py <= maxY; ++py) {
+        for (int px = minX; px <= maxX; ++px) {
+            auto col = m_outputBuffer.getPixel(px, py);
+            sumR += col.r;
+            sumG += col.g;
+            sumB += col.b;
+            sumA += col.a;
+            ++count;
+        }
+    }
+
+    if (count == 0) return {0, 0, 0, 0};
+
+    return {
+        static_cast<uint8_t>(sumR / count),
+        static_cast<uint8_t>(sumG / count),
+        static_cast<uint8_t>(sumB / count),
+        static_cast<uint8_t>(sumA / count)
+    };
+}
+
+std::array<uint8_t, 4> PaintEngineFacade::pickColorLayer(int layerIndex, int x, int y, int sampleRadius) const {
+    if (m_width <= 0 || m_height <= 0) {
+        return {0, 0, 0, 0};
+    }
+    
+    const auto* layer = m_layerStack.getDrawingLayer(layerIndex);
+    if (!layer) {
+        return {0, 0, 0, 0};
+    }
+
+    const auto& grid = layer->getTileGrid();
+
+    auto sampleSingle = [&grid](int px, int py) -> raster::ColorRGBA {
+        int tx = px / canvas::Tile::TILE_SIZE;
+        int ty = py / canvas::Tile::TILE_SIZE;
+        int lx = px % canvas::Tile::TILE_SIZE;
+        int ly = py % canvas::Tile::TILE_SIZE;
+        if (lx < 0) lx += canvas::Tile::TILE_SIZE;
+        if (ly < 0) ly += canvas::Tile::TILE_SIZE;
+
+        const auto* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
+        if (!tile) return {0, 0, 0, 0};
+        const uint8_t* ptr = tile->getBuffer().getData() + (ly * canvas::Tile::TILE_SIZE + lx) * 4;
+        return {ptr[0], ptr[1], ptr[2], ptr[3]};
+    };
+
+    if (sampleRadius <= 0) {
+        int cx = std::clamp(x, 0, m_width - 1);
+        int cy = std::clamp(y, 0, m_height - 1);
+        auto col = sampleSingle(cx, cy);
+        return {col.r, col.g, col.b, col.a};
+    }
+
+    uint64_t sumR = 0, sumG = 0, sumB = 0, sumA = 0;
+    uint32_t count = 0;
+
+    int minX = std::max(0, x - sampleRadius);
+    int maxX = std::min(m_width - 1, x + sampleRadius);
+    int minY = std::max(0, y - sampleRadius);
+    int maxY = std::min(m_height - 1, y + sampleRadius);
+
+    for (int py = minY; py <= maxY; ++py) {
+        for (int px = minX; px <= maxX; ++px) {
+            auto col = sampleSingle(px, py);
+            sumR += col.r;
+            sumG += col.g;
+            sumB += col.b;
+            sumA += col.a;
+            ++count;
+        }
+    }
+
+    if (count == 0) return {0, 0, 0, 0};
+
+    return {
+        static_cast<uint8_t>(sumR / count),
+        static_cast<uint8_t>(sumG / count),
+        static_cast<uint8_t>(sumB / count),
+        static_cast<uint8_t>(sumA / count)
+    };
 }
 
 void PaintEngineFacade::clearCanvas() {

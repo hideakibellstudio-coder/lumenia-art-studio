@@ -63,14 +63,14 @@ class BrushSettingsPanel(QtWidgets.QWidget):
 
     def setup_ui(self) -> None:
         main_layout = QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(6, 6, 6, 6)
+        main_layout.setContentsMargins(4, 4, 4, 4)
         main_layout.setSpacing(0)
 
         # Content Widget
         content_widget = QtWidgets.QWidget()
         settings_layout = QtWidgets.QHBoxLayout(content_widget)
         settings_layout.setContentsMargins(0, 0, 0, 0)
-        settings_layout.setSpacing(6)
+        settings_layout.setSpacing(4)
 
         # Tool Grid Column (Coluna Vertical Única com 10 Ferramentas)
         settings_layout.addWidget(self._make_tool_column())
@@ -81,10 +81,23 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self.vline.setObjectName("DockVLine")
         settings_layout.addWidget(self.vline)
 
-        # Quick Sliders & Preview Column
+        from ui.core.widgets.tool_options_widgets import (
+            EyedropOptionsWidget, BucketOptionsWidget, WandOptionsWidget,
+            TransformOptionsWidget, SelectionOptionsWidget
+        )
+
+        # Quick Sliders & Preview Column (Stacked por Ferramenta)
         props_col = QtWidgets.QWidget()
         props_col.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
-        props_layout = QtWidgets.QVBoxLayout(props_col)
+        col_layout = QtWidgets.QVBoxLayout(props_col)
+        col_layout.setContentsMargins(0, 0, 0, 0)
+        col_layout.setSpacing(0)
+
+        self.stacked_tool_props = QtWidgets.QStackedWidget(props_col)
+
+        # ── 1. Página de Pincéis & Parâmetros Rápidos ────────────────────────
+        self.brush_props_widget = QtWidgets.QWidget()
+        props_layout = QtWidgets.QVBoxLayout(self.brush_props_widget)
         props_layout.setContentsMargins(0, 0, 0, 0)
         props_layout.setSpacing(5)
 
@@ -187,7 +200,25 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self._quick_sliders.append(self.min_density_slider)
 
         props_layout.addStretch()
+        self.stacked_tool_props.addWidget(self.brush_props_widget)
 
+        # ── 2. Páginas de Opções de Ferramentas Específicas ─────────────────
+        self.eyedrop_options_widget = EyedropOptionsWidget(self)
+        self.stacked_tool_props.addWidget(self.eyedrop_options_widget)
+
+        self.bucket_options_widget = BucketOptionsWidget(self)
+        self.stacked_tool_props.addWidget(self.bucket_options_widget)
+
+        self.wand_options_widget = WandOptionsWidget(self)
+        self.stacked_tool_props.addWidget(self.wand_options_widget)
+
+        self.transform_options_widget = TransformOptionsWidget(self)
+        self.stacked_tool_props.addWidget(self.transform_options_widget)
+
+        self.selection_options_widget = SelectionOptionsWidget(self)
+        self.stacked_tool_props.addWidget(self.selection_options_widget)
+
+        col_layout.addWidget(self.stacked_tool_props)
         settings_layout.addWidget(props_col, 1)
 
         # Card Box Wrapper
@@ -276,11 +307,11 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     def _make_tool_column(self) -> QtWidgets.QWidget:
         self.tool_col_box = QtWidgets.QFrame()
         self.tool_col_box.setObjectName("ToolColBox")
-        self.tool_col_box.setFixedWidth(40)
+        self.tool_col_box.setFixedWidth(34)
 
         layout = QtWidgets.QVBoxLayout(self.tool_col_box)
-        layout.setContentsMargins(3, 4, 3, 4)
-        layout.setSpacing(3)
+        layout.setContentsMargins(2, 3, 2, 3)
+        layout.setSpacing(2)
         layout.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
 
         self._tool_buttons = {}
@@ -290,8 +321,8 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         for tid, meta in TOOL_META.items():
             btn = QtWidgets.QToolButton(self.tool_col_box)
             btn.setCheckable(True)
-            btn.setFixedSize(30, 30)
-            btn.setIconSize(QtCore.QSize(16, 16))
+            btn.setFixedSize(28, 28)
+            btn.setIconSize(QtCore.QSize(15, 15))
             btn.setToolTip(meta["name"])
             is_active = (tid == "brush")
             btn.setIcon(get_icon(meta["icon"], color="#ffffff" if is_active else "text_main"))
@@ -320,6 +351,22 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         if hasattr(self, "preset_combo") and self.preset_combo:
             self.preset_combo.sync_to_tool(tool_name)
 
+        if hasattr(self, "stacked_tool_props"):
+            tool_to_widget = {
+                "brush": self.brush_props_widget,
+                "eraser": self.brush_props_widget,
+                "smudge": self.brush_props_widget,
+                "eyedrop": self.eyedrop_options_widget,
+                "bucket": self.bucket_options_widget,
+                "wand": self.wand_options_widget,
+                "transform": self.transform_options_widget,
+                "rect_select": self.selection_options_widget,
+                "ellipse_select": self.selection_options_widget,
+                "lasso": self.selection_options_widget,
+            }
+            target = tool_to_widget.get(tool_name, self.brush_props_widget)
+            self.stacked_tool_props.setCurrentWidget(target)
+
     def _on_tool(self, tool_id: str) -> None:
         self.set_tool_active(tool_id)
         self.toolActivated.emit(tool_id)
@@ -330,6 +377,8 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self.color_wheel.set_color(color)
         if hasattr(self, "stroke_preview") and self.stroke_preview:
             self.stroke_preview.update_brush_state(color=[color.redF(), color.greenF(), color.blueF()])
+        if hasattr(self, "eyedrop_options_widget"):
+            self.eyedrop_options_widget.set_captured_color(color)
 
     def _on_size_changed(self, val: float) -> None:
         self.sizeChanged.emit(val)

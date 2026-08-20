@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumenia — Relatório de Teste Alpha</title>
+    <style>
+        :root {
+            --bg-darkest: #13111c;
+            --bg-card: #1c1829;
+            --bg-input: #262137;
+            --border: #382f50;
+            --accent: #9333ea;
+            --accent-hover: #a855f7;
+            --accent-glow: #c084fc;
+            --text-main: #f4f4f8;
+            --text-muted: #a1a1aa;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-darkest);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+
+        .container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 680px;
+            padding: 36px 32px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .header-icon {
+            font-size: 40px;
+            line-height: 1;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #ffffff;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--accent-glow);
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 20px 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], input[type="email"], select, textarea {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 10px 14px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus, input[type="email"]:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.25);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        /* Ratings Table */
+        .rating-group {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+
+        .rating-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .rating-row:last-child {
+            border-bottom: none;
+        }
+
+        .rating-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #e4e4e7;
+        }
+
+        .rating-options {
+            display: flex;
+            gap: 12px;
+        }
+
+        .rating-options label {
+            margin: 0;
+            font-size: 12px;
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        /* Actions */
+        .actions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.6);
+        }
+
+        .btn-secondary-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            color: #e4e4e7;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .notification {
+            display: none;
+            background-color: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--success);
+            color: #6ee7b7;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 11px;
+            color: #71717a;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon">🎨</div>
+            <div class="header-title">
+                <h1>LUMENIA — Relatório Alpha</h1>
+                <p>Formulário Oficial de Feedback de Testes (v0.2.0)</p>
+            </div>
+        </div>
+
+        <form id="feedbackForm">
+            <!-- 1. Informações do Testador -->
+            <div class="section-title">1. Informações do Sistema</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="testerName">Seu Nome ou Apelido (Opcional):</label>
+                    <input type="text" id="testerName" placeholder="Ex: Alex">
+                </div>
+                <div class="form-group">
+                    <label for="testerEmail">Seu E-mail (Opcional para contato):</label>
+                    <input type="email" id="testerEmail" placeholder="seu@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="deviceType">Dispositivo / Mesa Digitalizadora:</label>
+                    <select id="deviceType">
+                        <option value="Mesa Wacom">Mesa Digitalizadora Wacom</option>
+                        <option value="Mesa Huion">Mesa Digitalizadora Huion</option>
+                        <option value="Mesa XP-Pen">Mesa Digitalizadora XP-Pen</option>
+                        <option value="Mesa Gaomon / Outra">Outra Mesa / Display Interativo</option>
+                        <option value="Apenas Mouse / Teclado">Apenas Mouse e Teclado</option>
+                        <option value="Touchscreen / Stylus Windows">Touchscreen / Caneta Windows</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="osVersion">Sistema Operacional:</label>
+                    <select id="osVersion">
+                        <option value="Windows 11 64-bit">Windows 11 (64-bit)</option>
+                        <option value="Windows 10 64-bit">Windows 10 (64-bit)</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 2. Avaliação dos Recursos -->
+            <div class="section-title">2. Avaliação dos Recursos Testados</div>
+            <div class="rating-group">
+                <div class="rating-row">
+                    <span class="rating-label">🖌️ Fluidez do Traço & Motores de Pincel</span>
+                    <div class="rating-options">
+                        <label><input type="radio" name="rate_brush" value="Excelente" checked> Excelente</label>
+                        <label><input type="radio" name="rate_brush" value="Bom"> Bom</label>
+                        <label><input type="radio" name="rate_brush" value="Regular"> Regular</label>
+                        <label><input type="radio" name="rate_brush" value="Ruim"> Ruim</label>
+                    </div>
+                </div>
+                <div class="rating-row">
+                    <span class="rating-label">📐 Suíte de Seleção (Varinha, Laço, Retângulo)</span>
+                    <div class="rating-options">
+                        <label><input type="radio" name="rate_select" value="Excelente" checked> Excelente</label>
+                        <label><input type="radio" name="rate_select" value="Bom"> Bom</label>
+                        <label><input type="radio" name="rate_select" value="Regular"> Regular</label>
+                        <label><input type="radio" name="rate_select" value="Ruim"> Ruim</label>
+                    </div>
+                </div>
+                <div class="rating-row">
+                    <span class="rating-label">🪣 Balde de Tinta (Preenchimento)</span>
+                    <div class="rating-options">
+                        <label><input type="radio" name="rate_bucket" value="Excelente" checked> Excelente</label>
+                        <label><input type="radio" name="rate_bucket" value="Bom"> Bom</label>
+                        <label><input type="radio" name="rate_bucket" value="Regular"> Regular</label>
+                        <label><input type="radio" name="rate_bucket" value="Ruim"> Ruim</label>
+                    </div>
+                </div>
+                <div class="rating-row">
+                    <span class="rating-label">🔄 Transformação Livre (8 alças, rotação, pivô)</span>
+                    <div class="rating-options">
+                        <label><input type="radio" name="rate_trans" value="Excelente" checked> Excelente</label>
+                        <label><input type="radio" name="rate_trans" value="Bom"> Bom</label>
+                        <label><input type="radio" name="rate_trans" value="Regular"> Regular</label>
+                        <label><input type="radio" name="rate_trans" value="Ruim"> Ruim</label>
+                    </div>
+                </div>
+                <div class="rating-row">
+                    <span class="rating-label">⚡ Velocidade e Estabilidade Geral</span>
+                    <div class="rating-options">
+                        <label><input type="radio" name="rate_speed" value="Excelente" checked> Excelente</label>
+                        <label><input type="radio" name="rate_speed" value="Bom"> Bom</label>
+                        <label><input type="radio" name="rate_speed" value="Regular"> Regular</label>
+                        <label><input type="radio" name="rate_speed" value="Ruim"> Ruim</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Comentários, Bugs e Sugestões -->
+            <div class="section-title">3. Detalhes, Bugs ou Sugestões</div>
+            <div class="form-group">
+                <label for="comments">Descreva sua experiência, eventuais bugs ou recursos que gostaria de ver:</label>
+                <textarea id="comments" placeholder="Ex: O traço do inker é muito bom, mas gostaria de atalho para alterar o tamanho do pincel com o botão da caneta..."></textarea>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="actions-container">
+                <button type="button" class="btn-primary" onclick="sendViaEmail()">
+                    📧 Enviar Relatório por E-mail (Automático)
+                </button>
+                <div class="btn-secondary-group">
+                    <button type="button" class="btn-secondary" onclick="downloadReport()">
+                        💾 Salvar Arquivo (.txt)
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="copyReport()">
+                        📋 Copiar Relatório
+                    </button>
+                </div>
+            </div>
+
+            <div id="notification" class="notification"></div>
+            <div class="footer-note">
+                Destinatário Oficial: <strong>lumeniateam@protonmail.com</strong>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function generateReportText() {
+            const name = document.getElementById('testerName').value.trim() || 'Anônimo';
+            const email = document.getElementById('testerEmail').value.trim() || 'Não informado';
+            const device = document.getElementById('deviceType').value;
+            const os = document.getElementById('osVersion').value;
+            const comments = document.getElementById('comments').value.trim() || 'Nenhum comentário adicional.';
+
+            const rBrush = document.querySelector('input[name="rate_brush"]:checked').value;
+            const rSelect = document.querySelector('input[name="rate_select"]:checked').value;
+            const rBucket = document.querySelector('input[name="rate_bucket"]:checked').value;
+            const rTrans = document.querySelector('input[name="rate_trans"]:checked').value;
+            const rSpeed = document.querySelector('input[name="rate_speed"]:checked').value;
+
+            const dateStr = new Date().toLocaleString('pt-BR');
+
+            return `=======================================================
+          RELATÓRIO DE TESTE — LUMENIA ALPHA v0.2.0
+=======================================================
+Data/Hora: ${dateStr}
+
+[1. INFORMAÇÕES DO TESTADOR]
+• Testador: ${name}
+• E-mail: ${email}
+• Dispositivo: ${device}
+• Sistema: ${os}
+
+[2. AVALIAÇÕES]
+• Fluidez do Traço & Motores: ${rBrush}
+• Suíte de Seleção: ${rSelect}
+• Balde de Tinta: ${rBucket}
+• Transformação Livre: ${rTrans}
+• Velocidade & Estabilidade: ${rSpeed}
+
+[3. COMENTÁRIOS, BUGS E SUGESTÕES]
+${comments}
+=======================================================`;
+        }
+
+        function showNotification(msg) {
+            const el = document.getElementById('notification');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 4000);
+        }
+
+        function sendViaEmail() {
+            const bodyText = encodeURIComponent(generateReportText());
+            const subject = encodeURIComponent('[Lumenia Alpha Feedback] - Relatório de Teste');
+            const targetEmail = 'lumeniateam@protonmail.com';
+            
+            window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${bodyText}`;
+            showNotification('Abrindo seu programa de e-mail com o relatório preenchido!');
+        }
+
+        function downloadReport() {
+            const text = generateReportText();
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Lumenia_Feedback_Relatorio.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('Relatório salvo com sucesso em seu computador!');
+        }
+
+        function copyReport() {
+            const text = generateReportText();
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Relatório copiado para a Área de Transferência com sucesso!');
+            }).catch(() => {
+                showNotification('Erro ao copiar. Use o botão de salvar em arquivo.');
+            });
+        }
+    </script>
+</body>
+</html>

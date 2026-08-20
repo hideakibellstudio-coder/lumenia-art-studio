@@ -14,6 +14,7 @@ class HelpMenu(QtWidgets.QMenu):
     shortcutsRequested   = QtCore.Signal()
     userGuideRequested   = QtCore.Signal()
     diagnosticsRequested = QtCore.Signal()
+    feedbackRequested    = QtCore.Signal()
     aboutRequested       = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -35,6 +36,10 @@ class HelpMenu(QtWidgets.QMenu):
         act_diag = QtGui.QAction(get_icon("chart"), "Diagnósticos do Motor & Telemetria", self)
         act_diag.triggered.connect(self.diagnosticsRequested.emit)
         self.addAction(act_diag)
+
+        act_feedback = QtGui.QAction(get_icon("help"), "Enviar Feedback / Relatório Alpha...", self)
+        act_feedback.triggered.connect(self.feedbackRequested.emit)
+        self.addAction(act_feedback)
 
         self.addSeparator()
 

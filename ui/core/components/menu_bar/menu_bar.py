@@ -114,6 +114,7 @@ class MenuBar(QtWidgets.QMenuBar):
     shortcutsRequested   = QtCore.Signal()
     userGuideRequested   = QtCore.Signal()
     diagnosticsRequested = QtCore.Signal()
+    feedbackRequested    = QtCore.Signal()
     aboutRequested       = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -255,5 +256,6 @@ class MenuBar(QtWidgets.QMenuBar):
         self.help_menu.shortcutsRequested.connect(self.shortcutsRequested.emit)
         self.help_menu.userGuideRequested.connect(self.userGuideRequested.emit)
         self.help_menu.diagnosticsRequested.connect(self.diagnosticsRequested.emit)
+        self.help_menu.feedbackRequested.connect(self.feedbackRequested.emit)
         self.help_menu.aboutRequested.connect(self.aboutRequested.emit)
         self.addMenu(self.help_menu)

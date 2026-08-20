@@ -142,6 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Ajuda
         self.menu_bar.shortcutsRequested.connect(self.open_shortcuts_dialog)
+        self.menu_bar.feedbackRequested.connect(self.open_feedback_form)
         self.menu_bar.aboutRequested.connect(self.open_about_dialog)
 
         # ── Tool Sidebar ──────────────────────────────────────────────────
@@ -542,6 +543,15 @@ class MainWindow(QtWidgets.QMainWindow):
             "• Ctrl+J: Duplicar Camada\n"
             "• Delete: Limpar Camada"
         )
+
+    def open_feedback_form(self) -> None:
+        """Abre o formulário oficial de feedback Enviar_Feedback.html no navegador padrão."""
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        feedback_path = os.path.join(project_root, "Enviar_Feedback.html")
+        if os.path.exists(feedback_path):
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(feedback_path))
+        else:
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl("mailto:lumeniateam@protonmail.com?subject=[Lumenia%20Alpha%20Feedback]"))
 
     def open_about_dialog(self) -> None:
         from ui.core.screens.about_dialog import AboutDialog

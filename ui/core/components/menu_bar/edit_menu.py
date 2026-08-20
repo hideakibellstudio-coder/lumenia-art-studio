@@ -7,6 +7,7 @@ Expõe ações de Desfazer, Refazer, Copiar, Colar, Preenchimento, Limpeza e Tra
 from __future__ import annotations
 
 from PySide6 import QtWidgets, QtGui, QtCore
+from ui.core.icons import get_icon
 
 
 class EditMenu(QtWidgets.QMenu):
@@ -27,12 +28,12 @@ class EditMenu(QtWidgets.QMenu):
 
     def setup_actions(self):
         # 1. Histórico (Undo / Redo)
-        act_undo = QtGui.QAction("↩ Desfazer", self)
+        act_undo = QtGui.QAction(get_icon("undo"), "Desfazer", self)
         act_undo.setShortcut("Ctrl+Z")
         act_undo.triggered.connect(self.undoRequested.emit)
         self.addAction(act_undo)
 
-        act_redo = QtGui.QAction("↪ Refazer", self)
+        act_redo = QtGui.QAction(get_icon("redo"), "Refazer", self)
         act_redo.setShortcut("Ctrl+Y")
         act_redo.triggered.connect(self.redoRequested.emit)
         self.addAction(act_redo)
@@ -40,17 +41,17 @@ class EditMenu(QtWidgets.QMenu):
         self.addSeparator()
 
         # 2. Área de Transferência
-        act_cut = QtGui.QAction("✂ Cortar", self)
+        act_cut = QtGui.QAction(get_icon("cut"), "Cortar", self)
         act_cut.setShortcut("Ctrl+X")
         act_cut.triggered.connect(self.cutRequested.emit)
         self.addAction(act_cut)
 
-        act_copy = QtGui.QAction("📋 Copiar", self)
+        act_copy = QtGui.QAction(get_icon("copy"), "Copiar", self)
         act_copy.setShortcut("Ctrl+C")
         act_copy.triggered.connect(self.copyRequested.emit)
         self.addAction(act_copy)
 
-        act_paste = QtGui.QAction("📥 Colar", self)
+        act_paste = QtGui.QAction(get_icon("paste"), "Colar", self)
         act_paste.setShortcut("Ctrl+V")
         act_paste.triggered.connect(self.pasteRequested.emit)
         self.addAction(act_paste)
@@ -58,24 +59,20 @@ class EditMenu(QtWidgets.QMenu):
         self.addSeparator()
 
         # 3. Preenchimento & Limpeza
-        act_fill = QtGui.QAction("🎨 Preencher com Cor Ativa...", self)
-        act_fill.setShortcut("Shift+F5")
+        act_fill = QtGui.QAction(get_icon("bucket"), "Preencher com Cor Principal", self)
+        act_fill.setShortcut("Alt+Backspace")
         act_fill.triggered.connect(self.fillRequested.emit)
         self.addAction(act_fill)
 
-        act_clear_layer = QtGui.QAction("🧹 Limpar Camada Ativa", self)
-        act_clear_layer.setShortcut("Delete")
+        act_clear_layer = QtGui.QAction(get_icon("clear"), "Limpar Camada Ativa", self)
+        act_clear_layer.setShortcut("Del")
         act_clear_layer.triggered.connect(self.clearLayerRequested.emit)
         self.addAction(act_clear_layer)
 
-        act_clear_all = QtGui.QAction("🗑 Limpar Todo o Canvas", self)
-        act_clear_all.triggered.connect(self.clearCanvasRequested.emit)
-        self.addAction(act_clear_all)
-
         self.addSeparator()
 
-        # 4. Transformações
-        act_transform = QtGui.QAction("🔄 Transformação Livre...", self)
+        # 4. Transformação
+        act_transform = QtGui.QAction(get_icon("transform"), "Transformação Livre...", self)
         act_transform.setShortcut("Ctrl+T")
         act_transform.triggered.connect(self.freeTransformRequested.emit)
         self.addAction(act_transform)
@@ -83,7 +80,7 @@ class EditMenu(QtWidgets.QMenu):
         self.addSeparator()
 
         # 5. Preferências
-        act_prefs = QtGui.QAction("⚙ Preferências do Sistema...", self)
-        act_prefs.setShortcut("Ctrl+K")
-        act_prefs.triggered.connect(self.preferencesRequested.emit)
-        self.addAction(act_prefs)
+        act_pref = QtGui.QAction(get_icon("settings"), "Configurações de Renderização & Latência...", self)
+        act_pref.setShortcut("Ctrl+K")
+        act_pref.triggered.connect(self.preferencesRequested.emit)
+        self.addAction(act_pref)

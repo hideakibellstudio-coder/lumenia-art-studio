@@ -2,18 +2,18 @@
 ThemeDialog — Gerenciador & Customizador Completo de Aparência e Temas (Lumenia V2)
 ===================================================================================
 Interface profissional de 2 colunas no padrão Lumenia V2:
-  - Coluna da Esquerda: Filtros (Todos, Dark, Light), busca instantânea e lista de ThemeCards com swatches.
-  - Coluna da Direita: Inspector de Cores, visualização da paleta completa e ajustes de tipografia e raio de bordas.
+  - Coluna da Esquerda: Filtros (Todos, Dark, Light), busca com ícone SVG e lista de ThemeCards.
+  - Coluna da Direita: Inspector de Cores, visualização da paleta e ajustes de geometria e tipografia.
 """
 
 from __future__ import annotations
 
-import os
 import logging
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.theme.manager import ThemeManager
+from ui.core.icons import get_icon
 
 logger = logging.getLogger(__name__)
 
@@ -76,14 +76,15 @@ class ThemeCard(QtWidgets.QFrame):
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(10)
 
-        # Ícone de tipo (Sol / Lua)
+        # Ícone vetorial de tipo (Sol / Lua)
         meta = self.theme_data.get("metadata", {})
         t_type = meta.get("type", "dark")
-        self.icon_label = QtWidgets.QLabel("🌙" if t_type == "dark" else "☀️")
-        self.icon_label.setFixedSize(32, 32)
-        self.icon_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.icon_label.setStyleSheet("font-size: 16px; background-color: rgba(255,255,255,0.06); border-radius: 6px;")
-        layout.addWidget(self.icon_label)
+        self.icon_btn = QtWidgets.QToolButton()
+        self.icon_btn.setFixedSize(32, 32)
+        self.icon_btn.setIconSize(QtCore.QSize(18, 18))
+        self.icon_btn.setIcon(get_icon("moon" if t_type == "dark" else "sun"))
+        self.icon_btn.setStyleSheet("border: none; background-color: rgba(255,255,255,0.06); border-radius: 6px;")
+        layout.addWidget(self.icon_btn)
 
         # Informações do Tema
         text_layout = QtWidgets.QVBoxLayout()
@@ -119,6 +120,10 @@ class ThemeCard(QtWidgets.QFrame):
         right_box.addWidget(self.badge_label)
         layout.addLayout(right_box)
 
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.selected.emit(self.theme_data)
+
     def set_active_state(self, is_active: bool):
         self.is_active = is_active
         self.badge_label.setText("ATIVO" if is_active else "")
@@ -126,76 +131,61 @@ class ThemeCard(QtWidgets.QFrame):
             "font-size: 9px; font-weight: bold; color: #ff5252; background: rgba(255,82,82,0.15); "
             "padding: 1px 5px; border-radius: 4px;" if is_active else "color: transparent;"
         )
-
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.selected.emit(self.theme_data)
+        self.update_style()
 
     def update_style(self):
-        is_dark = getattr(ThemeManager.instance(), "is_dark", True)
-        if self.is_selected:
-            bg = "#2a3441" if is_dark else "#e2e8f0"
-            border = "#ff5252"
-        else:
-            bg = "#1e1e1e" if is_dark else "#ffffff"
-            border = "#2e2e2e" if is_dark else "#e0e0e0"
-
-        text_color = "#ffffff" if is_dark else "#1a202c"
-
+        tm = ThemeManager.instance()
+        border_color = tm.get_color("accent") if self.is_selected else tm.get_color("border")
+        bg_color = tm.get_color("bg_card_hover") if self.is_selected else tm.get_color("bg_card")
         self.setStyleSheet(f"""
             ThemeCard {{
-                background-color: {bg};
-                border: 1px solid {border};
-                border-radius: 6px;
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 8px;
             }}
-            QLabel {{
-                color: {text_color};
+            ThemeCard:hover {{
+                border-color: {tm.get_color('accent')};
             }}
         """)
 
 
-# ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
+# ── DIÁLOGO PRINCIPAL DE TEMAS ───────────────────────────────────────────────
 
 class ThemeDialog(QtWidgets.QDialog):
-    """Central de Customização de Aparência & Temas em 2 Colunas."""
+    """Gerenciador Visual Completo de Temas e Customizações de Interface."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Configurações de Aparência & Temas")
-        self.setFixedSize(820, 560)
-        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
+        self.setObjectName("ThemeDialog")
+        self.setWindowTitle("Personalização de Interface & Temas")
+        self.resize(780, 520)
+        self.setModal(True)
 
         self.theme_manager = ThemeManager.instance()
-        self._initial_theme = self.theme_manager.current_theme
-        self._selected_theme_data: dict = {}
-        self._active_theme_key: str = self._initial_theme
+        self._available_themes: List[dict] = self.theme_manager.get_available_themes()
+        self._active_theme_key: str = self.theme_manager.current_theme
+        self._selected_theme_data: dict = self._get_active_theme_data()
+
         self._cards: List[ThemeCard] = []
 
-        self._load_data()
         self._setup_ui()
         self._apply_theme()
-        ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        self.theme_manager.themeChanged.connect(self._apply_theme)
 
-    def _load_data(self):
-        self.theme_manager.load_all_themes()
-        self._available_themes = self.theme_manager.get_available_themes()
-
-        # Encontra o tema ativo inicial
+    def _get_active_theme_data(self) -> dict:
         for t in self._available_themes:
             if t.get("file") == self._active_theme_key:
-                self._selected_theme_data = t
-                break
-        if not self._selected_theme_data and self._available_themes:
-            self._selected_theme_data = self._available_themes[0]
+                return t
+        return self._available_themes[0] if self._available_themes else {}
 
     def _setup_ui(self):
         main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setContentsMargins(16, 16, 16, 16)
-        main_layout.setSpacing(16)
+        main_layout.setContentsMargins(14, 14, 14, 14)
+        main_layout.setSpacing(14)
 
-        # ── COLUNA DA ESQUERDA (330px) ──────────────────────────────────────
+        # ── COLUNA DA ESQUERDA (LISTA DE TEMAS) ─────────────────────────────
         left_col = QtWidgets.QWidget()
-        left_col.setFixedWidth(330)
+        left_col.setFixedWidth(310)
         left_layout = QtWidgets.QVBoxLayout(left_col)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(10)
@@ -210,9 +200,10 @@ class ThemeDialog(QtWidgets.QDialog):
         self.combo_filter.currentIndexChanged.connect(self._filter_themes)
         left_layout.addWidget(self.combo_filter)
 
-        # Campo de busca
+        # Campo de busca com ícone de lupa
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("🔍 Buscar tema...")
+        self.search_box.setPlaceholderText("Buscar tema...")
+        self.search_box.addAction(get_icon("search"), QtWidgets.QLineEdit.LeadingPosition)
         self.search_box.textChanged.connect(self._filter_themes)
         left_layout.addWidget(self.search_box)
 
@@ -240,10 +231,11 @@ class ThemeDialog(QtWidgets.QDialog):
 
         # Header do Tema Selecionado
         header_box = QtWidgets.QHBoxLayout()
-        self.lbl_insp_icon = QtWidgets.QLabel("🌙")
+        self.lbl_insp_icon = QtWidgets.QToolButton()
         self.lbl_insp_icon.setFixedSize(44, 44)
-        self.lbl_insp_icon.setAlignment(QtCore.Qt.AlignCenter)
-        self.lbl_insp_icon.setStyleSheet("font-size: 22px; background: rgba(255,255,255,0.08); border-radius: 8px;")
+        self.lbl_insp_icon.setIconSize(QtCore.QSize(24, 24))
+        self.lbl_insp_icon.setIcon(get_icon("moon"))
+        self.lbl_insp_icon.setStyleSheet("border: none; background: rgba(255,255,255,0.08); border-radius: 8px;")
         header_box.addWidget(self.lbl_insp_icon)
 
         title_box = QtWidgets.QVBoxLayout()
@@ -263,7 +255,7 @@ class ThemeDialog(QtWidgets.QDialog):
         header_box.addStretch()
         right_layout.addLayout(header_box)
 
-        # Paleta de Cores do Tema (Swatches Detalhados)
+        # Paleta de Cores do Tema
         palette_group = QtWidgets.QGroupBox("Amostras da Paleta de Cores")
         palette_layout = QtWidgets.QGridLayout(palette_group)
         palette_layout.setContentsMargins(12, 12, 12, 12)
@@ -330,7 +322,8 @@ class ThemeDialog(QtWidgets.QDialog):
 
         # Botões de Ação
         btn_box = QtWidgets.QHBoxLayout()
-        self.btn_apply = QtWidgets.QPushButton("✓ Aplicar este Tema")
+        self.btn_apply = QtWidgets.QPushButton("Aplicar este Tema")
+        self.btn_apply.setIcon(get_icon("check"))
         self.btn_apply.setFixedHeight(34)
         self.btn_apply.clicked.connect(self._on_apply_theme)
         btn_box.addWidget(self.btn_apply)
@@ -402,13 +395,12 @@ class ThemeDialog(QtWidgets.QDialog):
 
         self.lbl_insp_title.setText(t_name)
         self.lbl_insp_meta.setText(f"TEMA {'ESCURO' if t_type == 'dark' else 'CLARO'} • por {t_author}")
-        self.lbl_insp_icon.setText("🌙" if t_type == "dark" else "☀️")
+        self.lbl_insp_icon.setIcon(get_icon("moon" if t_type == "dark" else "sun"))
 
         # Atualiza Chips de Cor
         for (k1, k2), chip in self.swatch_items.items():
             hex_val = colors.get(k1) or colors.get(k2) or "#121212"
             chip.setText(hex_val.upper())
-            # Contraste de texto preto/branco no chip
             chip.setStyleSheet(f"""
                 background-color: {hex_val};
                 color: {'#ffffff' if t_type == 'dark' or k1 in ('ACCENT', 'BG_DARKEST') else '#000000'};
@@ -420,10 +412,10 @@ class ThemeDialog(QtWidgets.QDialog):
 
         # Atualiza botão
         if t_key == self._active_theme_key:
-            self.btn_apply.setText("✓ Tema Ativo")
+            self.btn_apply.setText("Tema Ativo")
             self.btn_apply.setEnabled(False)
         else:
-            self.btn_apply.setText("✓ Aplicar este Tema")
+            self.btn_apply.setText("Aplicar este Tema")
             self.btn_apply.setEnabled(True)
 
     def _on_apply_theme(self):
@@ -439,102 +431,85 @@ class ThemeDialog(QtWidgets.QDialog):
 
         self._select_theme(self._selected_theme_data)
 
-    def _apply_theme(self):
-        is_dark = getattr(ThemeManager.instance(), "is_dark", True)
-        if is_dark:
-            self.setStyleSheet("""
-                QDialog {
-                    background-color: #18181b;
-                    color: #f4f4f5;
-                }
-                QGroupBox {
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #a1a1aa;
-                    border: 1px solid #27272a;
-                    border-radius: 8px;
-                    margin-top: 12px;
-                    padding-top: 14px;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    left: 10px;
-                    padding: 0 4px;
-                }
-                QLineEdit, QComboBox {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    border: 1px solid #3f3f46;
-                    border-radius: 6px;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    selection-background-color: #ff5252;
-                    border: 1px solid #3f3f46;
-                }
-                QPushButton {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    border: 1px solid #3f3f46;
-                    border-radius: 6px;
-                    padding: 6px 16px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #3f3f46;
-                }
-                QPushButton:disabled {
-                    background-color: #1f1f23;
-                    color: #71717a;
-                    border-color: #27272a;
-                }
-            """)
-        else:
-            self.setStyleSheet("""
-                QDialog {
-                    background-color: #f8fafc;
-                    color: #0f172a;
-                }
-                QGroupBox {
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #64748b;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                    margin-top: 12px;
-                    padding-top: 14px;
-                }
-                QLineEdit, QComboBox {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 6px;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    selection-background-color: #ff5252;
-                    selection-color: #ffffff;
-                    border: 1px solid #cbd5e1;
-                }
-                QPushButton {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 6px;
-                    padding: 6px 16px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #f1f5f9;
-                }
-                QPushButton:disabled {
-                    background-color: #e2e8f0;
-                    color: #94a3b8;
-                }
-            """)
+    def _apply_theme(self, *args):
+        tm = self.theme_manager
+        bg_app = tm.get_color("bg_main")
+        bg_panel = tm.get_color("bg_panel")
+        border = tm.get_color("border")
+        border_muted = tm.get_color("border_muted")
+        text_main = tm.get_color("text_main")
+        text_sec = tm.get_color("text_sec")
+        accent = tm.get_color("accent")
+        accent_hover = tm.get_color("accent_hover")
+        bg_card = tm.get_color("bg_card")
+
+        self.setStyleSheet(f"""
+            QDialog#ThemeDialog {{
+                background-color: {bg_app};
+                color: {text_main};
+            }}
+            QGroupBox {{
+                font-size: 11px;
+                font-weight: bold;
+                color: {text_sec};
+                border: 1px solid {border};
+                border-radius: 8px;
+                margin-top: 12px;
+                padding-top: 14px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 4px;
+            }}
+            QLineEdit, QComboBox {{
+                background-color: {bg_card};
+                color: {text_main};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 12px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {bg_card};
+                color: {text_main};
+                selection-background-color: {accent};
+                selection-color: #ffffff;
+                border: 1px solid {border};
+            }}
+            QPushButton {{
+                background-color: {bg_card};
+                color: {text_main};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 6px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {accent};
+                color: #ffffff;
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_panel};
+                color: {text_sec};
+                border-color: {border_muted};
+            }}
+        """)
+        self.btn_apply.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {accent};
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                padding: 6px 16px;
+            }}
+            QPushButton:hover {{
+                background-color: {accent_hover};
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_panel};
+                color: {text_sec};
+                border: 1px solid {border_muted};
+            }}
+        """)

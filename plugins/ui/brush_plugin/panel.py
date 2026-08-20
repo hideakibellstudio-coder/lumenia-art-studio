@@ -39,6 +39,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     loadShapeRequested        = QtCore.Signal()
     loadHeightmapRequested    = QtCore.Signal()
     toolActivated             = QtCore.Signal(str) # ID da ferramenta selecionada
+    toolOptionsChanged        = QtCore.Signal(str, dict) # tool_id, settings
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -204,9 +205,11 @@ class BrushSettingsPanel(QtWidgets.QWidget):
 
         # ── 2. Páginas de Opções de Ferramentas Específicas ─────────────────
         self.eyedrop_options_widget = EyedropOptionsWidget(self)
+        self.eyedrop_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("eyedrop", s))
         self.stacked_tool_props.addWidget(self.eyedrop_options_widget)
 
         self.bucket_options_widget = BucketOptionsWidget(self)
+        self.bucket_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("bucket", s))
         self.stacked_tool_props.addWidget(self.bucket_options_widget)
 
         self.wand_options_widget = WandOptionsWidget(self)
@@ -222,7 +225,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         settings_layout.addWidget(props_col, 1)
 
         # Card Box Wrapper
-        card_box = PanelCardBox("🖌️ Pincel & Ferramentas", content_widget, self)
+        card_box = PanelCardBox("Pincel & Ferramentas", content_widget, self)
 
         # Scroll Area
         scroll = QtWidgets.QScrollArea(self)

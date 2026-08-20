@@ -29,6 +29,12 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.setWindowTitle("Lumenia Brush Engine 2.0")
 
+        # ── Ícone Oficial da Aplicação ────────────────────────────────────
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QtGui.QIcon(icon_path))
+
         # ── Tema ──────────────────────────────────────────────────────────
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
         self.setStyleSheet(ThemeManager.instance().get_stylesheet())
@@ -149,8 +155,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tool_sidebar.zoomOutRequested.connect(self.zoom_out)
         self.tool_sidebar.resetRequested.connect(self.reset_view)
         self.tool_sidebar.clearRequested.connect(self.clear_screen)
+        self.tool_sidebar.deselectRequested.connect(self.deselect_selection)
 
-        # ── Atalhos de Teclado Globais (Undo / Redo) ─────────────────────
+        # ── Atalhos de Teclado Globais (Undo / Redo / Deselect) ─────────
         self.shortcut_undo = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Z"), self)
         self.shortcut_undo.activated.connect(self.undo)
 
@@ -260,6 +267,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def clear_screen(self) -> None:
         self.workspace.clear_canvas()
         self.status_bar.showMessage("Tela limpa.", 2000)
+
+    def deselect_selection(self) -> None:
+        if self.workspace and hasattr(self.workspace, "clear_selection"):
+            self.workspace.clear_selection()
+            self.status_bar.showMessage("Seleção desmarcada.", 2000)
 
     # ── Diálogos ─────────────────────────────────────────────────────────
 
@@ -510,7 +522,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.information(
             self,
             "Atalhos de Teclado",
-            "⌨ ATALHOS PRINCIPAIS DO LUMENIA:\n\n"
+            "ATALHOS PRINCIPAIS DO LUMENIA:\n\n"
             "• B: Pincel\n"
             "• E: Borracha\n"
             "• G: Balde de Tinta\n"
@@ -532,15 +544,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
     def open_about_dialog(self) -> None:
-        QtWidgets.QMessageBox.about(
-            self,
-            "Sobre o Lumenia",
-            "<h3>Lumenia Next-Gen Engine</h3>"
-            "<p>Software Profissional de Pintura Digital e Ilustração.</p>"
-            "<p><b>Motor Gráfico:</b> ALADYN Native Engine (C++17 / PyBind11 / SIMD / TileGrid 64x64)</p>"
-            "<p><b>Gerenciamento de Cores:</b> Prova de Cores CMYK, Display P3 & Simulação de Daltonismo</p>"
-            "<p><b>Versão:</b> 2.5.0 Professional Edition</p>"
-        )
+        from ui.core.screens.about_dialog import AboutDialog
+        dialog = AboutDialog(self)
+        dialog.exec()
 
     def load_custom_texture(self, is_shape: bool) -> None:
         """Delegado ao WorkspaceContainer. Mantido para compatibilidade com chamadas externas."""

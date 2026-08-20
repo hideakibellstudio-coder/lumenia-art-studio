@@ -33,9 +33,13 @@ class ModernToggle(QtWidgets.QCheckBox):
         p = QtGui.QPainter(self)
         p.setRenderHint(QtGui.QPainter.Antialiasing)
 
-        checked = self.isChecked()
-        track_color = QtGui.QColor("#ff5252") if checked else QtGui.QColor("#404040")
+        tm = ThemeManager.instance()
+        accent = QtGui.QColor(tm.get_color("accent"))
+        track_off = QtGui.QColor(tm.get_color("border_muted"))
         thumb_color = QtGui.QColor("#ffffff")
+
+        checked = self.isChecked()
+        track_color = accent if checked else track_off
 
         # Track
         p.setPen(QtCore.Qt.NoPen)
@@ -68,7 +72,6 @@ class ToolbarLivePreview(QtWidgets.QFrame):
 
     def set_tools(self, tool_ids: List[str]):
         self._active_tools = list(tool_ids)
-        # Limpa layout
         while self.layout.count():
             item = self.layout.takeAt(0)
             if item.widget():
@@ -94,9 +97,9 @@ class ToolbarLivePreview(QtWidgets.QFrame):
         self.update_style()
 
     def update_style(self):
-        is_dark = getattr(ThemeManager.instance(), "is_dark", True)
-        bg = "#1f1f23" if is_dark else "#f1f5f9"
-        border = "#3f3f46" if is_dark else "#cbd5e1"
+        tm = ThemeManager.instance()
+        bg = tm.get_color("bg_card")
+        border = tm.get_color("border")
         self.setStyleSheet(f"""
             ToolbarLivePreview {{
                 background-color: {bg};
@@ -111,7 +114,7 @@ class ToolbarLivePreview(QtWidgets.QFrame):
 class ToolToggleCard(QtWidgets.QFrame):
     """Cartão individual de ferramenta com switch liga/desliga."""
 
-    toggled = QtCore.Signal(str, bool)  # tool_id, is_active
+    toggled = QtCore.Signal(str, bool)
 
     def __init__(self, tool_id: str, is_active: bool = True, parent=None):
         super().__init__(parent)
@@ -120,47 +123,44 @@ class ToolToggleCard(QtWidgets.QFrame):
         self.meta = TOOL_META.get(tool_id, {"name": tool_id.capitalize(), "icon": "brush"})
 
         self._build_ui()
+        ThemeManager.instance().themeChanged.connect(self.update_style)
         self.update_style()
 
     def _build_ui(self):
-        self.setFixedHeight(56)
+        self.setFixedHeight(52)
         layout = QtWidgets.QHBoxLayout(self)
-        layout.setContentsMargins(12, 6, 12, 6)
-        layout.setSpacing(10)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(8)
 
-        # Ícone
-        self.icon_label = QtWidgets.QLabel()
-        self.icon_label.setFixedSize(32, 32)
-        self.icon_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.icon_label.setStyleSheet("background: rgba(255,255,255,0.06); border-radius: 6px;")
+        # Ícone da Ferramenta
+        self.icon_lbl = QtWidgets.QLabel()
+        self.icon_lbl.setFixedSize(28, 28)
+        self.icon_lbl.setAlignment(QtCore.Qt.AlignCenter)
+        self.icon_lbl.setStyleSheet("background: rgba(255,255,255,0.06); border-radius: 6px;")
         icon = get_icon(self.meta.get("icon", "brush"), color="#ffffff")
         if icon and not icon.isNull():
-            self.icon_label.setPixmap(icon.pixmap(18, 18))
-        layout.addWidget(self.icon_label)
+            self.icon_lbl.setPixmap(icon.pixmap(16, 16))
+        layout.addWidget(self.icon_lbl)
 
-        # Nome
+        # Nome e Atalho
         text_layout = QtWidgets.QVBoxLayout()
-        text_layout.setSpacing(1)
+        text_layout.setSpacing(0)
         text_layout.setAlignment(QtCore.Qt.AlignVCenter)
 
-        self.name_label = QtWidgets.QLabel(self.meta.get("name", "Ferramenta"))
-        self.name_label.setStyleSheet("font-size: 12px; font-weight: bold;")
+        name = self.meta.get("name", self.tool_id)
+        shortcut = self.meta.get("shortcut", "")
+        self.name_lbl = QtWidgets.QLabel(name)
+        self.name_lbl.setStyleSheet("font-size: 11px; font-weight: bold;")
 
-        shortcuts_map = {
-            "brush": "B", "eraser": "E", "bucket": "G", "eyedrop": "I / Alt",
-            "wand": "W", "transform": "Ctrl+T", "rect_select": "M", "ellipse_select": "Shift+M",
-            "lasso": "L", "smudge": "R"
-        }
-        key_text = f"Atalho: {shortcuts_map.get(self.tool_id, '-')}"
-        self.sub_label = QtWidgets.QLabel(key_text)
-        self.sub_label.setStyleSheet("font-size: 10px; color: #888888;")
+        self.shortcut_lbl = QtWidgets.QLabel(f"Atalho: [{shortcut}]" if shortcut else "Sem atalho")
+        self.shortcut_lbl.setStyleSheet("font-size: 9px; color: #888888;")
 
-        text_layout.addWidget(self.name_label)
-        text_layout.addWidget(self.sub_label)
+        text_layout.addWidget(self.name_lbl)
+        text_layout.addWidget(self.shortcut_lbl)
         layout.addLayout(text_layout)
         layout.addStretch()
 
-        # Switch
+        # Switch de Ativação
         self.switch = ModernToggle()
         self.switch.setChecked(self.is_active)
         self.switch.toggled.connect(self._on_toggled)
@@ -169,18 +169,20 @@ class ToolToggleCard(QtWidgets.QFrame):
     def _on_toggled(self, checked: bool):
         self.is_active = checked
         self.toggled.emit(self.tool_id, checked)
+        self.update_style()
 
-    def set_checked(self, checked: bool):
+    def set_active_state(self, active: bool):
+        self.is_active = active
         self.switch.blockSignals(True)
-        self.switch.setChecked(checked)
-        self.is_active = checked
+        self.switch.setChecked(active)
         self.switch.blockSignals(False)
+        self.update_style()
 
     def update_style(self):
-        is_dark = getattr(ThemeManager.instance(), "is_dark", True)
-        bg = "#1e1e1e" if is_dark else "#ffffff"
-        border = "#2e2e2e" if is_dark else "#e0e0e0"
-        text_color = "#ffffff" if is_dark else "#1a202c"
+        tm = ThemeManager.instance()
+        bg = tm.get_color("bg_card_hover") if self.is_active else tm.get_color("bg_card")
+        border = tm.get_color("accent") if self.is_active else tm.get_color("border")
+        text_color = tm.get_color("text_main")
 
         self.setStyleSheet(f"""
             ToolToggleCard {{
@@ -194,43 +196,50 @@ class ToolToggleCard(QtWidgets.QFrame):
         """)
 
 
-# ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
+# ── CARREGAMENTO / PERSISTÊNCIA ──────────────────────────────────────────────
 
 def load_floating_toolbar_settings() -> dict:
     s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    tools = s.value("floating_toolbar/tools", DEFAULT_TOOLS)
-    if isinstance(tools, str):
-        tools = [t.strip() for t in tools.split(",") if t.strip()]
-    elif not isinstance(tools, list):
+    s.beginGroup("FloatingToolbar")
+    active = s.value("active", True, type=bool)
+    speed  = s.value("speed",  "Normal", type=str)
+    tools_str = s.value("tools", None)
+    s.endGroup()
+
+    if tools_str and isinstance(tools_str, str):
+        tools = [t.strip() for t in tools_str.split(",") if t.strip() in TOOL_META]
+    else:
         tools = list(DEFAULT_TOOLS)
 
-    return {
-        "active": s.value("floating_toolbar/active", True, type=bool),
-        "speed": s.value("floating_toolbar/speed", "Rápido", type=str),
-        "tools": list(tools),
-    }
+    return {"active": active, "speed": speed, "tools": tools}
 
 
 def save_floating_toolbar_settings(cfg: dict) -> None:
     s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    s.setValue("floating_toolbar/active", cfg["active"])
-    s.setValue("floating_toolbar/speed", cfg["speed"])
-    s.setValue("floating_toolbar/tools", cfg["tools"])
+    s.beginGroup("FloatingToolbar")
+    s.setValue("active", cfg.get("active", True))
+    s.setValue("speed",  cfg.get("speed", "Normal"))
+    s.setValue("tools",  ",".join(cfg.get("tools", DEFAULT_TOOLS)))
+    s.endGroup()
 
+
+# ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
 
 class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
-    """Central de Configuração da Barra Flutuante em 2 colunas."""
+    """Central de Configurações da Barra Rápida Flutuante em 2 colunas."""
 
     settings_applied = QtCore.Signal(dict)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Configurações da Barra Rápida Flutuante")
-        self.setFixedSize(820, 560)
+        self.setObjectName("FloatingToolbarSettingsDialog")
+        self.setWindowTitle("Configurações da Barra Flutuante")
+        self.setFixedSize(780, 520)
         self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
 
-        self._cards: Dict[str, ToolToggleCard] = {}
         self._cfg = load_floating_toolbar_settings()
+        self._active_tools: List[str] = list(self._cfg.get("tools", DEFAULT_TOOLS))
+        self._cards: List[ToolToggleCard] = []
 
         self._setup_ui()
         self._apply_theme()
@@ -241,21 +250,17 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(16)
 
-        # ── COLUNA DA ESQUERDA (330px) ──────────────────────────────────────
+        # ── COLUNA DA ESQUERDA (CATÁLOGO DE FERRAMENTAS) ────────────────────
         left_col = QtWidgets.QWidget()
-        left_col.setFixedWidth(330)
+        left_col.setFixedWidth(310)
         left_layout = QtWidgets.QVBoxLayout(left_col)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(10)
 
-        # Header da lista com contador
-        self.lbl_count = QtWidgets.QLabel("Ferramentas Visíveis:")
-        self.lbl_count.setStyleSheet("font-size: 12px; font-weight: bold;")
-        left_layout.addWidget(self.lbl_count)
-
-        # Busca
+        # Campo de busca
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("🔍 Filtrar ferramentas...")
+        self.search_box.setPlaceholderText("Buscar ferramenta...")
+        self.search_box.addAction(get_icon("search"), QtWidgets.QLineEdit.LeadingPosition)
         self.search_box.textChanged.connect(self._filter_tools)
         left_layout.addWidget(self.search_box)
 
@@ -269,31 +274,19 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         self.cards_layout.setContentsMargins(0, 0, 4, 0)
         self.cards_layout.setSpacing(6)
 
-        active_set = set(self._cfg.get("tools", []))
-        for tid in DEFAULT_TOOLS:
-            is_act = tid in active_set
-            card = ToolToggleCard(tid, is_active=is_act)
+        for tid in TOOL_META.keys():
+            card = ToolToggleCard(tid, is_active=(tid in self._active_tools))
             card.toggled.connect(self._on_tool_toggled)
-            self._cards[tid] = card
+            self._cards.append(card)
             self.cards_layout.addWidget(card)
 
         self.cards_layout.addStretch()
         self.scroll_area.setWidget(self.cards_container)
         left_layout.addWidget(self.scroll_area)
 
-        # Botões de seleção rápida
-        quick_box = QtWidgets.QHBoxLayout()
-        btn_all = QtWidgets.QPushButton("Todas")
-        btn_all.clicked.connect(self._select_all_tools)
-        btn_none = QtWidgets.QPushButton("Nenhuma")
-        btn_none.clicked.connect(self._deselect_all_tools)
-        quick_box.addWidget(btn_all)
-        quick_box.addWidget(btn_none)
-        left_layout.addLayout(quick_box)
-
         main_layout.addWidget(left_col)
 
-        # ── COLUNA DA DIREITA (INSPECTOR & COMPORTAMENTO) ───────────────────
+        # ── COLUNA DA DIREITA (PREVIEW & COMPORTAMENTO) ─────────────────────
         right_col = QtWidgets.QWidget()
         right_layout = QtWidgets.QVBoxLayout(right_col)
         right_layout.setContentsMargins(12, 4, 4, 4)
@@ -301,97 +294,83 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
 
         # Header
         header_box = QtWidgets.QHBoxLayout()
-        icon_lbl = QtWidgets.QLabel("🪄")
-        icon_lbl.setFixedSize(44, 44)
-        icon_lbl.setAlignment(QtCore.Qt.AlignCenter)
-        icon_lbl.setStyleSheet("font-size: 22px; background: rgba(255,255,255,0.08); border-radius: 8px;")
-        header_box.addWidget(icon_lbl)
+        self.lbl_insp_icon = QtWidgets.QToolButton()
+        self.lbl_insp_icon.setFixedSize(44, 44)
+        self.lbl_insp_icon.setIconSize(QtCore.QSize(24, 24))
+        self.lbl_insp_icon.setIcon(get_icon("tools"))
+        self.lbl_insp_icon.setStyleSheet("border: none; background: rgba(255,255,255,0.08); border-radius: 8px;")
+        header_box.addWidget(self.lbl_insp_icon)
 
         title_box = QtWidgets.QVBoxLayout()
         title_box.setSpacing(2)
-        lbl_title = QtWidgets.QLabel("Barra de Ferramentas Flutuante")
-        f = lbl_title.font()
-        f.setPointSize(13)
-        f.setBold(True)
-        lbl_title.setFont(f)
+        self.lbl_insp_title = QtWidgets.QLabel("Barra Rápida Flutuante")
+        font = self.lbl_insp_title.font()
+        font.setPointSize(13)
+        font.setBold(True)
+        self.lbl_insp_title.setFont(font)
 
-        lbl_sub = QtWidgets.QLabel("ENCAIXE MAGNÉTICO & ACESSO RÁPIDO")
-        lbl_sub.setStyleSheet("color: #ff5252; font-size: 11px; font-weight: bold;")
+        self.lbl_insp_meta = QtWidgets.QLabel("HUD CONTEXTUAL DE CRIAÇÃO")
+        self.lbl_insp_meta.setStyleSheet("color: #ff5252; font-size: 11px; font-weight: bold;")
 
-        title_box.addWidget(lbl_title)
-        title_box.addWidget(lbl_sub)
+        title_box.addWidget(self.lbl_insp_title)
+        title_box.addWidget(self.lbl_insp_meta)
         header_box.addLayout(title_box)
         header_box.addStretch()
         right_layout.addLayout(header_box)
 
-        # Descrição
-        lbl_desc = QtWidgets.QLabel(
-            "A barra flutuante oferece acesso imediato às ferramentas essenciais sem obstruir a tela. "
-            "Ao aproximar das bordas do canvas, ela se acopla magneticamente com animação suave."
-        )
-        lbl_desc.setWordWrap(True)
-        lbl_desc.setStyleSheet("font-size: 12px; color: #a0aec0; line-height: 1.4;")
-        right_layout.addWidget(lbl_desc)
-
-        # Preview Interativo da Toolbar
-        lbl_prev = QtWidgets.QLabel("Pré-visualização da Barra em Tempo Real:")
-        lbl_prev.setStyleSheet("font-size: 11px; font-weight: bold; color: #cbd5e1; margin-top: 4px;")
+        # Live Preview
+        lbl_prev = QtWidgets.QLabel("Pré-Visualização em Tempo Real da Barra:")
+        lbl_prev.setStyleSheet("font-size: 11px; font-weight: bold; margin-top: 4px;")
         right_layout.addWidget(lbl_prev)
 
-        self.toolbar_preview = ToolbarLivePreview()
-        right_layout.addWidget(self.toolbar_preview)
+        self.live_preview = ToolbarLivePreview()
+        self.live_preview.set_tools(self._active_tools)
+        right_layout.addWidget(self.live_preview)
 
         # Grupo de Comportamento & Física
-        group_physics = QtWidgets.QGroupBox("Comportamento, Velocidade & Acoplamento")
-        physics_layout = QtWidgets.QVBoxLayout(group_physics)
-        physics_layout.setContentsMargins(14, 14, 14, 14)
-        physics_layout.setSpacing(12)
+        behavior_group = QtWidgets.QGroupBox("Comportamento & Física Magnética")
+        behavior_layout = QtWidgets.QVBoxLayout(behavior_group)
+        behavior_layout.setContentsMargins(14, 14, 14, 14)
+        behavior_layout.setSpacing(10)
 
-        # 1. Master Switch
+        # Master Switch (Ativa/Desativa)
         row_master = QtWidgets.QHBoxLayout()
-        lbl_m = QtWidgets.QLabel("Ativar Barra Flutuante no Canvas:")
-        lbl_m.setStyleSheet("font-size: 12px; font-weight: bold;")
+        lbl_master = QtWidgets.QLabel("Exibir Barra Flutuante no Workspace")
         self.switch_master = ModernToggle()
         self.switch_master.setChecked(self._cfg.get("active", True))
-        self.switch_master.toggled.connect(self._on_master_toggled)
-        row_master.addWidget(lbl_m)
+        row_master.addWidget(lbl_master)
         row_master.addStretch()
         row_master.addWidget(self.switch_master)
-        physics_layout.addLayout(row_master)
+        behavior_layout.addLayout(row_master)
 
-        # 2. Velocidade de Recolhimento
-        row_spd = QtWidgets.QHBoxLayout()
-        lbl_s = QtWidgets.QLabel("Velocidade de Auto-Recolhimento:")
-        lbl_s.setStyleSheet("font-size: 12px;")
+        # Velocidade de Auto-Recolhimento
+        row_speed = QtWidgets.QHBoxLayout()
+        lbl_speed = QtWidgets.QLabel("Auto-Recolhimento por Inatividade:")
+        lbl_speed.setStyleSheet("font-size: 12px;")
         self.combo_speed = QtWidgets.QComboBox()
-        self.combo_speed.addItems(["Desativado (Sempre Visível)", "Lento (500ms)", "Rápido (200ms)", "Ultra Rápido (80ms)"])
-        cur_speed = self._cfg.get("speed", "Rápido")
+        self.combo_speed.addItems([
+            "Desativado (Sempre Visível)",
+            "Rápido (150ms)",
+            "Normal (300ms)",
+            "Lento (500ms)"
+        ])
+        current_speed = self._cfg.get("speed", "Normal")
         for i in range(self.combo_speed.count()):
-            if cur_speed in self.combo_speed.itemText(i):
+            if current_speed in self.combo_speed.itemText(i):
                 self.combo_speed.setCurrentIndex(i)
                 break
-        row_spd.addWidget(lbl_s)
-        row_spd.addStretch()
-        row_spd.addWidget(self.combo_speed)
-        physics_layout.addLayout(row_spd)
+        row_speed.addWidget(lbl_speed)
+        row_speed.addStretch()
+        row_speed.addWidget(self.combo_speed)
+        behavior_layout.addLayout(row_speed)
 
-        # 3. Orientação e Dock Magnético
-        row_dock = QtWidgets.QHBoxLayout()
-        lbl_d = QtWidgets.QLabel("Sensibilidade do Encaixe Magnético (Snap):")
-        lbl_d.setStyleSheet("font-size: 12px;")
-        self.combo_snap = QtWidgets.QComboBox()
-        self.combo_snap.addItems(["Sensível (50px)", "Moderado (35px)", "Desativado"])
-        row_dock.addWidget(lbl_d)
-        row_dock.addStretch()
-        row_dock.addWidget(self.combo_snap)
-        physics_layout.addLayout(row_dock)
-
-        right_layout.addWidget(group_physics)
+        right_layout.addWidget(behavior_group)
         right_layout.addStretch()
 
-        # Botões de Ação
+        # Botões de Ação na Base
         btn_box = QtWidgets.QHBoxLayout()
-        self.btn_apply = QtWidgets.QPushButton("✓ Aplicar Configurações")
+        self.btn_apply = QtWidgets.QPushButton("Aplicar & Salvar")
+        self.btn_apply.setIcon(get_icon("check"))
         self.btn_apply.setFixedHeight(34)
         self.btn_apply.clicked.connect(self._on_apply)
         btn_box.addWidget(self.btn_apply)
@@ -406,47 +385,22 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         right_layout.addLayout(btn_box)
         main_layout.addWidget(right_col)
 
-        self._update_preview()
-        self._update_counter()
-
-    def _on_tool_toggled(self, tool_id: str, is_active: bool):
-        self._update_preview()
-        self._update_counter()
-
-    def _on_master_toggled(self, is_active: bool):
-        self.combo_speed.setEnabled(is_active)
-        self.combo_snap.setEnabled(is_active)
-        self.scroll_area.setEnabled(is_active)
-
-    def _select_all_tools(self):
-        for card in self._cards.values():
-            card.set_checked(True)
-        self._update_preview()
-        self._update_counter()
-
-    def _deselect_all_tools(self):
-        for card in self._cards.values():
-            card.set_checked(False)
-        self._update_preview()
-        self._update_counter()
-
     def _filter_tools(self):
         query = self.search_box.text().strip().lower()
-        for tid, card in self._cards.items():
+        for card in self._cards:
             name = card.meta.get("name", "").lower()
-            card.setVisible(not query or query in name or query in tid)
+            shortcut = card.meta.get("shortcut", "").lower()
+            tid = card.tool_id.lower()
+            match = not query or (query in name) or (query in shortcut) or (query in tid)
+            card.setVisible(match)
 
-    def _get_active_tool_ids(self) -> List[str]:
-        return [tid for tid, card in self._cards.items() if card.is_active]
+    def _on_tool_toggled(self, tool_id: str, is_active: bool):
+        if is_active and tool_id not in self._active_tools:
+            self._active_tools.append(tool_id)
+        elif not is_active and tool_id in self._active_tools:
+            self._active_tools.remove(tool_id)
 
-    def _update_preview(self):
-        active_tools = self._get_active_tool_ids()
-        self.toolbar_preview.set_tools(active_tools)
-
-    def _update_counter(self):
-        active_tools = self._get_active_tool_ids()
-        total = len(self._cards)
-        self.lbl_count.setText(f"Ferramentas Visíveis ({len(active_tools)} de {total}):")
+        self.live_preview.set_tools(self._active_tools)
 
     def _on_apply(self):
         speed_raw = self.combo_speed.currentText().split()[0]
@@ -456,107 +410,90 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         cfg = {
             "active": self.switch_master.isChecked(),
             "speed": speed_raw,
-            "tools": self._get_active_tool_ids(),
+            "tools": list(self._active_tools),
         }
         save_floating_toolbar_settings(cfg)
         self.settings_applied.emit(cfg)
 
-    def _apply_theme(self):
-        is_dark = getattr(ThemeManager.instance(), "is_dark", True)
-        if is_dark:
-            self.setStyleSheet("""
-                QDialog {
-                    background-color: #18181b;
-                    color: #f4f4f5;
-                }
-                QGroupBox {
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #a1a1aa;
-                    border: 1px solid #27272a;
-                    border-radius: 8px;
-                    margin-top: 12px;
-                    padding-top: 14px;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    left: 10px;
-                    padding: 0 4px;
-                }
-                QLineEdit, QComboBox {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    border: 1px solid #3f3f46;
-                    border-radius: 6px;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    selection-background-color: #ff5252;
-                    border: 1px solid #3f3f46;
-                }
-                QPushButton {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    border: 1px solid #3f3f46;
-                    border-radius: 6px;
-                    padding: 6px 16px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #3f3f46;
-                }
-                QPushButton:disabled {
-                    background-color: #1f1f23;
-                    color: #71717a;
-                    border-color: #27272a;
-                }
-            """)
-        else:
-            self.setStyleSheet("""
-                QDialog {
-                    background-color: #f8fafc;
-                    color: #0f172a;
-                }
-                QGroupBox {
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #64748b;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                    margin-top: 12px;
-                    padding-top: 14px;
-                }
-                QLineEdit, QComboBox {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 6px;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    selection-background-color: #ff5252;
-                    selection-color: #ffffff;
-                    border: 1px solid #cbd5e1;
-                }
-                QPushButton {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 6px;
-                    padding: 6px 16px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #f1f5f9;
-                }
-                QPushButton:disabled {
-                    background-color: #e2e8f0;
-                    color: #94a3b8;
-                }
-            """)
+    def _apply_theme(self, *args):
+        tm = ThemeManager.instance()
+        bg_app = tm.get_color("bg_main")
+        bg_panel = tm.get_color("bg_panel")
+        bg_card = tm.get_color("bg_card")
+        border = tm.get_color("border")
+        border_muted = tm.get_color("border_muted")
+        text_main = tm.get_color("text_main")
+        text_sec = tm.get_color("text_sec")
+        accent = tm.get_color("accent")
+        accent_hover = tm.get_color("accent_hover")
+
+        self.setStyleSheet(f"""
+            QDialog#FloatingToolbarSettingsDialog {{
+                background-color: {bg_app};
+                color: {text_main};
+            }}
+            QGroupBox {{
+                font-size: 11px;
+                font-weight: bold;
+                color: {text_sec};
+                border: 1px solid {border};
+                border-radius: 8px;
+                margin-top: 12px;
+                padding-top: 14px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 4px;
+            }}
+            QLineEdit, QComboBox {{
+                background-color: {bg_card};
+                color: {text_main};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 12px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {bg_card};
+                color: {text_main};
+                selection-background-color: {accent};
+                selection-color: #ffffff;
+                border: 1px solid {border};
+            }}
+            QPushButton {{
+                background-color: {bg_card};
+                color: {text_main};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 6px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {accent};
+                color: #ffffff;
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_panel};
+                color: {text_sec};
+                border-color: {border_muted};
+            }}
+        """)
+        self.btn_apply.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {accent};
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                padding: 6px 16px;
+            }}
+            QPushButton:hover {{
+                background-color: {accent_hover};
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_panel};
+                color: {text_sec};
+                border: 1px solid {border_muted};
+            }}
+        """)

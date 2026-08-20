@@ -253,7 +253,7 @@ class CurveWindow(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent, QtCore.Qt.Tool | QtCore.Qt.WindowStaysOnTopHint)
-        self.setWindowTitle("⚙ Perfis e Curvas LUT do Pincel")
+        self.setWindowTitle("Perfis e Curvas LUT do Pincel")
         self.setMinimumWidth(290)
 
         root = QtWidgets.QVBoxLayout(self)

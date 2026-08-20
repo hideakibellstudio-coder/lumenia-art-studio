@@ -151,7 +151,9 @@ class TexturePopup(QDialog):
         layout.addLayout(row_c)
 
         # Button: Carregar PNG do Papel
-        self.btn_load_c = QPushButton("📂 Carregar PNG do Papel")
+        from ui.core.icons import get_icon
+        self.btn_load_c = QPushButton("Carregar PNG do Papel")
+        self.btn_load_c.setIcon(get_icon("folder"))
         self.btn_load_c.setCursor(Qt.PointingHandCursor)
         self.btn_load_c.clicked.connect(self._on_load_paper_png)
         layout.addWidget(self.btn_load_c)

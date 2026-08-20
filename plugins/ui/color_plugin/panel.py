@@ -30,7 +30,7 @@ class ColorWheelPanel(QtWidgets.QWidget):
         self.color_wheel.colorChanged.connect(self.colorChanged.emit)
 
         # 2. Moldura Padronizada CardBox
-        card_box = PanelCardBox("🎨 Roda de Cores", self.color_wheel, self)
+        card_box = PanelCardBox("Roda de Cores", self.color_wheel, self)
 
         # 3. Scroll Area para acomodar responsivamente
         scroll = QtWidgets.QScrollArea(self)

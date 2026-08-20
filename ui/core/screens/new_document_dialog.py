@@ -11,20 +11,20 @@ from ui.core.theme.manager import ThemeManager
 
 class NewDocumentDialog(QtWidgets.QDialog):
     PRESETS = [
-        ("📐 Quadrado Padrão (600 × 600 px)", 600, 600, 72),
-        ("🖼️ Full HD (1920 × 1080 px)", 1920, 1080, 72),
-        ("🎨 4K UHD (3840 × 2160 px)", 3840, 2160, 72),
-        ("📄 A4 Ilustração (2480 × 3508 px - 300 DPI)", 2480, 3508, 300),
-        ("📱 Mobile Portrait (1080 × 1920 px)", 1080, 1920, 72),
-        ("🛠️ Customizado", 800, 800, 72),
+        ("Quadrado Padrão (600 × 600 px)", 600, 600, 72),
+        ("Full HD (1920 × 1080 px)", 1920, 1080, 72),
+        ("4K UHD (3840 × 2160 px)", 3840, 2160, 72),
+        ("A4 Ilustração (2480 × 3508 px - 300 DPI)", 2480, 3508, 300),
+        ("Mobile Portrait (1080 × 1920 px)", 1080, 1920, 72),
+        ("Customizado", 800, 800, 72),
     ]
 
     BACKGROUND_COLORS = [
-        ("⚪ Branco Neve (#FFFFFF)", (255, 255, 255, 255)),
-        ("📜 Papel Marfim (#FDF6E3)", (253, 246, 227, 255)),
-        ("🔘 Cinza Neutro (#808080)", (128, 128, 128, 255)),
-        ("⬛ Preto Escuro (#1A1A1A)", (26, 26, 26, 255)),
-        ("🏁 Transparente (Sem Fundo)", (0, 0, 0, 0)),
+        ("Branco Neve (#FFFFFF)", (255, 255, 255, 255)),
+        ("Papel Marfim (#FDF6E3)", (253, 246, 227, 255)),
+        ("Cinza Neutro (#808080)", (128, 128, 128, 255)),
+        ("Preto Escuro (#1A1A1A)", (26, 26, 26, 255)),
+        ("Transparente (Sem Fundo)", (0, 0, 0, 0)),
     ]
 
     PAPER_TEXTURES = [
@@ -59,7 +59,7 @@ class NewDocumentDialog(QtWidgets.QDialog):
         layout_main.addLayout(row_name)
 
         # Grupo: Presets e Dimensões
-        self.grp_dim = QtWidgets.QGroupBox("📐 Dimensões do Canvas")
+        self.grp_dim = QtWidgets.QGroupBox("Dimensões do Canvas")
         lay_dim = QtWidgets.QFormLayout(self.grp_dim)
         lay_dim.setSpacing(10)
 
@@ -91,7 +91,7 @@ class NewDocumentDialog(QtWidgets.QDialog):
         layout_main.addWidget(self.grp_dim)
 
         # Grupo: Propriedades do Papel de Fundo
-        self.grp_paper = QtWidgets.QGroupBox("🎨 Papel de Fundo (Layer 0)")
+        self.grp_paper = QtWidgets.QGroupBox("Papel de Fundo (Layer 0)")
         lay_paper = QtWidgets.QFormLayout(self.grp_paper)
         lay_paper.setSpacing(10)
 

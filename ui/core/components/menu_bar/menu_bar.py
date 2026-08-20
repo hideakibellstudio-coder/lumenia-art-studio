@@ -20,6 +20,7 @@ from .window_menu import WindowMenu
 from .help_menu import HelpMenu
 from .theme_menu import ThemeMenu
 from .plugins_menu import PluginsMenu
+from ui.core.icons import get_icon
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -120,6 +121,17 @@ class MenuBar(QtWidgets.QMenuBar):
         self.setup_menus()
 
     def setup_menus(self):
+        # 0. [Logo Oficial / Branding Action]
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+        icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
+        if os.path.exists(icon_path):
+            act_brand = QtGui.QAction(QtGui.QIcon(icon_path), "", self)
+            act_brand.setToolTip("Lumenia 2.0 • Clique para Sobre o Software")
+            act_brand.triggered.connect(self.aboutRequested.emit)
+            self.addAction(act_brand)
+
         # 1. [Arquivo]
         self.file_menu = FileMenu(self)
         self.file_menu.newDocumentRequested.connect(self.newDocumentRequested.emit)
@@ -220,19 +232,19 @@ class MenuBar(QtWidgets.QMenuBar):
 
         # 9. [Configurações]
         self.settings_menu = QtWidgets.QMenu("Configurações", self)
-        act_render = QtGui.QAction("🎨 Renderização & Modos de Cor...", self)
+        act_render = QtGui.QAction(get_icon("display"), "Renderização & Modos de Cor...", self)
         act_render.triggered.connect(self.renderSettingsRequested.emit)
         self.settings_menu.addAction(act_render)
 
-        act_curves = QtGui.QAction("⚙ Curvas LUT (Perfis de Pincel)...", self)
+        act_curves = QtGui.QAction(get_icon("curves"), "Curvas LUT (Perfis de Pincel)...", self)
         act_curves.triggered.connect(self.curvesLutRequested.emit)
         self.settings_menu.addAction(act_curves)
 
-        act_theme = QtGui.QAction("🎨 Personalização de Tema...", self)
+        act_theme = QtGui.QAction(get_icon("palette"), "Personalização de Tema...", self)
         act_theme.triggered.connect(self.themeSettingsRequested.emit)
         self.settings_menu.addAction(act_theme)
 
-        act_plugins = QtGui.QAction("🧩 Gerenciador de Plugins...", self)
+        act_plugins = QtGui.QAction(get_icon("plugin"), "Gerenciador de Plugins...", self)
         act_plugins.triggered.connect(self.managePluginsRequested.emit)
         self.settings_menu.addAction(act_plugins)
 

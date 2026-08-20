@@ -131,7 +131,11 @@ class BrushSettingsDialog(QtWidgets.QDialog):
         lo = QtWidgets.QHBoxLayout(bar)
         lo.setContentsMargins(10, 0, 8, 0)
 
-        icon = QtWidgets.QLabel("🖌")
+        from ui.core.icons import get_icon
+
+        icon = QtWidgets.QLabel()
+        icon.setFixedSize(16, 16)
+        icon.setPixmap(get_icon("brush").pixmap(16, 16))
         icon.setObjectName("BTitleIcon")
         title = QtWidgets.QLabel("Pincel")
         title.setObjectName("BTitleLabel")
@@ -165,11 +169,11 @@ class BrushSettingsDialog(QtWidgets.QDialog):
         from ui.core.icons import get_icon
 
         tools = [
-            ("brush",  "🖌", "Pincel",   get_icon("brush")),
-            ("eraser", "⬜", "Borracha", get_icon("eraser")),
+            ("brush",  "Pincel",   get_icon("brush")),
+            ("eraser", "Borracha", get_icon("eraser")),
         ]
         self._tool_buttons = {}
-        for tid, emoji, tooltip, icon in tools:
+        for tid, tooltip, icon in tools:
             btn = QtWidgets.QToolButton()
             btn.setFixedSize(32, 32)
             btn.setIconSize(QtCore.QSize(18, 18))

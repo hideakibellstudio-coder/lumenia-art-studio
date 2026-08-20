@@ -392,7 +392,7 @@ class NavigatorPanel(QtWidgets.QWidget):
         c_layout.addWidget(self.controls)
 
         from ui.core.widgets.card_box import PanelCardBox
-        card_box = PanelCardBox("🧭 Navegador", content_inner, self)
+        card_box = PanelCardBox("Navegador", content_inner, self)
 
         scroll = QtWidgets.QScrollArea(self)
         scroll.setWidgetResizable(True)

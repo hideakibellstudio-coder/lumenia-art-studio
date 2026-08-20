@@ -240,14 +240,16 @@ class LayerTreeView(QTreeView):
             }
         """
         
+        from ui.core.icons import get_icon
+
         if not index.isValid():
             from PySide6.QtWidgets import QMenu
             menu = QMenu(self)
             menu.setStyleSheet(ThemeManager.instance().compile_qss(menu_qss))
-            
-            act_add_layer = menu.addAction("➕ Adicionar Nova Camada")
-            act_add_group = menu.addAction("📁 Adicionar Novo Grupo")
-            
+
+            act_add_layer = menu.addAction(get_icon("plus"), "Adicionar Nova Camada")
+            act_add_group = menu.addAction(get_icon("folder"), "Adicionar Novo Grupo")
+
             action = menu.exec(event.globalPos())
             if action == act_add_layer:
                 self.addLayerRequested.emit()
@@ -265,20 +267,20 @@ class LayerTreeView(QTreeView):
 
         act_edit_filter = None
         if is_filter:
-            act_edit_filter = menu.addAction("⚙️ Editar Filtro / Ajuste...")
+            act_edit_filter = menu.addAction(get_icon("settings"), "Editar Filtro / Ajuste...")
             menu.addSeparator()
 
-        act_rename = menu.addAction("✏️ Renomear")
-        act_duplicate = menu.addAction("👥 Duplicar Camada")
+        act_rename = menu.addAction(get_icon("edit"), "Renomear")
+        act_duplicate = menu.addAction(get_icon("duplicate"), "Duplicar Camada")
         menu.addSeparator()
-        
-        act_move_up = menu.addAction("⬆️ Mover para Cima")
-        act_move_down = menu.addAction("⬇️ Mover para Baixo")
-        act_merge_down = menu.addAction("Mesclar para Baixo")
+
+        act_move_up = menu.addAction(get_icon("chevron_up"), "Mover para Cima")
+        act_move_down = menu.addAction(get_icon("chevron_down"), "Mover para Baixo")
+        act_merge_down = menu.addAction(get_icon("layer_flatten"), "Mesclar para Baixo")
         menu.addSeparator()
-        
-        act_clear = menu.addAction("🧹 Limpar Conteúdo")
-        act_delete = menu.addAction("🗑️ Excluir Camada")
+
+        act_clear = menu.addAction(get_icon("clean_layer"), "Limpar Conteúdo")
+        act_delete = menu.addAction(get_icon("trash"), "Excluir Camada")
 
         action = menu.exec(event.globalPos())
         if act_edit_filter and action == act_edit_filter:

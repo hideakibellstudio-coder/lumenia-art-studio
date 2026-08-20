@@ -17,15 +17,27 @@ from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
 
 
-class ToolHeaderLabel(QtWidgets.QLabel):
-    """Header compacto para painéis de ferramentas."""
+class ToolHeaderLabel(QtWidgets.QWidget):
+    """Header compacto com ícone vetorial SVG para painéis de ferramentas."""
 
-    def __init__(self, text: str, parent=None):
-        super().__init__(text, parent)
-        self.setStyleSheet(
-            "font-size: 10px; font-weight: bold; text-transform: uppercase; "
-            "color: #ff5252; margin-top: 1px; margin-bottom: 2px;"
-        )
+    def __init__(self, text: str, icon_name: str = "", parent=None):
+        super().__init__(parent)
+        lay = QtWidgets.QHBoxLayout(self)
+        lay.setContentsMargins(0, 1, 0, 2)
+        lay.setSpacing(4)
+
+        if icon_name:
+            icon_lbl = QtWidgets.QLabel(self)
+            icon_lbl.setFixedSize(14, 14)
+            icon = get_icon(icon_name, color="#ff5252")
+            if not icon.isNull():
+                icon_lbl.setPixmap(icon.pixmap(14, 14))
+            lay.addWidget(icon_lbl)
+
+        lbl = QtWidgets.QLabel(text.upper(), self)
+        lbl.setStyleSheet("font-size: 10px; font-weight: bold; color: #ff5252;")
+        lay.addWidget(lbl)
+        lay.addStretch()
 
 
 class ModernOptionCheckBox(QtWidgets.QCheckBox):
@@ -59,8 +71,8 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        # Header
-        layout.addWidget(ToolHeaderLabel("💧 CONTA-GOTAS"))
+        # Header com ícone vetorial
+        layout.addWidget(ToolHeaderLabel("Conta-Gotas", icon_name="eyedrop"))
 
         # Tamanho da Amostra
         row_sample = QtWidgets.QHBoxLayout()
@@ -159,7 +171,7 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
 # ── 2. OPÇÕES DO BALDE DE TINTA (BUCKET FILL) ────────────────────────────────
 
 class BucketOptionsWidget(QtWidgets.QWidget):
-    """Painel de configurações da ferramenta Balde de Tinta (Fit Compacto)."""
+    """Painel de configurações da ferramenta Balde de Tinta (Fit Compacto e Rico)."""
 
     settingsChanged = QtCore.Signal(dict)
 
@@ -174,9 +186,9 @@ class BucketOptionsWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        layout.addWidget(ToolHeaderLabel("🪣 BALDE DE TINTA"))
+        layout.addWidget(ToolHeaderLabel("Balde de Tinta", icon_name="bucket"))
 
-        # Tolerância Slider Compacto
+        # 1. Tolerância (0..100%)
         tol_layout = QtWidgets.QHBoxLayout()
         tol_layout.setContentsMargins(0, 0, 0, 0)
         tol_layout.setSpacing(4)
@@ -198,18 +210,67 @@ class BucketOptionsWidget(QtWidgets.QWidget):
         tol_layout.addWidget(self.lbl_tol_val)
         layout.addLayout(tol_layout)
 
-        # Checkboxes Compactos
+        # 2. Expansão / Sangria (-10..+10 px)
+        exp_layout = QtWidgets.QHBoxLayout()
+        exp_layout.setContentsMargins(0, 0, 0, 0)
+        exp_layout.setSpacing(4)
+        lbl_e = QtWidgets.QLabel("Exp:")
+        lbl_e.setToolTip("Expande o preenchimento sob o traço para evitar halos e linhas brancas")
+        lbl_e.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.slider_exp = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_exp.setRange(-10, 10)
+        self.slider_exp.setValue(1)
+        self.slider_exp.setFixedHeight(18)
+        self.lbl_exp_val = QtWidgets.QLabel("+1px")
+        self.lbl_exp_val.setFixedWidth(28)
+        self.lbl_exp_val.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.lbl_exp_val.setStyleSheet("font-size: 10px; font-weight: bold;")
+        self.slider_exp.valueChanged.connect(lambda v: self.lbl_exp_val.setText(f"{v:+d}px" if v != 0 else "0px"))
+        self.slider_exp.valueChanged.connect(self._emit_changes)
+
+        exp_layout.addWidget(lbl_e)
+        exp_layout.addWidget(self.slider_exp, 1)
+        exp_layout.addWidget(self.lbl_exp_val)
+        layout.addLayout(exp_layout)
+
+        # 3. Gap Closing / Fechamento de Frestas (0..5 px)
+        gap_layout = QtWidgets.QHBoxLayout()
+        gap_layout.setContentsMargins(0, 0, 0, 0)
+        gap_layout.setSpacing(4)
+        lbl_g = QtWidgets.QLabel("Gap:")
+        lbl_g.setToolTip("Fecha furos e aberturas no traço para evitar que a tinta vase para fora")
+        lbl_g.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.slider_gap = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_gap.setRange(0, 5)
+        self.slider_gap.setValue(0)
+        self.slider_gap.setFixedHeight(18)
+        self.lbl_gap_val = QtWidgets.QLabel("0px")
+        self.lbl_gap_val.setFixedWidth(28)
+        self.lbl_gap_val.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.lbl_gap_val.setStyleSheet("font-size: 10px; font-weight: bold;")
+        self.slider_gap.valueChanged.connect(lambda v: self.lbl_gap_val.setText(f"{v}px"))
+        self.slider_gap.valueChanged.connect(self._emit_changes)
+
+        gap_layout.addWidget(lbl_g)
+        gap_layout.addWidget(self.slider_gap, 1)
+        gap_layout.addWidget(self.lbl_gap_val)
+        layout.addLayout(gap_layout)
+
+        layout.addSpacing(2)
+
+        # 4. Checkboxes Compactos
         self.chk_contiguous = ModernOptionCheckBox("Contíguo (Conectado)")
         self.chk_contiguous.setChecked(True)
         self.chk_contiguous.toggled.connect(self._emit_changes)
         layout.addWidget(self.chk_contiguous)
 
-        self.chk_aa = ModernOptionCheckBox("Anti-Aliasing")
+        self.chk_aa = ModernOptionCheckBox("Anti-Aliasing Suave")
         self.chk_aa.setChecked(True)
         self.chk_aa.toggled.connect(self._emit_changes)
         layout.addWidget(self.chk_aa)
 
         self.chk_sample_all = ModernOptionCheckBox("Todas as Camadas")
+        self.chk_sample_all.setToolTip("Preencher considerando a imagem mesclada ou apenas a camada atual")
         self.chk_sample_all.setChecked(True)
         self.chk_sample_all.toggled.connect(self._emit_changes)
         layout.addWidget(self.chk_sample_all)
@@ -219,6 +280,8 @@ class BucketOptionsWidget(QtWidgets.QWidget):
     def get_settings(self) -> dict:
         return {
             "tolerance": self.slider_tol.value(),
+            "expand_px": self.slider_exp.value(),
+            "gap_closing_px": self.slider_gap.value(),
             "contiguous": self.chk_contiguous.isChecked(),
             "aa": self.chk_aa.isChecked(),
             "sample_all": self.chk_sample_all.isChecked(),
@@ -246,7 +309,7 @@ class WandOptionsWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        layout.addWidget(ToolHeaderLabel("🪄 VARINHA MÁGICA"))
+        layout.addWidget(ToolHeaderLabel("Varinha Mágica", icon_name="wand"))
 
         tol_layout = QtWidgets.QHBoxLayout()
         tol_layout.setContentsMargins(0, 0, 0, 0)
@@ -310,7 +373,7 @@ class TransformOptionsWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        layout.addWidget(ToolHeaderLabel("🔄 TRANSFORMAR"))
+        layout.addWidget(ToolHeaderLabel("Transformar", icon_name="transform"))
 
         row_mode = QtWidgets.QHBoxLayout()
         row_mode.setContentsMargins(0, 0, 0, 0)
@@ -350,7 +413,7 @@ class SelectionOptionsWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        layout.addWidget(ToolHeaderLabel("🔲 SELEÇÃO"))
+        layout.addWidget(ToolHeaderLabel("Seleção", icon_name="select_rect"))
 
         row_mode = QtWidgets.QHBoxLayout()
         row_mode.setContentsMargins(0, 0, 0, 0)

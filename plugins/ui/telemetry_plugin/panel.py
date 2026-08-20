@@ -86,7 +86,7 @@ class TelemetryPanel(QtWidgets.QWidget):
 
         lo.addStretch()
 
-        card_box = PanelCardBox("📊 Telemetria", content, self)
+        card_box = PanelCardBox("Telemetria", content, self)
         main_layout.addWidget(card_box)
 
     def _make_label(self, text: str) -> QtWidgets.QLabel:

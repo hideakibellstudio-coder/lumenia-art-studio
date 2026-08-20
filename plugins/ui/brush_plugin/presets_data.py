@@ -36,7 +36,8 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "brush",
-        "label": "🖌️ Pincel Básico",
+        "label": "Pincel Básico",
+        "icon_key": "brush",
         "engine_type": 0,  # EngineType.Brush
         "available": True,
         "blend_mode_enabled": True,
@@ -78,7 +79,8 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "pencil",
-        "label": "🖍️ Lápis & Carvão",
+        "label": "Lápis & Carvão",
+        "icon_key": "pencil",
         "engine_type": 1,  # EngineType.Pencil
         "available": True,
         "blend_mode_enabled": True,
@@ -137,7 +139,8 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "inker",
-        "label": "🖊️ Caneta & Nanquim",
+        "label": "Caneta & Nanquim",
+        "icon_key": "pen_tool",
         "engine_type": 2,  # EngineType.Inker
         "available": True,
         "blend_mode_enabled": True,
@@ -183,10 +186,11 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "eraser",
-        "label": "🧹 Borracha",
+        "label": "Borracha",
+        "icon_key": "eraser",
         "engine_type": 3,  # EngineType.Eraser
         "available": True,
-        "blend_mode_enabled": False,  # Blend mode forçado internamente (Erase)
+        "blend_mode_enabled": False,
         "visible_groups": {"size_opacity", "geometry"},
         "presets": [
             {
@@ -214,17 +218,15 @@ BRUSH_CATEGORIES = [
     },
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Categorias Futuras (available=False — aparece no combobox mas desabilitado)
-    # ─────────────────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────
     # Categoria 4: Marcador & Feltro (MarkerEngine)
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "marker",
-        "label": "🖊️ Marcador & Feltro",
+        "label": "Marcador & Feltro",
+        "icon_key": "marker",
         "engine_type": 4,  # EngineType.Marker
         "available": True,
-        "blend_mode_enabled": False,  # Blend Multiply nativo no motor
+        "blend_mode_enabled": False,
         "visible_groups": {"size_opacity", "geometry", "marker_params"},
         "presets": [
             {
@@ -259,7 +261,8 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "blur",
-        "label": "🌀 Blur / Desfoque",
+        "label": "Blur / Desfoque",
+        "icon_key": "blur",
         "engine_type": 5,  # EngineType.Blur
         "available": True,
         "blend_mode_enabled": False,
@@ -294,7 +297,8 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "smudge",
-        "label": "🌊 Smudge / Arrasto",
+        "label": "Smudge / Arrasto",
+        "icon_key": "smudge",
         "engine_type": 6,  # EngineType.Smudge
         "available": True,
         "blend_mode_enabled": False,
@@ -328,10 +332,11 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "watercolor",
-        "label": "🎨 Aquarela Realista",
+        "label": "Aquarela Realista",
+        "icon_key": "watercolor",
         "engine_type": 7,  # EngineType.Watercolor
         "available": True,
-        "blend_mode_enabled": False,  # Blend Glaze nativo no motor
+        "blend_mode_enabled": False,
         "visible_groups": {"size_opacity", "geometry", "textures", "watercolor_params"},
         "presets": [
             {
@@ -377,10 +382,11 @@ BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "id": "oil",
-        "label": "🛢️ Óleo 3D & Impasto",
+        "label": "Óleo 3D & Impasto",
+        "icon_key": "oil_impasto",
         "engine_type": 8,  # EngineType.OilImpasto
         "available": True,
-        "blend_mode_enabled": False,  # Blend Viscoso nativo no motor
+        "blend_mode_enabled": False,
         "visible_groups": {"size_opacity", "geometry", "textures", "oil_params"},
         "presets": [
             {

@@ -138,7 +138,7 @@ class LayersPanel(QWidget):
         ci_layout.addWidget(bottom_widget)
 
         from ui.core.widgets.card_box import PanelCardBox
-        card_box = PanelCardBox("🥞 Camadas", content_inner, self)
+        card_box = PanelCardBox("Camadas", content_inner, self)
         main_layout.addWidget(card_box)
 
         # Conexões de Sincronia com o Motor

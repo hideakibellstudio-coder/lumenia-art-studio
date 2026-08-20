@@ -289,21 +289,22 @@ class WorkspaceContainer(QtWidgets.QWidget):
         if hasattr(self, "secondary_toolbar") and self.secondary_toolbar.isVisible():
             sec_w = self.secondary_toolbar.width()
             sec_h = self.secondary_toolbar.height()
+            gap = 2
             if state in ("snapped_bottom", "free"):
                 sec_gx = gx + (tb_w - sec_w) // 2
-                sec_gy = gy - sec_h - 4
+                sec_gy = gy - sec_h + gap
             elif state == "snapped_top":
                 sec_gx = gx + (tb_w - sec_w) // 2
-                sec_gy = gy + tb_h + 4
+                sec_gy = gy + tb_h - gap
             elif state == "snapped_left":
-                sec_gx = gx + tb_w + 4
+                sec_gx = gx + tb_w - gap
                 sec_gy = gy + (tb_h - sec_h) // 2
             elif state == "snapped_right":
-                sec_gx = gx - sec_w - 4
+                sec_gx = gx - sec_w + gap
                 sec_gy = gy + (tb_h - sec_h) // 2
             else:
                 sec_gx = gx
-                sec_gy = gy - sec_h - 4
+                sec_gy = gy - sec_h + gap
             self.secondary_toolbar.move(sec_gx, sec_gy)
             self.secondary_toolbar.raise_()
 
@@ -468,6 +469,8 @@ class WorkspaceContainer(QtWidgets.QWidget):
         # Sincroniza ativação de ferramentas do painel de forma única sem emitir RuntimeWarning
         if hasattr(dock, "toolActivated"):
             dock.toolActivated.connect(self.select_tool, QtCore.Qt.UniqueConnection)
+        if hasattr(dock, "toolOptionsChanged"):
+            dock.toolOptionsChanged.connect(self._on_tool_settings_changed)
 
 
     def connect_properties_dock(self, dock: "PropertiesDock") -> None:
@@ -519,6 +522,8 @@ class WorkspaceContainer(QtWidgets.QWidget):
                 widget.set_layer_manager(self.active_document.layer_manager)
         elif hasattr(widget, "color_wheel") or hasattr(widget, "set_color"):
             self._color_panel = widget
+            if hasattr(widget, "colorChanged"):
+                widget.colorChanged.connect(self._on_brush_color)
             if self.active_document and hasattr(widget, "set_color"):
                 widget.set_color(getattr(self, "_saved_color", QtGui.QColor(0, 0, 0)))
 
@@ -585,26 +590,46 @@ class WorkspaceContainer(QtWidgets.QWidget):
     # ── Operações de Desfazer / Refazer ──────────────────────────────────────
 
     def undo(self) -> None:
-        """Executa a operação de desfazer no backend nativo."""
+        """Executa a operação de desfazer."""
+        cw = self.canvas_widget
+        if hasattr(cw, "_flood_layers") and cw._flood_layers:
+            layer = cw._flood_layers.pop()
+            cw._flood_redo_stack.append(layer)
+            cw.update()
+            self._on_status_notification("Preenchimento desfeito.")
+            self._on_stroke_finished_sync_previews()
+            return
+
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "undo"):
             ok = backend.undo()
             if ok:
-                self.canvas_widget.update()
+                cw.update()
                 self._on_status_notification("Desfazer executado com sucesso.")
+                self._on_stroke_finished_sync_previews()
             else:
                 self._on_status_notification("Nada a desfazer.")
 
     def redo(self) -> None:
-        """Executa a operação de refazer no backend nativo."""
+        """Executa a operação de refazer."""
+        cw = self.canvas_widget
+        if hasattr(cw, "_flood_redo_stack") and cw._flood_redo_stack:
+            layer = cw._flood_redo_stack.pop()
+            cw._flood_layers.append(layer)
+            cw.update()
+            self._on_status_notification("Preenchimento refeito.")
+            self._on_stroke_finished_sync_previews()
+            return
+
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "redo"):
             ok = backend.redo()
             if ok:
-                self.canvas_widget.update()
+                cw.update()
                 self._on_status_notification("Refazer executado com sucesso.")
+                self._on_stroke_finished_sync_previews()
             else:
                 self._on_status_notification("Nada a refazer.")
 
@@ -643,6 +668,17 @@ class WorkspaceContainer(QtWidgets.QWidget):
             self.canvas_widget.renderer.clear_canvas()
             self.canvas_widget.update()
 
+    def clear_selection(self) -> None:
+        """Desmarca/limpa a seleção ativa do documento."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "clear_selection"):
+            backend.clear_selection()
+        if hasattr(self.canvas_widget, "_selection_timer"):
+            self.canvas_widget._selection_timer.stop()
+        self.canvas_widget.update()
+        self._on_status_notification("Seleção cancelada.")
+
     def select_tool(self, tool: str) -> None:
         """
         Alterna entre as ferramentas ativas (brush, eraser, eyedrop, etc.).
@@ -663,7 +699,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
                 else:
                     self.canvas_widget.unsetCursor()
 
-            if tool == "brush":
+            if tool in ("brush", "bucket"):
                 self._apply_brush_color(self._saved_color)
             elif tool == "eraser":
                 self._apply_brush_color(QtGui.QColor("#ffffff"))
@@ -686,6 +722,11 @@ class WorkspaceContainer(QtWidgets.QWidget):
                 elif tool == "eraser":
                     win.tool_sidebar.action_brush.setChecked(False)
                     win.tool_sidebar.action_eraser.setChecked(True)
+
+            if tool == "transform":
+                self.canvas_widget.start_transform_mode()
+            elif getattr(self.canvas_widget, "_transform_active", False):
+                self.canvas_widget.commit_transform()
 
             meta = TOOL_META.get(tool, {"name": tool.capitalize(), "implemented": False})
             if not meta.get("implemented", False):
@@ -710,6 +751,21 @@ class WorkspaceContainer(QtWidgets.QWidget):
         """Chamado quando as configurações de uma ferramenta mudam na SecondaryToolBar ou no Dock."""
         if tool_id == "eyedrop":
             self.canvas_widget._eyedrop_settings.update(settings)
+        elif tool_id == "bucket":
+            self.canvas_widget._bucket_settings.update(settings)
+        elif tool_id == "wand":
+            self.canvas_widget._wand_settings.update(settings)
+        elif tool_id in ("rect_select", "ellipse_select"):
+            if not hasattr(self.canvas_widget, "_geom_select_settings"):
+                self.canvas_widget._geom_select_settings = {}
+            self.canvas_widget._geom_select_settings.update(settings)
+        elif tool_id == "lasso":
+            if not hasattr(self.canvas_widget, "_lasso_settings"):
+                self.canvas_widget._lasso_settings = {}
+            self.canvas_widget._lasso_settings.update(settings)
+        elif tool_id == "transform":
+            self.canvas_widget._transform_interp_mode = settings.get("interp_mode", 2)
+            self.canvas_widget._transform_lock_aspect = settings.get("lock_aspect", False)
 
     def _sync_navigator_to_canvas(self) -> None:
         """Lê o estado atual da câmera do canvas e empurra para o navigator."""
@@ -867,6 +923,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
         self.select_tool(tool_id)
 
     def _apply_brush_color(self, color: QtGui.QColor) -> None:
+        self.canvas_widget._active_draw_color = color
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend:
@@ -881,7 +938,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
 
     def _on_brush_color(self, color: QtGui.QColor) -> None:
         self._saved_color = color
-        if self._current_tool == "brush":
+        if self._current_tool in ("brush", "bucket"):
             self._apply_brush_color(color)
         if self._brush_dock and hasattr(self._brush_dock, "stroke_preview"):
             size_val = self._brush_dock.qs_size.value() if hasattr(self._brush_dock, "qs_size") else 60
@@ -891,6 +948,10 @@ class WorkspaceContainer(QtWidgets.QWidget):
                 opacity=opac_val,
                 color=[color.redF(), color.greenF(), color.blueF()],
             )
+        if hasattr(self, "secondary_toolbar") and self.secondary_toolbar:
+            self.secondary_toolbar.set_captured_color(color)
+        if hasattr(self, "_color_panel") and self._color_panel and hasattr(self._color_panel, "set_color"):
+            self._color_panel.set_color(color)
 
     def _on_brush_size(self, val: float) -> None:
         cw = self.canvas_widget

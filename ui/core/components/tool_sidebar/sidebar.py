@@ -10,6 +10,7 @@ class ToolSidebar(QtWidgets.QToolBar):
     zoomOutRequested = QtCore.Signal()
     resetRequested = QtCore.Signal()
     clearRequested = QtCore.Signal()
+    deselectRequested = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__("Ferramentas", parent)
@@ -78,6 +79,12 @@ class ToolSidebar(QtWidgets.QToolBar):
         action_clear = QtGui.QAction(get_icon("trash"), "Limpar Tela", self)
         action_clear.triggered.connect(self.clearRequested.emit)
         self.addAction(action_clear)
+
+        # Desmarcar Seleção
+        action_deselect = QtGui.QAction(get_icon("deselect"), "Desmarcar Seleção (Ctrl+D)", self)
+        action_deselect.setToolTip("Desmarcar Seleção (Ctrl+D)")
+        action_deselect.triggered.connect(self.deselectRequested.emit)
+        self.addAction(action_deselect)
 
     def _on_brush_triggered(self):
         self.action_brush.setChecked(True)

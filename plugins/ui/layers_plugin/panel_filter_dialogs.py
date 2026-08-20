@@ -17,12 +17,12 @@ class FilterLayerDialog(QDialog):
     """Diálogo legados de seleção do tipo de filtro de camada."""
 
     FILTERS = [
-        ("brightness", "🌕  Brilho / Contraste"),
-        ("huesat",     "🎨  Matiz / Saturação / Luminosidade"),
-        ("pixelate",   "⬛  Pixelizar"),
-        ("invert",     "🔄  Inverter Cores"),
-        ("sharpen",    "🔍  Nitidez (Sharpen)"),
-        ("vignette",   "🌑  Vinheta"),
+        ("brightness", "Brilho / Contraste"),
+        ("huesat",     "Matiz / Saturação / Luminosidade"),
+        ("pixelate",   "Pixelizar"),
+        ("invert",     "Inverter Cores"),
+        ("sharpen",    "Nitidez (Sharpen)"),
+        ("vignette",   "Vinheta"),
     ]
 
     def __init__(self, parent=None):
@@ -103,7 +103,7 @@ class FilterParamsDialog(QDialog):
         self._params = [0.0] * 8
 
         label = self.LABELS.get(filter_type, "Filtro")
-        self.setWindowTitle(f"🎛️  {label}")
+        self.setWindowTitle(f"Ajuste de Filtro — {label}")
         self.setMinimumWidth(340)
         self.setModal(True)
 

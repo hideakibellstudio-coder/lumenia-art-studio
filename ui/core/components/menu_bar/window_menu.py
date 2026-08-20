@@ -4,11 +4,12 @@ WindowMenu — Menu Janela
 Gerencia visibilidade de painéis e configurações de docas:
   - Alternar painéis individuais (Pincel, Cores, Camadas, Navegador…)
   - Recolher / Expandir todas as sidebars
-  - Configurações da Barra de Gavetas
+  - Configurações da Barra de Gavetas e Barra Flutuante
 """
 from __future__ import annotations
 
 from PySide6 import QtGui, QtWidgets, QtCore
+from ui.core.icons import get_icon
 
 
 class WindowMenu(QtWidgets.QMenu):
@@ -31,23 +32,23 @@ class WindowMenu(QtWidgets.QMenu):
 
     def _setup_actions(self) -> None:
         # ── Painéis ────────────────────────────────────────────────────
-        self.addSection("Painéis")
+        self.addSection("Painéis de Ferramentas")
 
-        self._add_panel_action("brush_plugin",    "🖌️ Pincel && Ferramentas", "left",  "Alt+B")
-        self._add_panel_action("color_plugin",    "🎨 Cores",                 "left",  "Alt+C")
-        self._add_panel_action("layers_plugin",   "🥞 Camadas",               "right", "Alt+L")
-        self._add_panel_action("navigator_plugin","🧭 Navegador",             "right", "Alt+N")
+        self._add_panel_action("brush_plugin",    "Pincel & Ferramentas", "left",  "Alt+B", icon="brush")
+        self._add_panel_action("color_plugin",    "Cores & Harmonias",    "left",  "Alt+C", icon="palette")
+        self._add_panel_action("layers_plugin",   "Camadas",              "right", "Alt+L", icon="layers")
+        self._add_panel_action("navigator_plugin","Navegador do Canvas",  "right", "Alt+N", icon="navigator")
 
         # ── Sidebar ────────────────────────────────────────────────────
         self.addSeparator()
         self.addSection("Barras Laterais")
 
-        act_collapse = QtGui.QAction("Recolher Todas as Barras", self)
+        act_collapse = QtGui.QAction(get_icon("chevron_down"), "Recolher Todas as Barras", self)
         act_collapse.setShortcut("Alt+[")
         act_collapse.triggered.connect(self.collapse_all_sidebars_requested.emit)
         self.addAction(act_collapse)
 
-        act_expand = QtGui.QAction("Expandir Todas as Barras", self)
+        act_expand = QtGui.QAction(get_icon("chevron_up"), "Expandir Todas as Barras", self)
         act_expand.setShortcut("Alt+]")
         act_expand.triggered.connect(self.expand_all_sidebars_requested.emit)
         self.addAction(act_expand)
@@ -55,11 +56,11 @@ class WindowMenu(QtWidgets.QMenu):
         # ── Configurações ──────────────────────────────────────────────
         self.addSeparator()
 
-        act_ft_settings = QtGui.QAction("Barra Flutuante…", self)
+        act_ft_settings = QtGui.QAction(get_icon("tools"), "Barra Flutuante de Ferramentas…", self)
         act_ft_settings.triggered.connect(self.floating_toolbar_settings_requested.emit)
         self.addAction(act_ft_settings)
 
-        act_settings = QtGui.QAction("Configurações de Gavetas…", self)
+        act_settings = QtGui.QAction(get_icon("settings"), "Configurações de Gavetas & Docking…", self)
         act_settings.triggered.connect(self.dock_settings_requested.emit)
         self.addAction(act_settings)
 
@@ -69,8 +70,10 @@ class WindowMenu(QtWidgets.QMenu):
         label: str,
         default_side: str,
         shortcut: str | None = None,
+        icon: str | None = None
     ) -> None:
-        act = QtGui.QAction(label, self)
+        act_icon = get_icon(icon) if icon else QtGui.QIcon()
+        act = QtGui.QAction(act_icon, label, self) if not act_icon.isNull() else QtGui.QAction(label, self)
         act.setCheckable(True)
         if shortcut:
             act.setShortcut(shortcut)
@@ -97,7 +100,8 @@ class WindowMenu(QtWidgets.QMenu):
         label: str,
         side: str,
         shortcut: str | None = None,
+        icon: str | None = None
     ) -> None:
         """Permite que plugins registrem dinamicamente painéis no menu."""
         if panel_id not in self._panel_actions:
-            self._add_panel_action(panel_id, label, side, shortcut)
+            self._add_panel_action(panel_id, label, side, shortcut, icon)

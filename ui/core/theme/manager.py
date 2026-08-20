@@ -14,19 +14,30 @@ class ThemeManager(QtCore.QObject):
     ALIASES = {
         "bg_main": "BG_DARKEST",
         "bg_panel": "BG_DARKER",
+        "bg_card": "BG_MID",
+        "bg_card_hover": "BG_TERTIARY",
+        "bg_input": "BG_DARK",
         "border": "BORDER",
         "border_color": "BORDER",
         "border_control": "BORDER_LIGHT",
+        "border_muted": "BORDER_LIGHT",
         "text_main": "FG_PRIMARY",
         "text_sec": "FG_SECONDARY",
+        "text_muted": "FG_TERTIARY",
         "accent": "ACCENT",
         "accent_hover": "ACCENT_HOVER",
         "accent_bg": "ACCENT_MUTED",
         "accent_muted": "ACCENT_MUTED",
+        "accent_text": "FG_PRIMARY",
         "bg_hover": "BG_TERTIARY",
         "bg_mid": "BG_MID",
         "slider_groove": "BG_DARK",
-        "slider_handle": "ACCENT"
+        "slider_handle": "ACCENT",
+        "badge_bg": "ACCENT_MUTED",
+        "badge_text": "ACCENT",
+        "danger": "DANGER",
+        "success": "SUCCESS",
+        "warning": "WARNING",
     }
     REVERSE_ALIASES = {v: k for k, v in ALIASES.items()}
 
@@ -230,7 +241,7 @@ class ThemeManager(QtCore.QObject):
         rev_alias = self.REVERSE_ALIASES.get(token)
         if rev_alias and rev_alias in colors:
             return colors[rev_alias]
-            
+
         # Fallback de correspondência de mapa
         fallback_map = {
             "BG_DARKEST": "bg_main",
@@ -252,20 +263,41 @@ class ThemeManager(QtCore.QObject):
             "BORDER_LIGHT": "border_control",
             "SLIDER_GROOVE": "slider_groove",
             "SLIDER_HANDLE": "slider_handle",
-            "BORDER_CONTROL": "border_control"
+            "BORDER_CONTROL": "border_control",
+            "BG_CARD": "bg_panel",
+            "BG_INPUT": "bg_main",
+            "BORDER_MUTED": "border",
+            "ACCENT_TEXT": "text_main",
+            "BADGE_BG": "accent_bg",
+            "BADGE_TEXT": "accent",
         }
         fb_token = fallback_map.get(token)
         if fb_token and fb_token in colors:
             return colors[fb_token]
 
-        return "#000000"
+        # Fallback padrão baseado no brilho do tema (is_dark)
+        is_dark = self.is_dark
+        if token.startswith("BG") or "bg" in token:
+            return "#121212" if is_dark else "#f8fafc"
+        if token.startswith("FG") or "text" in token:
+            return "#ffffff" if is_dark else "#18181b"
+        if "border" in token:
+            return "#27272a" if is_dark else "#e2e8f0"
+        if "accent" in token:
+            return "#ff5252"
 
-    def get_color(self, name: str, fallback: str = "#000000") -> str:
-        """Retorna a cor Hex correspondente ao token solicitado com fallback opcional."""
+        return "#121212" if is_dark else "#ffffff"
+
+    def get_color(self, name: str, fallback: str = None) -> str:
+        """Retorna a cor Hex correspondente ao token solicitado com fallback opcional inteligente."""
         theme = self._themes.get(self._current_theme, self._themes.get("dark_default", {}))
         if not theme:
-            return fallback
+            return fallback if fallback else ("#121212" if self.is_dark else "#ffffff")
         colors = theme.get("colors", {})
         res = self.resolve_color(name, colors)
-        return res if res != "#000000" else fallback
+        if res and res != "#000000":
+            return res
+        if fallback:
+            return fallback
+        return res
 

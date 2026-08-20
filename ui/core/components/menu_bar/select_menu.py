@@ -7,6 +7,7 @@ Expõe ações de seleção global, desseleção, inversão, modificação e var
 from __future__ import annotations
 
 from PySide6 import QtWidgets, QtGui, QtCore
+from ui.core.icons import get_icon
 
 
 class SelectMenu(QtWidgets.QMenu):
@@ -24,17 +25,17 @@ class SelectMenu(QtWidgets.QMenu):
 
     def setup_actions(self):
         # 1. Seleções Globais
-        act_all = QtGui.QAction("🔲 Selecionar Tudo", self)
+        act_all = QtGui.QAction(get_icon("select_rect"), "Selecionar Tudo", self)
         act_all.setShortcut("Ctrl+A")
         act_all.triggered.connect(self.selectAllRequested.emit)
         self.addAction(act_all)
 
-        act_desel = QtGui.QAction("✖ Desmarcar Seleção", self)
+        act_desel = QtGui.QAction(get_icon("close"), "Desmarcar Seleção", self)
         act_desel.setShortcut("Ctrl+D")
         act_desel.triggered.connect(self.deselectRequested.emit)
         self.addAction(act_desel)
 
-        act_inv = QtGui.QAction("🔄 Inverter Seleção", self)
+        act_inv = QtGui.QAction(get_icon("rotate_cw"), "Inverter Seleção", self)
         act_inv.setShortcut("Ctrl+Shift+I")
         act_inv.triggered.connect(self.invertSelectionRequested.emit)
         self.addAction(act_inv)
@@ -42,17 +43,18 @@ class SelectMenu(QtWidgets.QMenu):
         self.addSeparator()
 
         # 2. Modificações de Seleção
-        menu_modify = QtWidgets.QMenu("📐 Modificar Seleção", self)
+        menu_modify = QtWidgets.QMenu("Modificar Seleção", self)
+        menu_modify.setIcon(get_icon("ruler"))
 
-        act_expand = QtGui.QAction("Expandir Seleção...", self)
+        act_expand = QtGui.QAction(get_icon("plus"), "Expandir Seleção...", self)
         act_expand.triggered.connect(self.expandSelectionRequested.emit)
         menu_modify.addAction(act_expand)
 
-        act_contract = QtGui.QAction("Contrair Seleção...", self)
+        act_contract = QtGui.QAction(get_icon("transform"), "Contrair Seleção...", self)
         act_contract.triggered.connect(self.contractSelectionRequested.emit)
         menu_modify.addAction(act_contract)
 
-        act_feather = QtGui.QAction("Suavizar Borda (Feather)...", self)
+        act_feather = QtGui.QAction(get_icon("blur"), "Suavizar Borda (Feather)...", self)
         act_feather.setShortcut("Shift+F6")
         act_feather.triggered.connect(self.featherSelectionRequested.emit)
         menu_modify.addAction(act_feather)
@@ -61,8 +63,7 @@ class SelectMenu(QtWidgets.QMenu):
 
         self.addSeparator()
 
-        # 3. Ferramenta Varinha Mágica
-        act_wand = QtGui.QAction("🪄 Selecionar por Cor (Varinha Mágica)", self)
+        act_wand = QtGui.QAction(get_icon("wand"), "Selecionar por Cor Contígua (Varinha Mágica)", self)
         act_wand.setShortcut("W")
         act_wand.triggered.connect(self.magicWandRequested.emit)
         self.addAction(act_wand)

@@ -195,13 +195,21 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
         left_layout.setSpacing(8)
 
         # Header
-        title_lbl = QtWidgets.QLabel("🔮 GALERIA DE FILTROS")
+        title_box = QtWidgets.QHBoxLayout()
+        icon_gallery = QtWidgets.QLabel()
+        icon_gallery.setFixedSize(16, 16)
+        icon_gallery.setPixmap(get_icon("filter").pixmap(16, 16))
+        title_lbl = QtWidgets.QLabel("GALERIA DE FILTROS")
         title_lbl.setStyleSheet("font-size: 13px; font-weight: bold; text-transform: uppercase;")
-        left_layout.addWidget(title_lbl)
+        title_box.addWidget(icon_gallery)
+        title_box.addWidget(title_lbl)
+        title_box.addStretch()
+        left_layout.addLayout(title_box)
 
         # Search bar
         self.search_input = QtWidgets.QLineEdit()
         self.search_input.setPlaceholderText("Pesquisar ajuste...")
+        self.search_input.addAction(get_icon("search"), QtWidgets.QLineEdit.LeadingPosition)
         self.search_input.textChanged.connect(self._filter_cards)
         left_layout.addWidget(self.search_input)
 
@@ -240,7 +248,7 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(10)
 
-        self.inspector_title = QtWidgets.QLabel("⚙️ PARÂMETROS DO FILTRO")
+        self.inspector_title = QtWidgets.QLabel("PARÂMETROS DO FILTRO")
         self.inspector_title.setStyleSheet("font-size: 13px; font-weight: bold;")
         right_layout.addWidget(self.inspector_title)
 
@@ -270,20 +278,9 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
         btn_cancel = QtWidgets.QPushButton("Cancelar")
         btn_cancel.clicked.connect(self.reject)
         
-        self.btn_apply = QtWidgets.QPushButton("➕ Criar Camada de Ajuste")
+        self.btn_apply = QtWidgets.QPushButton("Criar Camada de Ajuste")
+        self.btn_apply.setIcon(get_icon("plus"))
         self.btn_apply.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_apply.setStyleSheet("""
-            QPushButton {
-                background-color: #6366f1;
-                color: #ffffff;
-                font-weight: bold;
-                padding: 6px 16px;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #4f46e5;
-            }
-        """)
         self.btn_apply.clicked.connect(self._create_layer)
 
         btn_box.addWidget(btn_cancel)
@@ -297,7 +294,7 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
         for card in self.cards:
             card.set_selected(card.filter_def["key"] == fdef["key"])
 
-        self.inspector_title.setText(f"⚙️ {fdef['name'].upper()}")
+        self.inspector_title.setText(fdef["name"].upper())
         self.inspector_desc.setText(fdef["description"])
 
         # Recontrói a lista de parâmetros na coluna da direita

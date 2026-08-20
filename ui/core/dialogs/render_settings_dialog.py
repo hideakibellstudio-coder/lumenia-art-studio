@@ -1,7 +1,7 @@
 """
 RenderSettingsDialog — Central de Renderização, Perfis de Cor & Prova de Impressão (Lumenia V2)
 ================================================================================================
-Interface moderna de 2 colunas no padrão Lumenia V2 (inspirada no PluginsWindow e FilterDialog):
+Interface moderna de 2 colunas no padrão Lumenia V2:
   - Coluna da Esquerda: Categorias (Digital RGB, Impressão CMYK, Daltonismo, Motor), busca e cards de perfis.
   - Coluna da Direita: Inspector detalhado com especificações técnicas, controle de renderização (Baixa Latência,
     Gama Linear, Deep Color 64-bit) e faixa de pré-visualização de gamut / prova de cores em tempo real.
@@ -12,38 +12,10 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
-
-
-# ── SWITCH ESTILO LUMENIA V2 / INFINITE PAINTER ──────────────────────────────
-
-class ModernToggleSwitch(QtWidgets.QCheckBox):
-    """Switch animado estilo iOS / Infinite Painter."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setCursor(QtCore.Qt.PointingHandCursor)
-        self.setFixedSize(46, 24)
-
-    def paintEvent(self, event):
-        p = QtGui.QPainter(self)
-        p.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        checked = self.isChecked()
-        track_color = QtGui.QColor("#ff5252") if checked else QtGui.QColor("#404040")
-        thumb_color = QtGui.QColor("#ffffff")
-
-        # Track
-        p.setPen(QtCore.Qt.NoPen)
-        p.setBrush(QtGui.QBrush(track_color))
-        p.drawRoundedRect(0, 2, 44, 20, 10, 10)
-
-        # Thumb
-        p.setBrush(QtGui.QBrush(thumb_color))
-        thumb_x = 24 if checked else 2
-        p.drawEllipse(thumb_x, 1, 20, 20)
-        p.end()
+from ui.core.icons import get_icon
 
 
 # ── FAIXA DE PRÉ-VISUALIZAÇÃO DE PROVA DE COR (PROOFING SPECTRUM BAR) ─────────
@@ -61,6 +33,8 @@ class ProofingPreviewBar(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, event):
+        from ui.core.engine.color_profile import ColorProfileEngine
+
         p = QtGui.QPainter(self)
         p.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -92,16 +66,9 @@ class ProofingPreviewBar(QtWidgets.QWidget):
         img_painter.fillRect(0, 0, w, h, QtGui.QBrush(grad))
         img_painter.end()
 
-        # Transforma os pixels via backend nativo se perfil ativo for diferente de sRGB
-        backend = EngineRegistry.instance().get_backend()
-        if self._profile_id != 0 and backend and hasattr(backend, "_native") and backend._native:
-            try:
-                ptr = img.bits()
-                backend._native.ColorProfileManager.transform_buffer(
-                    ptr, ptr, w * h, self._profile_id
-                )
-            except Exception:
-                pass
+        # Aplica a transformação vetorizada em tempo real
+        if self._profile_id != 0:
+            img = ColorProfileEngine.transform_qimage(img, self._profile_id)
 
         p.drawImage(0, 0, img)
         p.setClipping(False)
@@ -131,21 +98,29 @@ class ProfileCard(QtWidgets.QFrame):
         ThemeManager.instance().themeChanged.connect(self.update_style)
         self.update_style()
 
+    def _get_category_icon_name(self, cat: str) -> str:
+        if "Digital" in cat:
+            return "display"
+        elif "Impressão" in cat:
+            return "printer"
+        elif "Acessibilidade" in cat:
+            return "eye"
+        return "color_wheel"
+
     def _build_ui(self):
         self.setFixedHeight(64)
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(10)
 
-        # Ícone de categoria
-        self.icon_label = QtWidgets.QLabel()
-        self.icon_label.setFixedSize(32, 32)
+        # Ícone de categoria vetorial
         cat = self.profile_data.get("category", "")
-        icon_char = "🖥" if "Digital" in cat else ("🖨" if "Impressão" in cat else ("👁" if "Acessibilidade" in cat else "◐"))
-        self.icon_label.setText(icon_char)
-        self.icon_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.icon_label.setStyleSheet("font-size: 16px; background-color: rgba(255,255,255,0.06); border-radius: 6px;")
-        layout.addWidget(self.icon_label)
+        self.icon_btn = QtWidgets.QToolButton()
+        self.icon_btn.setFixedSize(32, 32)
+        self.icon_btn.setIconSize(QtCore.QSize(18, 18))
+        self.icon_btn.setIcon(get_icon(self._get_category_icon_name(cat)))
+        self.icon_btn.setStyleSheet("border: none; background-color: rgba(255,255,255,0.06); border-radius: 6px;")
+        layout.addWidget(self.icon_btn)
 
         # Textos
         text_layout = QtWidgets.QVBoxLayout()
@@ -184,15 +159,15 @@ class ProfileCard(QtWidgets.QFrame):
             self.selected.emit(self.profile_data)
 
     def update_style(self):
-        is_dark = getattr(ThemeManager.instance(), "is_dark", True)
+        tm = ThemeManager.instance()
         if self.is_selected:
-            bg = "#2a3441" if is_dark else "#e2e8f0"
-            border = "#ff5252"
+            bg = tm.get_color("bg_card_hover")
+            border = tm.get_color("accent")
         else:
-            bg = "#1e1e1e" if is_dark else "#ffffff"
-            border = "#2e2e2e" if is_dark else "#e0e0e0"
+            bg = tm.get_color("bg_card")
+            border = tm.get_color("border")
 
-        text_color = "#ffffff" if is_dark else "#1a202c"
+        text_color = tm.get_color("text_main")
 
         self.setStyleSheet(f"""
             ProfileCard {{
@@ -206,6 +181,38 @@ class ProfileCard(QtWidgets.QFrame):
         """)
 
 
+_SETTINGS_ORG = "Lumenia"
+_SETTINGS_APP = "LumeniaApp"
+
+
+def load_render_settings() -> dict:
+    """Carrega as configurações salvas de renderização e perfil de cor."""
+    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+    s.beginGroup("RenderSettings")
+    profile_id = s.value("profile_id", 0, type=int)
+    low_latency = s.value("low_latency", True, type=bool)
+    linear_gamma = s.value("linear_gamma", False, type=bool)
+    deep_color = s.value("deep_color", True, type=bool)
+    s.endGroup()
+    return {
+        "profile_id": profile_id,
+        "low_latency": low_latency,
+        "linear_gamma": linear_gamma,
+        "deep_color": deep_color,
+    }
+
+
+def save_render_settings(cfg: dict) -> None:
+    """Salva as configurações de renderização e perfil de cor no QSettings."""
+    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+    s.beginGroup("RenderSettings")
+    s.setValue("profile_id", int(cfg.get("profile_id", 0)))
+    s.setValue("low_latency", bool(cfg.get("low_latency", True)))
+    s.setValue("linear_gamma", bool(cfg.get("linear_gamma", False)))
+    s.setValue("deep_color", bool(cfg.get("deep_color", True)))
+    s.endGroup()
+
+
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
 
 class RenderSettingsDialog(QtWidgets.QDialog):
@@ -215,6 +222,7 @@ class RenderSettingsDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("RenderSettingsDialog")
         self.setWindowTitle("Configurações de Renderização & Modos de Cor")
         self.setFixedSize(820, 560)
         self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
@@ -223,6 +231,7 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         self._cards: List[ProfileCard] = []
         self._selected_profile: dict = {}
         self._active_profile_id: int = 0
+        self._saved_cfg: dict = load_render_settings()
 
         self._load_data()
         self._setup_ui()
@@ -234,14 +243,19 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         if backend and hasattr(backend, "get_available_color_profiles"):
             self._all_profiles = backend.get_available_color_profiles()
         else:
-            self._all_profiles = [
-                {"id": 0, "name": "Padrão (sRGB)", "category": "Digital (RGB)", "description": "Espaço de cor universal padrão para telas"}
-            ]
+            from ui.engine_backends.aladyn import AladynBackend
+            self._all_profiles = AladynBackend().get_available_color_profiles()
 
+        # Prioriza o perfil ativo salvo no backend ou nas preferências persistentes
         if backend and hasattr(backend, "get_color_profile"):
-            self._active_profile_id = backend.get_color_profile()
+            backend_pid = backend.get_color_profile()
+            self._active_profile_id = backend_pid if backend_pid != 0 else self._saved_cfg.get("profile_id", 0)
         else:
-            self._active_profile_id = 0
+            self._active_profile_id = self._saved_cfg.get("profile_id", 0)
+
+        # Sincroniza o backend se necessário
+        if backend and hasattr(backend, "set_color_profile"):
+            backend.set_color_profile(self._active_profile_id)
 
         # Seleção inicial = perfil ativo
         for p in self._all_profiles:
@@ -256,7 +270,7 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(16)
 
-        # ── COLUNA DA ESQUERDA (320px) ──────────────────────────────────────
+        # ── COLUNA DA ESQUERDA (330px) ──────────────────────────────────────
         left_col = QtWidgets.QWidget()
         left_col.setFixedWidth(330)
         left_layout = QtWidgets.QVBoxLayout(left_col)
@@ -269,15 +283,16 @@ class RenderSettingsDialog(QtWidgets.QDialog):
             "Todas as Categorias",
             "Digital (RGB)",
             "Impressão (CMYK)",
-            "Escala de Cinza",
-            "Acessibilidade"
+            "Acessibilidade",
+            "Motor Físico"
         ])
         self.combo_cat.currentIndexChanged.connect(self._filter_profiles)
         left_layout.addWidget(self.combo_cat)
 
-        # Campo de busca
+        # Campo de busca com ícone SVG
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("🔍 Buscar perfil de cor...")
+        self.search_box.setPlaceholderText("Buscar perfil de cor...")
+        self.search_box.addAction(get_icon("search"), QtWidgets.QLineEdit.LeadingPosition)
         self.search_box.textChanged.connect(self._filter_profiles)
         left_layout.addWidget(self.search_box)
 
@@ -305,10 +320,11 @@ class RenderSettingsDialog(QtWidgets.QDialog):
 
         # Header do Perfil Selecionado
         header_box = QtWidgets.QHBoxLayout()
-        self.lbl_insp_icon = QtWidgets.QLabel("🖥")
+        self.lbl_insp_icon = QtWidgets.QToolButton()
         self.lbl_insp_icon.setFixedSize(44, 44)
-        self.lbl_insp_icon.setAlignment(QtCore.Qt.AlignCenter)
-        self.lbl_insp_icon.setStyleSheet("font-size: 22px; background: rgba(255,255,255,0.08); border-radius: 8px;")
+        self.lbl_insp_icon.setIconSize(QtCore.QSize(24, 24))
+        self.lbl_insp_icon.setIcon(get_icon("display"))
+        self.lbl_insp_icon.setStyleSheet("border: none; background: rgba(255,255,255,0.08); border-radius: 8px;")
         header_box.addWidget(self.lbl_insp_icon)
 
         title_box = QtWidgets.QVBoxLayout()
@@ -336,7 +352,7 @@ class RenderSettingsDialog(QtWidgets.QDialog):
 
         # Barra de Simulação / Prova de Cores
         lbl_bar = QtWidgets.QLabel("Simulação de Gamut & Prova de Cores (Soft Proofing):")
-        lbl_bar.setStyleSheet("font-size: 11px; font-weight: bold; color: #cbd5e1; margin-top: 4px;")
+        lbl_bar.setStyleSheet("font-size: 11px; font-weight: bold; margin-top: 4px;")
         right_layout.addWidget(lbl_bar)
 
         self.preview_bar = ProofingPreviewBar()
@@ -352,8 +368,9 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         row_lat = QtWidgets.QHBoxLayout()
         lbl_lat_title = QtWidgets.QLabel("Modo de Baixa Latência (Ultra-Low Latency)")
         lbl_lat_title.setToolTip("Bypass na fila de sincronização para resposta em < 4ms")
-        self.switch_lat = ModernToggleSwitch()
-        self.switch_lat.setChecked(True)
+        self.switch_lat = ToggleSwitch()
+        self.switch_lat.setChecked(self._saved_cfg.get("low_latency", True))
+        self.switch_lat.toggled.connect(self._save_switch_settings)
         row_lat.addWidget(lbl_lat_title)
         row_lat.addStretch()
         row_lat.addWidget(self.switch_lat)
@@ -363,8 +380,9 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         row_gam = QtWidgets.QHBoxLayout()
         lbl_gam_title = QtWidgets.QLabel("Correção Gama Linear (sRGB Physical Blending)")
         lbl_gam_title.setToolTip("Composição física no espaço linear eliminando bordas escuras")
-        self.switch_gam = ModernToggleSwitch()
-        self.switch_gam.setChecked(False)
+        self.switch_gam = ToggleSwitch()
+        self.switch_gam.setChecked(self._saved_cfg.get("linear_gamma", False))
+        self.switch_gam.toggled.connect(self._save_switch_settings)
         row_gam.addWidget(lbl_gam_title)
         row_gam.addStretch()
         row_gam.addWidget(self.switch_gam)
@@ -374,8 +392,9 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         row_deep = QtWidgets.QHBoxLayout()
         lbl_deep_title = QtWidgets.QLabel("Deep Color 64-bit (Half-Float RGBA16F Precision)")
         lbl_deep_title.setToolTip("Elimina 100% de banding em gradientes suaves e aquarelas")
-        self.switch_deep = ModernToggleSwitch()
-        self.switch_deep.setChecked(True)
+        self.switch_deep = ToggleSwitch()
+        self.switch_deep.setChecked(self._saved_cfg.get("deep_color", True))
+        self.switch_deep.toggled.connect(self._save_switch_settings)
         row_deep.addWidget(lbl_deep_title)
         row_deep.addStretch()
         row_deep.addWidget(self.switch_deep)
@@ -386,7 +405,8 @@ class RenderSettingsDialog(QtWidgets.QDialog):
 
         # Botões de Ação na base
         btn_box = QtWidgets.QHBoxLayout()
-        self.btn_apply = QtWidgets.QPushButton("✓ Aplicar como Modo Ativo")
+        self.btn_apply = QtWidgets.QPushButton("Aplicar como Modo Ativo")
+        self.btn_apply.setIcon(get_icon("check"))
         self.btn_apply.setFixedHeight(34)
         self.btn_apply.clicked.connect(self._on_apply_profile)
         btn_box.addWidget(self.btn_apply)
@@ -404,27 +424,38 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         self._build_cards()
         self._select_profile(self._selected_profile)
 
+    def _save_switch_settings(self, *args):
+        """Salva o estado atual dos switches no QSettings."""
+        cfg = {
+            "profile_id": self._active_profile_id,
+            "low_latency": self.switch_lat.isChecked(),
+            "linear_gamma": self.switch_gam.isChecked(),
+            "deep_color": self.switch_deep.isChecked(),
+        }
+        self._saved_cfg = cfg
+        save_render_settings(cfg)
+
     def _build_cards(self):
-        # Limpa cards existentes
         for card in self._cards:
             card.deleteLater()
         self._cards.clear()
 
-        # Remove itens do layout
         while self.cards_layout.count() > 1:
             item = self.cards_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
 
-        for prof in self._all_profiles:
-            is_sel = (prof.get("id") == self._selected_profile.get("id"))
-            is_act = (prof.get("id") == self._active_profile_id)
-            card = ProfileCard(prof, is_selected=is_sel, is_active=is_act)
+        for profile in self._all_profiles:
+            card = ProfileCard(
+                profile_data=profile,
+                is_selected=(profile.get("id") == self._selected_profile.get("id")),
+                is_active=(profile.get("id") == self._active_profile_id)
+            )
             card.selected.connect(self._select_profile)
             self._cards.append(card)
             self.cards_layout.insertWidget(self.cards_layout.count() - 1, card)
 
-    def _filter_profiles(self):
+    def _filter_profiles(self, *args):
         cat_filter = self.combo_cat.currentText()
         query = self.search_box.text().strip().lower()
 
@@ -442,34 +473,46 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         self._selected_profile = profile_data
         pid = profile_data.get("id", 0)
 
-        # Atualiza seleção visual dos cards
         for card in self._cards:
             card.is_selected = (card.profile_data.get("id") == pid)
             card.update_style()
 
-        # Atualiza Inspector
         cat = profile_data.get("category", "")
         self.lbl_insp_title.setText(profile_data.get("name", "Perfil"))
         self.lbl_insp_cat.setText(cat.upper())
         self.lbl_insp_desc.setText(profile_data.get("description", ""))
 
-        icon_char = "🖥" if "Digital" in cat else ("🖨" if "Impressão" in cat else ("👁" if "Acessibilidade" in cat else "◐"))
-        self.lbl_insp_icon.setText(icon_char)
+        # Ícone vetorial dinâmico
+        if "Digital" in cat:
+            self.lbl_insp_icon.setIcon(get_icon("display"))
+        elif "Impressão" in cat:
+            self.lbl_insp_icon.setIcon(get_icon("printer"))
+        elif "Acessibilidade" in cat:
+            self.lbl_insp_icon.setIcon(get_icon("eye"))
+        else:
+            self.lbl_insp_icon.setIcon(get_icon("color_wheel"))
 
-        # Atualiza preview bar
         self.preview_bar.set_profile(pid)
 
-        # Atualiza botão
         if pid == self._active_profile_id:
-            self.btn_apply.setText("✓ Modo de Cor Ativo")
+            self.btn_apply.setText("Modo de Cor Ativo")
             self.btn_apply.setEnabled(False)
         else:
-            self.btn_apply.setText("✓ Aplicar como Modo Ativo")
+            self.btn_apply.setText("Aplicar como Modo Ativo")
             self.btn_apply.setEnabled(True)
 
     def _on_apply_profile(self):
         pid = self._selected_profile.get("id", 0)
         self._active_profile_id = pid
+
+        cfg = {
+            "profile_id": pid,
+            "low_latency": self.switch_lat.isChecked(),
+            "linear_gamma": self.switch_gam.isChecked(),
+            "deep_color": self.switch_deep.isChecked(),
+        }
+        self._saved_cfg = cfg
+        save_render_settings(cfg)
 
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "set_color_profile"):
@@ -481,102 +524,85 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         self._select_profile(self._selected_profile)
         self.profileChanged.emit(pid)
 
-    def _apply_theme(self):
-        is_dark = getattr(ThemeManager.instance(), "is_dark", True)
-        if is_dark:
-            self.setStyleSheet("""
-                QDialog {
-                    background-color: #18181b;
-                    color: #f4f4f5;
-                }
-                QGroupBox {
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #a1a1aa;
-                    border: 1px solid #27272a;
-                    border-radius: 8px;
-                    margin-top: 12px;
-                    padding-top: 14px;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    left: 10px;
-                    padding: 0 4px;
-                }
-                QLineEdit, QComboBox {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    border: 1px solid #3f3f46;
-                    border-radius: 6px;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    selection-background-color: #ff5252;
-                    border: 1px solid #3f3f46;
-                }
-                QPushButton {
-                    background-color: #27272a;
-                    color: #f4f4f5;
-                    border: 1px solid #3f3f46;
-                    border-radius: 6px;
-                    padding: 6px 16px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #3f3f46;
-                }
-                QPushButton:disabled {
-                    background-color: #1f1f23;
-                    color: #71717a;
-                    border-color: #27272a;
-                }
-            """)
-        else:
-            self.setStyleSheet("""
-                QDialog {
-                    background-color: #f8fafc;
-                    color: #0f172a;
-                }
-                QGroupBox {
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #64748b;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                    margin-top: 12px;
-                    padding-top: 14px;
-                }
-                QLineEdit, QComboBox {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 6px;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    selection-background-color: #ff5252;
-                    selection-color: #ffffff;
-                    border: 1px solid #cbd5e1;
-                }
-                QPushButton {
-                    background-color: #ffffff;
-                    color: #0f172a;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 6px;
-                    padding: 6px 16px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #f1f5f9;
-                }
-                QPushButton:disabled {
-                    background-color: #e2e8f0;
-                    color: #94a3b8;
-                }
-            """)
+    def _apply_theme(self, *args):
+        tm = ThemeManager.instance()
+        bg_app = tm.get_color("bg_main")
+        bg_panel = tm.get_color("bg_panel")
+        bg_card = tm.get_color("bg_card")
+        border = tm.get_color("border")
+        border_muted = tm.get_color("border_muted")
+        text_main = tm.get_color("text_main")
+        text_sec = tm.get_color("text_sec")
+        accent = tm.get_color("accent")
+        accent_hover = tm.get_color("accent_hover")
+
+        self.setStyleSheet(f"""
+            QDialog#RenderSettingsDialog {{
+                background-color: {bg_app};
+                color: {text_main};
+            }}
+            QGroupBox {{
+                font-size: 11px;
+                font-weight: bold;
+                color: {text_sec};
+                border: 1px solid {border};
+                border-radius: 8px;
+                margin-top: 12px;
+                padding-top: 14px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 4px;
+            }}
+            QLineEdit, QComboBox {{
+                background-color: {bg_card};
+                color: {text_main};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 12px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {bg_card};
+                color: {text_main};
+                selection-background-color: {accent};
+                selection-color: #ffffff;
+                border: 1px solid {border};
+            }}
+            QPushButton {{
+                background-color: {bg_card};
+                color: {text_main};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 6px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {accent};
+                color: #ffffff;
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_panel};
+                color: {text_sec};
+                border-color: {border_muted};
+            }}
+        """)
+        self.btn_apply.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {accent};
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                padding: 6px 16px;
+            }}
+            QPushButton:hover {{
+                background-color: {accent_hover};
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_panel};
+                color: {text_sec};
+                border: 1px solid {border_muted};
+            }}
+        """)

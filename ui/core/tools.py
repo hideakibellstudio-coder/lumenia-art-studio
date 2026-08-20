@@ -14,13 +14,13 @@ TOOL_META: Dict[str, Dict[str, str]] = {
     "brush": {"name": "Pincel", "icon": "brush", "implemented": True},
     "eraser": {"name": "Borracha", "icon": "eraser", "implemented": True},
     "smudge": {"name": "Smudge", "icon": "smudge", "implemented": False},
-    "bucket": {"name": "Balde de Tinta", "icon": "bucket", "implemented": False},
+    "bucket": {"name": "Balde de Tinta", "icon": "bucket", "implemented": True},
     "eyedrop": {"name": "Conta-Gotas", "icon": "eyedrop", "implemented": True},
-    "wand": {"name": "Varinha Mágica", "icon": "wand", "implemented": False},
-    "transform": {"name": "Transformar", "icon": "transform", "implemented": False},
-    "rect_select": {"name": "Seleção Retangular", "icon": "rect_select", "implemented": False},
-    "ellipse_select": {"name": "Seleção Elíptica", "icon": "ellipse_select", "implemented": False},
-    "lasso": {"name": "Laço de Seleção", "icon": "lasso", "implemented": False},
+    "wand": {"name": "Varinha Mágica", "icon": "wand", "implemented": True},
+    "transform": {"name": "Transformar", "icon": "transform", "implemented": True},
+    "rect_select": {"name": "Seleção Retangular", "icon": "select_rect", "implemented": True},
+    "ellipse_select": {"name": "Seleção Elíptica", "icon": "select_ellipse", "implemented": True},
+    "lasso": {"name": "Laço de Seleção", "icon": "lasso", "implemented": True},
 }
 
 DEFAULT_TOOLS = list(TOOL_META.keys())

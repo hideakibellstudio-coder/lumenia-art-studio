@@ -283,11 +283,13 @@ class DrawerHeader(QtWidgets.QWidget):
 
         self.title_label = QtWidgets.QLabel(title.upper(), self)
 
+        from ui.core.icons import get_icon
         self.btn_pin = QtWidgets.QToolButton(self)
         self.btn_pin.setCheckable(True)
         self.btn_pin.setToolTip("Fixar Doca no Layout (Pin)")
         self.btn_pin.setFixedSize(24, 24)
-        self.btn_pin.setText("📌")
+        self.btn_pin.setIconSize(QtCore.QSize(14, 14))
+        self.btn_pin.setIcon(get_icon("pin"))
         self.btn_pin.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_pin.toggled.connect(self.pin_toggled)
 
@@ -303,7 +305,6 @@ class DrawerHeader(QtWidgets.QWidget):
             layout.addWidget(self.btn_pin)
             layout.addWidget(self.title_label)
             layout.addStretch()
-
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
         self._apply_style()

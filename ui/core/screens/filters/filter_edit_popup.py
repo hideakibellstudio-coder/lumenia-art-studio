@@ -48,9 +48,17 @@ class FilterEditPopup(QtWidgets.QDialog):
         layout.setSpacing(12)
 
         # Header
-        header_lbl = QtWidgets.QLabel(f"⚙️ {self.fdef['name'].upper()}")
+        from ui.core.icons import get_icon
+        header_box = QtWidgets.QHBoxLayout()
+        header_icon = QtWidgets.QLabel()
+        header_icon.setFixedSize(16, 16)
+        header_icon.setPixmap(get_icon("settings").pixmap(16, 16))
+        header_lbl = QtWidgets.QLabel(self.fdef['name'].upper())
         header_lbl.setStyleSheet("font-size: 13px; font-weight: bold;")
-        layout.addWidget(header_lbl)
+        header_box.addWidget(header_icon)
+        header_box.addWidget(header_lbl)
+        header_box.addStretch()
+        layout.addLayout(header_box)
 
         desc_lbl = QtWidgets.QLabel(self.fdef["description"])
         desc_lbl.setWordWrap(True)

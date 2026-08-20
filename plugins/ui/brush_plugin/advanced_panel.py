@@ -45,7 +45,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
         backend = EngineRegistry.instance().get_backend()
 
         if engine_type == 1:  # Pencil
-            lbl = QtWidgets.QLabel("🖍️ Parâmetros de Lápis & Carvão")
+            lbl = QtWidgets.QLabel("Parâmetros de Lápis & Carvão")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 
@@ -58,7 +58,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             self.layout.addWidget(chk_tilt)
 
         elif engine_type == 2:  # Inker
-            lbl = QtWidgets.QLabel("🖊️ Parâmetros de Caneta & Nanquim")
+            lbl = QtWidgets.QLabel("Parâmetros de Caneta & Nanquim")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 
@@ -71,7 +71,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             self.layout.addWidget(sl_taper)
 
         elif engine_type == 4:  # Marker
-            lbl = QtWidgets.QLabel("🖊️ Parâmetros de Marcador & Feltro")
+            lbl = QtWidgets.QLabel("Parâmetros de Marcador & Feltro")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 
@@ -84,7 +84,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             self.layout.addWidget(sl_edge)
 
         elif engine_type == 5:  # Blur
-            lbl = QtWidgets.QLabel("🌀 Parâmetros de Blur / Desfoque")
+            lbl = QtWidgets.QLabel("Parâmetros de Blur / Desfoque")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 
@@ -97,7 +97,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             self.layout.addWidget(sl_str)
 
         elif engine_type == 6:  # Smudge
-            lbl = QtWidgets.QLabel("🌊 Parâmetros de Smudge / Arrasto")
+            lbl = QtWidgets.QLabel("Parâmetros de Smudge / Arrasto")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 
@@ -114,7 +114,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             self.layout.addWidget(sl_str)
 
         elif engine_type == 7:  # Watercolor
-            lbl = QtWidgets.QLabel("🎨 Parâmetros de Aquarela Realista")
+            lbl = QtWidgets.QLabel("Parâmetros de Aquarela Realista")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 
@@ -135,7 +135,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             self.layout.addWidget(sl_gran)
 
         elif engine_type == 8:  # OilImpasto
-            lbl = QtWidgets.QLabel("🛢️ Parâmetros de Óleo 3D & Impasto")
+            lbl = QtWidgets.QLabel("Parâmetros de Óleo 3D & Impasto")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 
@@ -156,7 +156,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             self.layout.addWidget(sl_spec)
 
         else:
-            lbl = QtWidgets.QLabel("💨 Parâmetros de Borrifo / Spray (Pincel Básico)")
+            lbl = QtWidgets.QLabel("Parâmetros de Borrifo / Spray (Pincel Básico)")
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
 

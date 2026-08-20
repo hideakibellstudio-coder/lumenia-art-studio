@@ -146,9 +146,11 @@ class PluginManager:
 
 
     def discover_plugins(self) -> None:
-
         """Executa a descoberta e ativação inicial no boot da aplicação."""
         self.rescan_plugins()
+
+        # Cache de instâncias temporárias para metadados/prioridade no boot
+        self._temp_plugin_cache: dict[str, BasePlugin] = {}
 
         try:
             load_order = self._resolve_load_order()
@@ -159,31 +161,41 @@ class PluginManager:
         for name in load_order:
             cls = self.discovered_plugins[name]
             is_system = False
-            try:
-                temp_inst = cls()
-                is_system = temp_inst.is_system_plugin()
-            except Exception as e:
-                logger.error(f"Erro ao verificar se {name} é plugin de sistema: {e}")
+            if name in self._temp_plugin_cache:
+                is_system = self._temp_plugin_cache[name].is_system_plugin()
+            else:
+                try:
+                    temp_inst = cls()
+                    is_system = temp_inst.is_system_plugin()
+                except Exception as e:
+                    logger.error(f"Erro ao verificar se {name} é plugin de sistema: {e}")
 
             if is_system or self.enabled_plugins_config.get(name, False):
                 success = self.enable_plugin(name)
                 if not success and is_system:
                     raise RuntimeError(f"FALHA CRÍTICA NO BOOT: O plugin de sistema '{name}' falhou ao ativar.")
 
+        self._temp_plugin_cache.clear()
+
     def _resolve_load_order(self) -> list[str]:
         id_to_classname = {}
         for classname, cls in self.discovered_plugins.items():
             try:
-                plugin_id = cls().get_metadata().id
+                inst = cls()
+                self._temp_plugin_cache[classname] = inst
+                plugin_id = inst.get_metadata().id
                 id_to_classname[plugin_id] = classname
             except Exception:
                 pass
 
         def get_priority_key(name):
-            try:
-                return self.discovered_plugins[name]().get_priority()
-            except Exception:
-                return 0
+            inst = self._temp_plugin_cache.get(name)
+            if inst:
+                try:
+                    return inst.get_priority()
+                except Exception:
+                    pass
+            return 0
 
         sorted_names = sorted(self.discovered_plugins.keys(), key=get_priority_key, reverse=True)
 
@@ -198,11 +210,13 @@ class PluginManager:
 
             visited[name] = 0
 
-            try:
-                temp_inst = self.discovered_plugins[name]()
-                deps = temp_inst.get_metadata().dependencies
-            except Exception:
-                deps = []
+            inst = self._temp_plugin_cache.get(name)
+            deps = []
+            if inst:
+                try:
+                    deps = inst.get_metadata().dependencies
+                except Exception:
+                    deps = []
 
             for dep_id in deps:
                 if dep_id in id_to_classname:

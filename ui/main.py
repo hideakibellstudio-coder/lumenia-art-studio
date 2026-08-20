@@ -49,7 +49,8 @@ if __name__ == "__main__":
     for pct, msg in modules:
         splash.set_progress(pct, msg)
         logger.info(f"[{pct}%] {msg}")
-        time.sleep(0.08)
+        QtCore.QThread.msleep(25)
+        app.processEvents()
 
     # ── 3. Constrói a Janela Principal e faz o Fade-out do Splash ─────────
     window = MainWindow()

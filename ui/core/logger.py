@@ -42,10 +42,6 @@ class SeniorConsoleFormatter(logging.Formatter):
     """Formatador de console com cores ANSI e metadados estruturados."""
 
     def format(self, record: logging.LogRecord) -> str:
-        # Habilita cores no console Windows (se necessário)
-        if sys.platform == "win32":
-            os.system("")
-
         # Nível de Cor
         level_color = getattr(ANSI, record.levelname, ANSI.RESET)
         level_badge = f"{level_color}[{record.levelname:<8}]{ANSI.RESET}"
@@ -159,6 +155,19 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
     - Exception Hook Global.
     - Qt Message Handler.
     """
+    # Habilita suporte a sequências ANSI no Windows sem criar subprocessos
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            # STD_OUTPUT_HANDLE = -11, ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+            h_stdout = kernel32.GetStdHandle(-11)
+            mode = ctypes.c_ulong()
+            if kernel32.GetConsoleMode(h_stdout, ctypes.byref(mode)):
+                kernel32.SetConsoleMode(h_stdout, mode.value | 0x0004)
+        except Exception:
+            pass
+
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
     root_logger.handlers.clear()

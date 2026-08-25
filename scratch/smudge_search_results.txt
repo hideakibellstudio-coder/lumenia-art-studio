@@ -1,0 +1,289 @@
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\setup.py:23: "engine/core/engines/BlurEngine.cpp",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\setup.py:24: "engine/core/engines/SmudgeEngine.cpp",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:45: .value("Blur",       brush::EngineType::Blur)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:46: .value("Smudge",     brush::EngineType::Smudge)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:153: py::class_<brush::BlurParams>(m, "BlurParams")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:155: .def_readwrite("blur_radius",   &brush::BlurParams::blurRadius)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:156: .def_readwrite("blur_strength", &brush::BlurParams::blurStrength);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:158: py::class_<brush::SmudgeParams>(m, "SmudgeParams")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:160: .def_readwrite("color_pickup",    &brush::SmudgeParams::colorPickup)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:161: .def_readwrite("mix_ratio",       &brush::SmudgeParams::mixRatio)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:162: .def_readwrite("smudge_stretch",  &brush::SmudgeParams::smudgeStretch);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:218: .def_readwrite("blur_params",       &brush::BrushProfile::blurParams)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\bridge\core\bindings\engine_bindings.cpp:219: .def_readwrite("smudge_params",     &brush::BrushProfile::smudgeParams)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:11: #include "../../core/engines/BlurEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:12: #include "../../core/engines/SmudgeEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:50: case brush::EngineType::Blur:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:51: m_activeEngine = std::make_unique<engines::BlurEngine>();
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:53: case brush::EngineType::Smudge:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:54: m_activeEngine = std::make_unique<engines::SmudgeEngine>();
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:777: // ─── Decide o destino dos dabs: scratch (maioria dos motores) ou camada direta (Blur/Smudge)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:781: // Para motores sem scratch (Blur/Smudge), grava undo dos tiles antes de desenhar
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:816: // Blur/Smudge recebem a camada real como targetGrid; os demais recebem o scratch.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:817: // compositeBuffer (m_outputBuffer) é sempre passado para Blur/Smudge o usarem.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:837: // Blur/Smudge: composição normal pois já escreveram direto na camada
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:876: case brush::EngineType::Blur:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:877: engine = std::make_unique<engines::BlurEngine>();
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:879: case brush::EngineType::Smudge:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:880: engine = std::make_unique<engines::SmudgeEngine>();
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:891: // Se for Eraser/Blur/Smudge, cria uma base colorida bonita para demonstrar o efeito
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:893: profile.engineType == brush::EngineType::Blur ||
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\boundary\public-api\PaintEngineFacade.cpp:894: profile.engineType == brush::EngineType::Smudge) {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:20: Blur      = 5,   // Blur / Desfoque (Fase 2)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:21: Smudge    = 6,   // Smudge / Arrasto (Fase 3)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:46: // ─── PARÂMETROS EXCLUSIVOS — BLUR (Fase 2) ────────────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:47: struct BlurParams {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:48: int    blurRadius{2};         // Raio do kernel Gaussiano (1-5)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:49: double blurStrength{0.7};     // Intensidade da mistura (0-1)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:52: // ─── PARÂMETROS EXCLUSIVOS — SMUDGE (Fase 3) ──────────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:53: struct SmudgeParams {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:56: double smudgeStretch{1.0};    // Fator de alongamento/arrasto
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:132: BlurParams       blurParams;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\brush\BrushProfile.hpp:133: SmudgeParams     smudgeParams;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\document\FilterLayer.cpp:21: case FilterType::GaussianBlur:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\document\FilterLayer.hpp:13: GaussianBlur = 2,       // Desfoque Gaussiano / Movimento
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\document\LayerStack.hpp:21: //   para motores como Blur e Smudge (isolados do fundo branco do papel).
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.cpp:1: #include "BlurEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.cpp:26: void BlurEngine::renderDab(
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.cpp:40: const int blurRadiusCfg = std::clamp(profile.blurParams.blurRadius, 1, 5);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.cpp:41: const double blurStr    = std::clamp(profile.blurParams.blurStrength, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.cpp:45: static_cast<int>(std::round(r * 0.20 * static_cast<double>(blurRadiusCfg))),
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.cpp:48: const double sigma = std::max(0.8, static_cast<double>(kernelR) * (0.35 + blurStr * 0.45));
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.cpp:174: const double mixFactor = dab.opacity * shapeAlpha * blurStr;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:1: #ifndef ALADYN_ENGINE_BLUR_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:2: #define ALADYN_ENGINE_BLUR_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:10: // ─── MINI-MOTOR DE BLUR / DESFOQUE (BlurEngine) ────────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:16: //   profile.blurParams.blurRadius   (1 a 5 pixels de raio de vizinhança)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:17: //   profile.blurParams.blurStrength (intensidade da mesclagem 0.0 a 1.0)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:22: class BlurEngine final : public IBrushEngine {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:24: BlurEngine() = default;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:36: return brush::EngineType::Blur;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:39: // Blur lê do compositeBuffer e escreve direto na camada ativa — sem scratch.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\BlurEngine.hpp:45: #endif // ALADYN_ENGINE_BLUR_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\IBrushEngine.hpp:29: //   - BlurEngine  → lê compositeBuffer, aplica kernel Gaussiano, escreve no tileGrid.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\IBrushEngine.hpp:30: //   - SmudgeEngine → lê compositeBuffer (coleta cor), deposita cor carregada no tileGrid.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\IBrushEngine.hpp:44: // Motores stateful (Smudge, Watercolor) podem resetar buffers internos aqui.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\IBrushEngine.hpp:54: // (ao invés de direto na camada ativa). Blur e Smudge retornam false porque
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.cpp:1: #include "SmudgeEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.cpp:77: void SmudgeEngine::renderDab(
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.cpp:91: const double pickup  = std::clamp(profile.smudgeParams.colorPickup, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.cpp:92: const double mixRate = std::clamp(profile.smudgeParams.mixRatio, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.cpp:93: const double stretch = std::clamp(profile.smudgeParams.smudgeStretch, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:1: #ifndef ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:2: #define ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:11: // ─── MINI-MOTOR DE SMUDGE / ARRASTO (SmudgeEngine) ──────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:17: //   profile.smudgeParams.colorPickup    (quantidade de cor coletada da tela)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:18: //   profile.smudgeParams.mixRatio       (mistura entre cor mantida vs cor de destino)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:19: //   profile.smudgeParams.smudgeStretch  (fator de retenção/alongamento do arrasto)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:24: class SmudgeEngine final : public IBrushEngine {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:26: SmudgeEngine() = default;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:38: return brush::EngineType::Smudge;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:41: // Smudge precisa ler/escrever direto na camada ativa para arrastar tinta — sem scratch.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\engine\core\engines\SmudgeEngine.hpp:57: #endif // ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\system\workspace_core\workspace\floating_toolbar.py:123: shadow.setBlurRadius(10)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\system\workspace_core\workspace\pill_handle.py:48: shadow.setBlurRadius(6)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\system\workspace_core\workspace\secondary_tool_bar.py:96: shadow.setBlurRadius(10)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\system\workspace_core\workspace\canvas\render_widget.py:1654: # 8. Pintura Nativa (Brush / Eraser / Smudge)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:6: - Tab "Dinâmica por Motor": Parâmetros exclusivos do mini-motor nativo ativo (Lápis, Nanquim, Marcad
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:86: elif engine_type == 5:  # Blur
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:87: lbl = QtWidgets.QLabel("Parâmetros de Blur / Desfoque")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:92: sl_rad.valueChanged.connect(lambda v: self._set_blur_radius(backend, int(v)))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:95: sl_str = LabeledSlider("Força do Blur:", 1, 100, 60, "%")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:96: sl_str.valueChanged.connect(lambda v: self._set_blur_strength(backend, v / 100.0))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:99: elif engine_type == 6:  # Smudge
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:100: lbl = QtWidgets.QLabel("Parâmetros de Smudge / Arrasto")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:105: sl_pick.valueChanged.connect(lambda v: self._set_smudge_pick(backend, v / 100.0))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:109: sl_mix.valueChanged.connect(lambda v: self._set_smudge_mix(backend, v / 100.0))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:113: sl_str.valueChanged.connect(lambda v: self._set_smudge_stretch(backend, v / 100.0))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:200: def _set_blur_radius(self, b, v):
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:202: b._facade.get_brush_profile().blur_params.blur_radius = int(v)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:204: def _set_blur_strength(self, b, v):
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:206: b._facade.get_brush_profile().blur_params.blur_strength = float(v)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:208: def _set_smudge_pick(self, b, v):
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:210: b._facade.get_brush_profile().smudge_params.color_pickup = float(v)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:212: def _set_smudge_mix(self, b, v):
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:214: b._facade.get_brush_profile().smudge_params.mix_ratio = float(v)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:216: def _set_smudge_stretch(self, b, v):
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\advanced_panel.py:218: b._facade.get_brush_profile().smudge_params.smudge_stretch = float(v)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:38: "Desfoque Suave": "Blur Suave",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:39: "Desfoque Intenso": "Blur Forte",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:40: "Desfoque de Borda (Foco)": "Blur Foco",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:95: self.categories_keys = ["brush", "pencil", "inker", "eraser", "marker", "blur", "smudge", "watercolo
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:103: "blur": {"label": "Blur", "icon": "cat_efeitos"},
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:104: "smudge": {"label": "Smudge", "icon": "cat_smudges"},
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:123: shadow.setBlurRadius(10)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:325: "smudge": None,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:346: elif tool_id == "smudge":
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:347: preset_info = get_default_preset_for_category("smudge")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\brush_dropdown.py:359: cat_id = preset_info.get("category_id", tool_id if tool_id in ["eraser", "smudge"] else "brush")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\panel.py:361: "smudge": self.brush_props_widget,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:29: "blur_params",      # Raio + Força do Blur (exclusivo Blur) [Fase 2]
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:30: "smudge_params",    # Coleta de Cor + Mix + Arrasto (exclusivo Smudge) [Fase 3]
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:260: # Categoria 5: Blur / Desfoque (BlurEngine)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:263: "id": "blur",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:264: "label": "Blur / Desfoque",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:265: "icon_key": "blur",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:266: "engine_type": 5,  # EngineType.Blur
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:269: "visible_groups": {"size_opacity", "blur_params"},
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:276: "blur_radius": 2, "blur_strength": 0.7,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:283: "blur_radius": 4, "blur_strength": 0.95,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:290: "blur_radius": 2, "blur_strength": 0.5,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:296: # Categoria 6: Smudge / Arrasto (SmudgeEngine)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:299: "id": "smudge",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:300: "label": "Smudge / Arrasto",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:301: "icon_key": "smudge",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:302: "engine_type": 6,  # EngineType.Smudge
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:305: "visible_groups": {"size_opacity", "geometry", "smudge_params"},
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:312: "smudge_color_pickup": 0.7, "smudge_mix_ratio": 0.5, "smudge_stretch": 0.8,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:319: "smudge_color_pickup": 0.85, "smudge_mix_ratio": 0.7, "smudge_stretch": 0.9,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\presets_data.py:326: "smudge_color_pickup": 0.5, "smudge_mix_ratio": 0.4, "smudge_stretch": 0.5,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\plugins\ui\brush_plugin\stroke_preview.py:5: OilImpasto, Inker, Marker, Blur, Smudge) usando o pipeline C++ nativo.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\scripts\generate_github_dashboard.py:110: backdrop-filter: blur(8px);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\icons.py:188: "smudge": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="current
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\icons.py:192: "blur": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentCo
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\icons.py:394: "cat_smudges": "smudge",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\tools.py:16: "smudge": {"name": "Smudge", "icon": "smudge", "implemented": False},
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\splash_screen.py:51: shadow.setBlurRadius(24)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\menu_bar\filter_menu.py:15: gaussianBlurRequested        = QtCore.Signal()
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\menu_bar\filter_menu.py:36: act_blur = QtGui.QAction(get_icon("blur"), "Desfoque Gaussiano (Blur)...", self)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\menu_bar\filter_menu.py:37: act_blur.triggered.connect(self.gaussianBlurRequested.emit)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\menu_bar\filter_menu.py:38: self.addAction(act_blur)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\menu_bar\menu_bar.py:84: gaussianBlurRequested        = QtCore.Signal()
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\menu_bar\menu_bar.py:205: self.filter_menu.gaussianBlurRequested.connect(self.gaussianBlurRequested.emit)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\components\menu_bar\select_menu.py:57: act_feather = QtGui.QAction(get_icon("blur"), "Suavizar Borda (Feather)...", self)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui\core\widgets\shape_dropdown.py:55: shadow.setBlurRadius(16)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\setup.py:26: "engine/core/engines/BlurEngine.cpp",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\setup.py:27: "engine/core/engines/SmudgeEngine.cpp",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:44: .value("Blur",       brush::EngineType::Blur)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:45: .value("Smudge",     brush::EngineType::Smudge)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:133: py::class_<brush::BlurParams>(m, "BlurParams")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:135: .def_readwrite("blur_radius",   &brush::BlurParams::blurRadius)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:136: .def_readwrite("blur_strength", &brush::BlurParams::blurStrength);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:138: py::class_<brush::SmudgeParams>(m, "SmudgeParams")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:140: .def_readwrite("color_pickup",    &brush::SmudgeParams::colorPickup)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:141: .def_readwrite("mix_ratio",       &brush::SmudgeParams::mixRatio)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:142: .def_readwrite("smudge_stretch",  &brush::SmudgeParams::smudgeStretch);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:198: .def_readwrite("blur_params",       &brush::BrushProfile::blurParams)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\bridge\core\bindings\engine_bindings.cpp:199: .def_readwrite("smudge_params",     &brush::BrushProfile::smudgeParams)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\boundary\public-api\PaintEngineFacade.cpp:10: #include "../../core/engines/BlurEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\boundary\public-api\PaintEngineFacade.cpp:11: #include "../../core/engines/SmudgeEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\boundary\public-api\PaintEngineFacade.cpp:52: case brush::EngineType::Blur:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\boundary\public-api\PaintEngineFacade.cpp:53: m_activeEngine = std::make_unique<engines::BlurEngine>();
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\boundary\public-api\PaintEngineFacade.cpp:55: case brush::EngineType::Smudge:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\boundary\public-api\PaintEngineFacade.cpp:56: m_activeEngine = std::make_unique<engines::SmudgeEngine>();
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:20: Blur      = 5,   // Blur / Desfoque (Fase 2)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:21: Smudge    = 6,   // Smudge / Arrasto (Fase 3)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:46: // ─── PARÂMETROS EXCLUSIVOS — BLUR (Fase 2) ────────────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:47: struct BlurParams {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:48: int    blurRadius{2};         // Raio do kernel Gaussiano (1-5)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:49: double blurStrength{0.7};     // Intensidade da mistura (0-1)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:52: // ─── PARÂMETROS EXCLUSIVOS — SMUDGE (Fase 3) ──────────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:53: struct SmudgeParams {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:56: double smudgeStretch{1.0};    // Fator de alongamento/arrasto
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:128: BlurParams       blurParams;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\brush\BrushProfile.hpp:129: SmudgeParams     smudgeParams;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\document\FilterLayer.cpp:21: case FilterType::GaussianBlur:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\document\FilterLayer.hpp:13: GaussianBlur = 2,       // Desfoque Gaussiano / Movimento
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\document\LayerStack.hpp:21: //   para motores como Blur e Smudge (isolados do fundo branco do papel).
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:1: #include "BlurEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:11: void BlurEngine::renderDab(
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:34: const int blurR = std::clamp(profile.blurParams.blurRadius, 1, 5);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:35: const double blurStr = std::clamp(profile.blurParams.blurStrength, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:71: const double mixFactor = dab.opacity * shapeAlpha * blurStr;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:79: for (int ky = -blurR; ky <= blurR; ++ky) {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:81: for (int kx = -blurR; kx <= blurR; ++kx) {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.cpp:97: const double w = std::exp(-(kx * kx + ky * ky) / (2.0 * blurR * blurR));
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:1: #ifndef ALADYN_ENGINE_BLUR_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:2: #define ALADYN_ENGINE_BLUR_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:10: // ─── MINI-MOTOR DE BLUR / DESFOQUE (BlurEngine) ────────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:16: //   profile.blurParams.blurRadius   (1 a 5 pixels de raio de vizinhança)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:17: //   profile.blurParams.blurStrength (intensidade da mesclagem 0.0 a 1.0)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:22: class BlurEngine final : public IBrushEngine {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:24: BlurEngine() = default;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:36: return brush::EngineType::Blur;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\BlurEngine.hpp:42: #endif // ALADYN_ENGINE_BLUR_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\IBrushEngine.hpp:29: //   - BlurEngine  → lê compositeBuffer, aplica kernel Gaussiano, escreve no tileGrid.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\IBrushEngine.hpp:30: //   - SmudgeEngine → lê compositeBuffer (coleta cor), deposita cor carregada no tileGrid.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\IBrushEngine.hpp:44: // Motores stateful (Smudge, Watercolor) podem resetar buffers internos aqui.
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.cpp:1: #include "SmudgeEngine.hpp"
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.cpp:11: void SmudgeEngine::renderDab(
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.cpp:45: const double pickup = std::clamp(profile.smudgeParams.colorPickup, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.cpp:46: const double mixRatio = std::clamp(profile.smudgeParams.mixRatio, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.cpp:47: const double stretch = std::clamp(profile.smudgeParams.smudgeStretch, 0.0, 1.0);
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:1: #ifndef ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:2: #define ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:10: // ─── MINI-MOTOR DE SMUDGE / ARRASTO (SmudgeEngine) ──────────────────────────
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:16: //   profile.smudgeParams.colorPickup    (quantidade de cor coletada da tela)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:17: //   profile.smudgeParams.mixRatio       (mistura entre cor mantida vs cor de destino)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:18: //   profile.smudgeParams.smudgeStretch  (fator de retenção/alongamento do arrasto)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:23: class SmudgeEngine final : public IBrushEngine {
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:25: SmudgeEngine() = default;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:37: return brush::EngineType::Smudge;
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\engines\SmudgeEngine.hpp:51: #endif // ALADYN_ENGINE_SMUDGE_ENGINE_HPP
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\raster\SelectionEngine.cpp:232: // Passagem 1: Horizontal Box Blur
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\engine\core\raster\SelectionEngine.cpp:253: // Passagem 2: Vertical Box Blur
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:29: "blur_params",      # Raio + Força do Blur (exclusivo Blur) [Fase 2]
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:30: "smudge_params",    # Coleta de Cor + Mix + Arrasto (exclusivo Smudge) [Fase 3]
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:258: # Categoria 5: Blur / Desfoque (BlurEngine)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:261: "id": "blur",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:262: "label": "🌀 Blur / Desfoque",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:263: "engine_type": 5,  # EngineType.Blur
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:266: "visible_groups": {"size_opacity", "blur_params"},
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:273: "blur_radius": 2, "blur_strength": 0.6,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:280: "blur_radius": 4, "blur_strength": 0.9,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:287: "blur_radius": 2, "blur_strength": 0.4,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:293: # Categoria 6: Smudge / Arrasto (SmudgeEngine)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:296: "id": "smudge",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:297: "label": "🌊 Smudge / Arrasto",
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:298: "engine_type": 6,  # EngineType.Smudge
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:301: "visible_groups": {"size_opacity", "geometry", "smudge_params"},
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:308: "smudge_color_pickup": 0.7, "smudge_mix_ratio": 0.5, "smudge_stretch": 0.8,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:315: "smudge_color_pickup": 0.85, "smudge_mix_ratio": 0.7, "smudge_stretch": 0.9,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\data\brush_presets.py:322: "smudge_color_pickup": 0.5, "smudge_mix_ratio": 0.4, "smudge_stretch": 0.5,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:243: # Grupo: Parâmetros do Desfoque (blur_params) — Dinâmico
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:244: self.grp_blur = QGroupBox("⚙ Parâmetros de Desfoque")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:246: self.lbl_blur_r = QLabel(); self.sld_blur_r = self._slider(1, 5, int(profile.blur_params.blur_radius
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:247: self.lbl_blur_str = QLabel(); self.sld_blur_str = self._slider(0, 100, int((profile.blur_params.blur
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:248: self._atualizar_label_blur_r(self.sld_blur_r.value())
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:249: self._atualizar_label_blur_str(self.sld_blur_str.value())
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:250: for w in [self.lbl_blur_r, self.sld_blur_r, self.lbl_blur_str, self.sld_blur_str]:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:252: self.grp_blur.setLayout(lay_blr)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:254: # Grupo: Parâmetros do Arrasto (smudge_params) — Dinâmico
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:255: self.grp_smudge = QGroupBox("⚙ Parâmetros do Arrasto")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:257: self.lbl_pickup = QLabel(); self.sld_pickup = self._slider(0, 100, int((profile.smudge_params.color_
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:258: self.lbl_mix = QLabel(); self.sld_mix = self._slider(0, 100, int((profile.smudge_params.mix_ratio if
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:259: self.lbl_stretch = QLabel(); self.sld_stretch = self._slider(0, 100, int((profile.smudge_params.smud
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:265: self.grp_smudge.setLayout(lay_smd)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:300: self.grp_pencil, self.grp_inker, self.grp_marker, self.grp_blur, self.grp_smudge,
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:430: self.grp_blur.setVisible("blur_params" in groups)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:431: self.grp_smudge.setVisible("smudge_params" in groups)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:506: # Parâmetros exclusivos do Blur
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:507: if "blur_radius" in p:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:508: profile.blur_params.blur_radius = int(p["blur_radius"])
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:509: self.sld_blur_r.setValue(int(p["blur_radius"]))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:510: if "blur_strength" in p:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:511: profile.blur_params.blur_strength = float(p["blur_strength"])
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:512: self.sld_blur_str.setValue(int(p["blur_strength"] * 100))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:514: # Parâmetros exclusivos do Smudge
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:515: if "smudge_color_pickup" in p:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:516: profile.smudge_params.color_pickup = float(p["smudge_color_pickup"])
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:517: self.sld_pickup.setValue(int(p["smudge_color_pickup"] * 100))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:518: if "smudge_mix_ratio" in p:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:519: profile.smudge_params.mix_ratio = float(p["smudge_mix_ratio"])
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:520: self.sld_mix.setValue(int(p["smudge_mix_ratio"] * 100))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:521: if "smudge_stretch" in p:
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:522: profile.smudge_params.smudge_stretch = float(p["smudge_stretch"])
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:523: self.sld_stretch.setValue(int(p["smudge_stretch"] * 100))
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:637: def alterar_blur_r(self, v):
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:639: if p: p.blur_params.blur_radius = v
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:640: self._atualizar_label_blur_r(v)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:641: def alterar_blur_str(self, v):
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:643: if p: p.blur_params.blur_strength = v/100.0
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:644: self._atualizar_label_blur_str(v)
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:648: if p: p.smudge_params.color_pickup = v/100.0
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:652: if p: p.smudge_params.mix_ratio = v/100.0
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:656: if p: p.smudge_params.smudge_stretch = v/100.0
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:758: def _atualizar_label_blur_r(self, v): self.lbl_blur_r.setText(f"Raio de Desfoque: {v}px")
+z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE\ui\core\widgets\control_panel.py:759: def _atualizar_label_blur_str(self, v): self.lbl_blur_str.setText(f"Intensidade do Blur: {v}%")
+
+Total occurrences: 287

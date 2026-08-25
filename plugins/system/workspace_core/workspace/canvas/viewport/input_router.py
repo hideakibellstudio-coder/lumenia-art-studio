@@ -200,10 +200,9 @@ class CanvasInputRouter:
             return
 
         if w.drawing:
-            if hasattr(w, "geometry_ctrl"):
-                world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-                w.geometry_ctrl.hover_point = QtCore.QPointF(world_evt.x, world_evt.y)
             w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure))
+            if hasattr(w, "geometry_ctrl") and hasattr(w, "_last_draw_pos"):
+                w.geometry_ctrl.hover_point = QtCore.QPointF(w._last_draw_pos[0], w._last_draw_pos[1])
         elif hasattr(w, "geometry_ctrl") and w.geometry_ctrl.guide_state.get("type") in ("curvilinear", "straight", "two_point", "three_point"):
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             w.geometry_ctrl.handle_hover(QtCore.QPointF(world_evt.x, world_evt.y))

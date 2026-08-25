@@ -16,7 +16,10 @@
 #include "../../core/document/Compositor.hpp"
 #include "../../core/texture/ProceduralTextures.hpp"
 #include "../../core/engines/IBrushEngine.hpp"
-#include "../../core/color/ColorProfile.hpp"
+#include "../../core/raster/SelectionMask.hpp"
+#include "../../core/raster/TransformEngine.hpp"
+#include "../../core/math/SymmetryEngine.hpp"
+#include "../../core/math/GuideSnapEngine.hpp"
 #include <vector>
 #include <memory>
 
@@ -73,10 +76,6 @@ public:
 
     bool undo();
     bool redo();
-    [[nodiscard]] bool canUndo() const noexcept;
-    [[nodiscard]] bool canRedo() const noexcept;
-    [[nodiscard]] size_t getUndoMemoryBytes() const noexcept { return m_undoManager.getMemoryUsageBytes(); }
-    void setMaxUndoMemoryMB(size_t mb) noexcept { m_undoManager.setMaxMemoryMB(mb); }
 
     [[nodiscard]] int getActiveLayerIndex() const noexcept { return m_layerStack.getActiveIndex(); }
     [[nodiscard]] int getDrawingLayerCount() const noexcept { return static_cast<int>(m_layerStack.getDrawingLayerCount()); }
@@ -85,6 +84,64 @@ public:
     TelemetryData updateStroke(const stroke::PointerEvent& event);
     void endStroke(const stroke::PointerEvent& event);
 
+    bool floodFill(int seedX, int seedY, const raster::ColorRGBA& fillColor,
+                   int tolerance = 20, bool contiguous = true,
+                   int expandPx = 1, int gapClosingPx = 0, bool antiAliasing = true,
+                   bool sampleAllLayers = true);
+
+    bool magicWandSelect(int seedX, int seedY, int tolerance = 20, bool contiguous = true,
+                         int expandPx = 0, bool antiAliasing = true, int mode = 0,
+                         bool sampleAllLayers = true);
+    bool selectRect(int x, int y, int w, int h, int mode = 0, int featherPx = 0, int cornerRadiusPx = 0);
+    bool selectEllipse(int cx, int cy, int rx, int ry, int mode = 0, bool antiAliasing = true, int featherPx = 0);
+    bool selectPolygon(const std::vector<int>& flatPoints, int mode = 0, bool antiAliasing = true, int featherPx = 0);
+    void clearSelection() noexcept;
+    void invertSelection() noexcept;
+    void selectAll() noexcept;
+    [[nodiscard]] bool hasSelection() const noexcept;
+    bool deleteSelectionOnActiveLayer();
+    bool fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor);
+    [[nodiscard]] uint8_t* getSelectionMaskData() noexcept;
+    [[nodiscard]] size_t getSelectionMaskSize() const noexcept;
+    [[nodiscard]] std::vector<int> getSelectionBounds() const;
+    [[nodiscard]] std::vector<int> getSelectionContourSegments() const;
+    [[nodiscard]] std::vector<std::vector<int>> getSelectionContourLoops() const;
+    [[nodiscard]] raster::SelectionMask& getSelectionMask() noexcept { return m_selectionMask; }
+    [[nodiscard]] const raster::SelectionMask& getSelectionMask() const noexcept { return m_selectionMask; }
+
+    // ── Métodos de Transformação Livre (Transform Tool) ─────────────────────
+    bool beginTransform();
+    [[nodiscard]] bool isTransformActive() const noexcept;
+    [[nodiscard]] std::vector<double> getTransformSourceBounds() const;
+    [[nodiscard]] std::vector<double> getTransformPivot() const;
+    bool commitTransform(double dx, double dy, double scaleX, double scaleY,
+                         double rotationDeg, double pivotX, double pivotY,
+                         bool flipH, bool flipV, int interpMode = 2);
+    bool cancelTransform();
+    bool flipActiveLayer(bool horizontal);
+    bool rotateActiveLayer90(bool clockwise);
+    [[nodiscard]] uint8_t* getTransformSourceBufferData() noexcept;
+
+    // ── Métodos de Simetria & Guias/Réguas ──────────────────────────────────
+    void setSymmetryConfig(int mode, double cx, double cy, double angleRad, int segments, bool stopAtCenter);
+    void clearSymmetry();
+    [[nodiscard]] const math::SymmetryConfig& getSymmetryConfig() const noexcept { return m_symmetryConfig; }
+
+    void setGuideConfig(int type, double p0x, double p0y, double p1x, double p1y,
+                        double p2x, double p2y, double p3x, double p3y,
+                        double vpAx, double vpAy, double vpBx, double vpBy,
+                        double vpCx, double vpCy, double cx, double cy,
+                        double fov, double pitch, double yaw, double snapRadius);
+    void clearGuide();
+    [[nodiscard]] const math::GuideConfig& getGuideConfig() const noexcept { return m_guideConfig; }
+    [[nodiscard]] std::vector<double> snapPoint(double rawX, double rawY, double lastX = 0.0, double lastY = 0.0, bool hasLast = false) const;
+
+    // ── Métodos de Colagem de Buffers e Formas Primitivas ───────────────────
+    [[nodiscard]] std::vector<int> getTransformSourceBufferSize() const;
+    [[nodiscard]] raster::TransformEngine& getTransformEngine() noexcept { return m_transformEngine; }
+
+    bool pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId = 0, double opacity = 1.0);
+
     void setShapePreset(int presetId);
     void setBrushHeightPreset(int presetId);
     void setCanvasHeightPreset(int presetId);
@@ -92,6 +149,10 @@ public:
     void loadShapeTextureFromBuffer(int width, int height, const uint8_t* buffer);
     void loadBrushHeightTextureFromBuffer(int width, int height, const uint8_t* buffer);
     void loadCanvasHeightTextureFromBuffer(int width, int height, const uint8_t* buffer);
+
+    void setColorProfile(int profileId) noexcept;
+    [[nodiscard]] int getColorProfile() const noexcept { return m_colorProfileId; }
+    void applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept;
 
     [[nodiscard]] brush::BrushProfile& getBrushProfile() noexcept { return m_brushProfile; }
     [[nodiscard]] const brush::BrushProfile& getBrushProfile() const noexcept { return m_brushProfile; }
@@ -108,35 +169,21 @@ public:
     [[nodiscard]] int getWidth() const noexcept { return m_width; }
     [[nodiscard]] int getHeight() const noexcept { return m_height; }
 
-    [[nodiscard]] uint8_t* getRawPixelData() noexcept;
-    [[nodiscard]] const uint8_t* getRawPixelData() const noexcept;
-    [[nodiscard]] size_t getPixelDataSize() const noexcept;
+    [[nodiscard]] uint8_t* getRawPixelData() noexcept { return m_outputBuffer.getData(); }
+    [[nodiscard]] const uint8_t* getRawPixelData() const noexcept { return m_outputBuffer.getData(); }
+    [[nodiscard]] size_t getPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
 
-    // ─── GERENCIAMENTO DE PERFIS DE COR & PROVA DE CORES (SOFT-PROOFING) ────
-    void setColorProfile(int profileId);
-    [[nodiscard]] int getColorProfile() const noexcept;
-    [[nodiscard]] std::string getColorProfileName(int profileId) const;
-
-    // ─── CONTA-GOTAS & AMOSTRAGEM DE COR (EYEDROPPER) ──────────────────────
-    [[nodiscard]] std::array<uint8_t, 4> pickColorMerged(int x, int y, int sampleRadius = 0) const;
-    [[nodiscard]] std::array<uint8_t, 4> pickColorLayer(int layerIndex, int x, int y, int sampleRadius = 0) const;
-
-    // ─── RENDERIZADOR DE PREVIEW DO TRAÇO EM ALTA FIDELIDADE ─────────────────
-    static std::vector<uint8_t> renderStrokePreview(
-        const brush::BrushProfile& profile,
-        int width,
-        int height
-    );
+    [[nodiscard]] uint8_t* getDisplayRawPixelData() noexcept;
+    [[nodiscard]] size_t getDisplayPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
 
 private:
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
     void initEngine(brush::EngineType type);
-    // Mescla o scratch layer na camada ativa ao final do traço e o limpa.
-    void commitScratch();
 
     int m_width;
     int m_height;
     bool m_isDrawing{false};
+    int m_colorProfileId{0};
 
     stroke::VelocityTracker   m_velocityTracker;
     stroke::DynamicStabilizer m_stabilizer;
@@ -151,20 +198,14 @@ private:
     document::Compositor m_compositor;
     canvas::PixelBuffer  m_outputBuffer;
     mutable canvas::PixelBuffer m_displayBuffer;
-    color::ColorProfileType m_colorProfile{color::ColorProfileType::Default_sRGB};
+    raster::SelectionMask m_selectionMask;
+    raster::TransformEngine m_transformEngine;
     canvas::TileUndoManager m_undoManager;
 
-    // ─── SCRATCH LAYER (wet layer) ─────────────────────────────────────────
-    // Buffer temporário para acumular dabs durante um traço ativo.
-    // Apenas motores com usesScratchLayer()==true o utilizam.
-    canvas::TileGrid m_scratchGrid;
-    bool             m_hasScratch{false};
-    const document::Layer* m_scratchLayerTarget{nullptr}; // ponteiro da camada ativa no início do traço
-    document::LayerBlendMode m_scratchBlendMode{document::LayerBlendMode::Normal};
-    double           m_scratchOpacity{1.0};
-
-    // ─── CONTINUIDADE DO TRAÇO ─────────────────────────────────────────────
-    double           m_strokeDistanceCarryover{0.0};
+    math::SymmetryConfig m_symmetryConfig;
+    math::GuideConfig    m_guideConfig;
+    math::Point2D        m_strokeStartPoint{0.0, 0.0};
+    double               m_distanceCarryover{0.0};
 };
 
 } // namespace aladyn::engine::boundary

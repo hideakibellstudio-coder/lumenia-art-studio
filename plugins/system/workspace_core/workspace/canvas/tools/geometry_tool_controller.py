@@ -32,7 +32,7 @@ class GeometryToolController:
         self.current_stroke_pts = []
 
         self.sym_state = {
-            "mode": "none", "cx": 400.0, "cy": 300.0, "angle": 0.0,
+            "mode": "none", "cx": 400.0, "cy": 300.0, "angle": 90.0,
             "segments": 6, "stop_at_center": False, "locked": False,
             "hidden": False, "snap_increment": 15
         }
@@ -58,12 +58,12 @@ class GeometryToolController:
             self.sym_state["cx"], self.sym_state["cy"] = cx, cy
 
         self.guide_state["cx"], self.guide_state["cy"] = cx, cy
-        self.guide_state["p0"] = QtCore.QPointF(cx - min(300.0, doc_w * 0.35), cy)
-        self.guide_state["p1"] = QtCore.QPointF(cx + min(300.0, doc_w * 0.35), cy)
-        self.guide_state["p2"] = QtCore.QPointF(cx - min(100.0, doc_w * 0.15), cy - min(180.0, doc_h * 0.25))
-        self.guide_state["p3"] = QtCore.QPointF(cx + min(300.0, doc_w * 0.35), cy)
-        self.guide_state["vpA"] = QtCore.QPointF(cx - doc_w * 0.45, cy)
-        self.guide_state["vpB"] = QtCore.QPointF(cx + doc_w * 0.45, cy)
+        self.guide_state["p0"] = QtCore.QPointF(cx - doc_w * 0.25, cy)
+        self.guide_state["p1"] = QtCore.QPointF(cx + doc_w * 0.25, cy)
+        self.guide_state["p2"] = QtCore.QPointF(cx - doc_w * 0.10, cy - doc_h * 0.18)
+        self.guide_state["p3"] = QtCore.QPointF(cx + doc_w * 0.10, cy - doc_h * 0.18)
+        self.guide_state["vpA"] = QtCore.QPointF(cx - doc_w * 0.42, cy)
+        self.guide_state["vpB"] = QtCore.QPointF(cx + doc_w * 0.42, cy)
         self.guide_state["vpC"] = QtCore.QPointF(cx, cy - doc_h * 0.40)
         self.sync_symmetry_to_engine()
         self.sync_guides_to_engine()

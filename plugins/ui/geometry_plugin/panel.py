@@ -14,7 +14,7 @@ class GeometryPanel(QtWidgets.QWidget):
         self.state = {
             "ruler_idx": 0, "ruler_type": "none",
             "sym_idx": 0, "sym_type": "none",
-            "segments": 6, "angle": 0.0,
+            "segments": 6, "angle": 90.0,
             "stop_at_center": False, "locked": False, "hidden": False,
             "snap_radius": 32.0, "yaw": 0.0, "pitch": 0.0, "fov": 130.0,
             "density": 30.0, "density_idx": 1,
@@ -130,6 +130,12 @@ class GeometryPanel(QtWidgets.QWidget):
     def _on_sym_changed(self, idx: int, stype: str):
         self.state["sym_idx"] = idx
         self.state["sym_type"] = stype
+        if stype == "mirror_v":
+            self.state["angle"] = 90.0
+        elif stype == "mirror_h":
+            self.state["angle"] = 0.0
+        elif stype in ("mirror", "double_mirror", "radial", "kaleidoscope") and self.state.get("angle", 0.0) == 0.0:
+            self.state["angle"] = 90.0
         self._update_status()
         self._sync_to_render_widget()
 
@@ -173,29 +179,30 @@ class GeometryPanel(QtWidgets.QWidget):
             rw.update()
 
     def _reset_angle(self):
-        self.state["angle"] = 0.0
+        angle = 90.0 if self.state.get("sym_type") != "mirror_h" else 0.0
+        self.state["angle"] = angle
         rw = self._get_render_widget()
         if rw and hasattr(rw, "geometry_ctrl"):
-            rw.geometry_ctrl.sym_state["angle"] = 0.0
+            rw.geometry_ctrl.sym_state["angle"] = angle
             rw.geometry_ctrl.sync_symmetry_to_engine()
             rw.update()
 
     def _sync_to_render_widget(self):
-        """Syncs panel state to the canvas geometry controller.
-
-        FIX #4: If RenderWidget is not yet in the Qt DOM (panel loads before canvas),
-        schedules a deferred retry via QTimer instead of silently failing.
-        """
+        """Syncs panel state to the canvas geometry controller."""
         rw = self._get_render_widget()
         if not rw or not hasattr(rw, "geometry_ctrl"):
-            # Deferred retry: canvas might not be instantiated yet at panel load time
             QtCore.QTimer.singleShot(200, self._sync_to_render_widget)
             return
 
         ctrl = rw.geometry_ctrl
         ctrl.sym_state["mode"] = self.state["sym_type"]
         ctrl.sym_state["segments"] = self.state["segments"]
-        ctrl.sym_state["angle"] = self.state["angle"]
+        if self.state["sym_type"] == "mirror_v":
+            ctrl.sym_state["angle"] = 90.0
+        elif self.state["sym_type"] == "mirror_h":
+            ctrl.sym_state["angle"] = 0.0
+        elif "angle" in self.state and self.state["angle"] != 0.0:
+            ctrl.sym_state["angle"] = self.state["angle"]
         ctrl.sym_state["stop_at_center"] = self.state["stop_at_center"]
         ctrl.sym_state["locked"] = self.state["locked"]
         ctrl.sym_state["hidden"] = self.state["hidden"]

@@ -183,14 +183,12 @@ class GeometryToolController:
             self.dynamic_hover_curves = self._get_dynamic_curves_at_point(pt)
             mode = self.guide_state.get("snap_mode", "auto")
             if mode in ("v", "h", "d") and self.dynamic_hover_curves:
-                for c in self.dynamic_hover_curves:
-                    if c.get("family") == mode:
-                        self.locked_curve = c
-                        break
+                matching = [c for c in self.dynamic_hover_curves if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
+                if matching: self.locked_curve = matching[0]
 
     def snap_point(self, raw_x: float, raw_y: float, zoom: float = 1.0) -> tuple[float, float]:
         gtype = self.guide_state["type"]
-        if gtype == "none": return (raw_x, raw_y)
+        if gtype == "none" or not self.guide_state.get("snap_dynamic", True): return (raw_x, raw_y)
         pt = QtCore.QPointF(raw_x, raw_y)
 
         # 1. Straight Ruler: Infinite Painter parallel track projection
@@ -287,11 +285,10 @@ class GeometryToolController:
             curves = self.dynamic_hover_curves or self._get_dynamic_curves_at_point(start)
             mode = self.guide_state.get("snap_mode", "auto")
             if mode in ("v", "h", "d"):
-                curves = [c for c in curves if c.get("family") == mode]
+                curves = [c for c in curves if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
 
             if not curves: return (raw_x, raw_y)
 
-            # Adaptive closest curve evaluation for stylus
             best_curve, best_dist = None, float("inf")
             for c in curves:
                 cp = self._closest_point_on_curve(c, pt)
@@ -299,8 +296,8 @@ class GeometryToolController:
                 if d < best_dist:
                     best_dist, best_curve = d, c
 
-            # Lock firmly once stroke has travelled a clear path (> 10px / zoom)
-            lock_thresh = 10.0 / max(0.01, zoom)
+            sens = self.guide_state.get("snap_sensitivity", 3.0)
+            lock_thresh = max(3.0, (14.0 - sens * 1.5)) / max(0.01, zoom)
             if dist >= lock_thresh and best_curve is not None:
                 self.locked_curve = best_curve
 
@@ -317,68 +314,57 @@ class GeometryToolController:
         tan_f = math.tan(fov_rad / 4.0)
         R = 400.0 / tan_f if tan_f > 1e-5 else 1e9
 
-        # Stereographic 2D -> 3D Ray in camera space
         X, Y = (click_pt.x() - cx) / R, -(click_pt.y() - cy) / R
         r2 = X * X + Y * Y
         denom = r2 + 1.0
         x3, y3, z3 = 2.0 * X / denom, 2.0 * Y / denom, (r2 - 1.0) / denom
 
         yaw_rad, pitch_rad = math.radians(self.guide_state["yaw"]), math.radians(self.guide_state["pitch"])
-
-        # Forward 3D Rotation into World Space
         xw, yw, zw = self._rotate_3d_forward(x3, y3, z3, yaw_rad, pitch_rad)
-
         curves = []
 
-        # 1. Ground 3D Curves (if active and clicking on lower hemisphere)
+        # 1. Ground 3D Curves
         if self.guide_state.get("show_ground", False) and yw < -1e-4:
             t = -1.0 / yw
             x_g, z_g = xw * t, zw * t
-            # Ground X (normal: 0, z_g, 1.0)
             a, b, c = self._rotate_3d_backward(0.0, z_g, 1.0, yaw_rad, pitch_rad)
             c_gx = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
             if c_gx: curves.append(c_gx)
-            # Ground Z (normal: 1.0, x_g, 0.0)
             a, b, c = self._rotate_3d_backward(1.0, x_g, 0.0, yaw_rad, pitch_rad)
             c_gz = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
             if c_gz: curves.append(c_gz)
-            # Ground Vertical
             if self.guide_state.get("show_straight_verticals", False):
-                curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(click_pt.x(), click_pt.y() - 10000.0),
-                               "p2": QtCore.QPointF(click_pt.x(), click_pt.y() + 10000.0), "dir": QtCore.QPointF(0.0, -1.0)})
+                curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(click_pt.x(), -20000.0),
+                               "p2": QtCore.QPointF(click_pt.x(), 20000.0), "dir": QtCore.QPointF(0.0, 1.0)})
             else:
                 a, b, c = self._rotate_3d_backward(-z_g, 0.0, x_g, yaw_rad, pitch_rad)
                 c_gv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_v")
                 if c_gv: curves.append(c_gv)
 
-        # 2. Ceiling 3D Curves (if active and clicking on upper hemisphere)
+        # 2. Ceiling 3D Curves
         if self.guide_state.get("show_ceiling", False) and yw > 1e-4:
             t = 1.0 / yw
             x_c, z_c = xw * t, zw * t
-            # Ceiling X (normal: 0, -z_c, 1.0)
             a, b, c = self._rotate_3d_backward(0.0, -z_c, 1.0, yaw_rad, pitch_rad)
             c_cx = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
             if c_cx: curves.append(c_cx)
-            # Ceiling Z (normal: 1.0, -x_c, 0.0)
             a, b, c = self._rotate_3d_backward(1.0, -x_c, 0.0, yaw_rad, pitch_rad)
             c_cz = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
             if c_cz: curves.append(c_cz)
-            # Ceiling Vertical
             if self.guide_state.get("show_straight_verticals", False):
-                curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(click_pt.x(), click_pt.y() - 10000.0),
-                               "p2": QtCore.QPointF(click_pt.x(), click_pt.y() + 10000.0), "dir": QtCore.QPointF(0.0, -1.0)})
+                curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(click_pt.x(), -20000.0),
+                               "p2": QtCore.QPointF(click_pt.x(), 20000.0), "dir": QtCore.QPointF(0.0, 1.0)})
             else:
                 a, b, c = self._rotate_3d_backward(-z_c, 0.0, x_c, yaw_rad, pitch_rad)
                 c_cv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_v")
                 if c_cv: curves.append(c_cv)
 
-        # 3. Principal 3D Sphere Curves (Vertical, Horizontal, Depth)
+        # 3. Principal 3D Sphere Curves
         if self.guide_state.get("show_v", True):
             if self.guide_state.get("show_straight_verticals", False):
-                curves.append({"type": "line", "family": "v", "p1": QtCore.QPointF(click_pt.x(), click_pt.y() - 10000.0),
-                               "p2": QtCore.QPointF(click_pt.x(), click_pt.y() + 10000.0), "dir": QtCore.QPointF(0.0, -1.0)})
+                curves.append({"type": "line", "family": "v", "p1": QtCore.QPointF(click_pt.x(), -20000.0),
+                               "p2": QtCore.QPointF(click_pt.x(), 20000.0), "dir": QtCore.QPointF(0.0, 1.0)})
             else:
-                # Vertical normal in world space: (zw, 0, -xw)
                 a, b, c = self._rotate_3d_backward(zw, 0.0, -xw, yaw_rad, pitch_rad)
                 curv = self._create_curve_from_normal(a, b, c, R, cx, cy, "v")
                 if curv: curves.append(curv)

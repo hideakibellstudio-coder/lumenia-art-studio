@@ -99,9 +99,13 @@ class GeometryPanel(QtWidgets.QWidget):
             for k in ("yaw", "pitch", "fov", "density", "show_ring", "show_v", "show_h", "show_d",
                       "show_vps", "show_cube", "show_ground", "show_ground_verticals",
                       "show_ceiling", "show_ceiling_verticals", "show_straight_verticals",
-                      "show_letterbox", "aspect_ratio", "snap_mode", "snap_sensitivity"):
+                      "show_letterbox", "aspect_ratio", "snap_mode", "snap_sensitivity",
+                      "snap_dynamic", "show_hint", "hidden"):
                 if k in rw.geometry_ctrl.guide_state:
                     self.state[k] = rw.geometry_ctrl.guide_state[k]
+            for k in ("segments", "angle", "stop_at_center", "locked"):
+                if k in rw.geometry_ctrl.sym_state:
+                    self.state[k] = rw.geometry_ctrl.sym_state[k]
 
         self.adv_dialog = AdvancedGeometryDialog(self.window(), self.state)
         self.adv_dialog.settingsChanged.connect(self._on_advanced_settings_changed)

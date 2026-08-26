@@ -274,26 +274,16 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
 }
 
 void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure) {
-    double curX = x, curY = y;
-    if (m_guideConfig.type != math::GuideType::None) {
-        auto s = snapPoint(x, y, 0.0, 0.0, false);
-        if (s.size() >= 2) { curX = s[0]; curY = s[1]; }
-    }
     m_lastRawPoint = {x, y};
     m_hasLastRawPoint = true;
-    beginStroke({stroke::PointerEventType::Press, {curX, curY}, pressure, 0.0});
+    beginStroke({stroke::PointerEventType::Press, {x, y}, pressure, 0.0});
 }
 
 std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure) {
     if (!m_isDrawing) return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    double curX = x, curY = y;
-    if (m_guideConfig.type != math::GuideType::None) {
-        auto s = snapPoint(x, y, m_lastRawPoint.x, m_lastRawPoint.y, m_hasLastRawPoint);
-        if (s.size() >= 2) { curX = s[0]; curY = s[1]; }
-    }
     m_lastRawPoint = {x, y};
     m_hasLastRawPoint = true;
-    math::Point2D pos = m_stabilizer.update({curX, curY});
+    math::Point2D pos = m_stabilizer.update({x, y});
     const double vel = m_velocityTracker.update(pos, 0.0);
     auto mapped = brush::DynamicMapper::map(m_brushProfile, pos, pressure, m_velocityTracker.getNormalizedVelocity(), 0.0);
     raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
@@ -305,7 +295,7 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
         m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty
     );
     m_lastDab = currentDab;
-    return { dirty.x, dirty.y, dirty.width, dirty.height, curX, curY, pressure, vel, currentDab.opacity };
+    return { dirty.x, dirty.y, dirty.width, dirty.height, x, y, pressure, vel, currentDab.opacity };
 }
 
 void PaintEngineFacade::endStrokeRaw() {

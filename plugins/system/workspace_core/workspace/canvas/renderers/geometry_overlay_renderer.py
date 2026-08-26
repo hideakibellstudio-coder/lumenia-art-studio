@@ -297,9 +297,14 @@ class GeometryOverlayRenderer:
         if guide.get("show_cube", False):
             painter.setPen(QtGui.QPen(QtGui.QColor(150, 100, 255, 180), line_w * 1.4))
             xm, xp, ym, yp, zm, zp = -0.75, 0.75, -1.0, 0.5, -3.75, -2.25
-            edges = [((xm, ym, zm), (xp, ym, zm)), ((xm, yp, zm), (xp, yp, zm)), ((xm, ym, zp), (xp, ym, zp)), ((xm, yp, zp), (xp, yp, zp)),
-                     ((xm, ym, zm), (xm, yp, zm)), ((xp, ym, zm), (xp, yp, zm)), ((xm, ym, zp), (xm, yp, zp)), ((xp, yp, zp), (xp, yp, zp)),
-                     ((xm, ym, zm), (xm, ym, zp)), ((xp, ym, zm), (xp, yp, zp)), ((xm, ym, zp), (xm, yp, zp)), ((xp, yp, zp), (xp, yp, zp))]
+            edges = [
+                ((xm, ym, zm), (xp, ym, zm)), ((xm, yp, zm), (xp, yp, zm)),
+                ((xm, ym, zp), (xp, ym, zp)), ((xm, yp, zp), (xp, yp, zp)),
+                ((xm, ym, zm), (xm, yp, zm)), ((xp, ym, zm), (xp, yp, zm)),
+                ((xm, ym, zp), (xm, yp, zp)), ((xp, ym, zp), (xp, yp, zp)),
+                ((xm, ym, zm), (xm, ym, zp)), ((xp, ym, zm), (xp, ym, zp)),
+                ((xm, yp, zm), (xm, yp, zp)), ((xp, yp, zm), (xp, yp, zp))
+            ]
             for p1, p2 in edges:
                 path_edge = QtGui.QPainterPath()
                 first = True
@@ -402,7 +407,7 @@ class GeometryOverlayRenderer:
         curves_to_draw = ctrl.dynamic_hover_curves
         mode = ctrl.guide_state.get("snap_mode", "auto")
         if mode in ("v", "h", "d"):
-            curves_to_draw = [c for c in curves_to_draw if c.get("family") == mode]
+            curves_to_draw = [c for c in curves_to_draw if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
 
         pen_hint = QtGui.QPen(QtGui.QColor(255, 125, 45, 75), line_w * 1.2, QtCore.Qt.DashLine)
         painter.setPen(pen_hint)

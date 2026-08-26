@@ -197,8 +197,10 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
         # Overlays de Simetria e Guias/Réguas
         if hasattr(self, "geometry_ctrl"):
-            GeometryOverlayRenderer.render_symmetry(painter, self.geometry_ctrl.sym_state, self.zoom)
-            GeometryOverlayRenderer.render_guides(painter, self.geometry_ctrl, self.zoom)
+            hide_during_draw = self.drawing and self.geometry_ctrl.guide_state.get("hidden", False)
+            if not hide_during_draw:
+                GeometryOverlayRenderer.render_symmetry(painter, self.geometry_ctrl.sym_state, self.zoom)
+                GeometryOverlayRenderer.render_guides(painter, self.geometry_ctrl, self.zoom)
 
         painter.restore()
 
@@ -319,8 +321,11 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             evt = self.to_canvas(screen_x, screen_y, safe_pressure, 0.0)
             if hasattr(self, "geometry_ctrl"):
                 self.geometry_ctrl.start_stroke_snap((evt.x, evt.y))
-            self._last_draw_pos = (evt.x, evt.y)
-            b.start_stroke(evt.x, evt.y, safe_pressure)
+                cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom)
+            else:
+                cur_x, cur_y = evt.x, evt.y
+            self._last_draw_pos = (cur_x, cur_y)
+            b.start_stroke(cur_x, cur_y, safe_pressure)
             self.update()
             return
         if self.bridge_client.renderer is None: return
@@ -336,9 +341,13 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         if b is not None:
             safe_pressure = max(0.02, pressure)
             evt = self.to_canvas(screen_x, screen_y, safe_pressure, 0.0)
-            res = b.paint_stroke(evt.x, evt.y, safe_pressure)
+            if hasattr(self, "geometry_ctrl"):
+                cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom)
+            else:
+                cur_x, cur_y = evt.x, evt.y
+            res = b.paint_stroke(cur_x, cur_y, safe_pressure)
             if res and len(res) >= 6:
-                self._last_draw_pos = (res[4], res[5])
+                self._last_draw_pos = (cur_x, cur_y)
                 if res[2] > 0 and res[3] > 0:
                     dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
                     t = self._get_canvas_transform()
@@ -347,7 +356,7 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
                 else:
                     self.update()
             else:
-                self._last_draw_pos = (evt.x, evt.y)
+                self._last_draw_pos = (cur_x, cur_y)
                 self.update()
             return
         if self.bridge_client.renderer is None: return

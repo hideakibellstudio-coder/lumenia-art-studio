@@ -205,7 +205,7 @@ class CanvasInputRouter:
             w.update()
             return
 
-        if hasattr(w, "geometry_ctrl") and w.geometry_ctrl.guide_state.get("type") in ("curvilinear", "straight", "two_point", "three_point"):
+        if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.guide_state.get("type") != "none" or w.geometry_ctrl.sym_state.get("mode") != "none"):
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             w.geometry_ctrl.handle_hover(QtCore.QPointF(world_evt.x, world_evt.y))
             w.update()

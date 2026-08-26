@@ -84,6 +84,11 @@ public:
     TelemetryData updateStroke(const stroke::PointerEvent& event);
     void endStroke(const stroke::PointerEvent& event);
 
+    // ── Fast-Path Nativo Direto (Zero Alocações / Zero Overhead Python) ────
+    void beginStrokeRaw(double x, double y, double pressure = 1.0);
+    std::vector<double> updateStrokeRaw(double x, double y, double pressure = 1.0);
+    void endStrokeRaw();
+
     bool floodFill(int seedX, int seedY, const raster::ColorRGBA& fillColor,
                    int tolerance = 20, bool contiguous = true,
                    int expandPx = 1, int gapClosingPx = 0, bool antiAliasing = true,
@@ -205,6 +210,8 @@ private:
     math::SymmetryConfig m_symmetryConfig;
     math::GuideConfig    m_guideConfig;
     math::Point2D        m_strokeStartPoint{0.0, 0.0};
+    math::Point2D        m_lastRawPoint{0.0, 0.0};
+    bool                 m_hasLastRawPoint{false};
     double               m_distanceCarryover{0.0};
 };
 

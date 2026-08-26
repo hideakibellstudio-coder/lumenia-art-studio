@@ -36,6 +36,7 @@ rw.geometry_ctrl.guide_state["type"] = "straight"
 rw.geometry_ctrl.guide_state["p0"] = QtCore.QPointF(0, 500)
 rw.geometry_ctrl.guide_state["p1"] = QtCore.QPointF(2000, 500)
 rw.geometry_ctrl.guide_state["snap_radius"] = 32.0
+rw.geometry_ctrl.sync_guides_to_engine()
 
 # 2.1 Ponto próximo da régua (Y=510, dist=10px <= 32px) com zoom 1.0 -> Deve atrair para Y=500
 snapped = rw.geometry_ctrl.snap_point(300.0, 510.0, zoom=1.0)

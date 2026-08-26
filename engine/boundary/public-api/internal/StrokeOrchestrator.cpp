@@ -22,7 +22,8 @@ void StrokeOrchestrator::renderSegment(
     const raster::ColorRGBA& bgColor,
     double& distanceCarryover,
     const math::SymmetryConfig& symmetryConfig,
-    const math::Point2D* strokeStart
+    const math::Point2D* strokeStart,
+    math::Rect2D* outDirtyBounds
 ) {
     document::Layer* activeLayer = layerStack.getActiveLayer();
     if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) {
@@ -119,6 +120,9 @@ void StrokeOrchestrator::renderSegment(
     };
 
     compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
+    if (outDirtyBounds) {
+        *outDirtyBounds = dirtyBounds;
+    }
 }
 
 } // namespace aladyn::engine::boundary::internal

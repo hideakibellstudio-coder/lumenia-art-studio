@@ -29,7 +29,8 @@ public:
         const raster::ColorRGBA& bgColor,
         double& distanceCarryover,
         const math::SymmetryConfig& symmetryConfig = {},
-        const math::Point2D* strokeStart = nullptr
+        const math::Point2D* strokeStart = nullptr,
+        math::Rect2D* outDirtyBounds = nullptr
     );
 };
 

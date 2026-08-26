@@ -83,41 +83,54 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin):
     def start_stroke(self, x: float, y: float, pressure: float) -> None:
         self._last_x = float(x)
         self._last_y = float(y)
-        if self._facade and self._native:
-            pt = self._native.Point2D(float(x), float(y))
-            evt = self._native.PointerEvent(
-                self._native.PointerEventType.Press, pt, float(pressure), time.time()
-            )
-            self._facade.begin_stroke(evt)
+        if self._facade:
+            if hasattr(self._facade, "begin_stroke_raw"):
+                self._facade.begin_stroke_raw(float(x), float(y), float(pressure))
+            elif self._native:
+                pt = self._native.Point2D(float(x), float(y))
+                evt = self._native.PointerEvent(
+                    self._native.PointerEventType.Press, pt, float(pressure), time.time()
+                )
+                self._facade.begin_stroke(evt)
 
-    def paint_stroke(self, x: float, y: float, pressure: float) -> None:
+    def paint_stroke(self, x: float, y: float, pressure: float) -> list[float]:
         self._last_x = float(x)
         self._last_y = float(y)
-        if self._facade and self._native:
-            pt = self._native.Point2D(float(x), float(y))
-            evt = self._native.PointerEvent(
-                self._native.PointerEventType.Move, pt, float(pressure), time.time()
-            )
-            telemetry = self._facade.update_stroke(evt)
-            if telemetry:
-                self.last_telemetry = (
-                    float(telemetry.pressure),
-                    float(telemetry.velocity),
-                    float(telemetry.output_flow),
+        if self._facade:
+            if hasattr(self._facade, "update_stroke_raw"):
+                res = self._facade.update_stroke_raw(float(x), float(y), float(pressure))
+                if res and len(res) >= 9:
+                    self.last_telemetry = (float(res[6]), float(res[7]), float(res[8]))
+                    return res
+            elif self._native:
+                pt = self._native.Point2D(float(x), float(y))
+                evt = self._native.PointerEvent(
+                    self._native.PointerEventType.Move, pt, float(pressure), time.time()
                 )
+                telemetry = self._facade.update_stroke(evt)
+                if telemetry:
+                    self.last_telemetry = (
+                        float(telemetry.pressure),
+                        float(telemetry.velocity),
+                        float(telemetry.output_flow),
+                    )
+        return []
 
     def end_stroke(self, x: float | None = None, y: float | None = None) -> None:
-        if self._facade and self._native:
-            rx = float(x) if x is not None else getattr(self, "_last_x", 0.0)
-            ry = float(y) if y is not None else getattr(self, "_last_y", 0.0)
-            pt = self._native.Point2D(rx, ry)
-            evt = self._native.PointerEvent(
-                self._native.PointerEventType.Release, pt, 0.0, time.time()
-            )
-            self._facade.end_stroke(evt)
-            if not getattr(self, "_is_filling", False):
-                self._action_stack.append(("stroke", 1))
-                self._redo_stack.clear()
+        if self._facade:
+            if hasattr(self._facade, "end_stroke_raw"):
+                self._facade.end_stroke_raw()
+            elif self._native:
+                rx = float(x) if x is not None else getattr(self, "_last_x", 0.0)
+                ry = float(y) if y is not None else getattr(self, "_last_y", 0.0)
+                pt = self._native.Point2D(rx, ry)
+                evt = self._native.PointerEvent(
+                    self._native.PointerEventType.Release, pt, 0.0, time.time()
+                )
+                self._facade.end_stroke(evt)
+        if not getattr(self, "_is_filling", False):
+            self._action_stack.append(("stroke", 1))
+            self._redo_stack.clear()
 
     def clear_canvas(self) -> None:
         if self._facade:
@@ -280,24 +293,16 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin):
             prof.brush_size = float(size)
 
     def set_brush_opacity(self, opacity: float) -> None:
-        if self._facade:
-            prof = self._facade.get_brush_profile()
-            prof.opacity = float(opacity)
+        if self._facade: self._facade.get_brush_profile().opacity = float(opacity)
 
     def set_brush_spacing(self, spacing: float) -> None:
-        if self._facade:
-            prof = self._facade.get_brush_profile()
-            prof.spacing_factor = float(spacing)
+        if self._facade: self._facade.get_brush_profile().spacing_factor = float(spacing)
 
     def set_stabilizer_weight(self, weight: float) -> None:
-        if self._facade:
-            stab = self._facade.get_stabilizer()
-            stab.set_stabilization_percentage(float(weight * 100.0 if weight <= 1.0 else weight))
+        if self._facade: self._facade.get_stabilizer().set_stabilization_percentage(float(weight * 100.0 if weight <= 1.0 else weight))
 
     def set_brush_contrast(self, contrast: float) -> None:
-        if self._facade:
-            prof = self._facade.get_brush_profile()
-            prof.hardness = float(contrast / 10.0 if contrast > 1.0 else contrast)
+        if self._facade: self._facade.get_brush_profile().hardness = float(contrast / 10.0 if contrast > 1.0 else contrast)
 
     def set_brush_pressure(self, pressure: float) -> None: pass
     def set_brush_invert_height(self, invert: bool) -> None: pass

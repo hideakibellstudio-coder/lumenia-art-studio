@@ -293,9 +293,12 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
             return d;
         })
         // Traço
-        .def("begin_stroke",  &boundary::PaintEngineFacade::beginStroke)
-        .def("update_stroke", &boundary::PaintEngineFacade::updateStroke)
-        .def("end_stroke",    &boundary::PaintEngineFacade::endStroke)
+        .def("begin_stroke",     &boundary::PaintEngineFacade::beginStroke)
+        .def("update_stroke",    &boundary::PaintEngineFacade::updateStroke)
+        .def("end_stroke",       &boundary::PaintEngineFacade::endStroke)
+        .def("begin_stroke_raw",  &boundary::PaintEngineFacade::beginStrokeRaw, py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0)
+        .def("update_stroke_raw", &boundary::PaintEngineFacade::updateStrokeRaw, py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0)
+        .def("end_stroke_raw",    &boundary::PaintEngineFacade::endStrokeRaw)
         // Preenchimento (Flood Fill / Balde de Tinta Nativo)
         .def("flood_fill", [](boundary::PaintEngineFacade& self, int seedX, int seedY, const raster::ColorRGBA& fillColor,
                               int tolerance, bool contiguous, int expandPx, int gapClosingPx, bool antiAliasing, bool sampleAllLayers) {

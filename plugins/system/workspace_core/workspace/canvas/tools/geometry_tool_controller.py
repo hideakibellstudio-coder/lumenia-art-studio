@@ -54,7 +54,7 @@ class GeometryToolController:
 
     def center_on_document(self, doc_w: float, doc_h: float):
         cx, cy = max(1.0, float(doc_w)) / 2.0, max(1.0, float(doc_h)) / 2.0
-        if self.sym_state["cx"] == 400.0 and self.sym_state["cy"] == 300.0:
+        if not getattr(self, "_custom_sym_center", False):
             self.sym_state["cx"], self.sym_state["cy"] = cx, cy
 
         self.guide_state["cx"], self.guide_state["cy"] = cx, cy
@@ -190,7 +190,7 @@ class GeometryToolController:
 
     def snap_point(self, raw_x: float, raw_y: float, zoom: float = 1.0) -> tuple[float, float]:
         gtype = self.guide_state["type"]
-        if gtype == "none" or not self.is_stroking: return (raw_x, raw_y)
+        if gtype == "none": return (raw_x, raw_y)
         pt = QtCore.QPointF(raw_x, raw_y)
 
         # 1. Straight Ruler: Infinite Painter parallel track projection
@@ -201,6 +201,11 @@ class GeometryToolController:
             if len2 > 1e-6:
                 t = ((raw_x - p0.x()) * dx + (raw_y - p0.y()) * dy) / len2
                 proj_x, proj_y = p0.x() + t * dx, p0.y() + t * dy
+                if not self.is_stroking:
+                    eff_r = self.guide_state.get("snap_radius", 32.0) / max(0.01, float(zoom))
+                    d2 = (raw_x - proj_x)**2 + (raw_y - proj_y)**2
+                    if d2 > eff_r * eff_r:
+                        return (raw_x, raw_y)
                 return (proj_x + self.start_distance[0], proj_y + self.start_distance[1])
             return (p0.x() + self.start_distance[0], p0.y() + self.start_distance[1])
 

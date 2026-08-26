@@ -312,44 +312,46 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
     def start_stroke(self, screen_x: float, screen_y: float, pressure: float):
         self.strokeStarted.emit()
-        from ui.core.engine.registry import EngineRegistry
-        b = EngineRegistry.instance().get_backend()
+        b = self.backend
         if b is not None:
             self.drawing = True
             safe_pressure = max(0.02, pressure)
-            evt = self.to_canvas(screen_x, screen_y, safe_pressure, time.time())
+            evt = self.to_canvas(screen_x, screen_y, safe_pressure, 0.0)
             if hasattr(self, "geometry_ctrl"):
                 self.geometry_ctrl.start_stroke_snap((evt.x, evt.y))
-                cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom)
-            else:
-                cur_x, cur_y = evt.x, evt.y
-            self._last_draw_pos = (cur_x, cur_y)
-            b.start_stroke(cur_x, cur_y, safe_pressure)
+            self._last_draw_pos = (evt.x, evt.y)
+            b.start_stroke(evt.x, evt.y, safe_pressure)
             self.update()
             return
         if self.bridge_client.renderer is None: return
         self.drawing = True
-        evt = self.to_canvas(screen_x, screen_y, max(0.02, pressure), time.time())
+        evt = self.to_canvas(screen_x, screen_y, max(0.02, pressure), 0.0)
         self.dispatcher.dispatch(StartStrokeCommand(x=evt.x, y=evt.y, pressure=evt.pressure))
         self.update()
 
     def paint_stroke(self, screen_x: float, screen_y: float, pressure: float):
-        if not self.drawing: return
-        from ui.core.engine.registry import EngineRegistry
-        b = EngineRegistry.instance().get_backend()
+        if not self.drawing:
+            return
+        b = self.backend
         if b is not None:
             safe_pressure = max(0.02, pressure)
-            evt = self.to_canvas(screen_x, screen_y, safe_pressure, time.time())
-            if hasattr(self, "geometry_ctrl"):
-                cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom)
+            evt = self.to_canvas(screen_x, screen_y, safe_pressure, 0.0)
+            res = b.paint_stroke(evt.x, evt.y, safe_pressure)
+            if res and len(res) >= 6:
+                self._last_draw_pos = (res[4], res[5])
+                if res[2] > 0 and res[3] > 0:
+                    dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
+                    t = self._get_canvas_transform()
+                    dirty_screen = t.mapRect(dirty_c).toAlignedRect().adjusted(-6, -6, 6, 6)
+                    self.update(dirty_screen)
+                else:
+                    self.update()
             else:
-                cur_x, cur_y = evt.x, evt.y
-            self._last_draw_pos = (cur_x, cur_y)
-            b.paint_stroke(cur_x, cur_y, safe_pressure)
-            self.update()
+                self._last_draw_pos = (evt.x, evt.y)
+                self.update()
             return
         if self.bridge_client.renderer is None: return
-        evt = self.to_canvas(screen_x, screen_y, pressure, time.time())
+        evt = self.to_canvas(screen_x, screen_y, pressure, 0.0)
         self.dispatcher.dispatch(DrawCommand(x=evt.x, y=evt.y, pressure=evt.pressure, timestamp=time.time()))
         self.update()
 
@@ -357,11 +359,10 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         if hasattr(self, "geometry_ctrl"):
             self.geometry_ctrl.mouse_release()
         if self.drawing:
-            from ui.core.engine.registry import EngineRegistry
-            b = EngineRegistry.instance().get_backend()
+            b = self.backend
             if b is not None:
                 if screen_x is not None and screen_y is not None:
-                    evt = self.to_canvas(screen_x, screen_y, 0.0, time.time())
+                    evt = self.to_canvas(screen_x, screen_y, 0.0, 0.0)
                     b.end_stroke(evt.x, evt.y)
                 else:
                     b.end_stroke()

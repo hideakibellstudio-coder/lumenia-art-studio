@@ -249,24 +249,19 @@ void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
     m_stabilizer.reset(event.position);
     m_velocityTracker.reset(event.position, event.timestamp);
     m_undoManager.beginStep("Stroke");
-
     if (m_activeEngine) m_activeEngine->onBeginStroke();
-
     auto mapped = brush::DynamicMapper::map(m_brushProfile, event.position, event.pressure, 0.0, 0.0);
     m_lastDab = raster::Dab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
 }
 
 TelemetryData PaintEngineFacade::updateStroke(const stroke::PointerEvent& event) {
     if (!m_isDrawing) return {0.0, 0.0, 0.0};
-
     math::Point2D pos = m_stabilizer.update(event.position);
     const double currentVelocity = m_velocityTracker.update(pos, event.timestamp);
     auto mapped = brush::DynamicMapper::map(m_brushProfile, pos, event.pressure, m_velocityTracker.getNormalizedVelocity(), 0.0);
-
     raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
     renderStrokeSegment(m_lastDab, currentDab);
     m_lastDab = currentDab;
-
     return { event.pressure, currentVelocity, currentDab.opacity };
 }
 
@@ -276,6 +271,46 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
     m_undoManager.commitStep(m_layerStack);
     m_isDrawing = false;
     m_distanceCarryover = 0.0;
+}
+
+void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure) {
+    double curX = x, curY = y;
+    if (m_guideConfig.type != math::GuideType::None) {
+        auto s = snapPoint(x, y, 0.0, 0.0, false);
+        if (s.size() >= 2) { curX = s[0]; curY = s[1]; }
+    }
+    m_lastRawPoint = {x, y};
+    m_hasLastRawPoint = true;
+    beginStroke({stroke::PointerEventType::Press, {curX, curY}, pressure, 0.0});
+}
+
+std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure) {
+    if (!m_isDrawing) return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    double curX = x, curY = y;
+    if (m_guideConfig.type != math::GuideType::None) {
+        auto s = snapPoint(x, y, m_lastRawPoint.x, m_lastRawPoint.y, m_hasLastRawPoint);
+        if (s.size() >= 2) { curX = s[0]; curY = s[1]; }
+    }
+    m_lastRawPoint = {x, y};
+    m_hasLastRawPoint = true;
+    math::Point2D pos = m_stabilizer.update({curX, curY});
+    const double vel = m_velocityTracker.update(pos, 0.0);
+    auto mapped = brush::DynamicMapper::map(m_brushProfile, pos, pressure, m_velocityTracker.getNormalizedVelocity(), 0.0);
+    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
+    math::Rect2D dirty{0, 0, 0, 0};
+    internal::StrokeOrchestrator::renderSegment(
+        m_lastDab, currentDab, m_brushProfile, m_canvasTexture,
+        m_activeEngine.get(), m_layerStack, m_selectionMask,
+        m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
+        m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty
+    );
+    m_lastDab = currentDab;
+    return { dirty.x, dirty.y, dirty.width, dirty.height, curX, curY, pressure, vel, currentDab.opacity };
+}
+
+void PaintEngineFacade::endStrokeRaw() {
+    endStroke({stroke::PointerEventType::Release, m_lastRawPoint, 0.0, 0.0});
+    m_hasLastRawPoint = false;
 }
 
 void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab) {
@@ -316,106 +351,79 @@ bool PaintEngineFacade::floodFill(
 }
 
 // ─── MÉTODOS DE SELEÇÃO & CONTORNOS ────────────────────────────────────────
-
 bool PaintEngineFacade::magicWandSelect(int seedX, int seedY, int tolerance, bool contiguous, int expandPx, bool antiAliasing, int mode, bool sampleAllLayers) {
     return internal::SelectionOrchestrator::magicWandSelect(seedX, seedY, tolerance, contiguous, expandPx, antiAliasing, mode, sampleAllLayers, m_width, m_height, m_outputBuffer, m_layerStack, m_selectionMask);
 }
-
 bool PaintEngineFacade::selectRect(int x, int y, int w, int h, int mode, int featherPx, int cornerRadiusPx) {
     return internal::SelectionOrchestrator::selectRect(x, y, w, h, mode, featherPx, cornerRadiusPx, m_width, m_height, m_selectionMask);
 }
-
 bool PaintEngineFacade::selectEllipse(int cx, int cy, int rx, int ry, int mode, bool antiAliasing, int featherPx) {
     return internal::SelectionOrchestrator::selectEllipse(cx, cy, rx, ry, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
 }
-
 bool PaintEngineFacade::selectPolygon(const std::vector<int>& flatPoints, int mode, bool antiAliasing, int featherPx) {
     return internal::SelectionOrchestrator::selectPolygon(flatPoints, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
 }
-
 void PaintEngineFacade::clearSelection() noexcept { m_selectionMask.clear(); }
 void PaintEngineFacade::invertSelection() noexcept { m_selectionMask.invert(); }
 void PaintEngineFacade::selectAll() noexcept { m_selectionMask.selectAll(); }
 bool PaintEngineFacade::hasSelection() const noexcept { return m_selectionMask.hasSelection(); }
-
 bool PaintEngineFacade::deleteSelectionOnActiveLayer() {
     return internal::SelectionOrchestrator::deleteSelectionOnActiveLayer(m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
-
 bool PaintEngineFacade::fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor) {
     return internal::SelectionOrchestrator::fillSelectionOnActiveLayer(fillColor, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
-
 uint8_t* PaintEngineFacade::getSelectionMaskData() noexcept { return m_selectionMask.getData(); }
 size_t PaintEngineFacade::getSelectionMaskSize() const noexcept { return m_selectionMask.getSizeInBytes(); }
-
 std::vector<int> PaintEngineFacade::getSelectionBounds() const {
     auto b = m_selectionMask.getBounds();
     return { static_cast<int>(b.x), static_cast<int>(b.y), static_cast<int>(b.width), static_cast<int>(b.height) };
 }
-
 std::vector<int> PaintEngineFacade::getSelectionContourSegments() const { return m_selectionMask.getContourSegments(); }
 std::vector<std::vector<int>> PaintEngineFacade::getSelectionContourLoops() const { return m_selectionMask.getContourLoops(); }
 
 // ─── TRANSFORMAÇÃO LIVRE ───────────────────────────────────────────────────
-
 bool PaintEngineFacade::beginTransform() {
     return internal::TransformOrchestrator::beginTransform(m_transformEngine, m_layerStack, m_selectionMask, m_undoManager, m_width, m_height);
 }
-
 bool PaintEngineFacade::isTransformActive() const noexcept { return m_transformEngine.isActive(); }
-
 std::vector<double> PaintEngineFacade::getTransformSourceBounds() const {
     const auto& b = m_transformEngine.getSourceBounds();
     return { b.x, b.y, b.width, b.height };
 }
-
 std::vector<double> PaintEngineFacade::getTransformPivot() const {
     const auto& s = m_transformEngine.getState();
     return { s.pivotX, s.pivotY };
 }
-
 bool PaintEngineFacade::commitTransform(double dx, double dy, double scaleX, double scaleY, double rotationDeg, double pivotX, double pivotY, bool flipH, bool flipV, int interpMode) {
     return internal::TransformOrchestrator::commitTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, dx, dy, scaleX, scaleY, rotationDeg, pivotX, pivotY, flipH, flipV, interpMode, m_width, m_height);
 }
-
 bool PaintEngineFacade::cancelTransform() {
     return internal::TransformOrchestrator::cancelTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, m_width, m_height);
 }
-
 bool PaintEngineFacade::flipActiveLayer(bool horizontal) {
     return internal::TransformOrchestrator::flipActiveLayer(horizontal, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
-
 bool PaintEngineFacade::rotateActiveLayer90(bool clockwise) {
     return internal::TransformOrchestrator::rotateActiveLayer90(clockwise, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
-
 uint8_t* PaintEngineFacade::getTransformSourceBufferData() noexcept {
     const auto* buf = m_transformEngine.getSourceBuffer();
     return buf ? const_cast<uint8_t*>(buf->getData()) : nullptr;
 }
-
 std::vector<int> PaintEngineFacade::getTransformSourceBufferSize() const {
     const auto* buf = m_transformEngine.getSourceBuffer();
     return buf ? std::vector<int>{ buf->getWidth(), buf->getHeight() } : std::vector<int>{ 0, 0 };
 }
-
 bool PaintEngineFacade::pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId, double opacity) {
     return internal::BufferPasteOrchestrator::paste(x, y, width, height, buffer, blendModeId, opacity, m_width, m_height, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
 
 // ─── PRESETS E TEXTURAS PROCEDURAIS ────────────────────────────────────────
 
-void PaintEngineFacade::setShapePreset(int presetId) {
-    m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(presetId));
-}
-void PaintEngineFacade::setBrushHeightPreset(int presetId) {
-    m_brushProfile.brushHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId));
-}
-void PaintEngineFacade::setCanvasHeightPreset(int presetId) {
-    m_canvasTexture.canvasHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId));
-}
+void PaintEngineFacade::setShapePreset(int id) { m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(id)); }
+void PaintEngineFacade::setBrushHeightPreset(int id) { m_brushProfile.brushHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(id)); }
+void PaintEngineFacade::setCanvasHeightPreset(int id) { m_canvasTexture.canvasHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(id)); }
 void PaintEngineFacade::loadShapeTextureFromBuffer(int w, int h, const uint8_t* buf) {
     if (buf && w > 0 && h > 0) m_brushProfile.shapeTexture = std::make_shared<texture::Texture2D>(w, h, std::vector<uint8_t>(buf, buf + static_cast<size_t>(w * h)));
 }
@@ -426,11 +434,9 @@ void PaintEngineFacade::loadCanvasHeightTextureFromBuffer(int w, int h, const ui
     if (buf && w > 0 && h > 0) m_canvasTexture.canvasHeightTexture = std::make_shared<texture::Texture2D>(w, h, std::vector<uint8_t>(buf, buf + static_cast<size_t>(w * h)));
 }
 void PaintEngineFacade::setColorProfile(int profileId) noexcept { m_colorProfileId = profileId; }
-
 void PaintEngineFacade::applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept {
     raster::ColorProfileManager::applyColorProfile(targetBuffer, numPixels, m_colorProfileId);
 }
-
 uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
     if (m_colorProfileId == 0) return m_outputBuffer.getData();
     const size_t totalBytes = m_outputBuffer.getSizeInBytes();
@@ -438,40 +444,27 @@ uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
     applyActiveColorProfile(m_displayBuffer.getData(), totalBytes / 4);
     return m_displayBuffer.getData();
 }
-
 bool PaintEngineFacade::undo() {
     bool ok = m_undoManager.undo(m_layerStack);
     if (ok) m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
     return ok;
 }
-
 bool PaintEngineFacade::redo() {
     bool ok = m_undoManager.redo(m_layerStack);
     if (ok) m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
     return ok;
 }
-
-// ─── MÉTODOS DE SIMETRIA E GUIAS/RÉGUAS ────────────────────────────────────
-
 void PaintEngineFacade::setSymmetryConfig(int mode, double cx, double cy, double angleRad, int segments, bool stopAtCenter) {
     m_symmetryConfig = { static_cast<math::SymmetryMode>(mode), cx, cy, angleRad, segments, stopAtCenter };
 }
-
-void PaintEngineFacade::clearSymmetry() {
-    m_symmetryConfig.mode = math::SymmetryMode::None;
-}
-
+void PaintEngineFacade::clearSymmetry() { m_symmetryConfig.mode = math::SymmetryMode::None; }
 void PaintEngineFacade::setGuideConfig(
     int type, double p0x, double p0y, double p1x, double p1y, double p2x, double p2y, double p3x, double p3y,
     double vpAx, double vpAy, double vpBx, double vpBy, double vpCx, double vpCy, double cx, double cy,
     double fov, double pitch, double yaw, double snapRadius
 ) {
-    m_guideConfig = {
-        static_cast<math::GuideType>(type), {p0x, p0y}, {p1x, p1y}, {p2x, p2y}, {p3x, p3y},
-        {vpAx, vpAy}, {vpBx, vpBy}, {vpCx, vpCy}, cx, cy, fov, pitch, yaw, snapRadius
-    };
+    m_guideConfig = { static_cast<math::GuideType>(type), {p0x, p0y}, {p1x, p1y}, {p2x, p2y}, {p3x, p3y}, {vpAx, vpAy}, {vpBx, vpBy}, {vpCx, vpCy}, cx, cy, fov, pitch, yaw, snapRadius };
 }
-
 void PaintEngineFacade::clearGuide() {
     m_guideConfig.type = math::GuideType::None;
 }

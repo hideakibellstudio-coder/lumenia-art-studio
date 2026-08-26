@@ -127,6 +127,12 @@ class CanvasInputRouter:
 
     def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False):
         w = self.widget
+        if w.drawing:
+            w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure))
+            if hasattr(w, "geometry_ctrl") and hasattr(w, "_last_draw_pos"):
+                w.geometry_ctrl.hover_point = QtCore.QPointF(w._last_draw_pos[0], w._last_draw_pos[1])
+            return
+
         if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.active_handle or w.geometry_ctrl.curv_drag_rotate):
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             pt = QtCore.QPointF(world_evt.x, world_evt.y)
@@ -199,11 +205,7 @@ class CanvasInputRouter:
             w.update()
             return
 
-        if w.drawing:
-            w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure))
-            if hasattr(w, "geometry_ctrl") and hasattr(w, "_last_draw_pos"):
-                w.geometry_ctrl.hover_point = QtCore.QPointF(w._last_draw_pos[0], w._last_draw_pos[1])
-        elif hasattr(w, "geometry_ctrl") and w.geometry_ctrl.guide_state.get("type") in ("curvilinear", "straight", "two_point", "three_point"):
+        if hasattr(w, "geometry_ctrl") and w.geometry_ctrl.guide_state.get("type") in ("curvilinear", "straight", "two_point", "three_point"):
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             w.geometry_ctrl.handle_hover(QtCore.QPointF(world_evt.x, world_evt.y))
             w.update()

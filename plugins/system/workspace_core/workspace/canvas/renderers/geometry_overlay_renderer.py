@@ -414,8 +414,17 @@ class GeometryOverlayRenderer:
         painter.setBrush(QtCore.Qt.NoBrush)
 
         for c in curves_to_draw:
-            if c["type"] == "line": painter.drawLine(c["p1"], c["p2"])
-            else: painter.drawEllipse(c["center"], c["radius"], c["radius"])
+            if c["type"] == "line":
+                painter.drawLine(c["p1"], c["p2"])
+            elif c["type"] == "polyline":
+                pts = c.get("points", [])
+                if len(pts) >= 2:
+                    path = QtGui.QPainterPath()
+                    path.moveTo(pts[0])
+                    for p in pts[1:]: path.lineTo(p)
+                    painter.drawPath(path)
+            else:
+                painter.drawEllipse(c["center"], c["radius"], c["radius"])
 
         if ctrl.is_stroking and ctrl.locked_curve is not None:
             pen_locked = QtGui.QPen(QtGui.QColor(255, 100, 30, 160), line_w * 1.8, QtCore.Qt.SolidLine)
@@ -423,6 +432,13 @@ class GeometryOverlayRenderer:
             painter.setBrush(QtCore.Qt.NoBrush)
             if ctrl.locked_curve["type"] == "line":
                 painter.drawLine(ctrl.locked_curve["p1"], ctrl.locked_curve["p2"])
+            elif ctrl.locked_curve["type"] == "polyline":
+                pts = ctrl.locked_curve.get("points", [])
+                if len(pts) >= 2:
+                    path = QtGui.QPainterPath()
+                    path.moveTo(pts[0])
+                    for p in pts[1:]: path.lineTo(p)
+                    painter.drawPath(path)
             else:
                 painter.drawEllipse(ctrl.locked_curve["center"], ctrl.locked_curve["radius"], ctrl.locked_curve["radius"])
 

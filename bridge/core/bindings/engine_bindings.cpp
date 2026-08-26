@@ -3,7 +3,6 @@
 
 #include "../../../engine/boundary/public-api/PaintEngineFacade.hpp"
 #include "../../../engine/core/canvas/Tile.hpp"
-#include "../../../engine/core/color/ColorProfile.hpp"
 
 namespace py = pybind11;
 using namespace aladyn::engine;
@@ -35,6 +34,25 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def("invert",     &math::BezierCurve::invert)
         .def("sample",     &math::BezierCurve::sample);
 
+    py::enum_<math::SymmetryMode>(m, "SymmetryMode")
+        .value("None",         math::SymmetryMode::None)
+        .value("Mirror",       math::SymmetryMode::Mirror)
+        .value("DoubleMirror", math::SymmetryMode::DoubleMirror)
+        .value("Radial",       math::SymmetryMode::Radial)
+        .value("Kaleidoscope", math::SymmetryMode::Kaleidoscope)
+        .export_values();
+
+    py::enum_<math::GuideType>(m, "GuideType")
+        .value("None",        math::GuideType::None)
+        .value("Straight",    math::GuideType::Straight)
+        .value("CurveRuler",  math::GuideType::CurveRuler)
+        .value("Curvilinear", math::GuideType::Curvilinear)
+        .value("OnePoint",    math::GuideType::OnePoint)
+        .value("TwoPoint",    math::GuideType::TwoPoint)
+        .value("ThreePoint",  math::GuideType::ThreePoint)
+        .value("Isometric",   math::GuideType::Isometric)
+        .export_values();
+
     // ─── ENGINE TYPE (CATEGORIAS DE MOTOR) ───────────────────────────────────
     py::enum_<brush::EngineType>(m, "EngineType")
         .value("Brush",      brush::EngineType::Brush)
@@ -58,40 +76,21 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
 
     // ─── LAYER BLEND MODE (MODO DE MESCLAGEM DAS CAMADAS DO DOCUMENTO) ───────
     py::enum_<document::LayerBlendMode>(m, "LayerBlendMode")
-        .value("Normal",      document::LayerBlendMode::Normal)
-        .value("Multiply",    document::LayerBlendMode::Multiply)
-        .value("Screen",      document::LayerBlendMode::Screen)
-        .value("Overlay",     document::LayerBlendMode::Overlay)
-        .value("Darken",      document::LayerBlendMode::Darken)
-        .value("Lighten",     document::LayerBlendMode::Lighten)
-        .value("Erase",       document::LayerBlendMode::Erase)
-        .value("PassThrough", document::LayerBlendMode::PassThrough)
-        .value("ColorDodge",  document::LayerBlendMode::ColorDodge)
-        .value("ColorBurn",   document::LayerBlendMode::ColorBurn)
-        .value("Difference",  document::LayerBlendMode::Difference)
-        .value("Exclusion",   document::LayerBlendMode::Exclusion)
-        .value("Add",         document::LayerBlendMode::Add)
+        .value("Normal",   document::LayerBlendMode::Normal)
+        .value("Multiply", document::LayerBlendMode::Multiply)
+        .value("Screen",   document::LayerBlendMode::Screen)
+        .value("Overlay",  document::LayerBlendMode::Overlay)
+        .value("Darken",   document::LayerBlendMode::Darken)
+        .value("Lighten",  document::LayerBlendMode::Lighten)
+        .value("Erase",    document::LayerBlendMode::Erase)
         .export_values();
 
-    // ─── COLOR PROFILE TYPE (PERFIS DE COR & PROVA DE CORES) ─────────────────
-    py::enum_<color::ColorProfileType>(m, "ColorProfileType")
-        .value("Default_sRGB",             color::ColorProfileType::Default_sRGB)
-        .value("Display_P3",               color::ColorProfileType::Display_P3)
-        .value("Generic_CMYK",             color::ColorProfileType::Generic_CMYK)
-        .value("US_SWOP_Web_Coated_v2",    color::ColorProfileType::US_SWOP_Web_Coated_v2)
-        .value("US_SWOP_Web_Coated_G3",    color::ColorProfileType::US_SWOP_Web_Coated_G3)
-        .value("US_SWOP_Web_Coated_G5",    color::ColorProfileType::US_SWOP_Web_Coated_G5)
-        .value("US_GRACOL_Coated_2006",    color::ColorProfileType::US_GRACOL_Coated_2006)
-        .value("US_SWOP_Web_Uncoated_v2",  color::ColorProfileType::US_SWOP_Web_Uncoated_v2)
-        .value("Europe_FOGRA39_Coated",    color::ColorProfileType::Europe_FOGRA39_Coated)
-        .value("Euroscale_Coated_v2",      color::ColorProfileType::Euroscale_Coated_v2)
-        .value("Euroscale_Uncoated_v2",    color::ColorProfileType::Euroscale_Uncoated_v2)
-        .value("Japan_Coated_2011",        color::ColorProfileType::Japan_Coated_2011)
-        .value("Generic_Grayscale",        color::ColorProfileType::Generic_Grayscale)
-        .value("Line_Art_HighContrast",    color::ColorProfileType::Line_Art_HighContrast)
-        .value("ColorBlindness_Protanopia",   color::ColorProfileType::ColorBlindness_Protanopia)
-        .value("ColorBlindness_Deuteranopia", color::ColorProfileType::ColorBlindness_Deuteranopia)
-        .value("ColorBlindness_Tritanopia",   color::ColorProfileType::ColorBlindness_Tritanopia)
+    // ─── SELECTION MODE ──────────────────────────────────────────────────────
+    py::enum_<raster::SelectionMode>(m, "SelectionMode")
+        .value("New",       raster::SelectionMode::New)
+        .value("Add",       raster::SelectionMode::Add)
+        .value("Subtract",  raster::SelectionMode::Subtract)
+        .value("Intersect", raster::SelectionMode::Intersect)
         .export_values();
 
     py::class_<raster::ColorRGBA>(m, "ColorRGBA")
@@ -297,6 +296,14 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def("begin_stroke",  &boundary::PaintEngineFacade::beginStroke)
         .def("update_stroke", &boundary::PaintEngineFacade::updateStroke)
         .def("end_stroke",    &boundary::PaintEngineFacade::endStroke)
+        // Preenchimento (Flood Fill / Balde de Tinta Nativo)
+        .def("flood_fill", [](boundary::PaintEngineFacade& self, int seedX, int seedY, const raster::ColorRGBA& fillColor,
+                              int tolerance, bool contiguous, int expandPx, int gapClosingPx, bool antiAliasing, bool sampleAllLayers) {
+            return self.floodFill(seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing, sampleAllLayers);
+        }, py::arg("seed_x"), py::arg("seed_y"), py::arg("fill_color"),
+           py::arg("tolerance") = 20, py::arg("contiguous") = true,
+           py::arg("expand_px") = 1, py::arg("gap_closing_px") = 0,
+           py::arg("anti_aliasing") = true, py::arg("sample_all_layers") = true)
         // Desfazer / Refazer
         .def("undo",          &boundary::PaintEngineFacade::undo)
         .def("redo",          &boundary::PaintEngineFacade::redo)
@@ -356,9 +363,64 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         }, py::return_value_policy::reference)
         .def("get_width",  &boundary::PaintEngineFacade::getWidth)
         .def("get_height", &boundary::PaintEngineFacade::getHeight)
+        .def("set_color_profile", &boundary::PaintEngineFacade::setColorProfile)
+        .def("get_color_profile", &boundary::PaintEngineFacade::getColorProfile)
         .def("get_pixel_buffer", [](boundary::PaintEngineFacade& self) {
             return py::memoryview::from_memory(
                 self.getRawPixelData(), self.getPixelDataSize(), true);
+        })
+        .def("get_display_pixel_buffer", [](boundary::PaintEngineFacade& self) {
+            return py::memoryview::from_memory(
+                self.getDisplayRawPixelData(), self.getDisplayPixelDataSize(), true);
+        })
+        // Seleção & Varinha Mágica
+        .def("magic_wand_select", &boundary::PaintEngineFacade::magicWandSelect,
+             py::arg("seed_x"), py::arg("seed_y"),
+             py::arg("tolerance") = 20, py::arg("contiguous") = true,
+             py::arg("expand_px") = 0, py::arg("anti_aliasing") = true,
+             py::arg("mode") = 0, py::arg("sample_all_layers") = true)
+        .def("select_rect", &boundary::PaintEngineFacade::selectRect,
+             py::arg("x"), py::arg("y"), py::arg("w"), py::arg("h"),
+             py::arg("mode") = 0, py::arg("feather_px") = 0, py::arg("corner_radius_px") = 0)
+        .def("select_ellipse", &boundary::PaintEngineFacade::selectEllipse,
+             py::arg("cx"), py::arg("cy"), py::arg("rx"), py::arg("ry"),
+             py::arg("mode") = 0, py::arg("anti_aliasing") = true, py::arg("feather_px") = 0)
+        .def("select_polygon", &boundary::PaintEngineFacade::selectPolygon,
+             py::arg("flat_points"), py::arg("mode") = 0,
+             py::arg("anti_aliasing") = true, py::arg("feather_px") = 0)
+        .def("clear_selection", &boundary::PaintEngineFacade::clearSelection)
+        .def("invert_selection", &boundary::PaintEngineFacade::invertSelection)
+        .def("select_all", &boundary::PaintEngineFacade::selectAll)
+        .def("has_selection", &boundary::PaintEngineFacade::hasSelection)
+        .def("delete_selection_on_active_layer", &boundary::PaintEngineFacade::deleteSelectionOnActiveLayer)
+        .def("fill_selection_on_active_layer", &boundary::PaintEngineFacade::fillSelectionOnActiveLayer, py::arg("fill_color"))
+        .def("get_selection_mask_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
+            if (!self.hasSelection()) return py::none();
+            return py::memoryview::from_memory(
+                self.getSelectionMaskData(), self.getSelectionMaskSize(), true);
+        })
+        .def("get_selection_bounds", &boundary::PaintEngineFacade::getSelectionBounds)
+        .def("get_selection_contour_segments", &boundary::PaintEngineFacade::getSelectionContourSegments)
+        .def("get_selection_contour_loops", &boundary::PaintEngineFacade::getSelectionContourLoops)
+        // Transform Tool bindings
+        .def("begin_transform", &boundary::PaintEngineFacade::beginTransform)
+        .def("is_transform_active", &boundary::PaintEngineFacade::isTransformActive)
+        .def("get_transform_source_bounds", &boundary::PaintEngineFacade::getTransformSourceBounds)
+        .def("get_transform_pivot", &boundary::PaintEngineFacade::getTransformPivot)
+        .def("commit_transform", &boundary::PaintEngineFacade::commitTransform,
+             py::arg("dx"), py::arg("dy"), py::arg("scale_x"), py::arg("scale_y"),
+             py::arg("rotation_deg"), py::arg("pivot_x"), py::arg("pivot_y"),
+             py::arg("flip_h") = false, py::arg("flip_v") = false, py::arg("interp_mode") = 2)
+        .def("cancel_transform", &boundary::PaintEngineFacade::cancelTransform)
+        .def("flip_active_layer", &boundary::PaintEngineFacade::flipActiveLayer, py::arg("horizontal"))
+        .def("rotate_active_layer_90", &boundary::PaintEngineFacade::rotateActiveLayer90, py::arg("clockwise"))
+        .def("get_transform_source_buffer_size", &boundary::PaintEngineFacade::getTransformSourceBufferSize)
+        .def("get_transform_source_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
+            uint8_t* ptr = self.getTransformSourceBufferData();
+            if (!ptr) return py::none();
+            auto sz = self.getTransformSourceBufferSize();
+            if (sz[0] <= 0 || sz[1] <= 0) return py::none();
+            return py::memoryview::from_memory(ptr, static_cast<size_t>(sz[0] * sz[1] * 4), true);
         })
         // Miniatura de camada: lê os tiles do TileGrid e escalona para thumbW×thumbH (RGBA)
         .def("get_layer_thumbnail_buffer", [](boundary::PaintEngineFacade& self, int layerIdx, int thumbW, int thumbH) -> py::object {
@@ -401,41 +463,30 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
             }
             return py::bytes(reinterpret_cast<const char*>(out.data()), out.size());
         })
-        .def("get_undo_memory_bytes", &boundary::PaintEngineFacade::getUndoMemoryBytes)
-        .def("set_max_undo_memory_mb", &boundary::PaintEngineFacade::setMaxUndoMemoryMB)
-        // Amostragem de Cores (Eyedropper)
-        .def("pick_color_merged", [](const boundary::PaintEngineFacade& self, int x, int y, int sampleRadius) {
-            auto arr = self.pickColorMerged(x, y, sampleRadius);
-            return py::make_tuple(arr[0], arr[1], arr[2], arr[3]);
-        }, py::arg("x"), py::arg("y"), py::arg("sample_radius") = 0)
-        .def("pick_color_layer", [](const boundary::PaintEngineFacade& self, int layerIndex, int x, int y, int sampleRadius) {
-            auto arr = self.pickColorLayer(layerIndex, x, y, sampleRadius);
-            return py::make_tuple(arr[0], arr[1], arr[2], arr[3]);
-        }, py::arg("layer_index"), py::arg("x"), py::arg("y"), py::arg("sample_radius") = 0)
-        // Gerenciamento de Perfis de Cor (Color Profiles & Soft-Proofing)
-        .def("set_color_profile", [](boundary::PaintEngineFacade& self, int profileId) {
-            self.setColorProfile(profileId);
-        })
-        .def("get_color_profile", &boundary::PaintEngineFacade::getColorProfile)
-        .def("get_color_profile_name", &boundary::PaintEngineFacade::getColorProfileName);
-
-    // ─── CATÁLOGO DE PERFIS DE COR DISPONÍVEIS ──────────────────────────────
-    m.def("get_available_color_profiles", []() {
-        py::list result;
-        for (const auto& p : color::ColorProfileManager::getAvailableProfiles()) {
-            py::dict item;
-            item["id"]          = static_cast<int>(p.type);
-            item["name"]        = p.name;
-            item["category"]    = p.category;
-            item["description"] = p.description;
-            result.append(item);
-        }
-        return result;
-    });
-
-    // ─── RENDERIZADOR DE PREVIEW DO TRAÇO EM ALTA FIDELIDADE ─────────────────
-    m.def("render_stroke_preview", [](const brush::BrushProfile& profile, int width, int height) -> py::bytes {
-        auto vec = boundary::PaintEngineFacade::renderStrokePreview(profile, width, height);
-        return py::bytes(reinterpret_cast<const char*>(vec.data()), vec.size());
-    }, py::arg("profile"), py::arg("width") = 260, py::arg("height") = 52);
+        .def("paste_rgba_buffer_on_active_layer", [](boundary::PaintEngineFacade& self, int x, int y, int w, int h, py::bytes buffer, int blendMode, double opacity) {
+            std::string s = buffer;
+            return self.pasteRgbaBufferOnActiveLayer(x, y, w, h, reinterpret_cast<const uint8_t*>(s.data()), blendMode, opacity);
+        }, py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"), py::arg("buffer"), py::arg("blend_mode_id") = 0, py::arg("opacity") = 1.0)
+        // Métodos de Simetria & Guias
+        .def("set_symmetry_config", &boundary::PaintEngineFacade::setSymmetryConfig,
+             py::arg("mode"), py::arg("cx"), py::arg("cy"), py::arg("angle_rad"),
+             py::arg("segments") = 6, py::arg("stop_at_center") = false)
+        .def("clear_symmetry", &boundary::PaintEngineFacade::clearSymmetry)
+        .def("set_guide_config", &boundary::PaintEngineFacade::setGuideConfig,
+             py::arg("type"),
+             py::arg("p0x") = 0.0, py::arg("p0y") = 0.0,
+             py::arg("p1x") = 100.0, py::arg("p1y") = 100.0,
+             py::arg("p2x") = 200.0, py::arg("p2y") = 200.0,
+             py::arg("p3x") = 300.0, py::arg("p3y") = 300.0,
+             py::arg("vp_ax") = 400.0, py::arg("vp_ay") = 300.0,
+             py::arg("vp_bx") = -1000.0, py::arg("vp_by") = 300.0,
+             py::arg("vp_cx") = 400.0, py::arg("vp_cy") = -2000.0,
+             py::arg("cx") = 0.0, py::arg("cy") = 0.0,
+             py::arg("fov") = 130.0, py::arg("pitch") = 0.0, py::arg("yaw") = 0.0,
+             py::arg("snap_radius") = 32.0)
+        .def("clear_guide", &boundary::PaintEngineFacade::clearGuide)
+        .def("snap_point", &boundary::PaintEngineFacade::snapPoint,
+             py::arg("raw_x"), py::arg("raw_y"),
+             py::arg("last_x") = 0.0, py::arg("last_y") = 0.0,
+             py::arg("has_last") = false);
 }

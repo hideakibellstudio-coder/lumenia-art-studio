@@ -454,12 +454,7 @@ bool PaintEngineFacade::redo() {
 // ─── MÉTODOS DE SIMETRIA E GUIAS/RÉGUAS ────────────────────────────────────
 
 void PaintEngineFacade::setSymmetryConfig(int mode, double cx, double cy, double angleRad, int segments, bool stopAtCenter) {
-    m_symmetryConfig.mode = static_cast<math::SymmetryMode>(mode);
-    m_symmetryConfig.cx = cx;
-    m_symmetryConfig.cy = cy;
-    m_symmetryConfig.angleRad = angleRad;
-    m_symmetryConfig.segments = segments;
-    m_symmetryConfig.stopAtCenter = stopAtCenter;
+    m_symmetryConfig = { static_cast<math::SymmetryMode>(mode), cx, cy, angleRad, segments, stopAtCenter };
 }
 
 void PaintEngineFacade::clearSymmetry() {
@@ -467,26 +462,14 @@ void PaintEngineFacade::clearSymmetry() {
 }
 
 void PaintEngineFacade::setGuideConfig(
-    int type, double p0x, double p0y, double p1x, double p1y,
-    double p2x, double p2y, double p3x, double p3y,
-    double vpAx, double vpAy, double vpBx, double vpBy,
-    double vpCx, double vpCy, double cx, double cy,
+    int type, double p0x, double p0y, double p1x, double p1y, double p2x, double p2y, double p3x, double p3y,
+    double vpAx, double vpAy, double vpBx, double vpBy, double vpCx, double vpCy, double cx, double cy,
     double fov, double pitch, double yaw, double snapRadius
 ) {
-    m_guideConfig.type = static_cast<math::GuideType>(type);
-    m_guideConfig.p0 = math::Point2D{ p0x, p0y };
-    m_guideConfig.p1 = math::Point2D{ p1x, p1y };
-    m_guideConfig.p2 = math::Point2D{ p2x, p2y };
-    m_guideConfig.p3 = math::Point2D{ p3x, p3y };
-    m_guideConfig.vpA = math::Point2D{ vpAx, vpAy };
-    m_guideConfig.vpB = math::Point2D{ vpBx, vpBy };
-    m_guideConfig.vpC = math::Point2D{ vpCx, vpCy };
-    m_guideConfig.cx = cx;
-    m_guideConfig.cy = cy;
-    m_guideConfig.fov = fov;
-    m_guideConfig.pitch = pitch;
-    m_guideConfig.yaw = yaw;
-    m_guideConfig.snapRadius = snapRadius;
+    m_guideConfig = {
+        static_cast<math::GuideType>(type), {p0x, p0y}, {p1x, p1y}, {p2x, p2y}, {p3x, p3y},
+        {vpAx, vpAy}, {vpBx, vpBy}, {vpCx, vpCy}, cx, cy, fov, pitch, yaw, snapRadius
+    };
 }
 
 void PaintEngineFacade::clearGuide() {
@@ -494,9 +477,8 @@ void PaintEngineFacade::clearGuide() {
 }
 
 std::vector<double> PaintEngineFacade::snapPoint(double rawX, double rawY, double lastX, double lastY, bool hasLast) const {
-    const math::Point2D raw{ rawX, rawY };
     const math::Point2D last{ lastX, lastY };
-    const math::Point2D snapped = math::GuideSnapEngine::snapPoint(m_guideConfig, raw, hasLast ? &last : nullptr);
+    const math::Point2D snapped = math::GuideSnapEngine::snapPoint(m_guideConfig, {rawX, rawY}, hasLast ? &last : nullptr);
     return { snapped.x, snapped.y };
 }
 

@@ -451,14 +451,16 @@ class PaperLayerWidget(QWidget):
         for top_w in QApplication.topLevelWidgets():
             if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
                 cw = top_w.workspace.canvas_widget
-                cw.paper_visible = self.visible
-                cw.paper_color = self.color
-                cw.update()
+                if cw:
+                    cw.paper_visible = self.visible
+                    cw.paper_color = self.color
+                    cw.update()
             elif hasattr(top_w, "canvas_widget"):
                 cw = top_w.canvas_widget
-                cw.paper_visible = self.visible
-                cw.paper_color = self.color
-                cw.update()
+                if cw:
+                    cw.paper_visible = self.visible
+                    cw.paper_color = self.color
+                    cw.update()
 
     def update_theme(self, colors):
         from ui.core.theme.manager import ThemeManager

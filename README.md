@@ -1,81 +1,140 @@
-# Lumenia - Digital Painting Application (WGPU + PySide6)
+# 🎨 LUMENIA — Digital Art & Paint Studio
 
-O **Lumenia** é um aplicativo desktop de pintura digital de altíssima performance. Ele combina o poder gráfico nativo acelerado por GPU em **Rust (WGPU)** para processamento físico de dabs e renderização, com uma interface rica e altamente responsiva escrita em **Python (PySide6)**.
-
-Tanto o motor gráfico quanto a interface visual seguem o padrão de design **ARCcC (Atomic Recursive Componentization by Contract)**, dividindo-se de forma desacoplada e simétrica em subpastas com responsabilidades estritas.
+<div align="center">
+  <img src="assets/images/icon_lumenia.png" alt="Lumenia Logo" width="128" height="128">
+  <br>
+  <strong>Estúdio Desktop de Arte e Pintura Digital de Alta Performance</strong>
+  <br>
+  <em>Desenvolvido com ALADYN C++17 Native Engine & PySide6</em>
+  <br><br>
+  <img src="https://img.shields.io/badge/Versão-v0.2.0%20Alpha-9333ea?style=for-the-badge" alt="Versão Alpha">
+  <img src="https://img.shields.io/badge/C%2B%2B-C%2B%2B17%20SIMD-blue?style=for-the-badge" alt="C++17 SIMD">
+  <img src="https://img.shields.io/badge/GUI-PySide6%206.11-success?style=for-the-badge" alt="PySide6">
+  <img src="https://img.shields.io/badge/Portátil-100%25%20Standalone-orange?style=for-the-badge" alt="Portátil">
+</div>
 
 ---
 
-## 📂 Estrutura Física do Projeto
+## 📖 Visão Geral
 
-O repositório é composto por uma árvore ultra-atômica e organizada de diretórios:
+O **Lumenia** é um software desktop para ilustração, arte conceitual, lineart e pintura digital focado em **resposta imediata de caneta, leveza extrema e inicialização ultrarrápida (< 1 segundo)**.
+
+Construído para superar as frustrações comuns de softwares de arte pesados (que sofrem com input lag e alto consumo de memória), o Lumenia combina um **motor C++17 acelerado por SIMD** (`aladyn_engine_native`) com uma interface moderna, elegante e modular baseada em **PySide6 (Qt6)** sob a arquitetura **BCE (Boundary-Control-Entity)**.
+
+---
+
+## ⚡ Recursos e Capacidades Atuais (100% Funcionais)
+
+### 🖋️ 1. Motor de Pincéis ALADYN (Catmull-Rom Spline)
+*   **Inker Spline Contínuo:** Interpolação matemática Catmull-Rom nativa em C++ que elimina tremores e instabilidades de mão sem introduzir nenhum atraso perceptível de caneta (*zero input lag*).
+*   **Dinâmica de Pressão Real:** Resposta com curvas de pressão de alta fidelidade para mesas digitalizadoras **Wacom, Huion, XP-Pen e Gaomon**.
+*   **Mídias Naturais:** Modos de Pincel de Tinta (Inker), Lápis de Esboço, Marcador com transparência, Aquarela com difusão e Óleo Impasto com relevo 3D processado em tempo real.
+*   **Borracha Inteligente:** Apagamento suave e preservação perfeita de canais alfa.
+
+### 📐 2. Suíte de Seleção Inteligente & Balde de Tinta
+*   **Varinha Mágica (Magic Wand - `W`):** Preenchimento de seleção contígua com tolerância configurável e expansão de borda de 1px (evita frestas brancas sob a lineart).
+*   **Seleções Geométricas & Laço (`L`):** Retângulo, Elipse, Laço Livre e Laço Poligonal com suporte a operações booleanas (`Shift` para somar, `Alt` para subtrair).
+*   **Marching Ants Dinâmico:** Contorno pontilhado animado a 60 FPS com visibilidade em qualquer tom de fundo.
+*   **Balde de Tinta (`G`):** Preenchimento inteligente respeitando estritamente os limites da seleção ativa.
+
+### 🔄 3. Ferramenta de Transformação Livre (`Ctrl+T`)
+*   **Bounding Box com 8 Alças:** Redimensionamento livre, proporcional (`Shift`) e simétrico a partir do centro (`Alt`).
+*   **Pivô Central Móvel:** Âncora reposicionável permitindo rotações anatômicas realistas em torno de pontos de articulação (ombros, cotovelos, olhos).
+*   **Interpolação Bicúbica Nativa (C++):** Rotação e escala preservando a nitidez da arte sem pixelização ou borrados.
+*   **Seleção Flutuante:** Recorte automático e transformação isolada da área selecionada.
+
+### 📑 4. Sistema de Camadas & Grupos
+*   **Pilha Hierárquica:** Camadas normais, grupos de camadas expansíveis e reordenação intuitiva.
+*   **Modos de Mesclagem & Opacidade:** Controle fino de transparência e mesclagem de canais.
+*   **Duplicação & Merge Down:** Mesclagem descendente com preservação de blend modes e grupos.
+*   **Camada 0 (Cor de Papel):** Fundo base infinito customizável (branco, off-white, tom médio ou transparente).
+
+### 🎨 5. Gerenciamento de Cores & Precisão Cromática
+*   **Espaços de Cor:** Suporte a **sRGB**, **Display P3** (ampla gama) e **Soft-Proofing CMYK** para simulação de impressão.
+*   **Simulador de Daltonismo:** Prova em tempo real para Protanopia, Deuteranopia e Tritanopia.
+*   **Conta-Gotas com HUD Loupe 4x:** Lupa circular dinâmica com leitura matricial de pixels e captura precisa.
+*   **Temas Visuais:** *Lumenia Purple* oficial, *Obsidian Dark*, *OLED High Contrast* e temas customizáveis.
+
+### 📐 6. Suíte de Simetrias Dinâmicas, Réguas & Perspectiva
+*   **Simetrias em Tempo Real (C++ SIMD):** Espelho Livre, Espelho Vertical, Espelho Horizontal, Espelho Duplo (4 quadrantes), Simetria Radial (2 a 32 pontas) e Caleidoscópio.
+*   **Controle de Centro & Stop-at-Center:** Pivô e ângulo de rotação ajustáveis diretamente no canvas, com bloqueio opcional para impedir que o traço ultrapasse o eixo.
+*   **Atração Magnética (Snapping):** Réguas retas infinitas, curvas francesas Bézier com aproximação de Newton-Raphson e perspectivas de 1, 2 e 3 Pontos de Fuga e Isométrica.
+*   **Seletor Premium em Grid:** Menu popup intuitivo com 14 ícones vetorizados na gaveta de ferramentas.
+
+---
+
+## 📂 Estrutura do Repositório
 
 ```text
 Lumenia/
-├── engine/             # CRATE RUST: O motor gráfico core de pintura
-│   ├── Cargo.toml
-│   └── src/
-│       ├── boundary/       # Interfaces e contratos públicos (Renderer, etc.)
-│       ├── core/           # Regras de desenho (brush math, spacing, interpolator, shaders)
-│       └── infrastructure/ # Drivers e setups gráficos (WGPU Surface, window mapper)
+├── assets/                  # Ícones oficiais, imagens e tipografias
+│   └── images/              # Logotipos (icon_lumenia.png)
 │
-├── bridge/             # CRATE RUST: A camada FFI (PyO3)
-│   ├── Cargo.toml
-│   └── src/
-│       ├── boundary/       # Contratos de comandos FFI expostos ao Python
-│       ├── core/           # bindings do PyRenderer e Worker Thread do dispatcher
-│       └── lib.rs          # Declaração do pymodule PyO3 (engine_core)
+├── ui/                      # Interface Gráfica PySide6 (Padrão BCE)
+│   ├── main.py              # Ponto de entrada (QApplication, Splash Screen)
+│   ├── boundary/            # Orquestradores e APIs públicas
+│   │   └── orchestrator/    # MainWindow, menus e coordenação de eventos
+│   ├── core/                # Componentes e subsistemas internos
+│   │   ├── components/      # MenuBar, ToolSidebar, StatusBar, Splash
+│   │   ├── document/        # Modelos de dados e gerenciamento de estado
+│   │   ├── plugins/         # Gerenciador dinâmico de plugins (PluginManager)
+│   │   ├── theme/           # Sistema de estilização QSS e temas dinâmicos
+│   │   └── widgets/         # Widgets atômicos do canvas e controles
+│   ├── engine_backends/     # Adaptadores de motor gráfico (aladyn.py)
+│   └── utils/               # Helpers matemáticos, cores e formatadores
 │
-├── ui/                 # FOLDER PYTHON: Interface gráfica PySide6
-│   ├── main.py             # Ponto de entrada (dispara o loop QApplication)
-│   ├── boundary/           # MainWindow e orquestração de layouts
-│   ├── core/               # Widgets de desenho (CanvasWidget), telas e componentes visuais
-│   ├── infrastructure/     # Clientes do sistema (BridgeClient, EngineDispatcher)
-│   └── utils/              # Temas, estilos QSS, geradores de ícones dinâmicos
+├── plugins/                 # Extensões e Módulos Desacoplados
+│   ├── system/              # Plugins vitais do sistema (workspace_core)
+│   ├── ui/                  # Plugins de interface (brush, color, layers, navigator)
+│   └── plugins_config.json  # Configuração persistida de plugins
 │
-└── plugins/            # FOLDER PYTHON: Extensões dinâmicas do usuário
-    ├── rainbow_dynamics.py # Plugin exemplo de dinâmica com modulação senoidal e pressão
-    └── plugins_config.json # Estado persistido de ativação dos plugins
+├── docs/                    # Documentação Técnica Completa
+│   ├── ARCHITECTURE.md      # Arquitetura detalhada do sistema
+│   ├── MODULOS_E_PLUGINS.md # Guia de plugins e ciclo de vida
+│   ├── CANVAS_E_TRANSFORMACOES.md # Algoritmos de desenho e transformações
+│   └── GUIA_COMPILACAO_E_PORTABILIDADE.md # Compilação e PyInstaller
+│
+└── aladyn_engine_native.pyd # Binário C++17 compilado (Windows x64)
 ```
 
 ---
 
-## ⚙️ Características do Motor de Pintura
+## 🚀 Como Executar
 
-*   **Ponte de Eventos Assíncrona (Dispatcher)**: Eventos de traçado (`StartStroke`, `Draw`, `EndStroke`) são convertidos para structs nativas Rust com segurança de tipo FFI e despachados para processamento em uma thread secundária (Worker Thread), liberando o GIL do Python (`py.allow_threads`).
-*   **Estabilização & Curva de Pressão**: Suavização de tremor por Média Móvel Exponencial (EMA) e ajuste matemático de sensibilidade de pressão da caneta física.
-*   **Rotação 2D do Viewport**: Renderização da tela rotacionada usando shaders WGSL nativos e mapeamento inverso das coordenadas físicas no `InputAdapter` do Rust.
-*   **Premultiplied Alpha Over**: Composição física de dabs na GPU sem halos cinzas nas bordas (blending pré-multiplicado).
+### Opção A: Executar em Modo de Desenvolvimento (Python)
+
+**Pré-requisitos:** Python 3.10+ (Recomendado Python 3.12 ou 3.14).
+
+1. Instale as dependências:
+   ```bash
+   pip install -r ui/requirements.txt
+   ```
+2. Inicie o aplicativo:
+   ```bash
+   python ui/main.py
+   ```
+
+### Opção B: Versão Portátil Autônoma (Sem Instalação)
+
+Acesse a pasta `Lumenia_Alpha_Portable/Lumenia/` e execute diretamente o executável:
+```text
+Lumenia.exe
+```
 
 ---
 
-## 🔌 Sistema de Plugins
+## 🗺️ Roadmap de Próximas Implementações
 
-O sistema de plugins do Lumenia suporta o carregamento de extensões dinâmicas em tempo de execução:
-*   **Injeção de Contexto (`PluginContext`)**: Plugins recebem serviços e logs de forma injetada, sem importar variáveis globais.
-*   **Ordenação Topológica**: Resolvedor DFS com detecção de dependências cíclicas.
-*   **Plugins de Sistema**: Suporte a plugins vitais travados na UI (não podem ser desligados) e que abortam a aplicação de forma segura caso falhem (fail-fast).
+- [ ] **Item 9:** Formas Vetoriais / Primitivas Rápidas (Linhas, Retângulos, Círculos e Estrelas).
+- [ ] **Item 9.5:** Motor de Texto *In-Place* com tipografia editável direto no canvas.
+- [ ] **Item 10:** Harmonias e Modos de Cor do Infinite Painter.
+- [x] **Item 11:** Réguas, Simetrias Dinâmicas e Guias de Perspectiva (1, 2 e 3 Pontos de Fuga e Isométrica).
+- [ ] **Item 12:** Formato de Arquivo Nativo com Camadas (`.lmn`).
 
 ---
 
-## 🚀 Como Compilar e Executar
+## 📄 Licença & Contato
 
-### Pré-requisitos
-- Rust (Cargo)
-- Python 3.8+ com `PySide6` e `maturin` instalados
-
-### 1. Compilar o Core Gráfico (Rust -> Python PYD)
-Com o terminal no diretório raiz do projeto, execute:
-```powershell
-# Configura compatibilidade de ABI e compila a bridge
-$env:PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
-cargo build
-
-# Copie o binário compilado (.dll) para o frontend Python como (.pyd)
-Copy-Item -Path "target/debug/engine_core.dll" -Destination "ui/engine_core.pyd" -Force
-```
-
-### 2. Executar a Aplicação
-```powershell
-python ui/main.py
-```
+*   **Desenvolvedor:** Equipe Lumenia / Maestros da IA
+*   **E-mail de Contato & Feedback:** `lumeniateam@protonmail.com`
+*   **Projeto:** Independente / Open Development

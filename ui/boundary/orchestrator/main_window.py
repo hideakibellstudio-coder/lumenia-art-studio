@@ -1,20 +1,4 @@
-"""
-MainWindow — Shell principal do Lumenia Brush Engine 2.0
-=========================================================
-Responsabilidades desta classe (Fase 3+):
-  - Montar componentes nativos da QMainWindow: MenuBar, ToolSidebar,
-    BrushDock (QDockWidget), PropertiesDock (QDockWidget), StatusBar
-  - Injetar-se no PluginManager ANTES de discover_plugins() para que o
-    WorkspaceCore system plugin monte o WorkspaceContainer via setCentralWidget
-  - Delegar toda lógica de canvas, brush e câmera ao WorkspaceContainer
-  - Abrir diálogos (tema, plugins, novo documento, fechar documento)
-
-O que NÃO pertence aqui:
-  - Handlers on_brush_* (em WorkspaceContainer)
-  - Câmera / navigator sync (em WorkspaceContainer)
-  - _on_active_document_changed (em WorkspaceContainer)
-  - Criação direta do WorkspaceContainer (responsabilidade do WorkspaceCore plugin)
-"""
+"""MainWindow — Shell principal do Lumenia Brush Engine 2.0 (ARCcC Shell Layer)."""
 
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -87,90 +71,9 @@ class MainWindow(QtWidgets.QMainWindow):
         Monta os componentes nativos da QMainWindow:
         MenuBar, ToolSidebar, BrushDock, PropertiesDock, StatusBar.
         Todo o wiring brush/câmera é delegado ao WorkspaceContainer.
-        Se o workspace não foi montado (WorkspaceCore falhou), apenas
-        monta MenuBar e StatusBar para não crashar.
         """
-        # ── Menu Bar ──────────────────────────────────────────────────────
-        self.menu_bar = MenuBar(self)
-        self.setMenuBar(self.menu_bar)
-
-        # Arquivo
-        self.menu_bar.newDocumentRequested.connect(self.open_new_document_dialog)
-        self.menu_bar.openDocumentRequested.connect(self.open_image_file)
-        self.menu_bar.saveDocumentRequested.connect(self.save_active_document)
-        self.menu_bar.saveAsDocumentRequested.connect(self.export_image)
-        self.menu_bar.exportImageRequested.connect(self.export_image)
-        self.menu_bar.closeDocumentRequested.connect(self.close_active_document)
-        self.menu_bar.clearCanvasRequested.connect(self.clear_screen)
-
-        # Editar
-        self.menu_bar.undoRequested.connect(self.undo)
-        self.menu_bar.redoRequested.connect(self.redo)
-        self.menu_bar.clearLayerRequested.connect(self.clear_screen)
-        self.menu_bar.freeTransformRequested.connect(lambda: self.select_tool_by_id("transform"))
-        self.menu_bar.preferencesRequested.connect(self.open_render_settings_dialog)
-
-        # Imagem & Rotações
-        self.menu_bar.resetRotationRequested.connect(self.reset_rotation)
-        self.menu_bar.flipHorizontalRequested.connect(self.flip_horizontal)
-        self.menu_bar.flipVerticalRequested.connect(self.flip_vertical)
-
-        # Camadas & Grupos
-        self.menu_bar.newLayerRequested.connect(self.create_new_layer)
-        self.menu_bar.newGroupRequested.connect(self.create_new_group)
-        self.menu_bar.duplicateLayerRequested.connect(self.duplicate_active_layer)
-        self.menu_bar.deleteLayerRequested.connect(self.delete_active_layer)
-        self.menu_bar.mergeDownRequested.connect(self.merge_layer_down)
-
-        # Filtros
-        self.menu_bar.filterGalleryRequested.connect(self.open_filter_gallery)
-
-        # Exibir
-        self.menu_bar.zoomInRequested.connect(self.zoom_in)
-        self.menu_bar.zoomOutRequested.connect(self.zoom_out)
-        self.menu_bar.resetViewRequested.connect(self.reset_view)
-        self.menu_bar.fitToScreenRequested.connect(self.reset_view)
-        self.menu_bar.renderSettingsRequested.connect(self.open_render_settings_dialog)
-
-        # Janela & Docks
-        self.menu_bar.dockSettingsRequested.connect(self.open_dock_settings_dialog)
-
-        # Configurações & Temas
-        self.menu_bar.curvesLutRequested.connect(self.open_curve_window)
-        self.menu_bar.themeSettingsRequested.connect(self.open_theme_dialog)
-        self.menu_bar.managePluginsRequested.connect(self.open_plugins_dialog)
-
-        # Ajuda
-        self.menu_bar.shortcutsRequested.connect(self.open_shortcuts_dialog)
-        self.menu_bar.feedbackRequested.connect(self.open_feedback_form)
-        self.menu_bar.aboutRequested.connect(self.open_about_dialog)
-
-        # ── Tool Sidebar ──────────────────────────────────────────────────
-        self.tool_sidebar = ToolSidebar(self)
-        self.addToolBar(QtCore.Qt.TopToolBarArea, self.tool_sidebar)
-        self.tool_sidebar.brushSelected.connect(self.select_brush_tool)
-        self.tool_sidebar.eraserSelected.connect(self.select_eraser_tool)
-        self.tool_sidebar.undoRequested.connect(self.undo)
-        self.tool_sidebar.redoRequested.connect(self.redo)
-        self.tool_sidebar.zoomInRequested.connect(self.zoom_in)
-        self.tool_sidebar.zoomOutRequested.connect(self.zoom_out)
-        self.tool_sidebar.resetRequested.connect(self.reset_view)
-        self.tool_sidebar.clearRequested.connect(self.clear_screen)
-        self.tool_sidebar.deselectRequested.connect(self.deselect_selection)
-
-        # ── Atalhos de Teclado Globais (Undo / Redo / Deselect) ─────────
-        self.shortcut_undo = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Z"), self)
-        self.shortcut_undo.activated.connect(self.undo)
-
-        self.shortcut_redo_y = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Y"), self)
-        self.shortcut_redo_y.activated.connect(self.redo)
-
-        self.shortcut_redo_shift_z = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Shift+Z"), self)
-        self.shortcut_redo_shift_z.activated.connect(self.redo)
-
-        # ── Status Bar ────────────────────────────────────────────────────
-        self.status_bar = StatusBar(self)
-        self.setStatusBar(self.status_bar)
+        from .main_window_menu_builder import setup_menu_and_shortcuts
+        setup_menu_and_shortcuts(self)
 
         # ── Wiring: documento ativo → status bar ─────────────────────────
         self.dm.activeDocumentChanged.connect(self._on_active_document_status)
@@ -229,17 +132,29 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tool_sidebar.action_eraser.setChecked(True)
 
     def select_brush_tool(self) -> None:
-
-        self.workspace.select_tool("brush")
-        self.tool_sidebar.action_brush.setChecked(True)
-        self.tool_sidebar.action_eraser.setChecked(False)
-        self.status_bar.showMessage("Ferramenta Pincel selecionada.")
+        self.select_tool_by_id("brush")
 
     def select_eraser_tool(self) -> None:
-        self.workspace.select_tool("eraser")
-        self.tool_sidebar.action_brush.setChecked(False)
-        self.tool_sidebar.action_eraser.setChecked(True)
-        self.status_bar.showMessage("Ferramenta Borracha selecionada.")
+        self.select_tool_by_id("eraser")
+
+    def select_shapes_tool(self) -> None:
+        self.select_tool_by_id("shapes")
+
+    def select_text_tool(self) -> None:
+        self.select_tool_by_id("text")
+
+    def select_tool_by_id(self, tool_id: str) -> None:
+        if self.workspace:
+            self.workspace.select_tool(tool_id)
+        if hasattr(self, "tool_sidebar"):
+            self.tool_sidebar.action_brush.setChecked(tool_id == "brush")
+            self.tool_sidebar.action_eraser.setChecked(tool_id == "eraser")
+            if hasattr(self.tool_sidebar, "action_shapes"):
+                self.tool_sidebar.action_shapes.setChecked(tool_id.startswith("shape") or tool_id == "shapes")
+        
+        from ui.core.tools import TOOL_META
+        tool_name = TOOL_META.get(tool_id, {}).get("name", tool_id.capitalize())
+        self.status_bar.showMessage(f"Ferramenta {tool_name} selecionada.")
 
     # ── Câmera ────────────────────────────────────────────────────────────
 

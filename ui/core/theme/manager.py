@@ -56,7 +56,7 @@ class ThemeManager(QtCore.QObject):
 
     def __init__(self):
         super().__init__()
-        self._current_theme = "dark_default"
+        self._current_theme = "lumenia_purple"
         self._themes = {}
         
         self.base_dir = os.path.dirname(os.path.abspath(__file__))

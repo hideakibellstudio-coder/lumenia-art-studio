@@ -61,19 +61,20 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     def qs_opacity(self):
         return self.opacity_slider
 
-
     def setup_ui(self) -> None:
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(4, 4, 4, 4)
         main_layout.setSpacing(0)
 
         # Content Widget
         content_widget = QtWidgets.QWidget()
+        content_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         settings_layout = QtWidgets.QHBoxLayout(content_widget)
         settings_layout.setContentsMargins(0, 0, 0, 0)
         settings_layout.setSpacing(4)
 
-        # Tool Grid Column (Coluna Vertical Única com 10 Ferramentas)
+        # Tool Grid Column (Coluna Vertical com Ferramentas)
         settings_layout.addWidget(self._make_tool_column())
 
         # Vertical Divider
@@ -84,17 +85,18 @@ class BrushSettingsPanel(QtWidgets.QWidget):
 
         from ui.core.widgets.tool_options_widgets import (
             EyedropOptionsWidget, BucketOptionsWidget, WandOptionsWidget,
-            TransformOptionsWidget, SelectionOptionsWidget
+            TransformOptionsWidget, SelectionOptionsWidget, ShapesOptionsWidget
         )
 
         # Quick Sliders & Preview Column (Stacked por Ferramenta)
         props_col = QtWidgets.QWidget()
-        props_col.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        props_col.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         col_layout = QtWidgets.QVBoxLayout(props_col)
         col_layout.setContentsMargins(0, 0, 0, 0)
         col_layout.setSpacing(0)
 
         self.stacked_tool_props = QtWidgets.QStackedWidget(props_col)
+        self.stacked_tool_props.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         # ── 1. Página de Pincéis & Parâmetros Rápidos ────────────────────────
         self.brush_props_widget = QtWidgets.QWidget()
@@ -152,54 +154,23 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self._quick_sliders.append(self.opacity_slider)
 
         # Sliders Pináveis Adicionais (Iniciam ocultos por padrão)
-        self.contrast_slider = CompactSlider("Dur:", 1, 30, "", self)
-        self.contrast_slider.setValue(10)
-        self.contrast_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.contrast_slider.valueChanged.connect(lambda v: self.contrastChanged.emit(v / 10.0))
-        self.contrast_slider.setVisible(False)
-        props_layout.addWidget(self.contrast_slider)
-        self._quick_sliders.append(self.contrast_slider)
-
-        self.pressure_slider = CompactSlider("Press:", 1, 100, "%", self)
-        self.pressure_slider.setValue(50)
-        self.pressure_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.pressure_slider.valueChanged.connect(lambda v: self.pressureChanged.emit(v / 100.0))
-        self.pressure_slider.setVisible(False)
-        props_layout.addWidget(self.pressure_slider)
-        self._quick_sliders.append(self.pressure_slider)
-
-        self.curve_slider = CompactSlider("Curv:", 1, 40, "", self)
-        self.curve_slider.setValue(10)
-        self.curve_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.curve_slider.valueChanged.connect(lambda v: self.pressureCurvePowerChanged.emit(v / 10.0))
-        self.curve_slider.setVisible(False)
-        props_layout.addWidget(self.curve_slider)
-        self._quick_sliders.append(self.curve_slider)
-
-        self.stabilizer_slider = CompactSlider("Stab:", 0, 95, "%", self)
-        self.stabilizer_slider.setValue(0)
-        self.stabilizer_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.stabilizer_slider.valueChanged.connect(lambda v: self.stabilizerWeightChanged.emit(v / 100.0))
-        self.stabilizer_slider.setVisible(False)
-        props_layout.addWidget(self.stabilizer_slider)
-        self._quick_sliders.append(self.stabilizer_slider)
-
-        self.spacing_slider = CompactSlider("Espac:", 1, 100, "%", self)
-        self.spacing_slider.setValue(10)
-        self.spacing_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.spacing_slider.valueChanged.connect(lambda v: self.spacingChanged.emit(v / 100.0))
-        self.spacing_slider.setVisible(False)
-        props_layout.addWidget(self.spacing_slider)
-        self._quick_sliders.append(self.spacing_slider)
-
-        self.min_density_slider = CompactSlider("Dens:", 0, 100, "%", self)
-        self.min_density_slider.setValue(0)
-        self.min_density_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.min_density_slider.valueChanged.connect(lambda v: self.minDensityValueChanged.emit(v / 100.0))
-        self.min_density_slider.setVisible(False)
-        props_layout.addWidget(self.min_density_slider)
-        self._quick_sliders.append(self.min_density_slider)
-
+        pinned_defs = [
+            ("contrast", "Dur:", 1, 30, "", 10, lambda v: self.contrastChanged.emit(v / 10.0)),
+            ("pressure", "Press:", 1, 100, "%", 50, lambda v: self.pressureChanged.emit(v / 100.0)),
+            ("curve", "Curv:", 1, 40, "", 10, lambda v: self.pressureCurvePowerChanged.emit(v / 10.0)),
+            ("stabilizer", "Stab:", 0, 95, "%", 0, lambda v: self.stabilizerWeightChanged.emit(v / 100.0)),
+            ("spacing", "Espac:", 1, 100, "%", 10, lambda v: self.spacingChanged.emit(v / 100.0)),
+            ("min_density", "Dens:", 0, 100, "%", 0, lambda v: self.minDensityValueChanged.emit(v / 100.0)),
+        ]
+        for name, lbl, mi, ma, sfx, val, cb in pinned_defs:
+            s = CompactSlider(lbl, mi, ma, sfx, self)
+            s.setValue(val)
+            s.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+            s.valueChanged.connect(cb)
+            s.setVisible(False)
+            props_layout.addWidget(s)
+            self._quick_sliders.append(s)
+            setattr(self, f"{name}_slider", s)
         props_layout.addStretch()
         self.stacked_tool_props.addWidget(self.brush_props_widget)
 
@@ -221,26 +192,17 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self.selection_options_widget = SelectionOptionsWidget(self)
         self.stacked_tool_props.addWidget(self.selection_options_widget)
 
+        self.shapes_options_widget = ShapesOptionsWidget(self)
+        self.shapes_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("shapes", s))
+        self.stacked_tool_props.addWidget(self.shapes_options_widget)
+
         col_layout.addWidget(self.stacked_tool_props)
         settings_layout.addWidget(props_col, 1)
 
-        # Card Box Wrapper
+        # Card Box Wrapper (Envolve e preenche 100% da altura da gaveta)
         card_box = PanelCardBox("Pincel & Ferramentas", content_widget, self)
-
-        # Scroll Area
-        scroll = QtWidgets.QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-
-        scroll_content = QtWidgets.QWidget()
-        sc_layout = QtWidgets.QVBoxLayout(scroll_content)
-        sc_layout.setContentsMargins(0, 0, 0, 0)
-        sc_layout.addWidget(card_box)
-
-        scroll.setWidget(scroll_content)
-        main_layout.addWidget(scroll)
+        card_box.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        main_layout.addWidget(card_box, 1)
 
     def _apply_theme_style(self, *args) -> None:
         theme = ThemeManager.instance()
@@ -311,6 +273,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self.tool_col_box = QtWidgets.QFrame()
         self.tool_col_box.setObjectName("ToolColBox")
         self.tool_col_box.setFixedWidth(34)
+        self.tool_col_box.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
 
         layout = QtWidgets.QVBoxLayout(self.tool_col_box)
         layout.setContentsMargins(2, 3, 2, 3)
@@ -321,7 +284,10 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self._tool_bg = QtWidgets.QButtonGroup(self)
         self._tool_bg.setExclusive(True)
 
-        for tid, meta in TOOL_META.items():
+        from ui.core.tools import DEFAULT_TOOLS
+
+        for tid in DEFAULT_TOOLS:
+            meta = TOOL_META.get(tid, {"name": tid, "icon": tid})
             btn = QtWidgets.QToolButton(self.tool_col_box)
             btn.setCheckable(True)
             btn.setFixedSize(28, 28)
@@ -346,13 +312,16 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         """Sincroniza visualmente a ferramenta ativa no painel e no dropdown de presets sem reemitir sinal em loop."""
         for tid, btn in self._tool_buttons.items():
             btn.blockSignals(True)
-            is_active = (tid == tool_name)
+            is_active = (tid == tool_name) or (tid == "shapes" and (tool_name.startswith("shape_") or tool_name == "shapes"))
             btn.setChecked(is_active)
             btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="#ffffff" if is_active else "text_main"))
             btn.blockSignals(False)
 
         if hasattr(self, "preset_combo") and self.preset_combo:
             self.preset_combo.sync_to_tool(tool_name)
+
+        if hasattr(self, "shapes_options_widget") and tool_name.startswith("shape_") and tool_name != "shapes":
+            self.shapes_options_widget.set_active_shape_type(tool_name)
 
         if hasattr(self, "stacked_tool_props"):
             tool_to_widget = {
@@ -366,6 +335,12 @@ class BrushSettingsPanel(QtWidgets.QWidget):
                 "rect_select": self.selection_options_widget,
                 "ellipse_select": self.selection_options_widget,
                 "lasso": self.selection_options_widget,
+                "shapes": getattr(self, "shapes_options_widget", self.brush_props_widget),
+                "shape_rect": getattr(self, "shapes_options_widget", self.brush_props_widget),
+                "shape_ellipse": getattr(self, "shapes_options_widget", self.brush_props_widget),
+                "shape_line": getattr(self, "shapes_options_widget", self.brush_props_widget),
+                "shape_polygon": getattr(self, "shapes_options_widget", self.brush_props_widget),
+                "shape_star": getattr(self, "shapes_options_widget", self.brush_props_widget),
             }
             target = tool_to_widget.get(tool_name, self.brush_props_widget)
             self.stacked_tool_props.setCurrentWidget(target)
@@ -373,6 +348,8 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     def _on_tool(self, tool_id: str) -> None:
         self.set_tool_active(tool_id)
         self.toolActivated.emit(tool_id)
+        if tool_id == "shapes" and hasattr(self, "shapes_options_widget"):
+            self.shapes_options_widget._emit_changes()
 
 
     def set_color(self, color: QtGui.QColor) -> None:
@@ -382,6 +359,8 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self.stroke_preview.update_brush_state(color=[color.redF(), color.greenF(), color.blueF()])
         if hasattr(self, "eyedrop_options_widget"):
             self.eyedrop_options_widget.set_captured_color(color)
+        if hasattr(self, "shapes_options_widget"):
+            self.shapes_options_widget.set_active_color(color)
 
     def _on_size_changed(self, val: float) -> None:
         self.sizeChanged.emit(val)

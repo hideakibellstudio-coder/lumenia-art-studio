@@ -343,42 +343,14 @@ class BrushSettingsDialog(QtWidgets.QDialog):
             return getattr(self._adv_panel, attr, None)
         return None
 
-    @property
-    def slider_pressure(self):
-        self._ensure_advanced()
-        return self._adv_panel.slider_pressure
-    @property
-    def slider_curve(self):
-        self._ensure_advanced()
-        return self._adv_panel.slider_curve
-    @property
-    def slider_stabilizer(self):
-        self._ensure_advanced()
-        return self._adv_panel.slider_stabilizer
-    @property
-    def slider_spacing(self):
-        self._ensure_advanced()
-        return self._adv_panel.slider_spacing
-    @property
-    def chk_min_density(self):
-        self._ensure_advanced()
-        return self._adv_panel.chk_min_density
-    @property
-    def slider_min_density(self):
-        self._ensure_advanced()
-        return self._adv_panel.slider_min_density
-    @property
-    def slider_contrast(self):
-        self._ensure_advanced()
-        return self._adv_panel.slider_contrast
-    @property
-    def chk_invert(self):
-        self._ensure_advanced()
-        return self._adv_panel.chk_invert
+    def __getattr__(self, name: str):
+        if name.startswith(("slider_", "chk_")):
+            self._ensure_advanced()
+            return getattr(self._adv_panel, name)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     # ── Default thumbnails ────────────────────────────────────────────
     def _draw_default_thumbnails(self):
-        # Shape: radial gradient
         pm = QtGui.QPixmap(54, 54)
         pm.fill(QtGui.QColor(16, 16, 16))
         p = QtGui.QPainter(pm)
@@ -393,14 +365,12 @@ class BrushSettingsDialog(QtWidgets.QDialog):
         p.end()
         self.shape_preview.setPixmap(pm)
 
-        # Heightmap: sine noise
         pm2 = QtGui.QPixmap(54, 54)
         pm2.fill(QtGui.QColor(16, 16, 16))
         p2 = QtGui.QPainter(pm2)
         for y in range(54):
             for x in range(54):
-                val = int(127 + 100 * math.sin(x * 0.3) * math.cos(y * 0.3))
-                val = max(0, min(255, val))
+                val = max(0, min(255, int(127 + 100 * math.sin(x * 0.3) * math.cos(y * 0.3))))
                 p2.setPen(QtGui.QColor(val, val, val))
                 p2.drawPoint(x, y)
         p2.end()
@@ -414,118 +384,34 @@ class BrushSettingsDialog(QtWidgets.QDialog):
     # ── Theme ─────────────────────────────────────────────────────────
     def _apply_theme(self, _=""):
         from ui.core.theme.manager import ThemeManager
-        tm     = ThemeManager.instance()
-        bg     = tm.get_color("bg_base")
-        bg2    = tm.get_color("bg_elevated")
-        bg3    = tm.get_color("bg_widget")
-        text   = tm.get_color("text_main")
-        muted  = tm.get_color("text_muted")
-        accent = tm.get_color("accent")
-        border = tm.get_color("border")
+        tm = ThemeManager.instance()
+        bg, bg2, bg3 = tm.get_color("bg_base"), tm.get_color("bg_elevated"), tm.get_color("bg_widget")
+        text, muted, accent, border = tm.get_color("text_main"), tm.get_color("text_muted"), tm.get_color("accent"), tm.get_color("border")
 
-        # Update compact sliders with accent color
         for sl in self._quick_sliders:
             sl.apply_theme(bg3, border, accent, text)
 
         self.setStyleSheet(f"""
-            BrushSettingsDialog {{
-                background: {bg};
-                border: 1px solid {border};
-                border-radius: 8px;
-            }}
-            #BTitleBar {{
-                background: {bg2};
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-            }}
-            #BTitleLabel {{
-                color: {text};
-                font-weight: 700;
-                font-size: 12px;
-            }}
+            BrushSettingsDialog {{ background: {bg}; border: 1px solid {border}; border-radius: 8px; }}
+            #BTitleBar {{ background: {bg2}; border-top-left-radius: 8px; border-top-right-radius: 8px; }}
+            #BTitleLabel {{ color: {text}; font-weight: 700; font-size: 12px; }}
             #BTitleIcon {{ font-size: 14px; padding-right: 2px; }}
-            #BCloseBtn {{
-                background: transparent;
-                color: {muted};
-                border: 1px solid {border};
-                border-radius: 3px;
-                padding: 0 10px;
-                font-size: 10px;
-            }}
-            #BCloseBtn:hover {{
-                background: {accent};
-                color: {text};
-                border-color: {accent};
-            }}
-            #BSep {{ color: {border}; }}
-            #BToolCol {{
-                background: {bg2};
-                border-bottom-left-radius: 8px;
-            }}
-            QToolButton {{
-                background: transparent;
-                border: 1px solid transparent;
-                border-radius: 6px;
-            }}
-            QToolButton:hover {{
-                background: {bg};
-                border-color: {border};
-            }}
-            QToolButton:checked {{
-                background: {accent};
-                border-color: {accent};
-            }}
-            #BDivider {{ color: {border}; }}
+            #BCloseBtn {{ background: transparent; color: {muted}; border: 1px solid {border}; border-radius: 3px; padding: 0 10px; font-size: 10px; }}
+            #BCloseBtn:hover {{ background: {accent}; color: {text}; border-color: {accent}; }}
+            #BSep, #BDivider {{ color: {border}; }}
+            #BToolCol {{ background: {bg2}; border-bottom-left-radius: 8px; }}
+            QToolButton {{ background: transparent; border: 1px solid transparent; border-radius: 6px; }}
+            QToolButton:hover {{ background: {bg}; border-color: {border}; }}
+            QToolButton:checked {{ background: {accent}; border-color: {accent}; }}
             #BProps {{ background: {bg}; border-bottom-right-radius: 8px; }}
-            #BPresetLabel {{
-                color: {text};
-                font-size: 11px;
-                font-weight: 600;
-                background: {bg2};
-                border: 1px solid {border};
-                border-radius: 4px;
-                padding: 4px 8px;
-            }}
-            #BAdvBtn {{
-                background: {bg2};
-                border: 1px solid {border};
-                border-radius: 4px;
-                font-size: 13px;
-                color: {text};
-            }}
-            #BAdvBtn:hover {{
-                background: {accent};
-                border-color: {accent};
-            }}
-            #BStrokePreview {{
-                border-radius: 6px;
-            }}
-            #BTexLabel {{
-                color: {muted};
-                font-size: 10px;
-            }}
-            #BTexPreview {{
-                border: 1px solid {border};
-                border-radius: 4px;
-                background: #101010;
-            }}
-            #BTexBtn {{
-                background: {bg2};
-                color: {text};
-                border: 1px solid {border};
-                border-radius: 3px;
-                font-size: 10px;
-                padding: 0 4px;
-            }}
-            #BTexBtn:hover {{
-                border-color: {accent};
-                color: {accent};
-            }}
-            #BSectionLabel {{
-                color: {muted};
-                font-size: 9px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-            }}
+            #BPresetLabel {{ color: {text}; font-size: 11px; font-weight: 600; background: {bg2}; border: 1px solid {border}; border-radius: 4px; padding: 4px 8px; }}
+            #BAdvBtn {{ background: {bg2}; border: 1px solid {border}; border-radius: 4px; font-size: 13px; color: {text}; }}
+            #BAdvBtn:hover {{ background: {accent}; border-color: {accent}; }}
+            #BStrokePreview {{ border-radius: 6px; }}
+            #BTexLabel {{ color: {muted}; font-size: 10px; }}
+            #BTexPreview {{ border: 1px solid {border}; border-radius: 4px; background: #101010; }}
+            #BTexBtn {{ background: {bg2}; color: {text}; border: 1px solid {border}; border-radius: 3px; font-size: 10px; padding: 0 4px; }}
+            #BTexBtn:hover {{ border-color: {accent}; color: {accent}; }}
+            #BSectionLabel {{ color: {muted}; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }}
         """)
+

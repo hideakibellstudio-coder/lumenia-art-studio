@@ -256,7 +256,6 @@ class FloatingToolbar(QtWidgets.QDialog):
             if self.orientation == QtCore.Qt.Horizontal
             else QtCore.QSize(inner_breadth, inner_length)
         )
-        self.container.setFixedSize(container_size)
 
         # O tamanho da janela nativa QDialog inclui a margem de 12px de cada lado (24px total)
         window_w = inner_length + 24
@@ -268,26 +267,63 @@ class FloatingToolbar(QtWidgets.QDialog):
             else QtCore.QSize(window_h, window_w)
         )
 
-        # Atualiza visibilidade dos botões
-        for tid, btn in self.buttons.items():
-            if self._is_collapsed:
-                btn.setVisible(tid == self._active_tool_id)
-            else:
-                btn.setVisible(True)
-
         if animate and self.isVisible():
-            if self.anim_min.state() == QtCore.QPropertyAnimation.Running:
-                self.anim_min.stop()
-                self.anim_max.stop()
-            self.anim_min.setDuration(220)
-            self.anim_max.setDuration(220)
-            self.anim_min.setStartValue(self.size())
-            self.anim_max.setStartValue(self.size())
-            self.anim_min.setEndValue(target_size)
-            self.anim_max.setEndValue(target_size)
-            self.anim_min.start()
-            self.anim_max.start()
+            if hasattr(self, "_geom_anim") and self._geom_anim.state() == QtCore.QAbstractAnimation.Running:
+                self._geom_anim.stop()
+
+            start_c_size = self.container.size()
+            start_w_size = self.size()
+
+            self._geom_anim = QtCore.QVariantAnimation(self)
+            self._geom_anim.setDuration(220)
+            self._geom_anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+            self._geom_anim.setStartValue(0.0)
+            self._geom_anim.setEndValue(1.0)
+
+            # Na expansão, exibe todos os botões imediatamente para fluidez
+            if not self._is_collapsed:
+                for btn in self.buttons.values():
+                    btn.setVisible(True)
+
+            def _on_anim_step(progress: float):
+                # Interpola o tamanho do container interno
+                cw = int(start_c_size.width() + (container_size.width() - start_c_size.width()) * progress)
+                ch = int(start_c_size.height() + (container_size.height() - start_c_size.height()) * progress)
+                self.container.setFixedSize(cw, ch)
+
+                # Interpola o tamanho da janela externa
+                ww = int(start_w_size.width() + (target_size.width() - start_w_size.width()) * progress)
+                wh = int(start_w_size.height() + (target_size.height() - start_w_size.height()) * progress)
+                self.setMinimumSize(ww, wh)
+                self.setMaximumSize(ww, wh)
+                self.resize(ww, wh)
+
+                parent_ws = getattr(self, "_workspace", None) or self.parentWidget()
+                if parent_ws and hasattr(parent_ws, "update_toolbar_position"):
+                    parent_ws.update_toolbar_position()
+
+            def _on_anim_finish():
+                self.container.setFixedSize(container_size)
+                self.setMinimumSize(target_size)
+                self.setMaximumSize(target_size)
+                self.resize(target_size)
+                if self._is_collapsed:
+                    for tid, btn in self.buttons.items():
+                        btn.setVisible(tid == self._active_tool_id)
+                parent_ws = getattr(self, "_workspace", None) or self.parentWidget()
+                if parent_ws and hasattr(parent_ws, "update_toolbar_position"):
+                    parent_ws.update_toolbar_position()
+
+            self._geom_anim.valueChanged.connect(_on_anim_step)
+            self._geom_anim.finished.connect(_on_anim_finish)
+            self._geom_anim.start()
         else:
+            for tid, btn in self.buttons.items():
+                if self._is_collapsed:
+                    btn.setVisible(tid == self._active_tool_id)
+                else:
+                    btn.setVisible(True)
+            self.container.setFixedSize(container_size)
             self.setMinimumSize(target_size)
             self.setMaximumSize(target_size)
             self.resize(target_size)

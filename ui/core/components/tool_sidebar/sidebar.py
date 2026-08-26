@@ -4,6 +4,7 @@ from ui.core.icons import get_icon
 class ToolSidebar(QtWidgets.QToolBar):
     brushSelected = QtCore.Signal()
     eraserSelected = QtCore.Signal()
+    shapesSelected = QtCore.Signal()
     undoRequested = QtCore.Signal()
     redoRequested = QtCore.Signal()
     zoomInRequested = QtCore.Signal()
@@ -28,17 +29,23 @@ class ToolSidebar(QtWidgets.QToolBar):
         self.clear()
         
         # Pincel
-        self.action_brush = QtGui.QAction(get_icon("brush"), "Pincel", self)
+        self.action_brush = QtGui.QAction(get_icon("brush"), "Pincel (B)", self)
         self.action_brush.setCheckable(True)
         self.action_brush.setChecked(True)
         self.action_brush.triggered.connect(self._on_brush_triggered)
         self.addAction(self.action_brush)
         
         # Borracha
-        self.action_eraser = QtGui.QAction(get_icon("eraser"), "Borracha", self)
+        self.action_eraser = QtGui.QAction(get_icon("eraser"), "Borracha (E)", self)
         self.action_eraser.setCheckable(True)
         self.action_eraser.triggered.connect(self._on_eraser_triggered)
         self.addAction(self.action_eraser)
+
+        # Formas Vetoriais
+        self.action_shapes = QtGui.QAction(get_icon("shapes"), "Formas Vetoriais (U)", self)
+        self.action_shapes.setCheckable(True)
+        self.action_shapes.triggered.connect(self._on_shapes_triggered)
+        self.addAction(self.action_shapes)
         
         self.addSeparator()
 
@@ -89,19 +96,29 @@ class ToolSidebar(QtWidgets.QToolBar):
     def _on_brush_triggered(self):
         self.action_brush.setChecked(True)
         self.action_eraser.setChecked(False)
+        self.action_shapes.setChecked(False)
         self.brushSelected.emit()
 
     def _on_eraser_triggered(self):
         self.action_brush.setChecked(False)
         self.action_eraser.setChecked(True)
+        self.action_shapes.setChecked(False)
         self.eraserSelected.emit()
+
+    def _on_shapes_triggered(self):
+        self.action_brush.setChecked(False)
+        self.action_eraser.setChecked(False)
+        self.action_shapes.setChecked(True)
+        self.shapesSelected.emit()
 
     def _on_theme_changed(self, theme_name: str):
         # Update all action icons with new theme color
         brush_checked = self.action_brush.isChecked()
         eraser_checked = self.action_eraser.isChecked()
+        shapes_checked = self.action_shapes.isChecked()
         
         self.setup_actions()
         
         self.action_brush.setChecked(brush_checked)
         self.action_eraser.setChecked(eraser_checked)
+        self.action_shapes.setChecked(shapes_checked)

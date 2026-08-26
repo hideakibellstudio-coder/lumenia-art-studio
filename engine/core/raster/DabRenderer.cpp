@@ -142,6 +142,16 @@ void DabRenderer::renderDab(
                     if (finalAlpha <= 0.0) continue;
 
                     double curFinalAlpha = finalAlpha;
+                    if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
+                        const int globalX = tilePixelX + px;
+                        const int globalY = tilePixelY + py;
+                        const uint8_t sVal = ctx.selectionMask->getValue(globalX, globalY);
+                        if (sVal == 0) continue;
+                        if (sVal < 255) {
+                            curFinalAlpha *= (static_cast<double>(sVal) / 255.0);
+                        }
+                    }
+
                     if (ctx.clipBaseLayer) {
                         const int globalX = tilePixelX + px;
                         const int globalY = tilePixelY + py;

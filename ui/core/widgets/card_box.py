@@ -17,11 +17,12 @@ class PanelCardBox(QtWidgets.QGroupBox):
     def __init__(self, title: str, content_widget: QtWidgets.QWidget, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(title, parent)
         self.setObjectName("PanelCardBox")
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(8, 12, 8, 8)
         layout.setSpacing(8)
-        layout.addWidget(content_widget)
+        layout.addWidget(content_widget, 1)
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
         self._apply_style()

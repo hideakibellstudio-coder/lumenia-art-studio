@@ -31,18 +31,17 @@ class TestPhase1Layers(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if hasattr(cls, "mw") and cls.mw:
-            cls.mw.close()
+        pass
 
     def setUp(self):
         self.panel = self.mw.workspace._layers_panel
         self.backend = EngineRegistry.instance().get_backend()
         self.facade = self.backend._facade
 
-        # Limpa totalmente o vetor C++ e o gerenciador Python e reinicializa com "Camada 1"
-        while self.facade.get_drawing_layer_count() > 0:
-            self.facade.remove_layer(0)
-        self.facade.add_layer("Camada 1")
+        # Limpa o vetor C++ e o gerenciador Python mantendo uma Camada 1 base
+        while self.facade.get_drawing_layer_count() > 1:
+            self.facade.remove_layer(self.facade.get_drawing_layer_count() - 1)
+        self.facade.set_layer_name(0, "Camada 1")
 
         self.panel.layer_manager.layers.clear()
         self.panel.layer_manager._next_uid = 1

@@ -378,122 +378,31 @@ class AdvancedPanelExample(QtWidgets.QDialog):
                 border: none;
                 border-radius: 4px;
             }}
-            #AdvCloseBtn:hover {{
-                background: {accent};
-            }}
-            #AdvSep {{ color: {border}; }}
-            #AdvTabWrap {{ background: {bg}; }}
-            #AdvTabBar::tab {{
-                background: {bg2};
-                color: {muted};
-                padding: 4px 10px;
-                border: 1px solid {border};
-                border-bottom: none;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                font-size: 10px;
-            }}
-            #AdvTabBar::tab:selected {{
-                background: {accent};
-                color: {text};
-                font-weight: 600;
-            }}
-            #AdvMuted {{
-                color: {muted};
-                font-size: 11px;
-            }}
-            
-            #BTexBtn {{
-                background: {bg2};
-                color: {text};
-                border: 1px solid {border};
-                border-radius: 3px;
-                font-size: 10px;
-                padding: 2px 4px;
-            }}
-            #BTexBtn:hover {{
-                border-color: {accent};
-                color: {accent};
-            }}
-
-            #CollapsHeader {{
-                background: {bg2};
-                border-radius: 4px;
-            }}
-            #CollapsHeader:hover {{
-                background: {accent};
-            }}
-            #CollapsArrow {{ color: {muted}; font-size: 10px; }}
-            #CollapsTitle {{
-                color: {text};
-                font-size: 10px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-            }}
-            #CollapsContent {{ background: transparent; }}
-            
-            QStackedWidget, QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget {{
-                background: transparent;
-                background-color: transparent;
-            }}
-            QStackedWidget {{
-                border-bottom-left-radius: 8px;
-                border-bottom-right-radius: 8px;
-            }}
-            QScrollArea {{
-                border-bottom-left-radius: 8px;
-                border-bottom-right-radius: 8px;
-            }}
-            QScrollArea > QWidget, QScrollArea > QWidget > QWidget {{
-                border-bottom-left-radius: 7px;
-                border-bottom-right-radius: 7px;
-            }}
-            
-            QScrollBar:vertical {{
-                border: none;
-                background: transparent;
-                width: 8px;
-                margin: 4px 4px 12px 0px;
-                border-radius: 4px;
-            }}
-            QScrollBar::handle:vertical {{
-                background: {border};
-                border-radius: 4px;
-                min-height: 20px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background: {accent};
-            }}
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                border: none;
-                background: none;
-                height: 0px;
-            }}
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: none;
-            }}
-            
-            QLabel {{
-                color: {text};
-                font-size: 11px;
-            }}
-            QCheckBox {{
-                color: {text};
-                font-size: 11px;
-            }}
-            QSlider::groove:horizontal {{
-                height: 4px;
-                background: {border};
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {accent};
-                width: 12px;
-                height: 12px;
-                margin: -4px 0;
-                border-radius: 6px;
-            }}
+            #AdvCloseBtn:hover { background: {accent}; }
+            #AdvSep { color: {border}; }
+            #AdvTabWrap { background: {bg}; }
+            #AdvTabBar::tab {
+                background: {bg2}; color: {muted}; padding: 4px 10px; border: 1px solid {border}; border-bottom: none; border-top-left-radius: 4px; border-top-right-radius: 4px; font-size: 10px;
+            }
+            #AdvTabBar::tab:selected { background: {accent}; color: {text}; font-weight: 600; }
+            #AdvMuted { color: {muted}; font-size: 11px; }
+            #BTexBtn { background: {bg2}; color: {text}; border: 1px solid {border}; border-radius: 3px; font-size: 10px; padding: 2px 4px; }
+            #BTexBtn:hover { border-color: {accent}; color: {accent}; }
+            #CollapsHeader { background: {bg2}; border-radius: 4px; }
+            #CollapsHeader:hover { background: {accent}; }
+            #CollapsArrow { color: {muted}; font-size: 10px; }
+            #CollapsTitle { color: {text}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+            #CollapsContent { background: transparent; }
+            QStackedWidget, QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget { background: transparent; }
+            QStackedWidget, QScrollArea { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+            QScrollArea > QWidget, QScrollArea > QWidget > QWidget { border-bottom-left-radius: 7px; border-bottom-right-radius: 7px; }
+            QScrollBar:vertical { border: none; background: transparent; width: 8px; margin: 4px 4px 12px 0px; border-radius: 4px; }
+            QScrollBar::handle:vertical { background: {border}; border-radius: 4px; min-height: 20px; }
+            QScrollBar::handle:vertical:hover { background: {accent}; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical, QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { border: none; background: none; height: 0px; }
+            QLabel, QCheckBox { color: {text}; font-size: 11px; }
+            QSlider::groove:horizontal { height: 4px; background: {border}; border-radius: 2px; }
+            QSlider::handle:horizontal { background: {accent}; width: 12px; height: 12px; margin: -4px 0; border-radius: 6px; }
         """)
 
 

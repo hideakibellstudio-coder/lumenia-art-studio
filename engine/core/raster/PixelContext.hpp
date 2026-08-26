@@ -1,6 +1,8 @@
 #ifndef ALADYN_ENGINE_PIXEL_CONTEXT_HPP
 #define ALADYN_ENGINE_PIXEL_CONTEXT_HPP
 
+#include "SelectionMask.hpp"
+
 namespace aladyn::engine::document {
 class Layer;
 }
@@ -11,15 +13,11 @@ namespace aladyn::engine::raster {
 //
 // Encapsula todas as restrições e regras de deposição que operam a nível de
 // pixel durante o desenho de um carimbo (dab).
-// Permite expandir novos recursos (Seleção, Stencil, Quick Mask) sem alterar
-// as assinaturas virtuais dos mini-motores de pincel.
 // ───────────────────────────────────────────────────────────────────────────
 struct PixelContext {
     bool alphaLocked{false};
     const document::Layer* clipBaseLayer{nullptr};
-
-    // Campos de expansão futura (reservados para Seleções e Stencils 2D)
-    const void* selectionMask{nullptr};
+    const SelectionMask* selectionMask{nullptr};
     const void* stencilMask{nullptr};
 };
 

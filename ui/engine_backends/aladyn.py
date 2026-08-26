@@ -13,11 +13,14 @@ from typing import Any, Optional
 
 from PySide6.QtGui import QImage
 from ui.core.engine.backend import EngineBackend, PointerEvent
+from ui.core.engine.color_profiles_catalog import get_default_color_profiles
+from .aladyn_selection_mixin import AladynSelectionMixin
+from .aladyn_transform_mixin import AladynTransformMixin
 
 logger = logging.getLogger(__name__)
 
 
-class AladynBackend(EngineBackend):
+class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin):
     """Backend nativo que encapsula a PaintEngineFacade do ALADYN ENGINE."""
 
     name = "aladyn"
@@ -354,159 +357,6 @@ class AladynBackend(EngineBackend):
             return self._facade.pick_color_layer(int(layer_index), int(x), int(y), int(sample_radius))
         return (0, 0, 0, 0)
 
-    # ── Sistema de Seleção & Varinha Mágica ──────────────────────────────
-
-    def magic_wand_select(
-        self, seed_x: int, seed_y: int, tolerance: int = 20, contiguous: bool = True,
-        expand_px: int = 0, anti_aliasing: bool = True, mode: int = 0,
-        sample_all_layers: bool = True
-    ) -> bool:
-        if self._facade and hasattr(self._facade, "magic_wand_select"):
-            return self._facade.magic_wand_select(
-                int(seed_x), int(seed_y), int(tolerance), bool(contiguous),
-                int(expand_px), bool(anti_aliasing), int(mode), bool(sample_all_layers)
-            )
-        return False
-
-    def select_rect(self, x: int, y: int, w: int, h: int, mode: int = 0, feather_px: int = 0, corner_radius_px: int = 0) -> bool:
-        if self._facade and hasattr(self._facade, "select_rect"):
-            return self._facade.select_rect(int(x), int(y), int(w), int(h), int(mode), int(feather_px), int(corner_radius_px))
-        return False
-
-    def select_ellipse(self, cx: int, cy: int, rx: int, ry: int, mode: int = 0, anti_aliasing: bool = True, feather_px: int = 0) -> bool:
-        if self._facade and hasattr(self._facade, "select_ellipse"):
-            return self._facade.select_ellipse(int(cx), int(cy), int(rx), int(ry), int(mode), bool(anti_aliasing), int(feather_px))
-        return False
-
-    def select_polygon(self, flat_points: list[int], mode: int = 0, anti_aliasing: bool = True, feather_px: int = 0) -> bool:
-        if self._facade and hasattr(self._facade, "select_polygon"):
-            return self._facade.select_polygon([int(p) for p in flat_points], int(mode), bool(anti_aliasing), int(feather_px))
-        return False
-
-    def clear_selection(self) -> None:
-        if self._facade and hasattr(self._facade, "clear_selection"):
-            self._facade.clear_selection()
-
-    def invert_selection(self) -> None:
-        if self._facade and hasattr(self._facade, "invert_selection"):
-            self._facade.invert_selection()
-
-    def select_all(self) -> None:
-        if self._facade and hasattr(self._facade, "select_all"):
-            self._facade.select_all()
-
-    def has_selection(self) -> bool:
-        if self._facade and hasattr(self._facade, "has_selection"):
-            return self._facade.has_selection()
-        return False
-
-    def delete_selection_on_active_layer(self) -> bool:
-        if self._facade and hasattr(self._facade, "delete_selection_on_active_layer"):
-            return self._facade.delete_selection_on_active_layer()
-        return False
-
-    def fill_selection_on_active_layer(self, fill_color: QtGui.QColor) -> bool:
-        if self._facade and self._native and hasattr(self._facade, "fill_selection_on_active_layer"):
-            c = self._native.ColorRGBA(int(fill_color.red()), int(fill_color.green()), int(fill_color.blue()), int(fill_color.alpha()))
-            return self._facade.fill_selection_on_active_layer(c)
-        return False
-
-    def get_selection_bounds(self) -> tuple[int, int, int, int]:
-        if self._facade and hasattr(self._facade, "get_selection_bounds"):
-            b = self._facade.get_selection_bounds()
-            if len(b) >= 4:
-                return (b[0], b[1], b[2], b[3])
-        return (0, 0, 0, 0)
-
-    def get_selection_contour_segments(self) -> list[int]:
-        if self._facade and hasattr(self._facade, "get_selection_contour_segments"):
-            return self._facade.get_selection_contour_segments()
-        return []
-
-    def get_selection_contour_loops(self) -> list[list[int]]:
-        if self._facade and hasattr(self._facade, "get_selection_contour_loops"):
-            return self._facade.get_selection_contour_loops()
-        return []
-
-    def get_selection_mask_qimage(self) -> Optional[QImage]:
-        if self._facade and hasattr(self._facade, "get_selection_mask_buffer"):
-            memview = self._facade.get_selection_mask_buffer()
-            if memview:
-                w, h = self._facade.get_width(), self._facade.get_height()
-                return QImage(memview, w, h, w, QImage.Format_Grayscale8)
-        return None
-
-    # ── Ferramenta de Transformação Livre (Transform Tool) ──────────────────
-
-    def begin_transform(self) -> bool:
-        if self._facade and hasattr(self._facade, "begin_transform"):
-            return self._facade.begin_transform()
-        return False
-
-    def is_transform_active(self) -> bool:
-        if self._facade and hasattr(self._facade, "is_transform_active"):
-            return self._facade.is_transform_active()
-        return False
-
-    def get_transform_source_bounds(self) -> tuple[float, float, float, float]:
-        if self._facade and hasattr(self._facade, "get_transform_source_bounds"):
-            b = self._facade.get_transform_source_bounds()
-            if len(b) >= 4:
-                return (b[0], b[1], b[2], b[3])
-        return (0.0, 0.0, 0.0, 0.0)
-
-    def get_transform_pivot(self) -> tuple[float, float]:
-        if self._facade and hasattr(self._facade, "get_transform_pivot"):
-            p = self._facade.get_transform_pivot()
-            if len(p) >= 2:
-                return (p[0], p[1])
-        return (0.0, 0.0)
-
-    def commit_transform(
-        self,
-        dx: float, dy: float,
-        scale_x: float, scale_y: float,
-        rotation_deg: float,
-        pivot_x: float, pivot_y: float,
-        flip_h: bool = False,
-        flip_v: bool = False,
-        interp_mode: int = 2
-    ) -> bool:
-        if self._facade and hasattr(self._facade, "commit_transform"):
-            return self._facade.commit_transform(
-                float(dx), float(dy),
-                float(scale_x), float(scale_y),
-                float(rotation_deg),
-                float(pivot_x), float(pivot_y),
-                bool(flip_h), bool(flip_v),
-                int(interp_mode)
-            )
-        return False
-
-    def cancel_transform(self) -> bool:
-        if self._facade and hasattr(self._facade, "cancel_transform"):
-            return self._facade.cancel_transform()
-        return False
-
-    def flip_active_layer(self, horizontal: bool) -> bool:
-        if self._facade and hasattr(self._facade, "flip_active_layer"):
-            return self._facade.flip_active_layer(bool(horizontal))
-        return False
-
-    def rotate_active_layer_90(self, clockwise: bool) -> bool:
-        if self._facade and hasattr(self._facade, "rotate_active_layer_90"):
-            return self._facade.rotate_active_layer_90(bool(clockwise))
-        return False
-
-    def get_transform_source_qimage(self) -> Optional[QImage]:
-        if self._facade and hasattr(self._facade, "get_transform_source_buffer"):
-            memview = self._facade.get_transform_source_buffer()
-            if memview:
-                sz = self._facade.get_transform_source_buffer_size()
-                if sz[0] > 0 and sz[1] > 0:
-                    return QImage(memview, sz[0], sz[1], sz[0] * 4, QImage.Format_RGBA8888)
-        return None
-
     # ── Gerenciamento de Perfis de Cor (Color Profiles) ───────────────────
 
     def set_color_profile(self, profile_id: int) -> None:
@@ -529,141 +379,8 @@ class AladynBackend(EngineBackend):
     def get_available_color_profiles(self) -> list[dict]:
         if self._native and hasattr(self._native, "get_available_color_profiles"):
             return self._native.get_available_color_profiles()
-        return [
-            # 1. Digital (RGB)
-            {
-                "id": 0,
-                "name": "Padrão (sRGB)",
-                "category": "Digital (RGB)",
-                "description": "Espaço de cor universal padrão para web, monitores convencionais e dispositivos móveis.",
-                "gamut": "sRGB IEC61966-2.1",
-                "whitepoint": "D65 (6500K)",
-                "gamma": "2.2"
-            },
-            {
-                "id": 1,
-                "name": "Display P3 (Wide Gamut)",
-                "category": "Digital (RGB)",
-                "description": "Gamut cinematográfico e telas modernas (Apple Retina, monitores HDR). 25% mais cores que sRGB.",
-                "gamut": "DCI-P3 D65",
-                "whitepoint": "D65 (6500K)",
-                "gamma": "sRGB Transfer"
-            },
-            {
-                "id": 2,
-                "name": "Adobe RGB (1998)",
-                "category": "Digital (RGB)",
-                "description": "Excelente amplitude em tons verdes e cianos, ideal para fotografia profissional e preparação para gráfica.",
-                "gamut": "Adobe RGB 1998",
-                "whitepoint": "D65 (6500K)",
-                "gamma": "2.2"
-            },
-            {
-                "id": 3,
-                "name": "Rec. 2020 (UHD TV)",
-                "category": "Digital (RGB)",
-                "description": "Gamut ultra-amplo para masterização de vídeo 4K/8K HDR e arte digital de próxima geração.",
-                "gamut": "BT.2020",
-                "whitepoint": "D65 (6500K)",
-                "gamma": "ITU-R BT.2020"
-            },
+        return get_default_color_profiles()
 
-            # 2. Impressão (CMYK Pro)
-            {
-                "id": 4,
-                "name": "U.S. Web Coated (SWOP) v2",
-                "category": "Impressão (CMYK)",
-                "description": "Padrão norte-americano e brasileiro para impressão comercial rotativa em papel couché.",
-                "gamut": "SWOP v2 (CMYK)",
-                "whitepoint": "D50 (5000K)",
-                "gamma": "Press Tone Value"
-            },
-            {
-                "id": 5,
-                "name": "ISO Coated v2 (ECI / FOGRA39)",
-                "category": "Impressão (CMYK)",
-                "description": "Referência oficial europeia para offset plano em papel brilhante/fosco de alta qualidade.",
-                "gamut": "FOGRA39 (CMYK)",
-                "whitepoint": "D50 (5000K)",
-                "gamma": "ISO 12647-2"
-            },
-            {
-                "id": 6,
-                "name": "GRACoL 2006 (Coated 1v2)",
-                "category": "Impressão (CMYK)",
-                "description": "Especificação premium para gráficas de ponta e provas contratuais com G7 Calibration.",
-                "gamut": "GRACoL 2006",
-                "whitepoint": "D50 (5000K)",
-                "gamma": "G7 Curves"
-            },
-            {
-                "id": 7,
-                "name": "Japan Color 2001 Coated",
-                "category": "Impressão (CMYK)",
-                "description": "Padrão industrial da indústria gráfica japonesa para mangás, artbooks e ilustrações.",
-                "gamut": "Japan Color 2001",
-                "whitepoint": "D50 (5000K)",
-                "gamma": "Japan Print Std"
-            },
-
-            # 3. Acessibilidade & Prova de Daltonismo
-            {
-                "id": 8,
-                "name": "Protanopia (Sem Vermelho)",
-                "category": "Acessibilidade",
-                "description": "Simulação em tempo real para avaliar legibilidade de ilustrações sem cones L (vermelho).",
-                "gamut": "Simulação Protanopia",
-                "whitepoint": "D65",
-                "gamma": "Linear Match"
-            },
-            {
-                "id": 9,
-                "name": "Deuteranopia (Sem Verde)",
-                "category": "Acessibilidade",
-                "description": "Simulação do tipo mais comum de daltonismo (ausência de cones M - verde).",
-                "gamut": "Simulação Deuteranopia",
-                "whitepoint": "D65",
-                "gamma": "Linear Match"
-            },
-            {
-                "id": 10,
-                "name": "Tritanopia (Sem Azul/Amarelo)",
-                "category": "Acessibilidade",
-                "description": "Simulação de percepção visual com ausência de cones S (azul).",
-                "gamut": "Simulação Tritanopia",
-                "whitepoint": "D65",
-                "gamma": "Linear Match"
-            },
-            {
-                "id": 11,
-                "name": "Acromatopsia (Monocromático)",
-                "category": "Acessibilidade",
-                "description": "Prova rigorosa de luminância, hierarquia tonal e contraste puro em preto e branco.",
-                "gamut": "Luminância Pura (Y)",
-                "whitepoint": "D65",
-                "gamma": "Luminance Rec.709"
-            },
-
-            # 4. Pipeline do Motor & VFX
-            {
-                "id": 12,
-                "name": "Linear sRGB (Physical Blending)",
-                "category": "Motor Físico",
-                "description": "Cálculo de mistura física fotométrica sem distorção gama, ideal para iluminação e sombras reais.",
-                "gamut": "sRGB Primaries",
-                "whitepoint": "D65",
-                "gamma": "1.0 (Linear Puro)"
-            },
-            {
-                "id": 13,
-                "name": "ACEScg (Academy Color Encoding)",
-                "category": "Motor Físico",
-                "description": "Padrão da indústria de cinema e efeitos visuais (VFX) com suporte a iluminação com alcance dinâmico infinito.",
-                "gamut": "AP1 Primaries",
-                "whitepoint": "D60 (ACES)",
-                "gamma": "1.0 (Linear Float)"
-            }
-        ]
 
     def fill_area(
         self,
@@ -702,6 +419,71 @@ class AladynBackend(EngineBackend):
             bool(aa),
             bool(sample_all),
         )
+
+    def set_symmetry_config(
+        self,
+        mode: int,
+        cx: float,
+        cy: float,
+        angle_rad: float,
+        segments: int = 6,
+        stop_at_center: bool = False,
+    ) -> None:
+        """Configura a simetria ativa no motor nativo C++."""
+        if self._facade and hasattr(self._facade, "set_symmetry_config"):
+            self._facade.set_symmetry_config(
+                int(mode), float(cx), float(cy), float(angle_rad), int(segments), bool(stop_at_center)
+            )
+
+    def clear_symmetry(self) -> None:
+        """Desativa a simetria ativa no motor C++."""
+        if self._facade and hasattr(self._facade, "clear_symmetry"):
+            self._facade.clear_symmetry()
+
+    def set_guide_config(
+        self,
+        guide_type: int,
+        p0x: float = 0.0, p0y: float = 0.0,
+        p1x: float = 100.0, p1y: float = 100.0,
+        p2x: float = 200.0, p2y: float = 200.0,
+        p3x: float = 300.0, p3y: float = 300.0,
+        vp_ax: float = 400.0, vp_ay: float = 300.0,
+        vp_bx: float = -1000.0, vp_by: float = 300.0,
+        vp_cx: float = 400.0, vp_cy: float = -2000.0,
+        cx: float = 0.0, cy: float = 0.0,
+        fov: float = 130.0, pitch: float = 0.0, yaw: float = 0.0,
+        snap_radius: float = 32.0,
+    ) -> None:
+        """Configura a régua / guia de perspectiva no motor nativo C++."""
+        if self._facade and hasattr(self._facade, "set_guide_config"):
+            self._facade.set_guide_config(
+                int(guide_type),
+                float(p0x), float(p0y), float(p1x), float(p1y),
+                float(p2x), float(p2y), float(p3x), float(p3y),
+                float(vp_ax), float(vp_ay), float(vp_bx), float(vp_by),
+                float(vp_cx), float(vp_cy), float(cx), float(cy),
+                float(fov), float(pitch), float(yaw), float(snap_radius)
+            )
+
+    def clear_guide(self) -> None:
+        """Desativa as réguas ativas no motor C++."""
+        if self._facade and hasattr(self._facade, "clear_guide"):
+            self._facade.clear_guide()
+
+    def snap_point(
+        self,
+        raw_x: float,
+        raw_y: float,
+        last_x: float = 0.0,
+        last_y: float = 0.0,
+        has_last: bool = False,
+    ) -> tuple[float, float]:
+        """Calcula atração do cursor para réguas ativas via C++."""
+        if self._facade and hasattr(self._facade, "snap_point"):
+            res = self._facade.snap_point(float(raw_x), float(raw_y), float(last_x), float(last_y), bool(has_last))
+            if res and len(res) >= 2:
+                return (float(res[0]), float(res[1]))
+        return (float(raw_x), float(raw_y))
 
     def dispatch(self, command: Any) -> None:
         pass

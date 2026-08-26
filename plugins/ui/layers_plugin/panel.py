@@ -277,212 +277,32 @@ class LayersPanel(QWidget):
             self._updating_selection = False
 
     def add_filter_layer(self, filter_type=None):
-        from ui.core.screens.filters import FilterAdjustmentDialog
-        dialog = FilterAdjustmentDialog(self)
-        self._preview_filter_idx = -1
-
-        def _repaint():
-            for top_w in QApplication.topLevelWidgets():
-                if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                    top_w.workspace.canvas_widget.update()
-                elif hasattr(top_w, "canvas_widget"):
-                    top_w.canvas_widget.update()
-
-        def on_preview_changed(name, type_id, params):
-            from ui.core.engine.registry import EngineRegistry
-            backend = EngineRegistry.instance().get_backend()
-            if not backend or not hasattr(backend, "add_filter_layer"):
-                return
-
-            if self._preview_filter_idx < 0:
-                self._preview_filter_idx = backend.add_filter_layer(f"Preview {name}", type_id)
-            else:
-                curr_type = backend.get_filter_type(self._preview_filter_idx)
-                if curr_type != type_id:
-                    if hasattr(backend, "_facade") and backend._facade:
-                        backend._facade.remove_layer(self._preview_filter_idx)
-                    self._preview_filter_idx = backend.add_filter_layer(f"Preview {name}", type_id)
-
-            if self._preview_filter_idx >= 0:
-                backend.set_filter_params(self._preview_filter_idx, params)
-            _repaint()
-
-        def on_preview_cancelled():
-            if self._preview_filter_idx >= 0:
-                from ui.core.engine.registry import EngineRegistry
-                backend = EngineRegistry.instance().get_backend()
-                if backend and hasattr(backend, "_facade") and backend._facade:
-                    backend._facade.remove_layer(self._preview_filter_idx)
-                self._preview_filter_idx = -1
-                _repaint()
-
-        def on_filter_created(name, type_id, params):
-            if self._preview_filter_idx >= 0:
-                from ui.core.engine.registry import EngineRegistry
-                backend = EngineRegistry.instance().get_backend()
-                if backend and hasattr(backend, "_facade") and backend._facade:
-                    backend._facade.remove_layer(self._preview_filter_idx)
-                self._preview_filter_idx = -1
-            self._create_filter_layer(name, type_id, params)
-
-        dialog.preview_changed.connect(on_preview_changed)
-        dialog.preview_cancelled.connect(on_preview_cancelled)
-        dialog.filter_created.connect(on_filter_created)
-        dialog.exec()
-
-    def _create_filter_layer(self, name: str, type_id: int, params: list):
-        self._updating_selection = True
-        try:
-            from ui.core.engine.registry import EngineRegistry
-            backend = EngineRegistry.instance().get_backend()
-            if backend and hasattr(backend, "add_filter_layer"):
-                new_idx = backend.add_filter_layer(name, type_id)
-                if new_idx >= 0:
-                    backend.set_filter_params(new_idx, params)
-
-            self.layer_manager.add_layer(name)
-            active = self.layer_manager.get_active_layer()
-            if active:
-                active.is_filter = True
-                self._select_uid_in_view(active.uid)
-                self._sync_to_native_engine("select")
-            self._show_status(f"Camada de Ajuste '{name}' criada com sucesso.")
-        finally:
-            self._updating_selection = False
+        from .panel_actions import add_filter_layer
+        add_filter_layer(self, filter_type)
 
     def open_edit_filter_popup(self, uid: int = None):
-        if uid is None:
-            active = self.layer_manager.get_active_layer()
-            if not active:
-                return
-            uid = active.uid
-
-        layer = self.layer_manager.get_layer_by_uid(uid)
-        if not layer:
-            return
-
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "_facade") or not backend._facade:
-            return
-
-        layer_list = self.layer_manager.layers
-        try:
-            c_idx = layer_list.index(layer)
-        except ValueError:
-            return
-
-        if not backend.is_filter_layer(c_idx):
-            self._show_status(f"A camada '{layer.name}' não é uma camada de ajuste.")
-            return
-
-        type_id = backend.get_filter_type(c_idx)
-        params = backend.get_filter_params(c_idx)
-
-        from ui.core.screens.filters import FilterEditPopup
-        popup = FilterEditPopup(c_idx, layer.name, type_id, params, self)
-        popup.params_changed.connect(self._on_filter_params_changed)
-        popup.exec()
-
-    def _on_filter_params_changed(self, c_idx: int, params: list):
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_filter_params"):
-            backend.set_filter_params(c_idx, params)
-
-        for top_w in QApplication.topLevelWidgets():
-            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                top_w.workspace.canvas_widget.update()
-            elif hasattr(top_w, "canvas_widget"):
-                top_w.canvas_widget.update()
+        from .panel_actions import open_edit_filter_popup
+        open_edit_filter_popup(self, uid)
 
     def open_rename_popup(self, uid: int, rect: QRect):
-        layer = self.layer_manager.get_layer_by_uid(uid)
-        if not layer:
-            return
-
-        global_pos = self.view.viewport().mapToGlobal(rect.topLeft())
-        target_rect = QRect(
-            global_pos.x() + 85,
-            global_pos.y() + 4,
-            max(150, rect.width() - 95),
-            28
-        )
-
-        popup = LayerRenamePopup(layer.name, target_rect, self)
-
-        def on_name_changed(new_name):
-            if self.layer_manager.rename_layer(uid, new_name):
-                c_idx = self.layer_manager.get_c_index_for_layer(uid)
-                if c_idx >= 0:
-                    from ui.core.engine.registry import EngineRegistry
-                    backend = EngineRegistry.instance().get_backend()
-                    if backend and hasattr(backend, "set_layer_name"):
-                        backend.set_layer_name(c_idx, new_name)
-                self.model.layoutChanged.emit()
-
-        popup.name_changed.connect(on_name_changed)
-        popup.show()
-        popup.input_edit.setFocus()
+        from .panel_actions import open_rename_popup
+        open_rename_popup(self, uid, rect)
 
     def move_up(self):
-        layer = self.layer_manager.get_active_layer()
-        if layer:
-            self._updating_selection = True
-            try:
-                self._sync_to_native_engine("move_up")
-                if self.layer_manager.move_layer_up(layer.uid):
-                    self._select_uid_in_view(layer.uid)
-                    self._show_status(f"Camada '{layer.name}' movida para cima.")
-            finally:
-                self._updating_selection = False
+        from .panel_actions import move_layer_up
+        move_layer_up(self)
 
     def move_down(self):
-        layer = self.layer_manager.get_active_layer()
-        if layer:
-            self._updating_selection = True
-            try:
-                self._sync_to_native_engine("move_down")
-                if self.layer_manager.move_layer_down(layer.uid):
-                    self._select_uid_in_view(layer.uid)
-                    self._show_status(f"Camada '{layer.name}' movida para baixo.")
-            finally:
-                self._updating_selection = False
+        from .panel_actions import move_layer_down
+        move_layer_down(self)
 
     def merge_down(self):
-        layer = self.layer_manager.get_active_layer()
-        if layer:
-            layer_list = self.layer_manager.layers
-            if layer in layer_list:
-                c_idx = layer_list.index(layer)
-                if c_idx > 0:
-                    self._updating_selection = True
-                    try:
-                        self._sync_to_native_engine("merge_down", c_idx)
-                        if self.layer_manager.merge_down(layer.uid):
-                            active = self.layer_manager.get_active_layer()
-                            if active:
-                                self._select_uid_in_view(active.uid)
-                                self._sync_to_native_engine("select")
-                            self._show_status(f"Camada '{layer.name}' fundida para baixo.")
-                    finally:
-                        self._updating_selection = False
+        from .panel_actions import merge_layer_down
+        merge_layer_down(self)
 
     def duplicate_layer(self):
-        layer = self.layer_manager.get_active_layer()
-        if layer:
-            self._updating_selection = True
-            try:
-                self._sync_to_native_engine("duplicate")
-                new_uid = self.layer_manager.duplicate_layer(layer.uid)
-                self._native_uids = [l.uid for l in self.layer_manager.layers]
-                if new_uid:
-                    refresh_layer_thumbnail(self, new_uid)
-                    self._select_uid_in_view(new_uid)
-                    self._sync_to_native_engine("select")
-                    self._show_status(f"Camada '{layer.name}' duplicada com sucesso.")
-            finally:
-                self._updating_selection = False
+        from .panel_actions import duplicate_layer
+        duplicate_layer(self)
 
     def _show_status(self, message):
         win = QApplication.activeWindow()
@@ -626,57 +446,13 @@ class LayersPanel(QWidget):
             self.paper_widget.update_theme(colors)
         
         self.delegate.set_colors(colors)
-        
-        self.view.setStyleSheet(f"""
-            QTreeView {{
-                background-color: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::item {{
-                background: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::item:hover {{
-                background: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::item:selected {{
-                background: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::item:selected:active {{
-                background: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::item:selected:!active {{
-                background: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::item:focus {{
-                background: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::branch {{
-                background: transparent;
-                border: none;
-                outline: 0;
-            }}
-            QTreeView::branch:has-children:!has-siblings:closed,
-            QTreeView::branch:closed:has-children:has-siblings,
-            QTreeView::branch:open:has-children:!has-siblings,
-            QTreeView::branch:open:has-children:has-siblings {{
-                image: none;
-            }}
+        self.view.setStyleSheet("""
+            QTreeView, QTreeView::item, QTreeView::branch { background: transparent; border: none; outline: 0; }
+            QTreeView::branch:has-children:!has-siblings:closed, QTreeView::branch:closed:has-children:has-siblings,
+            QTreeView::branch:open:has-children:!has-siblings, QTreeView::branch:open:has-children:has-siblings { image: none; }
         """)
         self.view.viewport().update()
-        
+
         icon_color = colors.get("text_main", "#f3f4f6")
         for btn in self.primary_box.buttons + self.secondary_bar.buttons:
             icon_name = btn.property("icon_name")
@@ -684,17 +460,9 @@ class LayersPanel(QWidget):
                 btn.setIcon(get_icon(icon_name, icon_color))
             btn.style().unpolish(btn)
             btn.style().polish(btn)
-            
+
         bg_panel = colors.get("bg_panel", "#1f2937")
         self.primary_box.setStyleSheet(f"""
-            QWidget#PrimaryBox {{
-                background-color: {bg_panel};
-                border: 1px solid {border};
-                border-radius: 8px;
-            }}
-            QFrame[class="GridSeparator"] {{
-                background-color: {border};
-                max-height: 1px;
-                border: none;
-            }}
+            QWidget#PrimaryBox {{ background-color: {bg_panel}; border: 1px solid {border}; border-radius: 8px; }}
+            QFrame[class="GridSeparator"] {{ background-color: {border}; max-height: 1px; border: none; }}
         """)

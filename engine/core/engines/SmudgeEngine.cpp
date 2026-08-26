@@ -190,6 +190,14 @@ void SmudgeEngine::renderDab(
                 if (depositFactor <= 0.0) continue;
 
                 double curDepositFactor = depositFactor;
+                if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
+                    const uint8_t sVal = ctx.selectionMask->getValue(globalX, globalY);
+                    if (sVal == 0) continue;
+                    if (sVal < 255) {
+                        curDepositFactor *= (static_cast<double>(sVal) / 255.0);
+                    }
+                }
+
                 if (ctx.clipBaseLayer) {
                     const int bTx = globalX / canvas::Tile::TILE_SIZE;
                     const int bTy = globalY / canvas::Tile::TILE_SIZE;

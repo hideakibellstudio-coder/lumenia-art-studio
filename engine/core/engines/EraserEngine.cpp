@@ -88,6 +88,16 @@ void EraserEngine::renderDab(
 
                 // Força de apagamento = opacidade do dab × alpha da forma
                 double eraseStrength = dab.opacity * shapeAlpha;
+                if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
+                    const int gx = tilePixelX + px;
+                    const int gy = tilePixelY + py;
+                    const uint8_t sVal = ctx.selectionMask->getValue(gx, gy);
+                    if (sVal == 0) continue;
+                    if (sVal < 255) {
+                        eraseStrength *= (static_cast<double>(sVal) / 255.0);
+                    }
+                }
+
                 if (ctx.clipBaseLayer) {
                     const int bTx = (tilePixelX + px) / canvas::Tile::TILE_SIZE;
                     const int bTy = (tilePixelY + py) / canvas::Tile::TILE_SIZE;

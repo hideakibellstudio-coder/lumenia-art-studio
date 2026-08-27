@@ -40,29 +40,48 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
 
     def show_near(self, anchor_widget: QtWidgets.QWidget):
         curr = anchor_widget
-        workspace, left_dock = None, None
+        workspace, left_dock, right_dock = None, None, None
         while curr:
-            if hasattr(curr, "left_dock") and hasattr(curr, "workspace_area"):
-                workspace, left_dock = curr, curr.left_dock
+            if hasattr(curr, "workspace_area"):
+                workspace = curr
+                left_dock = getattr(curr, "left_dock", None)
+                right_dock = getattr(curr, "right_dock", None)
                 break
             curr = curr.parentWidget()
 
         scr = anchor_widget.screen().availableGeometry() if anchor_widget.screen() else QtCore.QRect(0, 0, 1920, 1080)
-        if workspace and left_dock:
-            dock_right = left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x()
-            if hasattr(left_dock, "drawer_container") and left_dock.drawer_container.isVisible():
-                dock_right = max(dock_right, left_dock.drawer_container.mapToGlobal(QtCore.QPoint(left_dock.drawer_container.width(), 0)).x())
+        anchor_global = anchor_widget.mapToGlobal(QtCore.QPoint(0, 0))
+        is_on_right = anchor_global.x() > scr.center().x()
+
+        if workspace and (right_dock or left_dock):
             workspace_global = workspace.workspace_area.mapToGlobal(QtCore.QPoint(0, 0))
-            x, y = dock_right + 10, workspace_global.y() + 10
             target_h = max(440, workspace.workspace_area.height() - 20)
+            y = workspace_global.y() + 10
+
+            if is_on_right and right_dock:
+                dock_left = right_dock.mapToGlobal(QtCore.QPoint(0, 0)).x()
+                if hasattr(right_dock, "drawer_container") and right_dock.drawer_container.isVisible():
+                    drawer_left = right_dock.drawer_container.mapToGlobal(QtCore.QPoint(0, 0)).x()
+                    dock_left = min(dock_left, drawer_left)
+                x = dock_left - self.width() - 10
+            elif left_dock:
+                dock_right = left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x()
+                if hasattr(left_dock, "drawer_container") and left_dock.drawer_container.isVisible():
+                    drawer_right = left_dock.drawer_container.mapToGlobal(QtCore.QPoint(left_dock.drawer_container.width(), 0)).x()
+                    dock_right = max(dock_right, drawer_right)
+                x = dock_right + 10
+            else:
+                x = anchor_global.x() - self.width() - 10 if is_on_right else anchor_global.x() + anchor_widget.width() + 10
         else:
-            top_left = anchor_widget.mapToGlobal(QtCore.QPoint(0, 0))
-            x = top_left.x() + anchor_widget.width() + 10
-            y = top_left.y()
+            x = anchor_global.x() - self.width() - 10 if is_on_right else anchor_global.x() + anchor_widget.width() + 10
+            y = anchor_global.y()
             target_h = 520
 
-        if x + self.width() > scr.right():
-            x = max(scr.left() + 10, scr.right() - self.width() - 10)
+        if x < scr.left() + 10:
+            x = scr.left() + 10
+        elif x + self.width() > scr.right() - 10:
+            x = scr.right() - self.width() - 10
+
         self.setFixedHeight(min(target_h, scr.height() - 40))
         if y + self.height() > scr.bottom():
             y = max(scr.top() + 10, scr.bottom() - self.height() - 10)

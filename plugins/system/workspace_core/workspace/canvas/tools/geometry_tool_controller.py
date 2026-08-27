@@ -326,30 +326,43 @@ class GeometryToolController:
             xc, yc, zc = self._rotate_3d_backward(gx, gy, gz, yaw_rad, pitch_rad)
             length = math.sqrt(xc * xc + yc * yc + zc * zc) or 1.0
             ux, uy, uz = xc / length, yc / length, zc / length
-            if uz >= 0.999: return None
+            if uz >= 0.95: return None
             return QtCore.QPointF(cx + (ux / (1.0 - uz)) * R, cy - (uy / (1.0 - uz)) * R)
 
-        curves = []
+        def sample_line(start_3d, dir_3d, max_dist=25.0, steps=50):
+            pts_pos, pts_neg = [], []
+            for i in range(1, steps + 1):
+                d = (i / steps) * max_dist
+                pt = p3d_to_2d(start_3d[0] + d * dir_3d[0], start_3d[1] + d * dir_3d[1], start_3d[2] + d * dir_3d[2])
+                if pt is None or (pts_pos and (pt - pts_pos[-1]).manhattanLength() > 200.0): break
+                pts_pos.append(pt)
+            for i in range(1, steps + 1):
+                d = (i / steps) * max_dist
+                pt = p3d_to_2d(start_3d[0] - d * dir_3d[0], start_3d[1] - d * dir_3d[1], start_3d[2] - d * dir_3d[2])
+                if pt is None or (pts_neg and (pt - pts_neg[-1]).manhattanLength() > 200.0): break
+                pts_neg.append(pt)
+            center_pt = p3d_to_2d(start_3d[0], start_3d[1], start_3d[2])
+            pts_neg.reverse()
+            return pts_neg + ([center_pt] if center_pt else []) + pts_pos
 
+        curves = []
         # 1. Ground 3D Curves (Plano Y = -1.0)
         if (self.guide_state.get("show_ground", False) or self.guide_state.get("show_ground_verticals", False)) and yw < -1e-4:
             t = -1.0 / yw
             x_g, z_g = xw * t, zw * t
             if self.guide_state.get("show_ground", False):
-                pts_gx = [p3d_to_2d(-20.0 + i * 1.0, -1.0, z_g) for i in range(41)]
-                pts_gx = [p for p in pts_gx if p is not None]
+                pts_gx, pts_gz = sample_line((x_g, -1.0, z_g), (1.0, 0.0, 0.0)), sample_line((x_g, -1.0, z_g), (0.0, 0.0, 1.0))
                 if len(pts_gx) >= 2: curves.append({"type": "polyline", "family": "ground_x", "points": pts_gx})
-
-                pts_gz = [p3d_to_2d(x_g, -1.0, -20.0 + i * 1.0) for i in range(41)]
-                pts_gz = [p for p in pts_gz if p is not None]
                 if len(pts_gz) >= 2: curves.append({"type": "polyline", "family": "ground_z", "points": pts_gz})
-
             if self.guide_state.get("show_straight_verticals", False):
-                curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(click_pt.x(), -20000.0),
-                               "p2": QtCore.QPointF(click_pt.x(), 20000.0), "dir": QtCore.QPointF(0.0, 1.0)})
+                p_b, p_t = p3d_to_2d(x_g, -1.0, z_g), p3d_to_2d(x_g, 1.5, z_g)
+                if p_b and p_t:
+                    dx, dy = p_t.x() - p_b.x(), p_t.y() - p_b.y()
+                    l = math.hypot(dx, dy) or 1.0
+                    dx, dy = dx / l, dy / l
+                    curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(p_b.x() - dx * 2000.0, p_b.y() - dy * 2000.0), "p2": QtCore.QPointF(p_b.x() + dx * 2000.0, p_b.y() + dy * 2000.0), "dir": QtCore.QPointF(dx, dy)})
             elif self.guide_state.get("show_ground_verticals", False) or self.guide_state.get("show_v", True):
-                pts_gv = [p3d_to_2d(x_g, -1.0 + i * 0.125, z_g) for i in range(21)]
-                pts_gv = [p for p in pts_gv if p is not None]
+                pts_gv = [p for p in (p3d_to_2d(x_g, -1.0 + i * 0.125, z_g) for i in range(21)) if p is not None]
                 if len(pts_gv) >= 2: curves.append({"type": "polyline", "family": "ground_v", "points": pts_gv})
 
         # 2. Ceiling 3D Curves (Plano Y = +1.0)
@@ -357,20 +370,18 @@ class GeometryToolController:
             t = 1.0 / yw
             x_c, z_c = xw * t, zw * t
             if self.guide_state.get("show_ceiling", False):
-                pts_cx = [p3d_to_2d(-20.0 + i * 1.0, 1.0, z_c) for i in range(41)]
-                pts_cx = [p for p in pts_cx if p is not None]
+                pts_cx, pts_cz = sample_line((x_c, 1.0, z_c), (1.0, 0.0, 0.0)), sample_line((x_c, 1.0, z_c), (0.0, 0.0, 1.0))
                 if len(pts_cx) >= 2: curves.append({"type": "polyline", "family": "ground_x", "points": pts_cx})
-
-                pts_cz = [p3d_to_2d(x_c, 1.0, -20.0 + i * 1.0) for i in range(41)]
-                pts_cz = [p for p in pts_cz if p is not None]
                 if len(pts_cz) >= 2: curves.append({"type": "polyline", "family": "ground_z", "points": pts_cz})
-
             if self.guide_state.get("show_straight_verticals", False):
-                curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(click_pt.x(), -20000.0),
-                               "p2": QtCore.QPointF(click_pt.x(), 20000.0), "dir": QtCore.QPointF(0.0, 1.0)})
+                p_b, p_t = p3d_to_2d(x_c, 1.0, z_c), p3d_to_2d(x_c, -1.5, z_c)
+                if p_b and p_t:
+                    dx, dy = p_b.x() - p_t.x(), p_b.y() - p_t.y()
+                    l = math.hypot(dx, dy) or 1.0
+                    dx, dy = dx / l, dy / l
+                    curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(p_b.x() - dx * 2000.0, p_b.y() - dy * 2000.0), "p2": QtCore.QPointF(p_b.x() + dx * 2000.0, p_b.y() + dy * 2000.0), "dir": QtCore.QPointF(dx, dy)})
             elif self.guide_state.get("show_ceiling_verticals", False) or self.guide_state.get("show_v", True):
-                pts_cv = [p3d_to_2d(x_c, 1.0 - i * 0.125, z_c) for i in range(21)]
-                pts_cv = [p for p in pts_cv if p is not None]
+                pts_cv = [p for p in (p3d_to_2d(x_c, 1.0 - i * 0.125, z_c) for i in range(21)) if p is not None]
                 if len(pts_cv) >= 2: curves.append({"type": "polyline", "family": "ground_v", "points": pts_cv})
 
         # 3. Principal 3D Sphere Curves (apenas se ativos)
@@ -414,50 +425,42 @@ class GeometryToolController:
             dx, dy = -b / denom, -a / denom
             return {"type": "line", "family": family, "p1": QtCore.QPointF(cx + dx * 20000.0, cy + dy * 20000.0),
                     "p2": QtCore.QPointF(cx - dx * 20000.0, cy - dy * 20000.0), "dir": QtCore.QPointF(dx, dy)}
-        else:
-            cx_c, cy_c, radius = -R * a / c, R * b / c, R / abs(c)
-            if radius > 20000.0:
-                dist = math.hypot(cx_c, cy_c)
-                if dist < 1e-4: return None
-                nx, ny = cx_c / dist, cy_c / dist
-                d_cl = dist - radius
-                c_x, c_y = cx + d_cl * nx, cy + d_cl * ny
-                return {"type": "line", "family": family, "p1": QtCore.QPointF(c_x - ny * 20000.0, c_y + nx * 20000.0),
-                        "p2": QtCore.QPointF(c_x + ny * 20000.0, c_y - nx * 20000.0), "dir": QtCore.QPointF(-ny, nx)}
-            return {"type": "circle", "family": family, "center": QtCore.QPointF(cx + cx_c, cy + cy_c), "radius": radius}
+        cx_c, cy_c, radius = -R * a / c, R * b / c, R / abs(c)
+        if radius > 20000.0:
+            dist = math.hypot(cx_c, cy_c)
+            if dist < 1e-4: return None
+            nx, ny = cx_c / dist, cy_c / dist
+            c_x, c_y = cx + (dist - radius) * nx, cy + (dist - radius) * ny
+            return {"type": "line", "family": family, "p1": QtCore.QPointF(c_x - ny * 20000.0, c_y + nx * 20000.0),
+                    "p2": QtCore.QPointF(c_x + ny * 20000.0, c_y - nx * 20000.0), "dir": QtCore.QPointF(-ny, nx)}
+        return {"type": "circle", "family": family, "center": QtCore.QPointF(cx + cx_c, cy + cy_c), "radius": radius}
 
     def _closest_point_on_curve(self, curve, pt: QtCore.QPointF) -> QtCore.QPointF:
         if curve["type"] == "line":
             p1, p2 = curve["p1"], curve["p2"]
             v = p2 - p1
-            v_len2 = v.x()**2 + v.y()**2
-            if v_len2 < 1e-6: return p1
-            t = ((pt.x() - p1.x()) * v.x() + (pt.y() - p1.y()) * v.y()) / v_len2
+            len2 = v.x()**2 + v.y()**2
+            if len2 < 1e-6: return p1
+            t = ((pt.x() - p1.x()) * v.x() + (pt.y() - p1.y()) * v.y()) / len2
             return QtCore.QPointF(p1.x() + t * v.x(), p1.y() + t * v.y())
-        elif curve["type"] == "polyline":
+        if curve["type"] == "polyline":
             pts = curve.get("points", [])
             if not pts: return pt
-            if len(pts) == 1: return pts[0]
             best_pt, best_d2 = pts[0], float("inf")
             for i in range(len(pts) - 1):
                 p1, p2 = pts[i], pts[i + 1]
                 vx, vy = p2.x() - p1.x(), p2.y() - p1.y()
                 len2 = vx * vx + vy * vy
-                if len2 < 1e-6:
-                    cand = p1
-                else:
-                    t = max(0.0, min(1.0, ((pt.x() - p1.x()) * vx + (pt.y() - p1.y()) * vy) / len2))
-                    cand = QtCore.QPointF(p1.x() + t * vx, p1.y() + t * vy)
+                t = 0.0 if len2 < 1e-6 else max(0.0, min(1.0, ((pt.x() - p1.x()) * vx + (pt.y() - p1.y()) * vy) / len2))
+                cand = QtCore.QPointF(p1.x() + t * vx, p1.y() + t * vy)
                 d2 = (cand.x() - pt.x())**2 + (cand.y() - pt.y())**2
-                if d2 < best_d2:
-                    best_d2, best_pt = d2, cand
+                if d2 < best_d2: best_d2, best_pt = d2, cand
             return best_pt
-        else:
-            center, radius = curve["center"], curve["radius"]
-            dx, dy = pt.x() - center.x(), pt.y() - center.y()
-            dist = math.hypot(dx, dy)
-            if dist > 1e-5: return QtCore.QPointF(center.x() + (dx / dist) * radius, center.y() + (dy / dist) * radius)
-            return QtCore.QPointF(center.x() + radius, center.y())
+        center, radius = curve["center"], curve["radius"]
+        dx, dy = pt.x() - center.x(), pt.y() - center.y()
+        dist = math.hypot(dx, dy)
+        if dist > 1e-5: return QtCore.QPointF(center.x() + (dx / dist) * radius, center.y() + (dy / dist) * radius)
+        return QtCore.QPointF(center.x() + radius, center.y())
 
     def sync_symmetry_to_engine(self):
         backend = EngineRegistry.instance().get_backend()

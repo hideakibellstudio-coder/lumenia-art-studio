@@ -154,14 +154,12 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin):
                 bm_enum = self._native.LayerBlendMode(mode_val)
             elif isinstance(mode_val, str):
                 blend_map = {
-                    "Normal": 0, "Multiply": 1, "Multiplicação": 1,
-                    "Screen": 2, "Divisão": 2, "Overlay": 3, "Sobreposição": 3,
-                    "Darken": 4, "Escurecer": 4, "Lighten": 5, "Clarear": 5,
+                    "Normal": 0, "Multiply": 1, "Multiplicação": 1, "Screen": 2, "Divisão": 2,
+                    "Overlay": 3, "Sobreposição": 3, "Darken": 4, "Escurecer": 4, "Lighten": 5, "Clarear": 5,
                     "Erase": 6, "Borracha": 6, "Pass-Through": 7, "Atravessar": 7, "PassThrough": 7,
                     "ColorDodge": 8, "Color Dodge": 8, "Subexposição (Dodge)": 8, "Subexposição": 8,
                     "ColorBurn": 9, "Color Burn": 9, "Superexposição (Burn)": 9, "Superexposição": 9,
-                    "Difference": 10, "Diferença": 10,
-                    "Exclusion": 11, "Exclusão": 11,
+                    "Difference": 10, "Diferença": 10, "Exclusion": 11, "Exclusão": 11,
                     "Add": 12, "Adicionar (Add)": 12, "Adicionar": 12
                 }
                 bm_enum = self._native.LayerBlendMode(blend_map.get(mode_val, 0))
@@ -304,11 +302,26 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin):
     def set_brush_contrast(self, contrast: float) -> None:
         if self._facade: self._facade.get_brush_profile().hardness = float(contrast / 10.0 if contrast > 1.0 else contrast)
 
-    def set_brush_pressure(self, pressure: float) -> None: pass
-    def set_brush_invert_height(self, invert: bool) -> None: pass
-    def set_pressure_curve_power(self, power: float) -> None: pass
-    def set_min_density_active(self, active: bool) -> None: pass
-    def set_min_density_value(self, value: float) -> None: pass
+    def set_brush_pressure(self, pressure: float) -> None:
+        if self._facade:
+            self._facade.get_brush_profile().pressure_size_enabled = bool(pressure > 0.0)
+
+    def set_brush_invert_height(self, invert: bool) -> None:
+        if self._facade:
+            self._facade.get_brush_profile().brush_grain_invert = bool(invert)
+
+    def set_pressure_curve_power(self, power: float) -> None:
+        pass
+
+    def set_min_density_active(self, active: bool) -> None:
+        if self._facade:
+            self._facade.get_brush_profile().pressure_flow_enabled = bool(active)
+
+    def set_min_density_value(self, value: float) -> None:
+        if self._facade:
+            val = float(value / 100.0 if value > 1.0 else value)
+            self._facade.get_brush_profile().min_size_percent = val
+            self._facade.get_brush_profile().min_opacity_percent = val
 
     # ── Texturas ─────────────────────────────────────────────────────────
 
@@ -388,51 +401,23 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin):
 
 
     def fill_area(
-        self,
-        seed_x: int,
-        seed_y: int,
-        fill_color: QtGui.QColor,
-        tolerance: int = 20,
-        contiguous: bool = True,
-        expand_px: int = 1,
-        gap_closing_px: int = 0,
-        aa: bool = True,
-        sample_all: bool = True,
+        self, seed_x: int, seed_y: int, fill_color: QtGui.QColor, tolerance: int = 20,
+        contiguous: bool = True, expand_px: int = 1, gap_closing_px: int = 0,
+        aa: bool = True, sample_all: bool = True,
     ) -> bool:
         """Executa Flood Fill ultra-rápido (<1ms) diretamente no motor nativo C++."""
-        if not self._facade or not self._native:
+        if not self._facade or not self._native or not hasattr(self._facade, "flood_fill"):
             return False
-
-        if not hasattr(self._facade, "flood_fill"):
-            return False
-
         native_color = self._native.ColorRGBA(
-            int(fill_color.red()),
-            int(fill_color.green()),
-            int(fill_color.blue()),
-            int(fill_color.alpha()),
+            int(fill_color.red()), int(fill_color.green()), int(fill_color.blue()), int(fill_color.alpha())
         )
-
         return self._facade.flood_fill(
-            int(seed_x),
-            int(seed_y),
-            native_color,
-            int(tolerance),
-            bool(contiguous),
-            int(expand_px),
-            int(gap_closing_px),
-            bool(aa),
-            bool(sample_all),
+            int(seed_x), int(seed_y), native_color, int(tolerance), bool(contiguous),
+            int(expand_px), int(gap_closing_px), bool(aa), bool(sample_all)
         )
 
     def set_symmetry_config(
-        self,
-        mode: int,
-        cx: float,
-        cy: float,
-        angle_rad: float,
-        segments: int = 6,
-        stop_at_center: bool = False,
+        self, mode: int, cx: float, cy: float, angle_rad: float, segments: int = 6, stop_at_center: bool = False
     ) -> None:
         """Configura a simetria ativa no motor nativo C++."""
         if self._facade and hasattr(self._facade, "set_symmetry_config"):
@@ -446,24 +431,16 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin):
             self._facade.clear_symmetry()
 
     def set_guide_config(
-        self,
-        guide_type: int,
-        p0x: float = 0.0, p0y: float = 0.0,
-        p1x: float = 100.0, p1y: float = 100.0,
-        p2x: float = 200.0, p2y: float = 200.0,
-        p3x: float = 300.0, p3y: float = 300.0,
-        vp_ax: float = 400.0, vp_ay: float = 300.0,
-        vp_bx: float = -1000.0, vp_by: float = 300.0,
-        vp_cx: float = 400.0, vp_cy: float = -2000.0,
-        cx: float = 0.0, cy: float = 0.0,
-        fov: float = 130.0, pitch: float = 0.0, yaw: float = 0.0,
-        snap_radius: float = 32.0,
+        self, guide_type: int, p0x: float = 0.0, p0y: float = 0.0, p1x: float = 100.0, p1y: float = 100.0,
+        p2x: float = 200.0, p2y: float = 200.0, p3x: float = 300.0, p3y: float = 300.0,
+        vp_ax: float = 400.0, vp_ay: float = 300.0, vp_bx: float = -1000.0, vp_by: float = 300.0,
+        vp_cx: float = 400.0, vp_cy: float = -2000.0, cx: float = 0.0, cy: float = 0.0,
+        fov: float = 130.0, pitch: float = 0.0, yaw: float = 0.0, snap_radius: float = 32.0,
     ) -> None:
         """Configura a régua / guia de perspectiva no motor nativo C++."""
         if self._facade and hasattr(self._facade, "set_guide_config"):
             self._facade.set_guide_config(
-                int(guide_type),
-                float(p0x), float(p0y), float(p1x), float(p1y),
+                int(guide_type), float(p0x), float(p0y), float(p1x), float(p1y),
                 float(p2x), float(p2y), float(p3x), float(p3y),
                 float(vp_ax), float(vp_ay), float(vp_bx), float(vp_by),
                 float(vp_cx), float(vp_cy), float(cx), float(cy),

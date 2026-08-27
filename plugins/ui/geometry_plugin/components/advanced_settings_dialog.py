@@ -1,94 +1,214 @@
-"""Advanced Settings Floating Window for Curvilinear 6P, Rulers and Symmetry."""
+"""Advanced Geometry Dialog padronizado no Design System do Lumenia V2."""
 
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.core.theme.manager import ThemeManager
+from ui.core.icons import get_icon
+from plugins.ui.brush_plugin.compact_slider import CompactSlider
+from plugins.ui.brush_plugin.collapsible_section import CollapsibleSection
 
 
 class AdvancedGeometryDialog(QtWidgets.QDialog):
-    """Janela flutuante completa de configurações avançadas com rolagem e agrupamentos."""
+    """Janela flutuante avançada padronizada com abas, aberturas colapsáveis e sliders compactos."""
 
     settingsChanged = QtCore.Signal(dict)
 
     def __init__(self, parent=None, current_state=None):
-        super().__init__(parent, QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)
+        flags = QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint | QtCore.Qt.NoDropShadowWindowHint
+        super().__init__(parent, flags)
         self.setWindowTitle("Configurações Avançadas de Geometria")
-        self.setFixedSize(360, 600)
+        self.setMinimumWidth(330)
+        self.setMinimumHeight(460)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+
         self.state = current_state.copy() if current_state else {}
         self._drag_pos = None
         self._build_ui()
 
+        ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        self._apply_theme("")
+
+    def mousePressEvent(self, e):
+        if e.button() == QtCore.Qt.LeftButton:
+            self._drag_pos = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
+
+    def mouseMoveEvent(self, e):
+        if self._drag_pos and e.buttons() & QtCore.Qt.LeftButton:
+            self.move(e.globalPosition().toPoint() - self._drag_pos)
+
+    def mouseReleaseEvent(self, e):
+        self._drag_pos = None
+
+    def show_near(self, anchor_widget: QtWidgets.QWidget):
+        curr = anchor_widget
+        workspace, left_dock = None, None
+        while curr:
+            if hasattr(curr, "left_dock") and hasattr(curr, "workspace_area"):
+                workspace, left_dock = curr, curr.left_dock
+                break
+            curr = curr.parentWidget()
+
+        scr = anchor_widget.screen().availableGeometry() if anchor_widget.screen() else QtCore.QRect(0, 0, 1920, 1080)
+        if workspace and left_dock:
+            dock_right = left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x()
+            if hasattr(left_dock, "drawer_container") and left_dock.drawer_container.isVisible():
+                dock_right = max(dock_right, left_dock.drawer_container.mapToGlobal(QtCore.QPoint(left_dock.drawer_container.width(), 0)).x())
+            workspace_global = workspace.workspace_area.mapToGlobal(QtCore.QPoint(0, 0))
+            x, y = dock_right + 10, workspace_global.y() + 10
+            target_h = max(440, workspace.workspace_area.height() - 20)
+        else:
+            top_left = anchor_widget.mapToGlobal(QtCore.QPoint(0, 0))
+            x = top_left.x() + anchor_widget.width() + 10
+            y = top_left.y()
+            target_h = 520
+
+        if x + self.width() > scr.right():
+            x = max(scr.left() + 10, scr.right() - self.width() - 10)
+        self.setFixedHeight(min(target_h, scr.height() - 40))
+        if y + self.height() > scr.bottom():
+            y = max(scr.top() + 10, scr.bottom() - self.height() - 10)
+
+        self.move(QtCore.QPoint(x, y))
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
     def _build_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        frame = QtWidgets.QFrame()
-        frame.setStyleSheet("""
-            QFrame { background-color: #181825; border: 1px solid #45475a; border-radius: 8px; }
-            QLabel { color: #cdd6f4; font-size: 11px; }
-            QLabel.sec-title { color: #a855f7; font-weight: bold; font-size: 10px; margin-top: 6px; }
-            QCheckBox { color: #cdd6f4; font-size: 11px; }
-            QSlider::groove:horizontal { height: 4px; background: #313244; border-radius: 2px; }
-            QSlider::sub-page:horizontal { background: #a855f7; border-radius: 2px; }
-            QSlider::handle:horizontal { background: #cdd6f4; width: 12px; margin: -4px 0; border-radius: 6px; }
-            QComboBox { background: #1e1e2e; color: #cdd6f4; border: 1px solid #313244; border-radius: 4px; padding: 3px 6px; }
-            QPushButton { background: #313244; color: #cdd6f4; border-radius: 4px; padding: 5px 12px; font-weight: bold; font-size: 11px; }
-            QPushButton:hover { background: #45475a; color: #ffffff; }
-        """)
-        f_layout = QtWidgets.QVBoxLayout(frame)
-        f_layout.setContentsMargins(10, 8, 10, 10)
-        f_layout.setSpacing(6)
+        self.container = QtWidgets.QWidget()
+        self.container.setObjectName("AdvContainer")
+        main_layout.addWidget(self.container)
 
-        # Header
-        hdr = QtWidgets.QHBoxLayout()
-        lbl_title = QtWidgets.QLabel("⚙️ Configurações Avançadas de Geometria")
-        lbl_title.setStyleSheet("font-weight: bold; font-size: 12px; color: #a855f7;")
-        btn_close = QtWidgets.QPushButton("✕")
-        btn_close.setFixedSize(22, 22)
-        btn_close.setStyleSheet("background: transparent; color: #6c7086; border: none; font-weight: bold; font-size: 13px;")
-        btn_close.clicked.connect(self.close)
-        hdr.addWidget(lbl_title)
-        hdr.addStretch()
-        hdr.addWidget(btn_close)
-        f_layout.addLayout(hdr)
+        outer = QtWidgets.QVBoxLayout(self.container)
+        outer.setContentsMargins(1, 0, 1, 1)
+        outer.setSpacing(0)
 
-        # Scroll Area
+        outer.addWidget(self._make_title_bar())
+        sep = QtWidgets.QFrame()
+        sep.setFrameShape(QtWidgets.QFrame.HLine)
+        sep.setObjectName("AdvSep")
+        outer.addWidget(sep)
+
+        self.tab_bar = QtWidgets.QTabBar()
+        self.tab_bar.setExpanding(True)
+        self.tab_bar.addTab("Perspectiva 6P")
+        self.tab_bar.addTab("Snapping && Guias")
+        self.tab_bar.addTab("Simetria")
+        self.tab_bar.setObjectName("AdvTabBar")
+        self.tab_bar.currentChanged.connect(self._on_tab)
+
+        tab_wrap = QtWidgets.QWidget()
+        tab_wrap.setObjectName("AdvTabWrap")
+        tw = QtWidgets.QHBoxLayout(tab_wrap)
+        tw.setContentsMargins(8, 6, 8, 0)
+        tw.addWidget(self.tab_bar, 1)
+        outer.addWidget(tab_wrap)
+
+        self.stack = QtWidgets.QStackedWidget()
+        outer.addWidget(self.stack, 1)
+
+        self.stack.addWidget(self._build_curv_page())
+        self.stack.addWidget(self._build_snap_page())
+        self.stack.addWidget(self._build_sym_page())
+
+        footer = QtWidgets.QWidget()
+        fl = QtWidgets.QHBoxLayout(footer)
+        fl.setContentsMargins(8, 4, 8, 8)
+        self.btn_reset = QtWidgets.QPushButton("Restaurar Padrões")
+        self.btn_reset.setObjectName("AdvResetBtn")
+        self.btn_reset.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_reset.clicked.connect(self._on_reset)
+        fl.addWidget(self.btn_reset)
+        outer.addWidget(footer)
+
+    def _make_title_bar(self) -> QtWidgets.QWidget:
+        bar = QtWidgets.QWidget()
+        bar.setObjectName("AdvTitleBar")
+        bar.setFixedHeight(34)
+        lo = QtWidgets.QHBoxLayout(bar)
+        lo.setContentsMargins(10, 0, 8, 0)
+        lo.setSpacing(6)
+
+        icon = QtWidgets.QLabel()
+        icon.setObjectName("AdvTitleIcon")
+        icon.setFixedSize(16, 16)
+        icon.setPixmap(get_icon("settings").pixmap(QtCore.QSize(14, 14)))
+
+        title = QtWidgets.QLabel("CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA")
+        title.setObjectName("AdvTitleLabel")
+
+        self.btn_close = QtWidgets.QToolButton()
+        self.btn_close.setObjectName("AdvCloseBtn")
+        self.btn_close.setFixedSize(22, 22)
+        self.btn_close.setIconSize(QtCore.QSize(12, 12))
+        self.btn_close.setIcon(get_icon("close"))
+        self.btn_close.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_close.clicked.connect(self.hide)
+
+        lo.addWidget(icon)
+        lo.addWidget(title)
+        lo.addStretch()
+        lo.addWidget(self.btn_close)
+        return bar
+
+    def _build_curv_page(self) -> QtWidgets.QWidget:
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
 
         content = QtWidgets.QWidget()
-        c_lay = QtWidgets.QVBoxLayout(content)
-        c_lay.setContentsMargins(4, 4, 4, 4)
-        c_lay.setSpacing(8)
+        lay = QtWidgets.QVBoxLayout(content)
+        lay.setContentsMargins(8, 6, 8, 8)
+        lay.setSpacing(6)
 
-        # ── 1. PERSPECTIVA CURVILÍNEA 6P ──
-        lbl_curv = QtWidgets.QLabel("🌐  PERSPECTIVA CURVILÍNEA (6 PONTOS)")
-        lbl_curv.setProperty("class", "sec-title")
-        c_lay.addWidget(lbl_curv)
+        sec_cam = CollapsibleSection("CÂMERA 3D & DISTORÇÃO", content)
+        self.slider_yaw = CompactSlider("Yaw:", 0, 360, "°", sec_cam, step=5)
+        self.slider_yaw.setValue(int(self.state.get("yaw", 0)))
+        self.slider_yaw.valueChanged.connect(self._on_changed)
+        sec_cam.add_widget(self.slider_yaw)
 
-        self.w_yaw, self.slider_yaw, self.lbl_yaw = self._make_slider("Rotação (Yaw):", 0, 360, "°", int(self.state.get("yaw", 0)))
-        self.w_pitch, self.slider_pitch, self.lbl_pitch = self._make_slider("Inclinação (Pitch):", -90, 90, "°", int(self.state.get("pitch", 0)))
-        self.w_fov, self.slider_fov, self.lbl_fov = self._make_slider("FOV (Distorção):", 10, 180, "°", int(self.state.get("fov", 130)))
-        c_lay.addWidget(self.w_yaw)
-        c_lay.addWidget(self.w_pitch)
-        c_lay.addWidget(self.w_fov)
+        self.slider_pitch = CompactSlider("Pitch:", -90, 90, "°", sec_cam, step=5)
+        self.slider_pitch.setValue(int(self.state.get("pitch", 0)))
+        self.slider_pitch.valueChanged.connect(self._on_changed)
+        sec_cam.add_widget(self.slider_pitch)
 
-        row_density = QtWidgets.QHBoxLayout()
-        row_density.addWidget(QtWidgets.QLabel("Densidade das Linhas:"))
+        self.slider_fov = CompactSlider("FOV:", 10, 180, "°", sec_cam, step=5)
+        self.slider_fov.setValue(int(self.state.get("fov", 130)))
+        self.slider_fov.valueChanged.connect(self._on_changed)
+        sec_cam.add_widget(self.slider_fov)
+        lay.addWidget(sec_cam)
+
+        sec_grid = CollapsibleSection("GRADE CURVILÍNEA & ELEMENTOS", content)
+        row_d = QtWidgets.QHBoxLayout()
+        lbl_d = QtWidgets.QLabel("Densidade:")
+        lbl_d.setObjectName("AdvFieldLabel")
+        row_d.addWidget(lbl_d)
         self.combo_density = QtWidgets.QComboBox()
         self.combo_density.addItems(["Fina (15°)", "Média (30°)", "Esparsa (45°)"])
         self.combo_density.setCurrentIndex(self.state.get("density_idx", 1))
         self.combo_density.currentIndexChanged.connect(self._on_changed)
-        row_density.addWidget(self.combo_density)
-        c_lay.addLayout(row_density)
+        row_d.addWidget(self.combo_density, 1)
+        sec_grid.add_layout(row_d)
 
-        # 12-item Checkbox Grid
-        grid_curv = QtWidgets.QGridLayout()
-        grid_curv.setSpacing(4)
+        row_a = QtWidgets.QHBoxLayout()
+        lbl_a = QtWidgets.QLabel("Proporção:")
+        lbl_a.setObjectName("AdvFieldLabel")
+        row_a.addWidget(lbl_a)
+        self.combo_aspect = QtWidgets.QComboBox()
+        self.combo_aspect.addItems(["16:9", "2.35:1"])
+        self.combo_aspect.setCurrentText(self.state.get("aspect_ratio", "16:9"))
+        self.combo_aspect.currentIndexChanged.connect(self._on_changed)
+        row_a.addWidget(self.combo_aspect, 1)
+        sec_grid.add_layout(row_a)
+
+        grid = QtWidgets.QGridLayout()
+        grid.setSpacing(4)
         self.chk_ring = QtWidgets.QCheckBox("Limites (180°)")
         self.chk_straight_v = QtWidgets.QCheckBox("Verticais Retas")
-        self.chk_v = QtWidgets.QCheckBox("Grade Vertical (V)")
+        self.chk_v = QtWidgets.QCheckBox("Grade Vert. (V)")
         self.chk_vps = QtWidgets.QCheckBox("Pontos Fuga (VPs)")
         self.chk_h = QtWidgets.QCheckBox("Grade Horiz. (H)")
         self.chk_letterbox = QtWidgets.QCheckBox("Letterbox")
@@ -100,121 +220,116 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self.chk_ceiling_v = QtWidgets.QCheckBox("Verticais Teto")
 
         chk_items = [
-            (self.chk_ring, "show_ring", True, 0, 0),
-            (self.chk_straight_v, "show_straight_verticals", False, 0, 1),
-            (self.chk_v, "show_v", True, 1, 0),
-            (self.chk_vps, "show_vps", False, 1, 1),
-            (self.chk_h, "show_h", True, 2, 0),
-            (self.chk_letterbox, "show_letterbox", False, 2, 1),
-            (self.chk_d, "show_d", True, 3, 0),
-            (self.chk_cube, "show_cube", False, 3, 1),
-            (self.chk_ground, "show_ground", False, 4, 0),
-            (self.chk_ceiling, "show_ceiling", False, 4, 1),
-            (self.chk_ground_v, "show_ground_verticals", False, 5, 0),
-            (self.chk_ceiling_v, "show_ceiling_verticals", False, 5, 1),
+            (self.chk_ring, "show_ring", True, 0, 0), (self.chk_straight_v, "show_straight_verticals", False, 0, 1),
+            (self.chk_v, "show_v", True, 1, 0), (self.chk_vps, "show_vps", False, 1, 1),
+            (self.chk_h, "show_h", True, 2, 0), (self.chk_letterbox, "show_letterbox", False, 2, 1),
+            (self.chk_d, "show_d", True, 3, 0), (self.chk_cube, "show_cube", False, 3, 1),
+            (self.chk_ground, "show_ground", False, 4, 0), (self.chk_ceiling, "show_ceiling", False, 4, 1),
+            (self.chk_ground_v, "show_ground_verticals", False, 5, 0), (self.chk_ceiling_v, "show_ceiling_verticals", False, 5, 1),
         ]
-        for chk, key, def_val, row, col in chk_items:
+        for chk, key, def_val, r, c in chk_items:
             chk.setChecked(self.state.get(key, def_val))
             chk.toggled.connect(self._on_changed)
-            grid_curv.addWidget(chk, row, col)
-        c_lay.addLayout(grid_curv)
+            grid.addWidget(chk, r, c)
+        sec_grid.add_layout(grid)
+        lay.addWidget(sec_grid)
+        lay.addStretch()
 
-        row_aspect = QtWidgets.QHBoxLayout()
-        row_aspect.addWidget(QtWidgets.QLabel("Proporção do Viewport:"))
-        self.combo_aspect = QtWidgets.QComboBox()
-        self.combo_aspect.addItems(["16:9", "2.35:1"])
-        self.combo_aspect.setCurrentText(self.state.get("aspect_ratio", "16:9"))
-        self.combo_aspect.currentIndexChanged.connect(self._on_changed)
-        row_aspect.addWidget(self.combo_aspect)
-        c_lay.addLayout(row_aspect)
+        scroll.setWidget(content)
+        return scroll
 
-        # ── 2. DESENHO & SNAPPING ──
-        lbl_snap = QtWidgets.QLabel("📏  DESENHO & SNAPPING (IMÃ)")
-        lbl_snap.setProperty("class", "sec-title")
-        c_lay.addWidget(lbl_snap)
+    def _build_snap_page(self) -> QtWidgets.QWidget:
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        row_mode = QtWidgets.QHBoxLayout()
-        row_mode.addWidget(QtWidgets.QLabel("Eixo de Snap:"))
+        content = QtWidgets.QWidget()
+        lay = QtWidgets.QVBoxLayout(content)
+        lay.setContentsMargins(8, 6, 8, 8)
+        lay.setSpacing(6)
+
+        sec_snap = CollapsibleSection("MODO & SENSIBILIDADE", content)
+        row_m = QtWidgets.QHBoxLayout()
+        lbl_m = QtWidgets.QLabel("Eixo de Snap:")
+        lbl_m.setObjectName("AdvFieldLabel")
+        row_m.addWidget(lbl_m)
         self.combo_snap_mode = QtWidgets.QComboBox()
         self.combo_snap_mode.addItems(["Auto (Todas as Guias)", "Apenas Vertical (V)", "Apenas Horizontal (H)", "Apenas Profundidade (D)"])
         mode_map = {"auto": 0, "v": 1, "h": 2, "d": 3}
         self.combo_snap_mode.setCurrentIndex(mode_map.get(self.state.get("snap_mode", "auto"), 0))
         self.combo_snap_mode.currentIndexChanged.connect(self._on_changed)
-        row_mode.addWidget(self.combo_snap_mode)
-        c_lay.addLayout(row_mode)
+        row_m.addWidget(self.combo_snap_mode, 1)
+        sec_snap.add_layout(row_m)
 
-        self.w_sens, self.slider_sens, self.lbl_sens = self._make_slider("Sensibilidade do Snap:", 1, 50, " px", int(self.state.get("snap_sensitivity", 3)))
-        c_lay.addWidget(self.w_sens)
+        self.slider_sens = CompactSlider("Sensib:", 1, 50, "px", sec_snap)
+        self.slider_sens.setValue(int(self.state.get("snap_sensitivity", 3)))
+        self.slider_sens.valueChanged.connect(self._on_changed)
+        sec_snap.add_widget(self.slider_sens)
+        lay.addWidget(sec_snap)
 
+        sec_draw = CollapsibleSection("COMPORTAMENTO DE DESENHO", content)
         self.chk_dynamic = QtWidgets.QCheckBox("Ativar Snap Dinâmico (Desenho Livre)")
         self.chk_dynamic.setChecked(self.state.get("snap_dynamic", True))
         self.chk_dynamic.toggled.connect(self._on_changed)
-        c_lay.addWidget(self.chk_dynamic)
+        sec_draw.add_widget(self.chk_dynamic)
 
-        self.chk_hint = QtWidgets.QCheckBox("Exibir Guia Vermelha (Cursor Hint)")
+        self.chk_hint = QtWidgets.QCheckBox("Exibir Guia Cursor Hint (Laranja)")
         self.chk_hint.setChecked(self.state.get("show_hint", True))
         self.chk_hint.toggled.connect(self._on_changed)
-        c_lay.addWidget(self.chk_hint)
+        sec_draw.add_widget(self.chk_hint)
 
         self.chk_hide = QtWidgets.QCheckBox("Ocultar guias visuais durante a pintura")
         self.chk_hide.setChecked(self.state.get("hidden", False))
         self.chk_hide.toggled.connect(self._on_changed)
-        c_lay.addWidget(self.chk_hide)
+        sec_draw.add_widget(self.chk_hide)
+        lay.addWidget(sec_draw)
+        lay.addStretch()
 
-        # ── 3. PARÂMETROS DE SIMETRIA ──
-        lbl_sym = QtWidgets.QLabel("🪞  PARÂMETROS DE SIMETRIA")
-        lbl_sym.setProperty("class", "sec-title")
-        c_lay.addWidget(lbl_sym)
+        scroll.setWidget(content)
+        return scroll
 
-        row_seg = QtWidgets.QHBoxLayout()
-        row_seg.addWidget(QtWidgets.QLabel("Segmentos Radiais:"))
-        self.spin_seg = QtWidgets.QSpinBox()
-        self.spin_seg.setRange(2, 32)
-        self.spin_seg.setValue(self.state.get("segments", 6))
-        self.spin_seg.valueChanged.connect(self._on_changed)
-        row_seg.addWidget(self.spin_seg)
-        c_lay.addLayout(row_seg)
+    def _build_sym_page(self) -> QtWidgets.QWidget:
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        self.w_ang, self.slider_ang, self.lbl_ang = self._make_slider("Ângulo do Eixo:", 0, 360, "°", int(self.state.get("angle", 0)))
-        c_lay.addWidget(self.w_ang)
+        content = QtWidgets.QWidget()
+        lay = QtWidgets.QVBoxLayout(content)
+        lay.setContentsMargins(8, 6, 8, 8)
+        lay.setSpacing(6)
 
+        sec_axes = CollapsibleSection("EIXOS & ÂNGULO", content)
+        self.slider_seg = CompactSlider("Segmentos:", 2, 32, "", sec_axes)
+        self.slider_seg.setValue(int(self.state.get("segments", 6)))
+        self.slider_seg.valueChanged.connect(self._on_changed)
+        sec_axes.add_widget(self.slider_seg)
+
+        self.slider_ang = CompactSlider("Ângulo:", 0, 360, "°", sec_axes, step=5)
+        self.slider_ang.setValue(int(self.state.get("angle", 0)))
+        self.slider_ang.valueChanged.connect(self._on_changed)
+        sec_axes.add_widget(self.slider_ang)
+        lay.addWidget(sec_axes)
+
+        sec_rest = CollapsibleSection("RESTRIÇÕES DE PINTURA", content)
         self.chk_stop = QtWidgets.QCheckBox("Parar traço no centro (Stop-at-Center)")
         self.chk_stop.setChecked(self.state.get("stop_at_center", False))
         self.chk_stop.toggled.connect(self._on_changed)
-        c_lay.addWidget(self.chk_stop)
+        sec_rest.add_widget(self.chk_stop)
 
         self.chk_lock = QtWidgets.QCheckBox("Bloquear posição do centro no canvas")
         self.chk_lock.setChecked(self.state.get("locked", False))
         self.chk_lock.toggled.connect(self._on_changed)
-        c_lay.addWidget(self.chk_lock)
+        sec_rest.add_widget(self.chk_lock)
+        lay.addWidget(sec_rest)
+        lay.addStretch()
 
         scroll.setWidget(content)
-        f_layout.addWidget(scroll, 1)
+        return scroll
 
-        # Footer Buttons
-        btn_reset = QtWidgets.QPushButton("Restaurar Padrões")
-        btn_reset.clicked.connect(self._on_reset)
-        f_layout.addWidget(btn_reset)
-
-        main_layout.addWidget(frame)
-
-    def _make_slider(self, text, min_v, max_v, suffix, cur_v):
-        w = QtWidgets.QWidget()
-        lay = QtWidgets.QVBoxLayout(w)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(2)
-        top = QtWidgets.QHBoxLayout()
-        top.addWidget(QtWidgets.QLabel(text))
-        lbl_v = QtWidgets.QLabel(f"{cur_v}{suffix}")
-        lbl_v.setStyleSheet("color: #a6e3a1; font-weight: bold;")
-        top.addWidget(lbl_v, 0, QtCore.Qt.AlignRight)
-        lay.addLayout(top)
-        s = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        s.setRange(min_v, max_v)
-        s.setValue(cur_v)
-        s.valueChanged.connect(lambda v: (lbl_v.setText(f"{v}{suffix}"), self._on_changed()))
-        lay.addWidget(s)
-        return w, s, lbl_v
+    def _on_tab(self, idx):
+        self.stack.setCurrentIndex(idx)
 
     def _on_changed(self):
         self.state["yaw"] = float(self.slider_yaw.value())
@@ -245,48 +360,98 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self.state["show_hint"] = self.chk_hint.isChecked()
         self.state["hidden"] = self.chk_hide.isChecked()
 
-        self.state["segments"] = self.spin_seg.value()
+        self.state["segments"] = int(self.slider_seg.value())
         self.state["angle"] = float(self.slider_ang.value())
         self.state["stop_at_center"] = self.chk_stop.isChecked()
         self.state["locked"] = self.chk_lock.isChecked()
 
         self.settingsChanged.emit(self.state)
 
+    def sync_from_state(self, state: dict):
+        self.state.update(state)
+        widgets = [self.slider_yaw, self.slider_pitch, self.slider_fov, self.slider_sens, self.slider_seg, self.slider_ang]
+        for w in widgets: w.blockSignals(True)
+        try:
+            self.slider_yaw.setValue(int(self.state.get("yaw", 0)))
+            self.slider_pitch.setValue(int(self.state.get("pitch", 0)))
+            self.slider_fov.setValue(int(self.state.get("fov", 130)))
+            self.combo_density.setCurrentIndex(self.state.get("density_idx", 1))
+            self.chk_ring.setChecked(self.state.get("show_ring", True))
+            self.chk_straight_v.setChecked(self.state.get("show_straight_verticals", False))
+            self.chk_v.setChecked(self.state.get("show_v", True))
+            self.chk_vps.setChecked(self.state.get("show_vps", False))
+            self.chk_h.setChecked(self.state.get("show_h", True))
+            self.chk_letterbox.setChecked(self.state.get("show_letterbox", False))
+            self.chk_d.setChecked(self.state.get("show_d", True))
+            self.chk_cube.setChecked(self.state.get("show_cube", False))
+            self.chk_ground.setChecked(self.state.get("show_ground", False))
+            self.chk_ceiling.setChecked(self.state.get("show_ceiling", False))
+            self.chk_ground_v.setChecked(self.state.get("show_ground_verticals", False))
+            self.chk_ceiling_v.setChecked(self.state.get("show_ceiling_verticals", False))
+            self.combo_aspect.setCurrentText(self.state.get("aspect_ratio", "16:9"))
+            mode_map = {"auto": 0, "v": 1, "h": 2, "d": 3}
+            self.combo_snap_mode.setCurrentIndex(mode_map.get(self.state.get("snap_mode", "auto"), 0))
+            self.slider_sens.setValue(int(self.state.get("snap_sensitivity", 3)))
+            self.chk_dynamic.setChecked(self.state.get("snap_dynamic", True))
+            self.chk_hint.setChecked(self.state.get("show_hint", True))
+            self.chk_hide.setChecked(self.state.get("hidden", False))
+            self.slider_seg.setValue(int(self.state.get("segments", 6)))
+            self.slider_ang.setValue(int(self.state.get("angle", 0)))
+            self.chk_stop.setChecked(self.state.get("stop_at_center", False))
+            self.chk_lock.setChecked(self.state.get("locked", False))
+        finally:
+            for w in widgets: w.blockSignals(False)
+
     def _on_reset(self):
-        self.slider_yaw.setValue(0)
-        self.slider_pitch.setValue(0)
-        self.slider_fov.setValue(130)
-        self.combo_density.setCurrentIndex(1)
-        self.chk_ring.setChecked(True)
-        self.chk_straight_v.setChecked(False)
-        self.chk_v.setChecked(True)
-        self.chk_vps.setChecked(False)
-        self.chk_h.setChecked(True)
-        self.chk_letterbox.setChecked(False)
-        self.chk_d.setChecked(True)
-        self.chk_cube.setChecked(False)
-        self.chk_ground.setChecked(False)
-        self.chk_ceiling.setChecked(False)
-        self.chk_ground_v.setChecked(False)
-        self.chk_ceiling_v.setChecked(False)
-        self.combo_aspect.setCurrentText("16:9")
-        self.combo_snap_mode.setCurrentIndex(0)
-        self.slider_sens.setValue(3)
-        self.chk_dynamic.setChecked(True)
-        self.chk_hint.setChecked(True)
-        self.chk_hide.setChecked(False)
-        self.spin_seg.setValue(6)
-        self.slider_ang.setValue(0)
-        self.chk_stop.setChecked(False)
-        self.chk_lock.setChecked(False)
+        self.sync_from_state({
+            "yaw": 0.0, "pitch": 0.0, "fov": 130.0, "density_idx": 1, "density": 30.0,
+            "show_ring": True, "show_straight_verticals": False, "show_v": True, "show_vps": False,
+            "show_h": True, "show_letterbox": False, "show_d": True, "show_cube": False,
+            "show_ground": False, "show_ceiling": False, "show_ground_verticals": False,
+            "show_ceiling_verticals": False, "aspect_ratio": "16:9", "snap_mode": "auto",
+            "snap_sensitivity": 3.0, "snap_dynamic": True, "show_hint": True, "hidden": False,
+            "segments": 6, "angle": 0.0, "stop_at_center": False, "locked": False
+        })
+        self._on_changed()
 
-    def mousePressEvent(self, e):
-        if e.button() == QtCore.Qt.LeftButton:
-            self._drag_pos = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
+    def _apply_theme(self, _=""):
+        from plugins.ui.brush_plugin.advanced_panel.panel_theme import get_advanced_panel_qss
+        tm = ThemeManager.instance()
+        text = tm.get_color("text_main")
+        bg_panel = tm.get_color("bg_panel")
+        accent = tm.get_color("accent")
+        border = tm.get_color("border")
+        self.btn_close.setIcon(get_icon("close", text))
+        base_qss = get_advanced_panel_qss()
+        extra_qss = f"""
+            #AdvFieldLabel {{ color: {text}; font-size: 10px; font-weight: 500; }}
+            #AdvResetBtn {{
+                background: {bg_panel};
+                color: {text};
+                border: 1px solid {border};
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-weight: 600;
+                font-size: 10px;
+            }}
+            #AdvResetBtn:hover {{
+                border-color: {accent};
+                color: {accent};
+            }}
+            QCheckBox {{
+                color: {text};
+                font-size: 10px;
+                spacing: 4px;
+            }}
+            QComboBox {{
+                background: {bg_panel};
+                color: {text};
+                border: 1px solid {border};
+                border-radius: 3px;
+                padding: 2px 6px;
+                font-size: 10px;
+            }}
+        """
+        self.setStyleSheet(base_qss + extra_qss)
 
-    def mouseMoveEvent(self, e):
-        if e.buttons() == QtCore.Qt.LeftButton and self._drag_pos:
-            self.move(e.globalPosition().toPoint() - self._drag_pos)
 
-    def mouseReleaseEvent(self, _):
-        self._drag_pos = None

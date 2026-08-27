@@ -91,7 +91,7 @@ class GeometryPanel(QtWidgets.QWidget):
 
     def _toggle_advanced(self):
         if self.adv_dialog and self.adv_dialog.isVisible():
-            self.adv_dialog.close()
+            self.adv_dialog.hide()
             return
 
         rw = self._get_render_widget()
@@ -107,23 +107,13 @@ class GeometryPanel(QtWidgets.QWidget):
                 if k in rw.geometry_ctrl.sym_state:
                     self.state[k] = rw.geometry_ctrl.sym_state[k]
 
-        self.adv_dialog = AdvancedGeometryDialog(self.window(), self.state)
-        self.adv_dialog.settingsChanged.connect(self._on_advanced_settings_changed)
+        if not self.adv_dialog:
+            self.adv_dialog = AdvancedGeometryDialog(self.window(), self.state)
+            self.adv_dialog.settingsChanged.connect(self._on_advanced_settings_changed)
+        else:
+            self.adv_dialog.sync_from_state(self.state)
 
-        pos = self.btn_advanced.mapToGlobal(QtCore.QPoint(0, 0))
-        screen = self.screen().availableGeometry() if self.screen() else QtCore.QRect(0, 0, 1920, 1080)
-        adv_w, adv_h = self.adv_dialog.width(), self.adv_dialog.height()
-
-        x = pos.x() - adv_w - 10
-        if x < screen.left() + 20:
-            x = pos.x() + self.width() + 10
-            if x + adv_w > screen.right() - 20:
-                x = screen.left() + 20
-
-        y = max(screen.top() + 40, min(screen.bottom() - adv_h - 40, pos.y()))
-        self.adv_dialog.setGeometry(x, y, adv_w, adv_h)
-        self.adv_dialog.show()
-        self.adv_dialog.raise_()
+        self.adv_dialog.show_near(self.btn_advanced)
 
     def _on_ruler_changed(self, idx: int, gtype: str):
         self.state["ruler_idx"] = idx

@@ -384,12 +384,28 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self.state["stop_at_center"] = self.chk_stop.isChecked()
         self.state["locked"] = self.chk_lock.isChecked()
 
+        # If user is interacting with Curvilinear 6P tab and no ruler is active, auto-activate 6P
+        if self.stack.currentIndex() == 0 and self.state.get("ruler_type") == "none":
+            self.state["ruler_type"] = "curvilinear"
+            self.state["ruler_idx"] = 6
+
+        # If user is interacting with Symmetry tab and no symmetry is active, auto-activate radial
+        if self.stack.currentIndex() == 2 and self.state.get("sym_type") == "none":
+            self.state["sym_type"] = "radial"
+            self.state["sym_idx"] = 4
+
         self.settingsChanged.emit(self.state)
 
     def sync_from_state(self, state: dict):
         self.state.update(state)
-        widgets = [self.slider_yaw, self.slider_pitch, self.slider_fov, self.slider_sens, self.slider_seg, self.slider_ang]
-        for w in widgets: w.blockSignals(True)
+        all_widgets = [
+            self.slider_yaw, self.slider_pitch, self.slider_fov, self.slider_sens, self.slider_seg, self.slider_ang,
+            self.combo_density, self.combo_aspect, self.combo_snap_mode,
+            self.chk_ring, self.chk_straight_v, self.chk_v, self.chk_vps, self.chk_h, self.chk_letterbox,
+            self.chk_d, self.chk_cube, self.chk_ground, self.chk_ceiling, self.chk_ground_v, self.chk_ceiling_v,
+            self.chk_dynamic, self.chk_hint, self.chk_hide, self.chk_stop, self.chk_lock
+        ]
+        for w in all_widgets: w.blockSignals(True)
         try:
             self.slider_yaw.setValue(int(self.state.get("yaw", 0)))
             self.slider_pitch.setValue(int(self.state.get("pitch", 0)))
@@ -419,7 +435,7 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
             self.chk_stop.setChecked(self.state.get("stop_at_center", False))
             self.chk_lock.setChecked(self.state.get("locked", False))
         finally:
-            for w in widgets: w.blockSignals(False)
+            for w in all_widgets: w.blockSignals(False)
 
     def _on_reset(self):
         self.sync_from_state({

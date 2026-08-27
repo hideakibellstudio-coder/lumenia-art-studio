@@ -205,15 +205,15 @@ class GeometryPanel(QtWidgets.QWidget):
         ctrl.guide_state["hidden"] = self.state["hidden"]
         ctrl.guide_state["snap_radius"] = self.state["snap_radius"]
         
-        # Only override camera if explicitly configured from advanced dialog
-        if "yaw" in self.state and self.state["yaw"] != 0.0:
-            ctrl.guide_state["yaw"] = self.state["yaw"]
-        if "pitch" in self.state and self.state["pitch"] != 0.0:
-            ctrl.guide_state["pitch"] = self.state["pitch"]
+        # Camera synchronicity
+        if "yaw" in self.state:
+            ctrl.guide_state["yaw"] = float(self.state["yaw"])
+        if "pitch" in self.state:
+            ctrl.guide_state["pitch"] = float(self.state["pitch"])
         if "fov" in self.state:
-            ctrl.guide_state["fov"] = self.state["fov"]
+            ctrl.guide_state["fov"] = float(self.state["fov"])
         if "density" in self.state:
-            ctrl.guide_state["density"] = self.state["density"]
+            ctrl.guide_state["density"] = float(self.state["density"])
         ctrl.guide_state["show_ring"] = self.state.get("show_ring", True)
         ctrl.guide_state["show_straight_verticals"] = self.state.get("show_straight_verticals", False)
         ctrl.guide_state["show_v"] = self.state.get("show_v", True)

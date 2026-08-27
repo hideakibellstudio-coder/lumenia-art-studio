@@ -47,7 +47,7 @@ class GeometryOverlayRenderer:
     @staticmethod
     def render_symmetry(painter: QtGui.QPainter, sym: dict, zoom: float):
         mode = sym.get("mode", "none")
-        if mode == "none" or sym.get("hidden", False): return
+        if mode == "none": return
 
         cx, cy = sym.get("cx", 400.0), sym.get("cy", 300.0)
         angle_rad = math.radians(sym.get("angle", 90.0))
@@ -97,7 +97,7 @@ class GeometryOverlayRenderer:
     def render_guides(painter: QtGui.QPainter, ctrl_or_guide, zoom: float):
         guide = ctrl_or_guide.guide_state if hasattr(ctrl_or_guide, "guide_state") else ctrl_or_guide
         gtype = guide.get("type", "none")
-        if gtype == "none" or guide.get("hidden", False): return
+        if gtype == "none": return
 
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)

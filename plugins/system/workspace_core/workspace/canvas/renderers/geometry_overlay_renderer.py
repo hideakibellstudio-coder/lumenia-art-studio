@@ -204,26 +204,18 @@ class GeometryOverlayRenderer:
         # 1. Ground Grid (Y = -1.0)
         if guide.get("show_ground", False):
             painter.setPen(QtGui.QPen(QtGui.QColor(100, 200, 150, 60), line_w, QtCore.Qt.SolidLine))
-            ground_path = QtGui.QPainterPath()
             for x_val in range(-10, 11, 2):
-                first = True
-                for i in range(51):
-                    z = -15.0 + i * (30.0 / 50.0)
-                    if abs(z - 1.0) < 0.1: continue
-                    pt = p3d_to_2d(float(x_val), -1.0, z)
-                    if pt:
-                        if first: ground_path.moveTo(pt); first = False
-                        else: ground_path.lineTo(pt)
+                a, b, c = rotate_3d_backward(1.0, float(x_val), 0.0, yaw_rad, pitch_rad)
+                curv = create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
+                if curv:
+                    if curv["type"] == "line": painter.drawLine(curv["p1"], curv["p2"])
+                    else: painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
             for z_val in range(-10, 11, 2):
-                if abs(float(z_val) - 1.0) < 0.05: continue
-                first = True
-                for i in range(51):
-                    x = -15.0 + i * (30.0 / 50.0)
-                    pt = p3d_to_2d(x, -1.0, float(z_val))
-                    if pt:
-                        if first: ground_path.moveTo(pt); first = False
-                        else: ground_path.lineTo(pt)
-            painter.drawPath(ground_path)
+                a, b, c = rotate_3d_backward(0.0, float(z_val), 1.0, yaw_rad, pitch_rad)
+                curv = create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
+                if curv:
+                    if curv["type"] == "line": painter.drawLine(curv["p1"], curv["p2"])
+                    else: painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
 
         # 2. Ground Verticals
         if guide.get("show_ground_verticals", False):
@@ -250,26 +242,18 @@ class GeometryOverlayRenderer:
         # 3. Ceiling Grid (Y = +1.0)
         if guide.get("show_ceiling", False):
             painter.setPen(QtGui.QPen(QtGui.QColor(200, 150, 100, 60), line_w, QtCore.Qt.SolidLine))
-            ceil_path = QtGui.QPainterPath()
             for x_val in range(-10, 11, 2):
-                first = True
-                for i in range(51):
-                    z = -15.0 + i * (30.0 / 50.0)
-                    if abs(z - 1.0) < 0.1: continue
-                    pt = p3d_to_2d(float(x_val), 1.0, z)
-                    if pt:
-                        if first: ceil_path.moveTo(pt); first = False
-                        else: ceil_path.lineTo(pt)
+                a, b, c = rotate_3d_backward(1.0, -float(x_val), 0.0, yaw_rad, pitch_rad)
+                curv = create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
+                if curv:
+                    if curv["type"] == "line": painter.drawLine(curv["p1"], curv["p2"])
+                    else: painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
             for z_val in range(-10, 11, 2):
-                if abs(float(z_val) - 1.0) < 0.05: continue
-                first = True
-                for i in range(51):
-                    x = -15.0 + i * (30.0 / 50.0)
-                    pt = p3d_to_2d(x, 1.0, float(z_val))
-                    if pt:
-                        if first: ceil_path.moveTo(pt); first = False
-                        else: ceil_path.lineTo(pt)
-            painter.drawPath(ceil_path)
+                a, b, c = rotate_3d_backward(0.0, -float(z_val), 1.0, yaw_rad, pitch_rad)
+                curv = create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
+                if curv:
+                    if curv["type"] == "line": painter.drawLine(curv["p1"], curv["p2"])
+                    else: painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
 
         # 4. Ceiling Verticals
         if guide.get("show_ceiling_verticals", False):

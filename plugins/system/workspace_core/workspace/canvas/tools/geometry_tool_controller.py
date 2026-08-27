@@ -326,24 +326,8 @@ class GeometryToolController:
             xc, yc, zc = self._rotate_3d_backward(gx, gy, gz, yaw_rad, pitch_rad)
             length = math.sqrt(xc * xc + yc * yc + zc * zc) or 1.0
             ux, uy, uz = xc / length, yc / length, zc / length
-            if uz >= 0.95: return None
+            if uz >= 0.999: return None
             return QtCore.QPointF(cx + (ux / (1.0 - uz)) * R, cy - (uy / (1.0 - uz)) * R)
-
-        def sample_line(start_3d, dir_3d, max_dist=25.0, steps=50):
-            pts_pos, pts_neg = [], []
-            for i in range(1, steps + 1):
-                d = (i / steps) * max_dist
-                pt = p3d_to_2d(start_3d[0] + d * dir_3d[0], start_3d[1] + d * dir_3d[1], start_3d[2] + d * dir_3d[2])
-                if pt is None or (pts_pos and (pt - pts_pos[-1]).manhattanLength() > 200.0): break
-                pts_pos.append(pt)
-            for i in range(1, steps + 1):
-                d = (i / steps) * max_dist
-                pt = p3d_to_2d(start_3d[0] - d * dir_3d[0], start_3d[1] - d * dir_3d[1], start_3d[2] - d * dir_3d[2])
-                if pt is None or (pts_neg and (pt - pts_neg[-1]).manhattanLength() > 200.0): break
-                pts_neg.append(pt)
-            center_pt = p3d_to_2d(start_3d[0], start_3d[1], start_3d[2])
-            pts_neg.reverse()
-            return pts_neg + ([center_pt] if center_pt else []) + pts_pos
 
         curves = []
         # 1. Ground 3D Curves (Plano Y = -1.0)
@@ -351,38 +335,54 @@ class GeometryToolController:
             t = -1.0 / yw
             x_g, z_g = xw * t, zw * t
             if self.guide_state.get("show_ground", False):
-                pts_gx, pts_gz = sample_line((x_g, -1.0, z_g), (1.0, 0.0, 0.0)), sample_line((x_g, -1.0, z_g), (0.0, 0.0, 1.0))
-                if len(pts_gx) >= 2: curves.append({"type": "polyline", "family": "ground_x", "points": pts_gx})
-                if len(pts_gz) >= 2: curves.append({"type": "polyline", "family": "ground_z", "points": pts_gz})
+                a, b, c = self._rotate_3d_backward(0.0, z_g, 1.0, yaw_rad, pitch_rad)
+                c_gx = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
+                if c_gx: curves.append(c_gx)
+                a, b, c = self._rotate_3d_backward(1.0, x_g, 0.0, yaw_rad, pitch_rad)
+                c_gz = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
+                if c_gz: curves.append(c_gz)
+
             if self.guide_state.get("show_straight_verticals", False):
                 p_b, p_t = p3d_to_2d(x_g, -1.0, z_g), p3d_to_2d(x_g, 1.5, z_g)
                 if p_b and p_t:
                     dx, dy = p_t.x() - p_b.x(), p_t.y() - p_b.y()
                     l = math.hypot(dx, dy) or 1.0
                     dx, dy = dx / l, dy / l
-                    curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(p_b.x() - dx * 2000.0, p_b.y() - dy * 2000.0), "p2": QtCore.QPointF(p_b.x() + dx * 2000.0, p_b.y() + dy * 2000.0), "dir": QtCore.QPointF(dx, dy)})
+                    curves.append({"type": "line", "family": "ground_v",
+                                   "p1": QtCore.QPointF(p_b.x() - dx * 20000.0, p_b.y() - dy * 20000.0),
+                                   "p2": QtCore.QPointF(p_b.x() + dx * 20000.0, p_b.y() + dy * 2000.0),
+                                   "dir": QtCore.QPointF(dx, dy)})
             elif self.guide_state.get("show_ground_verticals", False) or self.guide_state.get("show_v", True):
-                pts_gv = [p for p in (p3d_to_2d(x_g, -1.0 + i * 0.125, z_g) for i in range(21)) if p is not None]
-                if len(pts_gv) >= 2: curves.append({"type": "polyline", "family": "ground_v", "points": pts_gv})
+                a, b, c = self._rotate_3d_backward(-z_g, 0.0, x_g, yaw_rad, pitch_rad)
+                c_gv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_v")
+                if c_gv: curves.append(c_gv)
 
         # 2. Ceiling 3D Curves (Plano Y = +1.0)
         if (self.guide_state.get("show_ceiling", False) or self.guide_state.get("show_ceiling_verticals", False)) and yw > 1e-4:
             t = 1.0 / yw
             x_c, z_c = xw * t, zw * t
             if self.guide_state.get("show_ceiling", False):
-                pts_cx, pts_cz = sample_line((x_c, 1.0, z_c), (1.0, 0.0, 0.0)), sample_line((x_c, 1.0, z_c), (0.0, 0.0, 1.0))
-                if len(pts_cx) >= 2: curves.append({"type": "polyline", "family": "ground_x", "points": pts_cx})
-                if len(pts_cz) >= 2: curves.append({"type": "polyline", "family": "ground_z", "points": pts_cz})
+                a, b, c = self._rotate_3d_backward(0.0, -z_c, 1.0, yaw_rad, pitch_rad)
+                c_cx = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
+                if c_cx: curves.append(c_cx)
+                a, b, c = self._rotate_3d_backward(1.0, -x_c, 0.0, yaw_rad, pitch_rad)
+                c_cz = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
+                if c_cz: curves.append(c_cz)
+
             if self.guide_state.get("show_straight_verticals", False):
                 p_b, p_t = p3d_to_2d(x_c, 1.0, z_c), p3d_to_2d(x_c, -1.5, z_c)
                 if p_b and p_t:
                     dx, dy = p_b.x() - p_t.x(), p_b.y() - p_t.y()
                     l = math.hypot(dx, dy) or 1.0
                     dx, dy = dx / l, dy / l
-                    curves.append({"type": "line", "family": "ground_v", "p1": QtCore.QPointF(p_b.x() - dx * 2000.0, p_b.y() - dy * 2000.0), "p2": QtCore.QPointF(p_b.x() + dx * 2000.0, p_b.y() + dy * 2000.0), "dir": QtCore.QPointF(dx, dy)})
+                    curves.append({"type": "line", "family": "ground_v",
+                                   "p1": QtCore.QPointF(p_b.x() - dx * 2000.0, p_b.y() - dy * 2000.0),
+                                   "p2": QtCore.QPointF(p_b.x() + dx * 2000.0, p_b.y() + dy * 2000.0),
+                                   "dir": QtCore.QPointF(dx, dy)})
             elif self.guide_state.get("show_ceiling_verticals", False) or self.guide_state.get("show_v", True):
-                pts_cv = [p for p in (p3d_to_2d(x_c, 1.0 - i * 0.125, z_c) for i in range(21)) if p is not None]
-                if len(pts_cv) >= 2: curves.append({"type": "polyline", "family": "ground_v", "points": pts_cv})
+                a, b, c = self._rotate_3d_backward(-z_c, 0.0, x_c, yaw_rad, pitch_rad)
+                c_cv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_v")
+                if c_cv: curves.append(c_cv)
 
         # 3. Principal 3D Sphere Curves (apenas se ativos)
         if self.guide_state.get("show_v", True) and not curves:

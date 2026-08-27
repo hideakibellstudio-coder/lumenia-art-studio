@@ -112,16 +112,28 @@ class WorkspaceBrushMixin:
             self._brush_dock.stroke_preview.update_brush_state(pressure=val)
 
     def _on_brush_pressure_curve(self, val: float) -> None:
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_pressure_curve_power"):
+            backend.set_pressure_curve_power(val)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_pressure_curve_power(val)
             self.canvas_widget.update()
 
     def _on_brush_stabilizer(self, weight: float) -> None:
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_stabilizer_weight"):
+            backend.set_stabilizer_weight(weight)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_stabilizer_weight(weight)
             self.canvas_widget.update()
 
     def _on_brush_spacing(self, factor: float) -> None:
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_brush_spacing"):
+            backend.set_brush_spacing(factor)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_brush_spacing(factor)
             self.canvas_widget.update()
@@ -130,6 +142,10 @@ class WorkspaceBrushMixin:
 
     def _on_brush_opacity(self, factor: float) -> None:
         cw = self.canvas_widget
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_brush_opacity"):
+            backend.set_brush_opacity(factor)
         if cw.renderer:
             cw.renderer.set_brush_opacity(factor)
             cw.update()
@@ -146,16 +162,28 @@ class WorkspaceBrushMixin:
             d.stroke_preview.update_brush_state(opacity=factor)
 
     def _on_min_density_active(self, active: bool) -> None:
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_min_density_active"):
+            backend.set_min_density_active(active)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_min_density_active(active)
             self.canvas_widget.update()
 
     def _on_min_density_value(self, weight: float) -> None:
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_min_density_value"):
+            backend.set_min_density_value(weight)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_min_density_value(weight)
             self.canvas_widget.update()
 
     def _on_brush_contrast(self, val: float) -> None:
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_brush_contrast"):
+            backend.set_brush_contrast(val)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_brush_contrast(val)
             self.canvas_widget.update()
@@ -164,6 +192,10 @@ class WorkspaceBrushMixin:
             self._brush_dock.stroke_preview.update_brush_state(hardness=hardness)
 
     def _on_brush_invert(self, invert: bool) -> None:
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_brush_invert_height"):
+            backend.set_brush_invert_height(invert)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_brush_invert_height(invert)
             self.canvas_widget.update()

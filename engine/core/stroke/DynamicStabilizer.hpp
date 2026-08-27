@@ -2,11 +2,15 @@
 #define ALADYN_ENGINE_DYNAMIC_STABILIZER_HPP
 
 #include "../math/Point2D.hpp"
+#include <array>
+#include <cstddef>
 
 namespace aladyn::engine::stroke {
 
 class DynamicStabilizer {
 public:
+    static constexpr size_t MAX_WINDOW_SIZE = 32;
+
     explicit DynamicStabilizer(double stabilizationPercentage = 40.0) noexcept;
 
     void reset(math::Point2D initialPosition) noexcept;
@@ -29,6 +33,10 @@ private:
     math::Point2D m_stabilizedPosition{0.0, 0.0};
     bool m_predictionEnabled{false};
     double m_aheadMs{8.0};
+
+    std::array<math::Point2D, MAX_WINDOW_SIZE> m_historyBuffer{};
+    size_t m_historyCount{0};
+    size_t m_historyHead{0};
 };
 
 } // namespace aladyn::engine::stroke

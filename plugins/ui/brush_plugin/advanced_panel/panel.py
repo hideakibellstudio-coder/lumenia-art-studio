@@ -277,7 +277,7 @@ class AdvancedPanel(QtWidgets.QDialog):
             if hasattr(self, "slider_stabilizer") and hasattr(facade, "get_stabilizer"):
                 stab = facade.get_stabilizer()
                 if stab:
-                    self.slider_stabilizer.setValue(int(stab.get_stabilization_percentage() * 100))
+                    self.slider_stabilizer.setValue(int(stab.get_stabilization_percentage()))
             if hasattr(self, "sl_hardness"):
                 self.sl_hardness.setValue(int(prof.hardness * 100))
             if hasattr(self, "sl_angle"):
@@ -356,7 +356,8 @@ class AdvancedPanel(QtWidgets.QDialog):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
         if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_stabilizer().set_stabilization_percentage(float(v / 100.0))
+            b._facade.get_stabilizer().set_stabilization_percentage(float(v))
+        self.stabilizerWeightChanged.emit(float(v) / 100.0)
 
     def _on_tip_hardness(self, v):
         from ui.core.engine.registry import EngineRegistry

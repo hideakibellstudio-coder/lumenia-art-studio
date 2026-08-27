@@ -121,7 +121,8 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
 
     py::class_<stroke::DynamicStabilizer>(m, "DynamicStabilizer")
         .def("set_stabilization_percentage", &stroke::DynamicStabilizer::setStabilizationPercentage)
-        .def("get_stabilization_percentage", &stroke::DynamicStabilizer::getStabilizationPercentage);
+        .def("get_stabilization_percentage", &stroke::DynamicStabilizer::getStabilizationPercentage)
+        .def("reset", &stroke::DynamicStabilizer::reset);
 
     // ─── BRUSH TIP GEOMETRY ──────────────────────────────────────────────────
     py::class_<brush::BrushTip>(m, "BrushTip")

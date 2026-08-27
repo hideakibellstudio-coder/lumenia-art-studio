@@ -330,79 +330,35 @@ class GeometryToolController:
             return QtCore.QPointF(cx + (ux / (1.0 - uz)) * R, cy - (uy / (1.0 - uz)) * R)
 
         curves = []
-        # 1. Ground 3D Curves (Plano Y = -1.0)
-        if (self.guide_state.get("show_ground", False) or self.guide_state.get("show_ground_verticals", False)) and yw < -1e-4:
-            t = -1.0 / yw
-            x_g, z_g = xw * t, zw * t
-            if self.guide_state.get("show_ground", False):
-                a, b, c = self._rotate_3d_backward(0.0, z_g, 1.0, yaw_rad, pitch_rad)
-                c_gx = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
-                if c_gx: curves.append(c_gx)
-                a, b, c = self._rotate_3d_backward(1.0, x_g, 0.0, yaw_rad, pitch_rad)
-                c_gz = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
-                if c_gz: curves.append(c_gz)
 
+        # 1. Vertical Curve (V) - Converges at Blue VP
+        if self.guide_state.get("show_v", True) or self.guide_state.get("show_ground_verticals", False) or self.guide_state.get("show_ceiling_verticals", False) or self.guide_state.get("show_straight_verticals", False):
+            a_v, b_v, c_v = self._rotate_3d_backward(zw, 0.0, -xw, yaw_rad, pitch_rad)
             if self.guide_state.get("show_straight_verticals", False):
-                p_b, p_t = p3d_to_2d(x_g, -1.0, z_g), p3d_to_2d(x_g, 1.5, z_g)
-                if p_b and p_t:
-                    dx, dy = p_t.x() - p_b.x(), p_t.y() - p_b.y()
-                    l = math.hypot(dx, dy) or 1.0
-                    dx, dy = dx / l, dy / l
-                    curves.append({"type": "line", "family": "ground_v",
-                                   "p1": QtCore.QPointF(p_b.x() - dx * 20000.0, p_b.y() - dy * 20000.0),
-                                   "p2": QtCore.QPointF(p_b.x() + dx * 20000.0, p_b.y() + dy * 2000.0),
-                                   "dir": QtCore.QPointF(dx, dy)})
-            elif self.guide_state.get("show_ground_verticals", False) or self.guide_state.get("show_v", True):
-                a, b, c = self._rotate_3d_backward(-z_g, 0.0, x_g, yaw_rad, pitch_rad)
-                c_gv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_v")
-                if c_gv: curves.append(c_gv)
-
-        # 2. Ceiling 3D Curves (Plano Y = +1.0)
-        if (self.guide_state.get("show_ceiling", False) or self.guide_state.get("show_ceiling_verticals", False)) and yw > 1e-4:
-            t = 1.0 / yw
-            x_c, z_c = xw * t, zw * t
-            if self.guide_state.get("show_ceiling", False):
-                a, b, c = self._rotate_3d_backward(0.0, -z_c, 1.0, yaw_rad, pitch_rad)
-                c_cx = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
-                if c_cx: curves.append(c_cx)
-                a, b, c = self._rotate_3d_backward(1.0, -x_c, 0.0, yaw_rad, pitch_rad)
-                c_cz = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
-                if c_cz: curves.append(c_cz)
-
-            if self.guide_state.get("show_straight_verticals", False):
-                p_b, p_t = p3d_to_2d(x_c, 1.0, z_c), p3d_to_2d(x_c, -1.5, z_c)
-                if p_b and p_t:
-                    dx, dy = p_b.x() - p_t.x(), p_b.y() - p_t.y()
-                    l = math.hypot(dx, dy) or 1.0
-                    dx, dy = dx / l, dy / l
-                    curves.append({"type": "line", "family": "ground_v",
-                                   "p1": QtCore.QPointF(p_b.x() - dx * 2000.0, p_b.y() - dy * 2000.0),
-                                   "p2": QtCore.QPointF(p_b.x() + dx * 2000.0, p_b.y() + dy * 2000.0),
-                                   "dir": QtCore.QPointF(dx, dy)})
-            elif self.guide_state.get("show_ceiling_verticals", False) or self.guide_state.get("show_v", True):
-                a, b, c = self._rotate_3d_backward(-z_c, 0.0, x_c, yaw_rad, pitch_rad)
-                c_cv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_v")
-                if c_cv: curves.append(c_cv)
-
-        # 3. Principal 3D Sphere Curves (apenas se ativos)
-        if self.guide_state.get("show_v", True) and not curves:
-            if self.guide_state.get("show_straight_verticals", False):
-                curves.append({"type": "line", "family": "v", "p1": QtCore.QPointF(click_pt.x(), -20000.0),
-                               "p2": QtCore.QPointF(click_pt.x(), 20000.0), "dir": QtCore.QPointF(0.0, 1.0)})
+                Tx, Ty, Tz = b_v * z3 - c_v * y3, c_v * x3 - a_v * z3, a_v * y3 - b_v * x3
+                dz = 1.0 - z3
+                dx, dy = (Tx * dz + x3 * Tz), -(Ty * dz + y3 * Tz)
+                l = math.hypot(dx, dy) or 1.0
+                dx, dy = dx / l, dy / l
+                curves.append({"type": "line", "family": "ground_v",
+                               "p1": QtCore.QPointF(click_pt.x() - dx * 20000.0, click_pt.y() - dy * 20000.0),
+                               "p2": QtCore.QPointF(click_pt.x() + dx * 20000.0, click_pt.y() + dy * 20000.0),
+                               "dir": QtCore.QPointF(dx, dy)})
             else:
-                a, b, c = self._rotate_3d_backward(zw, 0.0, -xw, yaw_rad, pitch_rad)
-                curv = self._create_curve_from_normal(a, b, c, R, cx, cy, "v")
-                if curv: curves.append(curv)
+                c_v = self._create_curve_from_normal(a_v, b_v, c_v, R, cx, cy, "ground_v")
+                if c_v: curves.append(c_v)
 
-        if self.guide_state.get("show_h", True) and not self.guide_state.get("show_ground", False) and not self.guide_state.get("show_ceiling", False):
-            a, b, c = self._rotate_3d_backward(0.0, -zw, yw, yaw_rad, pitch_rad)
-            curv = self._create_curve_from_normal(a, b, c, R, cx, cy, "h")
-            if curv: curves.append(curv)
+        # 2. Transversal Curve (H / Ground X) - Converges at Red VP
+        if self.guide_state.get("show_h", True) or self.guide_state.get("show_ground", False) or self.guide_state.get("show_ceiling", False):
+            a_h, b_h, c_h = self._rotate_3d_backward(0.0, -zw, yw, yaw_rad, pitch_rad)
+            c_h = self._create_curve_from_normal(a_h, b_h, c_h, R, cx, cy, "ground_x")
+            if c_h: curves.append(c_h)
 
-        if self.guide_state.get("show_d", True) and not self.guide_state.get("show_ground", False) and not self.guide_state.get("show_ceiling", False):
-            a, b, c = self._rotate_3d_backward(-yw, xw, 0.0, yaw_rad, pitch_rad)
-            curv = self._create_curve_from_normal(a, b, c, R, cx, cy, "d")
-            if curv: curves.append(curv)
+        # 3. Depth Curve (D / Ground Z) - Converges at Green VP
+        if self.guide_state.get("show_d", True) or self.guide_state.get("show_ground", False) or self.guide_state.get("show_ceiling", False):
+            a_d, b_d, c_d = self._rotate_3d_backward(-yw, xw, 0.0, yaw_rad, pitch_rad)
+            c_d = self._create_curve_from_normal(a_d, b_d, c_d, R, cx, cy, "ground_z")
+            if c_d: curves.append(c_d)
 
         return curves
 

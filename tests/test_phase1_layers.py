@@ -25,19 +25,24 @@ from ui.core.engine.registry import EngineRegistry
 class TestPhase1Layers(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mw = MainWindow()
-        cls.mw.show()
-        cls.mw.dm.new_document(800, 600, "Doc Teste Phase 1")
+        top_mws = [w for w in QApplication.topLevelWidgets() if isinstance(w, MainWindow)]
+        if top_mws:
+            cls.mw = top_mws[0]
+        else:
+            cls.mw = MainWindow()
+            cls.mw.show()
+        cls.doc = cls.mw.dm.new_document(800, 600, "Doc Teste Phase 1")
 
     @classmethod
     def tearDownClass(cls):
         pass
 
     def setUp(self):
+        self.mw.dm.set_active_document(self.doc.uid)
         self.panel = self.mw.workspace._layers_panel
         self.backend = EngineRegistry.instance().get_backend()
         if self.backend and (self.backend._facade is None):
-            self.backend.init_renderer(0, 800, 600, 800, 600)
+            self.backend.set_active_document_context(self.doc.uid, 800, 600)
         self.facade = self.backend._facade
 
         # Limpa o vetor C++ e o gerenciador Python mantendo uma Camada 1 base

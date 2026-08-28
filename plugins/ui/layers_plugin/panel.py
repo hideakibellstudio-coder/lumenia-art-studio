@@ -144,8 +144,8 @@ class LayersPanel(QWidget):
         # Conexões de Sincronia com o Motor
         self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
         self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
-        self.layer_manager.order_changed.connect(lambda: self._sync_to_native_engine("reorder_all"))
-        self.layer_manager.layer_added.connect(lambda l: self._sync_to_native_engine("reorder_all"))
+        self.layer_manager.order_changed.connect(self._on_order_changed)
+        self.layer_manager.layer_added.connect(self._on_layer_added)
         
         self._sync_header_controls()
         self._ensure_top_selection()
@@ -155,11 +155,19 @@ class LayersPanel(QWidget):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme("")
 
+    def _on_order_changed(self):
+        self._sync_to_native_engine("reorder_all")
+
+    def _on_layer_added(self, layer):
+        self._sync_to_native_engine("reorder_all")
+
     def set_layer_manager(self, manager):
         if self.layer_manager:
             try:
                 self.layer_manager.active_layer_changed.disconnect(self._on_engine_active_layer_changed)
                 self.layer_manager.layer_property_changed.disconnect(self._sync_header_controls)
+                self.layer_manager.order_changed.disconnect(self._on_order_changed)
+                self.layer_manager.layer_added.disconnect(self._on_layer_added)
             except Exception as e:
                 logger.debug(f"LayersPanel: Disconnection failed: {e}")
 
@@ -181,8 +189,8 @@ class LayersPanel(QWidget):
             
             self.layer_manager.active_layer_changed.connect(self._on_engine_active_layer_changed)
             self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
-            self.layer_manager.order_changed.connect(lambda: self._sync_to_native_engine("reorder_all"))
-            self.layer_manager.layer_added.connect(lambda l: self._sync_to_native_engine("reorder_all"))
+            self.layer_manager.order_changed.connect(self._on_order_changed)
+            self.layer_manager.layer_added.connect(self._on_layer_added)
             
             self._sync_header_controls()
             self._ensure_top_selection()

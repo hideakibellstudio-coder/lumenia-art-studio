@@ -111,6 +111,7 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
         from ui.core.document.manager import DocumentManager
         self._dm = DocumentManager.instance()
         self._dm.activeDocumentChanged.connect(self._on_active_document_changed)
+        self._dm.documentClosed.connect(self._on_document_closed_cleanup)
 
         # ── AdvancedDockSystem (Docas Laterais Dinâmicas) ──────────────────
         from .dock_system import AdvancedDockSystem

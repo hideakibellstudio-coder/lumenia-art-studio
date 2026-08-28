@@ -26,7 +26,8 @@ class DocumentManager(QtCore.QObject):
         height: int = 1080,
         name: str = None,
         bg_color: tuple[int, int, int, int] | None = None,
-        paper_texture_id: int = 0
+        paper_texture_id: int = 0,
+        activate: bool = True
     ) -> Document:
         self._counter += 1
         uid = f"doc_{self._counter}"
@@ -52,8 +53,7 @@ class DocumentManager(QtCore.QObject):
         self._documents[uid] = doc
         self.documentAdded.emit(doc)
         
-        # Se for o primeiro documento, ativa automaticamente
-        if self._active_document is None:
+        if activate:
             self.set_active_document(uid)
             
         return doc

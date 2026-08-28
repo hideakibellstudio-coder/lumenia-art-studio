@@ -32,17 +32,18 @@ class TestPhase2Groups(unittest.TestCase):
         else:
             cls.mw = MainWindow()
             cls.mw.show()
-        cls.mw.dm.new_document(800, 600, "Doc Teste Phase 2")
+        cls.doc = cls.mw.dm.new_document(800, 600, "Doc Teste Phase 2")
 
     @classmethod
     def tearDownClass(cls):
         pass
 
     def setUp(self):
+        self.mw.dm.set_active_document(self.doc.uid)
         self.panel = self.mw.workspace._layers_panel
         self.backend = EngineRegistry.instance().get_backend()
         if self.backend and (self.backend._facade is None):
-            self.backend.init_renderer(0, 800, 600, 800, 600)
+            self.backend.set_active_document_context(self.doc.uid, 800, 600)
         self.facade = self.backend._facade
 
         # Limpa o vetor C++ e o gerenciador Python mantendo uma Camada 1 base

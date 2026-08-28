@@ -66,8 +66,15 @@ class WorkspaceDocSyncMixin:
     def _on_active_document_changed(self, doc) -> None:
         """
         Chamado pelo DocumentManager quando o documento ativo muda.
-        Salva câmera do doc anterior; restaura câmera e cor do novo doc.
+        Salva o estado do doc anterior e restaura o contexto C++, câmera, papel e guias do novo doc.
         """
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+
+        # Cancela qualquer transformação ativa em andamento antes de trocar
+        if hasattr(self.canvas_widget, "transform_ctrl") and self.canvas_widget.transform_ctrl.active:
+            self.canvas_widget.transform_ctrl.cancel()
+
         if self._last_active_doc_uid:
             last_doc = self._dm.get_document(self._last_active_doc_uid)
             if last_doc:
@@ -76,6 +83,10 @@ class WorkspaceDocSyncMixin:
                 last_doc.pan_y       = self.canvas_widget.pan_y
                 last_doc.rotation    = self.canvas_widget.rotation
                 last_doc.saved_color = self._saved_color
+                last_doc.paper_color = getattr(self.canvas_widget, "paper_color", QtGui.QColor(255, 255, 255))
+                last_doc.paper_visible = getattr(self.canvas_widget, "paper_visible", True)
+                last_doc.flood_layers = list(getattr(self.canvas_widget, "_flood_layers", []))
+                last_doc.flood_redo_stack = list(getattr(self.canvas_widget, "_flood_redo_stack", []))
                 if hasattr(self.canvas_widget, "geometry_ctrl"):
                     last_doc.guide_state = dict(self.canvas_widget.geometry_ctrl.guide_state)
                     last_doc.sym_state = dict(self.canvas_widget.geometry_ctrl.sym_state)
@@ -96,9 +107,19 @@ class WorkspaceDocSyncMixin:
             self.canvas_widget.update()
             return
 
+        # Sincroniza o contexto C++ do motor nativo para a facade deste documento
+        if backend and hasattr(backend, "set_active_document_context"):
+            backend.set_active_document_context(doc.uid, doc.width, doc.height)
+
         self.canvas_widget.setEnabled(True)
         self.canvas_widget.canvas_w = doc.width
         self.canvas_widget.canvas_h = doc.height
+
+        # Restaura papel e preenchimentos deste documento
+        self.canvas_widget.paper_color = getattr(doc, "paper_color", QtGui.QColor(255, 255, 255))
+        self.canvas_widget.paper_visible = getattr(doc, "paper_visible", True)
+        self.canvas_widget._flood_layers = list(getattr(doc, "flood_layers", []))
+        self.canvas_widget._flood_redo_stack = list(getattr(doc, "flood_redo_stack", []))
 
         if hasattr(self.canvas_widget, "geometry_ctrl"):
             if hasattr(doc, "guide_state") and doc.guide_state:
@@ -166,3 +187,10 @@ class WorkspaceDocSyncMixin:
                 "spacing_factor": 0.12
             }
             self._brush_dock.preset_combo._on_preset_selected("Pincel Redondo", preset_data)
+
+    def _on_document_closed_cleanup(self, uid: str) -> None:
+        """Chamado quando um documento é fechado para liberar memória C++ imediatamente."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "close_document_context"):
+            backend.close_document_context(uid)

@@ -266,7 +266,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
             from ui.core.engine.registry import EngineRegistry
             backend = EngineRegistry.instance().get_backend()
             if backend:
-                backend.init_renderer(0, w, h, w, h)
+                if hasattr(backend, "set_active_document_context"):
+                    backend.set_active_document_context(doc.uid, w, h)
+                else:
+                    backend.init_renderer(0, w, h, w, h)
                 if hasattr(backend, "set_color_profile"):
                     backend.set_color_profile(color_prof)
 
@@ -324,28 +327,6 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
             elif dialog.result_code == CloseDocumentDialog.DISCARD:
                 self.dm.close_document(uid)
 
-    # ── Textura (delegado ao WorkspaceContainer, mantido aqui para compatibilidade) ──
-
-    def reset_rotation(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
-            cw.rotation = 0.0
-            cw.update()
-            self.status_bar.showMessage("Rotação do canvas resetada para 0°.", 2000)
-
-    def export_image(self) -> None:
-        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Exportar Imagem", "", "Imagem PNG (*.png);;Imagem JPEG (*.jpg *.jpeg)"
-        )
-        if filename:
-            from ui.core.engine.registry import EngineRegistry
-            backend = EngineRegistry.instance().get_backend()
-            if backend and hasattr(backend, "get_qimage"):
-                qimg = backend.get_qimage()
-                if qimg and not qimg.isNull():
-                    qimg.save(filename)
-                    self.status_bar.showMessage(f"Imagem exportada com sucesso para '{filename}'", 4000)
-
     def open_curve_window(self) -> None:
         if not hasattr(self, "_curve_win") or self._curve_win is None:
             from ui.core.screens.curve_window import CurveWindow
@@ -357,136 +338,3 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
     def select_tool_by_id(self, tool_id: str) -> None:
         if self.workspace:
             self.workspace.select_tool(tool_id)
-
-    def open_image_file(self) -> None:
-        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Abrir Imagem", "", "Imagens (*.png *.jpg *.jpeg *.bmp *.webp)"
-        )
-        if filename:
-            qimg = QtGui.QImage(filename)
-            if not qimg.isNull():
-                import os
-                name = os.path.splitext(os.path.basename(filename))[0]
-                w, h = qimg.width(), qimg.height()
-                doc = self.dm.new_document(width=w, height=h, name=name)
-                self.status_bar.showMessage(f"Imagem '{name}' ({w}x{h}) aberta com sucesso!", 3000)
-
-    def save_active_document(self) -> None:
-        doc = self.dm.active_document()
-        if doc:
-            self.status_bar.showMessage(f"Documento '{doc.name}' salvo.", 2000)
-        else:
-            self.status_bar.showMessage("Nenhum documento ativo para salvar.", 2000)
-
-    def flip_horizontal(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
-            if hasattr(cw, "flip_x"):
-                cw.flip_x = not getattr(cw, "flip_x", False)
-                cw.update()
-                self.status_bar.showMessage("Visualização espelhada horizontalmente.", 2000)
-
-    def flip_vertical(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
-            if hasattr(cw, "flip_y"):
-                cw.flip_y = not getattr(cw, "flip_y", False)
-                cw.update()
-                self.status_bar.showMessage("Visualização espelhada verticalmente.", 2000)
-
-    def create_new_layer(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            idx = doc.layer_manager.add_layer("Nova Camada")
-            if self.workspace:
-                self.workspace.canvas_widget.update()
-            self.status_bar.showMessage("Nova camada criada.", 2000)
-
-    def create_new_group(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            idx = doc.layer_manager.add_group("Novo Grupo")
-            if self.workspace:
-                self.workspace.canvas_widget.update()
-            self.status_bar.showMessage("Novo grupo de camadas criado.", 2000)
-
-    def duplicate_active_layer(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                lm.duplicate_layer(act_idx)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.status_bar.showMessage("Camada duplicada.", 2000)
-
-    def delete_active_layer(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                lm.remove_layer(act_idx)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.status_bar.showMessage("Camada removida.", 2000)
-
-    def merge_layer_down(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx > 0:
-                lm.merge_down(act_idx)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.status_bar.showMessage("Camada mesclada para baixo.", 2000)
-
-    def open_shortcuts_dialog(self) -> None:
-        QtWidgets.QMessageBox.information(
-            self,
-            "Atalhos de Teclado",
-            "ATALHOS PRINCIPAIS DO LUMENIA:\n\n"
-            "• B: Pincel\n"
-            "• E: Borracha\n"
-            "• G: Balde de Tinta\n"
-            "• I / Alt (segurar): Conta-Gotas\n"
-            "• W: Varinha Mágica\n"
-            "• Ctrl+T: Transformação Livre\n"
-            "• Ctrl+Z: Desfazer\n"
-            "• Ctrl+Y / Ctrl+Shift+Z: Refazer\n"
-            "• Ctrl++ / Ctrl+-: Zoom In / Zoom Out\n"
-            "• Ctrl+0: Zoom 100%\n"
-            "• Ctrl+R: Resetar Rotação\n"
-            "• H: Espelho Horizontal\n"
-            "• Ctrl+N: Novo Documento\n"
-            "• Ctrl+S / Ctrl+E: Exportar Imagem\n"
-            "• Ctrl+Shift+N: Nova Camada\n"
-            "• Ctrl+G: Novo Grupo\n"
-            "• Ctrl+J: Duplicar Camada\n"
-            "• Delete: Limpar Camada"
-        )
-
-    def open_feedback_form(self) -> None:
-        """Abre o formulário oficial de feedback Enviar_Feedback.html no navegador padrão."""
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        feedback_path = os.path.join(project_root, "Enviar_Feedback.html")
-        if os.path.exists(feedback_path):
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(feedback_path))
-        else:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl("mailto:lumeniateam@protonmail.com?subject=[Lumenia%20Alpha%20Feedback]"))
-
-    def open_about_dialog(self) -> None:
-        from ui.core.screens.about_dialog import AboutDialog
-        dialog = AboutDialog(self)
-        dialog.exec()
-
-    def load_custom_texture(self, is_shape: bool) -> None:
-        """Delegado ao WorkspaceContainer. Mantido para compatibilidade com chamadas externas."""
-        self.workspace._load_custom_texture(is_shape)
-        if is_shape:
-            kind = "Shape"
-        else:
-            kind = "Heightmap"
-        self.status_bar.showMessage(f"Textura {kind} carregada.", 3000)

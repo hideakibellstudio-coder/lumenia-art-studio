@@ -54,43 +54,30 @@ class GeometryToolController:
         }
 
     def center_on_document(self, doc_w: float, doc_h: float):
-        doc_w = max(1.0, float(doc_w))
-        doc_h = max(1.0, float(doc_h))
-        cx, cy = doc_w / 2.0, doc_h / 2.0
-        base_r = min(doc_w, doc_h) * 0.42
-
+        doc_w, doc_h = max(1.0, float(doc_w)), max(1.0, float(doc_h))
+        cx, cy, base_r = doc_w / 2.0, doc_h / 2.0, min(doc_w, doc_h) * 0.42
         if not getattr(self, "_custom_sym_center", False):
             self.sym_state["cx"], self.sym_state["cy"] = cx, cy
-
-        self.guide_state["cx"], self.guide_state["cy"] = cx, cy
-        self.guide_state["base_radius"] = base_r
-        self.guide_state["p0"] = QtCore.QPointF(cx - doc_w * 0.35, cy)
-        self.guide_state["p1"] = QtCore.QPointF(cx + doc_w * 0.35, cy)
-        self.guide_state["p2"] = QtCore.QPointF(cx - doc_w * 0.15, cy - doc_h * 0.18)
-        self.guide_state["p3"] = QtCore.QPointF(cx + doc_w * 0.15, cy - doc_h * 0.18)
-        self.guide_state["vpA"] = QtCore.QPointF(cx - doc_w * 0.55, cy)
-        self.guide_state["vpB"] = QtCore.QPointF(cx + doc_w * 0.55, cy)
-        self.guide_state["vpC"] = QtCore.QPointF(cx, cy - doc_h * 0.65)
-        self.sync_symmetry_to_engine()
-        self.sync_guides_to_engine()
+        self.guide_state.update({"cx": cx, "cy": cy, "base_radius": base_r,
+                                 "p0": QtCore.QPointF(cx - doc_w * 0.35, cy), "p1": QtCore.QPointF(cx + doc_w * 0.35, cy),
+                                 "p2": QtCore.QPointF(cx - doc_w * 0.15, cy - doc_h * 0.18), "p3": QtCore.QPointF(cx + doc_w * 0.15, cy - doc_h * 0.18),
+                                 "vpA": QtCore.QPointF(cx - doc_w * 0.55, cy), "vpB": QtCore.QPointF(cx + doc_w * 0.55, cy),
+                                 "vpC": QtCore.QPointF(cx, cy - doc_h * 0.65)})
+        self.sync_symmetry_to_engine(); self.sync_guides_to_engine()
 
     def handle_hover(self, doc_pt: QtCore.QPointF):
         self.hover_point = doc_pt
-        gtype = self.guide_state["type"]
-        if gtype == "curvilinear" and self.guide_state.get("show_hint", True):
+        if self.guide_state["type"] == "curvilinear" and self.guide_state.get("show_hint", True):
             self.dynamic_hover_curves = self._get_dynamic_curves_at_point(doc_pt)
-        elif not self.is_stroking:
-            self.dynamic_hover_curves = []
+        elif not self.is_stroking: self.dynamic_hover_curves = []
 
     def hit_test(self, pos: QtCore.QPointF, zoom: float) -> str | None:
         tol = 16.0 / max(0.01, zoom)
         if self.sym_state["mode"] != "none" and not self.sym_state["locked"] and not self.sym_state["hidden"]:
             cx, cy = self.sym_state["cx"], self.sym_state["cy"]
             if math.hypot(pos.x() - cx, pos.y() - cy) <= tol: return "sym_center"
-            rad = math.radians(self.sym_state["angle"])
-            dist = 80.0 / max(0.01, zoom)
-            if math.hypot(pos.x() - (cx + dist * math.cos(rad)), pos.y() - (cy + dist * math.sin(rad))) <= tol:
-                return "sym_angle"
+            rad, dist = math.radians(self.sym_state["angle"]), 80.0 / max(0.01, zoom)
+            if math.hypot(pos.x() - (cx + dist * math.cos(rad)), pos.y() - (cy + dist * math.sin(rad))) <= tol: return "sym_angle"
 
         gtype = self.guide_state["type"]
         if gtype == "straight":
@@ -101,8 +88,7 @@ class GeometryToolController:
                 if math.hypot(pos.x() - self.guide_state[n].x(), pos.y() - self.guide_state[n].y()) <= tol: return f"guide_{n}"
         elif gtype in ("one_point", "two_point", "three_point"):
             for n in ("vpA", "vpB", "vpC"):
-                if n in self.guide_state and math.hypot(pos.x() - self.guide_state[n].x(), pos.y() - self.guide_state[n].y()) <= tol:
-                    return f"guide_{n}"
+                if n in self.guide_state and math.hypot(pos.x() - self.guide_state[n].x(), pos.y() - self.guide_state[n].y()) <= tol: return f"guide_{n}"
         elif gtype == "curvilinear":
             cx, cy = self.guide_state["cx"], self.guide_state["cy"]
             if math.hypot(pos.x() - cx, pos.y() - cy) <= tol: return "guide_curv_center"
@@ -113,24 +99,20 @@ class GeometryToolController:
 
     def mouse_press(self, pos: QtCore.QPointF, zoom: float, is_right: bool = False) -> bool:
         if is_right and self.guide_state["type"] == "curvilinear":
-            self.curv_drag_rotate = True
-            self.curv_rotate_start = pos
+            self.curv_drag_rotate = True; self.curv_rotate_start = pos
             self.curv_start_angles = (self.guide_state["yaw"], self.guide_state["pitch"])
             return True
         handle = self.hit_test(pos, zoom)
-        if handle:
-            self.active_handle = handle
-            return True
+        if handle: self.active_handle = handle; return True
         return False
 
     def mouse_move(self, pos: QtCore.QPointF, shift_pressed: bool = False) -> bool:
         if self.curv_drag_rotate:
             dx, dy = pos.x() - self.curv_rotate_start.x(), pos.y() - self.curv_rotate_start.y()
-            start_yaw, start_pitch = self.curv_start_angles
-            self.guide_state["yaw"] = (start_yaw - dx * 0.25) % 360.0
-            self.guide_state["pitch"] = max(-90.0, min(90.0, start_pitch + dy * 0.25))
-            self.sync_guides_to_engine()
-            return True
+            sy, sp = self.curv_start_angles
+            self.guide_state["yaw"] = (sy - dx * 0.25) % 360.0
+            self.guide_state["pitch"] = max(-90.0, min(90.0, sp + dy * 0.25))
+            self.sync_guides_to_engine(); return True
         if not self.active_handle: return False
         if self.active_handle == "sym_center":
             self.sym_state["cx"], self.sym_state["cy"] = float(pos.x()), float(pos.y())
@@ -138,8 +120,8 @@ class GeometryToolController:
         if self.active_handle == "sym_angle":
             deg = math.degrees(math.atan2(pos.y() - self.sym_state["cy"], pos.x() - self.sym_state["cx"]))
             inc = self.sym_state.get("snap_increment", 15)
-            if shift_pressed or inc > 0: deg = round(deg / inc) * inc
-            self.sym_state["angle"] = deg
+            if shift_pressed and inc > 0: deg = round(deg / inc) * inc
+            self.sym_state["angle"] = deg % 360.0
             self.sync_symmetry_to_engine(); return True
         if self.active_handle == "guide_curv_center":
             self.guide_state["cx"], self.guide_state["cy"] = float(pos.x()), float(pos.y())
@@ -157,21 +139,15 @@ class GeometryToolController:
         return False
 
     def mouse_release(self) -> None:
-        self.active_handle = None
-        self.curv_drag_rotate = False
-        self.is_stroking = False
-        self.snap_start_pt = None
-        self.start_distance = (0.0, 0.0)
-        self.locked_curve = None
-        self.locked_dir = None
-        self.current_stroke_pts = []
+        self.active_handle, self.curv_drag_rotate, self.is_stroking = None, False, False
+        self.snap_start_pt, self.start_distance, self.locked_curve = None, (0.0, 0.0), None
+        self.locked_dir, self.stroke_candidate_curves, self.current_stroke_pts = None, [], []
 
     def start_stroke_snap(self, start_pt: tuple[float, float]):
         self.is_stroking = True
         pt = QtCore.QPointF(start_pt[0], start_pt[1])
         self.snap_start_pt, self.locked_curve, self.locked_dir = pt, None, None
-        self.hover_point = pt
-        self.current_stroke_pts = [pt]
+        self.hover_point, self.current_stroke_pts = pt, [pt]
         gtype = self.guide_state["type"]
 
         if gtype == "straight":
@@ -180,17 +156,51 @@ class GeometryToolController:
             len2 = dx * dx + dy * dy
             if len2 > 1e-6:
                 t = ((pt.x() - p0.x()) * dx + (pt.y() - p0.y()) * dy) / len2
-                proj_x, proj_y = p0.x() + t * dx, p0.y() + t * dy
-                self.start_distance = (pt.x() - proj_x, pt.y() - proj_y)
-            else:
-                self.start_distance = (0.0, 0.0)
+                self.start_distance = (pt.x() - (p0.x() + t * dx), pt.y() - (p0.y() + t * dy))
+            else: self.start_distance = (0.0, 0.0)
 
         elif gtype == "curvilinear":
-            self.dynamic_hover_curves = self._get_dynamic_curves_at_point(pt)
+            near_grid = self._find_nearest_primary_grid_curve(pt, 24.0)
+            if near_grid is not None:
+                pt = self._closest_point_on_curve(near_grid, pt)
+                self.snap_start_pt = pt
+            self.stroke_candidate_curves = self._get_dynamic_curves_at_point(pt)
+            if near_grid is not None: self.stroke_candidate_curves.insert(0, near_grid)
+            self.dynamic_hover_curves = list(self.stroke_candidate_curves)
             mode = self.guide_state.get("snap_mode", "auto")
-            if mode in ("v", "h", "d") and self.dynamic_hover_curves:
-                matching = [c for c in self.dynamic_hover_curves if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
+            if mode in ("v", "h", "d") and self.stroke_candidate_curves:
+                matching = [c for c in self.stroke_candidate_curves if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
                 if matching: self.locked_curve = matching[0]
+
+    def _find_nearest_primary_grid_curve(self, pt: QtCore.QPointF, max_dist: float = 24.0):
+        cx, cy = self.guide_state["cx"], self.guide_state["cy"]
+        fov_rad = math.radians(self.guide_state["fov"])
+        tan_f = math.tan(fov_rad / 4.0)
+        base_r = self.guide_state.get("base_radius", 400.0)
+        R = base_r / tan_f if tan_f > 1e-5 else 1e9
+        d_rad, y_rad, p_rad = math.radians(self.guide_state.get("density", 30.0)), math.radians(self.guide_state["yaw"]), math.radians(self.guide_state["pitch"])
+        steps, p_curves = int(math.pi / d_rad) + 1, []
+        if self.guide_state.get("show_v", True):
+            for i in range(steps):
+                a, b, c = self._rotate_3d_backward(math.cos(i * d_rad), 0.0, math.sin(i * d_rad), y_rad, p_rad)
+                cv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_v")
+                if cv: p_curves.append(cv)
+        if self.guide_state.get("show_h", True):
+            for i in range(steps):
+                a, b, c = self._rotate_3d_backward(0.0, -math.sin(-math.pi / 2.0 + i * d_rad), math.cos(-math.pi / 2.0 + i * d_rad), y_rad, p_rad)
+                cv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_x")
+                if cv: p_curves.append(cv)
+        if self.guide_state.get("show_d", True):
+            for i in range(steps):
+                a, b, c = self._rotate_3d_backward(-math.sin(i * d_rad), math.cos(i * d_rad), 0.0, y_rad, p_rad)
+                cv = self._create_curve_from_normal(a, b, c, R, cx, cy, "ground_z")
+                if cv: p_curves.append(cv)
+        best_c, best_d = None, max_dist
+        for c in p_curves:
+            cp = self._closest_point_on_curve(c, pt)
+            d = math.hypot(pt.x() - cp.x(), pt.y() - cp.y())
+            if d < best_d: best_d, best_c = d, c
+        return best_c
 
     def snap_point(self, raw_x: float, raw_y: float, zoom: float = 1.0) -> tuple[float, float]:
         res = self._compute_snap(raw_x, raw_y, zoom)
@@ -255,16 +265,14 @@ class GeometryToolController:
             if dist < (2.5 / max(0.01, zoom)):
                 return (start.x(), start.y())
 
-            ux, uy = dx / dist, dy / dist
-            candidates = []
+            ux, uy, candidates = dx / dist, dy / dist, []
             if gtype == "one_point":
                 vpA = self.guide_state["vpA"]
                 lA = math.hypot(vpA.x() - start.x(), vpA.y() - start.y()) or 1.0
                 candidates.extend([((vpA.x() - start.x()) / lA, (vpA.y() - start.y()) / lA), (1.0, 0.0), (0.0, 1.0)])
             elif gtype == "two_point":
                 vpA, vpB = self.guide_state["vpA"], self.guide_state["vpB"]
-                lA = math.hypot(vpA.x() - start.x(), vpA.y() - start.y()) or 1.0
-                lB = math.hypot(vpB.x() - start.x(), vpB.y() - start.y()) or 1.0
+                lA, lB = math.hypot(vpA.x() - start.x(), vpA.y() - start.y()) or 1.0, math.hypot(vpB.x() - start.x(), vpB.y() - start.y()) or 1.0
                 candidates.extend([((vpA.x() - start.x()) / lA, (vpA.y() - start.y()) / lA), ((vpB.x() - start.x()) / lB, (vpB.y() - start.y()) / lB)])
                 hdx, hdy = vpB.x() - vpA.x(), vpB.y() - vpA.y()
                 hlen = math.hypot(hdx, hdy) or 1.0
@@ -284,6 +292,7 @@ class GeometryToolController:
             t = (raw_x - start.x()) * best_dir[0] + (raw_y - start.y()) * best_dir[1]
             return (start.x() + t * best_dir[0], start.y() + t * best_dir[1])
 
+
         # 4. Curvilinear 6P: Dynamic 3D curves through stylus contact point
         if gtype == "curvilinear":
             start = self.snap_start_pt or pt
@@ -295,7 +304,7 @@ class GeometryToolController:
             dx, dy = raw_x - start.x(), raw_y - start.y()
             dist = math.hypot(dx, dy)
 
-            curves = self.dynamic_hover_curves or self._get_dynamic_curves_at_point(start)
+            curves = self.stroke_candidate_curves if (self.is_stroking and self.stroke_candidate_curves) else (self.dynamic_hover_curves or self._get_dynamic_curves_at_point(start))
             mode = self.guide_state.get("snap_mode", "auto")
             if mode in ("v", "h", "d"):
                 curves = [c for c in curves if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
@@ -310,24 +319,21 @@ class GeometryToolController:
 
             # Auto mode: wait until gesture moves at least lock_thresh pixels
             sens = self.guide_state.get("snap_sensitivity", 3.0)
-            lock_thresh = max(2.5, (9.0 - sens * 1.5)) / max(0.01, zoom)
+            lock_thresh = max(2.0, (7.5 - sens * 1.2)) / max(0.01, zoom)
 
             if dist < lock_thresh:
-                # Pre-lock phase: project onto closest curve without permanently locking
-                best_curve, best_dist = None, float("inf")
+                best_curve, best_dist = curves[0], float("inf")
                 for c in curves:
                     cp = self._closest_point_on_curve(c, pt)
                     d = math.hypot(pt.x() - cp.x(), pt.y() - cp.y())
                     if d < best_dist:
                         best_dist, best_curve = d, c
-                if best_curve is not None:
-                    snapped_pt = self._closest_point_on_curve(best_curve, pt)
-                    return (snapped_pt.x(), snapped_pt.y())
-                return (raw_x, raw_y)
+                snapped_pt = self._closest_point_on_curve(best_curve, pt)
+                return (snapped_pt.x(), snapped_pt.y())
 
             # Gesture direction established: score by tangent alignment with motion vector
             ux, uy = dx / dist, dy / dist
-            best_curve, best_score = None, -1.0
+            best_curve, best_score = curves[0], -1.0
             for c in curves:
                 cp = self._closest_point_on_curve(c, pt)
                 if c["type"] == "line":
@@ -350,6 +356,7 @@ class GeometryToolController:
                 snapped_pt = self._closest_point_on_curve(best_curve, pt)
                 return (snapped_pt.x(), snapped_pt.y())
             return (raw_x, raw_y)
+
 
 
         return (raw_x, raw_y)
@@ -468,26 +475,23 @@ class GeometryToolController:
         return QtCore.QPointF(center.x() + radius, center.y())
 
     def sync_symmetry_to_engine(self):
-        backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_symmetry_config"):
-            mode_map = {"none": 0, "mirror": 1, "mirror_v": 1, "mirror_h": 1, "double_mirror": 2, "radial": 3, "kaleidoscope": 4}
-            mode_id = mode_map.get(self.sym_state["mode"], 0)
-            angle_rad = math.radians(self.sym_state["angle"])
-            if self.sym_state["mode"] == "mirror_v": angle_rad = math.pi / 2.0
-            elif self.sym_state["mode"] == "mirror_h": angle_rad = 0.0
-            backend.set_symmetry_config(mode_id, self.sym_state["cx"], self.sym_state["cy"], angle_rad,
-                                        self.sym_state.get("segments", 6), self.sym_state.get("stop_at_center", False))
+        b = EngineRegistry.instance().get_backend()
+        if b and hasattr(b, "set_symmetry_config"):
+            m_map = {"none": 0, "mirror": 1, "mirror_v": 1, "mirror_h": 1, "double_mirror": 2, "radial": 3, "kaleidoscope": 4}
+            rad = math.pi / 2.0 if self.sym_state["mode"] == "mirror_v" else (0.0 if self.sym_state["mode"] == "mirror_h" else math.radians(self.sym_state["angle"]))
+            b.set_symmetry_config(m_map.get(self.sym_state["mode"], 0), self.sym_state["cx"], self.sym_state["cy"], rad,
+                                  self.sym_state.get("segments", 6), self.sym_state.get("stop_at_center", False))
 
     def sync_guides_to_engine(self):
-        backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_guide_config"):
-            gtype_map = {"none": 0, "straight": 1, "curve_ruler": 2, "curvilinear": 3, "one_point": 4, "two_point": 5, "three_point": 6, "isometric": 7}
+        b = EngineRegistry.instance().get_backend()
+        if b and hasattr(b, "set_guide_config"):
+            gmap = {"none": 0, "straight": 1, "curve_ruler": 2, "curvilinear": 3, "one_point": 4, "two_point": 5, "three_point": 6, "isometric": 7}
             p0, p1 = self.guide_state.get("p0", QtCore.QPointF(0, 0)), self.guide_state.get("p1", QtCore.QPointF(100, 100))
             p2, p3 = self.guide_state.get("p2", QtCore.QPointF(200, 200)), self.guide_state.get("p3", QtCore.QPointF(300, 300))
-            vpA, vpB = self.guide_state.get("vpA", QtCore.QPointF(400, 300)), self.guide_state.get("vpB", QtCore.QPointF(-1000, 300))
-            vpC = self.guide_state.get("vpC", QtCore.QPointF(400, -2000))
-            backend.set_guide_config(gtype_map.get(self.guide_state["type"], 0), p0.x(), p0.y(), p1.x(), p1.y(), p2.x(), p2.y(), p3.x(), p3.y(),
-                                     vpA.x(), vpA.y(), vpB.x(), vpB.y(), vpC.x(), vpC.y(),
-                                     self.guide_state.get("cx", 400.0), self.guide_state.get("cy", 300.0),
-                                     self.guide_state.get("fov", 130.0), self.guide_state.get("pitch", 0.0),
-                                     self.guide_state.get("yaw", 0.0), self.guide_state.get("snap_radius", 32.0))
+            vpA, vpB, vpC = self.guide_state.get("vpA", QtCore.QPointF(400, 300)), self.guide_state.get("vpB", QtCore.QPointF(-1000, 300)), self.guide_state.get("vpC", QtCore.QPointF(400, -2000))
+            b.set_guide_config(gmap.get(self.guide_state["type"], 0), p0.x(), p0.y(), p1.x(), p1.y(), p2.x(), p2.y(), p3.x(), p3.y(),
+                               vpA.x(), vpA.y(), vpB.x(), vpB.y(), vpC.x(), vpC.y(),
+                               self.guide_state.get("cx", 400.0), self.guide_state.get("cy", 300.0),
+                               self.guide_state.get("fov", 130.0), self.guide_state.get("pitch", 0.0),
+                               self.guide_state.get("yaw", 0.0), self.guide_state.get("snap_radius", 32.0))
+

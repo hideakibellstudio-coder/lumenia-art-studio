@@ -76,6 +76,9 @@ class WorkspaceDocSyncMixin:
                 last_doc.pan_y       = self.canvas_widget.pan_y
                 last_doc.rotation    = self.canvas_widget.rotation
                 last_doc.saved_color = self._saved_color
+                if hasattr(self.canvas_widget, "geometry_ctrl"):
+                    last_doc.guide_state = dict(self.canvas_widget.geometry_ctrl.guide_state)
+                    last_doc.sym_state = dict(self.canvas_widget.geometry_ctrl.sym_state)
 
         self._last_active_doc_uid = doc.uid if doc else None
 
@@ -96,6 +99,15 @@ class WorkspaceDocSyncMixin:
         self.canvas_widget.setEnabled(True)
         self.canvas_widget.canvas_w = doc.width
         self.canvas_widget.canvas_h = doc.height
+
+        if hasattr(self.canvas_widget, "geometry_ctrl"):
+            if hasattr(doc, "guide_state") and doc.guide_state:
+                self.canvas_widget.geometry_ctrl.guide_state.update(doc.guide_state)
+                self.canvas_widget.geometry_ctrl.sym_state.update(getattr(doc, "sym_state", {}))
+                self.canvas_widget.geometry_ctrl.sync_guides_to_engine()
+                self.canvas_widget.geometry_ctrl.sync_symmetry_to_engine()
+            else:
+                self.canvas_widget.geometry_ctrl.center_on_document(doc.width, doc.height)
 
         self.viewport_container.sync_active_tab(doc.uid)
 

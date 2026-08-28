@@ -43,7 +43,8 @@ class GeometryToolController:
             "p2": QtCore.QPointF(300, 150), "p3": QtCore.QPointF(500, 450),
             "vpA": QtCore.QPointF(100, 300), "vpB": QtCore.QPointF(700, 300),
             "vpC": QtCore.QPointF(400, 50),
-            "cx": 400.0, "cy": 300.0, "yaw": 0.0, "pitch": 0.0, "fov": 130.0, "density": 30.0,
+            "cx": 400.0, "cy": 300.0, "base_radius": 350.0,
+            "yaw": 0.0, "pitch": 0.0, "fov": 130.0, "density": 30.0,
             "show_ring": True, "show_v": True, "show_h": True, "show_d": True,
             "show_vps": False, "show_cube": False, "show_ground": False, "show_ground_verticals": False,
             "show_ceiling": False, "show_ceiling_verticals": False, "show_straight_verticals": False,
@@ -53,18 +54,23 @@ class GeometryToolController:
         }
 
     def center_on_document(self, doc_w: float, doc_h: float):
-        cx, cy = max(1.0, float(doc_w)) / 2.0, max(1.0, float(doc_h)) / 2.0
+        doc_w = max(1.0, float(doc_w))
+        doc_h = max(1.0, float(doc_h))
+        cx, cy = doc_w / 2.0, doc_h / 2.0
+        base_r = min(doc_w, doc_h) * 0.42
+
         if not getattr(self, "_custom_sym_center", False):
             self.sym_state["cx"], self.sym_state["cy"] = cx, cy
 
         self.guide_state["cx"], self.guide_state["cy"] = cx, cy
-        self.guide_state["p0"] = QtCore.QPointF(cx - doc_w * 0.25, cy)
-        self.guide_state["p1"] = QtCore.QPointF(cx + doc_w * 0.25, cy)
-        self.guide_state["p2"] = QtCore.QPointF(cx - doc_w * 0.10, cy - doc_h * 0.18)
-        self.guide_state["p3"] = QtCore.QPointF(cx + doc_w * 0.10, cy - doc_h * 0.18)
-        self.guide_state["vpA"] = QtCore.QPointF(cx - doc_w * 0.42, cy)
-        self.guide_state["vpB"] = QtCore.QPointF(cx + doc_w * 0.42, cy)
-        self.guide_state["vpC"] = QtCore.QPointF(cx, cy - doc_h * 0.40)
+        self.guide_state["base_radius"] = base_r
+        self.guide_state["p0"] = QtCore.QPointF(cx - doc_w * 0.35, cy)
+        self.guide_state["p1"] = QtCore.QPointF(cx + doc_w * 0.35, cy)
+        self.guide_state["p2"] = QtCore.QPointF(cx - doc_w * 0.15, cy - doc_h * 0.18)
+        self.guide_state["p3"] = QtCore.QPointF(cx + doc_w * 0.15, cy - doc_h * 0.18)
+        self.guide_state["vpA"] = QtCore.QPointF(cx - doc_w * 0.55, cy)
+        self.guide_state["vpB"] = QtCore.QPointF(cx + doc_w * 0.55, cy)
+        self.guide_state["vpC"] = QtCore.QPointF(cx, cy - doc_h * 0.65)
         self.sync_symmetry_to_engine()
         self.sync_guides_to_engine()
 
@@ -312,7 +318,8 @@ class GeometryToolController:
         cx, cy = self.guide_state["cx"], self.guide_state["cy"]
         fov_rad = math.radians(self.guide_state["fov"])
         tan_f = math.tan(fov_rad / 4.0)
-        R = 400.0 / tan_f if tan_f > 1e-5 else 1e9
+        base_r = self.guide_state.get("base_radius", 400.0)
+        R = base_r / tan_f if tan_f > 1e-5 else 1e9
 
         X, Y = (click_pt.x() - cx) / R, -(click_pt.y() - cy) / R
         r2 = X * X + Y * Y

@@ -180,7 +180,8 @@ class GeometryOverlayRenderer:
         cx, cy = guide.get("cx", 400.0), guide.get("cy", 300.0)
         fov_rad = math.radians(guide.get("fov", 130.0))
         tan_f = math.tan(fov_rad / 4.0)
-        R = 400.0 / tan_f if tan_f > 1e-5 else 1e5
+        base_r = guide.get("base_radius", 400.0)
+        R = base_r / tan_f if tan_f > 1e-5 else 1e5
         density_rad = math.radians(guide.get("density", 30.0))
         yaw_rad, pitch_rad = math.radians(guide.get("yaw", 0.0)), math.radians(guide.get("pitch", 0.0))
 

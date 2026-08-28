@@ -96,6 +96,39 @@ class TestGeometrySymmetry(unittest.TestCase):
         self.assertEqual(snapped[0], 123.4)
         self.assertEqual(snapped[1], 567.8)
 
+    def test_06_proportional_centering_portrait_and_landscape(self):
+        """Valida a centralização matemática e cálculo proporcional de base_radius para diferentes formatos."""
+        from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
+
+        class DummyWidget:
+            canvas_w = 2480
+            canvas_h = 3508
+
+        ctrl = GeometryToolController(DummyWidget())
+
+        # 1. Teste Canvas A4 Vertical (Portrait: 2480 x 3508)
+        ctrl.center_on_document(2480, 3508)
+        self.assertEqual(ctrl.guide_state["cx"], 1240.0)
+        self.assertEqual(ctrl.guide_state["cy"], 1754.0)
+        self.assertEqual(ctrl.sym_state["cx"], 1240.0)
+        self.assertEqual(ctrl.sym_state["cy"], 1754.0)
+        self.assertAlmostEqual(ctrl.guide_state["base_radius"], 2480 * 0.42, delta=1e-3)
+
+        # 2. Teste Canvas 4K UHD Horizontal (Landscape: 3840 x 2160)
+        ctrl.center_on_document(3840, 2160)
+        self.assertEqual(ctrl.guide_state["cx"], 1920.0)
+        self.assertEqual(ctrl.guide_state["cy"], 1080.0)
+        self.assertEqual(ctrl.sym_state["cx"], 1920.0)
+        self.assertEqual(ctrl.sym_state["cy"], 1080.0)
+        self.assertAlmostEqual(ctrl.guide_state["base_radius"], 2160 * 0.42, delta=1e-3)
+
+        # 3. Teste Canvas Quadrado (Square: 3000 x 3000)
+        ctrl.center_on_document(3000, 3000)
+        self.assertEqual(ctrl.guide_state["cx"], 1500.0)
+        self.assertEqual(ctrl.guide_state["cy"], 1500.0)
+        self.assertAlmostEqual(ctrl.guide_state["base_radius"], 3000 * 0.42, delta=1e-3)
+
 
 if __name__ == "__main__":
     unittest.main()
+

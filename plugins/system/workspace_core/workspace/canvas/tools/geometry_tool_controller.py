@@ -196,8 +196,7 @@ class GeometryToolController:
         res = self._compute_snap(raw_x, raw_y, zoom)
         self.hover_point = QtCore.QPointF(res[0], res[1])
         if self.guide_state.get("type") == "curvilinear" and self.guide_state.get("show_hint", True):
-            if not self.locked_curve:
-                self.dynamic_hover_curves = self._get_dynamic_curves_at_point(self.hover_point)
+            self.dynamic_hover_curves = self._get_dynamic_curves_at_point(self.hover_point)
         return res
 
     def _compute_snap(self, raw_x: float, raw_y: float, zoom: float = 1.0) -> tuple[float, float]:
@@ -303,24 +302,36 @@ class GeometryToolController:
 
             if not curves: return (raw_x, raw_y)
 
-            best_curve, best_dist = None, float("inf")
-            for c in curves:
-                cp = self._closest_point_on_curve(c, pt)
-                d = math.hypot(pt.x() - cp.x(), pt.y() - cp.y())
-                if d < best_dist:
-                    best_dist, best_curve = d, c
-
-            sens = self.guide_state.get("snap_sensitivity", 3.0)
-            lock_thresh = max(3.0, (14.0 - sens * 1.5)) / max(0.01, zoom)
-            if dist >= lock_thresh and best_curve is not None:
-                self.locked_curve = best_curve
+            best_curve, best_score = None, -1.0
+            if dist > 0.5:
+                ux, uy = dx / dist, dy / dist
+                for c in curves:
+                    cp = self._closest_point_on_curve(c, pt)
+                    if c["type"] == "line":
+                        tdx, tdy = c["dir"].x(), c["dir"].y()
+                    elif c["type"] == "circle":
+                        cdx, cdy = cp.x() - c["center"].x(), cp.y() - c["center"].y()
+                        clen = math.hypot(cdx, cdy) or 1.0
+                        tdx, tdy = -cdy / clen, cdx / clen
+                    else:
+                        tdx, tdy = 1.0, 0.0
+                    dot = abs(ux * tdx + uy * tdy)
+                    d = math.hypot(pt.x() - cp.x(), pt.y() - cp.y())
+                    score = dot / max(1.0, d * 0.05)
+                    if score > best_score:
+                        best_score, best_curve = score, c
+            else:
+                best_curve = curves[0]
 
             if best_curve is not None:
+                if dist >= 2.0 or self.is_stroking:
+                    self.locked_curve = best_curve
                 snapped_pt = self._closest_point_on_curve(best_curve, pt)
                 return (snapped_pt.x(), snapped_pt.y())
             return (raw_x, raw_y)
 
         return (raw_x, raw_y)
+
 
 
     def _get_dynamic_curves_at_point(self, click_pt: QtCore.QPointF) -> list:

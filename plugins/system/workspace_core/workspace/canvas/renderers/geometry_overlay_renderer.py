@@ -431,14 +431,25 @@ class GeometryOverlayRenderer:
 
         curves_to_draw = ctrl.dynamic_hover_curves
         mode = ctrl.guide_state.get("snap_mode", "auto")
-        if mode in ("v", "h", "d"):
+        if not ctrl.is_stroking and mode in ("v", "h", "d"):
             curves_to_draw = [c for c in curves_to_draw if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
 
-        pen_hint = QtGui.QPen(QtGui.QColor(255, 125, 45, 80), line_w * 1.2, QtCore.Qt.DashLine)
-        painter.setPen(pen_hint)
         painter.setBrush(QtCore.Qt.NoBrush)
 
         for c in curves_to_draw:
+            fam = c.get("family", "")
+            if fam.endswith("_v") or fam == "v":
+                c_col = QtGui.QColor(56, 189, 248, 120)
+            elif fam.endswith("_x") or fam == "h":
+                c_col = QtGui.QColor(248, 113, 113, 120)
+            elif fam.endswith("_z") or fam == "d":
+                c_col = QtGui.QColor(74, 222, 128, 120)
+            else:
+                c_col = QtGui.QColor(255, 125, 45, 100)
+
+            pen_hint = QtGui.QPen(c_col, line_w * 1.3, QtCore.Qt.DashLine)
+            painter.setPen(pen_hint)
+
             if c["type"] == "line":
                 painter.drawLine(c["p1"], c["p2"])
             elif c["type"] == "polyline":
@@ -452,7 +463,7 @@ class GeometryOverlayRenderer:
                 painter.drawEllipse(c["center"], c["radius"], c["radius"])
 
         if ctrl.is_stroking and ctrl.locked_curve is not None:
-            pen_locked = QtGui.QPen(QtGui.QColor(255, 100, 30, 180), line_w * 2.0, QtCore.Qt.SolidLine)
+            pen_locked = QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 2.2, QtCore.Qt.SolidLine)
             painter.setPen(pen_locked)
             painter.setBrush(QtCore.Qt.NoBrush)
             if ctrl.locked_curve["type"] == "line":
@@ -481,4 +492,5 @@ class GeometryOverlayRenderer:
 
         if ctrl.guide_state.get("show_ring", True):
             painter.restore()
+
 

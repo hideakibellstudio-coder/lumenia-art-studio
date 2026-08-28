@@ -18,14 +18,23 @@ class LayersOpacitySliderWidget(QWidget):
         self.setMaximumHeight(26)
         self.setCursor(Qt.SplitHCursor)
 
-        from ui.core.theme.manager import ThemeManager
-        theme = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {})
-        colors = theme.get("colors", {})
+        self._bg_color = QColor("#1e293b")
+        self._border_color = QColor("#334155")
+        self._accent_color = QColor("#6366f1")
+        self._text_color = QColor("#f3f4f6")
 
-        self._bg_color = QColor(ThemeManager.instance().resolve_color("bg_panel", colors))
-        self._border_color = QColor(ThemeManager.instance().resolve_color("border", colors))
-        self._accent_color = QColor(ThemeManager.instance().resolve_color("ACCENT", colors))
-        self._text_color = QColor(ThemeManager.instance().resolve_color("text_main", colors))
+        from ui.core.theme.manager import ThemeManager
+        ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
+        self._on_theme_changed()
+
+    def _on_theme_changed(self, *_):
+        from ui.core.theme.manager import ThemeManager
+        tm = ThemeManager.instance()
+        self._bg_color = QColor(tm.get_color("bg_panel", "#1e293b"))
+        self._border_color = QColor(tm.get_color("border", "#334155"))
+        self._accent_color = QColor(tm.get_color("accent", "#6366f1"))
+        self._text_color = QColor(tm.get_color("text_main", "#f3f4f6"))
+        self.update()
 
     def setValue(self, val):
         val = max(0, min(100, int(val)))
@@ -58,6 +67,7 @@ class LayersOpacitySliderWidget(QWidget):
         fill_w = int((self._value / 100.0) * (w - 2))
         if fill_w > 0:
             painter.setClipRect(1, 1, w - 2, h - 2)
+
             fill_color = QColor(self._accent_color)
             fill_color.setAlpha(120)
             painter.setPen(Qt.NoPen)
@@ -150,6 +160,11 @@ class LayersHeader(QWidget):
         ctrl_row.addWidget(self.slider_op, 1)
         layout.addLayout(ctrl_row)
 
+        # Subscreve ao sistema de temas para auto-atualização
+        from ui.core.theme.manager import ThemeManager
+        ThemeManager.instance().themeChanged.connect(self.on_theme_changed)
+        self.on_theme_changed()
+
     def set_values(self, opacity, blend_mode, is_group=False):
         self.slider_op.blockSignals(True)
         self.combo_blend.blockSignals(True)
@@ -172,11 +187,15 @@ class LayersHeader(QWidget):
             self.slider_op.blockSignals(False)
             self.combo_blend.blockSignals(False)
 
-    def on_theme_changed(self, colors):
-        bg_input = colors.get("bg_panel", "#1f2937")
-        border = colors.get("border", "#374151")
-        accent = colors.get("ACCENT", "#3b82f6")
-        text_primary = colors.get("text_main", "#f3f4f6")
+    def on_theme_changed(self, colors=None):
+        """Aplica tema ao header. O argumento 'colors' é ignorado — lemos
+        diretamente do ThemeManager para garantir consistência."""
+        from ui.core.theme.manager import ThemeManager
+        tm = ThemeManager.instance()
+        bg_input    = tm.get_color("bg_panel", "#1f2937")
+        border      = tm.get_color("border",   "#374151")
+        accent      = tm.get_color("accent",   "#3b82f6")
+        text_primary = tm.get_color("text_main", "#f3f4f6")
 
         self.slider_op.set_theme_colors(
             bg_color=bg_input,
@@ -214,3 +233,4 @@ class LayersHeader(QWidget):
             }}
         """
         self.combo_blend.setStyleSheet(sheet)
+

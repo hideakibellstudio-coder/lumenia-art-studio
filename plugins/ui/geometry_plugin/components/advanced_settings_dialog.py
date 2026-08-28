@@ -450,43 +450,10 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self._on_changed()
 
     def _apply_theme(self, _=""):
-        from plugins.ui.brush_plugin.advanced_panel.panel_theme import get_advanced_panel_qss
-        tm = ThemeManager.instance()
-        text = tm.get_color("text_main")
-        bg_panel = tm.get_color("bg_panel")
-        accent = tm.get_color("accent")
-        border = tm.get_color("border")
+        from ui.core.icons import get_icon
+        from ui.core.theme.manager import ThemeManager
+
+        text = ThemeManager.instance().get_color("text_main")
         self.btn_close.setIcon(get_icon("close", text))
-        base_qss = get_advanced_panel_qss()
-        extra_qss = f"""
-            #AdvFieldLabel {{ color: {text}; font-size: 10px; font-weight: 500; }}
-            #AdvResetBtn {{
-                background: {bg_panel};
-                color: {text};
-                border: 1px solid {border};
-                border-radius: 4px;
-                padding: 6px 12px;
-                font-weight: 600;
-                font-size: 10px;
-            }}
-            #AdvResetBtn:hover {{
-                border-color: {accent};
-                color: {accent};
-            }}
-            QCheckBox {{
-                color: {text};
-                font-size: 10px;
-                spacing: 4px;
-            }}
-            QComboBox {{
-                background: {bg_panel};
-                color: {text};
-                border: 1px solid {border};
-                border-radius: 3px;
-                padding: 2px 6px;
-                font-size: 10px;
-            }}
-        """
-        self.setStyleSheet(base_qss + extra_qss)
 
 

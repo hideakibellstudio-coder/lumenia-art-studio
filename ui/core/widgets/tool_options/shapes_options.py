@@ -1,8 +1,9 @@
 """ShapesOptionsWidget."""
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from .base import ToolHeaderLabel, ModernOptionSlider
+from .base import ToolHeaderLabel
 from ui.core.widgets.shape_dropdown import ShapeDropdown
+from plugins.ui.brush_plugin.compact_slider import CompactSlider
 
 
 class ShapesOptionsWidget(QtWidgets.QWidget):
@@ -99,7 +100,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         layout.addLayout(row_colors)
 
         # Opacidade do Preenchimento (0..100%, padrão 100% sólido)
-        self.slider_fill_opac = ModernOptionSlider("Opac. Fundo:", 0, 100, "%")
+        self.slider_fill_opac = CompactSlider("Opac. Fundo:", 0, 100, "%")
         self.slider_fill_opac.setValue(100)
         self.slider_fill_opac.valueChanged.connect(self._on_fill_opac_changed)
         layout.addWidget(self.slider_fill_opac)
@@ -109,7 +110,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         self.row_extra.setContentsMargins(0, 0, 0, 0)
         self.row_extra.setSpacing(4)
         self.lbl_extra = QtWidgets.QLabel("Cantos:")
-        self.lbl_extra.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_extra.setStyleSheet("font-size: 10px;")
         self.spin_extra = QtWidgets.QSpinBox()
         self.spin_extra.setRange(0, 100)
         self.spin_extra.setValue(0)

@@ -1,0 +1,133 @@
+/* ================================================================
+   10. ADVANCED FLOATING WINDOWS & DIALOGS (Brush, Geometry, etc.)
+   ================================================================ */
+
+AdvancedPanel, AdvancedGeometryDialog {
+    background: transparent;
+}
+
+#AdvContainer {
+    background-color: @BG_DARKEST;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_LARGE;
+}
+
+#AdvTitleBar {
+    background-color: @BG_DARKER;
+    border-top-left-radius: @RADIUS_LARGE;
+    border-top-right-radius: @RADIUS_LARGE;
+    border-bottom: 1px solid @BORDER;
+}
+
+#AdvTitleLabel {
+    color: @FG_PRIMARY;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+#AdvTitleIcon {
+    color: @ACCENT;
+    font-size: 13px;
+}
+
+#AdvCloseBtn {
+    background: transparent;
+    border: none;
+    border-radius: @RADIUS_SMALL;
+}
+
+#AdvCloseBtn:hover {
+    background-color: @ACCENT;
+    color: #ffffff;
+}
+
+#AdvSep {
+    color: @BORDER;
+    background-color: @BORDER;
+}
+
+#AdvTabWrap {
+    background-color: @BG_DARKEST;
+}
+
+#AdvTabBar::tab {
+    background-color: @BG_DARKER;
+    color: @FG_SECONDARY;
+    padding: 4px 10px;
+    border: 1px solid @BORDER;
+    border-bottom: none;
+    border-top-left-radius: @RADIUS_SMALL;
+    border-top-right-radius: @RADIUS_SMALL;
+    font-size: 10px;
+}
+
+#AdvTabBar::tab:selected {
+    background-color: @ACCENT;
+    color: @FG_PRIMARY;
+    font-weight: 600;
+}
+
+#AdvFieldLabel {
+    color: @FG_PRIMARY;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+#AdvResetBtn {
+    background-color: @BG_DARKER;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 6px 12px;
+    font-weight: 600;
+    font-size: 10px;
+}
+
+#AdvResetBtn:hover {
+    border-color: @ACCENT;
+    color: @ACCENT;
+}
+
+#BTexPreview {
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    background-color: @BG_DARKEST;
+}
+
+#BTexBtn {
+    background-color: @BG_DARKER;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: 3px;
+    font-size: 10px;
+    padding: 0 4px;
+}
+
+#BTexBtn:hover {
+    border-color: @ACCENT;
+    color: @ACCENT;
+}
+
+#CollapsHeader {
+    background-color: @BG_DARKER;
+    border-radius: @RADIUS_SMALL;
+}
+
+#CollapsHeader:hover {
+    background-color: @ACCENT;
+}
+
+#CollapsArrow {
+    color: @FG_SECONDARY;
+    font-size: 10px;
+}
+
+#CollapsTitle {
+    color: @FG_PRIMARY;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+#CollapsContent {
+    background: transparent;
+}

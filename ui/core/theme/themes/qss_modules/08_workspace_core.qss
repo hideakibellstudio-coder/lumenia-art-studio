@@ -256,3 +256,78 @@ QFrame#ColorWheelHLine {
     border: none;
 }
 
+/* --- 11. Secondary Toolbar (Contextual Quick Bar) --- */
+#SecondaryBarContainer {
+    background-color: @BG_DARKER;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_LARGE;
+}
+
+#SecondaryBarContainer QLabel {
+    color: @FG_PRIMARY;
+    font-size: 11px;
+}
+
+#SecondaryBarContainer QComboBox,
+#SecondaryBarContainer QFontComboBox,
+#SecondaryBarContainer QSpinBox {
+    background-color: @BG_DARK;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 0px 6px;
+    font-size: 11px;
+    min-height: 24px;
+    max-height: 24px;
+}
+
+#SecondaryBarContainer QComboBox:hover,
+#SecondaryBarContainer QFontComboBox:hover,
+#SecondaryBarContainer QSpinBox:hover {
+    border-color: @ACCENT;
+}
+
+#SecondaryBarContainer QToolButton,
+#SecondaryBarContainer QPushButton {
+    background-color: @BG_DARK;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    padding: 0px 8px;
+    font-size: 11px;
+    min-height: 24px;
+    max-height: 24px;
+}
+
+#SecondaryBarContainer QToolButton:hover,
+#SecondaryBarContainer QPushButton:hover {
+    border-color: @ACCENT;
+    background-color: @BG_LIGHT;
+}
+
+#SecondaryBarContainer QToolButton:checked {
+    background-color: @ACCENT;
+    color: #ffffff;
+    border: 1px solid @ACCENT;
+}
+
+#SecondaryBarContainer QSlider::groove:horizontal {
+    height: 4px;
+    background: @BG_DARK;
+    border-radius: 2px;
+}
+
+#SecondaryBarContainer QSlider::sub-page:horizontal {
+    background: @ACCENT;
+    border-radius: 2px;
+}
+
+#SecondaryBarContainer QSlider::handle:horizontal {
+    background: @ACCENT;
+    border: 1px solid @BG_DARKER;
+    width: 12px;
+    margin-top: -4px;
+    margin-bottom: -4px;
+    border-radius: 6px;
+}
+

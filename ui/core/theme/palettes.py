@@ -2,6 +2,7 @@ DARK_PALETTE = {
     "bg_main": "#0f172a",       # Slate 900
     "bg_panel": "#1e293b",      # Slate 800
     "border": "#334155",        # Slate 700
+    "border_control": "#475569",# Slate 600
     "text_main": "#f8fafc",     # Slate 50
     "text_sec": "#94a3b8",      # Slate 400
     "accent": "#3b82f6",        # Blue 500
@@ -15,6 +16,7 @@ LIGHT_PALETTE = {
     "bg_main": "#f8fafc",       # Slate 50
     "bg_panel": "#ffffff",      # Puro branco
     "border": "#e2e8f0",        # Slate 200
+    "border_control": "#cbd5e1",# Slate 300
     "text_main": "#0f172a",     # Slate 900
     "text_sec": "#64748b",      # Slate 500
     "accent": "#2563eb",        # Blue 600
@@ -23,6 +25,7 @@ LIGHT_PALETTE = {
     "slider_groove": "#e2e8f0",
     "slider_handle": "#2563eb"
 }
+
 
 QSS_TEMPLATE = """
 QMainWindow, QDialog {{

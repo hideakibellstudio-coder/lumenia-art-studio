@@ -7,7 +7,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.icons import get_icon
 
 from .dynamic_stacked_widget import DynamicStackedWidget
-from .toolbar_theme import apply_secondary_toolbar_theme
 from .toolbar_handlers import SecondaryToolbarHandlersMixin
 from .tool_options.eyedrop_options import build_eyedrop_panels
 from .tool_options.bucket_options import build_bucket_panels
@@ -434,4 +433,4 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
         self._emit_shapes_settings()
 
     def _apply_theme(self):
-        apply_secondary_toolbar_theme(self.container)
+        pass

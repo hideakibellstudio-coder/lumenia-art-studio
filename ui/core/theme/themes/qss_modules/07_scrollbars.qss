@@ -4,17 +4,16 @@
 
 /* --- Barra Vertical --- */
 QScrollBar:vertical {
-    background-color: @BG_DARKER;
-    width: 14px;
-    margin: 0px;
-    border-left: 1px solid @BORDER;
+    background-color: transparent;
+    width: 7px;
+    margin: 2px;
+    border: none;
 }
 
 QScrollBar::handle:vertical {
     background-color: @BG_LIGHTEST;
-    min-height: 30px;
-    border-radius: 6px;
-    margin: 1px 2px 1px 2px;
+    min-height: 24px;
+    border-radius: 3px;
 }
 
 QScrollBar::handle:vertical:hover {
@@ -32,17 +31,16 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
 
 /* --- Barra Horizontal --- */
 QScrollBar:horizontal {
-    background-color: @BG_DARKER;
-    height: 14px;
-    margin: 0px;
-    border-top: 1px solid @BORDER;
+    background-color: transparent;
+    height: 7px;
+    margin: 2px;
+    border: none;
 }
 
 QScrollBar::handle:horizontal {
     background-color: @BG_LIGHTEST;
-    min-width: 30px;
-    border-radius: 6px;
-    margin: 2px 1px 2px 1px;
+    min-width: 24px;
+    border-radius: 3px;
 }
 
 QScrollBar::handle:horizontal:hover {
@@ -60,6 +58,6 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
 
 /* --- Corner (O quadradinho de encontro das duas barras) --- */
 QAbstractScrollArea::corner {
-    background-color: @BG_DARKER;
+    background-color: transparent;
     border: none;
 }

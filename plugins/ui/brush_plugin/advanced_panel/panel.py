@@ -489,10 +489,8 @@ class AdvancedPanel(QtWidgets.QDialog):
             self.preview_b_grain.setPixmap(create_default_grain_pixmap())
 
     def _apply_theme(self, _=""):
-        from .panel_theme import get_advanced_panel_qss
         from ui.core.icons import get_icon
         from ui.core.theme.manager import ThemeManager
 
         text = ThemeManager.instance().get_color("text_main")
         self.btn_close.setIcon(get_icon("close", text))
-        self.setStyleSheet(get_advanced_panel_qss())

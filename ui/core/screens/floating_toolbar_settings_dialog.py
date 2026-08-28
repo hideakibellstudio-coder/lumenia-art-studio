@@ -14,43 +14,10 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
 from ui.core.tools import TOOL_META, DEFAULT_TOOLS
+from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 
 _SETTINGS_ORG = "Lumenia"
 _SETTINGS_APP = "LumeniaApp"
-
-
-# ── SWITCH ANIMADO ESTILO LUMENIA V2 ─────────────────────────────────────────
-
-class ModernToggle(QtWidgets.QCheckBox):
-    """Switch animado estilo iOS / Lumenia V2."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setCursor(QtCore.Qt.PointingHandCursor)
-        self.setFixedSize(44, 22)
-
-    def paintEvent(self, event):
-        p = QtGui.QPainter(self)
-        p.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        tm = ThemeManager.instance()
-        accent = QtGui.QColor(tm.get_color("accent"))
-        track_off = QtGui.QColor(tm.get_color("border_muted"))
-        thumb_color = QtGui.QColor("#ffffff")
-
-        checked = self.isChecked()
-        track_color = accent if checked else track_off
-
-        # Track
-        p.setPen(QtCore.Qt.NoPen)
-        p.setBrush(QtGui.QBrush(track_color))
-        p.drawRoundedRect(0, 2, 42, 18, 9, 9)
-
-        # Thumb
-        p.setBrush(QtGui.QBrush(thumb_color))
-        thumb_x = 24 if checked else 2
-        p.drawEllipse(thumb_x, 1, 18, 18)
-        p.end()
 
 
 # ── PREVIEW VISUAL DA TOOLBAR ────────────────────────────────────────────────
@@ -77,19 +44,24 @@ class ToolbarLivePreview(QtWidgets.QFrame):
             if item.widget():
                 item.widget().deleteLater()
 
-        # Handle de arraste
+        # Handle de arraste — usa tokens de tema
+        tm = ThemeManager.instance()
         handle = QtWidgets.QLabel("⋮⋮")
-        handle.setStyleSheet("color: #71717a; font-size: 13px; font-weight: bold; margin-right: 4px;")
+        handle.setStyleSheet(
+            f"color: {tm.get_color('text_muted')}; font-size: 13px; font-weight: bold; margin-right: 4px;"
+        )
         self.layout.addWidget(handle)
 
+        icon_color = tm.get_color("text_main")
+        icon_bg = tm.get_color("bg_card")
         for tid in self._active_tools:
             meta = TOOL_META.get(tid, {})
             icon_key = meta.get("icon", "brush")
             btn = QtWidgets.QLabel()
             btn.setFixedSize(28, 28)
             btn.setAlignment(QtCore.Qt.AlignCenter)
-            btn.setStyleSheet("background: rgba(255,255,255,0.08); border-radius: 6px;")
-            icon = get_icon(icon_key, color="#ffffff")
+            btn.setStyleSheet(f"background: {icon_bg}; border-radius: 6px;")
+            icon = get_icon(icon_key, color=icon_color)
             if icon and not icon.isNull():
                 btn.setPixmap(icon.pixmap(16, 16))
             self.layout.addWidget(btn)
@@ -132,14 +104,10 @@ class ToolToggleCard(QtWidgets.QFrame):
         layout.setContentsMargins(10, 6, 10, 6)
         layout.setSpacing(8)
 
-        # Ícone da Ferramenta
+        # Ícone da Ferramenta — cor e fundo via ThemeManager
         self.icon_lbl = QtWidgets.QLabel()
         self.icon_lbl.setFixedSize(28, 28)
         self.icon_lbl.setAlignment(QtCore.Qt.AlignCenter)
-        self.icon_lbl.setStyleSheet("background: rgba(255,255,255,0.06); border-radius: 6px;")
-        icon = get_icon(self.meta.get("icon", "brush"), color="#ffffff")
-        if icon and not icon.isNull():
-            self.icon_lbl.setPixmap(icon.pixmap(16, 16))
         layout.addWidget(self.icon_lbl)
 
         # Nome e Atalho
@@ -153,15 +121,15 @@ class ToolToggleCard(QtWidgets.QFrame):
         self.name_lbl.setStyleSheet("font-size: 11px; font-weight: bold;")
 
         self.shortcut_lbl = QtWidgets.QLabel(f"Atalho: [{shortcut}]" if shortcut else "Sem atalho")
-        self.shortcut_lbl.setStyleSheet("font-size: 9px; color: #888888;")
+        self.shortcut_lbl.setStyleSheet("font-size: 9px;")
 
         text_layout.addWidget(self.name_lbl)
         text_layout.addWidget(self.shortcut_lbl)
         layout.addLayout(text_layout)
         layout.addStretch()
 
-        # Switch de Ativação
-        self.switch = ModernToggle()
+        # Switch canônico com animação e conexão ao tema
+        self.switch = ToggleSwitch()
         self.switch.setChecked(self.is_active)
         self.switch.toggled.connect(self._on_toggled)
         layout.addWidget(self.switch)
@@ -183,7 +151,14 @@ class ToolToggleCard(QtWidgets.QFrame):
         bg = tm.get_color("bg_card_hover") if self.is_active else tm.get_color("bg_card")
         border = tm.get_color("accent") if self.is_active else tm.get_color("border")
         text_color = tm.get_color("text_main")
-
+        muted = tm.get_color("text_muted")
+        icon_bg = tm.get_color("accent_bg") if self.is_active else tm.get_color("bg_input")
+        icon_color = tm.get_color("text_main")
+        icon = get_icon(self.meta.get("icon", "brush"), color=icon_color)
+        if icon and not icon.isNull():
+            self.icon_lbl.setPixmap(icon.pixmap(16, 16))
+        self.icon_lbl.setStyleSheet(f"background: {icon_bg}; border-radius: 6px;")
+        self.shortcut_lbl.setStyleSheet(f"font-size: 9px; color: {muted};")
         self.setStyleSheet(f"""
             ToolToggleCard {{
                 background-color: {bg};
@@ -336,7 +311,7 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         # Master Switch (Ativa/Desativa)
         row_master = QtWidgets.QHBoxLayout()
         lbl_master = QtWidgets.QLabel("Exibir Barra Flutuante no Workspace")
-        self.switch_master = ModernToggle()
+        self.switch_master = ToggleSwitch()
         self.switch_master.setChecked(self._cfg.get("active", True))
         row_master.addWidget(lbl_master)
         row_master.addStretch()

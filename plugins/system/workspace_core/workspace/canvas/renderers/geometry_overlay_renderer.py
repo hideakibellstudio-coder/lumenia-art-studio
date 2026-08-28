@@ -462,23 +462,8 @@ class GeometryOverlayRenderer:
             else:
                 painter.drawEllipse(c["center"], c["radius"], c["radius"])
 
-        if ctrl.is_stroking and ctrl.locked_curve is not None:
-            pen_locked = QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 2.2, QtCore.Qt.SolidLine)
-            painter.setPen(pen_locked)
-            painter.setBrush(QtCore.Qt.NoBrush)
-            if ctrl.locked_curve["type"] == "line":
-                painter.drawLine(ctrl.locked_curve["p1"], ctrl.locked_curve["p2"])
-            elif ctrl.locked_curve["type"] == "polyline":
-                pts = ctrl.locked_curve.get("points", [])
-                if len(pts) >= 2:
-                    path = QtGui.QPainterPath()
-                    path.moveTo(pts[0])
-                    for p in pts[1:]: path.lineTo(p)
-                    painter.drawPath(path)
-            else:
-                painter.drawEllipse(ctrl.locked_curve["center"], ctrl.locked_curve["radius"], ctrl.locked_curve["radius"])
-
         # Hollow target cursor circle with distance badge
+
         if ctrl.hover_point is not None:
             hpt = ctrl.hover_point
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))

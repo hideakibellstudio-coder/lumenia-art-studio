@@ -41,6 +41,8 @@ class TestPhase2Groups(unittest.TestCase):
     def setUp(self):
         self.panel = self.mw.workspace._layers_panel
         self.backend = EngineRegistry.instance().get_backend()
+        if self.backend and (self.backend._facade is None):
+            self.backend.init_renderer(0, 800, 600, 800, 600)
         self.facade = self.backend._facade
 
         # Limpa o vetor C++ e o gerenciador Python mantendo uma Camada 1 base

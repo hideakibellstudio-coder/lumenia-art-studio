@@ -10,7 +10,7 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
     win.menu_bar = MenuBar(win)
     win.setMenuBar(win.menu_bar)
 
-    # Arquivo
+    # 1. Arquivo
     win.menu_bar.newDocumentRequested.connect(win.open_new_document_dialog)
     win.menu_bar.openDocumentRequested.connect(win.open_image_file)
     win.menu_bar.saveDocumentRequested.connect(win.save_active_document)
@@ -19,45 +19,83 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
     win.menu_bar.closeDocumentRequested.connect(win.close_active_document)
     win.menu_bar.clearCanvasRequested.connect(win.clear_screen)
 
-    # Editar
+    # 2. Editar
     win.menu_bar.undoRequested.connect(win.undo)
     win.menu_bar.redoRequested.connect(win.redo)
+    win.menu_bar.cutRequested.connect(win.cut_selection_or_layer_to_clipboard)
+    win.menu_bar.copyRequested.connect(win.copy_selection_or_layer_to_clipboard)
+    win.menu_bar.pasteRequested.connect(win.paste_clipboard)
+    win.menu_bar.fillRequested.connect(win.fill_active_selection_or_canvas)
     win.menu_bar.clearLayerRequested.connect(win.clear_screen)
     win.menu_bar.freeTransformRequested.connect(lambda: win.select_tool_by_id("transform"))
     win.menu_bar.preferencesRequested.connect(win.open_render_settings_dialog)
 
-    # Imagem & Rotações
+    # 3. Imagem & Rotações
+    win.menu_bar.canvasSizeRequested.connect(lambda: win.open_canvas_size_dialog(False))
+    win.menu_bar.imageSizeRequested.connect(lambda: win.open_canvas_size_dialog(True))
+    win.menu_bar.cropRequested.connect(win.crop_to_selection)
+    win.menu_bar.rotate90CWRequested.connect(lambda: win.rotate_active_layer_90(True))
+    win.menu_bar.rotate90CCWRequested.connect(lambda: win.rotate_active_layer_90(False))
+    win.menu_bar.rotate180Requested.connect(win.rotate_active_layer_180)
     win.menu_bar.resetRotationRequested.connect(win.reset_rotation)
     win.menu_bar.flipHorizontalRequested.connect(win.flip_horizontal)
     win.menu_bar.flipVerticalRequested.connect(win.flip_vertical)
+    win.menu_bar.brightnessContrastRequested.connect(lambda: win.open_filter_dialog("brightness"))
+    win.menu_bar.hueSaturationRequested.connect(lambda: win.open_filter_dialog("huesat"))
+    win.menu_bar.invertColorsRequested.connect(lambda: win.open_filter_dialog("invert"))
 
-    # Camadas & Grupos
+    # 4. Camadas & Grupos
     win.menu_bar.newLayerRequested.connect(win.create_new_layer)
     win.menu_bar.newGroupRequested.connect(win.create_new_group)
     win.menu_bar.duplicateLayerRequested.connect(win.duplicate_active_layer)
     win.menu_bar.deleteLayerRequested.connect(win.delete_active_layer)
     win.menu_bar.mergeDownRequested.connect(win.merge_layer_down)
+    win.menu_bar.flattenGroupRequested.connect(win.flatten_active_group)
+    win.menu_bar.flattenImageRequested.connect(win.flatten_entire_image)
+    win.menu_bar.toggleClippingRequested.connect(win.toggle_active_layer_clipping)
+    win.menu_bar.toggleAlphaLockRequested.connect(win.toggle_active_layer_alpha_lock)
+    win.menu_bar.toggleVisibilityRequested.connect(win.toggle_active_layer_visibility)
+    win.menu_bar.layerPropertiesRequested.connect(win.open_layer_properties_dialog)
 
-    # Filtros
+    # 5. Seleção
+    win.menu_bar.selectAllRequested.connect(win.select_all)
+    win.menu_bar.deselectRequested.connect(win.deselect_selection)
+    win.menu_bar.invertSelectionRequested.connect(win.invert_selection)
+    win.menu_bar.expandSelectionRequested.connect(lambda: win.open_modify_selection_dialog("expand"))
+    win.menu_bar.contractSelectionRequested.connect(lambda: win.open_modify_selection_dialog("contract"))
+    win.menu_bar.featherSelectionRequested.connect(lambda: win.open_modify_selection_dialog("feather"))
+    win.menu_bar.magicWandRequested.connect(lambda: win.select_tool_by_id("wand"))
+
+    # 6. Filtros
     win.menu_bar.filterGalleryRequested.connect(win.open_filter_gallery)
+    win.menu_bar.gaussianBlurRequested.connect(lambda: win.open_filter_dialog("blur"))
+    win.menu_bar.pixelateRequested.connect(lambda: win.open_filter_dialog("pixelate"))
+    win.menu_bar.hueSaturationFilterRequested.connect(lambda: win.open_filter_dialog("huesat"))
+    win.menu_bar.brightnessContrastFilterRequested.connect(lambda: win.open_filter_dialog("brightness"))
+    win.menu_bar.colorBalanceFilterRequested.connect(lambda: win.open_filter_dialog("colorbalance"))
+    win.menu_bar.invertFilterRequested.connect(lambda: win.open_filter_dialog("invert"))
 
-    # Exibir
+    # 7. Exibir
     win.menu_bar.zoomInRequested.connect(win.zoom_in)
     win.menu_bar.zoomOutRequested.connect(win.zoom_out)
     win.menu_bar.resetViewRequested.connect(win.reset_view)
     win.menu_bar.fitToScreenRequested.connect(win.reset_view)
     win.menu_bar.renderSettingsRequested.connect(win.open_render_settings_dialog)
+    win.menu_bar.toggleGridRequested.connect(win.toggle_grid)
+    win.menu_bar.toggleRulersRequested.connect(win.toggle_rulers)
 
-    # Janela & Docks
+    # 8. Janela & Docks
     win.menu_bar.dockSettingsRequested.connect(win.open_dock_settings_dialog)
 
-    # Configurações & Temas
+    # 9. Configurações & Temas
     win.menu_bar.curvesLutRequested.connect(win.open_curve_window)
     win.menu_bar.themeSettingsRequested.connect(win.open_theme_dialog)
     win.menu_bar.managePluginsRequested.connect(win.open_plugins_dialog)
 
-    # Ajuda
+    # 10. Ajuda
     win.menu_bar.shortcutsRequested.connect(win.open_shortcuts_dialog)
+    win.menu_bar.userGuideRequested.connect(win.open_user_guide)
+    win.menu_bar.diagnosticsRequested.connect(win.open_diagnostics_dialog)
     win.menu_bar.feedbackRequested.connect(win.open_feedback_form)
     win.menu_bar.aboutRequested.connect(win.open_about_dialog)
 

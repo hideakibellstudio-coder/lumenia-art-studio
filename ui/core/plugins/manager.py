@@ -67,6 +67,13 @@ class PluginManager:
     def set_main_window(self, main_window) -> None:
         self.context._main_window = main_window
         logger.debug("[PluginManager] main_window injetado no PluginContext.")
+        for name, instance in list(self.active_instances.items()):
+            try:
+                instance.initialize(self.context)
+                instance.activate()
+            except Exception as e:
+                logger.error(f"Erro ao re-ativar plugin {name} no novo main_window: {e}")
+
 
     def load_config(self) -> None:
         if os.path.exists(self.config_path):

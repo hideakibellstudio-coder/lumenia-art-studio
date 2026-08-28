@@ -5,9 +5,10 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from ui.core import ThemeManager
 from ui.core.components import MenuBar, ToolSidebar, StatusBar, ThemeDialog
+from .main_window_menu_actions import MainWindowMenuActionsMixin
 
 
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
 
     def __init__(self):
         super().__init__()
@@ -159,14 +160,17 @@ class MainWindow(QtWidgets.QMainWindow):
     # ── Câmera ────────────────────────────────────────────────────────────
 
     def reset_view(self) -> None:
-        self.workspace.reset_view()
+        if self.workspace:
+            self.workspace.reset_view()
         self.status_bar.showMessage("Visão do canvas resetada.", 2000)
 
     def zoom_in(self) -> None:
-        self.workspace.zoom_in()
+        if self.workspace:
+            self.workspace.zoom_in()
 
     def zoom_out(self) -> None:
-        self.workspace.zoom_out()
+        if self.workspace:
+            self.workspace.zoom_out()
 
     # ── Desfazer / Refazer ────────────────────────────────────────────────
 
@@ -181,7 +185,8 @@ class MainWindow(QtWidgets.QMainWindow):
     # ── Canvas ────────────────────────────────────────────────────────────
 
     def clear_screen(self) -> None:
-        self.workspace.clear_canvas()
+        if self.workspace:
+            self.workspace.clear_canvas()
         self.status_bar.showMessage("Tela limpa.", 2000)
 
     def deselect_selection(self) -> None:
@@ -437,11 +442,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 if self.workspace:
                     self.workspace.canvas_widget.update()
                 self.status_bar.showMessage("Camada mesclada para baixo.", 2000)
-
-    def open_filter_gallery(self) -> None:
-        from ui.core.screens.filters.filter_adjustment_dialog import FilterAdjustmentDialog
-        dialog = FilterAdjustmentDialog(self)
-        dialog.exec()
 
     def open_shortcuts_dialog(self) -> None:
         QtWidgets.QMessageBox.information(

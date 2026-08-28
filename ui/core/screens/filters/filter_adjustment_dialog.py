@@ -168,17 +168,24 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
     preview_changed = QtCore.Signal(str, int, list)    # (name, type_id, params)
     preview_cancelled = QtCore.Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, initial_key: str | None = None):
         super().__init__(parent)
         self.setWindowTitle("Filtros & Camadas de Ajuste (Não-Destrutivas)")
         self.resize(820, 500)
         self.setMinimumSize(740, 420)
 
-        self._active_def: dict = FILTER_DEFINITIONS[0]
+        target_def = FILTER_DEFINITIONS[0]
+        if initial_key:
+            for fdef in FILTER_DEFINITIONS:
+                if fdef.get("key") == initial_key:
+                    target_def = fdef
+                    break
+
+        self._active_def: dict = target_def
         self._param_widgets: Dict[str, Any] = {}
 
         self._build_ui()
-        self._select_filter(FILTER_DEFINITIONS[0])
+        self._select_filter(target_def)
 
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()

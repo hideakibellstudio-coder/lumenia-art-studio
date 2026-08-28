@@ -242,6 +242,8 @@ class MainWindow(QtWidgets.QMainWindow):
             name = params["name"]
             w = params["width"]
             h = params["height"]
+            dpi = params.get("dpi", 300)
+            color_prof = params.get("color_profile_id", 0)
             bg_color = params.get("bg_color", (255, 255, 255, 255))
             paper_tex = params.get("paper_texture_id", 0)
 
@@ -252,12 +254,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 bg_color=bg_color,
                 paper_texture_id=paper_tex
             )
+            if hasattr(doc, "dpi"):
+                doc.dpi = dpi
 
             # Inicializa a Facade C++ com as novas dimensões e papel do documento
             from ui.core.engine.registry import EngineRegistry
             backend = EngineRegistry.instance().get_backend()
             if backend:
                 backend.init_renderer(0, w, h, w, h)
+                if hasattr(backend, "set_color_profile"):
+                    backend.set_color_profile(color_prof)
+
                 if hasattr(backend, "_facade") and backend._facade:
                     backend._facade.clear_canvas()
 
@@ -289,6 +296,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     backend.set_brush_color(color.redF(), color.greenF(), color.blueF())
 
             self.reset_view()
+            prof_name = backend.get_color_profile_name(color_prof) if backend else "sRGB"
+            self.status_bar.showMessage(f"Novo documento '{name}' ({w}×{h} px, {dpi} DPI, {prof_name}) criado.", 3000)
 
     def close_active_document(self) -> None:
         doc = self.dm.active_document()

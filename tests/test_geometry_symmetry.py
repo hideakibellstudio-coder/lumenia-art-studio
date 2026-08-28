@@ -128,7 +128,40 @@ class TestGeometrySymmetry(unittest.TestCase):
         self.assertEqual(ctrl.guide_state["cy"], 1500.0)
         self.assertAlmostEqual(ctrl.guide_state["base_radius"], 3000 * 0.42, delta=1e-3)
 
+    def test_07_curvilinear_all_axes_snapping(self):
+        """Valida que o snap curvilíneo 6P permite desenhar nos eixos Horizontal (H), Vertical (V) e Profundidade (D)."""
+        from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
+
+        class DummyWidget:
+            canvas_w = 1920
+            canvas_h = 1080
+
+        # 1. Teste de Traço Horizontal (movimento para a direita: dx=30, dy=0)
+        ctrl_h = GeometryToolController(DummyWidget())
+        ctrl_h.guide_state["type"] = "curvilinear"
+        ctrl_h.center_on_document(1920, 1080)
+
+        ctrl_h.start_stroke_snap((960.0, 300.0))
+        # Puxa horizontalmente
+        res_h = ctrl_h.snap_point(990.0, 300.0)
+        self.assertIsNotNone(ctrl_h.locked_curve)
+        fam_h = ctrl_h.locked_curve.get("family", "")
+        self.assertTrue(fam_h.endswith("_x") or fam_h == "h" or fam_h.endswith("_z"), f"Esperado eixo H/D, obteve: {fam_h}")
+
+        # 2. Teste de Traço Vertical (movimento para baixo: dx=0, dy=30)
+        ctrl_v = GeometryToolController(DummyWidget())
+        ctrl_v.guide_state["type"] = "curvilinear"
+        ctrl_v.center_on_document(1920, 1080)
+
+        ctrl_v.start_stroke_snap((960.0, 540.0))
+        # Puxa verticalmente
+        res_v = ctrl_v.snap_point(960.0, 570.0)
+        self.assertIsNotNone(ctrl_v.locked_curve)
+        fam_v = ctrl_v.locked_curve.get("family", "")
+        self.assertTrue(fam_v.endswith("_v") or fam_v == "v", f"Esperado eixo V, obteve: {fam_v}")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

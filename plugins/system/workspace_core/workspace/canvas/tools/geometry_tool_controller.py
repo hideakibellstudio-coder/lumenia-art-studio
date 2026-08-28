@@ -302,33 +302,55 @@ class GeometryToolController:
 
             if not curves: return (raw_x, raw_y)
 
-            best_curve, best_score = None, -1.0
-            if dist > 0.5:
-                ux, uy = dx / dist, dy / dist
+            # Explicit mode locks immediately on stroke
+            if mode in ("v", "h", "d") and self.is_stroking:
+                self.locked_curve = curves[0]
+                snapped_pt = self._closest_point_on_curve(self.locked_curve, pt)
+                return (snapped_pt.x(), snapped_pt.y())
+
+            # Auto mode: wait until gesture moves at least lock_thresh pixels
+            sens = self.guide_state.get("snap_sensitivity", 3.0)
+            lock_thresh = max(2.5, (9.0 - sens * 1.5)) / max(0.01, zoom)
+
+            if dist < lock_thresh:
+                # Pre-lock phase: project onto closest curve without permanently locking
+                best_curve, best_dist = None, float("inf")
                 for c in curves:
                     cp = self._closest_point_on_curve(c, pt)
-                    if c["type"] == "line":
-                        tdx, tdy = c["dir"].x(), c["dir"].y()
-                    elif c["type"] == "circle":
-                        cdx, cdy = cp.x() - c["center"].x(), cp.y() - c["center"].y()
-                        clen = math.hypot(cdx, cdy) or 1.0
-                        tdx, tdy = -cdy / clen, cdx / clen
-                    else:
-                        tdx, tdy = 1.0, 0.0
-                    dot = abs(ux * tdx + uy * tdy)
                     d = math.hypot(pt.x() - cp.x(), pt.y() - cp.y())
-                    score = dot / max(1.0, d * 0.05)
-                    if score > best_score:
-                        best_score, best_curve = score, c
-            else:
-                best_curve = curves[0]
+                    if d < best_dist:
+                        best_dist, best_curve = d, c
+                if best_curve is not None:
+                    snapped_pt = self._closest_point_on_curve(best_curve, pt)
+                    return (snapped_pt.x(), snapped_pt.y())
+                return (raw_x, raw_y)
+
+            # Gesture direction established: score by tangent alignment with motion vector
+            ux, uy = dx / dist, dy / dist
+            best_curve, best_score = None, -1.0
+            for c in curves:
+                cp = self._closest_point_on_curve(c, pt)
+                if c["type"] == "line":
+                    tdx, tdy = c["dir"].x(), c["dir"].y()
+                elif c["type"] == "circle":
+                    cdx, cdy = cp.x() - c["center"].x(), cp.y() - c["center"].y()
+                    clen = math.hypot(cdx, cdy) or 1.0
+                    tdx, tdy = -cdy / clen, cdx / clen
+                else:
+                    tdx, tdy = 1.0, 0.0
+                dot = abs(ux * tdx + uy * tdy)
+                d = math.hypot(pt.x() - cp.x(), pt.y() - cp.y())
+                score = dot / max(1.0, d * 0.05)
+                if score > best_score:
+                    best_score, best_curve = score, c
 
             if best_curve is not None:
-                if dist >= 2.0 or self.is_stroking:
+                if self.is_stroking:
                     self.locked_curve = best_curve
                 snapped_pt = self._closest_point_on_curve(best_curve, pt)
                 return (snapped_pt.x(), snapped_pt.y())
             return (raw_x, raw_y)
+
 
         return (raw_x, raw_y)
 

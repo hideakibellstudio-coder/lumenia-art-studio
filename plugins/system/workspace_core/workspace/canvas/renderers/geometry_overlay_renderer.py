@@ -119,6 +119,19 @@ class GeometryOverlayRenderer:
             painter.drawEllipse(p0, handle_r, handle_r)
             painter.drawEllipse(p1, handle_r, handle_r)
 
+            if hasattr(ctrl_or_guide, "hover_point") and ctrl_or_guide.hover_point is not None:
+                hpt = ctrl_or_guide.hover_point
+                painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 180), line_w * 1.3, QtCore.Qt.DashLine))
+                painter.drawLine(QtCore.QPointF(hpt.x() - 4000.0 * ux, hpt.y() - 4000.0 * uy), QtCore.QPointF(hpt.x() + 4000.0 * ux, hpt.y() + 4000.0 * uy))
+                painter.setBrush(QtCore.Qt.NoBrush)
+                painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
+                painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
+                if getattr(ctrl_or_guide, "is_stroking", False) and getattr(ctrl_or_guide, "snap_start_pt", None) is not None:
+                    dist = math.hypot(hpt.x() - ctrl_or_guide.snap_start_pt.x(), hpt.y() - ctrl_or_guide.snap_start_pt.y())
+                    painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
+                    painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
+                    painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
+
         elif gtype == "curve_ruler":
             p0, p1, p2, p3 = guide.get("p0", QtCore.QPointF(100, 300)), guide.get("p1", QtCore.QPointF(250, 150)), guide.get("p2", QtCore.QPointF(550, 150)), guide.get("p3", QtCore.QPointF(700, 300))
             path = QtGui.QPainterPath()
@@ -132,8 +145,14 @@ class GeometryOverlayRenderer:
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), line_w))
             for pt in (p0, p1, p2, p3): painter.drawEllipse(pt, handle_r, handle_r)
 
+            if hasattr(ctrl_or_guide, "hover_point") and ctrl_or_guide.hover_point is not None:
+                hpt = ctrl_or_guide.hover_point
+                painter.setBrush(QtCore.Qt.NoBrush)
+                painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
+                painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
+
         elif gtype in ("one_point", "two_point", "three_point"):
-            GeometryOverlayRenderer._render_perspective(painter, gtype, guide, line_w, handle_r)
+            GeometryOverlayRenderer._render_perspective(painter, gtype, guide, line_w, handle_r, ctrl_or_guide)
 
         elif gtype == "isometric":
             GeometryOverlayRenderer._render_isometric(painter, line_w)
@@ -146,7 +165,7 @@ class GeometryOverlayRenderer:
         painter.restore()
 
     @staticmethod
-    def _render_perspective(painter: QtGui.QPainter, gtype: str, guide: dict, line_w: float, handle_r: float):
+    def _render_perspective(painter: QtGui.QPainter, gtype: str, guide: dict, line_w: float, handle_r: float, ctrl=None):
         vps = []
         if gtype in ("one_point", "two_point", "three_point"): vps.append(guide.get("vpA", QtCore.QPointF(400, 300)))
         if gtype in ("two_point", "three_point"): vps.append(guide.get("vpB", QtCore.QPointF(-600, 300)))
@@ -164,6 +183,26 @@ class GeometryOverlayRenderer:
             for deg in range(0, 360, 20):
                 rad = math.radians(deg)
                 painter.drawLine(vp, QtCore.QPointF(vp.x() + 4000.0 * math.cos(rad), vp.y() + 4000.0 * math.sin(rad)))
+
+        if ctrl and hasattr(ctrl, "hover_point") and ctrl.hover_point is not None:
+            hpt = ctrl.hover_point
+            pen_active = QtGui.QPen(QtGui.QColor(255, 125, 45, 210), line_w * 1.5, QtCore.Qt.DashLine)
+            painter.setPen(pen_active)
+            for vp in vps:
+                dx, dy = hpt.x() - vp.x(), hpt.y() - vp.y()
+                l = math.hypot(dx, dy)
+                if l > 1e-4:
+                    ux, uy = dx / l, dy / l
+                    painter.drawLine(vp, QtCore.QPointF(hpt.x() + ux * 4000.0, hpt.y() + uy * 4000.0))
+            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
+            painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
+            if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
+                dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
+                painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
+                painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
+                painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
+
 
     @staticmethod
     def _render_isometric(painter: QtGui.QPainter, line_w: float):
@@ -381,7 +420,8 @@ class GeometryOverlayRenderer:
         cx, cy = ctrl.guide_state.get("cx", 400.0), ctrl.guide_state.get("cy", 300.0)
         fov_rad = math.radians(ctrl.guide_state.get("fov", 130.0))
         tan_f = math.tan(fov_rad / 4.0)
-        R = 400.0 / tan_f if tan_f > 1e-5 else 1e9
+        base_r = ctrl.guide_state.get("base_radius", 400.0)
+        R = base_r / tan_f if tan_f > 1e-5 else 1e9
 
         if ctrl.guide_state.get("show_ring", True):
             clip = QtGui.QPainterPath()
@@ -394,7 +434,7 @@ class GeometryOverlayRenderer:
         if mode in ("v", "h", "d"):
             curves_to_draw = [c for c in curves_to_draw if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
 
-        pen_hint = QtGui.QPen(QtGui.QColor(255, 125, 45, 75), line_w * 1.2, QtCore.Qt.DashLine)
+        pen_hint = QtGui.QPen(QtGui.QColor(255, 125, 45, 80), line_w * 1.2, QtCore.Qt.DashLine)
         painter.setPen(pen_hint)
         painter.setBrush(QtCore.Qt.NoBrush)
 
@@ -412,7 +452,7 @@ class GeometryOverlayRenderer:
                 painter.drawEllipse(c["center"], c["radius"], c["radius"])
 
         if ctrl.is_stroking and ctrl.locked_curve is not None:
-            pen_locked = QtGui.QPen(QtGui.QColor(255, 100, 30, 160), line_w * 1.8, QtCore.Qt.SolidLine)
+            pen_locked = QtGui.QPen(QtGui.QColor(255, 100, 30, 180), line_w * 2.0, QtCore.Qt.SolidLine)
             painter.setPen(pen_locked)
             painter.setBrush(QtCore.Qt.NoBrush)
             if ctrl.locked_curve["type"] == "line":
@@ -427,11 +467,18 @@ class GeometryOverlayRenderer:
             else:
                 painter.drawEllipse(ctrl.locked_curve["center"], ctrl.locked_curve["radius"], ctrl.locked_curve["radius"])
 
-        # Hollow / Vazada target cursor circle with transparent center
+        # Hollow target cursor circle with distance badge
         if ctrl.hover_point is not None:
+            hpt = ctrl.hover_point
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
             painter.setBrush(QtCore.Qt.NoBrush)
-            painter.drawEllipse(ctrl.hover_point, handle_r * 1.2, handle_r * 1.2)
+            painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
+            if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
+                dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
+                painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
+                painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
+                painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
 
         if ctrl.guide_state.get("show_ring", True):
             painter.restore()
+

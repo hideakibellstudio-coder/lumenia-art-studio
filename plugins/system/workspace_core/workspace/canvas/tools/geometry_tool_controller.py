@@ -77,7 +77,7 @@ class GeometryToolController:
     def handle_hover(self, doc_pt: QtCore.QPointF):
         self.hover_point = doc_pt
         gtype = self.guide_state["type"]
-        if gtype == "curvilinear" and not self.is_stroking and self.guide_state.get("show_hint", True):
+        if gtype == "curvilinear" and self.guide_state.get("show_hint", True):
             self.dynamic_hover_curves = self._get_dynamic_curves_at_point(doc_pt)
         elif not self.is_stroking:
             self.dynamic_hover_curves = []
@@ -193,6 +193,14 @@ class GeometryToolController:
                 if matching: self.locked_curve = matching[0]
 
     def snap_point(self, raw_x: float, raw_y: float, zoom: float = 1.0) -> tuple[float, float]:
+        res = self._compute_snap(raw_x, raw_y, zoom)
+        self.hover_point = QtCore.QPointF(res[0], res[1])
+        if self.guide_state.get("type") == "curvilinear" and self.guide_state.get("show_hint", True):
+            if not self.locked_curve:
+                self.dynamic_hover_curves = self._get_dynamic_curves_at_point(self.hover_point)
+        return res
+
+    def _compute_snap(self, raw_x: float, raw_y: float, zoom: float = 1.0) -> tuple[float, float]:
         gtype = self.guide_state["type"]
         if gtype == "none" or not self.guide_state.get("snap_dynamic", True): return (raw_x, raw_y)
         pt = QtCore.QPointF(raw_x, raw_y)
@@ -313,6 +321,7 @@ class GeometryToolController:
             return (raw_x, raw_y)
 
         return (raw_x, raw_y)
+
 
     def _get_dynamic_curves_at_point(self, click_pt: QtCore.QPointF) -> list:
         cx, cy = self.guide_state["cx"], self.guide_state["cy"]

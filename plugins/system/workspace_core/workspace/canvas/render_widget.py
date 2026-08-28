@@ -346,19 +346,20 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             else:
                 cur_x, cur_y = evt.x, evt.y
             res = b.paint_stroke(cur_x, cur_y, safe_pressure)
-            if res and len(res) >= 6:
-                self._last_draw_pos = (cur_x, cur_y)
-                if res[2] > 0 and res[3] > 0:
-                    dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
-                    t = self._get_canvas_transform()
-                    dirty_screen = t.mapRect(dirty_c).toAlignedRect().adjusted(-6, -6, 6, 6)
-                    self.update(dirty_screen)
-                else:
-                    self.update()
-            else:
-                self._last_draw_pos = (cur_x, cur_y)
+            self._last_draw_pos = (cur_x, cur_y)
+            has_geom = False
+            if hasattr(self, "geometry_ctrl"):
+                has_geom = (self.geometry_ctrl.guide_state.get("type", "none") != "none" or
+                            self.geometry_ctrl.sym_state.get("mode", "none") != "none")
+            if has_geom or not (res and len(res) >= 6 and res[2] > 0 and res[3] > 0):
                 self.update()
+            else:
+                dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
+                t = self._get_canvas_transform()
+                dirty_screen = t.mapRect(dirty_c).toAlignedRect().adjusted(-6, -6, 6, 6)
+                self.update(dirty_screen)
             return
+
         if self.bridge_client.renderer is None: return
         evt = self.to_canvas(screen_x, screen_y, pressure, 0.0)
         self.dispatcher.dispatch(DrawCommand(x=evt.x, y=evt.y, pressure=evt.pressure, timestamp=time.time()))

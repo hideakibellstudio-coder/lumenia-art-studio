@@ -55,18 +55,38 @@ QMenuBar::item:selected {{
 
 QMenu {{
     background-color: {bg_panel};
+    color: {text_main};
     border: 1px solid {border};
-    padding: 4px;
+    border-radius: 8px;
+    padding: 6px 4px;
 }}
 
 QMenu::item {{
-    padding: 6px 24px 6px 20px;
+    background-color: transparent;
+    padding: 7px 28px 7px 34px;
+    margin: 2px 4px;
     border-radius: 4px;
+    font-size: 12px;
 }}
 
 QMenu::item:selected {{
     background-color: {accent};
     color: #ffffff;
+}}
+
+QMenu::item:disabled {{
+    color: {text_muted};
+    background-color: transparent;
+}}
+
+QMenu::icon {{
+    padding-left: 10px;
+}}
+
+QMenu::separator {{
+    height: 1px;
+    background-color: {border};
+    margin: 5px 8px;
 }}
 
 QStatusBar {{

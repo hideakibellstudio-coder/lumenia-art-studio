@@ -21,13 +21,16 @@ QMenu {
     background-color: @BG_DARK;
     color: @FG_PRIMARY;
     border: 1px solid @BORDER;
-    border-radius: @RADIUS_SMALL;
-    padding: 4px 0px;
+    border-radius: @RADIUS_MEDIUM;
+    padding: 6px 4px;
 }
 
 QMenu::item {
-    padding: 6px 32px 6px 24px;
     background-color: transparent;
+    padding: 7px 28px 7px 34px;
+    margin: 2px 4px;
+    border-radius: @RADIUS_SMALL;
+    font-size: 12px;
 }
 
 QMenu::item:selected {
@@ -35,10 +38,19 @@ QMenu::item:selected {
     color: #ffffff;
 }
 
+QMenu::item:disabled {
+    color: @FG_TERTIARY;
+    background-color: transparent;
+}
+
+QMenu::icon {
+    padding-left: 10px;
+}
+
 QMenu::separator {
     height: 1px;
     background-color: @BORDER;
-    margin: 4px 0px;
+    margin: 5px 8px;
 }
 
 QTabWidget::pane {

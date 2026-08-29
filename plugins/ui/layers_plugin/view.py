@@ -227,25 +227,11 @@ class LayerTreeView(QTreeView):
 
     def contextMenuEvent(self, event):
         index = self.indexAt(event.pos())
-        from ui.core.theme.manager import ThemeManager
-        menu_qss = """
-            QMenu {
-                background-color: @BG_DARKER;
-                color: @FG_PRIMARY;
-                border: 1px solid @BORDER;
-            }
-            QMenu::item:selected {
-                background-color: @ACCENT;
-                color: #ffffff;
-            }
-        """
-        
         from ui.core.icons import get_icon
+        from PySide6.QtWidgets import QMenu
 
         if not index.isValid():
-            from PySide6.QtWidgets import QMenu
             menu = QMenu(self)
-            menu.setStyleSheet(ThemeManager.instance().compile_qss(menu_qss))
 
             act_add_layer = menu.addAction(get_icon("plus"), "Adicionar Nova Camada")
             act_add_group = menu.addAction(get_icon("folder"), "Adicionar Novo Grupo")
@@ -257,10 +243,8 @@ class LayerTreeView(QTreeView):
                 self.addGroupRequested.emit()
             return
 
-        from PySide6.QtWidgets import QMenu
         from .model import ROLE_IS_FILTER, ROLE_UID
         menu = QMenu(self)
-        menu.setStyleSheet(ThemeManager.instance().compile_qss(menu_qss))
 
         is_filter = bool(index.data(ROLE_IS_FILTER))
         uid = index.data(ROLE_UID)

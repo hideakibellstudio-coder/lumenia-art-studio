@@ -181,22 +181,11 @@ class NavigatorPanel(QtWidgets.QWidget):
         c_layout.addWidget(self.preview)
         c_layout.addWidget(self.controls)
 
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
+
         from ui.core.widgets.card_box import PanelCardBox
-        card_box = PanelCardBox("Navegador", content_inner, self)
-
-        scroll = QtWidgets.QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-
-        scroll_content = QtWidgets.QWidget()
-        sc_layout = QtWidgets.QVBoxLayout(scroll_content)
-        sc_layout.setContentsMargins(10, 10, 10, 10)
-        sc_layout.addWidget(card_box)
-        sc_layout.addStretch()
-
-        scroll.setWidget(scroll_content)
-        main_layout.addWidget(scroll)
+        card_box = PanelCardBox("", content_inner, self)
+        main_layout.addWidget(card_box)
 
 
         # Connections

@@ -200,7 +200,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         settings_layout.addWidget(props_col, 1)
 
         # Card Box Wrapper (Envolve e preenche 100% da altura da gaveta)
-        card_box = PanelCardBox("Pincel & Ferramentas", content_widget, self)
+        card_box = PanelCardBox("", content_widget, self)
         card_box.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout.addWidget(card_box, 1)
 

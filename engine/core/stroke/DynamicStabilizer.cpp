@@ -1,5 +1,6 @@
 #include "DynamicStabilizer.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace aladyn::engine::stroke {
 
@@ -23,9 +24,13 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
         return rawPosition;
     }
 
-    // 1. Dual-Stage Rolling Window (SAI 2 / Clip Studio style)
+    // 1. Perceptual curve: 0..100% mapped smoothly across low/mid/high sensitivity
+    const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
+    const double curved = norm * norm; // Quadratic perceptual ramp
+
+    // 2. Rolling Window size based on perceptual curve
     const size_t maxWindow = std::clamp(
-        static_cast<size_t>(2 + static_cast<int>(m_stabilizationPercentage / 3.0)),
+        static_cast<size_t>(2 + static_cast<int>(curved * (MAX_WINDOW_SIZE - 2))),
         static_cast<size_t>(2),
         MAX_WINDOW_SIZE
     );
@@ -38,11 +43,10 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
         m_historyCount = maxWindow;
     }
 
-    // 2. Weighted center-of-mass averaging across the history window
+    // 3. Weighted center-of-mass averaging with exponential recency weighting
     double sumX = 0.0, sumY = 0.0, totalWeight = 0.0;
     for (size_t i = 0; i < m_historyCount; ++i) {
-        // Linear weight increasing towards newest sample
-        const double w = static_cast<double>(i + 1);
+        const double w = std::pow(static_cast<double>(i + 1), 1.25);
         const size_t idx = (m_historyHead + MAX_WINDOW_SIZE + 1 - (m_historyCount - i)) % MAX_WINDOW_SIZE;
         sumX += m_historyBuffer[idx].x * w;
         sumY += m_historyBuffer[idx].y * w;
@@ -54,11 +58,30 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
         totalWeight > 0.0 ? (sumY / totalWeight) : rawPosition.y
     };
 
-    // 3. Spring-mass smooth interpolation towards the window average
-    const double interpFactor = std::clamp(1.0 - (m_stabilizationPercentage / 105.0), 0.05, 1.0);
+    // 4. Smooth spring-mass interpolation with adaptive responsiveness
+    const double interpFactor = std::clamp(std::pow(1.0 - norm * 0.92, 1.6), 0.035, 1.0);
     const math::Point2D delta = windowAvg - m_stabilizedPosition;
     m_stabilizedPosition = m_stabilizedPosition + (delta * interpFactor);
     return m_stabilizedPosition;
+}
+
+std::vector<math::Point2D> DynamicStabilizer::flush(math::Point2D endPosition, size_t steps) noexcept {
+    std::vector<math::Point2D> catchupPoints;
+    if (m_stabilizationPercentage <= 0.5 || steps == 0) {
+        m_stabilizedPosition = endPosition;
+        catchupPoints.push_back(endPosition);
+        return catchupPoints;
+    }
+
+    catchupPoints.reserve(steps);
+    for (size_t i = 1; i <= steps; ++i) {
+        const double t = static_cast<double>(i) / static_cast<double>(steps);
+        const double smoothT = t * t * (3.0 - 2.0 * t); // Smoothstep
+        math::Point2D pt = m_stabilizedPosition + (endPosition - m_stabilizedPosition) * smoothT;
+        catchupPoints.push_back(pt);
+    }
+    m_stabilizedPosition = endPosition;
+    return catchupPoints;
 }
 
 math::Point2D DynamicStabilizer::predictPosition(math::Point2D currentPos, math::Point2D velocity) const noexcept {

@@ -299,6 +299,21 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
 }
 
 void PaintEngineFacade::endStrokeRaw() {
+    if (m_isDrawing && m_hasLastRawPoint) {
+        auto catchupPts = m_stabilizer.flush(m_lastRawPoint, 2);
+        for (const auto& pt : catchupPts) {
+            auto mapped = brush::DynamicMapper::map(m_brushProfile, pt, 0.0, 0.0, 0.0);
+            raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
+            math::Rect2D dirty{0, 0, 0, 0};
+            internal::StrokeOrchestrator::renderSegment(
+                m_lastDab, currentDab, m_brushProfile, m_canvasTexture,
+                m_activeEngine.get(), m_layerStack, m_selectionMask,
+                m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
+                m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty
+            );
+            m_lastDab = currentDab;
+        }
+    }
     endStroke({stroke::PointerEventType::Release, m_lastRawPoint, 0.0, 0.0});
     m_hasLastRawPoint = false;
 }

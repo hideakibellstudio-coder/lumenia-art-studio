@@ -65,6 +65,9 @@ public:
     [[nodiscard]] size_t getRedoCount() const noexcept { return m_redoStack.size(); }
     [[nodiscard]] size_t getMemoryUsageBytes() const noexcept { return m_currentMemoryBytes; }
     void setMaxMemoryMB(size_t mb) noexcept { m_maxMemoryBytes = mb * 1024 * 1024; }
+    [[nodiscard]] size_t getMaxMemoryMB() const noexcept { return m_maxMemoryBytes / (1024 * 1024); }
+    void setMaxSteps(size_t steps) noexcept { m_maxSteps = steps; }
+    [[nodiscard]] size_t getMaxSteps() const noexcept { return m_maxSteps; }
 
 private:
     static size_t calculateStepBytes(const UndoStep& step) noexcept;

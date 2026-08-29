@@ -33,12 +33,16 @@ def load_render_settings() -> dict:
     low_latency = s.value("low_latency", True, type=bool)
     linear_gamma = s.value("linear_gamma", False, type=bool)
     deep_color = s.value("deep_color", True, type=bool)
+    undo_limit_mb = s.value("undo_limit_mb", 256, type=int)
+    undo_max_steps = s.value("undo_max_steps", 50, type=int)
     s.endGroup()
     return {
         "profile_id": profile_id,
         "low_latency": low_latency,
         "linear_gamma": linear_gamma,
         "deep_color": deep_color,
+        "undo_limit_mb": undo_limit_mb,
+        "undo_max_steps": undo_max_steps,
     }
 
 
@@ -50,6 +54,8 @@ def save_render_settings(cfg: dict) -> None:
     s.setValue("low_latency", bool(cfg.get("low_latency", True)))
     s.setValue("linear_gamma", bool(cfg.get("linear_gamma", False)))
     s.setValue("deep_color", bool(cfg.get("deep_color", True)))
+    s.setValue("undo_limit_mb", int(cfg.get("undo_limit_mb", 256)))
+    s.setValue("undo_max_steps", int(cfg.get("undo_max_steps", 50)))
     s.endGroup()
 
 
@@ -240,6 +246,21 @@ class RenderSettingsDialog(BaseFramelessDialog):
         row_deep.addWidget(self.switch_deep)
         engine_layout.addLayout(row_deep)
 
+        # 4. Histórico de Desfazer / Refazer (Undo/Redo)
+        row_undo = QtWidgets.QHBoxLayout()
+        lbl_undo = QtWidgets.QLabel("Memória do Histórico (Undo / Redo)")
+        lbl_undo.setToolTip("Limite dinâmico de memória RAM alocada para snapshots de tiles desfazer/refazer")
+        self.combo_undo = QtWidgets.QComboBox()
+        undo_opts = [(128, "128 MB"), (256, "256 MB (Padrão)"), (512, "512 MB"), (1024, "1024 MB (1 GB)"), (2048, "2048 MB (2 GB)"), (4096, "4096 MB (4 GB)")]
+        for mb, lbl in undo_opts:
+            self.combo_undo.addItem(lbl, mb)
+        cur_mb = self._saved_cfg.get("undo_limit_mb", 256)
+        idx = self.combo_undo.findData(cur_mb)
+        if idx >= 0: self.combo_undo.setCurrentIndex(idx)
+        self.combo_undo.currentIndexChanged.connect(self._save_switch_settings)
+        row_undo.addWidget(lbl_undo); row_undo.addStretch(); row_undo.addWidget(self.combo_undo)
+        engine_layout.addLayout(row_undo)
+
         right_layout.addWidget(engine_group)
         right_layout.addStretch()
 
@@ -265,15 +286,21 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self._select_profile(self._selected_profile)
 
     def _save_switch_settings(self, *args):
-        """Salva o estado atual dos switches no QSettings."""
+        """Salva o estado atual dos switches e limites no QSettings e aplica ao motor."""
+        mb = int(self.combo_undo.currentData() or 256) if hasattr(self, "combo_undo") else 256
         cfg = {
             "profile_id": self._active_profile_id,
             "low_latency": self.switch_lat.isChecked(),
             "linear_gamma": self.switch_gam.isChecked(),
             "deep_color": self.switch_deep.isChecked(),
+            "undo_limit_mb": mb,
+            "undo_max_steps": self._saved_cfg.get("undo_max_steps", 50),
         }
         self._saved_cfg = cfg
         save_render_settings(cfg)
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_undo_memory_limit_mb"):
+            backend.set_undo_memory_limit_mb(mb)
 
     def _build_cards(self):
         for card in self._cards:

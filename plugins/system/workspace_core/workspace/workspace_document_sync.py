@@ -31,9 +31,11 @@ class WorkspaceDocSyncMixin:
     ) -> None:
         """Recebe coordenadas normalizadas do navigator e aplica ao canvas."""
         cw = self.canvas_widget
+        cw_w = float(getattr(cw, "canvas_w", self.canvas_w))
+        cw_h = float(getattr(cw, "canvas_h", self.canvas_h))
         cw.zoom     = zoom
-        cw.pan_x    = (0.5 - norm_x) * zoom * self.canvas_w
-        cw.pan_y    = (0.5 - norm_y) * zoom * self.canvas_h
+        cw.pan_x    = (0.5 - norm_x) * zoom * cw_w
+        cw.pan_y    = (0.5 - norm_y) * zoom * cw_h
         cw.rotation = rotation
 
         if cw.input_adapter:
@@ -49,10 +51,12 @@ class WorkspaceDocSyncMixin:
         view_w: float, view_h: float,
     ) -> None:
         """Mapeia parâmetros de câmera para coordenadas normalizadas do navigator."""
-        norm_x  = 0.5 - pan_x / (zoom * self.canvas_w)
-        norm_y  = 0.5 - pan_y / (zoom * self.canvas_h)
-        ratio_w = view_w / (zoom * self.canvas_w)
-        ratio_h = view_h / (zoom * self.canvas_h)
+        cw_w = float(getattr(self.canvas_widget, "canvas_w", self.canvas_w))
+        cw_h = float(getattr(self.canvas_widget, "canvas_h", self.canvas_h))
+        norm_x  = 0.5 - pan_x / (zoom * cw_w)
+        norm_y  = 0.5 - pan_y / (zoom * cw_h)
+        ratio_w = view_w / (zoom * cw_w)
+        ratio_h = view_h / (zoom * cw_h)
 
         if self._properties_dock:
             self._properties_dock.navigator.update_viewport(
@@ -111,6 +115,8 @@ class WorkspaceDocSyncMixin:
         if backend and hasattr(backend, "set_active_document_context"):
             backend.set_active_document_context(doc.uid, doc.width, doc.height)
 
+        self.canvas_w = doc.width
+        self.canvas_h = doc.height
         self.canvas_widget.setEnabled(True)
         self.canvas_widget.canvas_w = doc.width
         self.canvas_widget.canvas_h = doc.height
@@ -162,6 +168,7 @@ class WorkspaceDocSyncMixin:
 
         if self._properties_dock:
             self._properties_dock.layers.set_layer_manager(doc.layer_manager)
+            self._properties_dock.navigator.set_canvas_size(doc.width, doc.height)
             self._properties_dock.navigator.set_has_document(True)
         if hasattr(self, "_layers_panel") and self._layers_panel:
             self._layers_panel.set_layer_manager(doc.layer_manager)
@@ -173,6 +180,7 @@ class WorkspaceDocSyncMixin:
                 p_ena = getattr(doc, "paper_texture_enabled", False)
                 pw.set_paper_state(color=p_col, visible=p_vis, preset_id=p_tex, enabled=p_ena)
         if hasattr(self, "_navigator_panel") and self._navigator_panel:
+            self._navigator_panel.set_canvas_size(doc.width, doc.height)
             self._navigator_panel.set_has_document(True)
 
         active_color = getattr(self, "_saved_color", QtGui.QColor(0, 0, 0))

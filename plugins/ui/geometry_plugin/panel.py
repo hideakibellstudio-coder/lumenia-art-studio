@@ -1,6 +1,7 @@
 """Main Geometry Panel for Dock/Drawer in Lumenia."""
 
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.core.theme.manager import ThemeManager
 from .components.constants import GUIDE_NAMES, SYM_NAMES, GUIDE_TYPES, SYM_TYPES
 from .components.geometry_selector import GeometrySelectorButton
 from .components.advanced_settings_dialog import AdvancedGeometryDialog
@@ -22,6 +23,8 @@ class GeometryPanel(QtWidgets.QWidget):
             "show_vps": False, "show_cube": False, "show_ground": False, "show_ceiling": False,
         }
         self._build_ui()
+        ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        self._apply_theme()
 
     def _build_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -35,13 +38,6 @@ class GeometryPanel(QtWidgets.QWidget):
         self.btn_advanced = QtWidgets.QPushButton("⚙")
         self.btn_advanced.setFixedSize(34, 34)
         self.btn_advanced.setToolTip("Configurações Avançadas de Simetria e Réguas")
-        self.btn_advanced.setStyleSheet("""
-            QPushButton {
-                background: #1e1e2e; color: #a855f7; border: 1px solid #3b3b54;
-                border-radius: 6px; font-size: 16px; font-weight: bold;
-            }
-            QPushButton:hover { background: #28283d; border-color: #a855f7; }
-        """)
         self.btn_advanced.clicked.connect(self._toggle_advanced)
         header.addWidget(self.btn_advanced)
 
@@ -53,25 +49,12 @@ class GeometryPanel(QtWidgets.QWidget):
 
         # 2. Card de Informações e Status
         self.card = QtWidgets.QFrame()
-        self.card.setStyleSheet("""
-            QFrame {
-                background: #181825; border: 1px solid #313244;
-                border-radius: 8px; padding: 10px;
-            }
-            QLabel { color: #cdd6f4; font-size: 11px; }
-            QPushButton {
-                background: #313244; color: #cdd6f4; border-radius: 4px;
-                padding: 6px 10px; font-size: 11px; font-weight: bold;
-            }
-            QPushButton:hover { background: #45475a; color: #ffffff; }
-        """)
         card_lay = QtWidgets.QVBoxLayout(self.card)
         card_lay.setSpacing(8)
 
         self.lbl_status = QtWidgets.QLabel("Selecione um modo de régua ou simetria acima para iniciar o desenho assistido.")
         self.lbl_status.setWordWrap(True)
         self.lbl_status.setAlignment(QtCore.Qt.AlignCenter)
-        self.lbl_status.setStyleSheet("color: #6c7086; margin: 8px 0;")
         card_lay.addWidget(self.lbl_status)
 
         # Botão Centralizar Pivô
@@ -88,6 +71,38 @@ class GeometryPanel(QtWidgets.QWidget):
 
         main_layout.addWidget(self.card)
         main_layout.addStretch()
+
+    def _apply_theme(self, *args):
+        tm = ThemeManager.instance()
+        bg_panel = tm.get_color("bg_panel", "#1e1e24")
+        bg_card = tm.get_color("bg_card", "#181825")
+        border = tm.get_color("border", "#313244")
+        accent = tm.get_color("accent", "#6366f1")
+        text_main = tm.get_color("text_main", "#f3f4f6")
+        text_sec = tm.get_color("text_sec", "#9ca3af")
+        bg_hover = tm.get_color("accent_muted", "#4f46e5")
+
+        self.btn_advanced.setStyleSheet(f"""
+            QPushButton {{
+                background: {bg_panel}; color: {accent}; border: 1px solid {border};
+                border-radius: 6px; font-size: 16px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background: {bg_hover}; border-color: {accent}; }}
+        """)
+
+        self.card.setStyleSheet(f"""
+            QFrame {{
+                background: {bg_card}; border: 1px solid {border};
+                border-radius: 8px; padding: 10px;
+            }}
+            QLabel {{ color: {text_main}; font-size: 11px; }}
+            QPushButton {{
+                background: {bg_panel}; color: {text_main}; border: 1px solid {border};
+                border-radius: 4px; padding: 6px 10px; font-size: 11px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background: {accent}; color: #ffffff; }}
+        """)
+        self._update_status()
 
     def _toggle_advanced(self):
         if self.adv_dialog and self.adv_dialog.isVisible():
@@ -147,14 +162,18 @@ class GeometryPanel(QtWidgets.QWidget):
         if self.state["ruler_type"] != "none":
             lines.append(f"📏 <b>Régua:</b> {r_name}")
 
+        tm = ThemeManager.instance()
+        accent = tm.get_color("accent", "#6366f1")
+        text_sec = tm.get_color("text_sec", "#9ca3af")
+
         if not lines:
             self.lbl_status.setText("Selecione um modo de régua ou simetria acima para iniciar o desenho assistido.")
-            self.lbl_status.setStyleSheet("color: #6c7086; margin: 8px 0;")
+            self.lbl_status.setStyleSheet(f"color: {text_sec}; margin: 8px 0;")
             self.btn_center_pivot.setVisible(False)
             self.btn_reset_angle.setVisible(False)
         else:
             self.lbl_status.setText("<br>".join(lines))
-            self.lbl_status.setStyleSheet("color: #a855f7; margin: 4px 0;")
+            self.lbl_status.setStyleSheet(f"color: {accent}; margin: 4px 0; font-weight: 500;")
             self.btn_center_pivot.setVisible(True)
             self.btn_reset_angle.setVisible(self.state["sym_type"] in ("mirror", "double_mirror", "radial", "kaleidoscope"))
 

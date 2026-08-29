@@ -82,3 +82,19 @@ QTabBar::tab:hover:!selected {
     background-color: @BG_LIGHT;
     color: @FG_PRIMARY;
 }
+
+/* ================================================================
+   ToolBars & Separators
+   ================================================================ */
+QToolBar {
+    background-color: @BG_DARKER;
+    border-bottom: 1px solid @BORDER;
+    spacing: 3px;
+    padding: 2px 8px;
+}
+
+QToolBar::separator {
+    background-color: @BORDER;
+    width: 1px;
+    margin: 4px 6px;
+}

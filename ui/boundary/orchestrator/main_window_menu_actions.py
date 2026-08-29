@@ -401,29 +401,27 @@ class MainWindowMenuActionsMixin:
             self.open_shortcuts_dialog()
 
     def open_shortcuts_dialog(self) -> None:
-        QtWidgets.QMessageBox.information(
-            self,
-            "Atalhos de Teclado",
-            "ATALHOS PRINCIPAIS DO LUMENIA:\n\n"
-            "• B: Pincel\n"
-            "• E: Borracha\n"
-            "• G: Balde de Tinta\n"
-            "• I / Alt (segurar): Conta-Gotas\n"
-            "• W: Varinha Mágica\n"
-            "• Ctrl+T: Transformação Livre\n"
-            "• Ctrl+Z: Desfazer\n"
-            "• Ctrl+Y / Ctrl+Shift+Z: Refazer\n"
-            "• Ctrl++ / Ctrl+-: Zoom In / Zoom Out\n"
-            "• Ctrl+0: Zoom 100%\n"
-            "• Ctrl+R: Resetar Rotação\n"
-            "• H: Espelho Horizontal\n"
-            "• Ctrl+N: Novo Documento\n"
-            "• Ctrl+S / Ctrl+E: Exportar Imagem\n"
-            "• Ctrl+Shift+N: Nova Camada\n"
-            "• Ctrl+G: Novo Grupo\n"
-            "• Ctrl+J: Duplicar Camada\n"
-            "• Delete: Limpar Camada"
-        )
+        from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog
+        dialog = KeyboardShortcutsDialog(self)
+        dialog.shortcutsApplied.connect(self._on_shortcuts_applied)
+        dialog.exec()
+
+        self.status_bar.showMessage("Atalhos de teclado atualizados e aplicados.", 3000)
+
+    def open_cursor_settings_dialog(self) -> None:
+        from ui.core.screens.cursor_settings_dialog import CursorSettingsDialog
+        dialog = CursorSettingsDialog(self)
+        dialog.cursorSettingsChanged.connect(self._on_cursor_settings_changed)
+        dialog.exec()
+
+    def _on_cursor_settings_changed(self, cfg: dict) -> None:
+        cw = getattr(self.workspace, "canvas_widget", None)
+        if cw:
+            cw._cursor_settings = cfg
+            if hasattr(cw, "_update_cursor_shape"):
+                cw._update_cursor_shape()
+            cw.update()
+        self.status_bar.showMessage("Preferências de cursor aplicadas.", 3000)
 
     def open_feedback_form(self) -> None:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))

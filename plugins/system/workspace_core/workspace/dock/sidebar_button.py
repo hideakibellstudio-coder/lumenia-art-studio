@@ -201,6 +201,29 @@ class SidebarButton(QtWidgets.QToolButton):
                 return
         super().mouseMoveEvent(event)
 
+    def tabletEvent(self, event: QtGui.QTabletEvent) -> None:
+        et = event.type()
+        if et == QtCore.QEvent.TabletPress:
+            self._drag_start_pos = event.position().toPoint()
+            self.setDown(True)
+            event.accept()
+        elif et == QtCore.QEvent.TabletMove:
+            if self._drag_start_pos is not None:
+                delta = (event.position().toPoint() - self._drag_start_pos).manhattanLength()
+                if delta >= QtWidgets.QApplication.startDragDistance():
+                    self._start_drag()
+                    event.accept()
+                    return
+            event.accept()
+        elif et == QtCore.QEvent.TabletRelease:
+            if self.isDown():
+                self.setDown(False)
+                self.click()
+            self._drag_start_pos = None
+            event.accept()
+        else:
+            super().tabletEvent(event)
+
     def _start_drag(self) -> None:
         self._drag_start_pos = None
         drag = QtGui.QDrag(self)

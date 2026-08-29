@@ -59,10 +59,12 @@ class LayersPrimaryBox(QWidget):
         self._add_btn(layout, "lock", "Bloquear Camada", self.controller.grid_toggle_lock)
 
     def _add_btn(self, layout, icon_name, tooltip, callback):
-        btn = GridActionButton(None, tooltip)
+        icon = get_icon(icon_name)
+        btn = GridActionButton(icon, tooltip)
         btn.setProperty("icon_name", icon_name)
         btn.setProperty("class", "PrimaryBoxButton")
         btn.setFixedSize(28, 28)
+        btn.setIconSize(QSize(16, 16))
         btn.clicked.connect(callback)
         layout.addWidget(btn)
         self.buttons.append(btn)
@@ -89,10 +91,12 @@ class LayersSecondaryBar(QWidget):
         ]
         
         for icon_name, tooltip, callback in actions:
-            btn = GridActionButton(None, tooltip)
+            icon = get_icon(icon_name)
+            btn = GridActionButton(icon, tooltip)
             btn.setProperty("icon_name", icon_name)
             btn.setProperty("class", "SecondaryBarButton")
             btn.setFixedSize(24, 24)
+            btn.setIconSize(QSize(14, 14))
             btn.clicked.connect(callback)
             layout.addWidget(btn)
             self.buttons.append(btn)

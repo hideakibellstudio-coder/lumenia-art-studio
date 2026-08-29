@@ -128,22 +128,21 @@ class LayersHeader(QWidget):
         self._all_blend_modes = [
             "Normal",
             "Atravessar",
-            "Multiplicação",
+            "Multiplicar",
             "Divisão",
-            "Sobreposição",
+            "Sobrepor",
             "Escurecer",
             "Clarear",
-            "Subexposição (Dodge)",
-            "Superexposição (Burn)",
+            "Subexposição",
+            "Superexposição",
             "Diferença",
             "Exclusão",
-            "Adicionar (Add)",
+            "Adicionar",
             "Borracha"
         ]
         self.combo_blend.addItems(self._all_blend_modes)
         self.combo_blend.setToolTip("Modo de Mesclagem da Camada")
-        self.combo_blend.setMinimumWidth(105)
-        self.combo_blend.setMaximumWidth(130)
+        self.combo_blend.setFixedWidth(102)
         self.combo_blend.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.combo_blend.currentTextChanged.connect(self.blendModeChanged.emit)
 
@@ -180,7 +179,15 @@ class LayersHeader(QWidget):
                 if idx >= 0:
                     self.combo_blend.removeItem(idx)
 
-            idx = self.combo_blend.findText(blend_mode)
+            legacy_map = {
+                "Multiplicação": "Multiplicar",
+                "Sobreposição": "Sobrepor",
+                "Subexposição (Dodge)": "Subexposição",
+                "Superexposição (Burn)": "Superexposição",
+                "Adicionar (Add)": "Adicionar",
+            }
+            clean_mode = legacy_map.get(blend_mode, blend_mode)
+            idx = self.combo_blend.findText(clean_mode)
             if idx >= 0:
                 self.combo_blend.setCurrentIndex(idx)
         finally:

@@ -3,6 +3,7 @@
 
 #include "../math/Point2D.hpp"
 #include <array>
+#include <vector>
 #include <cstddef>
 
 namespace aladyn::engine::stroke {
@@ -15,6 +16,7 @@ public:
 
     void reset(math::Point2D initialPosition) noexcept;
     math::Point2D update(math::Point2D rawPosition) noexcept;
+    std::vector<math::Point2D> flush(math::Point2D endPosition, size_t steps = 3) noexcept;
 
     void setStabilizationPercentage(double percentage) noexcept;
     [[nodiscard]] double getStabilizationPercentage() const noexcept { return m_stabilizationPercentage; }

@@ -98,6 +98,10 @@ class _CompactSliderCore(QtWidgets.QWidget):
         if event.button() == QtCore.Qt.LeftButton:
             self.valueChanged.emit(self._value)
 
+    def wheelEvent(self, event):
+        # Ignore mouse wheel so parent scroll areas can scroll freely
+        event.ignore()
+
 
 class CompactSlider(QtWidgets.QWidget):
     """
@@ -148,3 +152,6 @@ class CompactSlider(QtWidgets.QWidget):
 
     def apply_theme(self, bg: str, border: str, accent: str, text: str):
         self.core.apply_theme(bg, border, accent, text)
+
+    def wheelEvent(self, event):
+        event.ignore()

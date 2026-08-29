@@ -17,6 +17,7 @@ from .viewport.input_router import CanvasInputRouter
 from .viewport.canvas_compat import CanvasCompatMixin
 from .renderers.overlay_renderer import OverlayRenderer
 from .renderers.geometry_overlay_renderer import GeometryOverlayRenderer
+from .renderers.tool_cursor_renderer import ToolCursorRenderer
 from .tools.selection_tool_controller import SelectionToolController
 from .tools.shape_tool_controller import ShapeToolController
 from .tools.transform_tool_controller import TransformToolController
@@ -50,45 +51,24 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.eyedrop_ctrl = EyedropToolController(self)
         self.geometry_ctrl = GeometryToolController(self)
 
-        self.active_tool = "brush"
-        self.drawing = False
-        self.brush_size = 60.0
-        self.manual_pressure = 0.50
-        self.is_panning = False
-        self.is_zoom_dragging = False
-        self.last_mouse_pos = QtCore.QPointF()
-        self.zoom_drag_start_pos = QtCore.QPointF()
-
-        self.canvas_w = 1920
-        self.canvas_h = 1080
-        self.view_initialized = False
-        self._last_tablet_time: float = 0.0
-        self._tablet_in_use: bool = False
-
-        self.paper_visible: bool = True
-        self.paper_color: QtGui.QColor = QtGui.QColor(255, 255, 255)
+        self.active_tool, self.drawing, self.brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
+        self.is_panning, self.is_zoom_dragging = False, False
+        self.last_mouse_pos, self.zoom_drag_start_pos = QtCore.QPointF(), QtCore.QPointF()
+        self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
+        self._last_tablet_time, self._tablet_in_use = 0.0, False
+        self.paper_visible, self.paper_color = True, QtGui.QColor(255, 255, 255)
         self._checker_brush = self._create_checker_brush()
-
+        self._cursor_in_viewport, self._mouse_pos = False, QtCore.QPointF(-100, -100)
+        self._cursor_settings = ToolCursorRenderer.get_cursor_settings()
         self._active_text_editor: Optional[TextOverlayEditor] = None
-        self._text_settings: dict = {
-            "font_family": "Segoe UI", "font_size": 36, "bold": False,
-            "italic": False, "underline": False, "align": "left",
-            "color": QtGui.QColor(0, 0, 0, 255)
-        }
-        self._bucket_settings: dict = {
-            "tolerance": 20, "expand_px": 1, "gap_closing_px": 0,
-            "contiguous": True, "aa": True, "sample_all": True,
-        }
-        self._flood_layers: list = []
-        self._flood_redo_stack: list = []
+        self._text_settings = {"font_family": "Segoe UI", "font_size": 36, "bold": False, "italic": False, "underline": False, "align": "left", "color": QtGui.QColor(0, 0, 0, 255)}
+        self._bucket_settings = {"tolerance": 20, "expand_px": 1, "gap_closing_px": 0, "contiguous": True, "aa": True, "sample_all": True}
+        self._flood_layers, self._flood_redo_stack = [], []
 
     def _create_checker_brush(self) -> QtGui.QBrush:
-        pix = QtGui.QPixmap(32, 32)
-        p = QtGui.QPainter(pix)
-        p.fillRect(0, 0, 16, 16, QtGui.QColor("#ffffff"))
-        p.fillRect(16, 0, 16, 16, QtGui.QColor("#d1d5db"))
-        p.fillRect(0, 16, 16, 16, QtGui.QColor("#d1d5db"))
-        p.fillRect(16, 16, 16, 16, QtGui.QColor("#ffffff"))
+        pix = QtGui.QPixmap(32, 32); p = QtGui.QPainter(pix)
+        p.fillRect(0, 0, 16, 16, QtGui.QColor("#ffffff")); p.fillRect(16, 0, 16, 16, QtGui.QColor("#d1d5db"))
+        p.fillRect(0, 16, 16, 16, QtGui.QColor("#d1d5db")); p.fillRect(16, 16, 16, 16, QtGui.QColor("#ffffff"))
         p.end()
         return QtGui.QBrush(pix)
 
@@ -96,6 +76,17 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
     def backend(self):
         from ui.core.engine.registry import EngineRegistry
         return EngineRegistry.instance().get_backend()
+
+    @property
+    def current_brush_radius(self) -> float:
+        b = self.backend
+        if b and hasattr(b, "_facade") and b._facade and hasattr(b._facade, "get_brush_profile"):
+            try:
+                prof = b._facade.get_brush_profile()
+                if prof and hasattr(prof, "brush_size") and prof.brush_size > 0:
+                    return float(prof.brush_size) / 2.0
+            except Exception: pass
+        return getattr(self, "brush_size", 24.0) / 2.0
 
     def init_engine(self, canvas_w=1920, canvas_h=1080):
         self.canvas_w = canvas_w
@@ -155,15 +146,15 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, self.zoom < 1.0)
+        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, True)
         painter.fillRect(self.rect(), QtGui.QColor(128, 128, 128))
 
         active_doc = DocumentManager.instance().active_document()
         if active_doc is None:
             tm = ThemeManager.instance()
-            painter.setPen(QtGui.QColor(tm.get_color("text_sec")))
-            painter.setFont(QtGui.QFont("Segoe UI", 13, QtGui.QFont.Bold))
-            painter.drawText(self.rect(), QtCore.Qt.AlignCenter, "Nenhum Documento Aberto\n\nPressione Ctrl+N para criar um novo canvas")
+            painter.setPen(QtGui.QColor(tm.get_color("text_sec", "#9ca3af")))
+            painter.setFont(QtGui.QFont("Segoe UI", 12, QtGui.QFont.Bold))
+            painter.drawText(self.rect(), QtCore.Qt.AlignCenter, "Nenhum Documento Aberto\n\nPressione Ctrl+N ou Arquivo > Novo Documento")
             painter.end()
             return
 
@@ -176,12 +167,10 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "get_qimage"):
             qimg = backend.get_qimage()
-            if qimg and not qimg.isNull():
-                painter.drawImage(canvas_rect, qimg)
+            if qimg and not qimg.isNull(): painter.drawImage(canvas_rect, qimg)
 
         for fl in getattr(self, "_flood_layers", []):
-            if fl and not fl.isNull():
-                painter.drawImage(canvas_rect, fl)
+            if fl and not fl.isNull(): painter.drawImage(canvas_rect, fl)
 
         if backend and hasattr(backend, "has_selection") and backend.has_selection():
             OverlayRenderer.render_selection_overlay(painter, backend, self.zoom, self.selection_ctrl.selection_dash_offset, self.canvas_w, self.canvas_h)
@@ -195,10 +184,8 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         if self.shape_ctrl.drag_active:
             OverlayRenderer.render_shape_drag_preview(painter, self.shape_ctrl)
 
-        # Overlays de Simetria e Guias/Réguas
         if hasattr(self, "geometry_ctrl"):
-            hide_during_draw = self.drawing and self.geometry_ctrl.guide_state.get("hidden", False)
-            if not hide_during_draw:
+            if not (self.drawing and self.geometry_ctrl.guide_state.get("hidden", False)):
                 GeometryOverlayRenderer.render_symmetry(painter, self.geometry_ctrl.sym_state, self.zoom)
                 GeometryOverlayRenderer.render_guides(painter, self.geometry_ctrl, self.zoom)
 
@@ -206,6 +193,12 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
         if self.eyedrop_ctrl.active and self.eyedrop_ctrl.settings.get("show_loupe", True):
             OverlayRenderer.render_color_loupe(painter, self.eyedrop_ctrl.pos, self, backend, self.eyedrop_ctrl.current_color, self.eyedrop_ctrl.old_color)
+
+        if self._cursor_in_viewport and self.active_tool in ("brush", "eraser"):
+            ToolCursorRenderer.render_cursor(
+                painter, self._mouse_pos.x(), self._mouse_pos.y(),
+                self.current_brush_radius, self.zoom, self.drawing, self._cursor_settings
+            )
         painter.end()
 
     # ── Tool Delegation & Overlays ──
@@ -238,50 +231,27 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             cfg = ed.settings
             text_img = QtGui.QImage(self.canvas_w, self.canvas_h, QtGui.QImage.Format_ARGB32_Premultiplied)
             text_img.fill(QtCore.Qt.transparent)
-            p = QtGui.QPainter(text_img)
-            p.setRenderHint(QtGui.QPainter.Antialiasing, True)
-            p.setRenderHint(QtGui.QPainter.TextAntialiasing, True)
+            p = QtGui.QPainter(text_img); p.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing, True)
             qf = QtGui.QFont(cfg.get("font_family", "Segoe UI"), max(6, int(cfg.get("font_size", 36))))
-            qf.setBold(bool(cfg.get("bold", False)))
-            qf.setItalic(bool(cfg.get("italic", False)))
-            qf.setUnderline(bool(cfg.get("underline", False)))
-            p.setFont(qf)
-            p.setPen(QtGui.QPen(QtGui.QColor(cfg.get("color", QtGui.QColor(0, 0, 0, 255)))))
-
-            align_flags = QtCore.Qt.TextWordWrap
+            qf.setBold(bool(cfg.get("bold", False))); qf.setItalic(bool(cfg.get("italic", False))); qf.setUnderline(bool(cfg.get("underline", False)))
+            p.setFont(qf); p.setPen(QtGui.QPen(QtGui.QColor(cfg.get("color", QtGui.QColor(0, 0, 0, 255)))))
             al = cfg.get("align", "left")
-            if al == "center": align_flags |= QtCore.Qt.AlignHCenter
-            elif al == "right": align_flags |= QtCore.Qt.AlignRight
-            else: align_flags |= QtCore.Qt.AlignLeft
-
-            max_w = max(200.0, float(self.canvas_w) - ed.canvas_pos.x())
-            max_h = max(200.0, float(self.canvas_h) - ed.canvas_pos.y())
-            p.drawText(QtCore.QRectF(ed.canvas_pos.x(), ed.canvas_pos.y(), max_w, max_h), align_flags, text)
+            align_f = QtCore.Qt.TextWordWrap | (QtCore.Qt.AlignHCenter if al == "center" else (QtCore.Qt.AlignRight if al == "right" else QtCore.Qt.AlignLeft))
+            p.drawText(QtCore.QRectF(ed.canvas_pos.x(), ed.canvas_pos.y(), max(200.0, float(self.canvas_w) - ed.canvas_pos.x()), max(200.0, float(self.canvas_h) - ed.canvas_pos.y())), align_f, text)
             p.end()
-
-            text_rgba = text_img.convertToFormat(QtGui.QImage.Format_RGBA8888)
-            px_bytes = text_rgba.constBits().tobytes()
-
+            px_bytes = text_img.convertToFormat(QtGui.QImage.Format_RGBA8888).constBits().tobytes()
             from ui.core.engine.registry import EngineRegistry
             b = EngineRegistry.instance().get_backend()
             if b and hasattr(b, "paste_rgba_buffer_on_active_layer") and getattr(b, "available", False):
                 b.paste_rgba_buffer_on_active_layer(0, 0, self.canvas_w, self.canvas_h, px_bytes)
             else:
-                self._flood_layers.append(text_img)
-                self._flood_redo_stack.clear()
+                self._flood_layers.append(text_img); self._flood_redo_stack.clear()
             self.strokeFinished.emit()
-
-        ed.hide()
-        ed.deleteLater()
-        self._active_text_editor = None
-        self.update()
+        ed.hide(); ed.deleteLater(); self._active_text_editor = None; self.update()
 
     def cancel_text_overlay(self):
         if self._active_text_editor:
-            self._active_text_editor.hide()
-            self._active_text_editor.deleteLater()
-            self._active_text_editor = None
-            self.update()
+            self._active_text_editor.hide(); self._active_text_editor.deleteLater(); self._active_text_editor = None; self.update()
 
     def do_flood_fill(self, screen_x: float, screen_y: float):
         evt = self.to_canvas(screen_x, screen_y, 1.0, 0.0)
@@ -327,7 +297,6 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             self._last_draw_pos = (cur_x, cur_y)
             b.start_stroke(cur_x, cur_y, safe_pressure)
             self.update()
-            return
         if self.bridge_client.renderer is None: return
         self.drawing = True
         evt = self.to_canvas(screen_x, screen_y, max(0.02, pressure), 0.0)
@@ -335,29 +304,26 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.update()
 
     def paint_stroke(self, screen_x: float, screen_y: float, pressure: float):
-        if not self.drawing:
-            return
+        if not self.drawing: return
         b = self.backend
         if b is not None:
-            safe_pressure = max(0.02, pressure)
-            evt = self.to_canvas(screen_x, screen_y, safe_pressure, 0.0)
-            if hasattr(self, "geometry_ctrl"):
-                cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom)
-            else:
-                cur_x, cur_y = evt.x, evt.y
-            res = b.paint_stroke(cur_x, cur_y, safe_pressure)
+            old_screen_pos = self._mouse_pos
+            self._mouse_pos = QtCore.QPointF(screen_x, screen_y)
+            safe_p = max(0.02, pressure)
+            evt = self.to_canvas(screen_x, screen_y, safe_p, 0.0)
+            cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom) if hasattr(self, "geometry_ctrl") else (evt.x, evt.y)
+            res = b.paint_stroke(cur_x, cur_y, safe_p)
             self._last_draw_pos = (cur_x, cur_y)
-            has_geom = False
-            if hasattr(self, "geometry_ctrl"):
-                has_geom = (self.geometry_ctrl.guide_state.get("type", "none") != "none" or
-                            self.geometry_ctrl.sym_state.get("mode", "none") != "none")
-            if has_geom or not (res and len(res) >= 6 and res[2] > 0 and res[3] > 0):
-                self.update()
+            has_geom = hasattr(self, "geometry_ctrl") and (self.geometry_ctrl.guide_state.get("type", "none") != "none" or self.geometry_ctrl.sym_state.get("mode", "none") != "none")
+            if has_geom or not (res and len(res) >= 6 and res[2] > 0 and res[3] > 0): self.update()
             else:
-                dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
-                t = self._get_canvas_transform()
-                dirty_screen = t.mapRect(dirty_c).toAlignedRect().adjusted(-6, -6, 6, 6)
-                self.update(dirty_screen)
+                dirty_s = self._get_canvas_transform().mapRect(QtCore.QRectF(res[0], res[1], res[2], res[3])).toAlignedRect().adjusted(-6, -6, 6, 6)
+                if self._cursor_in_viewport and not self._cursor_settings.get("hide_on_stroke", False):
+                    br_rad = self.current_brush_radius
+                    r_old = ToolCursorRenderer.get_cursor_rect(old_screen_pos.x(), old_screen_pos.y(), br_rad, self.zoom)
+                    r_new = ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), br_rad, self.zoom)
+                    dirty_s = dirty_s.united(r_old).united(r_new)
+                self.update(dirty_s)
             return
 
         if self.bridge_client.renderer is None: return
@@ -366,16 +332,14 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.update()
 
     def end_stroke(self, screen_x: float | None = None, screen_y: float | None = None):
-        if hasattr(self, "geometry_ctrl"):
-            self.geometry_ctrl.mouse_release()
+        if hasattr(self, "geometry_ctrl"): self.geometry_ctrl.mouse_release()
         if self.drawing:
             b = self.backend
             if b is not None:
                 if screen_x is not None and screen_y is not None:
                     evt = self.to_canvas(screen_x, screen_y, 0.0, 0.0)
                     b.end_stroke(evt.x, evt.y)
-                else:
-                    b.end_stroke()
+                else: b.end_stroke()
                 self.drawing = False
                 self.update()
                 self.strokeFinished.emit()
@@ -393,12 +357,44 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             return True
         return False
 
+    def enterEvent(self, e: QtGui.QEnterEvent):
+        self._cursor_in_viewport = True
+        self._update_cursor_shape()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e: QtCore.QEvent):
+        self._cursor_in_viewport = False
+        self.update(ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), self.current_brush_radius, self.zoom))
+        super().leaveEvent(e)
+
+    def _update_cursor_shape(self):
+        from ui.core.document.manager import DocumentManager
+        if not DocumentManager.instance().has_document():
+            self.setCursor(QtCore.Qt.ArrowCursor); return
+        m = self._cursor_settings.get("mode", "ring_and_dot")
+        if self.active_tool in ("brush", "eraser"):
+            self.setCursor(QtCore.Qt.ArrowCursor if m == "system" else QtCore.Qt.BlankCursor)
+        elif self.active_tool in ("eyedropper", "bucket", "wand", "transform"):
+            self.setCursor(ToolCursorRenderer.create_custom_cursor(self.active_tool))
+        elif self.active_tool in ("lasso", "rect_select", "ellipse_select"):
+            self.setCursor(QtCore.Qt.CrossCursor)
+        else: self.setCursor(QtCore.Qt.ArrowCursor)
+
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         if not self._is_synthesized_or_tablet_active(e):
             self.input_router.handle_pointer_press(e.position(), e.button(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers())
         else: e.ignore()
 
     def mouseMoveEvent(self, e: QtGui.QMouseEvent):
+        old_pos = self._mouse_pos
+        self._mouse_pos = e.position()
+        self._cursor_in_viewport = True
+        from ui.core.document.manager import DocumentManager
+        if DocumentManager.instance().has_document() and self.active_tool in ("brush", "eraser") and not self.drawing:
+            br_rad = self.current_brush_radius
+            r_old = ToolCursorRenderer.get_cursor_rect(old_pos.x(), old_pos.y(), br_rad, self.zoom)
+            r_new = ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), br_rad, self.zoom)
+            self.update(r_old.united(r_new))
         if not self._is_synthesized_or_tablet_active(e):
             self.input_router.handle_pointer_move(e.position(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers())
         else: e.ignore()
@@ -416,6 +412,9 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
     def tabletEvent(self, e: QtGui.QTabletEvent):
         self._last_tablet_time = time.time()
+        old_pos = self._mouse_pos
+        self._mouse_pos = e.position()
+        self._cursor_in_viewport = True
         is_er = False
         if hasattr(e, "pointingDevice") and e.pointingDevice():
             is_er = (e.pointingDevice().pointerType() == QtGui.QPointingDevice.PointerType.Eraser)
@@ -429,6 +428,11 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             self.input_router.handle_pointer_press(e.position(), btn, e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er)
             e.accept()
         elif et == QtCore.QEvent.TabletMove:
+            if not self.drawing and self.active_tool in ("brush", "eraser"):
+                br_rad = self.current_brush_radius
+                r_old = ToolCursorRenderer.get_cursor_rect(old_pos.x(), old_pos.y(), br_rad, self.zoom)
+                r_new = ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), br_rad, self.zoom)
+                self.update(r_old.united(r_new))
             self.input_router.handle_pointer_move(e.position(), e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er)
             e.accept()
         elif et == QtCore.QEvent.TabletRelease:

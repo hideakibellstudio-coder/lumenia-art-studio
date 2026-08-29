@@ -169,7 +169,7 @@ class WorkspaceLayoutMixin:
         if not hasattr(self, "floating_toolbar"):
             return
 
-        self.floating_toolbar.auto_collapse_speed = cfg.get("speed", "Rápido")
+        self.floating_toolbar.set_auto_collapse_speed(cfg.get("speed", "Rápido"))
         self.floating_toolbar.visible_tool_ids = cfg.get("tools", [])
         self.floating_toolbar.rebuild_tools()
 

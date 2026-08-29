@@ -64,10 +64,19 @@ class NavigatorPreview(QtWidgets.QWidget):
         self._color_empty_bg = QtGui.QColor(ThemeManager.instance().resolve_color("bg_panel", colors))
         self.update()
 
+    def set_canvas_size(self, width: int, height: int) -> None:
+        if width > 0 and height > 0:
+            self.aspect_ratio = float(width) / float(height)
+            self.update()
+
     def set_artwork(self, pix):
         if isinstance(pix, QtGui.QImage):
+            if pix.width() > 0 and pix.height() > 0:
+                self.aspect_ratio = float(pix.width()) / float(pix.height())
             self.artwork_pix = QtGui.QPixmap.fromImage(pix)
         elif isinstance(pix, QtGui.QPixmap):
+            if pix.width() > 0 and pix.height() > 0:
+                self.aspect_ratio = float(pix.width()) / float(pix.height())
             self.artwork_pix = pix
         else:
             self.artwork_pix = None

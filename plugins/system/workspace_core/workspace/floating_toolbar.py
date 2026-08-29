@@ -328,13 +328,19 @@ class FloatingToolbar(QtWidgets.QDialog):
             self.setMaximumSize(target_size)
             self.resize(target_size)
 
+    def set_auto_collapse_speed(self, speed: str) -> None:
+        self.auto_collapse_speed = speed
+        if speed == "Desativado":
+            self._collapse_timer.stop()
+            self._expand_timer.stop()
+            self._do_expand()
+
     # ── Auto-Collapse (Hover & Timers) ───────────────────────────────────
 
     def enterEvent(self, event: QtGui.QEnterEvent) -> None:
         self._collapse_timer.stop()
-        speed_ms = self._get_speed_ms()
-        if speed_ms > 0 and self._is_collapsed:
-            self._expand_timer.start(100)  # Intent de 100ms no hover
+        if self._is_collapsed:
+            self._expand_timer.start(50)  # Always expand immediately on hover if collapsed
         super().enterEvent(event)
 
     def leaveEvent(self, event: QtCore.QEvent) -> None:

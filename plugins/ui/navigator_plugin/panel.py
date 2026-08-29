@@ -259,8 +259,12 @@ class NavigatorPanel(QtWidgets.QWidget):
     def fit_to_screen(self):
         self.request_global_fit_view.emit()
 
+    def set_canvas_size(self, width: int, height: int):
+        self.preview.set_canvas_size(width, height)
+
     def set_has_document(self, has_doc: bool):
-        self.preview.has_document = has_doc
+        self.preview.has_document = bool(has_doc)
+        self.controls.setEnabled(bool(has_doc))
         self.preview.update()
 
     def set_artwork(self, pix):
@@ -277,8 +281,3 @@ class NavigatorPanel(QtWidgets.QWidget):
             self.state["ratio_w"],
             self.state["ratio_h"]
         )
-
-    def set_has_document(self, has_doc):
-        self.preview.has_document = has_doc
-        self.controls.setEnabled(has_doc)
-        self.preview.update()

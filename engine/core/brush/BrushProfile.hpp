@@ -92,7 +92,7 @@ public:
     double hardness{1.0};           // Dureza da borda procedural (0.0=macio, 1.0=duro)
     raster::DabBlendMode blendMode{raster::DabBlendMode::Normal};
 
-    double spacingFactor{0.15};
+    double spacingFactor{0.04};
     raster::ColorRGBA baseColor{10, 10, 14, 255};
 
     bool pressureSizeEnabled{true};
@@ -114,7 +114,7 @@ public:
     double dabsPerSecond{60.0};
 
     // ─── 5. TEXTURA INTERNA DO PINCEL (BRUSH HEIGHTMAP) ─────────────────────
-    bool   brushGrainEnabled{true};
+    bool   brushGrainEnabled{false};
     double brushGrainScale{1.0};
     double brushGrainContrast{1.0};
     bool   brushGrainInvert{false};

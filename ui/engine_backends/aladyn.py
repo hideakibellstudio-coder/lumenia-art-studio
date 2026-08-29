@@ -418,5 +418,34 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin, A
             int(expand_px), int(gap_closing_px), bool(aa), bool(sample_all)
         )
 
+    def set_undo_memory_limit_mb(self, mb: int) -> None:
+        self._undo_memory_limit_mb = int(mb)
+        if self._facade and hasattr(self._facade, "set_undo_memory_limit_mb"):
+            self._facade.set_undo_memory_limit_mb(int(mb))
+        # Aplica em todas as facades ativas
+        if hasattr(self, "_doc_facades"):
+            for fac in self._doc_facades.values():
+                if hasattr(fac, "set_undo_memory_limit_mb"):
+                    fac.set_undo_memory_limit_mb(int(mb))
+
+    def get_undo_memory_limit_mb(self) -> int:
+        if self._facade and hasattr(self._facade, "get_undo_memory_limit_mb"):
+            return self._facade.get_undo_memory_limit_mb()
+        return getattr(self, "_undo_memory_limit_mb", 256)
+
+    def set_undo_max_steps(self, steps: int) -> None:
+        self._undo_max_steps = int(steps)
+        if self._facade and hasattr(self._facade, "set_undo_max_steps"):
+            self._facade.set_undo_max_steps(int(steps))
+        if hasattr(self, "_doc_facades"):
+            for fac in self._doc_facades.values():
+                if hasattr(fac, "set_undo_max_steps"):
+                    fac.set_undo_max_steps(int(steps))
+
+    def get_undo_max_steps(self) -> int:
+        if self._facade and hasattr(self._facade, "get_undo_max_steps"):
+            return self._facade.get_undo_max_steps()
+        return getattr(self, "_undo_max_steps", 50)
+
     def dispatch(self, command: Any) -> None:
         pass

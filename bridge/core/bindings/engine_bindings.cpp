@@ -19,10 +19,10 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def("distance_to", &math::Point2D::distanceTo);
 
     py::enum_<math::CurvePreset>(m, "CurvePreset")
-        .value("Linear",    math::CurvePreset::Linear)
-        .value("Soft",      math::CurvePreset::Soft)
-        .value("Hard",      math::CurvePreset::Hard)
-        .value("S",         math::CurvePreset::S)
+        .value("Linear", math::CurvePreset::Linear)
+        .value("Soft", math::CurvePreset::Soft)
+        .value("Hard", math::CurvePreset::Hard)
+        .value("S", math::CurvePreset::S)
         .value("Threshold", math::CurvePreset::Threshold)
         .export_values();
 
@@ -31,37 +31,37 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def(py::init<math::CurvePreset>())
         .def("set_control_points", &math::BezierCurve::setControlPoints)
         .def("set_preset", &math::BezierCurve::setPreset)
-        .def("invert",     &math::BezierCurve::invert)
-        .def("sample",     &math::BezierCurve::sample);
+        .def("invert", &math::BezierCurve::invert)
+        .def("sample", &math::BezierCurve::sample);
 
     py::enum_<math::SymmetryMode>(m, "SymmetryMode")
-        .value("None",         math::SymmetryMode::None)
-        .value("Mirror",       math::SymmetryMode::Mirror)
+        .value("None", math::SymmetryMode::None)
+        .value("Mirror", math::SymmetryMode::Mirror)
         .value("DoubleMirror", math::SymmetryMode::DoubleMirror)
-        .value("Radial",       math::SymmetryMode::Radial)
+        .value("Radial", math::SymmetryMode::Radial)
         .value("Kaleidoscope", math::SymmetryMode::Kaleidoscope)
         .export_values();
 
     py::enum_<math::GuideType>(m, "GuideType")
-        .value("None",        math::GuideType::None)
-        .value("Straight",    math::GuideType::Straight)
-        .value("CurveRuler",  math::GuideType::CurveRuler)
+        .value("None", math::GuideType::None)
+        .value("Straight", math::GuideType::Straight)
+        .value("CurveRuler", math::GuideType::CurveRuler)
         .value("Curvilinear", math::GuideType::Curvilinear)
-        .value("OnePoint",    math::GuideType::OnePoint)
-        .value("TwoPoint",    math::GuideType::TwoPoint)
-        .value("ThreePoint",  math::GuideType::ThreePoint)
-        .value("Isometric",   math::GuideType::Isometric)
+        .value("OnePoint", math::GuideType::OnePoint)
+        .value("TwoPoint", math::GuideType::TwoPoint)
+        .value("ThreePoint", math::GuideType::ThreePoint)
+        .value("Isometric", math::GuideType::Isometric)
         .export_values();
 
     // ─── ENGINE TYPE (CATEGORIAS DE MOTOR) ───────────────────────────────────
     py::enum_<brush::EngineType>(m, "EngineType")
-        .value("Brush",      brush::EngineType::Brush)
-        .value("Pencil",     brush::EngineType::Pencil)
-        .value("Inker",      brush::EngineType::Inker)
-        .value("Eraser",     brush::EngineType::Eraser)
-        .value("Marker",     brush::EngineType::Marker)
-        .value("Blur",       brush::EngineType::Blur)
-        .value("Smudge",     brush::EngineType::Smudge)
+        .value("Brush", brush::EngineType::Brush)
+        .value("Pencil", brush::EngineType::Pencil)
+        .value("Inker", brush::EngineType::Inker)
+        .value("Eraser", brush::EngineType::Eraser)
+        .value("Marker", brush::EngineType::Marker)
+        .value("Blur", brush::EngineType::Blur)
+        .value("Smudge", brush::EngineType::Smudge)
         .value("Watercolor", brush::EngineType::Watercolor)
         .value("OilImpasto", brush::EngineType::OilImpasto)
         .export_values();
@@ -279,17 +279,12 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def("get_drawing_layer_count",     &boundary::PaintEngineFacade::getDrawingLayerCount)
         .def("get_layer_info", [](boundary::PaintEngineFacade& self, int index) -> py::dict {
             py::dict d;
-            const auto* layer = self.getLayerStack().getDrawingLayer(index);
-            if (layer) {
-                d["name"] = layer->getName();
-                d["opacity"] = layer->getOpacity();
-                d["visible"] = layer->isVisible();
-                d["locked"] = layer->isLocked();
-                d["alpha_locked"] = layer->isAlphaLocked();
-                d["clipping_mask"] = layer->isClippingMask();
-                d["blend_mode"] = static_cast<int>(layer->getBlendMode());
-                d["is_group"] = layer->isGroup();
-                d["is_filter"] = layer->isFilter();
+            if (const auto* l = self.getLayerStack().getDrawingLayer(index)) {
+                d["name"] = l->getName(); d["opacity"] = l->getOpacity();
+                d["visible"] = l->isVisible(); d["locked"] = l->isLocked();
+                d["alpha_locked"] = l->isAlphaLocked(); d["clipping_mask"] = l->isClippingMask();
+                d["blend_mode"] = static_cast<int>(l->getBlendMode());
+                d["is_group"] = l->isGroup(); d["is_filter"] = l->isFilter();
             }
             return d;
         })
@@ -309,11 +304,15 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
            py::arg("expand_px") = 1, py::arg("gap_closing_px") = 0,
            py::arg("anti_aliasing") = true, py::arg("sample_all_layers") = true)
         // Desfazer / Refazer
-        .def("undo",          &boundary::PaintEngineFacade::undo)
-        .def("redo",          &boundary::PaintEngineFacade::redo)
+        .def("undo", &boundary::PaintEngineFacade::undo)
+        .def("redo", &boundary::PaintEngineFacade::redo)
+        .def("set_undo_memory_limit_mb", &boundary::PaintEngineFacade::setUndoMemoryLimitMB)
+        .def("get_undo_memory_limit_mb", &boundary::PaintEngineFacade::getUndoMemoryLimitMB)
+        .def("set_undo_max_steps", &boundary::PaintEngineFacade::setUndoMaxSteps)
+        .def("get_undo_max_steps", &boundary::PaintEngineFacade::getUndoMaxSteps)
         // Texturas e presets
-        .def("set_shape_preset",         &boundary::PaintEngineFacade::setShapePreset)
-        .def("set_brush_height_preset",  &boundary::PaintEngineFacade::setBrushHeightPreset)
+        .def("set_shape_preset", &boundary::PaintEngineFacade::setShapePreset)
+        .def("set_brush_height_preset", &boundary::PaintEngineFacade::setBrushHeightPreset)
         .def("set_canvas_height_preset", &boundary::PaintEngineFacade::setCanvasHeightPreset)
         .def("load_shape_texture", [](boundary::PaintEngineFacade& self, int w, int h, py::bytes data) {
             std::string s = data;

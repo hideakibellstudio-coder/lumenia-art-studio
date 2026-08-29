@@ -61,6 +61,9 @@ class DocumentManager(QtCore.QObject):
     def get_document(self, uid: str) -> Document:
         return self._documents.get(uid)
 
+    def has_document(self) -> bool:
+        return self._active_document is not None
+
     def active_document(self) -> Document:
         return self._active_document
 

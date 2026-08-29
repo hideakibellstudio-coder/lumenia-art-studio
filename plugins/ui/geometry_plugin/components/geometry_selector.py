@@ -2,6 +2,7 @@
 
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.core.theme.manager import ThemeManager
 from .constants import GUIDE_TYPES, GUIDE_NAMES, SYM_TYPES, SYM_NAMES
 
 class GeometrySelectorPopup(QtWidgets.QFrame):
@@ -19,33 +20,46 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
         self.setFixedSize(330, 250)
         self._build_ui()
+        ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        self._apply_theme()
+
+    def _apply_theme(self, *args):
+        tm = ThemeManager.instance()
+        bg_card = tm.get_color("bg_card", "#181825")
+        bg_panel = tm.get_color("bg_panel", "#1e1e24")
+        border = tm.get_color("border", "#313244")
+        accent = tm.get_color("accent", "#6366f1")
+        text_main = tm.get_color("text_main", "#f3f4f6")
+        text_sec = tm.get_color("text_sec", "#9ca3af")
+        bg_hover = tm.get_color("accent_muted", "#4f46e5")
+
+        self.container.setStyleSheet(f"""
+            QFrame {{ background-color: {bg_card}; border: 1px solid {border}; border-radius: 8px; }}
+            QPushButton.tab-btn {{
+                background: transparent; color: {text_sec}; border: none;
+                border-bottom: 2px solid transparent; padding: 6px; font-weight: bold; font-size: 11px;
+            }}
+            QPushButton.tab-btn:checked {{
+                color: {text_main}; border-bottom: 2px solid {accent};
+            }}
+            QPushButton.grid-item {{
+                background: {bg_panel}; color: {text_main}; border: 1px solid {border};
+                border-radius: 4px; padding: 5px 8px; font-size: 11px; text-align: left;
+            }}
+            QPushButton.grid-item:hover {{
+                background: {bg_hover}; border-color: {accent};
+            }}
+            QPushButton.grid-item:checked {{
+                background: {accent}; border-color: {accent}; font-weight: bold; color: #ffffff;
+            }}
+        """)
 
     def _build_ui(self):
         main_lay = QtWidgets.QVBoxLayout(self)
         main_lay.setContentsMargins(0, 0, 0, 0)
 
-        container = QtWidgets.QFrame()
-        container.setStyleSheet("""
-            QFrame { background-color: #181825; border: 1px solid #45475a; border-radius: 8px; }
-            QPushButton.tab-btn {
-                background: transparent; color: #a6adc8; border: none;
-                border-bottom: 2px solid transparent; padding: 6px; font-weight: bold; font-size: 11px;
-            }
-            QPushButton.tab-btn:checked {
-                color: #cdd6f4; border-bottom: 2px solid #a855f7;
-            }
-            QPushButton.grid-item {
-                background: #1e1e2e; color: #cdd6f4; border: 1px solid #313244;
-                border-radius: 4px; padding: 5px 8px; font-size: 11px; text-align: left;
-            }
-            QPushButton.grid-item:hover {
-                background: #313244; border-color: #a855f7;
-            }
-            QPushButton.grid-item:checked {
-                background: #313244; border-color: #a6e3a1; font-weight: bold; color: #ffffff;
-            }
-        """)
-        c_lay = QtWidgets.QVBoxLayout(container)
+        self.container = QtWidgets.QFrame()
+        c_lay = QtWidgets.QVBoxLayout(self.container)
         c_lay.setContentsMargins(8, 8, 8, 8)
         c_lay.setSpacing(6)
 
@@ -146,15 +160,26 @@ class GeometrySelectorButton(QtWidgets.QPushButton):
 
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self.setFixedHeight(34)
-        self.setStyleSheet("""
-            QPushButton {
-                background: #1e1e2e; color: #e2e8f0; border: 1px solid #3b3b54;
-                border-radius: 6px; padding: 4px 10px; font-weight: bold; text-align: left;
-            }
-            QPushButton:hover { background: #28283d; border-color: #a855f7; }
-        """)
+        ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        self._apply_theme()
         self._update_text()
         self.clicked.connect(self._open_popup)
+
+    def _apply_theme(self, *args):
+        tm = ThemeManager.instance()
+        bg_panel = tm.get_color("bg_panel", "#1e1e24")
+        border = tm.get_color("border", "#3b3b54")
+        accent = tm.get_color("accent", "#6366f1")
+        text_main = tm.get_color("text_main", "#e2e8f0")
+        bg_hover = tm.get_color("accent_muted", "#28283d")
+
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background: {bg_panel}; color: {text_main}; border: 1px solid {border};
+                border-radius: 6px; padding: 4px 10px; font-weight: bold; text-align: left;
+            }}
+            QPushButton:hover {{ background: {bg_hover}; border-color: {accent}; }}
+        """)
 
     def _update_text(self):
         r_name = GUIDE_NAMES[self.active_ruler_idx] if self.active_ruler_idx < len(GUIDE_NAMES) else "None"

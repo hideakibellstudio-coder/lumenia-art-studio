@@ -31,6 +31,10 @@ class AladynMdiMixin:
         if uid not in self._doc_facades:
             try:
                 facade = self._native.PaintEngineFacade(w, h)
+                if hasattr(self, "_undo_memory_limit_mb") and hasattr(facade, "set_undo_memory_limit_mb"):
+                    facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
+                if hasattr(self, "_undo_max_steps") and hasattr(facade, "set_undo_max_steps"):
+                    facade.set_undo_max_steps(self._undo_max_steps)
                 if hasattr(facade, "get_canvas_texture"):
                     c_tex = facade.get_canvas_texture()
                     if c_tex:

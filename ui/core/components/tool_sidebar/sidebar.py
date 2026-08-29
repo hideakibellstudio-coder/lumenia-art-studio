@@ -80,18 +80,19 @@ class ToolSidebar(QtWidgets.QToolBar):
         action_reset.triggered.connect(self.resetRequested.emit)
         self.addAction(action_reset)
 
-        self.addSeparator()
-
-        # Limpar Tela
-        action_clear = QtGui.QAction(get_icon("trash"), "Limpar Tela", self)
-        action_clear.triggered.connect(self.clearRequested.emit)
-        self.addAction(action_clear)
-
         # Desmarcar Seleção
         action_deselect = QtGui.QAction(get_icon("deselect"), "Desmarcar Seleção (Ctrl+D)", self)
         action_deselect.setToolTip("Desmarcar Seleção (Ctrl+D)")
         action_deselect.triggered.connect(self.deselectRequested.emit)
         self.addAction(action_deselect)
+
+        self.addSeparator()
+
+        # Limpar Tela (Ação Destrutiva Isolada)
+        action_clear = QtGui.QAction(get_icon("clean_layer"), "Limpar Tela", self)
+        action_clear.setToolTip("Limpar todo o conteúdo do canvas")
+        action_clear.triggered.connect(self.clearRequested.emit)
+        self.addAction(action_clear)
 
     def _on_brush_triggered(self):
         self.action_brush.setChecked(True)

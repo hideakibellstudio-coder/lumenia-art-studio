@@ -271,12 +271,8 @@ class WorkspaceBrushMixin:
                 if getattr(self.canvas_widget, "active_tool", None) == "text" and tool != "text":
                     self.canvas_widget.commit_text_overlay()
                 self.canvas_widget.active_tool = tool
-                if tool == "eyedrop":
-                    self.canvas_widget.setCursor(QtCore.Qt.CrossCursor)
-                elif tool == "text":
-                    self.canvas_widget.setCursor(QtCore.Qt.IBeamCursor)
-                else:
-                    self.canvas_widget.unsetCursor()
+                if hasattr(self.canvas_widget, "_update_cursor_shape"):
+                    self.canvas_widget._update_cursor_shape()
 
             if tool in ("brush", "bucket"):
                 self._apply_brush_color(self._saved_color)

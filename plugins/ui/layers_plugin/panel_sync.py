@@ -40,9 +40,9 @@ def sync_to_native_engine(panel, action: str, *args):
         if isinstance(mode_idx, str):
             blend_map = {
                 "Normal": 0,
-                "Multiply": 1, "Multiplicação": 1,
+                "Multiply": 1, "Multiplicação": 1, "Multiplicar": 1,
                 "Screen": 2, "Divisão": 2,
-                "Overlay": 3, "Sobreposição": 3,
+                "Overlay": 3, "Sobreposição": 3, "Sobrepor": 3,
                 "Darken": 4, "Escurecer": 4,
                 "Lighten": 5, "Clarear": 5,
                 "Erase": 6, "Borracha": 6,

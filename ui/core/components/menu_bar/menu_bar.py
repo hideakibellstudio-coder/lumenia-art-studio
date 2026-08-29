@@ -108,6 +108,7 @@ class MenuBar(QtWidgets.QMenuBar):
     themeSettingsRequested  = QtCore.Signal()
     managePluginsRequested  = QtCore.Signal()
     curvesLutRequested      = QtCore.Signal()
+    cursorSettingsRequested = QtCore.Signal()
     renderSettingsRequested = QtCore.Signal()
 
     # ── Ajuda ────────────────────────────────────────────────────────────
@@ -240,6 +241,14 @@ class MenuBar(QtWidgets.QMenuBar):
         act_curves = QtGui.QAction(get_icon("curves"), "Curvas LUT (Perfis de Pincel)...", self)
         act_curves.triggered.connect(self.curvesLutRequested.emit)
         self.settings_menu.addAction(act_curves)
+
+        act_cursor = QtGui.QAction(get_icon("cursor"), "Configurações de Cursor e Ponteiro...", self)
+        act_cursor.triggered.connect(self.cursorSettingsRequested.emit)
+        self.settings_menu.addAction(act_cursor)
+
+        act_shortcuts = QtGui.QAction(get_icon("keyboard"), "Atalhos de Teclado...", self)
+        act_shortcuts.triggered.connect(self.shortcutsRequested.emit)
+        self.settings_menu.addAction(act_shortcuts)
 
         act_theme = QtGui.QAction(get_icon("palette"), "Personalização de Tema...", self)
         act_theme.triggered.connect(self.themeSettingsRequested.emit)

@@ -132,6 +132,9 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self.stack.addWidget(self._build_snap_page())
         self.stack.addWidget(self._build_sym_page())
 
+        for w in self.findChildren((QtWidgets.QComboBox, QtWidgets.QSlider, QtWidgets.QSpinBox)):
+            w.installEventFilter(self)
+
         footer = QtWidgets.QWidget()
         fl = QtWidgets.QHBoxLayout(footer)
         fl.setContentsMargins(8, 4, 8, 8)
@@ -141,6 +144,13 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self.btn_reset.clicked.connect(self._on_reset)
         fl.addWidget(self.btn_reset)
         outer.addWidget(footer)
+
+    def eventFilter(self, watched, event):
+        if event.type() == QtCore.QEvent.Wheel:
+            if isinstance(watched, (QtWidgets.QComboBox, QtWidgets.QSlider, QtWidgets.QSpinBox)):
+                event.ignore()
+                return True
+        return super().eventFilter(watched, event)
 
     def _make_title_bar(self) -> QtWidgets.QWidget:
         bar = QtWidgets.QWidget()

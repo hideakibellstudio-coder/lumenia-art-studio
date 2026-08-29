@@ -50,7 +50,7 @@ class TelemetryPlugin(BasePlugin):
             title="Telemetria",
             widget=self._panel,
             area="right",
-            icon_path="settings",
+            icon_path="chart",
         )
 
         logger.info("[TelemetryPlugin] Painel de Telemetria registrado na doca direita.")

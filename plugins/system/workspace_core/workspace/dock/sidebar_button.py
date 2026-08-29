@@ -1,11 +1,78 @@
 """SidebarButton component for Workspace Dock System."""
 
+from __future__ import annotations
+from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
+from ui.core.icons import get_icon, SVG_ICONS, ALIASES
+
+# Mapeamento inteligente de fallback para IDs e títulos de painéis
+PANEL_ICON_MAP = {
+    # Cores
+    "color": "palette",
+    "colors": "palette",
+    "color_wheel": "palette",
+    "color_plugin": "palette",
+    "palette": "palette",
+    "cores": "palette",
+    "roda_de_cores": "palette",
+
+    # Pincéis & Ferramentas
+    "brush": "brush",
+    "brushes": "brush",
+    "brush_settings": "brush",
+    "brush_plugin": "brush",
+    "pincel": "brush",
+    "pincéis": "brush",
+    "ferramentas": "brush",
+    "tools": "tools",
+
+    # Camadas
+    "layer": "layers",
+    "layers": "layers",
+    "layers_plugin": "layers",
+    "camadas": "layers",
+
+    # Navegador
+    "navigator": "compass",
+    "navigator_plugin": "compass",
+    "navegador": "compass",
+    "nav": "compass",
+    "compass": "compass",
+
+    # Geometria, Guias & Simetria
+    "geometry": "shapes",
+    "geometry_plugin": "shapes",
+    "shapes": "shapes",
+    "guias": "ruler",
+    "simetria": "shapes",
+    "ruler": "ruler",
+
+    # Telemetria & Diagnósticos
+    "telemetry": "chart",
+    "telemetry_plugin": "chart",
+    "telemetria": "chart",
+    "diagnostics": "chart",
+    "chart": "chart",
+
+    # Histórico & Ações
+    "history": "undo",
+    "historico": "undo",
+    "histórico": "undo",
+
+    # Plugins & Configurações
+    "plugins": "plugin",
+    "plugin": "plugin",
+    "settings": "settings",
+    "configuracoes": "settings",
+    "configurações": "settings",
+    "filters": "filter",
+    "filtros": "filter",
+}
 
 
 class SidebarButton(QtWidgets.QToolButton):
-    """Botão de ícone da sidebar com suporte a drag & drop de reordenação."""
+    """Botão de ícone da sidebar com suporte a SVG dinâmico e drag & drop de reordenação."""
 
     def __init__(
         self,
@@ -16,29 +83,86 @@ class SidebarButton(QtWidgets.QToolButton):
     ) -> None:
         super().__init__(parent)
         self.panel_id = panel_id
+        self.title = title or panel_id
+        self._raw_icon = icon_path
+
+        self._icon_key: Optional[str] = None
+        self._disk_icon_path: Optional[str] = None
+
+        self._resolve_icon()
+
         self.setCheckable(True)
         self.setFixedSize(44, 44)
-        self.setToolTip(title)
-
-        if icon_path and QtCore.QFile.exists(icon_path):
-            self.setIcon(QtGui.QIcon(icon_path))
-            self.setIconSize(QtCore.QSize(22, 22))
-        else:
-            self.setText(title[0].upper() if title else "?")
-
+        self.setToolTip(self.title)
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self._drag_start_pos: QtCore.QPoint | None = None
 
+        self.toggled.connect(self._apply_style)
         ThemeManager.instance().themeChanged.connect(self._apply_style)
         self._apply_style()
 
+    def _resolve_icon(self) -> None:
+        """Determina o identificador SVG ou arquivo em disco para o painel."""
+        # 1. Se passou um identificador SVG direto ou alias
+        if self._raw_icon:
+            raw_clean = str(self._raw_icon).lower().strip()
+            if raw_clean in SVG_ICONS or raw_clean in ALIASES:
+                self._icon_key = raw_clean
+                return
+            if QtCore.QFile.exists(self._raw_icon):
+                self._disk_icon_path = self._raw_icon
+                return
+
+        # 2. Busca pelo ID do painel
+        pid_clean = str(self.panel_id).lower().strip()
+        if pid_clean in PANEL_ICON_MAP:
+            self._icon_key = PANEL_ICON_MAP[pid_clean]
+            return
+
+        for k, v in PANEL_ICON_MAP.items():
+            if k in pid_clean:
+                self._icon_key = v
+                return
+
+        # 3. Busca por palavras no título
+        title_clean = str(self.title).lower().strip()
+        for word in title_clean.split():
+            if word in PANEL_ICON_MAP:
+                self._icon_key = PANEL_ICON_MAP[word]
+                return
+
+        for k, v in PANEL_ICON_MAP.items():
+            if k in title_clean:
+                self._icon_key = v
+                return
+
+        # 4. Fallback padrão: ícone genérico de ferramentas
+        self._icon_key = "tools"
+
     def _apply_style(self, *args) -> None:
         theme = ThemeManager.instance()
-        bg_normal = theme.get_color("bg_panel")
-        bg_hover  = theme.get_color("accent_muted")
-        bg_active = theme.get_color("accent")
-        text_main = theme.get_color("text_main")
-        border    = theme.get_color("border")
+        bg_normal = theme.get_color("bg_panel", "#1e1e24")
+        bg_hover  = theme.get_color("accent_muted", "#4f46e5")
+        bg_active = theme.get_color("accent", "#6366f1")
+        text_main = theme.get_color("text_main", "#f3f4f6")
+        border    = theme.get_color("border", "#2e2e38")
+
+        is_active = self.isChecked()
+        icon_color = "#ffffff" if is_active else text_main
+
+        # Renderiza o ícone SVG com a cor reativa ao tema e ao estado ativo
+        if self._icon_key:
+            icon = get_icon(self._icon_key, color=icon_color, size=QtCore.QSize(22, 22))
+            if icon and not icon.isNull():
+                self.setIcon(icon)
+                self.setIconSize(QtCore.QSize(22, 22))
+                self.setText("")
+        elif self._disk_icon_path:
+            self.setIcon(QtGui.QIcon(self._disk_icon_path))
+            self.setIconSize(QtCore.QSize(22, 22))
+            self.setText("")
+        else:
+            self.setText(self.title[0].upper() if self.title else "?")
 
         self.setStyleSheet(f"""
             QToolButton {{
@@ -48,6 +172,7 @@ class SidebarButton(QtWidgets.QToolButton):
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 13px;
+                padding: 4px;
             }}
             QToolButton:hover {{
                 background-color: {bg_hover};

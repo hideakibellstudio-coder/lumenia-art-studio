@@ -13,6 +13,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .new_document import (
     PRESET_CATEGORIES,
     BACKGROUND_COLORS,
@@ -23,15 +24,13 @@ from .new_document import (
 )
 
 
-class NewDocumentDialog(QtWidgets.QDialog):
+class NewDocumentDialog(BaseFramelessDialog):
     """Diálogo enriquecido para criação de novo documento com cards visuais de presets."""
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(parent)
-        self.setWindowTitle("Novo Documento")
-        self.setModal(True)
-        self.resize(760, 530)
-        self.setMinimumSize(700, 480)
+        super().__init__(title="Novo Documento", icon_name="document", parent=parent, modal=True)
+        self.resize(780, 540)
+        self.setMinimumSize(720, 490)
 
         self._selected_category = "illustration"
         self._selected_preset_id: Optional[str] = "a4_print"
@@ -46,10 +45,6 @@ class NewDocumentDialog(QtWidgets.QDialog):
         self._apply_theme()
 
     def _build_ui(self):
-        main_layout = QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(16, 16, 16, 14)
-        main_layout.setSpacing(12)
-
         # ── Área Central de 2 Colunas ─────────────────────────────────
         content_split = QtWidgets.QHBoxLayout()
         content_split.setSpacing(14)
@@ -225,13 +220,13 @@ class NewDocumentDialog(QtWidgets.QDialog):
         right_col.addStretch()
 
         content_split.addLayout(right_col, 9)
-        main_layout.addLayout(content_split, 1)
+        self.content_layout.addLayout(content_split, 1)
 
         # ── Rodapé Informativo & Botões de Ação ───────────────────────
         h_sep = QtWidgets.QFrame()
         h_sep.setFrameShape(QtWidgets.QFrame.HLine)
         h_sep.setObjectName("DialogDivider")
-        main_layout.addWidget(h_sep)
+        self.content_layout.addWidget(h_sep)
 
         foot_row = QtWidgets.QHBoxLayout()
         foot_row.setSpacing(10)
@@ -255,7 +250,7 @@ class NewDocumentDialog(QtWidgets.QDialog):
 
         foot_row.addWidget(self.btn_cancel)
         foot_row.addWidget(self.btn_create)
-        main_layout.addLayout(foot_row)
+        self.content_layout.addLayout(foot_row)
 
     def _on_category_changed(self, idx: int):
         if 0 <= idx < len(self._cat_keys):

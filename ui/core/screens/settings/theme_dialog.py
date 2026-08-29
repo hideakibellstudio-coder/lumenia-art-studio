@@ -14,24 +14,21 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .components.theme_card import ColorDot, ThemeMiniSwatches, ThemeCard
 
 logger = logging.getLogger(__name__)
 
 
-
-
 # ── DIÁLOGO PRINCIPAL DE TEMAS ───────────────────────────────────────────────
 
-class ThemeDialog(QtWidgets.QDialog):
+class ThemeDialog(BaseFramelessDialog):
     """Gerenciador Visual Completo de Temas e Customizações de Interface."""
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(title="Personalização de Interface & Temas", icon_name="palette", parent=parent, modal=True)
         self.setObjectName("ThemeDialog")
-        self.setWindowTitle("Personalização de Interface & Temas")
-        self.resize(780, 520)
-        self.setModal(True)
+        self.resize(820, 560)
 
         self.theme_manager = ThemeManager.instance()
         self._available_themes: List[dict] = self.theme_manager.get_available_themes()
@@ -51,9 +48,11 @@ class ThemeDialog(QtWidgets.QDialog):
         return self._available_themes[0] if self._available_themes else {}
 
     def _setup_ui(self):
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setContentsMargins(14, 14, 14, 14)
-        main_layout.setSpacing(14)
+        cols_widget = QtWidgets.QWidget()
+        cols_layout = QtWidgets.QHBoxLayout(cols_widget)
+        cols_layout.setContentsMargins(0, 0, 0, 0)
+        cols_layout.setSpacing(14)
+        self.content_layout.addWidget(cols_widget, 1)
 
         # ── COLUNA DA ESQUERDA (LISTA DE TEMAS) ─────────────────────────────
         left_col = QtWidgets.QWidget()
@@ -93,7 +92,7 @@ class ThemeDialog(QtWidgets.QDialog):
         self.scroll_area.setWidget(self.cards_container)
         left_layout.addWidget(self.scroll_area)
 
-        main_layout.addWidget(left_col)
+        cols_layout.addWidget(left_col)
 
         # ── COLUNA DA DIREITA (INSPECTOR & AJUSTES) ─────────────────────────
         right_col = QtWidgets.QWidget()
@@ -208,7 +207,7 @@ class ThemeDialog(QtWidgets.QDialog):
         btn_box.addWidget(btn_close)
 
         right_layout.addLayout(btn_box)
-        main_layout.addWidget(right_col)
+        cols_layout.addWidget(right_col, 1)
 
         self._build_cards()
         self._select_theme(self._selected_theme_data)

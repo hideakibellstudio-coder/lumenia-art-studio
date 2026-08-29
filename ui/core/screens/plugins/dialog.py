@@ -16,6 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.plugins.manager import PluginManager
 from ui.core.theme.manager import ThemeManager
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .components.plugin_card import PluginCard
 from .components.plugin_inspector import PluginDetailsInspector
 
@@ -24,13 +25,12 @@ logger = logging.getLogger(__name__)
 
 # ── JANELA PRINCIPAL GERENCIADORA DE PLUGINS ─────────────────────────────
 
-class PluginsWindow(QtWidgets.QDialog):
+class PluginsWindow(BaseFramelessDialog):
     """Diálogo completo de gerenciamento e inspeção de plugins."""
 
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Gerenciador de Plugins")
-        self.resize(1060, 660)
+        super().__init__(title="Gerenciador de Plugins", icon_name="plugin", parent=parent, modal=True)
+        self.resize(1080, 680)
         self.setMinimumSize(960, 600)
 
         self._plugin_cards = {}
@@ -43,9 +43,11 @@ class PluginsWindow(QtWidgets.QDialog):
         self.update_theme_style()
 
     def _build_ui(self) -> None:
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setContentsMargins(12, 12, 12, 12)
-        main_layout.setSpacing(12)
+        cols_widget = QtWidgets.QWidget()
+        cols_layout = QtWidgets.QHBoxLayout(cols_widget)
+        cols_layout.setContentsMargins(0, 0, 0, 0)
+        cols_layout.setSpacing(12)
+        self.content_layout.addWidget(cols_widget, 1)
 
         # ── 1. Sidebar de Filtros (Esquerda) ──
         filter_box = QtWidgets.QVBoxLayout()
@@ -109,7 +111,7 @@ class PluginsWindow(QtWidgets.QDialog):
 
         filter_widget.setFixedWidth(160)
         filter_widget.setLayout(filter_box)
-        main_layout.addWidget(filter_widget)
+        cols_layout.addWidget(filter_widget)
 
         # ── 2. Lista de Plugins (Centro) ──
         list_container = QtWidgets.QWidget()
@@ -147,7 +149,7 @@ class PluginsWindow(QtWidgets.QDialog):
         self.scroll.setWidget(self.cards_widget)
         list_layout.addWidget(self.scroll, 1)
 
-        main_layout.addWidget(list_container, 1)
+        cols_layout.addWidget(list_container, 1)
 
         # ── 3. Inspector de Detalhes (Direita - Largura Fixa) ──
         self.inspector = PluginDetailsInspector(self)
@@ -157,7 +159,7 @@ class PluginsWindow(QtWidgets.QDialog):
         self.inspector.action_delete.connect(self._on_plugin_deleted)
         self.inspector.action_configure.connect(self._open_plugin_settings)
 
-        main_layout.addWidget(self.inspector)
+        cols_layout.addWidget(self.inspector)
 
 
 

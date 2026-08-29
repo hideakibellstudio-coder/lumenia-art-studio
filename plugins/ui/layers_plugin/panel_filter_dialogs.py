@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDialog, QLabel, QVBoxLayout, QButtonGroup, QRadioButton,
-    QDialogButtonBox, QGroupBox, QHBoxLayout, QSlider, QSizePolicy, QApplication
+    QLabel, QVBoxLayout, QButtonGroup, QRadioButton,
+    QGroupBox, QHBoxLayout, QSlider, QSizePolicy, QApplication, QPushButton
 )
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 
-class FilterLayerDialog(QDialog):
-    """Diálogo legados de seleção do tipo de filtro de camada."""
+class FilterLayerDialog(BaseFramelessDialog):
+    """Diálogo de seleção do tipo de filtro de camada."""
 
     FILTERS = [
         ("brightness", "Brilho / Contraste"),
@@ -26,16 +27,11 @@ class FilterLayerDialog(QDialog):
     ]
 
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Adicionar Camada de Filtro")
-        self.setMinimumWidth(320)
-        self.setModal(True)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(8)
+        super().__init__(title="Adicionar Camada de Filtro", icon_name="filter", parent=parent, modal=True)
+        self.resize(360, 320)
 
         title = QLabel("<b>Escolha o tipo de efeito:</b>")
-        layout.addWidget(title)
+        self.content_layout.addWidget(title)
 
         self._btn_group = QButtonGroup(self)
         self._type_keys = []
@@ -46,22 +42,32 @@ class FilterLayerDialog(QDialog):
                 rb.setChecked(True)
             self._btn_group.addButton(rb, i)
             self._type_keys.append(key)
-            layout.addWidget(rb)
+            self.content_layout.addWidget(rb)
 
-        layout.addSpacing(8)
+        self.content_layout.addStretch()
 
-        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
-        layout.addWidget(btns)
+        btn_box = QHBoxLayout()
+        btn_box.addStretch()
+
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.clicked.connect(self.reject)
+        btn_box.addWidget(btn_cancel)
+
+        btn_ok = QPushButton("OK")
+        btn_ok.setDefault(True)
+        btn_ok.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
+        btn_ok.clicked.connect(self.accept)
+        btn_box.addWidget(btn_ok)
+
+        self.content_layout.addLayout(btn_box)
 
     def selected_filter_type(self) -> str:
         idx = self._btn_group.checkedId()
         return self._type_keys[idx] if 0 <= idx < len(self._type_keys) else "brightness"
 
 
-class FilterParamsDialog(QDialog):
-    """Diálogo legados de ajuste de parâmetros de filtro de camada."""
+class FilterParamsDialog(BaseFramelessDialog):
+    """Diálogo de ajuste de parâmetros de filtro de camada."""
 
     PARAMS = {
         "brightness": [
@@ -97,24 +103,18 @@ class FilterParamsDialog(QDialog):
     }
 
     def __init__(self, parent, layer_id: int, filter_type: str):
-        super().__init__(parent)
+        label = self.LABELS.get(filter_type, "Filtro")
+        super().__init__(title=f"Ajuste de Filtro — {label}", icon_name="filter", parent=parent, modal=True)
+        self.resize(380, 280)
         self.layer_id = layer_id
         self.filter_type = filter_type
         self._params = [0.0] * 8
 
-        label = self.LABELS.get(filter_type, "Filtro")
-        self.setWindowTitle(f"Ajuste de Filtro — {label}")
-        self.setMinimumWidth(340)
-        self.setModal(True)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(10)
-
         param_defs = self.PARAMS.get(filter_type, [])
 
         if not param_defs:
-            layout.addWidget(QLabel("Este filtro não tem parâmetros adicionais.\n"
-                                    "Use o slider de Opacidade da camada para controlar a intensidade."))
+            self.content_layout.addWidget(QLabel("Este filtro não tem parâmetros adicionais.\n"
+                                                 "Use o slider de Opacidade da camada para controlar a intensidade."))
         else:
             group = QGroupBox("Parâmetros")
             glayout = QVBoxLayout(group)
@@ -149,8 +149,17 @@ class FilterParamsDialog(QDialog):
                     self._params[s] = dflt / sc
                 make_handler(slot, slider, val_lbl, scale)
 
-            layout.addWidget(group)
+            self.content_layout.addWidget(group)
 
-        btns = QDialogButtonBox(QDialogButtonBox.Ok)
-        btns.accepted.connect(self.accept)
-        layout.addWidget(btns)
+        self.content_layout.addStretch()
+
+        btn_box = QHBoxLayout()
+        btn_box.addStretch()
+
+        btn_ok = QPushButton("OK")
+        btn_ok.setDefault(True)
+        btn_ok.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
+        btn_ok.clicked.connect(self.accept)
+        btn_box.addWidget(btn_ok)
+
+        self.content_layout.addLayout(btn_box)

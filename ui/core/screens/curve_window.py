@@ -248,17 +248,15 @@ class CurveSection(QtWidgets.QFrame):
         """)
 
 
-class CurveWindow(QtWidgets.QWidget):
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
+
+
+class CurveWindow(BaseFramelessDialog):
     """Janela flutuante de Perfis e Curvas do Pincel (C++ ALADYN ENGINE)."""
 
     def __init__(self, parent=None):
-        super().__init__(parent, QtCore.Qt.Tool | QtCore.Qt.WindowStaysOnTopHint)
-        self.setWindowTitle("Perfis e Curvas LUT do Pincel")
-        self.setMinimumWidth(290)
-
-        root = QtWidgets.QVBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(6)
+        super().__init__(title="Perfis & Curvas LUT", icon_name="curve", parent=parent, modal=False)
+        self.setMinimumWidth(310)
 
         self.pressure_sec = CurveSection("Perfil de Tamanho (Ponta)", label_x="Pressão")
         self.flow_sec = CurveSection("Perfil de Fluxo (Esmaecer)", label_x="Pressão")
@@ -267,9 +265,9 @@ class CurveWindow(QtWidgets.QWidget):
         self.flow_sec.chk.setChecked(True)
         self.velocity_sec.chk.setChecked(False)
 
-        root.addWidget(self.pressure_sec)
-        root.addWidget(self.flow_sec)
-        root.addWidget(self.velocity_sec)
+        self.content_layout.addWidget(self.pressure_sec)
+        self.content_layout.addWidget(self.flow_sec)
+        self.content_layout.addWidget(self.velocity_sec)
 
         self.pressure_sec.curve.curveChanged.connect(self.sync_to_engine)
         self.flow_sec.curve.curveChanged.connect(self.sync_to_engine)

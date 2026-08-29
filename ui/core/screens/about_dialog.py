@@ -4,21 +4,21 @@ AboutDialog — Diálogo Moderno 'Sobre o Lumenia'
 Exibe a identidade visual oficial, especificações do ALADYN Engine e créditos.
 """
 
+from __future__ import annotations
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core import ThemeManager
+from ui.core.theme.manager import ThemeManager
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 
-class AboutDialog(QtWidgets.QDialog):
+class AboutDialog(BaseFramelessDialog):
     """
     Diálogo Sobre o Lumenia com design profissional e identidade visual oficial.
     """
 
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Sobre o Lumenia")
-        self.setFixedSize(500, 480)
-        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
+        super().__init__(title="Sobre o Lumenia", icon_name="info", parent=parent, modal=True)
+        self.resize(520, 500)
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
@@ -29,20 +29,16 @@ class AboutDialog(QtWidgets.QDialog):
         ThemeManager.instance().themeChanged.connect(lambda _: self._apply_theme())
 
     def _build_ui(self):
-        main_layout = QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(28, 28, 28, 24)
-        main_layout.setSpacing(18)
-
         # ── Header: Logo e Nomes ────────────────────────────────────────────
         header = QtWidgets.QHBoxLayout()
         header.setSpacing(20)
 
         lbl_logo = QtWidgets.QLabel()
-        lbl_logo.setFixedSize(96, 96)
+        lbl_logo.setFixedSize(80, 80)
         lbl_logo.setScaledContents(True)
         if os.path.exists(self.icon_path):
             pix = QtGui.QPixmap(self.icon_path).scaled(
-                96, 96, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+                80, 80, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
             )
             lbl_logo.setPixmap(pix)
             self.setWindowIcon(QtGui.QIcon(pix))
@@ -53,10 +49,10 @@ class AboutDialog(QtWidgets.QDialog):
         v_info.setAlignment(QtCore.Qt.AlignVCenter)
 
         lbl_name = QtWidgets.QLabel("LUMENIA")
-        lbl_name.setStyleSheet("font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #ffffff;")
+        lbl_name.setStyleSheet("font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #ffffff;")
         
         lbl_sub = QtWidgets.QLabel("Digital Art & Paint Studio • Professional Edition")
-        lbl_sub.setStyleSheet("font-size: 12px; color: #c084fc; font-weight: 600;")
+        lbl_sub.setStyleSheet("font-size: 11px; color: #c084fc; font-weight: 600;")
 
         lbl_ver = QtWidgets.QLabel("Versão 2.5.0 (Build 2026.08)")
         lbl_ver.setStyleSheet("font-size: 11px; color: #a1a1aa;")
@@ -66,13 +62,13 @@ class AboutDialog(QtWidgets.QDialog):
         v_info.addWidget(lbl_ver)
         header.addLayout(v_info)
 
-        main_layout.addLayout(header)
+        self.content_layout.addLayout(header)
 
         # Divisor
         sep1 = QtWidgets.QFrame()
         sep1.setFrameShape(QtWidgets.QFrame.HLine)
         sep1.setStyleSheet("color: rgba(255,255,255,0.12);")
-        main_layout.addWidget(sep1)
+        self.content_layout.addWidget(sep1)
 
         # ── Cartão de Recursos / Arquitetura do Motor ───────────────────────
         card = QtWidgets.QFrame()
@@ -100,9 +96,8 @@ class AboutDialog(QtWidgets.QDialog):
             row.addWidget(lbl_d, 1)
             card_lay.addLayout(row)
 
-        main_layout.addWidget(card)
-
-        main_layout.addStretch()
+        self.content_layout.addWidget(card)
+        self.content_layout.addStretch()
 
         # ── Botão Fechar ────────────────────────────────────────────────────
         bottom_lay = QtWidgets.QHBoxLayout()
@@ -118,21 +113,16 @@ class AboutDialog(QtWidgets.QDialog):
         btn_close.clicked.connect(self.accept)
         bottom_lay.addWidget(btn_close)
 
-        main_layout.addLayout(bottom_lay)
+        self.content_layout.addLayout(bottom_lay)
 
     def _apply_theme(self):
         theme = ThemeManager.instance()
-        bg_panel = theme.get_color("bg_panel") or "#181524"
-        bg_card = theme.get_color("bg_card") or "#221c33"
+        bg_card = theme.get_color("bg_panel") or "#221c33"
         border = theme.get_color("border") or "#342c4c"
         text_main = theme.get_color("text_main") or "#ffffff"
         accent = theme.get_color("accent") or "#9333ea"
 
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {bg_panel};
-                color: {text_main};
-            }}
             #InfoCard {{
                 background-color: {bg_card};
                 border: 1px solid {border};

@@ -5,18 +5,16 @@ import sys
 import os
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.engine.registry import EngineRegistry
 
 
-class DiagnosticsDialog(QtWidgets.QDialog):
+class DiagnosticsDialog(BaseFramelessDialog):
     """Diálogo de telemetria em tempo real, memória e integridade do motor nativo."""
 
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Diagnósticos do Motor & Telemetria")
-        self.setFixedSize(520, 480)
-        self.setModal(True)
+        super().__init__(title="Diagnósticos & Telemetria do Motor", icon_name="chart", parent=parent, modal=True)
+        self.resize(540, 500)
 
         self._build_ui()
         self._refresh_stats()
@@ -30,29 +28,13 @@ class DiagnosticsDialog(QtWidgets.QDialog):
         self._apply_theme()
 
     def _build_ui(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(14)
-
-        # Header
-        header = QtWidgets.QHBoxLayout()
-        icon_lbl = QtWidgets.QLabel()
-        icon_lbl.setPixmap(get_icon("chart").pixmap(24, 24))
-        header.addWidget(icon_lbl)
-
-        title_lbl = QtWidgets.QLabel("Status do Sistema & Motor Gráfico")
-        title_lbl.setStyleSheet("font-size: 15px; font-weight: bold;")
-        header.addWidget(title_lbl)
-        header.addStretch()
-        layout.addLayout(header)
-
         # Tabela de Telemetria
         self.tree = QtWidgets.QTreeWidget()
         self.tree.setHeaderLabels(["Métrica", "Valor"])
         self.tree.setColumnWidth(0, 240)
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
-        layout.addWidget(self.tree, 1)
+        self.content_layout.addWidget(self.tree, 1)
 
         # Botão Fechar
         btn_box = QtWidgets.QHBoxLayout()
@@ -61,7 +43,7 @@ class DiagnosticsDialog(QtWidgets.QDialog):
         self.btn_close.setDefault(True)
         self.btn_close.clicked.connect(self.accept)
         btn_box.addWidget(self.btn_close)
-        layout.addLayout(btn_box)
+        self.content_layout.addLayout(btn_box)
 
     def _refresh_stats(self):
         self.tree.clear()
@@ -98,13 +80,12 @@ class DiagnosticsDialog(QtWidgets.QDialog):
         item = QtWidgets.QTreeWidgetItem([key, val])
         self.tree.addTopLevelItem(item)
 
-    def _apply_theme(self):
+    def _apply_theme(self, *args):
         theme = ThemeManager.instance()
         border = theme.get_color("border", "#2e2e38")
         text = theme.get_color("text_main", "#ffffff")
         bg_card = theme.get_color("bg_panel", "#1e1e24")
         self.setStyleSheet(f"""
-            QDialog {{ background-color: {theme.get_color("bg_canvas", "#121214")}; color: {text}; }}
             QTreeWidget {{ background-color: {bg_card}; color: {text}; border: 1px solid {border}; border-radius: 6px; }}
             QHeaderView::section {{ background-color: {theme.get_color("bg_input", "#26262e")}; color: {text}; font-weight: bold; border: 1px solid {border}; padding: 4px; }}
         """)

@@ -3,50 +3,32 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 
-class CanvasSizeDialog(QtWidgets.QDialog):
+class CanvasSizeDialog(BaseFramelessDialog):
     """Diálogo moderno para alterar o tamanho do Canvas ou Redimensionar a Imagem."""
 
     def __init__(self, current_w: int, current_h: int, is_image_resize: bool = False, parent=None):
-        super().__init__(parent)
         self.is_image_resize = is_image_resize
         self.orig_w = max(1, current_w)
         self.orig_h = max(1, current_h)
         self.aspect_ratio = self.orig_w / self.orig_h
 
-        title = "Redimensionar Imagem (Reamostragem)" if is_image_resize else "Tamanho do Canvas (Área de Trabalho)"
-        self.setWindowTitle(title)
-        self.setFixedSize(440, 420)
-        self.setModal(True)
+        title = "Redimensionar Imagem" if is_image_resize else "Tamanho do Canvas"
+        icon_name = "image" if is_image_resize else "ruler"
+        super().__init__(title=title, icon_name=icon_name, parent=parent, modal=True)
+        self.resize(460, 440)
 
         self._build_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
     def _build_ui(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(14)
-
-        # Cabeçalho
-        header_layout = QtWidgets.QHBoxLayout()
-        icon_lbl = QtWidgets.QLabel()
-        icon_name = "image" if self.is_image_resize else "ruler"
-        icon_lbl.setPixmap(get_icon(icon_name).pixmap(24, 24))
-        header_layout.addWidget(icon_lbl)
-
-        title_lbl = QtWidgets.QLabel("Redimensionar Imagem" if self.is_image_resize else "Tamanho do Canvas")
-        title_lbl.setStyleSheet("font-size: 15px; font-weight: bold;")
-        header_layout.addWidget(title_lbl)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-
         # Informações atuais
         curr_lbl = QtWidgets.QLabel(f"Dimensões Atuais: {self.orig_w} × {self.orig_h} pixels")
         curr_lbl.setStyleSheet("color: #9ca3af; font-size: 12px;")
-        layout.addWidget(curr_lbl)
+        self.content_layout.addWidget(curr_lbl)
 
         # Formulário de Novas Dimensões
         form_group = QtWidgets.QGroupBox("Novas Dimensões")
@@ -72,17 +54,20 @@ class CanvasSizeDialog(QtWidgets.QDialog):
         self.height_spin.valueChanged.connect(self._on_height_changed)
         form_layout.addWidget(self.height_spin, 1, 1)
 
-        # Proporção
-        self.ratio_check = QtWidgets.QCheckBox("Manter Proporção (Aspect Ratio)")
+        # Manter Proporções
+        self.ratio_check = QtWidgets.QCheckBox("Manter proporções")
         self.ratio_check.setChecked(True)
         form_layout.addWidget(self.ratio_check, 2, 0, 1, 2)
 
-        layout.addWidget(form_group)
+        self.content_layout.addWidget(form_group)
 
         if not self.is_image_resize:
-            # Âncora de expansão (9 posições)
+            # Ponto de Ancoragem para Canvas
             anchor_group = QtWidgets.QGroupBox("Âncora de Expansão")
             anchor_layout = QtWidgets.QGridLayout(anchor_group)
+            anchor_layout.setContentsMargins(14, 14, 14, 14)
+            anchor_layout.setSpacing(6)
+
             self.anchor_buttons = []
             self.selected_anchor = (1, 1)  # Centro
 
@@ -90,29 +75,36 @@ class CanvasSizeDialog(QtWidgets.QDialog):
                 row_btns = []
                 for c in range(3):
                     btn = QtWidgets.QPushButton()
-                    btn.setFixedSize(36, 28)
+                    btn.setFixedSize(32, 32)
                     btn.setCheckable(True)
-                    if (r, c) == (1, 1):
+                    if (r, c) == self.selected_anchor:
                         btn.setChecked(True)
                         btn.setText("●")
-                    btn.clicked.connect(lambda _, row=r, col=c: self._select_anchor(row, col))
-                    anchor_layout.addWidget(btn, r, c, QtCore.Qt.AlignCenter)
+                    btn.clicked.connect(lambda ch, row=r, col=c: self._select_anchor(row, col))
+                    anchor_layout.addWidget(btn, r, c)
                     row_btns.append(btn)
                 self.anchor_buttons.append(row_btns)
-            layout.addWidget(anchor_group)
-        else:
-            # Modo de Reamostragem
-            resample_group = QtWidgets.QGroupBox("Método de Reamostragem")
-            resample_layout = QtWidgets.QVBoxLayout(resample_group)
-            self.resample_combo = QtWidgets.QComboBox()
-            self.resample_combo.addItems(["Bilinear Suave (Padrão)", "Bicúbico Alta Qualidade", "Vizinho Mais Próximo (Pixel Art)"])
-            resample_layout.addWidget(self.resample_combo)
-            layout.addWidget(resample_group)
 
-        layout.addStretch()
+            self.content_layout.addWidget(anchor_group)
+        else:
+            # Modo de Reamostragem para Imagem
+            resample_group = QtWidgets.QGroupBox("Qualidade de Interpolação")
+            resample_layout = QtWidgets.QVBoxLayout(resample_group)
+            resample_layout.setContentsMargins(14, 14, 14, 14)
+            self.resample_combo = QtWidgets.QComboBox()
+            self.resample_combo.addItems([
+                "Bilinear (Padrão - Equilibrado)",
+                "Bicúbico (Suave - Alta Qualidade)",
+                "Nearest Neighbor (Pixel Art / Nítido)"
+            ])
+            resample_layout.addWidget(self.resample_combo)
+            self.content_layout.addWidget(resample_group)
+
+        self.content_layout.addStretch()
 
         # Botões de Ação
         btn_box = QtWidgets.QHBoxLayout()
+        btn_box.setSpacing(10)
         btn_box.addStretch()
 
         self.btn_cancel = QtWidgets.QPushButton("Cancelar")
@@ -125,7 +117,7 @@ class CanvasSizeDialog(QtWidgets.QDialog):
         self.btn_apply.clicked.connect(self.accept)
         btn_box.addWidget(self.btn_apply)
 
-        layout.addLayout(btn_box)
+        self.content_layout.addLayout(btn_box)
 
     def _select_anchor(self, row: int, col: int):
         self.selected_anchor = (row, col)
@@ -157,13 +149,12 @@ class CanvasSizeDialog(QtWidgets.QDialog):
             "resample_mode": getattr(self, "resample_combo", None).currentIndex() if self.is_image_resize else 0
         }
 
-    def _apply_theme(self):
+    def _apply_theme(self, *args):
         theme = ThemeManager.instance()
         bg_card = theme.get_color("bg_panel", "#1e1e24")
         border = theme.get_color("border", "#2e2e38")
         text = theme.get_color("text_main", "#ffffff")
         self.setStyleSheet(f"""
-            QDialog {{ background-color: {theme.get_color("bg_canvas", "#121214")}; color: {text}; }}
             QGroupBox {{ font-weight: bold; border: 1px solid {border}; border-radius: 6px; margin-top: 10px; padding-top: 10px; background-color: {bg_card}; }}
             QGroupBox::title {{ subcontrol-origin: margin; left: 10px; padding: 0 4px; }}
             QSpinBox, QComboBox {{ background-color: {theme.get_color("bg_input", "#26262e")}; color: {text}; border: 1px solid {border}; border-radius: 4px; padding: 4px 8px; }}

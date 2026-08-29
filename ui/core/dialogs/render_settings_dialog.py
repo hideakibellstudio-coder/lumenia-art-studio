@@ -16,6 +16,7 @@ from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .render_settings_components import ProofingPreviewBar, ProfileCard
 
 
@@ -54,17 +55,15 @@ def save_render_settings(cfg: dict) -> None:
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
 
-class RenderSettingsDialog(QtWidgets.QDialog):
+class RenderSettingsDialog(BaseFramelessDialog):
     """Central de Renderização e Prova de Cores em 2 colunas."""
 
     profileChanged = QtCore.Signal(int)
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(title="Configurações de Renderização & Modos de Cor", icon_name="settings", parent=parent, modal=True)
         self.setObjectName("RenderSettingsDialog")
-        self.setWindowTitle("Configurações de Renderização & Modos de Cor")
-        self.setFixedSize(820, 560)
-        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
+        self.resize(860, 580)
 
         self._all_profiles: List[dict] = []
         self._cards: List[ProfileCard] = []
@@ -105,9 +104,11 @@ class RenderSettingsDialog(QtWidgets.QDialog):
             self._selected_profile = self._all_profiles[0]
 
     def _setup_ui(self):
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setContentsMargins(16, 16, 16, 16)
-        main_layout.setSpacing(16)
+        cols_widget = QtWidgets.QWidget()
+        cols_layout = QtWidgets.QHBoxLayout(cols_widget)
+        cols_layout.setContentsMargins(0, 0, 0, 0)
+        cols_layout.setSpacing(16)
+        self.content_layout.addWidget(cols_widget, 1)
 
         # ── COLUNA DA ESQUERDA (330px) ──────────────────────────────────────
         left_col = QtWidgets.QWidget()
@@ -149,7 +150,7 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         self.scroll_area.setWidget(self.cards_container)
         left_layout.addWidget(self.scroll_area)
 
-        main_layout.addWidget(left_col)
+        cols_layout.addWidget(left_col)
 
         # ── COLUNA DA DIREITA (INSPECTOR) ───────────────────────────────────
         right_col = QtWidgets.QWidget()
@@ -258,7 +259,7 @@ class RenderSettingsDialog(QtWidgets.QDialog):
         btn_box.addWidget(btn_close)
 
         right_layout.addLayout(btn_box)
-        main_layout.addWidget(right_col)
+        cols_layout.addWidget(right_col, 1)
 
         self._build_cards()
         self._select_profile(self._selected_profile)

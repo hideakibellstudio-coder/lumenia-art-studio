@@ -1,42 +1,39 @@
+"""CloseDocumentDialog — Diálogo Moderno de Confirmação para Salvar/Descartar Alterações."""
+
+from __future__ import annotations
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
-class CloseDocumentDialog(QtWidgets.QDialog):
+
+class CloseDocumentDialog(BaseFramelessDialog):
     SAVE = 1
     DISCARD = 2
     CANCEL = 3
 
-    def __init__(self, doc_name, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Fechar Documento")
-        self.setModal(True)
-        self.setFixedSize(380, 160)
+    def __init__(self, doc_name: str, parent=None):
+        super().__init__(title="Fechar Documento", icon_name="trash", parent=parent, modal=True)
+        self.resize(420, 190)
         self._doc_name = doc_name
         self.result_code = self.CANCEL
         
         self.setup_ui()
         self.apply_theme()
+        ThemeManager.instance().themeChanged.connect(self.apply_theme)
         
     def setup_ui(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(16)
-        
         # Message label
         lbl_msg = QtWidgets.QLabel(f"Deseja salvar as alterações do documento\n\"{self._doc_name}\" antes de fechar?")
         lbl_msg.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         lbl_msg.setStyleSheet("font-size: 12px; font-weight: 500; line-height: 1.4;")
-        layout.addWidget(lbl_msg)
+        self.content_layout.addWidget(lbl_msg)
         
-        # Separator line
-        sep = QtWidgets.QFrame()
-        sep.setFrameShape(QtWidgets.QFrame.HLine)
-        sep.setStyleSheet("background-color: @BORDER;")
-        layout.addWidget(sep)
-        
+        self.content_layout.addStretch()
+
         # Buttons layout
         btn_layout = QtWidgets.QHBoxLayout()
         btn_layout.setSpacing(8)
+        btn_layout.addStretch()
         
         self.btn_save = QtWidgets.QPushButton("Salvar")
         self.btn_save.setObjectName("SaveBtn")
@@ -55,7 +52,7 @@ class CloseDocumentDialog(QtWidgets.QDialog):
         btn_layout.addWidget(self.btn_discard)
         btn_layout.addWidget(self.btn_cancel)
         
-        layout.addLayout(btn_layout)
+        self.content_layout.addLayout(btn_layout)
         
     def _on_save(self):
         self.result_code = self.SAVE
@@ -69,35 +66,36 @@ class CloseDocumentDialog(QtWidgets.QDialog):
         self.result_code = self.CANCEL
         self.reject()
         
-    def apply_theme(self):
-        qss = """
-            QDialog {
-                background-color: @BG_DARK;
-            }
-            QLabel {
-                color: @FG_PRIMARY;
-            }
-            QPushButton {
+    def apply_theme(self, *args):
+        theme = ThemeManager.instance()
+        border = theme.get_color("border", "#374151")
+        accent = theme.get_color("accent", "#8b5cf6")
+        text_main = theme.get_color("text_main", "#f3f4f6")
+        bg_btn = theme.get_color("bg_panel", "#1f2937")
+
+        self.setStyleSheet(f"""
+            QLabel {{
+                color: {text_main};
+            }}
+            QPushButton {{
                 padding: 6px 16px;
-                border: 1px solid @BORDER;
-                border-radius: 4px;
-                background-color: @BG_DARKER;
-                color: @FG_PRIMARY;
+                border: 1px solid {border};
+                border-radius: 6px;
+                background-color: {bg_btn};
+                color: {text_main};
                 font-size: 11px;
-                min-width: 80px;
-            }
-            QPushButton:hover {
-                background-color: @BG_MID;
-                border-color: @ACCENT;
-            }
-            QPushButton#SaveBtn {
-                background-color: @ACCENT;
-                border-color: @ACCENT;
+                min-width: 75px;
+            }}
+            QPushButton:hover {{
+                border-color: {accent};
+            }}
+            QPushButton#SaveBtn {{
+                background-color: {accent};
+                border-color: {accent};
                 color: #ffffff;
                 font-weight: bold;
-            }
-            QPushButton#SaveBtn:hover {
-                background-color: @ACCENT_HOVER;
-            }
-        """
-        self.setStyleSheet(ThemeManager.instance().compile_qss(qss))
+            }}
+            QPushButton#SaveBtn:hover {{
+                background-color: #a855f7;
+            }}
+        """)

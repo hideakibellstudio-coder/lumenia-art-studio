@@ -15,6 +15,7 @@ from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
 from ui.core.tools import TOOL_META, DEFAULT_TOOLS
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 _SETTINGS_ORG = "Lumenia"
 _SETTINGS_APP = "LumeniaApp"
@@ -200,17 +201,15 @@ def save_floating_toolbar_settings(cfg: dict) -> None:
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
 
-class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
+class FloatingToolbarSettingsDialog(BaseFramelessDialog):
     """Central de Configurações da Barra Rápida Flutuante em 2 colunas."""
 
     settings_applied = QtCore.Signal(dict)
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(title="Configurações da Barra Flutuante", icon_name="tools", parent=parent, modal=True)
         self.setObjectName("FloatingToolbarSettingsDialog")
-        self.setWindowTitle("Configurações da Barra Flutuante")
-        self.setFixedSize(780, 520)
-        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)
+        self.resize(820, 550)
 
         self._cfg = load_floating_toolbar_settings()
         self._active_tools: List[str] = list(self._cfg.get("tools", DEFAULT_TOOLS))
@@ -221,9 +220,11 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
 
     def _setup_ui(self):
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setContentsMargins(16, 16, 16, 16)
-        main_layout.setSpacing(16)
+        cols_widget = QtWidgets.QWidget()
+        cols_layout = QtWidgets.QHBoxLayout(cols_widget)
+        cols_layout.setContentsMargins(0, 0, 0, 0)
+        cols_layout.setSpacing(16)
+        self.content_layout.addWidget(cols_widget, 1)
 
         # ── COLUNA DA ESQUERDA (CATÁLOGO DE FERRAMENTAS) ────────────────────
         left_col = QtWidgets.QWidget()
@@ -259,7 +260,7 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         self.scroll_area.setWidget(self.cards_container)
         left_layout.addWidget(self.scroll_area)
 
-        main_layout.addWidget(left_col)
+        cols_layout.addWidget(left_col)
 
         # ── COLUNA DA DIREITA (PREVIEW & COMPORTAMENTO) ─────────────────────
         right_col = QtWidgets.QWidget()
@@ -358,7 +359,7 @@ class FloatingToolbarSettingsDialog(QtWidgets.QDialog):
         btn_box.addWidget(btn_close)
 
         right_layout.addLayout(btn_box)
-        main_layout.addWidget(right_col)
+        cols_layout.addWidget(right_col, 1)
 
     def _filter_tools(self):
         query = self.search_box.text().strip().lower()

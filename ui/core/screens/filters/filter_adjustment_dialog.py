@@ -14,6 +14,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.widgets.slider.labeled_slider import LabeledSlider
 from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 
 FILTER_DEFINITIONS = [
@@ -159,7 +160,7 @@ class FilterCard(QtWidgets.QFrame):
         """)
 
 
-class FilterAdjustmentDialog(QtWidgets.QDialog):
+class FilterAdjustmentDialog(BaseFramelessDialog):
     """
     Diálogo principal de criação de Camadas de Ajuste e Filtros com visual de 2 colunas.
     """
@@ -169,10 +170,9 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
     preview_cancelled = QtCore.Signal()
 
     def __init__(self, parent=None, initial_key: str | None = None):
-        super().__init__(parent)
-        self.setWindowTitle("Filtros & Camadas de Ajuste (Não-Destrutivas)")
-        self.resize(820, 500)
-        self.setMinimumSize(740, 420)
+        super().__init__(title="Filtros & Camadas de Ajuste", icon_name="filter", parent=parent, modal=True)
+        self.resize(840, 520)
+        self.setMinimumSize(760, 440)
 
         target_def = FILTER_DEFINITIONS[0]
         if initial_key:
@@ -191,9 +191,11 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
         self._apply_theme()
 
     def _build_ui(self) -> None:
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setContentsMargins(12, 12, 12, 12)
-        main_layout.setSpacing(12)
+        cols_widget = QtWidgets.QWidget()
+        cols_layout = QtWidgets.QHBoxLayout(cols_widget)
+        cols_layout.setContentsMargins(0, 0, 0, 0)
+        cols_layout.setSpacing(12)
+        self.content_layout.addWidget(cols_widget, 1)
 
         # ── Coluna Esquerda: Galeria de Filtros ────────────────────────────
         left_box = QtWidgets.QWidget(self)
@@ -242,12 +244,12 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
         scroll.setWidget(cards_widget)
         left_layout.addWidget(scroll, 1)
 
-        main_layout.addWidget(left_box, 4)
+        cols_layout.addWidget(left_box, 4)
 
         # Divisor vertical
         v_line = QtWidgets.QFrame()
         v_line.setFrameShape(QtWidgets.QFrame.VLine)
-        main_layout.addWidget(v_line)
+        cols_layout.addWidget(v_line)
 
         # ── Coluna Direita: Inspector de Parâmetros ────────────────────────
         right_box = QtWidgets.QWidget(self)
@@ -294,7 +296,7 @@ class FilterAdjustmentDialog(QtWidgets.QDialog):
         btn_box.addWidget(self.btn_apply)
 
         right_layout.addLayout(btn_box)
-        main_layout.addWidget(right_box, 5)
+        cols_layout.addWidget(right_box, 5)
 
     def _select_filter(self, fdef: dict) -> None:
         self._active_def = fdef

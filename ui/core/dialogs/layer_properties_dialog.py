@@ -3,7 +3,7 @@
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 
 BLEND_MODES = [
@@ -18,15 +18,13 @@ BLEND_MODES = [
 ]
 
 
-class LayerPropertiesDialog(QtWidgets.QDialog):
+class LayerPropertiesDialog(BaseFramelessDialog):
     """Diálogo modal para editar nome, opacidade e modo de mesclagem da camada ativa."""
 
     def __init__(self, name: str, opacity: float = 1.0, blend_mode: int = 0, is_visible: bool = True,
                  is_alpha_locked: bool = False, is_clipping: bool = False, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Propriedades da Camada")
-        self.setFixedSize(380, 360)
-        self.setModal(True)
+        super().__init__(title="Propriedades da Camada", icon_name="layers", parent=parent, modal=True)
+        self.resize(400, 370)
 
         self._name = name
         self._opacity = int(round(opacity * 100)) if opacity <= 1.0 else int(opacity)
@@ -40,22 +38,6 @@ class LayerPropertiesDialog(QtWidgets.QDialog):
         self._apply_theme()
 
     def _build_ui(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(14)
-
-        # Cabeçalho
-        header = QtWidgets.QHBoxLayout()
-        icon_lbl = QtWidgets.QLabel()
-        icon_lbl.setPixmap(get_icon("layers").pixmap(24, 24))
-        header.addWidget(icon_lbl)
-
-        title_lbl = QtWidgets.QLabel("Configurações da Camada")
-        title_lbl.setStyleSheet("font-size: 14px; font-weight: bold;")
-        header.addWidget(title_lbl)
-        header.addStretch()
-        layout.addLayout(header)
-
         # Formulário
         form_layout = QtWidgets.QGridLayout()
         form_layout.setSpacing(10)
@@ -93,7 +75,7 @@ class LayerPropertiesDialog(QtWidgets.QDialog):
                 self.blend_combo.setCurrentIndex(self.blend_combo.count() - 1)
         form_layout.addWidget(self.blend_combo, 2, 1)
 
-        layout.addLayout(form_layout)
+        self.content_layout.addLayout(form_layout)
 
         # Travas e Modificadores
         box_mod = QtWidgets.QGroupBox("Modificadores Rápidos")
@@ -109,9 +91,9 @@ class LayerPropertiesDialog(QtWidgets.QDialog):
         self.check_clip = QtWidgets.QCheckBox("Máscara de Corte (Clipping Mask)")
         self.check_clip.setChecked(self._is_clipping)
         box_mod_layout.addWidget(self.check_clip)
-        layout.addWidget(box_mod)
+        self.content_layout.addWidget(box_mod)
 
-        layout.addStretch()
+        self.content_layout.addStretch()
 
         # Botões
         btn_box = QtWidgets.QHBoxLayout()
@@ -127,7 +109,7 @@ class LayerPropertiesDialog(QtWidgets.QDialog):
         self.btn_apply.clicked.connect(self.accept)
         btn_box.addWidget(self.btn_apply)
 
-        layout.addLayout(btn_box)
+        self.content_layout.addLayout(btn_box)
 
     def get_results(self) -> dict:
         return {
@@ -139,12 +121,11 @@ class LayerPropertiesDialog(QtWidgets.QDialog):
             "is_clipping": self.check_clip.isChecked()
         }
 
-    def _apply_theme(self):
+    def _apply_theme(self, *args):
         theme = ThemeManager.instance()
         border = theme.get_color("border", "#2e2e38")
         text = theme.get_color("text_main", "#ffffff")
         self.setStyleSheet(f"""
-            QDialog {{ background-color: {theme.get_color("bg_canvas", "#121214")}; color: {text}; }}
             QLineEdit, QSpinBox, QComboBox {{ background-color: {theme.get_color("bg_input", "#26262e")}; color: {text}; border: 1px solid {border}; border-radius: 4px; padding: 4px 8px; }}
             QGroupBox {{ border: 1px solid {border}; border-radius: 6px; margin-top: 6px; padding-top: 10px; }}
         """)

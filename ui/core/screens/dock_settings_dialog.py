@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 _SETTINGS_ORG  = "Lumenia"
 _SETTINGS_APP  = "LumeniaApp"
@@ -37,17 +38,15 @@ def save_dock_settings(cfg: dict) -> None:
     s.setValue("dock/hover_delay",   cfg["hover_delay"])
 
 
-class DockBarsSettingsDialog(QtWidgets.QDialog):
+class DockBarsSettingsDialog(BaseFramelessDialog):
     """Diálogo de configurações das Barras de Gavetas laterais."""
 
     settings_applied = QtCore.Signal(dict)  # emite cfg dict quando o usuário aplica
 
     def __init__(self, workspace=None, parent: QtWidgets.QWidget | None = None) -> None:
-        super().__init__(parent)
+        super().__init__(title="Configurações: Barra de Gavetas", icon_name="settings", parent=parent, modal=True)
         self._workspace = workspace
-        self.setWindowTitle("Configurações: Barra de Gavetas")
-        self.setModal(True)
-        self.setFixedSize(640, 520)
+        self.resize(660, 540)
 
         self._build_ui()
         self._load_settings()
@@ -58,26 +57,7 @@ class DockBarsSettingsDialog(QtWidgets.QDialog):
     # ── Construção da UI ──────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
-        main = QtWidgets.QVBoxLayout(self)
-        main.setContentsMargins(20, 20, 20, 20)
-        main.setSpacing(16)
-
-        # Título
-        lbl_title = QtWidgets.QLabel("Configurações da Barra de Gavetas")
-        lbl_title.setStyleSheet("font-size: 16px; font-weight: bold;")
-        main.addWidget(lbl_title)
-
-        lbl_desc = QtWidgets.QLabel(
-            "Configure o comportamento de auto-recolhimento e organize os painéis laterais."
-        )
-        lbl_desc.setWordWrap(True)
-        lbl_desc.setStyleSheet("color: #8b949e; font-size: 11px;")
-        main.addWidget(lbl_desc)
-
-        # ── Separador ─────────────────────────────────────────────────
-        sep1 = QtWidgets.QFrame()
-        sep1.setFrameShape(QtWidgets.QFrame.HLine)
-        main.addWidget(sep1)
+        main = self.content_layout
 
         # ── Seção: Comportamento ───────────────────────────────────────
         lbl_behavior = QtWidgets.QLabel("Comportamento")

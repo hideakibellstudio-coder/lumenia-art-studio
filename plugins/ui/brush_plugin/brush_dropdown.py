@@ -403,17 +403,61 @@ class BrushDropdown(QtWidgets.QToolButton):
     def _apply_preset_backend(self, name: str, data: dict) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_engine_type"):
+        if not backend:
+            return
+
+        if hasattr(backend, "set_engine_type"):
             engine_type = data.get("engine_type", 0)
             backend.set_engine_type(engine_type)
-            if "brush_size" in data:
-                backend.set_brush_size(data["brush_size"])
-            if "opacity" in data:
-                backend.set_brush_opacity(data["opacity"])
-            if "spacing_factor" in data:
-                backend.set_brush_spacing(data["spacing_factor"])
-            if "hardness" in data:
-                backend.set_brush_contrast(data["hardness"])
+        if "brush_size" in data and hasattr(backend, "set_brush_size"):
+            backend.set_brush_size(data["brush_size"])
+        if "opacity" in data and hasattr(backend, "set_brush_opacity"):
+            backend.set_brush_opacity(data["opacity"])
+        if "spacing_factor" in data and hasattr(backend, "set_brush_spacing"):
+            backend.set_brush_spacing(data["spacing_factor"])
+        if "hardness" in data and hasattr(backend, "set_brush_hardness"):
+            backend.set_brush_hardness(data["hardness"])
+
+        # Texturas e Grãos
+        if "brush_grain_enabled" in data and hasattr(backend, "set_brush_grain_enabled"):
+            backend.set_brush_grain_enabled(bool(data["brush_grain_enabled"]))
+        if "brush_height_preset" in data and hasattr(backend, "set_brush_height_preset"):
+            backend.set_brush_height_preset(int(data["brush_height_preset"]))
+        if "brush_grain_contrast" in data and hasattr(backend, "set_brush_grain_contrast"):
+            backend.set_brush_grain_contrast(float(data["brush_grain_contrast"]))
+        if "brush_grain_scale" in data and hasattr(backend, "set_brush_grain_scale"):
+            backend.set_brush_grain_scale(float(data["brush_grain_scale"]))
+        if "shape_preset" in data and hasattr(backend, "set_shape_preset"):
+            backend.set_shape_preset(int(data["shape_preset"]))
+
+        # Sincronização direta com a fachada C++ para parâmetros de mini-motores
+        facade = getattr(backend, "_facade", None)
+        if facade and hasattr(facade, "get_brush_profile"):
+            prof = facade.get_brush_profile()
+            if "tip_aspect" in data and hasattr(prof, "tip"):
+                prof.tip.aspect_ratio = float(data["tip_aspect"])
+            if "tip_angle" in data and hasattr(prof, "tip"):
+                prof.tip.angle = float(data["tip_angle"])
+            if "follow_stroke" in data and hasattr(prof, "tip"):
+                prof.tip.follow_stroke = bool(data["follow_stroke"])
+            if "pencil_graphite_hardness" in data and hasattr(prof, "pencil_params"):
+                prof.pencil_params.graphite_hardness = float(data["pencil_graphite_hardness"])
+            if "pencil_tilt_shading" in data and hasattr(prof, "pencil_params"):
+                prof.pencil_params.tilt_shading_enabled = bool(data["pencil_tilt_shading"])
+            if "inker_flow_rate" in data and hasattr(prof, "inker_params"):
+                prof.inker_params.ink_flow_rate = float(data["inker_flow_rate"])
+            if "inker_taper_smoothing" in data and hasattr(prof, "inker_params"):
+                prof.inker_params.taper_smoothing = float(data["inker_taper_smoothing"])
+            if "watercolor_water_level" in data and hasattr(prof, "watercolor_params"):
+                prof.watercolor_params.water_level = float(data["watercolor_water_level"])
+            if "watercolor_granulation" in data and hasattr(prof, "watercolor_params"):
+                prof.watercolor_params.granulation = float(data["watercolor_granulation"])
+            if "watercolor_fringe_intensity" in data and hasattr(prof, "watercolor_params"):
+                prof.watercolor_params.fringe_intensity = float(data["watercolor_fringe_intensity"])
+            if "oil_impasto_depth" in data and hasattr(prof, "oil_params"):
+                prof.oil_params.impasto_depth = float(data["oil_impasto_depth"])
+            if "oil_bristle_grooves" in data and hasattr(prof, "oil_params"):
+                prof.oil_params.bristle_grooves = float(data["oil_bristle_grooves"])
 
     def _apply_style(self, *args) -> None:
         theme = ThemeManager.instance()

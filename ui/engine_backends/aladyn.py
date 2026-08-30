@@ -341,7 +341,31 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin, A
         if self._facade: self._facade.get_stabilizer().set_stabilization_percentage(float(weight * 100.0 if weight <= 1.0 else weight))
 
     def set_brush_contrast(self, contrast: float) -> None:
-        if self._facade: self._facade.get_brush_profile().hardness = float(contrast / 10.0 if contrast > 1.0 else contrast)
+        if self._facade:
+            prof = self._facade.get_brush_profile()
+            prof.brush_grain_contrast = float(contrast)
+            if contrast <= 1.0:
+                prof.hardness = float(contrast)
+
+    def set_brush_hardness(self, hardness: float) -> None:
+        if self._facade:
+            self._facade.get_brush_profile().hardness = float(hardness)
+
+    def set_brush_grain_contrast(self, contrast: float) -> None:
+        if self._facade:
+            self._facade.get_brush_profile().brush_grain_contrast = float(contrast)
+
+    def set_brush_grain_scale(self, scale: float) -> None:
+        if self._facade:
+            self._facade.get_brush_profile().brush_grain_scale = float(scale)
+
+    def set_brush_height_preset(self, preset_id: int) -> None:
+        if self._facade and hasattr(self._facade, "set_brush_height_preset"):
+            self._facade.set_brush_height_preset(int(preset_id))
+
+    def set_shape_preset(self, preset_id: int) -> None:
+        if self._facade and hasattr(self._facade, "set_shape_preset"):
+            self._facade.set_shape_preset(int(preset_id))
 
     def set_brush_pressure(self, pressure: float) -> None:
         if self._facade:

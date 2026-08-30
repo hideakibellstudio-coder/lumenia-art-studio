@@ -230,6 +230,16 @@ class WorkspaceBrushMixin:
             else:
                 renderer.set_heightmap_texture(px_bytes, width, height)
 
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        if backend:
+            if is_shape and hasattr(backend, "set_shape_texture"):
+                backend.set_shape_texture(px_bytes, width, height)
+            elif not is_shape and hasattr(backend, "set_heightmap_texture"):
+                backend.set_heightmap_texture(px_bytes, width, height)
+                if hasattr(backend, "set_brush_grain_enabled"):
+                    backend.set_brush_grain_enabled(True)
+
         if self._brush_dock:
             self._brush_dock.update_thumbnail(is_shape, file_path)
 

@@ -186,15 +186,12 @@ class WorkspaceDocSyncMixin:
         active_color = getattr(self, "_saved_color", QtGui.QColor(0, 0, 0))
         self._apply_brush_color(active_color)
         if hasattr(self, "_brush_dock") and self._brush_dock and hasattr(self._brush_dock, "preset_combo"):
-            preset_data = {
-                "label": "Pincel Redondo",
-                "engine_type": 0,
-                "brush_size": 24.0,
-                "opacity": 1.0,
-                "hardness": 0.85,
-                "spacing_factor": 0.12
-            }
-            self._brush_dock.preset_combo._on_preset_selected("Pincel Redondo", preset_data)
+            combo = self._brush_dock.preset_combo
+            active_tool = getattr(self.canvas_widget, "active_tool", "brush")
+            current_preset = getattr(combo, "_active_preset", "Pincel Redondo")
+            current_data = combo._tool_preset_state.get(active_tool) or combo._tool_preset_state.get("brush")
+            if current_data:
+                combo._apply_preset_backend(current_preset, current_data)
 
     def _on_document_closed_cleanup(self, uid: str) -> None:
         """Chamado quando um documento é fechado para liberar memória C++ imediatamente."""

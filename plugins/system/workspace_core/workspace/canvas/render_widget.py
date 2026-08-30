@@ -146,7 +146,7 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, True)
+        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, self.zoom < 1.0)
         painter.fillRect(self.rect(), QtGui.QColor(128, 128, 128))
 
         active_doc = DocumentManager.instance().active_document()

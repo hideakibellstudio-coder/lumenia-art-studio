@@ -69,9 +69,7 @@ std::shared_ptr<Texture2D> ProceduralTextures::createHeightPreset(HeightPreset p
             double val = 128.0;
             switch (preset) {
                 case HeightPreset::FinePaper: {
-                    const double wave1 = std::sin(static_cast<double>(x) * 0.03) * std::cos(static_cast<double>(y) * 0.03) * 40.0;
-                    const double noise = static_cast<double>(dist(rng)) * 0.2;
-                    val = 128.0 + wave1 + noise;
+                    val = static_cast<double>(dist(rng));
                     break;
                 }
                 case HeightPreset::WatercolorPaper: {

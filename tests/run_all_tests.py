@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 """
 Runner de Testes Padrão Ouro — Project Lumenia Suite
-Executa todas as suítes de teste de integração do motor C++ e da interface Python.
+Executa todas as suítes de teste de integração do motor C++ e da interface Python com suporte a UTF-8 no Windows.
 """
 
 import os
 import sys
 import unittest
+
+# Reconfigura stdout/stderr para UTF-8 no Windows
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 # Força execução em modo headless / offscreen
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -18,9 +26,9 @@ if PROJECT_ROOT not in sys.path:
 
 
 def main():
-    print("=" * 70)
-    print(" LUMENIA UI & ALADYN ENGINE -- SUITE DE TESTES PADRAO OURO")
-    print("=" * 70)
+    print("=" * 75)
+    print(" 🏛️  LUMENIA ART STUDIO & ALADYN ENGINE -- SUÍTE DE TESTES EXECUTIVA")
+    print("=" * 75)
 
     loader = unittest.TestLoader()
     start_dir = os.path.dirname(__file__)
@@ -29,14 +37,14 @@ def main():
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
 
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 75)
     if result.wasSuccessful():
-        print(f" [OK] TODOS OS TESTES PASSARAM COM SUCESSO! ({result.testsRun} testes executados)")
-        print("=" * 70)
+        print(f" 🟢 [OK] TODOS OS TESTES PASSARAM COM SUCESSO! ({result.testsRun} testes executados)")
+        print("=" * 75)
         sys.exit(0)
     else:
-        print(f" [ERRO] FALHA NOS TESTES! ({len(result.failures)} falhas, {len(result.errors)} erros)")
-        print("=" * 70)
+        print(f" 🔴 [FALHA] ENCONTRADOS ERROS NOS TESTES! ({len(result.failures)} falhas, {len(result.errors)} erros)")
+        print("=" * 75)
         sys.exit(1)
 
 

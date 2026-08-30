@@ -65,14 +65,16 @@ public:
         m_currentMetrics.strokeTotalTimeMs = 0.0;
         m_currentMetrics.totalDabsInStroke = 0;
         m_currentMetrics.rawPressure = pressure;
+        m_currentMetrics.dynamicPressure = pressure;
         m_currentMetrics.activeEngineId = engineId;
         m_eventCountInStroke = 1;
     }
 
-    void onSegmentRendered(double latencyUs, uint32_t dabsRendered, double dynamicPressure, double velocity, double stabilizerLag) {
+    void onSegmentRendered(double latencyUs, uint32_t dabsRendered, double rawPressure, double dynamicPressure, double velocity, double stabilizerLag) {
         if (!isEnabled()) return;
         m_currentMetrics.lastSegmentLatencyUs = latencyUs;
         m_currentMetrics.totalDabsInStroke += dabsRendered;
+        m_currentMetrics.rawPressure = rawPressure;
         m_currentMetrics.dynamicPressure = dynamicPressure;
         m_currentMetrics.strokeVelocity = velocity;
         m_currentMetrics.stabilizerLagPx = stabilizerLag;
@@ -102,6 +104,10 @@ public:
         m_currentMetrics.tileGridMemoryMB = tileMemMB;
         m_currentMetrics.undoStackMemoryMB = undoMemMB;
         m_currentMetrics.undoStepsCount = undoSteps;
+        m_currentMetrics.rawPressure = 0.0;
+        m_currentMetrics.dynamicPressure = 0.0;
+        m_currentMetrics.strokeVelocity = 0.0;
+        m_currentMetrics.stabilizerLagPx = 0.0;
     }
 
     [[nodiscard]] RealTimeStrokeMetrics getSnapshot(uint32_t activeTiles, double tileMemMB, double undoMemMB, uint32_t undoSteps) const {

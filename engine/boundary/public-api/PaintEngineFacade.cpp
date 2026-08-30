@@ -288,15 +288,21 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
 void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure) {
     m_lastRawPoint = {x, y};
     m_hasLastRawPoint = true;
-    beginStroke({stroke::PointerEventType::Press, {x, y}, pressure, 0.0});
+    auto now = std::chrono::high_resolution_clock::now();
+    double t = std::chrono::duration<double>(now.time_since_epoch()).count();
+    beginStroke({stroke::PointerEventType::Press, {x, y}, pressure, t});
 }
 
 std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure) {
     if (!m_isDrawing) return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     m_lastRawPoint = {x, y};
     m_hasLastRawPoint = true;
+
+    auto now = std::chrono::high_resolution_clock::now();
+    double t = std::chrono::duration<double>(now.time_since_epoch()).count();
+
     math::Point2D pos = m_stabilizer.update({x, y});
-    const double vel = m_velocityTracker.update(pos, 0.0);
+    const double vel = m_velocityTracker.update(pos, t);
     auto mapped = brush::DynamicMapper::map(m_brushProfile, pos, pressure, m_velocityTracker.getNormalizedVelocity(), 0.0);
     raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
     math::Rect2D dirty{0, 0, 0, 0};
@@ -314,7 +320,7 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
         auto tEnd = std::chrono::high_resolution_clock::now();
         double latUs = std::chrono::duration<double, std::micro>(tEnd - tStart).count();
         double lag = pos.distanceTo(math::Point2D{x, y});
-        m_telemetryManager.onSegmentRendered(latUs, dabsRendered, currentDab.opacity, vel, lag);
+        m_telemetryManager.onSegmentRendered(latUs, dabsRendered, pressure, mapped.pressure, vel, lag);
     }
 
     m_lastDab = currentDab;
@@ -338,7 +344,9 @@ void PaintEngineFacade::endStrokeRaw() {
             m_lastDab = currentDab;
         }
     }
-    endStroke({stroke::PointerEventType::Release, m_lastRawPoint, 0.0, 0.0});
+    auto now = std::chrono::high_resolution_clock::now();
+    double t = std::chrono::duration<double>(now.time_since_epoch()).count();
+    endStroke({stroke::PointerEventType::Release, m_lastRawPoint, 0.0, t});
     m_hasLastRawPoint = false;
 }
 

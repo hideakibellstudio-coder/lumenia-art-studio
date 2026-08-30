@@ -97,26 +97,36 @@ class TestLowLevelSelectionTransform(unittest.TestCase):
         self.assertAlmostEqual(bounds[2], 40, delta=2)
         self.assertAlmostEqual(bounds[3], 40, delta=2)
 
-    # ── 4. Transform Tool (Flip e Rotação 90°) ────────────────────────────────
+    # ── 4. Transform Tool (Flip In-Place por Pivô) ───────────────────────────
     def test_04_transform_flip_and_rotation(self):
-        """Valida rotações ortogonais e espelhamentos da camada ativa."""
-        # Pinta um bloco de 20x20 no quadrante superior esquerdo (10, 10) de amarelo
-        yellow_buf = bytes([255, 255, 0, 255] * (20 * 20))
-        self.facade.paste_rgba_buffer_on_active_layer(10, 10, 20, 20, yellow_buf, 0, 1.0)
+        """Valida espelhamento horizontal in-place ao redor do pivô do conteúdo."""
+        # Cria um bloco de 20x20 onde a metade esquerda (10px) é Vermelha e a direita (10px) é Verde
+        pixels = []
+        for y in range(20):
+            for x in range(20):
+                if x < 10:
+                    pixels.extend([255, 0, 0, 255])  # Vermelho
+                else:
+                    pixels.extend([0, 255, 0, 255])  # Verde
+        asym_buf = bytes(pixels)
+        
+        # Cola em (10, 10) ocupando X de 10 a 30
+        self.facade.paste_rgba_buffer_on_active_layer(10, 10, 20, 20, asym_buf, 0, 1.0)
+
+        arr_before = self._get_canvas_array()
+        self.assertEqual(arr_before[20, 14, 0], 255, "Antes do flip: lado esquerdo (x=14) é Vermelho")
+        self.assertEqual(arr_before[20, 26, 1], 255, "Antes do flip: lado direito (x=26) é Verde")
 
         # Espelha horizontalmente a camada ativa
-        self.facade.flip_active_layer(horizontal=True)
+        ok = self.facade.flip_active_layer(horizontal=True)
+        self.assertTrue(ok)
 
-        arr = self._get_canvas_array()
-        # O bloco amarelo que estava em X=10..30 deve agora estar em X=90..110 (120 - 30 = 90)
-        mirrored_px = arr[20, 100]
-        self.assertEqual(mirrored_px[0], 255, "Pixel espelhado R deve ser 255")
-        self.assertEqual(mirrored_px[1], 255, "Pixel espelhado G deve ser 255")
-        self.assertEqual(mirrored_px[3], 255, "Pixel espelhado Alpha deve ser 255")
-
-        # A posição original (20, 20) deve estar limpa (transparente)
-        orig_px = arr[20, 20]
-        self.assertEqual(orig_px[3], 0, "Posição original deve ficar vazia após flip")
+        arr_after = self._get_canvas_array()
+        # Após o flip horizontal in-place:
+        # O lado esquerdo (x=14) DEVE ser Verde (G=255)
+        # O lado direito (x=26) DEVE ser Vermelho (R=255)
+        self.assertEqual(arr_after[20, 14, 1], 255, f"Após flip: lado esquerdo deve virar Verde, obtido {arr_after[20, 14]}")
+        self.assertEqual(arr_after[20, 26, 0], 255, f"Após flip: lado direito deve virar Vermelho, obtido {arr_after[20, 26]}")
 
 
 if __name__ == "__main__":

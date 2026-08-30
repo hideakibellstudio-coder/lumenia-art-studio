@@ -49,10 +49,10 @@ class TestLowLevelBlendModes(unittest.TestCase):
         arr = self._get_canvas_array()
         center = arr[50, 50]
         # (128 * 128) / 255 = 64.25 -> ~64
-        self.assertAlmostEqual(center[0], 64, delta=2, msg=f"Multiply R deve ser ~64, obtido {center[0]}")
-        self.assertAlmostEqual(center[1], 64, delta=2, msg=f"Multiply G deve ser ~64, obtido {center[1]}")
-        self.assertAlmostEqual(center[2], 64, delta=2, msg=f"Multiply B deve ser ~64, obtido {center[2]}")
-        self.assertEqual(center[3], 255)
+        self.assertAlmostEqual(int(center[0]), 64, delta=2, msg=f"Multiply R deve ser ~64, obtido {center[0]}")
+        self.assertAlmostEqual(int(center[1]), 64, delta=2, msg=f"Multiply G deve ser ~64, obtido {center[1]}")
+        self.assertAlmostEqual(int(center[2]), 64, delta=2, msg=f"Multiply B deve ser ~64, obtido {center[2]}")
+        self.assertEqual(int(center[3]), 255)
 
     # ── 2. Blend Mode: Screen (Divisão/Trama) ─────────────────────────────────
     def test_02_blend_mode_screen(self):
@@ -67,9 +67,9 @@ class TestLowLevelBlendModes(unittest.TestCase):
         arr = self._get_canvas_array()
         center = arr[50, 50]
         # 255 - ((127 * 127) / 255) = 255 - 63.25 = 191.75 -> ~192
-        self.assertAlmostEqual(center[0], 192, delta=2, msg=f"Screen R deve ser ~192, obtido {center[0]}")
-        self.assertAlmostEqual(center[1], 192, delta=2, msg=f"Screen G deve ser ~192, obtido {center[1]}")
-        self.assertAlmostEqual(center[2], 192, delta=2, msg=f"Screen B deve ser ~192, obtido {center[2]}")
+        self.assertAlmostEqual(int(center[0]), 192, delta=2, msg=f"Screen R deve ser ~192, obtido {center[0]}")
+        self.assertAlmostEqual(int(center[1]), 192, delta=2, msg=f"Screen G deve ser ~192, obtido {center[1]}")
+        self.assertAlmostEqual(int(center[2]), 192, delta=2, msg=f"Screen B deve ser ~192, obtido {center[2]}")
 
     # ── 3. Alpha Lock: Preserva transparência estrita ─────────────────────────
     def test_03_alpha_lock_preserves_transparent_areas(self):

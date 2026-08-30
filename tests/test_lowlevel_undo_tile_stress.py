@@ -29,7 +29,7 @@ class TestLowLevelUndoTileStress(unittest.TestCase):
         buf = self.facade.get_pixel_buffer()
         return np.frombuffer(buf, dtype=np.uint8).reshape((self.h, self.w, 4))
 
-    def _draw_stroke(self, x0, y0, x1, y1, color: aen.ColorRGBA, size=15.0):
+    def _draw_stroke(self, x0, y0, x1, y1, color: aen.ColorRGBA, size=15.0, steps=30):
         profile = self.facade.get_brush_profile()
         profile.engine_type = aen.EngineType.Inker
         profile.brush_size = size
@@ -38,14 +38,18 @@ class TestLowLevelUndoTileStress(unittest.TestCase):
         self.facade.set_engine_type(int(aen.EngineType.Inker))
 
         self.facade.begin_stroke_raw(float(x0), float(y0), 1.0)
-        self.facade.update_stroke_raw(float(x1), float(y1), 1.0)
+        for i in range(1, steps + 1):
+            t = i / float(steps)
+            x = x0 + (x1 - x0) * t
+            y = y0 + (y1 - y0) * t
+            self.facade.update_stroke_raw(x, y, 1.0)
         self.facade.end_stroke_raw()
 
     # ── 1. Tile Boundary Crossing ($64\times64$) ──────────────────────────────
     def test_01_tile_boundary_crossing(self):
         """Valida traço longo cruzando as fronteiras de 4 tiles distintos (0,0)->(1,1)->(2,2)->(3,3)."""
-        # Traço de (10, 10) até (240, 240)
-        self._draw_stroke(10, 10, 240, 240, aen.ColorRGBA(255, 100, 0, 255), size=12.0)
+        # Traço de (10, 10) até (240, 240) com 35 passos interpolados
+        self._draw_stroke(10, 10, 240, 240, aen.ColorRGBA(255, 100, 0, 255), size=14.0, steps=35)
 
         arr = self._get_canvas_array()
 
@@ -63,15 +67,13 @@ class TestLowLevelUndoTileStress(unittest.TestCase):
     def test_02_multistep_undo_redo_fidelity(self):
         """Valida que 3 traços em posições distintas podem ser desfeitos e refeitos perfeitamente."""
         # Traço 1: Vermelho no topo (50, 50)
-        self._draw_stroke(40, 50, 60, 50, aen.ColorRGBA(255, 0, 0, 255), size=20.0)
-        arr_step1 = self._get_canvas_array().copy()
+        self._draw_stroke(40, 50, 60, 50, aen.ColorRGBA(255, 0, 0, 255), size=20.0, steps=10)
 
         # Traço 2: Verde no meio (128, 128)
-        self._draw_stroke(118, 128, 138, 128, aen.ColorRGBA(0, 255, 0, 255), size=20.0)
-        arr_step2 = self._get_canvas_array().copy()
+        self._draw_stroke(118, 128, 138, 128, aen.ColorRGBA(0, 255, 0, 255), size=20.0, steps=10)
 
         # Traço 3: Azul na base (200, 200)
-        self._draw_stroke(190, 200, 210, 200, aen.ColorRGBA(0, 0, 255, 255), size=20.0)
+        self._draw_stroke(190, 200, 210, 200, aen.ColorRGBA(0, 0, 255, 255), size=20.0, steps=10)
         arr_step3 = self._get_canvas_array().copy()
 
         # Verifica estado atual (todos os 3 traços visíveis)
@@ -101,15 +103,15 @@ class TestLowLevelUndoTileStress(unittest.TestCase):
     def test_03_redo_invalidation_on_new_stroke(self):
         """Valida que desenhar um novo traço após um undo invalida e descarta a pilha de redo."""
         # Traço 1
-        self._draw_stroke(30, 30, 50, 30, aen.ColorRGBA(255, 0, 0, 255))
+        self._draw_stroke(30, 30, 50, 30, aen.ColorRGBA(255, 0, 0, 255), steps=10)
         # Traço 2
-        self._draw_stroke(100, 100, 120, 100, aen.ColorRGBA(0, 255, 0, 255))
+        self._draw_stroke(100, 100, 120, 100, aen.ColorRGBA(0, 255, 0, 255), steps=10)
 
         # Undo do traço 2
         self.facade.undo()
 
         # Novo Traço 3 diferente
-        self._draw_stroke(180, 180, 200, 180, aen.ColorRGBA(0, 0, 255, 255))
+        self._draw_stroke(180, 180, 200, 180, aen.ColorRGBA(0, 0, 255, 255), steps=10)
 
         # Redo NÃO deve ser mais possível
         can_redo = self.facade.redo()
@@ -123,7 +125,7 @@ class TestLowLevelUndoTileStress(unittest.TestCase):
 
         # Executa 5 traços consecutivos
         for i in range(5):
-            self._draw_stroke(20 + i * 40, 50, 40 + i * 40, 50, aen.ColorRGBA(i * 40, 255 - i * 40, 128, 255))
+            self._draw_stroke(20 + i * 40, 50, 40 + i * 40, 50, aen.ColorRGBA(i * 40, 255 - i * 40, 128, 255), steps=10)
 
         # Deve conseguir dar no máximo 3 undos (devido ao limite de 3 passos)
         undo_count = 0

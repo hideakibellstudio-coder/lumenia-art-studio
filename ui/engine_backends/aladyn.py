@@ -130,9 +130,48 @@ class AladynBackend(EngineBackend, AladynSelectionMixin, AladynTransformMixin, A
                     self._native.PointerEventType.Release, pt, 0.0, time.time()
                 )
                 self._facade.end_stroke(evt)
+
+            # Emite log executivo sumarizado de 1 linha quando a telemetria estiver ativa
+            if hasattr(self._facade, "is_telemetry_enabled") and self._facade.is_telemetry_enabled():
+                snap = self._facade.get_telemetry_snapshot()
+                if snap and snap.total_dabs_in_stroke > 0:
+                    logger.info(
+                        f"🖋️ [Traço C++] {snap.total_dabs_in_stroke} dabs em {snap.stroke_total_time_ms:.1f}ms | "
+                        f"Latência dab: {snap.last_segment_latency_us:.1f}µs | "
+                        f"Tiles: {snap.active_tile_count} ({snap.tile_grid_memory_mb:.2f} MB) | "
+                        f"Undo: {snap.undo_stack_memory_mb:.2f} MB"
+                    )
+
         if not getattr(self, "_is_filling", False):
             self._action_stack.append(("stroke", 1))
             self._redo_stack.clear()
+
+    def set_telemetry_enabled(self, enabled: bool) -> None:
+        if self._facade and hasattr(self._facade, "set_telemetry_enabled"):
+            self._facade.set_telemetry_enabled(enabled)
+
+    def is_telemetry_enabled(self) -> bool:
+        if self._facade and hasattr(self._facade, "is_telemetry_enabled"):
+            return self._facade.is_telemetry_enabled()
+        return False
+
+    def set_detailed_logging_enabled(self, detailed: bool) -> None:
+        if self._facade and hasattr(self._facade, "set_detailed_logging_enabled"):
+            self._facade.set_detailed_logging_enabled(detailed)
+
+    def is_detailed_logging_enabled(self) -> bool:
+        if self._facade and hasattr(self._facade, "is_detailed_logging_enabled"):
+            return self._facade.is_detailed_logging_enabled()
+        return False
+
+    def get_telemetry_snapshot(self):
+        if self._facade and hasattr(self._facade, "get_telemetry_snapshot"):
+            return self._facade.get_telemetry_snapshot()
+        return None
+
+    def reset_telemetry(self) -> None:
+        if self._facade and hasattr(self._facade, "reset_telemetry"):
+            self._facade.reset_telemetry()
 
     def clear_canvas(self) -> None:
         if self._facade:

@@ -33,6 +33,7 @@ public:
     // Remove tiles 100% transparentes (liberação de RAM pós-borracha)
     size_t pruneEmptyTiles();
     void copyFrom(const TileGrid& src);
+    [[nodiscard]] size_t getActiveTilesCount() const noexcept { return m_tiles.size(); }
 
     // Itera sobre todos os tiles alocados (para commitScratch)
     template<typename Fn>

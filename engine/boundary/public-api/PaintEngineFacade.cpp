@@ -252,6 +252,7 @@ void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
     if (m_activeEngine) m_activeEngine->onBeginStroke();
     auto mapped = brush::DynamicMapper::map(m_brushProfile, event.position, event.pressure, 0.0, 0.0);
     m_lastDab = raster::Dab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
+    m_telemetryManager.onBeginStroke(event.pressure, static_cast<int>(m_brushProfile.engineType));
 }
 
 TelemetryData PaintEngineFacade::updateStroke(const stroke::PointerEvent& event) {
@@ -271,6 +272,17 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
     m_undoManager.commitStep(m_layerStack);
     m_isDrawing = false;
     m_distanceCarryover = 0.0;
+
+    if (m_telemetryManager.isEnabled()) {
+        uint32_t activeTiles = 0;
+        if (const auto* layer = m_layerStack.getActiveLayer()) {
+            activeTiles = static_cast<uint32_t>(layer->getTileGrid().getActiveTilesCount());
+        }
+        double tileMemMB = (activeTiles * canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * 4) / (1024.0 * 1024.0);
+        double undoMemMB = m_undoManager.getMemoryUsageBytes() / (1024.0 * 1024.0);
+        uint32_t undoSteps = static_cast<uint32_t>(m_undoManager.getUndoCount());
+        m_telemetryManager.onEndStroke(0, activeTiles, tileMemMB, undoMemMB, undoSteps);
+    }
 }
 
 void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure) {
@@ -288,12 +300,23 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
     auto mapped = brush::DynamicMapper::map(m_brushProfile, pos, pressure, m_velocityTracker.getNormalizedVelocity(), 0.0);
     raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
     math::Rect2D dirty{0, 0, 0, 0};
+    uint32_t dabsRendered = 0;
+
+    auto tStart = std::chrono::high_resolution_clock::now();
     internal::StrokeOrchestrator::renderSegment(
         m_lastDab, currentDab, m_brushProfile, m_canvasTexture,
         m_activeEngine.get(), m_layerStack, m_selectionMask,
         m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-        m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty
+        m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty, &dabsRendered
     );
+
+    if (m_telemetryManager.isEnabled()) {
+        auto tEnd = std::chrono::high_resolution_clock::now();
+        double latUs = std::chrono::duration<double, std::micro>(tEnd - tStart).count();
+        double lag = pos.distanceTo(math::Point2D{x, y});
+        m_telemetryManager.onSegmentRendered(latUs, dabsRendered, currentDab.opacity, vel, lag);
+    }
+
     m_lastDab = currentDab;
     return { dirty.x, dirty.y, dirty.width, dirty.height, x, y, pressure, vel, currentDab.opacity };
 }
@@ -305,11 +328,12 @@ void PaintEngineFacade::endStrokeRaw() {
             auto mapped = brush::DynamicMapper::map(m_brushProfile, pt, 0.0, 0.0, 0.0);
             raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
             math::Rect2D dirty{0, 0, 0, 0};
+            uint32_t dabsRendered = 0;
             internal::StrokeOrchestrator::renderSegment(
                 m_lastDab, currentDab, m_brushProfile, m_canvasTexture,
                 m_activeEngine.get(), m_layerStack, m_selectionMask,
                 m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-                m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty
+                m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty, &dabsRendered
             );
             m_lastDab = currentDab;
         }
@@ -326,6 +350,17 @@ void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const r
         m_distanceCarryover,
         m_symmetryConfig, &m_strokeStartPoint
     );
+}
+
+telemetry::RealTimeStrokeMetrics PaintEngineFacade::getTelemetrySnapshot() const {
+    uint32_t activeTiles = 0;
+    if (const auto* layer = m_layerStack.getActiveLayer()) {
+        activeTiles = static_cast<uint32_t>(layer->getTileGrid().getActiveTilesCount());
+    }
+    double tileMemMB = (activeTiles * canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * 4) / (1024.0 * 1024.0);
+    double undoMemMB = m_undoManager.getMemoryUsageBytes() / (1024.0 * 1024.0);
+    uint32_t undoSteps = static_cast<uint32_t>(m_undoManager.getUndoCount());
+    return m_telemetryManager.getSnapshot(activeTiles, tileMemMB, undoMemMB, undoSteps);
 }
 
 // ─── FLOOD FILL ───────────────────────────────────────────────────────────

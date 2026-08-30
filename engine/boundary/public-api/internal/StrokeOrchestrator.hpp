@@ -30,7 +30,8 @@ public:
         double& distanceCarryover,
         const math::SymmetryConfig& symmetryConfig = {},
         const math::Point2D* strokeStart = nullptr,
-        math::Rect2D* outDirtyBounds = nullptr
+        math::Rect2D* outDirtyBounds = nullptr,
+        uint32_t* outDabsRendered = nullptr
     );
 };
 

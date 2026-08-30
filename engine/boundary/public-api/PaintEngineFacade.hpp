@@ -20,6 +20,7 @@
 #include "../../core/raster/TransformEngine.hpp"
 #include "../../core/math/SymmetryEngine.hpp"
 #include "../../core/math/GuideSnapEngine.hpp"
+#include "../../core/telemetry/EngineTelemetry.hpp"
 #include <vector>
 #include <memory>
 
@@ -185,6 +186,16 @@ public:
     [[nodiscard]] uint8_t* getDisplayRawPixelData() noexcept;
     [[nodiscard]] size_t getDisplayPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
 
+    // ─── TELEMETRIA E DIAGNÓSTICO EM TEMPO REAL ──────────────────────────
+    void setTelemetryEnabled(bool enabled) noexcept { m_telemetryManager.setEnabled(enabled); }
+    [[nodiscard]] bool isTelemetryEnabled() const noexcept { return m_telemetryManager.isEnabled(); }
+    void setDetailedLoggingEnabled(bool detailed) noexcept { m_telemetryManager.setDetailedLogging(detailed); }
+    [[nodiscard]] bool isDetailedLoggingEnabled() const noexcept { return m_telemetryManager.isDetailedLogging(); }
+    [[nodiscard]] telemetry::RealTimeStrokeMetrics getTelemetrySnapshot() const;
+    void resetTelemetry() noexcept { m_telemetryManager.reset(); }
+    [[nodiscard]] telemetry::EngineTelemetryManager& getTelemetryManager() noexcept { return m_telemetryManager; }
+    [[nodiscard]] const telemetry::EngineTelemetryManager& getTelemetryManager() const noexcept { return m_telemetryManager; }
+
 private:
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
     void initEngine(brush::EngineType type);
@@ -217,6 +228,8 @@ private:
     math::Point2D        m_lastRawPoint{0.0, 0.0};
     bool                 m_hasLastRawPoint{false};
     double               m_distanceCarryover{0.0};
+
+    telemetry::EngineTelemetryManager m_telemetryManager;
 };
 
 } // namespace aladyn::engine::boundary

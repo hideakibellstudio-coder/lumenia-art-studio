@@ -23,7 +23,8 @@ void StrokeOrchestrator::renderSegment(
     double& distanceCarryover,
     const math::SymmetryConfig& symmetryConfig,
     const math::Point2D* strokeStart,
-    math::Rect2D* outDirtyBounds
+    math::Rect2D* outDirtyBounds,
+    uint32_t* outDabsRendered
 ) {
     document::Layer* activeLayer = layerStack.getActiveLayer();
     if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) {
@@ -85,7 +86,11 @@ void StrokeOrchestrator::renderSegment(
         }
     }
 
-    if (finalDabs.empty()) return;
+    if (finalDabs.empty()) {
+        if (outDabsRendered) *outDabsRendered = 0;
+        return;
+    }
+    if (outDabsRendered) *outDabsRendered = static_cast<uint32_t>(finalDabs.size());
 
     const int startTileX = static_cast<int>(std::floor(boundMinX / canvas::Tile::TILE_SIZE));
     const int endTileX   = static_cast<int>(std::floor(boundMaxX / canvas::Tile::TILE_SIZE));

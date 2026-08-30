@@ -102,6 +102,26 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def_readwrite("b", &raster::ColorRGBA::b)
         .def_readwrite("a", &raster::ColorRGBA::a);
 
+    // ─── TELEMETRY & DIAGNOSTICS ─────────────────────────────────────────────
+    py::class_<telemetry::RealTimeStrokeMetrics>(m, "RealTimeStrokeMetrics")
+        .def(py::init<>())
+        .def_readwrite("last_segment_latency_us",  &telemetry::RealTimeStrokeMetrics::lastSegmentLatencyUs)
+        .def_readwrite("stroke_total_time_ms",     &telemetry::RealTimeStrokeMetrics::strokeTotalTimeMs)
+        .def_readwrite("total_dabs_in_stroke",     &telemetry::RealTimeStrokeMetrics::totalDabsInStroke)
+        .def_readwrite("total_dabs_per_second",    &telemetry::RealTimeStrokeMetrics::totalDabsPerSecond)
+        .def_readwrite("input_event_rate_hz",      &telemetry::RealTimeStrokeMetrics::inputEventRateHz)
+        .def_readwrite("active_tile_count",        &telemetry::RealTimeStrokeMetrics::activeTileCount)
+        .def_readwrite("dirty_tiles_last_stroke",  &telemetry::RealTimeStrokeMetrics::dirtyTilesLastStroke)
+        .def_readwrite("tile_grid_memory_mb",      &telemetry::RealTimeStrokeMetrics::tileGridMemoryMB)
+        .def_readwrite("undo_stack_memory_mb",     &telemetry::RealTimeStrokeMetrics::undoStackMemoryMB)
+        .def_readwrite("undo_steps_count",         &telemetry::RealTimeStrokeMetrics::undoStepsCount)
+        .def_readwrite("raw_pressure",             &telemetry::RealTimeStrokeMetrics::rawPressure)
+        .def_readwrite("dynamic_pressure",         &telemetry::RealTimeStrokeMetrics::dynamicPressure)
+        .def_readwrite("stroke_velocity",          &telemetry::RealTimeStrokeMetrics::strokeVelocity)
+        .def_readwrite("stabilizer_lag_px",        &telemetry::RealTimeStrokeMetrics::stabilizerLagPx)
+        .def_readwrite("active_engine_id",         &telemetry::RealTimeStrokeMetrics::activeEngineId)
+        .def_readwrite("simd_active",              &telemetry::RealTimeStrokeMetrics::simdActive);
+
     // ─── STROKE ──────────────────────────────────────────────────────────────
     py::enum_<stroke::PointerEventType>(m, "PointerEventType")
         .value("Press",   stroke::PointerEventType::Press)
@@ -491,5 +511,12 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def("snap_point", &boundary::PaintEngineFacade::snapPoint,
              py::arg("raw_x"), py::arg("raw_y"),
              py::arg("last_x") = 0.0, py::arg("last_y") = 0.0,
-             py::arg("has_last") = false);
+             py::arg("has_last") = false)
+        // ─── TELEMETRIA E DIAGNÓSTICO EM TEMPO REAL ──────────────────────────
+        .def("set_telemetry_enabled", &boundary::PaintEngineFacade::setTelemetryEnabled)
+        .def("is_telemetry_enabled", &boundary::PaintEngineFacade::isTelemetryEnabled)
+        .def("set_detailed_logging_enabled", &boundary::PaintEngineFacade::setDetailedLoggingEnabled)
+        .def("is_detailed_logging_enabled", &boundary::PaintEngineFacade::isDetailedLoggingEnabled)
+        .def("get_telemetry_snapshot", &boundary::PaintEngineFacade::getTelemetrySnapshot)
+        .def("reset_telemetry", &boundary::PaintEngineFacade::resetTelemetry);
 }

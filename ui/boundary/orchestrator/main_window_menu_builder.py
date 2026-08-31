@@ -92,6 +92,7 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
     win.menu_bar.cursorSettingsRequested.connect(win.open_cursor_settings_dialog)
     win.menu_bar.themeSettingsRequested.connect(win.open_theme_dialog)
     win.menu_bar.managePluginsRequested.connect(win.open_plugins_dialog)
+    win.menu_bar.languageRequested.connect(win.set_application_language)
 
     # 10. Ajuda
     win.menu_bar.shortcutsRequested.connect(win.open_shortcuts_dialog)

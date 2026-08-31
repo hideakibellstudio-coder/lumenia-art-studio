@@ -8,6 +8,7 @@ categoria, captura interativa de teclas, validação de conflitos e persistênci
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
+from ui.core.i18n import tr
 
 DEFAULT_SHORTCUTS = [
     # Categoria: Ferramentas
@@ -68,12 +69,12 @@ class KeySequenceRecorder(QtWidgets.QLineEdit):
         self.setText(current_key)
         self.setReadOnly(True)
         self.setAlignment(QtCore.Qt.AlignCenter)
-        self.setPlaceholderText("Clique e pressione...")
+        self.setPlaceholderText(tr("dialogs.click_press_key", "Clique e pressione..."))
         self._recording = False
 
     def mousePressEvent(self, event):
         self._recording = True
-        self.setText("Pressione as teclas...")
+        self.setText(tr("dialogs.press_keys", "Pressione as teclas..."))
         self.selectAll()
         super().mousePressEvent(event)
 
@@ -102,24 +103,37 @@ class KeySequenceRecorder(QtWidgets.QLineEdit):
             return
 
         modifiers = event.modifiers()
-        seq = QtGui.QKeySequence(modifiers.value | key)
-        key_str = seq.toString(QtGui.QKeySequence.PortableText)
-        self.setText(key_str)
+        parts = []
+        if modifiers & QtCore.Qt.ControlModifier:
+            parts.append("Ctrl")
+        if modifiers & QtCore.Qt.AltModifier:
+            parts.append("Alt")
+        if modifiers & QtCore.Qt.ShiftModifier:
+            parts.append("Shift")
+        if modifiers & QtCore.Qt.MetaModifier:
+            parts.append("Meta")
+
+        key_text = QtGui.QKeySequence(key).toString()
+        if key_text:
+            parts.append(key_text)
+
+        combo_str = "+".join(parts)
+        self.setText(combo_str)
         self._recording = False
-        self.shortcutRecorded.emit(key_str)
+        self.shortcutRecorded.emit(combo_str)
         self.clearFocus()
 
 
 class KeyboardShortcutsDialog(QtWidgets.QDialog):
-    """Diálogo de gerenciamento de atalhos de teclado estilo Lumenia V2."""
+    """Diálogo de personalização visual de atalhos de teclado."""
 
     shortcutsApplied = QtCore.Signal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent, QtCore.Qt.FramelessWindowHint | QtCore.Qt.Window)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        self.setMinimumSize(640, 520)
-        self.resize(700, 560)
+        self.setMinimumSize(580, 520)
+        self.resize(640, 560)
         self._drag_pos = None
 
         self._shortcuts_map = self._load_saved_shortcuts()
@@ -131,7 +145,7 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
         self._apply_theme()
 
     def _load_saved_shortcuts(self) -> dict:
-        settings = QtCore.QSettings("Aladyn", "Lumenia")
+        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
         data = {}
         for item in DEFAULT_SHORTCUTS:
             saved = settings.value(f"shortcuts/{item['id']}", item["default"])
@@ -154,7 +168,7 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
         icon_lbl.setPixmap(get_icon("keyboard", "ACCENT", QtCore.QSize(18, 18)).pixmap(18, 18))
         hdr.addWidget(icon_lbl)
 
-        title = QtWidgets.QLabel("CONFIGURAÇÕES DE ATALHOS DE TECLADO")
+        title = QtWidgets.QLabel(tr("dialogs.shortcuts_title", "Configurações de Atalhos de Teclado"))
         title.setStyleSheet("font-weight: 700; font-size: 13px; letter-spacing: 0.5px;")
         hdr.addWidget(title)
         hdr.addStretch()
@@ -169,7 +183,7 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
         # ── Barra de Pesquisa e Filtros
         search_row = QtWidgets.QHBoxLayout()
         self.txt_search = QtWidgets.QLineEdit()
-        self.txt_search.setPlaceholderText("🔍 Buscar ação ou atalho...")
+        self.txt_search.setPlaceholderText(f"🔍 {tr('dialogs.search_placeholder', 'Buscar ação ou atalho...')}")
         self.txt_search.textChanged.connect(self._on_search_changed)
         search_row.addWidget(self.txt_search, 1)
         card_lay.addLayout(search_row)
@@ -178,15 +192,27 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
         self.tab_bar = QtWidgets.QTabBar()
         self.tab_bar.setDrawBase(False)
         self.tab_bar.setCursor(QtCore.Qt.PointingHandCursor)
-        categories = ["Todas", "Ferramentas", "Arquivo", "Edição", "Camadas", "Exibir", "Seleção"]
-        for cat in categories:
-            self.tab_bar.addTab(cat)
+        self.category_names = [
+            ("Todas", tr("dialogs.tab_all", "Todas")),
+            ("Ferramentas", tr("dialogs.tab_tools", "Ferramentas")),
+            ("Arquivo", tr("menu.file.title", "Arquivo")),
+            ("Edição", tr("menu.edit.title", "Edição")),
+            ("Camadas", tr("menu.layer.title", "Camadas")),
+            ("Exibir", tr("menu.view.title", "Exibir")),
+            ("Seleção", tr("menu.select.title", "Seleção")),
+        ]
+        for cat_id, cat_label in self.category_names:
+            self.tab_bar.addTab(cat_label)
         self.tab_bar.currentChanged.connect(self._on_category_changed)
         card_lay.addWidget(self.tab_bar)
 
         # ── Tabela de Atalhos
         self.table = QtWidgets.QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Ação", "Categoria", "Atalho"])
+        self.table.setHorizontalHeaderLabels([
+            tr("dialogs.action_col", "Ação"),
+            tr("dialogs.category_col", "Categoria"),
+            tr("dialogs.shortcut_col", "Atalho")
+        ])
         self.table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
@@ -197,18 +223,18 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
 
         # ── Rodapé com Botões de Ação
         footer = QtWidgets.QHBoxLayout()
-        btn_restore = QtWidgets.QPushButton("Restaurar Padrões")
+        btn_restore = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
         btn_restore.setCursor(QtCore.Qt.PointingHandCursor)
         btn_restore.clicked.connect(self._on_restore_defaults)
         footer.addWidget(btn_restore)
         footer.addStretch()
 
-        btn_cancel = QtWidgets.QPushButton("Cancelar")
+        btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
         btn_cancel.setCursor(QtCore.Qt.PointingHandCursor)
         btn_cancel.clicked.connect(self.reject)
         footer.addWidget(btn_cancel)
 
-        self.btn_save = QtWidgets.QPushButton("Salvar e Aplicar")
+        self.btn_save = QtWidgets.QPushButton(tr("dialogs.save_apply", "Salvar e Aplicar"))
         self.btn_save.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_save.clicked.connect(self._on_save_and_apply)
         footer.addWidget(self.btn_save)
@@ -255,7 +281,10 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
         self._shortcuts_map[item_id] = new_key
 
     def _on_category_changed(self, idx: int):
-        self._current_category = self.tab_bar.tabText(idx)
+        if 0 <= idx < len(self.category_names):
+            self._current_category = self.category_names[idx][0]
+        else:
+            self._current_category = "Todas"
         self._populate_table()
 
     def _on_search_changed(self, text: str):
@@ -264,8 +293,8 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
 
     def _on_restore_defaults(self):
         reply = QtWidgets.QMessageBox.question(
-            self, "Restaurar Padrões",
-            "Deseja restaurar todos os atalhos de teclado para as configurações padrão?",
+            self, tr("dialogs.reset_defaults", "Restaurar Padrões"),
+            tr("dialogs.reset_shortcuts_confirm", "Deseja restaurar todos os atalhos de teclado para as configurações padrão?"),
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
         if reply == QtWidgets.QMessageBox.Yes:
@@ -274,7 +303,7 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
             self._populate_table()
 
     def _on_save_and_apply(self):
-        settings = QtCore.QSettings("Aladyn", "Lumenia")
+        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
         for item_id, val in self._shortcuts_map.items():
             settings.setValue(f"shortcuts/{item_id}", val)
         self.shortcutsApplied.emit(self._shortcuts_map)

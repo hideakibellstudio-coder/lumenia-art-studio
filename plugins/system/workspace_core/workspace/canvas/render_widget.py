@@ -80,12 +80,11 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
     @property
     def current_brush_radius(self) -> float:
         b = self.backend
-        if b and hasattr(b, "_facade") and b._facade and hasattr(b._facade, "get_brush_profile"):
-            try:
-                prof = b._facade.get_brush_profile()
-                if prof and hasattr(prof, "brush_size") and prof.brush_size > 0:
-                    return float(prof.brush_size) / 2.0
-            except Exception: pass
+        if b:
+            prof_data = b.get_brush_profile_dict()
+            sz = prof_data.get("brush_size", 0.0)
+            if sz > 0:
+                return float(sz) / 2.0
         return getattr(self, "brush_size", 24.0) / 2.0
 
     def init_engine(self, canvas_w=1920, canvas_h=1080):

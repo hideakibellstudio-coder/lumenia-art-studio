@@ -17,6 +17,8 @@ class NavigatorControls(QtWidgets.QWidget):
         main_layout.setContentsMargins(0, 4, 0, 4)
         main_layout.setSpacing(8)
 
+        from ui.core.i18n import tr, I18nManager
+
         # --- ROW 1: ZOOM ---
         self.zoom_box = QtWidgets.QFrame()
         zoom_layout = QtWidgets.QVBoxLayout(self.zoom_box)
@@ -24,12 +26,12 @@ class NavigatorControls(QtWidgets.QWidget):
         zoom_layout.setSpacing(4)
         
         lbls_z = QtWidgets.QHBoxLayout()
-        t_z = QtWidgets.QLabel("Zoom")
-        t_z.setStyleSheet("font-weight: bold; font-size: 11px;")
+        self.t_z = QtWidgets.QLabel(tr("tools.zoom_in", "Zoom").split()[0])
+        self.t_z.setStyleSheet("font-weight: bold; font-size: 11px;")
         self.lbl_zoom = QtWidgets.QLabel("100%")
         self.lbl_zoom.setAlignment(QtCore.Qt.AlignRight)
         self.lbl_zoom.setStyleSheet("font-size: 11px;")
-        lbls_z.addWidget(t_z)
+        lbls_z.addWidget(self.t_z)
         lbls_z.addStretch()
         lbls_z.addWidget(self.lbl_zoom)
         
@@ -39,9 +41,9 @@ class NavigatorControls(QtWidgets.QWidget):
         self.slider_zoom.setCursor(QtCore.Qt.PointingHandCursor)
         self.slider_zoom.setFixedHeight(16)
         
-        self.btn_z_minus = IconButton("zoom-out", "Zoom Out", size=22, icon_size=12)
-        self.btn_z_plus = IconButton("zoom-in", "Zoom In", size=22, icon_size=12)
-        self.btn_fit = IconButton("maximize", "Enquadrar Tela", size=22, icon_size=12)
+        self.btn_z_minus = IconButton("zoom-out", tr("tools.zoom_out", "Zoom Out"), size=22, icon_size=12)
+        self.btn_z_plus = IconButton("zoom-in", tr("tools.zoom_in", "Zoom In"), size=22, icon_size=12)
+        self.btn_fit = IconButton("maximize", tr("menu.view.fit_to_screen", "Enquadrar Tela"), size=22, icon_size=12)
         
         controls_z = QtWidgets.QHBoxLayout()
         controls_z.setSpacing(4)
@@ -61,12 +63,12 @@ class NavigatorControls(QtWidgets.QWidget):
         angle_layout.setSpacing(4)
         
         lbls_r = QtWidgets.QHBoxLayout()
-        t_r = QtWidgets.QLabel("Ângulo")
-        t_r.setStyleSheet("font-weight: bold; font-size: 11px;")
+        self.t_r = QtWidgets.QLabel(tr("dialogs.angle", "Ângulo"))
+        self.t_r.setStyleSheet("font-weight: bold; font-size: 11px;")
         self.lbl_angle = QtWidgets.QLabel("0°")
         self.lbl_angle.setAlignment(QtCore.Qt.AlignRight)
         self.lbl_angle.setStyleSheet("font-size: 11px;")
-        lbls_r.addWidget(t_r)
+        lbls_r.addWidget(self.t_r)
         lbls_r.addStretch()
         lbls_r.addWidget(self.lbl_angle)
         
@@ -76,9 +78,9 @@ class NavigatorControls(QtWidgets.QWidget):
         self.slider_rot.setCursor(QtCore.Qt.PointingHandCursor)
         self.slider_rot.setFixedHeight(16)
         
-        self.btn_reset = IconButton("refresh-ccw", "Resetar Rotação", size=22, icon_size=12)
-        self.btn_fliph = IconButton("flip-horizontal", "Espelhar H", size=22, icon_size=12)
-        self.btn_flipv = IconButton("flip-vertical", "Espelhar V", size=22, icon_size=12)
+        self.btn_reset = IconButton("refresh-ccw", tr("menu.image.reset_rotation", "Resetar Rotação"), size=22, icon_size=12)
+        self.btn_fliph = IconButton("flip-horizontal", tr("menu.image.flip_h", "Espelhar H"), size=22, icon_size=12)
+        self.btn_flipv = IconButton("flip-vertical", tr("menu.image.flip_v", "Espelhar V"), size=22, icon_size=12)
         
         controls_r = QtWidgets.QHBoxLayout()
         controls_r.setSpacing(4)
@@ -107,6 +109,26 @@ class NavigatorControls(QtWidgets.QWidget):
         self.update_theme()
         from ui.core.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self.update_theme)
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "t_z"):
+            self.t_z.setText(tr("tools.zoom_in", "Zoom").split()[0])
+        if hasattr(self, "t_r"):
+            self.t_r.setText(tr("dialogs.angle", "Ângulo"))
+        if hasattr(self, "btn_z_minus"):
+            self.btn_z_minus.setToolTip(tr("tools.zoom_out", "Zoom Out"))
+        if hasattr(self, "btn_z_plus"):
+            self.btn_z_plus.setToolTip(tr("tools.zoom_in", "Zoom In"))
+        if hasattr(self, "btn_fit"):
+            self.btn_fit.setToolTip(tr("menu.view.fit_to_screen", "Enquadrar Tela"))
+        if hasattr(self, "btn_reset"):
+            self.btn_reset.setToolTip(tr("menu.image.reset_rotation", "Resetar Rotação"))
+        if hasattr(self, "btn_fliph"):
+            self.btn_fliph.setToolTip(tr("menu.image.flip_h", "Espelhar H"))
+        if hasattr(self, "btn_flipv"):
+            self.btn_flipv.setToolTip(tr("menu.image.flip_v", "Espelhar V"))
 
     def update_theme(self, theme_name=None):
         from ui.core.theme.manager import ThemeManager

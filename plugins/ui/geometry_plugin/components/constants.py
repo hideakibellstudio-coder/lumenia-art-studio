@@ -1,5 +1,7 @@
 """Constants and Identifier mappings for Rulers and Symmetry."""
 
+from __future__ import annotations
+
 GUIDE_TYPES = [
     "none",           # 0
     "straight",       # 1
@@ -22,6 +24,17 @@ GUIDE_NAMES = [
     "Grade Isométrica",
 ]
 
+GUIDE_KEYS = [
+    "geometry.none",
+    "geometry.straight",
+    "geometry.curve_ruler",
+    "geometry.curvilinear",
+    "geometry.one_point",
+    "geometry.two_point",
+    "geometry.three_point",
+    "geometry.isometric",
+]
+
 SYM_TYPES = [
     "none",           # 0
     "mirror",         # 1
@@ -41,3 +54,29 @@ SYM_NAMES = [
     "Simetria Radial",
     "Caleidoscópio",
 ]
+
+SYM_KEYS = [
+    "geometry.none",
+    "geometry.mirror",
+    "geometry.mirror_v",
+    "geometry.mirror_h",
+    "geometry.double_mirror",
+    "geometry.radial",
+    "geometry.kaleidoscope",
+]
+
+
+def get_guide_name(idx: int) -> str:
+    from ui.core.i18n import tr
+    if 0 <= idx < len(GUIDE_KEYS):
+        default = GUIDE_NAMES[idx] if idx < len(GUIDE_NAMES) else ""
+        return tr(GUIDE_KEYS[idx], default)
+    return ""
+
+
+def get_sym_name(idx: int) -> str:
+    from ui.core.i18n import tr
+    if 0 <= idx < len(SYM_KEYS):
+        default = SYM_NAMES[idx] if idx < len(SYM_NAMES) else ""
+        return tr(SYM_KEYS[idx], default)
+    return ""

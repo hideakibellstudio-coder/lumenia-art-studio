@@ -160,6 +160,101 @@ class TestGeometrySymmetry(unittest.TestCase):
         fam_v = ctrl_v.locked_curve.get("family", "")
         self.assertTrue(fam_v.endswith("_v") or fam_v == "v", f"Esperado eixo V, obteve: {fam_v}")
 
+    def test_07_geometry_ui_dialogs_and_popups(self):
+        """Valida que o popup do seletor e a janela avançada de geometria instanciam perfeitamente sem crash."""
+        from PySide6.QtWidgets import QApplication, QWidget
+        from plugins.ui.geometry_plugin.components.geometry_selector import GeometrySelectorPopup, GeometrySelectorButton
+        from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
+
+        app = QApplication.instance() or QApplication(sys.argv)
+        parent = QWidget()
+
+        # Testa GeometrySelectorPopup
+        popup = GeometrySelectorPopup(parent)
+        self.assertIsNotNone(popup)
+        self.assertEqual(len(popup.ruler_buttons), 8)
+        self.assertEqual(len(popup.sym_buttons), 7)
+
+        # Testa GeometrySelectorButton
+        btn = GeometrySelectorButton(parent)
+        self.assertIsNotNone(btn)
+
+        # Testa AdvancedGeometryDialog
+        adv = AdvancedGeometryDialog(parent)
+        self.assertIsNotNone(adv)
+        self.assertEqual(adv.stack.count(), 3)
+
+    def test_08_curvilinear_6p_vanishing_point_exact_convergence(self):
+        """Valida que todas as curvas H, V e D passam rigorosamente pelos pontos de fuga sem desvio (distância < 1e-4)."""
+        from plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import (
+            GeometryOverlayRenderer, rotate_3d_backward
+        )
+
+        for yaw in [0.0, 35.0, 75.0, 180.0]:
+            for pitch in [0.0, -25.0, 45.0]:
+                guide = {
+                    "type": "curvilinear",
+                    "cx": 500.0, "cy": 400.0,
+                    "base_radius": 350.0, "fov": 130.0,
+                    "density": 30.0, "yaw": yaw, "pitch": pitch,
+                    "show_v": True, "show_h": True, "show_d": True,
+                    "show_vps": True
+                }
+
+                data = GeometryOverlayRenderer._get_cached_curvilinear_data(guide)
+                vps = {name: pt for name, pt, _ in data["vps"]}
+
+                # 1. H-curves devem convergir rigorosamente em L e R
+                if "L" in vps and "R" in vps:
+                    vp_L, vp_R = vps["L"], vps["R"]
+                    for c in data["h_curves"]:
+                        if c["type"] == "circle":
+                            dist_L = abs(math.hypot(vp_L.x() - c["center"].x(), vp_L.y() - c["center"].y()) - c["radius"])
+                            dist_R = abs(math.hypot(vp_R.x() - c["center"].x(), vp_R.y() - c["center"].y()) - c["radius"])
+                            self.assertLess(dist_L, 1e-4, f"H-curve desviou de VP_L em yaw={yaw}, pitch={pitch}")
+                            self.assertLess(dist_R, 1e-4, f"H-curve desviou de VP_R em yaw={yaw}, pitch={pitch}")
+
+                # 2. V-curves devem convergir rigorosamente em Z e N
+                if "Z" in vps and "N" in vps:
+                    vp_Z, vp_N = vps["Z"], vps["N"]
+                    for c in data["v_curves"]:
+                        if c["type"] == "circle":
+                            dist_Z = abs(math.hypot(vp_Z.x() - c["center"].x(), vp_Z.y() - c["center"].y()) - c["radius"])
+                            dist_N = abs(math.hypot(vp_N.x() - c["center"].x(), vp_N.y() - c["center"].y()) - c["radius"])
+                            self.assertLess(dist_Z, 1e-4, f"V-curve desviou de VP_Z em yaw={yaw}, pitch={pitch}")
+                            self.assertLess(dist_N, 1e-4, f"V-curve desviou de VP_N em yaw={yaw}, pitch={pitch}")
+
+                # 3. D-curves devem convergir rigorosamente em F e B
+                if "F" in vps and "B" in vps:
+                    vp_F, vp_B = vps["F"], vps["B"]
+                    for c in data["d_curves"]:
+                        if c["type"] == "circle":
+                            dist_F = abs(math.hypot(vp_F.x() - c["center"].x(), vp_F.y() - c["center"].y()) - c["radius"])
+                            dist_B = abs(math.hypot(vp_B.x() - c["center"].x(), vp_B.y() - c["center"].y()) - c["radius"])
+                            self.assertLess(dist_F, 1e-4, f"D-curve desviou de VP_F em yaw={yaw}, pitch={pitch}")
+                            self.assertLess(dist_B, 1e-4, f"D-curve desviou de VP_B em yaw={yaw}, pitch={pitch}")
+
+    def test_09_curvilinear_overlay_caching_performance(self):
+        """Valida que o cache geométrico reutiliza os cálculos prévios em O(1)."""
+        from plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import GeometryOverlayRenderer
+
+        guide = {
+            "type": "curvilinear",
+            "cx": 400.0, "cy": 300.0,
+            "base_radius": 350.0, "fov": 130.0,
+            "density": 30.0, "yaw": 15.0, "pitch": 10.0,
+            "show_v": True, "show_h": True, "show_d": True,
+            "show_ground": True, "show_ceiling": True
+        }
+
+        # Primeira chamada compila o cache
+        d1 = GeometryOverlayRenderer._get_cached_curvilinear_data(guide)
+        # Segunda chamada deve retornar exatamente a mesma instância em cache
+        d2 = GeometryOverlayRenderer._get_cached_curvilinear_data(guide)
+        self.assertIs(d1, d2)
+        self.assertFalse(d1["ground_path"].isEmpty())
+        self.assertFalse(d1["ceiling_path"].isEmpty())
+
 
 if __name__ == "__main__":
     unittest.main()

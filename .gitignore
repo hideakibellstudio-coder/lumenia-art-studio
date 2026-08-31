@@ -26,6 +26,8 @@ dist/
 
 # Antigravity & IDEs
 .gemini/
+.antigravity/
+.agents/
 .idea/
 .vscode/
 *.tmp

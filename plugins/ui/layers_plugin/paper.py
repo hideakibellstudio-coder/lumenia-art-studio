@@ -44,8 +44,9 @@ class ColorCircleButton(CircleButton):
         painter.end()
         
     def _choose_color(self):
+        from ui.core.i18n import tr
         dlg = QColorDialog(self.color)
-        dlg.setWindowTitle("Cor do Papel de Fundo (Layer 0)")
+        dlg.setWindowTitle(tr("dialogs.paper_color_dialog", "Cor do Papel de Fundo (Layer 0)"))
         dlg.setOption(QColorDialog.ShowAlphaChannel, True)
         dlg.resize(600, 460)
         dlg.setMinimumSize(540, 420)
@@ -127,8 +128,10 @@ class TexturePopup(QDialog):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
 
+        from ui.core.i18n import tr
+
         # Title
-        lbl_title = QLabel("Textura da Tela (Papel Background)")
+        lbl_title = QLabel(tr("layers.paper_texture_title", "Textura da Tela (Papel Background)"))
         lbl_title.setStyleSheet("font-weight: bold; font-size: 11px; color: @ACCENT;")
         layout.addWidget(lbl_title)
 
@@ -152,20 +155,20 @@ class TexturePopup(QDialog):
 
         # Button: Carregar PNG do Papel
         from ui.core.icons import get_icon
-        self.btn_load_c = QPushButton("Carregar PNG do Papel")
+        self.btn_load_c = QPushButton(tr("layers.load_paper_png", "Carregar PNG do Papel"))
         self.btn_load_c.setIcon(get_icon("folder"))
         self.btn_load_c.setCursor(Qt.PointingHandCursor)
         self.btn_load_c.clicked.connect(self._on_load_paper_png)
         layout.addWidget(self.btn_load_c)
 
         # Checkbox: Ativar Relevo no Papel
-        self.chk_c_grain = QCheckBox("Ativar Relevo no Papel")
+        self.chk_c_grain = QCheckBox(tr("layers.enable_paper_relief", "Ativar Relevo no Papel"))
         self.chk_c_grain.setChecked(enabled)
         self.chk_c_grain.toggled.connect(self.enabledChanged.emit)
         layout.addWidget(self.chk_c_grain)
 
         # Scale slider
-        layout.addWidget(QLabel("Escala do Relevo:"))
+        layout.addWidget(QLabel(f"{tr('brush.scale', 'Escala do Relevo')}:"))
         self.scale_slider = QSlider(Qt.Horizontal)
         self.scale_slider.setRange(10, 500)
         self.scale_slider.setValue(int(scale * 100))
@@ -173,7 +176,7 @@ class TexturePopup(QDialog):
         layout.addWidget(self.scale_slider)
 
         # Contrast/Depth slider
-        layout.addWidget(QLabel("Contraste / Dureza do Relevo:"))
+        layout.addWidget(QLabel(f"{tr('brush.contrast', 'Contraste / Dureza do Relevo')}:"))
         self.depth_slider = QSlider(Qt.Horizontal)
         self.depth_slider.setRange(10, 300)
         self.depth_slider.setValue(int(depth * 100))
@@ -181,7 +184,7 @@ class TexturePopup(QDialog):
         layout.addWidget(self.depth_slider)
 
         # Checkbox: Inverter Topografia
-        self.chk_c_invert = QCheckBox("Inverter Topografia")
+        self.chk_c_invert = QCheckBox(tr("brush.invert", "Inverter Topografia"))
         self.chk_c_invert.setChecked(invert)
         self.chk_c_invert.toggled.connect(self.invertChanged.emit)
         layout.addWidget(self.chk_c_invert)
@@ -209,11 +212,11 @@ class TexturePopup(QDialog):
     def _update_preview(self, idx: int):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
+        if b:
+            b.set_canvas_height_preset(idx)
             try:
-                b._facade.set_canvas_height_preset(idx)
-                buf = b._facade.get_canvas_height_preview_buffer()
-                w, h = b._facade.get_canvas_height_preview_dimensions()
+                buf = b.get_canvas_height_preview_buffer()
+                w, h = b.get_canvas_height_preview_dimensions()
                 if buf and w > 0 and h > 0:
                     from PySide6.QtGui import QImage
                     img = QImage(bytes(buf), w, h, w, QImage.Format_Grayscale8)
@@ -416,30 +419,12 @@ class PaperLayerWidget(QWidget):
     def _sync_state(self):
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "_facade") and backend._facade:
-            if hasattr(backend, "set_canvas_grain_enabled"):
-                backend.set_canvas_grain_enabled(self.enabled)
-
-            if hasattr(backend._facade, "get_canvas_texture"):
-                c_tex = backend._facade.get_canvas_texture()
-                if c_tex:
-                    c_tex.canvas_grain_enabled = bool(self.enabled)
-                    c_tex.canvas_grain_scale = float(self.scale)
-                    c_tex.canvas_grain_contrast = float(self.depth)
-                    c_tex.canvas_grain_invert = bool(self.invert)
-
-            if hasattr(backend._facade, "set_background_visibility"):
-                backend._facade.set_background_visibility(self.visible)
-            elif hasattr(backend._facade, "set_background_visible"):
-                backend._facade.set_background_visible(self.visible)
-
-            if hasattr(backend, "set_background_color"):
-                backend.set_background_color(self.color.red(), self.color.green(), self.color.blue(), self.color.alpha())
-            elif hasattr(backend._facade, "set_background_color"):
-                backend._facade.set_background_color(self.color.red(), self.color.green(), self.color.blue(), self.color.alpha())
-
+        if backend:
             effective_preset = self.preset_id if self.enabled else 0
-            backend._facade.set_canvas_height_preset(effective_preset)
+            backend.set_canvas_paper_state(self.color, self.visible, effective_preset, self.enabled)
+            backend.set_canvas_grain_scale(float(self.scale))
+            backend.set_canvas_grain_contrast(float(self.depth))
+            backend.set_canvas_grain_invert(bool(self.invert))
 
         # Atualiza documento ativo
         from ui.core.document.manager import DocumentManager

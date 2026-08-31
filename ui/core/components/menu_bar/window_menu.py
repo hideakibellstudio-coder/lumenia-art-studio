@@ -1,6 +1,6 @@
 """
-WindowMenu — Menu Janela
-========================
+WindowMenu — Menu Janela — ARCcC i18n.
+=======================================
 Gerencia visibilidade de painéis e configurações de docas:
   - Alternar painéis individuais (Pincel, Cores, Camadas, Navegador…)
   - Recolher / Expandir todas as sidebars
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from PySide6 import QtGui, QtWidgets, QtCore
 from ui.core.icons import get_icon
+from ui.core.i18n import tr
 
 
 class WindowMenu(QtWidgets.QMenu):
@@ -29,10 +30,11 @@ class WindowMenu(QtWidgets.QMenu):
         super().__init__("Janela", parent)
         self._panel_actions: dict[str, QtGui.QAction] = {}
         self._setup_actions()
+        self.retranslate_ui()
 
     def _setup_actions(self) -> None:
         # ── Painéis ────────────────────────────────────────────────────
-        self.addSection("Painéis de Ferramentas")
+        self._section_panels = self.addSection("Painéis de Ferramentas")
 
         self._add_panel_action("brush_plugin",    "Pincel & Ferramentas", "left",  "Alt+B", icon="brush")
         self._add_panel_action("color_plugin",    "Cores & Harmonias",    "left",  "Alt+C", icon="palette")
@@ -41,28 +43,28 @@ class WindowMenu(QtWidgets.QMenu):
 
         # ── Sidebar ────────────────────────────────────────────────────
         self.addSeparator()
-        self.addSection("Barras Laterais")
+        self._section_sidebars = self.addSection("Barras Laterais")
 
-        act_collapse = QtGui.QAction(get_icon("chevron_down"), "Recolher Todas as Barras", self)
-        act_collapse.setShortcut("Alt+[")
-        act_collapse.triggered.connect(self.collapse_all_sidebars_requested.emit)
-        self.addAction(act_collapse)
+        self.act_collapse = QtGui.QAction(get_icon("chevron_down"), "", self)
+        self.act_collapse.setShortcut("Alt+[")
+        self.act_collapse.triggered.connect(self.collapse_all_sidebars_requested.emit)
+        self.addAction(self.act_collapse)
 
-        act_expand = QtGui.QAction(get_icon("chevron_up"), "Expandir Todas as Barras", self)
-        act_expand.setShortcut("Alt+]")
-        act_expand.triggered.connect(self.expand_all_sidebars_requested.emit)
-        self.addAction(act_expand)
+        self.act_expand = QtGui.QAction(get_icon("chevron_up"), "", self)
+        self.act_expand.setShortcut("Alt+]")
+        self.act_expand.triggered.connect(self.expand_all_sidebars_requested.emit)
+        self.addAction(self.act_expand)
 
         # ── Configurações ──────────────────────────────────────────────
         self.addSeparator()
 
-        act_ft_settings = QtGui.QAction(get_icon("tools"), "Barra Flutuante de Ferramentas…", self)
-        act_ft_settings.triggered.connect(self.floating_toolbar_settings_requested.emit)
-        self.addAction(act_ft_settings)
+        self.act_ft_settings = QtGui.QAction(get_icon("tools"), "", self)
+        self.act_ft_settings.triggered.connect(self.floating_toolbar_settings_requested.emit)
+        self.addAction(self.act_ft_settings)
 
-        act_settings = QtGui.QAction(get_icon("settings"), "Configurações de Gavetas & Docking…", self)
-        act_settings.triggered.connect(self.dock_settings_requested.emit)
-        self.addAction(act_settings)
+        self.act_settings = QtGui.QAction(get_icon("settings"), "", self)
+        self.act_settings.triggered.connect(self.dock_settings_requested.emit)
+        self.addAction(self.act_settings)
 
     def _add_panel_action(
         self,
@@ -83,6 +85,31 @@ class WindowMenu(QtWidgets.QMenu):
         )
         self._panel_actions[panel_id] = act
         self.addAction(act)
+
+    def retranslate_ui(self) -> None:
+        self.setTitle(tr("menu.window.title", "Janela"))
+        if hasattr(self, "_section_panels") and self._section_panels:
+            self._section_panels.setText(tr("menu.window.tool_panels", "Painéis de Ferramentas"))
+        if hasattr(self, "_section_sidebars") and self._section_sidebars:
+            self._section_sidebars.setText(tr("menu.window.sidebars", "Barras Laterais"))
+
+        if "brush_plugin" in self._panel_actions:
+            self._panel_actions["brush_plugin"].setText(tr("menu.window.brush_panel", "Pincel & Ferramentas"))
+        if "color_plugin" in self._panel_actions:
+            self._panel_actions["color_plugin"].setText(tr("menu.window.color_wheel", "Cores & Harmonias"))
+        if "layers_plugin" in self._panel_actions:
+            self._panel_actions["layers_plugin"].setText(tr("menu.window.layers_panel", "Camadas"))
+        if "navigator_plugin" in self._panel_actions:
+            self._panel_actions["navigator_plugin"].setText(tr("menu.window.navigator", "Navegador do Canvas"))
+
+        if hasattr(self, "act_collapse"):
+            self.act_collapse.setText(tr("menu.window.collapse_all", "Recolher Todas as Barras"))
+        if hasattr(self, "act_expand"):
+            self.act_expand.setText(tr("menu.window.expand_all", "Expandir Todas as Barras"))
+        if hasattr(self, "act_ft_settings"):
+            self.act_ft_settings.setText(tr("menu.window.floating_toolbar", "Barra Flutuante de Ferramentas…"))
+        if hasattr(self, "act_settings"):
+            self.act_settings.setText(tr("menu.window.dock_settings", "Configurações de Gavetas & Docking…"))
 
     # ── API pública ────────────────────────────────────────────────────────
 

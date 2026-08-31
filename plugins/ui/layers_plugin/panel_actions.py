@@ -30,8 +30,7 @@ def add_filter_layer(panel, filter_type=None):
         else:
             curr_type = backend.get_filter_type(panel._preview_filter_idx)
             if curr_type != type_id:
-                if hasattr(backend, "_facade") and backend._facade:
-                    backend._facade.remove_layer(panel._preview_filter_idx)
+                backend.remove_layer(panel._preview_filter_idx)
                 panel._preview_filter_idx = backend.add_filter_layer(f"Preview {name}", type_id)
 
         if panel._preview_filter_idx >= 0:
@@ -42,8 +41,8 @@ def add_filter_layer(panel, filter_type=None):
         if panel._preview_filter_idx >= 0:
             from ui.core.engine.registry import EngineRegistry
             backend = EngineRegistry.instance().get_backend()
-            if backend and hasattr(backend, "_facade") and backend._facade:
-                backend._facade.remove_layer(panel._preview_filter_idx)
+            if backend:
+                backend.remove_layer(panel._preview_filter_idx)
             panel._preview_filter_idx = -1
             _repaint()
 
@@ -51,8 +50,8 @@ def add_filter_layer(panel, filter_type=None):
         if panel._preview_filter_idx >= 0:
             from ui.core.engine.registry import EngineRegistry
             backend = EngineRegistry.instance().get_backend()
-            if backend and hasattr(backend, "_facade") and backend._facade:
-                backend._facade.remove_layer(panel._preview_filter_idx)
+            if backend:
+                backend.remove_layer(panel._preview_filter_idx)
             panel._preview_filter_idx = -1
         create_filter_layer(panel, name, type_id, params)
 
@@ -68,7 +67,7 @@ def create_filter_layer(panel, name: str, type_id: int, params: list):
     try:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "add_filter_layer"):
+        if backend:
             new_idx = backend.add_filter_layer(name, type_id)
             if new_idx >= 0:
                 backend.set_filter_params(new_idx, params)
@@ -98,7 +97,7 @@ def open_edit_filter_popup(panel, uid: int = None):
 
     from ui.core.engine.registry import EngineRegistry
     backend = EngineRegistry.instance().get_backend()
-    if not backend or not hasattr(backend, "_facade") or not backend._facade:
+    if not backend:
         return
 
     layer_list = panel.layer_manager.layers
@@ -214,7 +213,7 @@ def duplicate_layer(panel):
         try:
             panel._sync_to_native_engine("duplicate")
             new_uid = panel.layer_manager.duplicate_layer(layer.uid)
-            panel._native_uids = [l.uid for l in panel.layer_manager.layers]
+            panel._synced_uids = [l.uid for l in panel.layer_manager.layers]
             if new_uid:
                 refresh_layer_thumbnail(panel, new_uid)
                 panel._select_uid_in_view(new_uid)

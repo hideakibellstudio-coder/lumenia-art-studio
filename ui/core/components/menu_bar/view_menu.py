@@ -1,6 +1,6 @@
 """
-ViewMenu — Menu Exibir (Padrão Profissional da Indústria)
-=========================================================
+ViewMenu — Menu Exibir (Padrão Profissional da Indústria) — ARCcC i18n.
+========================================================================
 Expõe controles de Zoom, Ajuste à Tela, Reset de Câmera, Prova de Cores e Guias do Canvas.
 """
 
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from PySide6 import QtWidgets, QtGui, QtCore
 from ui.core.icons import get_icon
+from ui.core.i18n import tr
 
 
 class ViewMenu(QtWidgets.QMenu):
@@ -23,55 +24,67 @@ class ViewMenu(QtWidgets.QMenu):
     def __init__(self, parent=None):
         super().__init__("Exibir", parent)
         self.setup_actions()
+        self.retranslate_ui()
 
     def setup_actions(self):
         # 1. Controles de Zoom
-        action_zoom_in = QtGui.QAction(get_icon("zoom_in"), "Aproximar (Zoom In)", self)
-        action_zoom_in.setShortcut("Ctrl+=")
-        action_zoom_in.triggered.connect(self.zoomInRequested.emit)
-        self.addAction(action_zoom_in)
+        self.action_zoom_in = QtGui.QAction(get_icon("zoom_in"), "", self)
+        self.action_zoom_in.setShortcut("Ctrl+=")
+        self.action_zoom_in.triggered.connect(self.zoomInRequested.emit)
+        self.addAction(self.action_zoom_in)
 
-        action_zoom_out = QtGui.QAction(get_icon("zoom_out"), "Afastar (Zoom Out)", self)
-        action_zoom_out.setShortcut("Ctrl+-")
-        action_zoom_out.triggered.connect(self.zoomOutRequested.emit)
-        self.addAction(action_zoom_out)
+        self.action_zoom_out = QtGui.QAction(get_icon("zoom_out"), "", self)
+        self.action_zoom_out.setShortcut("Ctrl+-")
+        self.action_zoom_out.triggered.connect(self.zoomOutRequested.emit)
+        self.addAction(self.action_zoom_out)
 
         self.addSeparator()
 
         # 2. Enquadramento e Câmera
-        action_reset = QtGui.QAction(get_icon("display"), "Zoom 100% (Tamanho Real)", self)
-        action_reset.setShortcut("Ctrl+0")
-        action_reset.triggered.connect(self.resetViewRequested.emit)
-        self.addAction(action_reset)
+        self.action_reset = QtGui.QAction(get_icon("display"), "", self)
+        self.action_reset.setShortcut("Ctrl+0")
+        self.action_reset.triggered.connect(self.resetViewRequested.emit)
+        self.addAction(self.action_reset)
 
-        action_fit = QtGui.QAction(get_icon("display"), "Ajustar à Tela", self)
-        action_fit.setShortcut("Ctrl+Alt+0")
-        action_fit.triggered.connect(self.fitToScreenRequested.emit)
-        self.addAction(action_fit)
+        self.action_fit = QtGui.QAction(get_icon("display"), "", self)
+        self.action_fit.setShortcut("Ctrl+Alt+0")
+        self.action_fit.triggered.connect(self.fitToScreenRequested.emit)
+        self.addAction(self.action_fit)
 
-        action_reset_rot = QtGui.QAction(get_icon("reset"), "Resetar Rotação e Ângulo", self)
-        action_reset_rot.setShortcut("Ctrl+R")
-        action_reset_rot.triggered.connect(self.resetRotationRequested.emit)
-        self.addAction(action_reset_rot)
+        self.action_reset_rot = QtGui.QAction(get_icon("reset"), "", self)
+        self.action_reset_rot.setShortcut("Ctrl+R")
+        self.action_reset_rot.triggered.connect(self.resetRotationRequested.emit)
+        self.addAction(self.action_reset_rot)
 
         self.addSeparator()
 
         # 3. Prova de Cores & Renderização
-        action_proof = QtGui.QAction(get_icon("proof"), "Prova de Cores & Renderização...", self)
-        action_proof.triggered.connect(self.renderSettingsRequested.emit)
-        self.addAction(action_proof)
+        self.action_proof = QtGui.QAction(get_icon("proof"), "", self)
+        self.action_proof.triggered.connect(self.renderSettingsRequested.emit)
+        self.addAction(self.action_proof)
 
         self.addSeparator()
 
         # 4. Guias & Réguas
-        self.action_grid = QtGui.QAction(get_icon("grid"), "Exibir Grade Magnética (Grid)", self)
+        self.action_grid = QtGui.QAction(get_icon("grid"), "", self)
         self.action_grid.setCheckable(True)
         self.action_grid.setShortcut("Ctrl+'")
         self.action_grid.triggered.connect(self.toggleGridRequested.emit)
         self.addAction(self.action_grid)
 
-        self.action_rulers = QtGui.QAction(get_icon("ruler"), "Exibir Réguas", self)
+        self.action_rulers = QtGui.QAction(get_icon("ruler"), "", self)
         self.action_rulers.setCheckable(True)
         self.action_rulers.setShortcut("Ctrl+R")
         self.action_rulers.triggered.connect(self.toggleRulersRequested.emit)
         self.addAction(self.action_rulers)
+
+    def retranslate_ui(self):
+        self.setTitle(tr("menu.view.title", "Exibir"))
+        self.action_zoom_in.setText(tr("menu.view.zoom_in", "Aproximar Zoom"))
+        self.action_zoom_out.setText(tr("menu.view.zoom_out", "Afastar Zoom"))
+        self.action_reset.setText(tr("menu.view.zoom_100", "Pixels Reais (100%)"))
+        self.action_fit.setText(tr("menu.view.fit_to_screen", "Ajustar à Tela"))
+        self.action_reset_rot.setText(tr("menu.view.reset_view", "Resetar Vista e Rotação"))
+        self.action_proof.setText(tr("menu.view.render_settings", "Prova de Cores & Renderização..."))
+        self.action_grid.setText(tr("menu.view.toggle_grid", "Alternar Grade Guia"))
+        self.action_rulers.setText(tr("menu.view.toggle_rulers", "Alternar Réguas"))

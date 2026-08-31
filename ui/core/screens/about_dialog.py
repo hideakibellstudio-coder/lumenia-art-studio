@@ -1,6 +1,6 @@
 """
-AboutDialog — Diálogo Moderno 'Sobre o Lumenia'
-==============================================
+AboutDialog — Diálogo Moderno 'Sobre o Lumenia' (ARCcC i18n).
+============================================================
 Exibe a identidade visual oficial, especificações do ALADYN Engine e créditos.
 """
 
@@ -9,19 +9,18 @@ import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
+from ui.core.i18n import tr
 
 
 class AboutDialog(BaseFramelessDialog):
-    """
-    Diálogo Sobre o Lumenia com design profissional e identidade visual oficial.
-    """
+    """Diálogo Sobre o Lumenia com design profissional e identidade visual oficial."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Sobre o Lumenia", icon_name="info", parent=parent, modal=True)
+        super().__init__(title=tr("dialogs.about_title", "Sobre o Lumenia"), icon_name="info", parent=parent, modal=True)
         self.resize(520, 500)
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
         self.icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
 
         self._build_ui()
@@ -51,10 +50,10 @@ class AboutDialog(BaseFramelessDialog):
         lbl_name = QtWidgets.QLabel("LUMENIA")
         lbl_name.setStyleSheet("font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #ffffff;")
         
-        lbl_sub = QtWidgets.QLabel("Digital Art & Paint Studio • Professional Edition")
+        lbl_sub = QtWidgets.QLabel(tr("app.tagline", "Digital Art & Paint Studio • Professional Edition"))
         lbl_sub.setStyleSheet("font-size: 11px; color: #c084fc; font-weight: 600;")
 
-        lbl_ver = QtWidgets.QLabel("Versão 2.5.0 (Build 2026.08)")
+        lbl_ver = QtWidgets.QLabel(f"{tr('dialogs.version', 'Versão')} 2.5.0 (Build 2026.08)")
         lbl_ver.setStyleSheet("font-size: 11px; color: #a1a1aa;")
 
         v_info.addWidget(lbl_name)
@@ -78,11 +77,11 @@ class AboutDialog(BaseFramelessDialog):
         card_lay.setSpacing(10)
 
         specs = [
-            ("⚡ Motor Gráfico:", "ALADYN Native Core (C++17 / SIMD / TileGrid 64×64)"),
-            ("🎨 Gerenciador de Cor:", "Display P3, Adobe RGB, sRGB & Prova de Cores CMYK"),
-            ("🖌️ Motores de Pincel:", "Catmull-Rom Spline, Óleo/Impasto, Aquarela e Inker"),
-            ("📐 Suíte de Seleções:", "Varinha Mágica, Retangular, Elíptica e Laço Poligonal"),
-            ("🔄 Transformação:", "Livre com Pivô Móvel, 8 Alças & Interpolação Bicúbica"),
+            (f"⚡ {tr('dialogs.spec_engine', 'Motor Gráfico')}:", "ALADYN Native Core (C++20 / SIMD AVX2 / TileGrid 64×64)"),
+            (f"🎨 {tr('dialogs.spec_color', 'Gerenciador de Cor')}:", "Display P3, Adobe RGB, sRGB & Prova de Cores"),
+            (f"🖌️ {tr('dialogs.spec_brushes', 'Motores de Pincel')}:", "Catmull-Rom Spline, Óleo/Impasto, Aquarela e Inker"),
+            (f"📐 {tr('dialogs.spec_selection', 'Suíte de Seleções')}:", "Varinha Mágica, Retangular, Elíptica e Laço Poligonal"),
+            (f"🔄 {tr('dialogs.spec_transform', 'Transformação')}:", "Livre com Pivô Móvel, 8 Alças & Interpolação"),
         ]
 
         for title, desc in specs:
@@ -101,12 +100,12 @@ class AboutDialog(BaseFramelessDialog):
 
         # ── Botão Fechar ────────────────────────────────────────────────────
         bottom_lay = QtWidgets.QHBoxLayout()
-        lbl_copy = QtWidgets.QLabel("© 2026 Lumenia Team. Todos os direitos reservados.")
+        lbl_copy = QtWidgets.QLabel("© 2026 Lumenia Team. All rights reserved.")
         lbl_copy.setStyleSheet("font-size: 10px; color: #71717a;")
         bottom_lay.addWidget(lbl_copy)
         bottom_lay.addStretch()
 
-        btn_close = QtWidgets.QPushButton("OK")
+        btn_close = QtWidgets.QPushButton(tr("dialogs.ok", "OK"))
         btn_close.setFixedWidth(80)
         btn_close.setFixedHeight(28)
         btn_close.setCursor(QtCore.Qt.PointingHandCursor)
@@ -119,7 +118,6 @@ class AboutDialog(BaseFramelessDialog):
         theme = ThemeManager.instance()
         bg_card = theme.get_color("bg_panel") or "#221c33"
         border = theme.get_color("border") or "#342c4c"
-        text_main = theme.get_color("text_main") or "#ffffff"
         accent = theme.get_color("accent") or "#9333ea"
 
         self.setStyleSheet(f"""

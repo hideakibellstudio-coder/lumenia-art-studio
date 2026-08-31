@@ -58,12 +58,14 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
 
     # ── Eventos do ciclo de vida ──────────────────────────────────────────
 
-
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
         if self._first_show:
             self._first_show = False
             QtCore.QTimer.singleShot(0, self.reset_view)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        super().closeEvent(event)
 
     # ── Setup de componentes da janela ────────────────────────────────────
 
@@ -104,8 +106,19 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
         self.menu_bar.dockSettingsRequested.connect(self.open_dock_settings_dialog)
         self.menu_bar.floatingToolbarSettingsRequested.connect(self.open_floating_toolbar_settings_dialog)
 
+        # ── Internacionalização (i18n) ──────────────────────────────────
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
 
-
+    def retranslate_ui(self) -> None:
+        """Propaga a tradução ativa para todos os subcomponentes da interface."""
+        if hasattr(self, "menu_bar") and hasattr(self.menu_bar, "retranslate_ui"):
+            self.menu_bar.retranslate_ui()
+        if hasattr(self, "tool_sidebar") and hasattr(self.tool_sidebar, "retranslate_ui"):
+            self.tool_sidebar.retranslate_ui()
+        if hasattr(self, "workspace") and self.workspace and hasattr(self.workspace, "retranslate_ui"):
+            self.workspace.retranslate_ui()
 
     # ── Callbacks de tema ─────────────────────────────────────────────────
 
@@ -273,30 +286,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
                 if hasattr(backend, "set_color_profile"):
                     backend.set_color_profile(color_prof)
 
-                if hasattr(backend, "_facade") and backend._facade:
-                    backend._facade.clear_canvas()
-
-                    # Aplica a cor inicial do papel selecionada no diálogo
-                    r, g, b, a = bg_color
-                    if hasattr(backend, "set_background_color"):
-                        backend.set_background_color(r, g, b, a)
-                    elif hasattr(backend._facade, "set_background_color"):
-                        backend._facade.set_background_color(r, g, b, a)
-
-                    # Visibilidade do fundo (falso se for transparente com a == 0)
-                    is_vis = (a > 0)
-                    if hasattr(backend._facade, "set_background_visibility"):
-                        backend._facade.set_background_visibility(is_vis)
-
-                    # Aplica textura se selecionada
-                    if paper_tex > 0:
-                        backend._facade.set_canvas_height_preset(paper_tex)
-                        if hasattr(backend, "set_canvas_grain_enabled"):
-                            backend.set_canvas_grain_enabled(True)
-                        if hasattr(backend._facade, "get_canvas_texture"):
-                            c_tex = backend._facade.get_canvas_texture()
-                            if c_tex:
-                                c_tex.canvas_grain_enabled = True
+                backend.clear_canvas()
+                r, g, b, a = bg_color
+                is_vis = (a > 0)
+                backend.set_canvas_paper_state(QtGui.QColor(r, g, b, a), is_vis, paper_tex, paper_tex > 0)
 
                 # Mantém e aplica a cor de tinta ativa do usuário
                 if self.workspace and hasattr(self.workspace, "_saved_color"):

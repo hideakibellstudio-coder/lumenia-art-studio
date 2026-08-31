@@ -8,6 +8,7 @@ pela sidebar de ferramentas, pelo painel de pincel e demais consumidores.
 casca nunca importa de plugins.
 """
 
+from __future__ import annotations
 from typing import Dict
 
 TOOL_META: Dict[str, Dict[str, str]] = {
@@ -30,6 +31,48 @@ TOOL_META: Dict[str, Dict[str, str]] = {
     "text": {"name": "Texto Tipográfico", "icon": "text", "implemented": True},
 }
 
-DEFAULT_TOOLS = ["brush", "eraser", "smudge", "bucket", "eyedrop", "text", "shapes", "wand", "transform", "rect_select", "ellipse_select", "lasso"]
+TOOL_I18N_KEYS: Dict[str, str] = {
+    "brush": "tools.brush",
+    "eraser": "tools.eraser",
+    "smudge": "brush.preset_category_smudge",
+    "bucket": "tools.fill",
+    "eyedrop": "tools.eyedropper",
+    "wand": "tools.wand",
+    "transform": "tools.transform",
+    "rect_select": "tools.rect_select",
+    "ellipse_select": "tools.ellipse_select",
+    "lasso": "tools.lasso",
+    "shapes": "tools.shapes",
+    "shape_rect": "shapes.rectangle",
+    "shape_ellipse": "shapes.ellipse",
+    "shape_line": "shapes.line",
+    "shape_polygon": "shapes.polygon",
+    "shape_star": "shapes.star",
+    "text": "tools.text",
+}
 
-__all__ = ["TOOL_META", "DEFAULT_TOOLS"]
+DEFAULT_TOOLS = [
+    "brush",
+    "eraser",
+    "smudge",
+    "bucket",
+    "eyedrop",
+    "wand",
+    "transform",
+    "rect_select",
+    "ellipse_select",
+    "lasso",
+    "shapes",
+    "text",
+]
+
+
+def get_tool_name(tool_id: str) -> str:
+    from ui.core.i18n import tr
+    if tool_id in TOOL_I18N_KEYS:
+        default_name = TOOL_META.get(tool_id, {}).get("name", tool_id)
+        return tr(TOOL_I18N_KEYS[tool_id], default_name)
+    return TOOL_META.get(tool_id, {}).get("name", tool_id)
+
+
+__all__ = ["TOOL_META", "TOOL_I18N_KEYS", "DEFAULT_TOOLS", "get_tool_name"]

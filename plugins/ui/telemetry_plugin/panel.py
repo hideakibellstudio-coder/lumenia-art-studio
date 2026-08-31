@@ -43,16 +43,18 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.setContentsMargins(8, 8, 8, 8)
         lo.setSpacing(8)
 
+        from ui.core.i18n import tr, I18nManager
+
         # 1. Botão Mestre de Ativação / Desativação
-        self.btn_toggle_telemetry = QtWidgets.QPushButton("⚪ Ativar Captura de Telemetria")
+        self.btn_toggle_telemetry = QtWidgets.QPushButton(f"⚪ {tr('telemetry.enable_capture', 'Ativar Captura de Telemetria')}")
         self.btn_toggle_telemetry.setObjectName("BtnToggleTelemetry")
         self.btn_toggle_telemetry.setFixedHeight(30)
         self.btn_toggle_telemetry.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_toggle_telemetry.setToolTip("Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória.")
+        self.btn_toggle_telemetry.setToolTip(tr("telemetry.tooltip", "Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória."))
         self.btn_toggle_telemetry.clicked.connect(self._on_toggle_capture)
         lo.addWidget(self.btn_toggle_telemetry)
 
-        self.lbl_status = QtWidgets.QLabel("Status: Em Espera (0% Sobrecarga)")
+        self.lbl_status = QtWidgets.QLabel(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% Sobrecarga)")
         self.lbl_status.setObjectName("TelemStatus")
         self.lbl_status.setAlignment(QtCore.Qt.AlignCenter)
         lo.addWidget(self.lbl_status)
@@ -60,7 +62,8 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addSpacing(4)
 
         # 2. Indicador de Pressão
-        lo.addWidget(self._make_label("PRESSÃO DA CANETA"))
+        self.lbl_hdr_pressure = self._make_label(tr("telemetry.pen_pressure", "PRESSÃO DA CANETA"))
+        lo.addWidget(self.lbl_hdr_pressure)
         self.bar_pressure = QtWidgets.QProgressBar()
         self.bar_pressure.setRange(0, 100)
         self.bar_pressure.setValue(0)
@@ -75,7 +78,8 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addLayout(row_press)
 
         # 3. Indicador de Velocidade
-        lo.addWidget(self._make_label("VELOCIDADE DO TRAÇO"))
+        self.lbl_hdr_velocity = self._make_label(tr("telemetry.stroke_velocity", "VELOCIDADE DO TRAÇO"))
+        lo.addWidget(self.lbl_hdr_velocity)
         self.bar_velocity = QtWidgets.QProgressBar()
         self.bar_velocity.setRange(0, 1000)
         self.bar_velocity.setValue(0)
@@ -90,13 +94,15 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addLayout(row_vel)
 
         # 4. Indicador de Latência do Motor (C++)
-        lo.addWidget(self._make_label("LATÊNCIA POR DAB (C++)"))
+        self.lbl_hdr_latency = self._make_label(tr("telemetry.dab_latency", "LATÊNCIA POR DAB (C++)"))
+        lo.addWidget(self.lbl_hdr_latency)
         self.lbl_latency_val = QtWidgets.QLabel("0.00 µs")
         self.lbl_latency_val.setStyleSheet("font-size: 11px; font-weight: bold; font-family: monospace;")
         lo.addWidget(self.lbl_latency_val)
 
         # 5. Indicador de Consumo de RAM do Canvas & Undo
-        lo.addWidget(self._make_label("MEMÓRIA (CANVAS / UNDO)"))
+        self.lbl_hdr_ram = self._make_label(tr("telemetry.memory", "MEMÓRIA (CANVAS / UNDO)"))
+        lo.addWidget(self.lbl_hdr_ram)
         self.lbl_ram_val = QtWidgets.QLabel("0.00 MB / 0.00 MB")
         self.lbl_ram_val.setStyleSheet("font-size: 11px; font-weight: bold; font-family: monospace;")
         lo.addWidget(self.lbl_ram_val)
@@ -104,7 +110,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addSpacing(6)
 
         # 6. Botão para Abrir o Diálogo Avançado
-        self.btn_open_dialog = QtWidgets.QPushButton("⚙️ Diagnósticos Avançados...")
+        self.btn_open_dialog = QtWidgets.QPushButton(f"⚙️ {tr('telemetry.advanced_dialog', 'Diagnósticos Avançados...')}")
         self.btn_open_dialog.setObjectName("BtnOpenDialog")
         self.btn_open_dialog.setFixedHeight(28)
         self.btn_open_dialog.setCursor(QtCore.Qt.PointingHandCursor)
@@ -115,6 +121,26 @@ class TelemetryPanel(QtWidgets.QWidget):
 
         card_box = PanelCardBox("", content, self)
         main_layout.addWidget(card_box)
+
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "btn_toggle_telemetry"):
+            if self._is_capturing:
+                self.btn_toggle_telemetry.setText(f"🟢 {tr('telemetry.disable_capture', 'Desativar Captura')}")
+            else:
+                self.btn_toggle_telemetry.setText(f"⚪ {tr('telemetry.enable_capture', 'Ativar Captura de Telemetria')}")
+        if hasattr(self, "lbl_hdr_pressure"):
+            self.lbl_hdr_pressure.setText(tr("telemetry.pen_pressure", "PRESSÃO DA CANETA"))
+        if hasattr(self, "lbl_hdr_velocity"):
+            self.lbl_hdr_velocity.setText(tr("telemetry.stroke_velocity", "VELOCIDADE DO TRAÇO"))
+        if hasattr(self, "lbl_hdr_latency"):
+            self.lbl_hdr_latency.setText(tr("telemetry.dab_latency", "LATÊNCIA POR DAB (C++)"))
+        if hasattr(self, "lbl_hdr_ram"):
+            self.lbl_hdr_ram.setText(tr("telemetry.memory", "MEMÓRIA (CANVAS / UNDO)"))
+        if hasattr(self, "btn_open_dialog"):
+            self.btn_open_dialog.setText(f"⚙️ {tr('telemetry.advanced_dialog', 'Diagnósticos Avançados...')}")
 
     def _make_label(self, text: str) -> QtWidgets.QLabel:
         lbl = QtWidgets.QLabel(text)

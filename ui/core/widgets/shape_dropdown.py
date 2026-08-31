@@ -12,14 +12,22 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.icons import get_icon
 from ui.core.theme.manager import ThemeManager
+from ui.core.i18n import tr, I18nManager
 
 SHAPE_ITEMS = [
-    {"id": "shape_line", "label": "Linha Reta", "icon": "shape_line", "tooltip": "Linha Reta (Shift: Trava Ângulo)"},
-    {"id": "shape_rect", "label": "Retângulo", "icon": "shape_rect", "tooltip": "Retângulo / Quadrado (Shift: 1:1)"},
-    {"id": "shape_ellipse", "label": "Elipse", "icon": "shape_ellipse", "tooltip": "Elipse / Círculo (Shift: 1:1)"},
-    {"id": "shape_polygon", "label": "Polígono", "icon": "shape_polygon", "tooltip": "Polígono Regular (3 a 16 lados)"},
-    {"id": "shape_star", "label": "Estrela", "icon": "shape_star", "tooltip": "Estrela Paramétrica (3 a 16 pontas)"},
+    {"id": "shape_line", "i18n": "shapes.line", "label": "Linha Reta", "icon": "shape_line", "tooltip": "shapes.line_tooltip", "default_tip": "Linha Reta (Shift: Trava Ângulo)"},
+    {"id": "shape_rect", "i18n": "shapes.rectangle", "label": "Retângulo", "icon": "shape_rect", "tooltip": "shapes.rect_tooltip", "default_tip": "Retângulo / Quadrado (Shift: 1:1)"},
+    {"id": "shape_ellipse", "i18n": "shapes.ellipse", "label": "Elipse", "icon": "shape_ellipse", "tooltip": "shapes.ellipse_tooltip", "default_tip": "Elipse / Círculo (Shift: 1:1)"},
+    {"id": "shape_polygon", "i18n": "shapes.polygon", "label": "Polígono", "icon": "shape_polygon", "tooltip": "shapes.polygon_tooltip", "default_tip": "Polígono Regular (3 a 16 lados)"},
+    {"id": "shape_star", "i18n": "shapes.star", "label": "Estrela", "icon": "shape_star", "tooltip": "shapes.star_tooltip", "default_tip": "Estrela Paramétrica (3 a 16 pontas)"},
 ]
+
+
+def get_shape_label(shape_id: str) -> str:
+    for item in SHAPE_ITEMS:
+        if item["id"] == shape_id:
+            return tr(item["i18n"], item["label"])
+    return shape_id
 
 
 class ShapeSelectorPopup(QtWidgets.QDialog):
@@ -41,6 +49,7 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
 
         self._build_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_style)
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self._apply_style()
 
     def _build_ui(self) -> None:
@@ -61,10 +70,10 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
         container_layout.setContentsMargins(8, 8, 8, 8)
         container_layout.setSpacing(6)
 
-        lbl_header = QtWidgets.QLabel("FORMAS GEOMÉTRICAS", self.container)
-        lbl_header.setObjectName("ShapePopupHeader")
-        lbl_header.setStyleSheet("font-size: 9px; font-weight: bold; color: #a1a1aa;")
-        container_layout.addWidget(lbl_header)
+        self.lbl_header = QtWidgets.QLabel(tr("shapes.header", "FORMAS GEOMÉTRICAS"), self.container)
+        self.lbl_header.setObjectName("ShapePopupHeader")
+        self.lbl_header.setStyleSheet("font-size: 9px; font-weight: bold; color: #a1a1aa;")
+        container_layout.addWidget(self.lbl_header)
 
         self.grid = QtWidgets.QGridLayout()
         self.grid.setSpacing(6)
@@ -74,9 +83,9 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
         row, col = 0, 0
         for item in SHAPE_ITEMS:
             sid = item["id"]
-            slabel = item["label"]
+            slabel = tr(item["i18n"], item["label"])
             sicon = item["icon"]
-            stip = item["tooltip"]
+            stip = tr(item["tooltip"], item["default_tip"])
 
             btn = QtWidgets.QToolButton(self.container)
             btn.setFixedSize(74, 46)
@@ -88,7 +97,7 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
             btn.setText(slabel)
             btn.setIcon(get_icon(sicon, color="text_main"))
 
-            btn.clicked.connect(lambda _, i=sid, l=slabel: self._on_shape_clicked(i, l))
+            btn.clicked.connect(lambda _, i=sid: self._on_shape_clicked(i, get_shape_label(i)))
 
             self.grid.addWidget(btn, row, col)
             self.buttons[sid] = btn
@@ -100,6 +109,16 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
 
         container_layout.addLayout(self.grid)
         outer_layout.addWidget(self.container)
+
+    def retranslate_ui(self):
+        if hasattr(self, "lbl_header"):
+            self.lbl_header.setText(tr("shapes.header", "FORMAS GEOMÉTRICAS"))
+        for item in SHAPE_ITEMS:
+            sid = item["id"]
+            if sid in self.buttons:
+                btn = self.buttons[sid]
+                btn.setText(tr(item["i18n"], item["label"]))
+                btn.setToolTip(tr(item["tooltip"], item["default_tip"]))
 
     def set_active_shape(self, shape_id: str) -> None:
         self._active_shape_id = shape_id
@@ -185,23 +204,22 @@ class ShapeDropdown(QtWidgets.QToolButton):
 
         self._popup: Optional[ShapeSelectorPopup] = None
         self._active_shape_id: str = "shape_line"
-        self._active_label: str = "Linha Reta"
 
-        self.set_shape("shape_line", "Linha Reta")
+        self.retranslate_ui()
         self.clicked.connect(self._open_popup)
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self._apply_style()
+
+    def retranslate_ui(self):
+        lbl = get_shape_label(self._active_shape_id)
+        self.setText(f"{lbl}  ▾")
 
     def set_shape(self, shape_id: str, label: Optional[str] = None) -> None:
         self._active_shape_id = shape_id
-        if label is None:
-            for item in SHAPE_ITEMS:
-                if item["id"] == shape_id:
-                    label = item["label"]
-                    break
-        self._active_label = label or shape_id
-        self.setText(f"{self._active_label}  ▾")
+        lbl = label or get_shape_label(shape_id)
+        self.setText(f"{lbl}  ▾")
         self.setIcon(get_icon(shape_id, color="text_main"))
 
         if self._popup:
@@ -211,7 +229,7 @@ class ShapeDropdown(QtWidgets.QToolButton):
         return self._active_shape_id
 
     def shape_label(self) -> str:
-        return self._active_label
+        return get_shape_label(self._active_shape_id)
 
     def _open_popup(self) -> None:
         if self._popup is None:

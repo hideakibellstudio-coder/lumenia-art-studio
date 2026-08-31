@@ -14,6 +14,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
+from ui.core.i18n import tr
 from .new_document import (
     PRESET_CATEGORIES,
     BACKGROUND_COLORS,
@@ -28,7 +29,7 @@ class NewDocumentDialog(BaseFramelessDialog):
     """Diálogo enriquecido para criação de novo documento com cards visuais de presets."""
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(title="Novo Documento", icon_name="document", parent=parent, modal=True)
+        super().__init__(title=tr("dialogs.new_document_title", "Novo Documento"), icon_name="document", parent=parent, modal=True)
         self.resize(780, 540)
         self.setMinimumSize(720, 490)
 
@@ -53,7 +54,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         left_col = QtWidgets.QVBoxLayout()
         left_col.setSpacing(8)
 
-        lbl_cat = QtWidgets.QLabel("PRESETS DE PROJETO")
+        lbl_cat = QtWidgets.QLabel(tr("dialogs.presets_title", "PRESETS DE PROJETO"))
         lbl_cat.setStyleSheet("font-size: 10px; font-weight: bold;")
         left_col.addWidget(lbl_cat)
 
@@ -95,16 +96,16 @@ class NewDocumentDialog(BaseFramelessDialog):
         # 1. Nome do Documento
         row_name = QtWidgets.QHBoxLayout()
         row_name.setSpacing(8)
-        lbl_name = QtWidgets.QLabel("Nome:")
+        lbl_name = QtWidgets.QLabel(f"{tr('dialogs.doc_name', 'Nome')}:")
         lbl_name.setStyleSheet("font-size: 11px; font-weight: bold;")
-        self.txt_name = QtWidgets.QLineEdit("Sem Título-1")
+        self.txt_name = QtWidgets.QLineEdit(tr("dialogs.untitled_doc", "Sem Título-1"))
         self.txt_name.setFixedHeight(26)
         row_name.addWidget(lbl_name)
         row_name.addWidget(self.txt_name, 1)
         right_col.addLayout(row_name)
 
         # 2. Grupo: Dimensões do Canvas
-        grp_dim = QtWidgets.QGroupBox("Dimensões do Canvas")
+        grp_dim = QtWidgets.QGroupBox(tr("dialogs.canvas_dimensions", "Dimensões do Canvas"))
         lay_dim = QtWidgets.QVBoxLayout(grp_dim)
         lay_dim.setContentsMargins(10, 10, 10, 10)
         lay_dim.setSpacing(8)
@@ -116,7 +117,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         # Largura
         v_w = QtWidgets.QVBoxLayout()
         v_w.setSpacing(2)
-        lbl_w = QtWidgets.QLabel("Largura:")
+        lbl_w = QtWidgets.QLabel(f"{tr('dialogs.width', 'Largura')}:")
         lbl_w.setStyleSheet("font-size: 10px;")
         self.spn_width = QtWidgets.QSpinBox()
         self.spn_width.setRange(100, 16384)
@@ -132,7 +133,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         self.btn_swap_orient = QtWidgets.QToolButton()
         self.btn_swap_orient.setFixedSize(30, 26)
         self.btn_swap_orient.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_swap_orient.setToolTip("Alternar Orientação (Paisagem ⤨ Retrato)")
+        self.btn_swap_orient.setToolTip(tr("dialogs.swap_orientation", "Alternar Orientação (Paisagem ⤨ Retrato)"))
         self.btn_swap_orient.clicked.connect(self._on_swap_orientation)
         v_btn = QtWidgets.QVBoxLayout()
         v_btn.setContentsMargins(0, 12, 0, 0)
@@ -142,7 +143,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         # Altura
         v_h = QtWidgets.QVBoxLayout()
         v_h.setSpacing(2)
-        lbl_h = QtWidgets.QLabel("Altura:")
+        lbl_h = QtWidgets.QLabel(f"{tr('dialogs.height', 'Altura')}:")
         lbl_h.setStyleSheet("font-size: 10px;")
         self.spn_height = QtWidgets.QSpinBox()
         self.spn_height.setRange(100, 16384)
@@ -159,7 +160,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         # Resolução DPI
         row_dpi = QtWidgets.QHBoxLayout()
         row_dpi.setSpacing(8)
-        lbl_dpi = QtWidgets.QLabel("Resolução:")
+        lbl_dpi = QtWidgets.QLabel(f"{tr('dialogs.resolution', 'Resolução')}:")
         lbl_dpi.setStyleSheet("font-size: 10px;")
         self.spn_dpi = QtWidgets.QSpinBox()
         self.spn_dpi.setRange(72, 1200)
@@ -174,7 +175,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         # Perfil de Cor
         row_prof = QtWidgets.QHBoxLayout()
         row_prof.setSpacing(8)
-        lbl_prof = QtWidgets.QLabel("Espaço de Cor:")
+        lbl_prof = QtWidgets.QLabel(f"{tr('dialogs.color_space', 'Espaço de Cor')}:")
         lbl_prof.setStyleSheet("font-size: 10px;")
         self.cmb_color_prof = QtWidgets.QComboBox()
         self.cmb_color_prof.setFixedHeight(24)
@@ -187,14 +188,14 @@ class NewDocumentDialog(BaseFramelessDialog):
         right_col.addWidget(grp_dim)
 
         # 3. Grupo: Papel de Fundo (Layer 0)
-        grp_paper = QtWidgets.QGroupBox("Papel de Fundo (Layer 0)")
+        grp_paper = QtWidgets.QGroupBox(tr("dialogs.paper_background", "Papel de Fundo (Layer 0)"))
         lay_paper = QtWidgets.QVBoxLayout(grp_paper)
         lay_paper.setContentsMargins(10, 10, 10, 10)
         lay_paper.setSpacing(8)
 
         row_bg = QtWidgets.QHBoxLayout()
         row_bg.setSpacing(8)
-        lbl_bg = QtWidgets.QLabel("Cor:")
+        lbl_bg = QtWidgets.QLabel(f"{tr('dialogs.paper_color', 'Cor')}:")
         lbl_bg.setStyleSheet("font-size: 10px;")
         self.cmb_bg_color = QtWidgets.QComboBox()
         self.cmb_bg_color.setFixedHeight(24)
@@ -206,7 +207,7 @@ class NewDocumentDialog(BaseFramelessDialog):
 
         row_tex = QtWidgets.QHBoxLayout()
         row_tex.setSpacing(8)
-        lbl_tex = QtWidgets.QLabel("Textura:")
+        lbl_tex = QtWidgets.QLabel(f"{tr('dialogs.paper_texture', 'Textura')}:")
         lbl_tex.setStyleSheet("font-size: 10px;")
         self.cmb_paper_tex = QtWidgets.QComboBox()
         self.cmb_paper_tex.setFixedHeight(24)
@@ -237,12 +238,12 @@ class NewDocumentDialog(BaseFramelessDialog):
         foot_row.addWidget(self.lbl_ram_estimate)
         foot_row.addStretch()
 
-        self.btn_cancel = QtWidgets.QPushButton("Cancelar")
+        self.btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
         self.btn_cancel.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_cancel.setFixedSize(90, 30)
         self.btn_cancel.clicked.connect(self.reject)
 
-        self.btn_create = QtWidgets.QPushButton("Criar Documento")
+        self.btn_create = QtWidgets.QPushButton(tr("dialogs.create_document", "Criar Documento"))
         self.btn_create.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_create.setDefault(True)
         self.btn_create.setFixedHeight(30)

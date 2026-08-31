@@ -81,7 +81,8 @@ class LayersOpacitySliderWidget(QWidget):
         font.setBold(True)
         painter.setFont(font)
 
-        text = f"Opacidade: {self._value}%"
+        from ui.core.i18n import tr
+        text = f"{tr('layers.opacity', 'Opacidade')}: {self._value}%"
         painter.drawText(r, Qt.AlignCenter, text)
 
     def mousePressEvent(self, event):
@@ -123,6 +124,8 @@ class LayersHeader(QWidget):
         ctrl_row.setContentsMargins(0, 0, 0, 0)
         ctrl_row.setSpacing(6)
 
+        from ui.core.i18n import tr, I18nManager
+
         self.combo_blend = QComboBox()
         self.combo_blend.setObjectName("LayersBlendCombo")
         self._all_blend_modes = [
@@ -141,7 +144,7 @@ class LayersHeader(QWidget):
             "Borracha"
         ]
         self.combo_blend.addItems(self._all_blend_modes)
-        self.combo_blend.setToolTip("Modo de Mesclagem da Camada")
+        self.combo_blend.setToolTip(tr("layers.blend_mode", "Modo de Mesclagem da Camada"))
         self.combo_blend.setFixedWidth(102)
         self.combo_blend.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.combo_blend.currentTextChanged.connect(self.blendModeChanged.emit)
@@ -149,7 +152,7 @@ class LayersHeader(QWidget):
         self.slider_op = LayersOpacitySliderWidget()
         self.slider_op.setObjectName("LayersOpacitySlider")
         self.slider_op.setValue(100)
-        self.slider_op.setToolTip("Opacidade (0–100%)")
+        self.slider_op.setToolTip(f"{tr('layers.opacity', 'Opacidade')} (0–100%)")
         self.slider_op.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.slider_op.valueChanged.connect(self.opacityChanged.emit)
         self.slider_op.sliderPressed.connect(self.opacitySliderPressed.emit)
@@ -158,6 +161,16 @@ class LayersHeader(QWidget):
         ctrl_row.addWidget(self.combo_blend, 0)
         ctrl_row.addWidget(self.slider_op, 1)
         layout.addLayout(ctrl_row)
+
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "combo_blend"):
+            self.combo_blend.setToolTip(tr("layers.blend_mode", "Modo de Mesclagem da Camada"))
+        if hasattr(self, "slider_op"):
+            self.slider_op.setToolTip(f"{tr('layers.opacity', 'Opacidade')} (0–100%)")
+            self.slider_op.update()
 
         # Subscreve ao sistema de temas para auto-atualização
         from ui.core.theme.manager import ThemeManager

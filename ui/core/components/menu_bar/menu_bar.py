@@ -104,23 +104,27 @@ class MenuBar(QtWidgets.QMenuBar):
     dockSettingsRequested            = QtCore.Signal()
     floatingToolbarSettingsRequested = QtCore.Signal()
 
-    # ── Configurações & Temas ────────────────────────────────────────────
-    themeSettingsRequested  = QtCore.Signal()
-    managePluginsRequested  = QtCore.Signal()
-    curvesLutRequested      = QtCore.Signal()
-    cursorSettingsRequested = QtCore.Signal()
-    renderSettingsRequested = QtCore.Signal()
+    # ── 9. Configurações ──────────────────────────────────────────────────
+    renderSettingsRequested   = QtCore.Signal()
+    curvesLutRequested        = QtCore.Signal()
+    cursorSettingsRequested   = QtCore.Signal()
+    shortcutsRequested        = QtCore.Signal()
+    themeSettingsRequested    = QtCore.Signal()
+    managePluginsRequested    = QtCore.Signal()
+    languageRequested         = QtCore.Signal(str)
 
-    # ── Ajuda ────────────────────────────────────────────────────────────
-    shortcutsRequested   = QtCore.Signal()
-    userGuideRequested   = QtCore.Signal()
-    diagnosticsRequested = QtCore.Signal()
-    feedbackRequested    = QtCore.Signal()
-    aboutRequested       = QtCore.Signal()
+    # ── 10. Ajuda ─────────────────────────────────────────────────────────
+    userGuideRequested        = QtCore.Signal()
+    diagnosticsRequested      = QtCore.Signal()
+    feedbackRequested         = QtCore.Signal()
+    aboutRequested            = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_menus()
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
 
     def setup_menus(self):
         # 0. [Logo Oficial / Branding Action]
@@ -234,6 +238,15 @@ class MenuBar(QtWidgets.QMenuBar):
 
         # 9. [Configurações]
         self.settings_menu = QtWidgets.QMenu("Configurações", self)
+
+        # Submenu de Idioma (Language)
+        self.language_menu = QtWidgets.QMenu("Idioma (Language)", self.settings_menu)
+        self.language_menu.setIcon(get_icon("settings"))
+        self._language_group = QtGui.QActionGroup(self)
+        self._language_group.setExclusive(True)
+        self._rebuild_language_menu()
+        self.settings_menu.addMenu(self.language_menu)
+
         act_render = QtGui.QAction(get_icon("display"), "Renderização & Modos de Cor...", self)
         act_render.triggered.connect(self.renderSettingsRequested.emit)
         self.settings_menu.addAction(act_render)
@@ -268,3 +281,59 @@ class MenuBar(QtWidgets.QMenuBar):
         self.help_menu.feedbackRequested.connect(self.feedbackRequested.emit)
         self.help_menu.aboutRequested.connect(self.aboutRequested.emit)
         self.addMenu(self.help_menu)
+
+    def _rebuild_language_menu(self):
+        from ui.core.i18n import I18nManager, tr
+        self.language_menu.clear()
+        mgr = I18nManager.instance()
+        is_auto = mgr.is_auto_mode()
+        current = mgr.get_current_locale()
+
+        # 1. Opção: Automático (Sistema)
+        act_auto = QtGui.QAction(tr("menu.settings.language_auto", "Automático (Sistema)"), self)
+        act_auto.setCheckable(True)
+        if is_auto:
+            act_auto.setChecked(True)
+        act_auto.setData("auto")
+        act_auto.triggered.connect(lambda checked=False: self.languageRequested.emit("auto"))
+        self._language_group.addAction(act_auto)
+        self.language_menu.addAction(act_auto)
+
+        self.language_menu.addSeparator()
+
+        # 2. Catálogo de Idiomas Específicos
+        for code, label in mgr.get_available_locales().items():
+            act = QtGui.QAction(label, self)
+            act.setCheckable(True)
+            if not is_auto and code == current:
+                act.setChecked(True)
+            act.setData(code)
+            act.triggered.connect(lambda checked=False, c=code: self.languageRequested.emit(c))
+            self._language_group.addAction(act)
+            self.language_menu.addAction(act)
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "file_menu") and hasattr(self.file_menu, "retranslate_ui"):
+            self.file_menu.retranslate_ui()
+        if hasattr(self, "edit_menu") and hasattr(self.edit_menu, "retranslate_ui"):
+            self.edit_menu.retranslate_ui()
+        if hasattr(self, "image_menu") and hasattr(self.image_menu, "retranslate_ui"):
+            self.image_menu.retranslate_ui()
+        if hasattr(self, "layer_menu") and hasattr(self.layer_menu, "retranslate_ui"):
+            self.layer_menu.retranslate_ui()
+        if hasattr(self, "select_menu") and hasattr(self.select_menu, "retranslate_ui"):
+            self.select_menu.retranslate_ui()
+        if hasattr(self, "filter_menu") and hasattr(self.filter_menu, "retranslate_ui"):
+            self.filter_menu.retranslate_ui()
+        if hasattr(self, "view_menu") and hasattr(self.view_menu, "retranslate_ui"):
+            self.view_menu.retranslate_ui()
+        if hasattr(self, "window_menu") and hasattr(self.window_menu, "retranslate_ui"):
+            self.window_menu.retranslate_ui()
+        if hasattr(self, "settings_menu"):
+            self.settings_menu.setTitle(tr("menu.settings.title", "Configurações"))
+        if hasattr(self, "language_menu"):
+            self.language_menu.setTitle(tr("menu.settings.language", "Idioma (Language)"))
+            self._rebuild_language_menu()
+        if hasattr(self, "help_menu") and hasattr(self.help_menu, "retranslate_ui"):
+            self.help_menu.retranslate_ui()

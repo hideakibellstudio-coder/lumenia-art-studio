@@ -180,6 +180,70 @@ class TestLowLevelBrushRaster(unittest.TestCase):
             self.assertGreater(px[3], 200, f"Ponto diagonal ({d}, {d}) deve estar preenchido, alpha={px[3]}")
             self.assertGreaterEqual(int(px[2]), 250, f"Canal azul no ponto ({d}, {d}) deve ser >= 250, obtido {px[2]}")
 
+    # ── 7. PencilEngine: Modulação de Grão e Rugosidade de Grafite ───────────
+    def test_07_pencil_grain_texture_modulation(self):
+        """Valida que ativar brush_grain_enabled modula fisicamente a deposição estocástica do grafite."""
+        from ui.engine_backends.aladyn import AladynBackend
+
+        backend = AladynBackend()
+        backend.set_active_document_context("test_doc_pencil", 200, 200)
+        backend.set_engine_type(1)  # Pencil
+        backend.set_brush_size(24.0)
+        backend.set_brush_opacity(0.85)
+        backend.set_brush_color(0.0, 0.0, 0.0)
+
+        # 1. Desenha sem textura
+        backend.set_brush_grain_enabled(False)
+        backend.begin_stroke_raw(50.0, 50.0, 0.6)
+        backend.end_stroke_raw()
+        buf_no_grain = backend.get_pixel_buffer()
+        arr_no_grain = np.frombuffer(buf_no_grain, dtype=np.uint8).reshape((200, 200, 4))
+        drawn_no_grain = np.count_nonzero(arr_no_grain[:, :, 0] < 250)
+
+        # 2. Limpa e desenha com textura de ruído ativa
+        backend.clear_canvas()
+        backend.set_brush_grain_enabled(True)
+        backend.set_brush_height_preset(3)  # NoiseGrain
+        backend.set_brush_grain_contrast(1.5)
+        backend.begin_stroke_raw(50.0, 50.0, 0.6)
+        backend.end_stroke_raw()
+        buf_grain = backend.get_pixel_buffer()
+        arr_grain = np.frombuffer(buf_grain, dtype=np.uint8).reshape((200, 200, 4))
+        drawn_grain = np.count_nonzero(arr_grain[:, :, 0] < 250)
+
+        # Com grão ativo, a textura porosa produz dabs fraturados com menos pixels contíguos
+        self.assertGreater(drawn_no_grain, 0, "Traço sem grão deve desenhar")
+        self.assertGreater(drawn_grain, 0, "Traço com grão deve desenhar")
+        self.assertNotEqual(drawn_no_grain, drawn_grain, "Traço com grão deve ter deposição estocástica diferente do traço liso")
+
+    # ── 8. Propagação de Presets de Lápis via apply_brush_preset_dict ─────────
+    def test_08_brush_preset_propagation_through_backend(self):
+        """Valida que presets curados de Lápis e Carvão ativam corretamente os grãos na ponte."""
+        from ui.engine_backends.aladyn import AladynBackend
+
+        backend = AladynBackend()
+        backend.set_active_document_context("test_doc_preset", 200, 200)
+
+        pencil_preset = {
+            "engine_type": 1,
+            "brush_size": 8.0,
+            "opacity": 0.90,
+            "spacing_factor": 0.06,
+            "hardness": 0.6,
+            "pencil_graphite_hardness": 0.1,
+            "brush_grain_enabled": True,
+            "brush_height_preset": 0,
+            "brush_grain_contrast": 1.0,
+            "brush_grain_scale": 1.0,
+        }
+
+        backend.apply_brush_preset_dict(pencil_preset)
+        prof_dict = backend.get_brush_profile_dict()
+
+        self.assertTrue(prof_dict.get("brush_grain_enabled", False), "brush_grain_enabled deve estar True após aplicar preset")
+        self.assertEqual(backend.get_active_engine_type(), 1, "Engine type deve ser 1 (Pencil)")
+        self.assertAlmostEqual(prof_dict.get("pencil_graphite_hardness", 0.0), 0.1)
+
 
 if __name__ == "__main__":
     unittest.main()

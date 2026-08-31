@@ -176,27 +176,22 @@ class ToolToggleCard(QtWidgets.QFrame):
 
 def load_floating_toolbar_settings() -> dict:
     s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    s.beginGroup("FloatingToolbar")
     active = s.value("active", True, type=bool)
-    speed  = s.value("speed",  "Normal", type=str)
-    tools_str = s.value("tools", None)
-    s.endGroup()
-
-    if tools_str and isinstance(tools_str, str):
+    speed  = s.value("speed", "Normal")
+    tools_str = s.value("tools", "")
+    if tools_str:
         tools = [t.strip() for t in tools_str.split(",") if t.strip() in TOOL_META]
     else:
         tools = list(DEFAULT_TOOLS)
-
     return {"active": active, "speed": speed, "tools": tools}
 
 
 def save_floating_toolbar_settings(cfg: dict) -> None:
     s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    s.beginGroup("FloatingToolbar")
     s.setValue("active", cfg.get("active", True))
     s.setValue("speed",  cfg.get("speed", "Normal"))
-    s.setValue("tools",  ",".join(cfg.get("tools", DEFAULT_TOOLS)))
-    s.endGroup()
+    tools = cfg.get("tools", DEFAULT_TOOLS)
+    s.setValue("tools",  ",".join(tools))
 
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────

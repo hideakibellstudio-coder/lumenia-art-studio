@@ -31,13 +31,15 @@ class GeometryPanel(QtWidgets.QWidget):
         main_layout.setContentsMargins(6, 6, 6, 6)
         main_layout.setSpacing(8)
 
+        from ui.core.i18n import tr, I18nManager
+
         # 1. Cabeçalho com Engrenagem e Seletor
         header = QtWidgets.QHBoxLayout()
         header.setSpacing(6)
 
         self.btn_advanced = QtWidgets.QPushButton("⚙")
         self.btn_advanced.setFixedSize(34, 34)
-        self.btn_advanced.setToolTip("Configurações Avançadas de Simetria e Réguas")
+        self.btn_advanced.setToolTip(tr("geometry.advanced_settings", "Configurações Avançadas de Simetria e Réguas"))
         self.btn_advanced.clicked.connect(self._toggle_advanced)
         header.addWidget(self.btn_advanced)
 
@@ -52,25 +54,35 @@ class GeometryPanel(QtWidgets.QWidget):
         card_lay = QtWidgets.QVBoxLayout(self.card)
         card_lay.setSpacing(8)
 
-        self.lbl_status = QtWidgets.QLabel("Selecione um modo de régua ou simetria acima para iniciar o desenho assistido.")
+        self.lbl_status = QtWidgets.QLabel(tr("geometry.status_idle", "Selecione um modo de régua ou simetria acima para iniciar o desenho assistido."))
         self.lbl_status.setWordWrap(True)
         self.lbl_status.setAlignment(QtCore.Qt.AlignCenter)
         card_lay.addWidget(self.lbl_status)
 
         # Botão Centralizar Pivô
-        self.btn_center_pivot = QtWidgets.QPushButton("🎯 Centralizar Pivô no Canvas")
+        self.btn_center_pivot = QtWidgets.QPushButton(f"🎯 {tr('geometry.center_pivot', 'Centralizar Pivô no Canvas')}")
         self.btn_center_pivot.clicked.connect(self._center_pivot_on_canvas)
         self.btn_center_pivot.setVisible(False)
         card_lay.addWidget(self.btn_center_pivot)
 
         # Botão Resetar Ângulo
-        self.btn_reset_angle = QtWidgets.QPushButton("🔄 Resetar Ângulo do Eixo (0°)")
+        self.btn_reset_angle = QtWidgets.QPushButton(f"🔄 {tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)')}")
         self.btn_reset_angle.clicked.connect(self._reset_angle)
         self.btn_reset_angle.setVisible(False)
         card_lay.addWidget(self.btn_reset_angle)
 
         main_layout.addWidget(self.card)
         main_layout.addStretch()
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "btn_advanced"):
+            self.btn_advanced.setToolTip(tr("geometry.advanced_settings", "Configurações Avançadas de Simetria e Réguas"))
+        if hasattr(self, "btn_center_pivot"):
+            self.btn_center_pivot.setText(f"🎯 {tr('geometry.center_pivot', 'Centralizar Pivô no Canvas')}")
+        if hasattr(self, "btn_reset_angle"):
+            self.btn_reset_angle.setText(f"🔄 {tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)')}")
 
     def _apply_theme(self, *args):
         tm = ThemeManager.instance()
@@ -180,9 +192,11 @@ class GeometryPanel(QtWidgets.QWidget):
     def _get_render_widget(self):
         top = self.window()
         if top:
-            from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-            rw = top.findChild(RenderWidget)
-            return rw
+            cw = top.findChild(QtWidgets.QWidget, "CanvasWidget")
+            if cw and hasattr(cw, "geometry_ctrl"):
+                return cw
+            if hasattr(top, "workspace") and hasattr(top.workspace, "canvas_widget"):
+                return top.workspace.canvas_widget
         return None
 
     def _center_pivot_on_canvas(self):

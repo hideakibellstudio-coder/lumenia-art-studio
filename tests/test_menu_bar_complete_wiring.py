@@ -5,6 +5,7 @@ import sys
 import os
 
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.boundary.orchestrator.main_window import MainWindow
 
 # Assegura que QApplication existe em modo offscreen
 app = QtWidgets.QApplication.instance()
@@ -15,9 +16,16 @@ if app is None:
 class TestMenuBarCompleteWiring(unittest.TestCase):
     """Suíte de testes de integração para todos os menus e ações do MenuBar."""
 
+    @classmethod
+    def setUpClass(cls):
+        top_mws = [w for w in QtWidgets.QApplication.topLevelWidgets() if isinstance(w, MainWindow)]
+        if top_mws:
+            cls.win = top_mws[0]
+        else:
+            cls.win = MainWindow()
+
     def setUp(self):
-        from ui.boundary.orchestrator.main_window import MainWindow
-        self.win = MainWindow()
+        pass
 
     def test_01_menu_bar_submenus_exist(self):
         """Verifica se todos os 10 submenus estão instanciados no menu_bar."""
@@ -105,6 +113,23 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
 
         dlg_filter = FilterAdjustmentDialog(initial_key="pixelate")
         self.assertIsNotNone(dlg_filter)
+
+    def test_09_shortcuts_dialog_and_remapping(self):
+        """Verifica a instanciação do diálogo de atalhos e remapeamento sem crash."""
+        from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog
+
+        dlg_shortcuts = KeyboardShortcutsDialog(self.win)
+        self.assertIsNotNone(dlg_shortcuts)
+
+        # Testa aplicação direta do callback no MainWindow
+        test_map = {
+            "tool_brush": "B",
+            "tool_eraser": "E",
+            "edit_undo": "Ctrl+Z",
+            "edit_redo": "Ctrl+Y"
+        }
+        self.win._on_shortcuts_applied(test_map)
+        self.assertEqual(self.win.shortcut_tool_b.key().toString(), "B")
 
 
 if __name__ == "__main__":

@@ -50,8 +50,37 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self._tool_buttons = {}
 
         self.setup_ui()
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme_style)
         self._apply_theme_style()
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        from ui.core.tools import get_tool_name
+        if hasattr(self, "btn_adv"):
+            self.btn_adv.setToolTip(tr("brush.advanced_settings", "Configurações Avançadas do Pincel"))
+        if hasattr(self, "lbl_quick"):
+            self.lbl_quick.setText(tr("brush.quick_params", "PARÂMETROS RÁPIDOS"))
+        if hasattr(self, "size_slider"):
+            self.size_slider.setPrefix(tr("brush.size_short", "Tam:"))
+        if hasattr(self, "opacity_slider"):
+            self.opacity_slider.setPrefix(tr("brush.opacity_short", "Opac:"))
+        if hasattr(self, "contrast_slider"):
+            self.contrast_slider.setPrefix(tr("brush.hardness_short", "Dur:"))
+        if hasattr(self, "pressure_slider"):
+            self.pressure_slider.setPrefix(tr("brush.pressure_short", "Press:"))
+        if hasattr(self, "curve_slider"):
+            self.curve_slider.setPrefix(tr("brush.curve_short", "Curv:"))
+        if hasattr(self, "stabilizer_slider"):
+            self.stabilizer_slider.setPrefix(tr("brush.stabilizer_short", "Stab:"))
+        if hasattr(self, "spacing_slider"):
+            self.spacing_slider.setPrefix(tr("brush.spacing_short", "Espac:"))
+        if hasattr(self, "min_density_slider"):
+            self.min_density_slider.setPrefix(tr("brush.density_short", "Dens:"))
+        for tid, btn in getattr(self, "_tool_buttons", {}).items():
+            btn.setToolTip(get_tool_name(tid))
 
     @property
     def qs_size(self):

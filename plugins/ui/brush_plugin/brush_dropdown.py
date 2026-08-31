@@ -12,7 +12,12 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.icons import get_icon
 from ui.core.theme.manager import ThemeManager
-from .presets_data import BRUSH_CATEGORIES
+from ui.core.i18n import tr, I18nManager
+from .presets_data import (
+    BRUSH_CATEGORIES,
+    get_preset_display_name,
+    get_category_display_name,
+)
 
 
 ABBREVIATIONS: Dict[str, str] = {
@@ -55,7 +60,7 @@ ABBREVIATIONS: Dict[str, str] = {
 def abbreviate_name(name: str) -> str:
     if name in ABBREVIATIONS:
         return ABBREVIATIONS[name]
-    clean = name.replace("Pincel ", "").replace("Lápis ", "")
+    clean = name.replace("Pincel ", "").replace("Lápis ", "").replace("Brush ", "")
     if len(clean) > 12:
         return clean[:10] + ".."
     return clean
@@ -92,24 +97,35 @@ class BrushSelectorPopup(QtWidgets.QDialog):
         self.setFixedSize(364, 310)
 
         self._active_preset: str = "Pincel Redondo"
+
         self.categories_keys = ["brush", "pencil", "inker", "eraser", "marker", "blur", "smudge", "watercolor", "oil"]
 
         self.cat_metadata = {
-            "brush": {"label": "Pincel Básico", "icon": "cat_pinceis"},
-            "pencil": {"label": "Lápis & Carvão", "icon": "cat_lapis"},
-            "inker": {"label": "Caneta & Nanquim", "icon": "cat_canetas"},
-            "eraser": {"label": "Borracha", "icon": "cat_borrachas"},
-            "marker": {"label": "Marcador & Feltro", "icon": "cat_canetas"},
-            "blur": {"label": "Blur", "icon": "cat_efeitos"},
-            "smudge": {"label": "Smudge", "icon": "cat_smudges"},
-            "watercolor": {"label": "Aquarela", "icon": "cat_pinceis"},
-            "oil": {"label": "Óleo 3D", "icon": "cat_pinceis"},
+            "brush": {"label": get_category_display_name("brush", "Pincel Básico"), "icon": "cat_pinceis"},
+            "pencil": {"label": get_category_display_name("pencil", "Lápis & Carvão"), "icon": "cat_lapis"},
+            "inker": {"label": get_category_display_name("inker", "Caneta & Nanquim"), "icon": "cat_canetas"},
+            "eraser": {"label": get_category_display_name("eraser", "Borracha"), "icon": "cat_borrachas"},
+            "marker": {"label": get_category_display_name("marker", "Marcador & Feltro"), "icon": "cat_canetas"},
+            "blur": {"label": get_category_display_name("blur", "Blur"), "icon": "cat_efeitos"},
+            "smudge": {"label": get_category_display_name("smudge", "Smudge"), "icon": "cat_smudges"},
+            "watercolor": {"label": get_category_display_name("watercolor", "Aquarela"), "icon": "cat_pinceis"},
+            "oil": {"label": get_category_display_name("oil", "Óleo 3D"), "icon": "cat_pinceis"},
         }
 
         self._build_ui()
         self.populate_recipes()
         self._apply_theme()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        for k, btn in self.tab_buttons.items():
+            btn.setToolTip(get_category_display_name(k))
+        for btn in getattr(self, "buttons_list", []):
+            raw = getattr(btn, "recipe_name", "")
+            disp = get_preset_display_name(raw)
+            btn.setToolTip(disp)
+            btn.setText(abbreviate_name(disp))
 
     def _build_ui(self) -> None:
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -128,75 +144,74 @@ class BrushSelectorPopup(QtWidgets.QDialog):
         main_layout.addWidget(self.container)
 
         container_layout = QtWidgets.QVBoxLayout(self.container)
-        container_layout.setContentsMargins(6, 6, 6, 6)
+        container_layout.setContentsMargins(8, 8, 8, 8)
         container_layout.setSpacing(6)
 
-        # 1. Barra de Abas Superiores por Categoria
-        self.tabs_layout = QtWidgets.QHBoxLayout()
-        self.tabs_layout.setSpacing(3)
-        self.tabs_layout.setContentsMargins(0, 0, 0, 0)
+        # ── 1. Barra de Abas (Mini-Motores) ──────────────────────────────────
+        tab_bar_layout = QtWidgets.QHBoxLayout()
+        tab_bar_layout.setContentsMargins(0, 0, 0, 0)
+        tab_bar_layout.setSpacing(2)
 
         self.tab_buttons: Dict[str, QtWidgets.QToolButton] = {}
+        self.tab_group = QtWidgets.QButtonGroup(self)
+        self.tab_group.setExclusive(True)
+
         for cat_key in self.categories_keys:
             meta = self.cat_metadata[cat_key]
             btn = QtWidgets.QToolButton(self.container)
-            btn.setFixedSize(34, 28)
-            btn.setIconSize(QtCore.QSize(16, 16))
             btn.setCheckable(True)
-            btn.setAutoRaise(True)
-            btn.setCursor(QtCore.Qt.PointingHandCursor)
-            btn.setToolTip(meta["label"])
+            btn.setFixedSize(30, 26)
+            btn.setIconSize(QtCore.QSize(16, 16))
             btn.setIcon(get_icon(meta["icon"]))
+            btn.setToolTip(get_category_display_name(cat_key, meta["label"]))
+            btn.setCursor(QtCore.Qt.PointingHandCursor)
+            btn.setObjectName("TabButton")
             btn.clicked.connect(lambda _, k=cat_key: self._on_tab_clicked(k))
 
-            self.tabs_layout.addWidget(btn)
+            self.tab_group.addButton(btn)
             self.tab_buttons[cat_key] = btn
+            tab_bar_layout.addWidget(btn)
 
-        container_layout.addLayout(self.tabs_layout)
+        container_layout.addLayout(tab_bar_layout)
 
-        # Divisor fino
-        self.divider = QtWidgets.QFrame(self.container)
-        self.divider.setFixedHeight(1)
-        self.divider.setObjectName("PopupDivider")
-        container_layout.addWidget(self.divider)
+        # Divisor sutil
+        divider = QtWidgets.QFrame(self.container)
+        divider.setFrameShape(QtWidgets.QFrame.HLine)
+        divider.setFrameShadow(QtWidgets.QFrame.Plain)
+        divider.setObjectName("PopupDivider")
+        container_layout.addWidget(divider)
 
-        # 2. Stack de Grids
+        # ── 2. QStackedWidget com Grids de 3 Colunas ─────────────────────────
         self.stacked_widget = QtWidgets.QStackedWidget(self.container)
-        self.stacked_widget.setObjectName("PopupStackedWidget")
-
+        self.stacked_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.grids: Dict[str, QtWidgets.QGridLayout] = {}
-        self.grid_scrolls: Dict[str, QtWidgets.QScrollArea] = {}
 
         for cat_key in self.categories_keys:
-            scroll = QtWidgets.QScrollArea(self.stacked_widget)
-            scroll.setWidgetResizable(True)
-            scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-            scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-            scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-            scroll.setObjectName("PopupScrollArea")
+            page = QtWidgets.QWidget()
+            page_layout = QtWidgets.QVBoxLayout(page)
+            page_layout.setContentsMargins(0, 2, 0, 0)
+            page_layout.setSpacing(0)
 
-            scroll_widget = QtWidgets.QWidget()
-            scroll_widget.setObjectName("PopupScrollWidget")
-            grid = QtWidgets.QGridLayout(scroll_widget)
-            grid.setSpacing(5)
-            grid.setContentsMargins(2, 2, 2, 2)
-            grid.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+            grid_widget = QtWidgets.QWidget()
+            grid_layout = QtWidgets.QGridLayout(grid_widget)
+            grid_layout.setContentsMargins(0, 0, 0, 0)
+            grid_layout.setSpacing(4)
+            grid_layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
 
-            scroll.setWidget(scroll_widget)
-            self.stacked_widget.addWidget(scroll)
+            self.grids[cat_key] = grid_layout
+            page_layout.addWidget(grid_widget)
+            page_layout.addStretch()
 
-            self.grids[cat_key] = grid
-            self.grid_scrolls[cat_key] = scroll
+            self.stacked_widget.addWidget(page)
 
         container_layout.addWidget(self.stacked_widget, 1)
 
-    def _on_tab_clicked(self, active_key: str) -> None:
-        if active_key in self.tab_buttons:
-            for key, btn in self.tab_buttons.items():
-                btn.setChecked(key == active_key)
-
-            idx = self.categories_keys.index(active_key)
+    def _on_tab_clicked(self, cat_key: str) -> None:
+        if cat_key in self.categories_keys:
+            idx = self.categories_keys.index(cat_key)
             self.stacked_widget.setCurrentIndex(idx)
+            if cat_key in self.tab_buttons:
+                self.tab_buttons[cat_key].setChecked(True)
 
     def set_active_recipe(self, name: str) -> None:
         self._active_preset = name
@@ -223,6 +238,7 @@ class BrushSelectorPopup(QtWidgets.QDialog):
 
             for preset in cat_data.get("presets", []):
                 recipe_name = preset["label"]
+                display_name = get_preset_display_name(recipe_name)
                 preset_info = dict(preset)
                 preset_info["engine_type"] = cat_data["engine_type"]
                 preset_info["category_id"] = cat_key
@@ -233,8 +249,8 @@ class BrushSelectorPopup(QtWidgets.QDialog):
                 btn.setIconSize(QtCore.QSize(18, 18))
                 btn.setCursor(QtCore.Qt.PointingHandCursor)
                 btn.setObjectName("GridPresetButton")
-                btn.setToolTip(recipe_name)
-                btn.setText(abbreviate_name(recipe_name))
+                btn.setToolTip(display_name)
+                btn.setText(abbreviate_name(display_name))
                 btn.setIcon(get_icon(self.cat_metadata[cat_key]["icon"]))
                 btn.recipe_name = recipe_name
                 btn.preset_data = preset_info
@@ -325,11 +341,17 @@ class BrushDropdown(QtWidgets.QToolButton):
             "smudge": None,
         }
 
-        self.setText("Pincel Redondo ▾")
+        self.retranslate_ui()
         self.clicked.connect(self._open_popup)
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self._apply_style()
+
+    def retranslate_ui(self):
+        disp = get_preset_display_name(self._active_preset)
+        self.setText(f"{disp} ▾")
+        self.setToolTip(f"{tr('tools.brush', 'Pincel')}: {disp}")
 
     def sync_to_tool(self, tool_id: str) -> None:
         """
@@ -366,7 +388,9 @@ class BrushDropdown(QtWidgets.QToolButton):
 
     def set_preset(self, name: str) -> None:
         self._active_preset = name
-        self.setText(f"{name} ▾")
+        disp = get_preset_display_name(name)
+        self.setText(f"{disp} ▾")
+        self.setToolTip(f"{tr('tools.brush', 'Pincel')}: {disp}")
         if self._popup:
             self._popup.set_active_recipe(name)
 
@@ -406,58 +430,8 @@ class BrushDropdown(QtWidgets.QToolButton):
         if not backend:
             return
 
-        if hasattr(backend, "set_engine_type"):
-            engine_type = data.get("engine_type", 0)
-            backend.set_engine_type(engine_type)
-        if "brush_size" in data and hasattr(backend, "set_brush_size"):
-            backend.set_brush_size(data["brush_size"])
-        if "opacity" in data and hasattr(backend, "set_brush_opacity"):
-            backend.set_brush_opacity(data["opacity"])
-        if "spacing_factor" in data and hasattr(backend, "set_brush_spacing"):
-            backend.set_brush_spacing(data["spacing_factor"])
-        if "hardness" in data and hasattr(backend, "set_brush_hardness"):
-            backend.set_brush_hardness(data["hardness"])
-
-        # Texturas e Grãos
-        if "brush_grain_enabled" in data and hasattr(backend, "set_brush_grain_enabled"):
-            backend.set_brush_grain_enabled(bool(data["brush_grain_enabled"]))
-        if "brush_height_preset" in data and hasattr(backend, "set_brush_height_preset"):
-            backend.set_brush_height_preset(int(data["brush_height_preset"]))
-        if "brush_grain_contrast" in data and hasattr(backend, "set_brush_grain_contrast"):
-            backend.set_brush_grain_contrast(float(data["brush_grain_contrast"]))
-        if "brush_grain_scale" in data and hasattr(backend, "set_brush_grain_scale"):
-            backend.set_brush_grain_scale(float(data["brush_grain_scale"]))
-        if "shape_preset" in data and hasattr(backend, "set_shape_preset"):
-            backend.set_shape_preset(int(data["shape_preset"]))
-
-        # Sincronização direta com a fachada C++ para parâmetros de mini-motores
-        facade = getattr(backend, "_facade", None)
-        if facade and hasattr(facade, "get_brush_profile"):
-            prof = facade.get_brush_profile()
-            if "tip_aspect" in data and hasattr(prof, "tip"):
-                prof.tip.aspect_ratio = float(data["tip_aspect"])
-            if "tip_angle" in data and hasattr(prof, "tip"):
-                prof.tip.angle = float(data["tip_angle"])
-            if "follow_stroke" in data and hasattr(prof, "tip"):
-                prof.tip.follow_stroke = bool(data["follow_stroke"])
-            if "pencil_graphite_hardness" in data and hasattr(prof, "pencil_params"):
-                prof.pencil_params.graphite_hardness = float(data["pencil_graphite_hardness"])
-            if "pencil_tilt_shading" in data and hasattr(prof, "pencil_params"):
-                prof.pencil_params.tilt_shading_enabled = bool(data["pencil_tilt_shading"])
-            if "inker_flow_rate" in data and hasattr(prof, "inker_params"):
-                prof.inker_params.ink_flow_rate = float(data["inker_flow_rate"])
-            if "inker_taper_smoothing" in data and hasattr(prof, "inker_params"):
-                prof.inker_params.taper_smoothing = float(data["inker_taper_smoothing"])
-            if "watercolor_water_level" in data and hasattr(prof, "watercolor_params"):
-                prof.watercolor_params.water_level = float(data["watercolor_water_level"])
-            if "watercolor_granulation" in data and hasattr(prof, "watercolor_params"):
-                prof.watercolor_params.granulation = float(data["watercolor_granulation"])
-            if "watercolor_fringe_intensity" in data and hasattr(prof, "watercolor_params"):
-                prof.watercolor_params.fringe_intensity = float(data["watercolor_fringe_intensity"])
-            if "oil_impasto_depth" in data and hasattr(prof, "oil_params"):
-                prof.oil_params.impasto_depth = float(data["oil_impasto_depth"])
-            if "oil_bristle_grooves" in data and hasattr(prof, "oil_params"):
-                prof.oil_params.bristle_grooves = float(data["oil_bristle_grooves"])
+        if hasattr(backend, "apply_brush_preset_dict"):
+            backend.apply_brush_preset_dict(data)
 
     def _apply_style(self, *args) -> None:
         theme = ThemeManager.instance()

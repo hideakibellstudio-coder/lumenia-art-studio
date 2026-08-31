@@ -38,23 +38,19 @@ class TestPhase1Layers(unittest.TestCase):
         pass
 
     def setUp(self):
+        self.doc = self.mw.dm.new_document(800, 600, "Doc Teste Phase 1")
         self.mw.dm.set_active_document(self.doc.uid)
         self.panel = self.mw.workspace._layers_panel
+        self.panel.set_layer_manager(self.doc.layer_manager)
         self.backend = EngineRegistry.instance().get_backend()
-        if self.backend and (self.backend._facade is None):
+        if self.backend:
             self.backend.set_active_document_context(self.doc.uid, 800, 600)
         self.facade = self.backend._facade
+        self.panel._synced_uids = [l.uid for l in self.panel.layer_manager.layers]
 
-        # Limpa o vetor C++ e o gerenciador Python mantendo uma Camada 1 base
-        while self.facade.get_drawing_layer_count() > 1:
-            self.facade.remove_layer(self.facade.get_drawing_layer_count() - 1)
-        self.facade.set_layer_name(0, "Camada 1")
-
-        self.panel.layer_manager.layers.clear()
-        self.panel.layer_manager._next_uid = 1
-        self.panel.layer_manager._active_uid = None
-        self.panel.layer_manager.add_layer("Camada 1")
-        self.panel._native_uids = [l.uid for l in self.panel.layer_manager.layers]
+    def tearDown(self):
+        if hasattr(self, "doc") and self.doc:
+            self.mw.dm.close_document(self.doc.uid)
 
     def test_01_layer_creation_and_deletion(self):
         """Testa adição e remoção de camadas sincronizada com C++."""

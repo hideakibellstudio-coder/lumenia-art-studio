@@ -8,6 +8,7 @@ comportamento durante a pintura e persistência via QSettings.
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
+from ui.core.i18n import tr
 
 
 class CursorSettingsDialog(QtWidgets.QDialog):
@@ -28,11 +29,11 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         self._apply_theme()
 
     def _load_settings(self):
-        settings = QtCore.QSettings("Aladyn", "Lumenia")
+        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
         self.mode = settings.value("cursor/mode", "ring_and_dot")
-        self.hide_on_stroke = settings.value("cursor/hide_on_stroke", "false").lower() in ("true", "1")
-        self.show_crosshair = settings.value("cursor/show_crosshair", "false").lower() in ("true", "1")
-        self.ring_opacity = int(float(settings.value("cursor/ring_opacity", 0.9)) * 100)
+        self.hide_on_stroke = settings.value("cursor/hide_on_stroke", False, type=bool)
+        self.show_crosshair = settings.value("cursor/show_crosshair", False, type=bool)
+        self.ring_opacity = int(settings.value("cursor/ring_opacity", 0.9, type=float) * 100)
 
     def _build_ui(self):
         main_lay = QtWidgets.QVBoxLayout(self)
@@ -50,7 +51,7 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         icon_lbl.setPixmap(get_icon("cursor", "ACCENT", QtCore.QSize(18, 18)).pixmap(18, 18))
         hdr.addWidget(icon_lbl)
 
-        title = QtWidgets.QLabel("CONFIGURAÇÕES DE CURSOR E PONTEIRO")
+        title = QtWidgets.QLabel(tr("dialogs.cursor_title", "Configurações de Cursor"))
         title.setStyleSheet("font-weight: 700; font-size: 12px; letter-spacing: 0.5px;")
         hdr.addWidget(title)
         hdr.addStretch()
@@ -63,15 +64,15 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         card_lay.addLayout(hdr)
 
         # ── Seção 1: Formato do Cursor do Pincel
-        grp_box = QtWidgets.QGroupBox("Formato do Cursor de Pintura")
+        grp_box = QtWidgets.QGroupBox(tr("dialogs.cursor_shape_title", "Formato do Cursor de Pintura"))
         grp_lay = QtWidgets.QVBoxLayout(grp_box)
         grp_lay.setSpacing(8)
 
-        self.rb_ring_dot = QtWidgets.QRadioButton("◎  Anel de Contorno com Ponto Central (Padrão)")
-        self.rb_ring_only = QtWidgets.QRadioButton("◯  Apenas Anel de Contorno (Círculo de Raio)")
-        self.rb_dot_only = QtWidgets.QRadioButton("•   Apenas Ponto Central de Precisão")
-        self.rb_crosshair = QtWidgets.QRadioButton("✛  Mira de Precisão (Crosshair)")
-        self.rb_system = QtWidgets.QRadioButton("↖  Cursor Padrão do Sistema Operacional")
+        self.rb_ring_dot = QtWidgets.QRadioButton(f"◎  {tr('dialogs.cursor_ring_dot', 'Anel de Contorno com Ponto Central (Padrão)')}")
+        self.rb_ring_only = QtWidgets.QRadioButton(f"◯  {tr('dialogs.cursor_ring_only', 'Apenas Anel de Contorno (Círculo de Raio)')}")
+        self.rb_dot_only = QtWidgets.QRadioButton(f"•   {tr('dialogs.cursor_dot_only', 'Apenas Ponto Central de Precisão')}")
+        self.rb_crosshair = QtWidgets.QRadioButton(f"✛  {tr('dialogs.cursor_crosshair', 'Mira de Precisão (Crosshair)')}")
+        self.rb_system = QtWidgets.QRadioButton(f"↖  {tr('dialogs.cursor_system', 'Cursor Padrão do Sistema Operacional')}")
 
         self.btn_group = QtWidgets.QButtonGroup(self)
         self.btn_group.addButton(self.rb_ring_dot, 0)
@@ -98,27 +99,27 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         card_lay.addWidget(grp_box)
 
         # ── Seção 2: Comportamento
-        grp_beh = QtWidgets.QGroupBox("Comportamento e Dinâmica")
+        grp_beh = QtWidgets.QGroupBox(tr("dialogs.cursor_behavior_title", "Comportamento e Dinâmica"))
         beh_lay = QtWidgets.QVBoxLayout(grp_beh)
         beh_lay.setSpacing(8)
 
-        self.chk_hide = QtWidgets.QCheckBox("Ocultar anel de contorno durante o traço de pintura")
+        self.chk_hide = QtWidgets.QCheckBox(tr("dialogs.cursor_hide_on_stroke", "Ocultar anel de contorno durante o traço de pintura"))
         self.chk_hide.setChecked(self.hide_on_stroke)
         self.chk_hide.setCursor(QtCore.Qt.PointingHandCursor)
         beh_lay.addWidget(self.chk_hide)
 
-        self.chk_ch = QtWidgets.QCheckBox("Exibir mira de precisão em réguas e guias de perspectiva")
+        self.chk_ch = QtWidgets.QCheckBox(tr("dialogs.cursor_show_guides_crosshair", "Exibir mira de precisão em réguas e guias de perspectiva"))
         self.chk_ch.setChecked(self.show_crosshair)
         self.chk_ch.setCursor(QtCore.Qt.PointingHandCursor)
         beh_lay.addWidget(self.chk_ch)
 
         # Opacidade do anel
         op_row = QtWidgets.QHBoxLayout()
-        self.lbl_op = QtWidgets.QLabel(f"Opacidade do Anel: {self.ring_opacity}%")
+        self.lbl_op = QtWidgets.QLabel(f"{tr('dialogs.cursor_ring_opacity', 'Opacidade do Anel')}: {self.ring_opacity}%")
         self.slider_op = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider_op.setRange(30, 100)
         self.slider_op.setValue(self.ring_opacity)
-        self.slider_op.valueChanged.connect(lambda v: self.lbl_op.setText(f"Opacidade do Anel: {v}%"))
+        self.slider_op.valueChanged.connect(lambda v: self.lbl_op.setText(f"{tr('dialogs.cursor_ring_opacity', 'Opacidade do Anel')}: {v}%"))
         op_row.addWidget(self.lbl_op)
         op_row.addWidget(self.slider_op, 1)
         beh_lay.addLayout(op_row)
@@ -128,18 +129,18 @@ class CursorSettingsDialog(QtWidgets.QDialog):
 
         # ── Rodapé
         footer = QtWidgets.QHBoxLayout()
-        btn_restore = QtWidgets.QPushButton("Restaurar Padrões")
+        btn_restore = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
         btn_restore.setCursor(QtCore.Qt.PointingHandCursor)
         btn_restore.clicked.connect(self._on_restore)
         footer.addWidget(btn_restore)
         footer.addStretch()
 
-        btn_cancel = QtWidgets.QPushButton("Cancelar")
+        btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
         btn_cancel.setCursor(QtCore.Qt.PointingHandCursor)
         btn_cancel.clicked.connect(self.reject)
         footer.addWidget(btn_cancel)
 
-        btn_save = QtWidgets.QPushButton("Salvar e Aplicar")
+        btn_save = QtWidgets.QPushButton(tr("dialogs.save_apply", "Salvar e Aplicar"))
         btn_save.setCursor(QtCore.Qt.PointingHandCursor)
         btn_save.clicked.connect(self._on_save)
         footer.addWidget(btn_save)
@@ -154,7 +155,7 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         self.slider_op.setValue(90)
 
     def _on_save(self):
-        settings = QtCore.QSettings("Aladyn", "Lumenia")
+        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
         if self.rb_ring_only.isChecked():
             mode = "ring_only"
         elif self.rb_dot_only.isChecked():
@@ -167,8 +168,8 @@ class CursorSettingsDialog(QtWidgets.QDialog):
             mode = "ring_and_dot"
 
         settings.setValue("cursor/mode", mode)
-        settings.setValue("cursor/hide_on_stroke", "true" if self.chk_hide.isChecked() else "false")
-        settings.setValue("cursor/show_crosshair", "true" if self.chk_ch.isChecked() else "false")
+        settings.setValue("cursor/hide_on_stroke", self.chk_hide.isChecked())
+        settings.setValue("cursor/show_crosshair", self.chk_ch.isChecked())
         settings.setValue("cursor/ring_opacity", self.slider_op.value() / 100.0)
 
         cfg = {

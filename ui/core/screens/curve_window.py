@@ -286,48 +286,17 @@ class CurveWindow(BaseFramelessDialog):
     def sync_to_engine(self):
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "_facade") or not backend._facade:
+        if not backend:
             return
 
-        profile = backend._facade.get_brush_profile()
-        if not profile:
-            return
+        pts_p = self.pressure_sec.curve.get_control_points()
+        backend.set_curve_control_points("pressure_size", pts_p, self.pressure_sec.active)
 
-        profile.pressure_size_enabled = self.pressure_sec.active
-        profile.pressure_flow_enabled = self.flow_sec.active
-        profile.velocity_size_enabled = self.velocity_sec.active
+        pts_f = self.flow_sec.curve.get_control_points()
+        backend.set_curve_control_points("pressure_flow", pts_f, self.flow_sec.active)
 
-        try:
-            import aladyn_engine_native as native
-
-            pts_p = self.pressure_sec.curve.get_control_points()
-            if native and len(pts_p) == 4:
-                profile.pressure_size_curve.set_control_points(
-                    native.Point2D(pts_p[0][0], pts_p[0][1]),
-                    native.Point2D(pts_p[1][0], pts_p[1][1]),
-                    native.Point2D(pts_p[2][0], pts_p[2][1]),
-                    native.Point2D(pts_p[3][0], pts_p[3][1])
-                )
-
-            pts_f = self.flow_sec.curve.get_control_points()
-            if native and len(pts_f) == 4:
-                profile.pressure_flow_curve.set_control_points(
-                    native.Point2D(pts_f[0][0], pts_f[0][1]),
-                    native.Point2D(pts_f[1][0], pts_f[1][1]),
-                    native.Point2D(pts_f[2][0], pts_f[2][1]),
-                    native.Point2D(pts_f[3][0], pts_f[3][1])
-                )
-
-            pts_v = self.velocity_sec.curve.get_control_points()
-            if native and len(pts_v) == 4:
-                profile.velocity_size_curve.set_control_points(
-                    native.Point2D(pts_v[0][0], pts_v[0][1]),
-                    native.Point2D(pts_v[1][0], pts_v[1][1]),
-                    native.Point2D(pts_v[2][0], pts_v[2][1]),
-                    native.Point2D(pts_v[3][0], pts_v[3][1])
-                )
-        except Exception:
-            pass
+        pts_v = self.velocity_sec.curve.get_control_points()
+        backend.set_curve_control_points("velocity_size", pts_v, self.velocity_sec.active)
 
     def apply_theme(self):
         tm = ThemeManager.instance()

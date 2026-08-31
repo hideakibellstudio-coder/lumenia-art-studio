@@ -21,7 +21,11 @@ class TestMdiMultiDocLifecycle(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.win = MainWindow()
+        top_mws = [w for w in QtWidgets.QApplication.topLevelWidgets() if isinstance(w, MainWindow)]
+        if top_mws:
+            cls.win = top_mws[0]
+        else:
+            cls.win = MainWindow()
         cls.backend = EngineRegistry.instance().get_backend()
 
     def setUp(self):

@@ -12,32 +12,33 @@ from PySide6.QtWidgets import (
     QGroupBox, QHBoxLayout, QSlider, QSizePolicy, QApplication, QPushButton
 )
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
+from ui.core.i18n import tr
 
 
 class FilterLayerDialog(BaseFramelessDialog):
     """Diálogo de seleção do tipo de filtro de camada."""
 
     FILTERS = [
-        ("brightness", "Brilho / Contraste"),
-        ("huesat",     "Matiz / Saturação / Luminosidade"),
-        ("pixelate",   "Pixelizar"),
-        ("invert",     "Inverter Cores"),
-        ("sharpen",    "Nitidez (Sharpen)"),
-        ("vignette",   "Vinheta"),
+        ("brightness", "filter.brightness_contrast", "Brilho / Contraste"),
+        ("huesat",     "filter.hue_saturation", "Matiz / Saturação / Luminosidade"),
+        ("pixelate",   "filter.pixelate", "Pixelizar"),
+        ("invert",     "filter.invert", "Inverter Cores"),
+        ("sharpen",    "filter.sharpen", "Nitidez (Sharpen)"),
+        ("vignette",   "filter.vignette", "Vinheta"),
     ]
 
     def __init__(self, parent=None):
-        super().__init__(title="Adicionar Camada de Filtro", icon_name="filter", parent=parent, modal=True)
+        super().__init__(title=tr("layers.add_filter", "Adicionar Camada de Filtro"), icon_name="filter", parent=parent, modal=True)
         self.resize(360, 320)
 
-        title = QLabel("<b>Escolha o tipo de efeito:</b>")
+        title = QLabel(f"<b>{tr('filter.choose_type', 'Escolha o tipo de efeito:')}</b>")
         self.content_layout.addWidget(title)
 
         self._btn_group = QButtonGroup(self)
         self._type_keys = []
 
-        for i, (key, label) in enumerate(self.FILTERS):
-            rb = QRadioButton(label)
+        for i, (key, i18n_key, dflt_label) in enumerate(self.FILTERS):
+            rb = QRadioButton(tr(i18n_key, dflt_label))
             if i == 0:
                 rb.setChecked(True)
             self._btn_group.addButton(rb, i)
@@ -49,11 +50,11 @@ class FilterLayerDialog(BaseFramelessDialog):
         btn_box = QHBoxLayout()
         btn_box.addStretch()
 
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("dialogs.cancel", "Cancelar"))
         btn_cancel.clicked.connect(self.reject)
         btn_box.addWidget(btn_cancel)
 
-        btn_ok = QPushButton("OK")
+        btn_ok = QPushButton(tr("dialogs.ok", "OK"))
         btn_ok.setDefault(True)
         btn_ok.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
         btn_ok.clicked.connect(self.accept)
@@ -71,40 +72,41 @@ class FilterParamsDialog(BaseFramelessDialog):
 
     PARAMS = {
         "brightness": [
-            ("Brilho",    0, -100, 100, 0,   100.0),
-            ("Contraste", 1, -100, 100, 0,   100.0),
+            ("filter.brightness", "Brilho",    0, -100, 100, 0,   100.0),
+            ("filter.contrast",   "Contraste", 1, -100, 100, 0,   100.0),
         ],
         "huesat": [
-            ("Matiz",      0, -180, 180,  0, 1.0),
-            ("Saturação",  1, -100, 100,  0, 100.0),
-            ("Luminosidade",2, -100, 100, 0, 100.0),
+            ("filter.hue",        "Matiz",      0, -180, 180,  0, 1.0),
+            ("filter.saturation", "Saturação",  1, -100, 100,  0, 100.0),
+            ("filter.lightness",  "Luminosidade",2, -100, 100, 0, 100.0),
         ],
         "pixelate": [
-            ("Tamanho do Bloco", 0, 2, 128, 8, 1.0),
+            ("filter.block_size", "Tamanho do Bloco", 0, 2, 128, 8, 1.0),
         ],
         "invert": [],
         "sharpen": [
-            ("Intensidade", 0, 0, 200, 50, 100.0),
+            ("filter.intensity",  "Intensidade", 0, 0, 200, 50, 100.0),
         ],
         "vignette": [
-            ("Raio",       0, 0, 100, 70, 100.0),
-            ("Suavidade",  1, 0, 100, 50, 100.0),
-            ("Intensidade",2, 0, 100, 80, 100.0),
+            ("filter.radius",     "Raio",       0, 0, 100, 70, 100.0),
+            ("filter.feather",    "Suavidade",  1, 0, 100, 50, 100.0),
+            ("filter.intensity",  "Intensidade",2, 0, 100, 80, 100.0),
         ],
     }
 
     LABELS = {
-        "brightness": "Brilho / Contraste",
-        "huesat":     "Matiz / Saturação",
-        "pixelate":   "Pixelizar",
-        "invert":     "Inverter Cores",
-        "sharpen":    "Nitidez",
-        "vignette":   "Vinheta",
+        "brightness": ("filter.brightness_contrast", "Brilho / Contraste"),
+        "huesat":     ("filter.hue_saturation", "Matiz / Saturação"),
+        "pixelate":   ("filter.pixelate", "Pixelizar"),
+        "invert":     ("filter.invert", "Inverter Cores"),
+        "sharpen":    ("filter.sharpen", "Nitidez"),
+        "vignette":   ("filter.vignette", "Vinheta"),
     }
 
     def __init__(self, parent, layer_id: int, filter_type: str):
-        label = self.LABELS.get(filter_type, "Filtro")
-        super().__init__(title=f"Ajuste de Filtro — {label}", icon_name="filter", parent=parent, modal=True)
+        i18n_info = self.LABELS.get(filter_type, ("filter.adjustments", "Filtro"))
+        label = tr(i18n_info[0], i18n_info[1])
+        super().__init__(title=f"{tr('filter.adjustment_title', 'Ajuste de Filtro')} — {label}", icon_name="filter", parent=parent, modal=True)
         self.resize(380, 280)
         self.layer_id = layer_id
         self.filter_type = filter_type
@@ -113,16 +115,15 @@ class FilterParamsDialog(BaseFramelessDialog):
         param_defs = self.PARAMS.get(filter_type, [])
 
         if not param_defs:
-            self.content_layout.addWidget(QLabel("Este filtro não tem parâmetros adicionais.\n"
-                                                 "Use o slider de Opacidade da camada para controlar a intensidade."))
+            self.content_layout.addWidget(QLabel(tr("filter.no_additional_params", "Este filtro não tem parâmetros adicionais.\nUse o slider de Opacidade da camada para controlar a intensidade.")))
         else:
-            group = QGroupBox("Parâmetros")
+            group = QGroupBox(tr("brush.params", "Parâmetros"))
             glayout = QVBoxLayout(group)
             glayout.setSpacing(6)
 
-            for (lbl, slot, mn, mx, dflt, scale) in param_defs:
+            for (i18n_key, dflt_lbl, slot, mn, mx, dflt, scale) in param_defs:
                 row = QHBoxLayout()
-                row.addWidget(QLabel(lbl))
+                row.addWidget(QLabel(tr(i18n_key, dflt_lbl)))
 
                 slider = QSlider(Qt.Horizontal)
                 slider.setRange(mn, mx)
@@ -142,9 +143,6 @@ class FilterParamsDialog(BaseFramelessDialog):
                         real_val = v / sc
                         self._params[s] = real_val
                         vl.setText(f"{v:+d}" if sc == 1.0 else f"{real_val:+.2f}")
-                        win = QApplication.activeWindow()
-                        if win and hasattr(win, 'statusBar'):
-                            win.statusBar().showMessage(f"Filtro: Parâmetro {s} ajustado para {real_val}.", 1000)
                     sl.valueChanged.connect(on_change)
                     self._params[s] = dflt / sc
                 make_handler(slot, slider, val_lbl, scale)
@@ -156,10 +154,13 @@ class FilterParamsDialog(BaseFramelessDialog):
         btn_box = QHBoxLayout()
         btn_box.addStretch()
 
-        btn_ok = QPushButton("OK")
+        btn_ok = QPushButton(tr("dialogs.ok", "OK"))
         btn_ok.setDefault(True)
         btn_ok.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
         btn_ok.clicked.connect(self.accept)
         btn_box.addWidget(btn_ok)
 
         self.content_layout.addLayout(btn_box)
+
+    def get_parameters(self) -> list[float]:
+        return self._params

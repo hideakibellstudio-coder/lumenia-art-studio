@@ -21,42 +21,28 @@ from .render_settings_components import ProofingPreviewBar, ProfileCard
 
 
 
-_SETTINGS_ORG = "Lumenia"
-_SETTINGS_APP = "LumeniaApp"
-
-
 def load_render_settings() -> dict:
     """Carrega as configurações salvas de renderização e perfil de cor."""
-    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    s.beginGroup("RenderSettings")
-    profile_id = s.value("profile_id", 0, type=int)
-    low_latency = s.value("low_latency", True, type=bool)
-    linear_gamma = s.value("linear_gamma", False, type=bool)
-    deep_color = s.value("deep_color", True, type=bool)
-    undo_limit_mb = s.value("undo_limit_mb", 256, type=int)
-    undo_max_steps = s.value("undo_max_steps", 50, type=int)
-    s.endGroup()
+    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
     return {
-        "profile_id": profile_id,
-        "low_latency": low_latency,
-        "linear_gamma": linear_gamma,
-        "deep_color": deep_color,
-        "undo_limit_mb": undo_limit_mb,
-        "undo_max_steps": undo_max_steps,
+        "profile_id": s.value("render/profile_id", 0, type=int),
+        "low_latency": s.value("render/low_latency", True, type=bool),
+        "linear_gamma": s.value("render/linear_gamma", False, type=bool),
+        "deep_color": s.value("render/deep_color", True, type=bool),
+        "undo_limit_mb": s.value("render/undo_limit_mb", 256, type=int),
+        "undo_max_steps": s.value("render/undo_max_steps", 50, type=int),
     }
 
 
-def save_render_settings(cfg: dict) -> None:
+def save_render_settings(cfg_dict: dict) -> None:
     """Salva as configurações de renderização e perfil de cor no QSettings."""
-    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    s.beginGroup("RenderSettings")
-    s.setValue("profile_id", int(cfg.get("profile_id", 0)))
-    s.setValue("low_latency", bool(cfg.get("low_latency", True)))
-    s.setValue("linear_gamma", bool(cfg.get("linear_gamma", False)))
-    s.setValue("deep_color", bool(cfg.get("deep_color", True)))
-    s.setValue("undo_limit_mb", int(cfg.get("undo_limit_mb", 256)))
-    s.setValue("undo_max_steps", int(cfg.get("undo_max_steps", 50)))
-    s.endGroup()
+    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
+    s.setValue("render/profile_id", int(cfg_dict.get("profile_id", 0)))
+    s.setValue("render/low_latency", bool(cfg_dict.get("low_latency", True)))
+    s.setValue("render/linear_gamma", bool(cfg_dict.get("linear_gamma", False)))
+    s.setValue("render/deep_color", bool(cfg_dict.get("deep_color", True)))
+    s.setValue("render/undo_limit_mb", int(cfg_dict.get("undo_limit_mb", 256)))
+    s.setValue("render/undo_max_steps", int(cfg_dict.get("undo_max_steps", 50)))
 
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────

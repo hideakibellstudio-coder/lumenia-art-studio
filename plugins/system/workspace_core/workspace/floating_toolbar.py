@@ -15,8 +15,10 @@ class FloatingToolbarButton(QtWidgets.QPushButton):
         super().__init__(parent)
         self.tool_id = tool_id
         meta = TOOL_META.get(tool_id, {"name": tool_id.capitalize(), "icon": "brush"})
-        self.tool_name = meta["name"]
         self.icon_key = meta["icon"]
+
+        from ui.core.tools import get_tool_name
+        self.tool_name = get_tool_name(tool_id)
 
         self.setFixedSize(38, 38)
         self.setIconSize(QtCore.QSize(22, 22))
@@ -105,8 +107,17 @@ class FloatingToolbar(QtWidgets.QDialog):
         self._build_ui()
         self._apply_theme()
 
-        # Conecta às alterações globais de tema
+        # Conecta às alterações globais de tema e idioma
         ThemeManager.instance().themeChanged.connect(lambda _: self._apply_theme())
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        from ui.core.tools import get_tool_name
+        for tid, btn in self.buttons.items():
+            name = get_tool_name(tid)
+            btn.tool_name = name
+            btn.setToolTip(name)
 
     def _build_ui(self) -> None:
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -383,3 +394,37 @@ class FloatingToolbar(QtWidgets.QDialog):
             self._drag_pos = None
             self.drag_finished.emit(self.pos())
         super().mouseReleaseEvent(event)
+
+    # ── Métodos Canônicos de Persistência (ARCcC) ─────────────────────────
+
+    def get_state(self) -> dict:
+        """Exporta o estado atual completo da barra flutuante para persistência."""
+        return {
+            "dock_state": self.dock_state or "snapped_bottom",
+            "pos_x": self.pos().x(),
+            "pos_y": self.pos().y(),
+            "orientation": "vertical" if self.orientation == QtCore.Qt.Vertical else "horizontal",
+            "is_collapsed": self._is_collapsed,
+            "visible_tools": list(self.visible_tool_ids),
+            "auto_collapse_speed": self.auto_collapse_speed,
+        }
+
+    def restore_state(self, state: dict) -> None:
+        """Restaura o estado persistido da barra flutuante."""
+        if not state:
+            return
+        if "dock_state" in state:
+            self.dock_state = state["dock_state"]
+        if "orientation" in state:
+            ori = QtCore.Qt.Vertical if state["orientation"] == "vertical" else QtCore.Qt.Horizontal
+            self.set_orientation(ori)
+        if "visible_tools" in state and isinstance(state["visible_tools"], list) and state["visible_tools"]:
+            self.visible_tool_ids = list(state["visible_tools"])
+            self.rebuild_tools()
+        if "auto_collapse_speed" in state:
+            self.set_auto_collapse_speed(state["auto_collapse_speed"])
+        if "is_collapsed" in state:
+            self._is_collapsed = state["is_collapsed"]
+            self._update_geometry(animate=False)
+        if "pos_x" in state and "pos_y" in state and state.get("dock_state") in ("free", "free_floating", None):
+            self.move(state["pos_x"], state["pos_y"])

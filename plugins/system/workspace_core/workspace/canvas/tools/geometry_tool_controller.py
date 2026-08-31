@@ -430,22 +430,29 @@ class GeometryToolController:
 
     def _create_curve_from_normal(self, a, b, c, R, cx, cy, family):
         norm = math.sqrt(a * a + b * b + c * c)
-        if norm > 1e-6: a, b, c = a / norm, b / norm, c / norm
-        if abs(c) < 1e-4:
+        if norm > 1e-6:
+            a, b, c = a / norm, b / norm, c / norm
+        else:
+            return None
+        if abs(c) < 1e-6:
             denom = math.sqrt(a * a + b * b)
-            if denom < 1e-4: return None
-            dx, dy = -b / denom, -a / denom
-            return {"type": "line", "family": family, "p1": QtCore.QPointF(cx + dx * 20000.0, cy + dy * 20000.0),
-                    "p2": QtCore.QPointF(cx - dx * 20000.0, cy - dy * 20000.0), "dir": QtCore.QPointF(dx, dy)}
+            if denom < 1e-6:
+                return None
+            dx, dy = b / denom, a / denom
+            return {
+                "type": "line",
+                "family": family,
+                "p1": QtCore.QPointF(cx - dx * 100000.0, cy - dy * 100000.0),
+                "p2": QtCore.QPointF(cx + dx * 100000.0, cy + dy * 100000.0),
+                "dir": QtCore.QPointF(dx, dy)
+            }
         cx_c, cy_c, radius = -R * a / c, R * b / c, R / abs(c)
-        if radius > 20000.0:
-            dist = math.hypot(cx_c, cy_c)
-            if dist < 1e-4: return None
-            nx, ny = cx_c / dist, cy_c / dist
-            c_x, c_y = cx + (dist - radius) * nx, cy + (dist - radius) * ny
-            return {"type": "line", "family": family, "p1": QtCore.QPointF(c_x - ny * 20000.0, c_y + nx * 20000.0),
-                    "p2": QtCore.QPointF(c_x + ny * 20000.0, c_y - nx * 20000.0), "dir": QtCore.QPointF(-ny, nx)}
-        return {"type": "circle", "family": family, "center": QtCore.QPointF(cx + cx_c, cy + cy_c), "radius": radius}
+        return {
+            "type": "circle",
+            "family": family,
+            "center": QtCore.QPointF(cx + cx_c, cy + cy_c),
+            "radius": radius
+        }
 
     def _closest_point_on_curve(self, curve, pt: QtCore.QPointF) -> QtCore.QPointF:
         if curve["type"] == "line":

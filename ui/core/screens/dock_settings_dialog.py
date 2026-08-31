@@ -16,26 +16,23 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
-_SETTINGS_ORG  = "Lumenia"
-_SETTINGS_APP  = "LumeniaApp"
-
 
 def load_dock_settings() -> dict:
     """Carrega as configurações de gavetas do QSettings."""
-    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
     return {
         "auto_collapse": s.value("dock/auto_collapse", False, type=bool),
-        "speed":         s.value("dock/speed",         "Rápido",        type=str),
-        "hover_delay":   s.value("dock/hover_delay",   "Normal (350ms)", type=str),
+        "speed":         s.value("dock/speed", "Rápido"),
+        "hover_delay":   s.value("dock/hover_delay", "Normal (350ms)"),
     }
 
 
-def save_dock_settings(cfg: dict) -> None:
+def save_dock_settings(settings_dict: dict) -> None:
     """Persiste as configurações de gavetas no QSettings."""
-    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    s.setValue("dock/auto_collapse", cfg["auto_collapse"])
-    s.setValue("dock/speed",         cfg["speed"])
-    s.setValue("dock/hover_delay",   cfg["hover_delay"])
+    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
+    s.setValue("dock/auto_collapse", settings_dict.get("auto_collapse", False))
+    s.setValue("dock/speed",         settings_dict.get("speed", "Rápido"))
+    s.setValue("dock/hover_delay",   settings_dict.get("hover_delay", "Normal (350ms)"))
 
 
 class DockBarsSettingsDialog(BaseFramelessDialog):
@@ -246,12 +243,6 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         cfg = self._collect_config()
         save_dock_settings(cfg)
         self.settings_applied.emit(cfg)
-
-        # Aplica a ordem dos painéis ao workspace imediatamente
-        if self._workspace:
-            order = self._collect_order()
-            # A sidebar já foi reordenada via drag & drop ou UI; apenas notifica
-            # (a reordenação real é feita pelos botões que alteram a QListWidget)
 
     def accept(self) -> None:
         self._on_apply()

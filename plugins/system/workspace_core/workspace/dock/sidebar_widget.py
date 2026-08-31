@@ -19,8 +19,8 @@ class SidebarWidget(QtWidgets.QWidget):
         self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
         self.side = side
 
-        self.setMinimumWidth(0)
-        self.setMaximumWidth(54)
+        self.setFixedWidth(54)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
         self.setAcceptDrops(True)
 
         self._layout = QtWidgets.QVBoxLayout(self)
@@ -32,6 +32,9 @@ class SidebarWidget(QtWidgets.QWidget):
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
         self._apply_style()
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(54, 400)
 
     def _apply_style(self, *args) -> None:
         theme = ThemeManager.instance()
@@ -85,6 +88,14 @@ class SidebarWidget(QtWidgets.QWidget):
                 order.append(item.widget().panel_id)
         return order
 
+    def reorder_panels(self, order: List[str]) -> None:
+        """Reorganiza os botões no layout conforme a lista de panel_ids."""
+        for idx, pid in enumerate(order):
+            btn = self._buttons.get(pid)
+            if btn:
+                self._layout.removeWidget(btn)
+                self._layout.insertWidget(idx, btn)
+
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasFormat("application/x-lumenia-panel"):
             event.acceptProposedAction()
@@ -121,5 +132,8 @@ class SidebarWidget(QtWidgets.QWidget):
         self._layout.removeWidget(btn)
         self._layout.insertWidget(target_idx, btn)
         event.acceptProposedAction()
+
+        if self.parent() and hasattr(self.parent(), "sync_panel_order_from_sidebar"):
+            self.parent().sync_panel_order_from_sidebar()
 
         logger.info(f"Sidebar '{self.side}': reordenou '{pid}' para índice {target_idx}")

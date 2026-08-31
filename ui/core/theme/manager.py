@@ -56,7 +56,6 @@ class ThemeManager(QtCore.QObject):
 
     def __init__(self):
         super().__init__()
-        self._current_theme = "lumenia_purple"
         self._themes = {}
         
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -68,6 +67,15 @@ class ThemeManager(QtCore.QObject):
         self.assets_dir = os.path.join(project_root, "assets").replace("\\", "/")
         
         self.load_all_themes()
+
+        if "lumenia_purple" in self._themes:
+            self._current_theme = "lumenia_purple"
+        elif "dark_default" in self._themes:
+            self._current_theme = "dark_default"
+        elif self._themes:
+            self._current_theme = list(self._themes.keys())[0]
+        else:
+            self._current_theme = "dark_default"
 
     def load_all_themes(self):
         """Carrega dinamicamente todos os temas em formato JSON na pasta 'themes'."""
@@ -139,7 +147,7 @@ class ThemeManager(QtCore.QObject):
         """Aplica o tema ativo e atualiza a folha de estilos global da QApplication."""
         if theme_name in self._themes and theme_name != self._current_theme:
             self._current_theme = theme_name
-            
+
             # Aplica folha de estilos globalmente
             app = QtWidgets.QApplication.instance()
             if app:

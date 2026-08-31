@@ -20,11 +20,12 @@ class DrawerHeader(QtWidgets.QWidget):
         layout.setContentsMargins(10, 0, 10, 0)
         layout.setSpacing(6)
 
+        from ui.core.i18n import tr, I18nManager
         self.title_label = QtWidgets.QLabel(title.upper(), self)
 
         self.btn_pin = QtWidgets.QToolButton(self)
         self.btn_pin.setCheckable(True)
-        self.btn_pin.setToolTip("Fixar Doca no Layout (Pin)")
+        self.btn_pin.setToolTip(tr("window.pin_dock", "Fixar Doca no Layout (Pin)"))
         self.btn_pin.setFixedSize(24, 24)
         self.btn_pin.setIconSize(QtCore.QSize(14, 14))
         self.btn_pin.setIcon(get_icon("pin"))
@@ -43,7 +44,13 @@ class DrawerHeader(QtWidgets.QWidget):
             layout.addStretch()
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self._apply_style()
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "btn_pin"):
+            self.btn_pin.setToolTip(tr("window.pin_dock", "Fixar Doca no Layout (Pin)"))
 
     def set_title(self, title: str) -> None:
         self.title_label.setText(title.upper())

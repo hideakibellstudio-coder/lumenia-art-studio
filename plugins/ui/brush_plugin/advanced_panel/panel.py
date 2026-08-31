@@ -55,42 +55,23 @@ class AdvancedPanel(QtWidgets.QDialog):
         self._drag_pos = None
 
     def show_near(self, anchor_widget: QtWidgets.QWidget):
-        curr = anchor_widget
-        workspace = None
-        left_dock = None
-
-        while curr:
-            if hasattr(curr, "left_dock") and hasattr(curr, "workspace_area"):
-                workspace = curr
-                left_dock = curr.left_dock
-                break
-            curr = curr.parentWidget()
+        top = anchor_widget.window()
+        workspace = getattr(top, "workspace", None) if top else None
+        left_dock = getattr(workspace, "left_dock", None) if workspace else None
 
         scr = anchor_widget.screen().availableGeometry()
 
-        if workspace and left_dock:
-            dock_right = left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x()
-            if hasattr(left_dock, "drawer_container") and left_dock.drawer_container.isVisible():
-                drawer_w = left_dock.drawer_container.width()
-                drawer_right = left_dock.drawer_container.mapToGlobal(QtCore.QPoint(drawer_w, 0)).x()
-                dock_right = max(dock_right, drawer_right)
-
+        if workspace and left_dock and hasattr(workspace, "workspace_area"):
+            dock_right = getattr(left_dock, "effective_right_x", left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x())
             workspace_global = workspace.workspace_area.mapToGlobal(QtCore.QPoint(0, 0))
             x = dock_right + 10
             y = workspace_global.y() + 10
             target_h = workspace.workspace_area.height() - 20
         else:
-            curr = anchor_widget
-            dock_parent = anchor_widget
-            while curr and curr.parentWidget():
-                curr = curr.parentWidget()
-                if curr.width() > 180:
-                    dock_parent = curr
-
-            top_left = dock_parent.mapToGlobal(QtCore.QPoint(0, 0))
-            dock_right = top_left.x() + dock_parent.width()
+            top_left = anchor_widget.mapToGlobal(QtCore.QPoint(0, 0))
+            dock_right = top_left.x() + anchor_widget.width()
             x = dock_right + 10
-            y = top_left.y() + 10
+            y = top_left.y()
             target_h = scr.bottom() - y - 20
 
         if x + self.width() > scr.right():
@@ -127,10 +108,12 @@ class AdvancedPanel(QtWidgets.QDialog):
         sep.setObjectName("AdvSep")
         outer.addWidget(sep)
 
+        from ui.core.i18n import tr, I18nManager
+
         self.tab_bar = QtWidgets.QTabBar()
         self.tab_bar.setExpanding(True)
-        self.tab_bar.addTab("Pincel")
-        self.tab_bar.addTab("Dinâmica por Motor")
+        self.tab_bar.addTab(tr("tools.brush", "Pincel").split()[0])
+        self.tab_bar.addTab(tr("brush.engine_dynamics", "Dinâmica por Motor"))
         self.tab_bar.setObjectName("AdvTabBar")
         self.tab_bar.currentChanged.connect(self._on_tab)
 
@@ -178,6 +161,16 @@ class AdvancedPanel(QtWidgets.QDialog):
         self.stack.addWidget(scroll_dyn)
 
         self._draw_default_thumbnails()
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        self.setWindowTitle(tr("brush.advanced_settings", "Configurações Avançadas"))
+        if hasattr(self, "tab_bar"):
+            self.tab_bar.setTabText(0, tr("tools.brush", "Pincel").split()[0])
+            self.tab_bar.setTabText(1, tr("brush.engine_dynamics", "Dinâmica por Motor"))
+        if hasattr(self, "lbl_title"):
+            self.lbl_title.setText(tr("brush.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE PINCEL"))
 
     def set_active_engine_type(self, engine_type: int):
         if hasattr(self, "dyn_params_widget"):
@@ -185,6 +178,7 @@ class AdvancedPanel(QtWidgets.QDialog):
 
     def _make_title_bar(self) -> QtWidgets.QWidget:
         from ui.core.icons import get_icon
+        from ui.core.i18n import tr
         bar = QtWidgets.QWidget()
         bar.setObjectName("AdvTitleBar")
         bar.setFixedHeight(34)
@@ -197,8 +191,8 @@ class AdvancedPanel(QtWidgets.QDialog):
         icon.setFixedSize(16, 16)
         icon.setPixmap(get_icon("settings").pixmap(QtCore.QSize(14, 14)))
 
-        title = QtWidgets.QLabel("CONFIGURAÇÕES AVANÇADAS DE PINCEL")
-        title.setObjectName("AdvTitleLabel")
+        self.lbl_title = QtWidgets.QLabel(tr("brush.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE PINCEL"))
+        self.lbl_title.setObjectName("AdvTitleLabel")
 
         self.btn_close = QtWidgets.QToolButton()
         self.btn_close.setObjectName("AdvCloseBtn")
@@ -209,7 +203,7 @@ class AdvancedPanel(QtWidgets.QDialog):
         self.btn_close.clicked.connect(self.hide)
 
         lo.addWidget(icon)
-        lo.addWidget(title)
+        lo.addWidget(self.lbl_title)
         lo.addStretch()
         lo.addWidget(self.btn_close)
         return bar
@@ -224,12 +218,11 @@ class AdvancedPanel(QtWidgets.QDialog):
     def sync_from_engine_profile(self):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if not b or not hasattr(b, "_facade") or not b._facade:
+        if not b:
             return
 
-        facade = b._facade
-        prof = facade.get_brush_profile()
-        engine_type = facade.get_active_engine_type()
+        prof = b.get_brush_profile_dict()
+        engine_type = b.get_active_engine_type()
 
         self.set_active_engine_type(engine_type)
 
@@ -262,48 +255,46 @@ class AdvancedPanel(QtWidgets.QDialog):
 
         try:
             if hasattr(self, "slider_size"):
-                self.slider_size.setValue(int(prof.brush_size))
+                self.slider_size.setValue(int(prof.get("brush_size", 20.0)))
             if hasattr(self, "sl_min_size"):
-                self.sl_min_size.setValue(int(prof.min_size_percent * 100))
+                self.sl_min_size.setValue(int(prof.get("min_size_percent", 0.0) * 100))
             if hasattr(self, "slider_opacity"):
-                self.slider_opacity.setValue(int(prof.opacity * 100))
+                self.slider_opacity.setValue(int(prof.get("opacity", 1.0) * 100))
             if hasattr(self, "sl_min_op"):
-                self.sl_min_op.setValue(int(prof.min_opacity_percent * 100))
+                self.sl_min_op.setValue(int(prof.get("min_opacity_percent", 0.0) * 100))
             if hasattr(self, "cmb_blend"):
-                bm_val = int(prof.blend_mode.value if hasattr(prof.blend_mode, 'value') else prof.blend_mode)
+                bm_val = int(prof.get("blend_mode", 0))
                 self.cmb_blend.setCurrentIndex(min(bm_val, self.cmb_blend.count() - 1))
             if hasattr(self, "chk_vel_size"):
-                self.chk_vel_size.setChecked(bool(prof.velocity_size_enabled))
-            if hasattr(self, "slider_stabilizer") and hasattr(facade, "get_stabilizer"):
-                stab = facade.get_stabilizer()
-                if stab:
-                    self.slider_stabilizer.setValue(int(stab.get_stabilization_percentage()))
+                self.chk_vel_size.setChecked(bool(prof.get("velocity_size_enabled", False)))
+            if hasattr(self, "slider_stabilizer"):
+                self.slider_stabilizer.setValue(int(prof.get("stabilizer_weight", 0.0) * 100 if prof.get("stabilizer_weight", 0.0) <= 1.0 else prof.get("stabilizer_weight", 0.0)))
             if hasattr(self, "sl_hardness"):
-                self.sl_hardness.setValue(int(prof.hardness * 100))
+                self.sl_hardness.setValue(int(prof.get("hardness", 0.85) * 100))
             if hasattr(self, "sl_angle"):
-                self.sl_angle.setValue(int(prof.tip.angle))
+                self.sl_angle.setValue(int(prof.get("tip_angle", 0.0)))
             if hasattr(self, "sl_press_angle"):
-                self.sl_press_angle.setValue(int(prof.pressure_to_angle))
+                self.sl_press_angle.setValue(int(prof.get("pressure_to_angle", 0.0)))
             if hasattr(self, "sl_aspect"):
-                self.sl_aspect.setValue(int(prof.tip.aspect_ratio * 100))
+                self.sl_aspect.setValue(int(prof.get("tip_aspect", 1.0) * 100))
             if hasattr(self, "chk_follow"):
-                self.chk_follow.setChecked(bool(prof.tip.follow_stroke))
+                self.chk_follow.setChecked(bool(prof.get("follow_stroke", False)))
             if hasattr(self, "sl_jit_size"):
-                self.sl_jit_size.setValue(int(prof.tip.jitter_size * 100))
+                self.sl_jit_size.setValue(int(prof.get("jitter_size", 0.0) * 100))
             if hasattr(self, "sl_jit_angle"):
-                self.sl_jit_angle.setValue(int(prof.tip.jitter_angle * 100))
+                self.sl_jit_angle.setValue(int(prof.get("jitter_angle", 0.0) * 100))
             if hasattr(self, "sl_jit_pos"):
-                self.sl_jit_pos.setValue(int(prof.tip.jitter_position))
+                self.sl_jit_pos.setValue(int(prof.get("jitter_position", 0.0)))
             if hasattr(self, "chk_b_grain"):
-                self.chk_b_grain.setChecked(bool(prof.brush_grain_enabled))
+                self.chk_b_grain.setChecked(bool(prof.get("brush_grain_enabled", False)))
             if hasattr(self, "sl_b_scale"):
-                self.sl_b_scale.setValue(int(prof.brush_grain_scale * 100))
+                self.sl_b_scale.setValue(int(prof.get("brush_grain_scale", 1.0) * 100))
             if hasattr(self, "slider_contrast"):
-                self.slider_contrast.setValue(int(prof.brush_grain_contrast * 100))
+                self.slider_contrast.setValue(int(prof.get("brush_grain_contrast", 1.0) * 100))
             if hasattr(self, "chk_invert"):
-                self.chk_invert.setChecked(bool(prof.brush_grain_invert))
+                self.chk_invert.setChecked(bool(prof.get("brush_grain_invert", False)))
             if hasattr(self, "slider_spacing"):
-                self.slider_spacing.setValue(int(prof.spacing_factor * 100))
+                self.slider_spacing.setValue(int(prof.get("spacing_factor", 0.08) * 100))
         finally:
             for w in widgets_to_block:
                 if w:
@@ -315,87 +306,71 @@ class AdvancedPanel(QtWidgets.QDialog):
     def _on_brush_size_changed(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().brush_size = float(v)
+        if b: b.set_brush_size(float(v))
 
     def _on_brush_opacity_changed(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().opacity = float(v / 100.0)
+        if b: b.set_brush_opacity(float(v / 100.0))
 
     def _on_min_size(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().min_size_percent = float(v / 100.0)
+        if b: b.set_brush_param("root", "min_size_percent", float(v / 100.0))
 
     def _on_min_opacity(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().min_opacity_percent = float(v / 100.0)
+        if b: b.set_brush_param("root", "min_opacity_percent", float(v / 100.0))
 
     def _on_blend_mode(self, idx: int):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            if hasattr(b, "_native") and b._native and hasattr(b._native, "DabBlendMode"):
-                try:
-                    b._facade.get_brush_profile().blend_mode = b._native.DabBlendMode(int(idx))
-                except Exception as e:
-                    logger.debug(f"Blend mode set error: {e}")
+        if b: b.set_brush_param("root", "blend_mode", int(idx))
 
     def _on_vel_size(self, _s):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().velocity_size_enabled = bool(self.chk_vel_size.isChecked())
+        if b: b.set_brush_param("root", "velocity_size_enabled", bool(self.chk_vel_size.isChecked()))
 
     def _on_stabilizer_changed(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_stabilizer().set_stabilization_percentage(float(v))
+        if b: b.set_stabilizer_weight(float(v) / 100.0)
         self.stabilizerWeightChanged.emit(float(v) / 100.0)
 
     def _on_tip_hardness(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().hardness = float(v / 100.0)
+        if b: b.set_brush_hardness(float(v / 100.0))
 
     def _on_press_angle(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().pressure_to_angle = float(v)
+        if b: b.set_brush_param("root", "pressure_to_angle", float(v))
 
     def _on_jit_pos(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().tip.jitter_position = float(v)
+        if b: b.set_brush_param("tip", "jitter_position", float(v))
 
     def _on_b_grain_contrast(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().brush_grain_contrast = float(v / 100.0)
+        if b: b.set_brush_grain_contrast(float(v / 100.0))
 
     def _on_spacing_changed(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().spacing_factor = float(v / 100.0)
+        if b: b.set_brush_spacing(float(v / 100.0))
 
     def update_shape_preview_from_engine(self):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
+        if b:
             try:
-                buf = b._facade.get_shape_preview_buffer()
-                w, h = b._facade.get_shape_preview_dimensions()
+                buf = b.get_shape_preview_buffer()
+                w, h = b.get_shape_preview_dimensions()
                 if buf and w > 0 and h > 0:
                     img = QtGui.QImage(bytes(buf), w, h, w, QtGui.QImage.Format_Grayscale8)
                     pix = QtGui.QPixmap.fromImage(img).scaled(46, 46, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
@@ -407,10 +382,10 @@ class AdvancedPanel(QtWidgets.QDialog):
     def update_brush_height_preview_from_engine(self):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
+        if b:
             try:
-                buf = b._facade.get_brush_height_preview_buffer()
-                w, h = b._facade.get_brush_height_preview_dimensions()
+                buf = b.get_brush_height_preview_buffer()
+                w, h = b.get_brush_height_preview_dimensions()
                 if buf and w > 0 and h > 0:
                     img = QtGui.QImage(bytes(buf), w, h, w, QtGui.QImage.Format_Grayscale8)
                     pix = QtGui.QPixmap.fromImage(img).scaled(46, 46, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
@@ -422,61 +397,58 @@ class AdvancedPanel(QtWidgets.QDialog):
     def _on_shape_preset_changed(self, idx: int):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.set_shape_preset(idx)
+        if b:
+            b.set_shape_preset(idx)
             self.update_shape_preview_from_engine()
 
     def _on_b_grain_preset_changed(self, idx: int):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.set_brush_height_preset(idx)
+        if b:
+            b.set_brush_height_preset(idx)
             self.update_brush_height_preview_from_engine()
 
     def _on_b_grain_enabled(self, _s):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
         if b:
-            if hasattr(b, "set_brush_grain_enabled"):
-                b.set_brush_grain_enabled(bool(self.chk_b_grain.isChecked()))
-            elif hasattr(b, "_facade") and b._facade:
-                b._facade.get_brush_profile().brush_grain_enabled = bool(self.chk_b_grain.isChecked())
+            b.set_brush_grain_enabled(bool(self.chk_b_grain.isChecked()))
 
     def _on_b_grain_scale(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().brush_grain_scale = float(v / 100.0)
+        if b:
+            b.set_brush_grain_scale(float(v / 100.0))
 
     def _on_tip_angle(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().tip.angle = float(v)
+        if b:
+            b.set_brush_param("tip", "angle", float(v))
 
     def _on_tip_aspect(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().tip.aspect_ratio = float(v / 100.0)
+        if b:
+            b.set_brush_param("tip", "aspect_ratio", float(v / 100.0))
 
     def _on_tip_follow(self, _s):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().tip.follow_stroke = bool(self.chk_follow.isChecked())
+        if b:
+            b.set_brush_param("tip", "follow_stroke", bool(self.chk_follow.isChecked()))
 
     def _on_jit_size(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().tip.jitter_size = float(v / 100.0)
+        if b:
+            b.set_brush_param("dynamics", "jitter_size", float(v / 100.0))
 
     def _on_jit_angle(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "_facade") and b._facade:
-            b._facade.get_brush_profile().tip.jitter_angle = float(v)
+        if b:
+            b.set_brush_param("dynamics", "jitter_angle", float(v))
 
     def _on_tab(self, idx):
         self.stack.setCurrentIndex(idx)

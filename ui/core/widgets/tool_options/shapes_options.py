@@ -2,8 +2,9 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from .base import ToolHeaderLabel
-from ui.core.widgets.shape_dropdown import ShapeDropdown
+from ui.core.widgets.shape_dropdown import ShapeDropdown, get_shape_label
 from plugins.ui.brush_plugin.compact_slider import CompactSlider
+from ui.core.i18n import tr, I18nManager
 
 
 class ShapesOptionsWidget(QtWidgets.QWidget):
@@ -18,24 +19,25 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         self._stroke_color = QtGui.QColor(0, 0, 0, 255)
         self._fill_color = QtGui.QColor(0, 0, 0, 255)
         self._build_ui()
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def _build_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        layout.addWidget(ToolHeaderLabel("Formas", icon_name="shapes"))
+        layout.addWidget(ToolHeaderLabel(tr("tools.shapes", "Formas"), icon_name="shapes"))
 
         # 1. Tipo de Forma (Grid Dropdown Popover)
         row_shape = QtWidgets.QHBoxLayout()
         row_shape.setContentsMargins(0, 0, 0, 0)
         row_shape.setSpacing(4)
-        lbl_s = QtWidgets.QLabel("Forma:")
-        lbl_s.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_s = QtWidgets.QLabel(f"{tr('shapes.shape_label', 'Forma')}:")
+        self.lbl_s.setStyleSheet("font-size: 10px; color: #a1a1aa;")
         self.shape_dropdown = ShapeDropdown(self)
-        self.shape_dropdown.set_shape("shape_line", "Linha Reta")
+        self.shape_dropdown.set_shape("shape_line", get_shape_label("shape_line"))
         self.shape_dropdown.shape_changed.connect(self._on_shape_dropdown_changed)
-        row_shape.addWidget(lbl_s)
+        row_shape.addWidget(self.lbl_s)
         row_shape.addWidget(self.shape_dropdown, 1)
         layout.addLayout(row_shape)
 
@@ -43,14 +45,18 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         row_mode = QtWidgets.QHBoxLayout()
         row_mode.setContentsMargins(0, 0, 0, 0)
         row_mode.setSpacing(4)
-        lbl_m = QtWidgets.QLabel("Modo:")
-        lbl_m.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_m = QtWidgets.QLabel(f"{tr('tools.selection_mode', 'Modo')}:")
+        self.lbl_m.setStyleSheet("font-size: 10px; color: #a1a1aa;")
         self.combo_mode = QtWidgets.QComboBox()
-        self.combo_mode.addItems(["Contorno e Fundo", "Apenas Contorno", "Apenas Fundo"])
+        self.combo_mode.addItems([
+            tr("shapes.mode_both", "Contorno e Fundo"),
+            tr("shapes.mode_stroke", "Apenas Contorno"),
+            tr("shapes.mode_fill", "Apenas Fundo")
+        ])
         self.combo_mode.setFixedHeight(22)
         self.combo_mode.setStyleSheet("font-size: 10px; padding: 1px 4px;")
         self.combo_mode.currentIndexChanged.connect(self._emit_changes)
-        row_mode.addWidget(lbl_m)
+        row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)
 
@@ -58,8 +64,8 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         row_stroke = QtWidgets.QHBoxLayout()
         row_stroke.setContentsMargins(0, 0, 0, 0)
         row_stroke.setSpacing(4)
-        lbl_w = QtWidgets.QLabel("Traço:")
-        lbl_w.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_w = QtWidgets.QLabel(f"{tr('shapes.stroke_width', 'Traço')}:")
+        self.lbl_w.setStyleSheet("font-size: 10px; color: #a1a1aa;")
         self.spin_width = QtWidgets.QSpinBox()
         self.spin_width.setRange(1, 100)
         self.spin_width.setValue(4)
@@ -67,7 +73,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         self.spin_width.setFixedHeight(22)
         self.spin_width.setStyleSheet("font-size: 10px;")
         self.spin_width.valueChanged.connect(self._emit_changes)
-        row_stroke.addWidget(lbl_w)
+        row_stroke.addWidget(self.lbl_w)
         row_stroke.addWidget(self.spin_width, 1)
         layout.addLayout(row_stroke)
 
@@ -76,15 +82,15 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         row_colors.setContentsMargins(0, 0, 0, 0)
         row_colors.setSpacing(6)
 
-        lbl_c1 = QtWidgets.QLabel("Borda:")
-        lbl_c1.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_c1 = QtWidgets.QLabel(f"{tr('shapes.border_color', 'Borda')}:")
+        self.lbl_c1.setStyleSheet("font-size: 10px; color: #a1a1aa;")
         self.btn_stroke_col = QtWidgets.QPushButton()
         self.btn_stroke_col.setFixedSize(22, 22)
         self.btn_stroke_col.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_stroke_col.clicked.connect(self._pick_stroke_color)
 
-        lbl_c2 = QtWidgets.QLabel("Fundo:")
-        lbl_c2.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_c2 = QtWidgets.QLabel(f"{tr('shapes.fill_color', 'Fundo')}:")
+        self.lbl_c2.setStyleSheet("font-size: 10px; color: #a1a1aa;")
         self.btn_fill_col = QtWidgets.QPushButton()
         self.btn_fill_col.setFixedSize(22, 22)
         self.btn_fill_col.setCursor(QtCore.Qt.PointingHandCursor)
@@ -92,15 +98,15 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
 
         self._update_color_buttons()
 
-        row_colors.addWidget(lbl_c1)
+        row_colors.addWidget(self.lbl_c1)
         row_colors.addWidget(self.btn_stroke_col)
-        row_colors.addWidget(lbl_c2)
+        row_colors.addWidget(self.lbl_c2)
         row_colors.addWidget(self.btn_fill_col)
         row_colors.addStretch()
         layout.addLayout(row_colors)
 
         # Opacidade do Preenchimento (0..100%, padrão 100% sólido)
-        self.slider_fill_opac = CompactSlider("Opac. Fundo:", 0, 100, "%")
+        self.slider_fill_opac = CompactSlider(f"{tr('shapes.fill_opacity', 'Opac. Fundo')}:", 0, 100, "%")
         self.slider_fill_opac.setValue(100)
         self.slider_fill_opac.valueChanged.connect(self._on_fill_opac_changed)
         layout.addWidget(self.slider_fill_opac)
@@ -109,7 +115,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         self.row_extra = QtWidgets.QHBoxLayout()
         self.row_extra.setContentsMargins(0, 0, 0, 0)
         self.row_extra.setSpacing(4)
-        self.lbl_extra = QtWidgets.QLabel("Cantos:")
+        self.lbl_extra = QtWidgets.QLabel(f"{tr('shapes.corners', 'Cantos')}:")
         self.lbl_extra.setStyleSheet("font-size: 10px;")
         self.spin_extra = QtWidgets.QSpinBox()
         self.spin_extra.setRange(0, 100)
@@ -128,6 +134,20 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
 
         layout.addStretch()
 
+    def retranslate_ui(self):
+        if hasattr(self, "lbl_s"):
+            self.lbl_s.setText(f"{tr('shapes.shape_label', 'Forma')}:")
+        if hasattr(self, "lbl_m"):
+            self.lbl_m.setText(f"{tr('tools.selection_mode', 'Modo')}:")
+        if hasattr(self, "lbl_w"):
+            self.lbl_w.setText(f"{tr('shapes.stroke_width', 'Traço')}:")
+        if hasattr(self, "lbl_c1"):
+            self.lbl_c1.setText(f"{tr('shapes.border_color', 'Borda')}:")
+        if hasattr(self, "lbl_c2"):
+            self.lbl_c2.setText(f"{tr('shapes.fill_color', 'Fundo')}:")
+        if hasattr(self, "slider_fill_opac"):
+            self.slider_fill_opac.setPrefix(f"{tr('shapes.fill_opacity', 'Opac. Fundo')}:")
+
     def _update_color_buttons(self):
         self.btn_stroke_col.setStyleSheet(f"background-color: {self._stroke_color.name()}; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px;")
         self.btn_fill_col.setStyleSheet(f"background-color: {self._fill_color.name()}; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px;")
@@ -138,14 +158,14 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         self._emit_changes()
 
     def _pick_stroke_color(self):
-        col = QtWidgets.QColorDialog.getColor(self._stroke_color, self, "Cor da Borda", QtWidgets.QColorDialog.ShowAlphaChannel)
+        col = QtWidgets.QColorDialog.getColor(self._stroke_color, self, tr("shapes.stroke_color_title", "Cor da Borda"), QtWidgets.QColorDialog.ShowAlphaChannel)
         if col.isValid():
             self._stroke_color = col
             self._update_color_buttons()
             self._emit_changes()
 
     def _pick_fill_color(self):
-        col = QtWidgets.QColorDialog.getColor(self._fill_color, self, "Cor do Preenchimento", QtWidgets.QColorDialog.ShowAlphaChannel)
+        col = QtWidgets.QColorDialog.getColor(self._fill_color, self, tr("shapes.fill_color_title", "Cor do Preenchimento"), QtWidgets.QColorDialog.ShowAlphaChannel)
         if col.isValid():
             self._fill_color = col
             self.slider_fill_opac.blockSignals(True)
@@ -156,7 +176,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
 
     def _on_shape_dropdown_changed(self, shape_id: str, label: str):
         if shape_id == "shape_rect":
-            self.lbl_extra.setText("Cantos:")
+            self.lbl_extra.setText(f"{tr('shapes.corners', 'Cantos')}:")
             self.spin_extra.setRange(0, 100)
             self.spin_extra.setSuffix("px")
             self.spin_extra.setValue(0)
@@ -166,14 +186,14 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
             self.lbl_extra.hide()
             self.spin_extra.hide()
         elif shape_id == "shape_polygon":
-            self.lbl_extra.setText("Lados:")
+            self.lbl_extra.setText(f"{tr('shapes.sides', 'Lados')}:")
             self.spin_extra.setRange(3, 16)
             self.spin_extra.setSuffix("")
             self.spin_extra.setValue(5)
             self.lbl_extra.show()
             self.spin_extra.show()
         elif shape_id == "shape_star":
-            self.lbl_extra.setText("Pontas:")
+            self.lbl_extra.setText(f"{tr('shapes.points', 'Pontas')}:")
             self.spin_extra.setRange(3, 16)
             self.spin_extra.setSuffix("")
             self.spin_extra.setValue(5)

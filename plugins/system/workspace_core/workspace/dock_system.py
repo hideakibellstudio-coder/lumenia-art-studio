@@ -26,6 +26,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
 
     drawer_opened = QtCore.Signal(str)   # panel_id ou "stacked"
     drawer_closed = QtCore.Signal()
+    pin_toggled = QtCore.Signal(bool)
     layout_order_changed = QtCore.Signal(list)  # [panel_id, ...]
 
     # Largura total (sidebar expandida)
@@ -90,13 +91,46 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         # ── Conexões ──────────────────────────────────────────────────
         self.sidebar.button_clicked.connect(self.toggle_panel)
         self.drawer_container.header.pin_toggled.connect(self.set_pinned)
+        self.drawer_container.header.pin_toggled.connect(self.pin_toggled.emit)
 
         # ── Inserção no layout ─────────────────────────────────────────
         self._outer_layout.addWidget(self.sidebar)
         self.drawer_container.hide()
 
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
         # ── PillHandle (injetado posteriormente pelo WorkspaceContainer) ──
         self._pill: object = None  # Referência à PillHandle
+
+    @property
+    def effective_left_x(self) -> int:
+        """Retorna a coordenada X global da borda esquerda da doca (incluindo gaveta se aberta)."""
+        base_x = self.mapToGlobal(QtCore.QPoint(0, 0)).x()
+        if hasattr(self, "drawer_container") and self.drawer_container.isVisible():
+            drawer_x = self.drawer_container.mapToGlobal(QtCore.QPoint(0, 0)).x()
+            return min(base_x, drawer_x)
+        return base_x
+
+    @property
+    def effective_right_x(self) -> int:
+        """Retorna a coordenada X global da borda direita da doca (incluindo gaveta se aberta)."""
+        base_x = self.mapToGlobal(QtCore.QPoint(self.width(), 0)).x()
+        if hasattr(self, "drawer_container") and self.drawer_container.isVisible():
+            dw = self.drawer_container.width()
+            drawer_x = self.drawer_container.mapToGlobal(QtCore.QPoint(dw, 0)).x()
+            return max(base_x, drawer_x)
+        return base_x
+
+    @property
+    def visual_width(self) -> int:
+        """Retorna a largura visual total ocupada pela doca (sidebar + gaveta se visível)."""
+        if self.is_pinned:
+            return self.width()
+        w = self.sidebar.width() if self.sidebar.isVisible() else 0
+        if self.is_open and hasattr(self, "drawer_container") and self.drawer_container.isVisible():
+            w += self.drawer_container.width()
+        return w
 
     # ── Configurações ─────────────────────────────────────────────────────
 
@@ -112,16 +146,15 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self._hover_delay_ms = DELAY_MAP.get(delay, 350)
         self._update_anim_duration()
 
-        if self._auto_collapse or self.is_pinned:
-            # Se auto_collapse ou pin estiver ativo e o mouse não está sobre a sidebar, recolhe imediatamente
-            if not self.sidebar.underMouse() and (not self.is_open or self.is_pinned):
+        if self._auto_collapse:
+            # Se auto_collapse estiver ativo e o mouse não está sobre a sidebar, recolhe
+            if not self.sidebar.underMouse() and not self.is_open:
                 self._do_collapse()
         else:
-            # Desligou auto-recolhimento e não está pinada → expande se estiver colapsada
+            # Auto-recolhimento desligado → expande a sidebar e para timers
             self._collapse_timer.stop()
             self._expand_timer.stop()
-            if self.sidebar.maximumWidth() == 0:
-                self._do_expand()
+            self._do_expand()
 
     def _update_anim_duration(self) -> None:
         self._sidebar_anim.setDuration(self._speed_ms)
@@ -162,8 +195,9 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     def _do_collapse(self) -> None:
         """Anima a sidebar de 54px → 0px."""
         self._expand_timer.stop()
-        current = self.sidebar.maximumWidth()
-        if current == 0:
+        current = self.sidebar.width()
+        if current == 0 or not self.sidebar.isVisible():
+            self.sidebar.hide()
             self._show_pill()
             return
         self._sidebar_anim.stop()
@@ -179,8 +213,9 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self._hide_pill()
         self.sidebar.show()
         self.sidebar.raise_()
-        current = self.sidebar.maximumWidth()
-        if current == self.SIDEBAR_EXPANDED and self.sidebar.width() == self.SIDEBAR_EXPANDED and not self.sidebar.isHidden():
+        current = self.sidebar.width()
+        if current == self.SIDEBAR_EXPANDED and not self.sidebar.isHidden():
+            self.sidebar.setFixedWidth(self.SIDEBAR_EXPANDED)
             return
         self._sidebar_anim.stop()
         self._sidebar_anim.setStartValue(current)
@@ -188,15 +223,18 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self._sidebar_anim.start()
 
     def _on_sidebar_anim_value_changed(self, value: int) -> None:
-        self.sidebar.setMinimumWidth(value)
+        self.sidebar.setFixedWidth(value)
         if hasattr(self._workspace, "_update_pill_positions"):
             self._workspace._update_pill_positions()
 
     def _on_sidebar_anim_finished(self) -> None:
         """Quando a sidebar terminar de recolher, exibe a pílula."""
-        if self.sidebar.maximumWidth() == 0:
+        if self.sidebar.width() == 0:
             self.sidebar.hide()
             self._show_pill()
+        else:
+            self.sidebar.setFixedWidth(self.SIDEBAR_EXPANDED)
+            self._hide_pill()
         # Atualiza a posição da pílula via workspace
         if hasattr(self._workspace, "_update_pill_positions"):
             self._workspace._update_pill_positions()
@@ -218,10 +256,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         # Não recolhe se a gaveta despinada está aberta (o usuário está interagindo)
         if self.is_open and not self.is_pinned:
             return
-        # Recolhe em dois cenários (igual ao legado):
-        #   1. Auto-collapse ativo (sidebar recolhe por inatividade)
-        #   2. is_pinned ativo (sidebar recua para dar espaço ao painel inline)
-        if self._auto_collapse or self.is_pinned:
+        if self._auto_collapse:
             if not self.sidebar.underMouse():
                 self._collapse_timer.start(self._speed_ms)
 
@@ -302,6 +337,29 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.drawer_container.update_spacer(self.active_panel_ids)
         self._update_drawer_state()
 
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        panel_i18n = {
+            "brush": ("menu.window.brush_panel", "Pincel & Ferramentas"),
+            "color_wheel": ("menu.window.color_wheel", "Cores & Harmonias"),
+            "navigator": ("menu.window.navigator", "Navegador do Canvas"),
+            "layers": ("menu.window.layers_panel", "Camadas"),
+            "geometry": ("menu.window.geometry_guides", "Guias de Perspectiva"),
+            "symmetry": ("menu.window.symmetry_panel", "Estúdio de Simetria"),
+            "palette": ("menu.window.palette_panel", "Paletas de Cores"),
+            "telemetry": ("help.diagnostics", "Diagnósticos & Telemetria"),
+        }
+        for panel_id, btn in self.sidebar._buttons.items():
+            if panel_id in panel_i18n:
+                key, def_val = panel_i18n[panel_id]
+                trans = tr(key, def_val)
+                btn.setToolTip(trans)
+                if panel_id in self._panels_info:
+                    self._panels_info[panel_id]["title"] = trans
+
+        if self.is_open:
+            self._update_drawer_state()
+
     def _update_drawer_state(self) -> None:
         """Atualiza título do cabeçalho e abre/fecha a gaveta conforme painéis ativos."""
         count = len(self.active_panel_ids)
@@ -317,7 +375,8 @@ class AdvancedDockSystem(QtWidgets.QWidget):
                 self.resolve_state()
                 self.drawer_opened.emit(active_pid)
         else:
-            self.drawer_container.header.set_title("PAINÉIS EMPILHADOS")
+            from ui.core.i18n import tr
+            self.drawer_container.header.set_title(tr("window.stacked_panels", "PAINÉIS EMPILHADOS"))
             if not self.is_open:
                 self.is_open = True
                 self.resolve_state()
@@ -340,9 +399,8 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.resolve_state()
         self.drawer_closed.emit()
 
-        # Quando fecha a gaveta, avalia se deve recolher a sidebar:
-        # recolhe tanto no modo auto_collapse quanto quando a gaveta estava pinada
-        if (self._auto_collapse or self.is_pinned) and not self.sidebar.underMouse():
+        # Quando fecha a gaveta, só recolhe a sidebar se auto_collapse estiver explicitamente ativado
+        if self._auto_collapse and not self.sidebar.underMouse():
             self._collapse_timer.start(self._speed_ms)
 
     def set_pinned(self, pinned: bool) -> None:
@@ -350,13 +408,6 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.drawer_container.header.set_pinned(pinned)
         if self.is_open:
             self.resolve_state()
-        # Ao pinar: sidebar recolhe imediatamente (igual ao legado toggle_pin)
-        # para dar espaço ao painel agora fixo no layout.
-        if pinned and not self.sidebar.underMouse():
-            self._do_collapse()
-        # Ao despinar: expande a sidebar de volta
-        elif not pinned:
-            self._do_expand()
 
     # ── Animação da Gaveta ────────────────────────────────────────────────
 
@@ -475,7 +526,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
             # Garante que a pílula não expanda durante o traço
             self._expand_timer.stop()
 
-    # ── Query de estado de layout ─────────────────────────────────────────
+    # ── Query e Persistência de Estado de Layout (ARCcC) ──────────────────
 
     def get_panel_order(self) -> List[str]:
         return self.sidebar.get_panel_order()
@@ -483,3 +534,36 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     @property
     def panel_data(self) -> Dict[str, dict]:
         return self._panels_info
+
+    def get_state(self) -> dict:
+        """Exporta o estado completo da doca lateral para persistência."""
+        return {
+            "is_open": self.is_open,
+            "is_pinned": self.is_pinned,
+            "active_panel_ids": list(self.active_panel_ids),
+            "width": self.DRAWER_WIDTH,
+            "panel_order": self.get_panel_order(),
+        }
+
+    def restore_state(self, state: dict) -> None:
+        """Restaura o estado persistido da doca lateral."""
+        if not state:
+            return
+
+        # 1. Ordem dos botões na sidebar
+        order = state.get("panel_order", [])
+        if order and hasattr(self.sidebar, "reorder_panels"):
+            self.sidebar.reorder_panels(order)
+            self.sync_panel_order_from_sidebar()
+
+        # 2. Estado de fixação (Pin)
+        is_pinned = state.get("is_pinned", False)
+        self.set_pinned(is_pinned)
+
+        # 3. Painéis ativos / Gaveta aberta
+        active_ids = state.get("active_panel_ids", [])
+        is_open = state.get("is_open", False)
+        if is_open and active_ids:
+            for pid in active_ids:
+                if pid in self._panels_info and pid not in self.active_panel_ids:
+                    self.toggle_panel(pid)

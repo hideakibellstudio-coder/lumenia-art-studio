@@ -46,8 +46,8 @@ class MainWindowMenuActionsMixin:
             raw_bytes = bytes(qimg_rgba.constBits()[:w * h * 4])
 
             backend = EngineRegistry.instance().get_backend()
-            if backend and hasattr(backend, "_facade") and hasattr(backend._facade, "paste_rgba_buffer_on_active_layer"):
-                backend._facade.paste_rgba_buffer_on_active_layer(w, h, raw_bytes, 0, 0)
+            if backend and getattr(backend, "available", False):
+                backend.paste_rgba_buffer_on_active_layer(0, 0, w, h, raw_bytes)
                 if self.workspace:
                     self.workspace.canvas_widget.update()
                 self.status_bar.showMessage(f"Imagem ({w}×{h}) colada na camada ativa.", 2500)
@@ -252,8 +252,8 @@ class MainWindowMenuActionsMixin:
                 qimg_rgba = qimg.convertToFormat(QtGui.QImage.Format_RGBA8888)
                 raw_bytes = bytes(qimg_rgba.constBits()[:w * h * 4])
                 backend = EngineRegistry.instance().get_backend()
-                if backend and hasattr(backend, "_facade") and hasattr(backend._facade, "paste_rgba_buffer_on_active_layer"):
-                    backend._facade.paste_rgba_buffer_on_active_layer(w, h, raw_bytes, 0, 0)
+                if backend and getattr(backend, "available", False):
+                    backend.paste_rgba_buffer_on_active_layer(0, 0, w, h, raw_bytes)
 
                 if self.workspace:
                     self.workspace.canvas_widget.update()
@@ -339,8 +339,8 @@ class MainWindowMenuActionsMixin:
 
     def rotate_active_layer_90(self, clockwise: bool = True) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "_facade") and hasattr(backend._facade, "rotate_active_layer_90"):
-            backend._facade.rotate_active_layer_90(clockwise)
+        if backend:
+            backend.rotate_active_layer_90(clockwise)
             if self.workspace:
                 self.workspace.canvas_widget.update()
             dir_str = "Horário (CW)" if clockwise else "Anti-horário (CCW)"
@@ -406,7 +406,29 @@ class MainWindowMenuActionsMixin:
         dialog.shortcutsApplied.connect(self._on_shortcuts_applied)
         dialog.exec()
 
-        self.status_bar.showMessage("Atalhos de teclado atualizados e aplicados.", 3000)
+    def _on_shortcuts_applied(self, shortcuts_map: dict) -> None:
+        if not shortcuts_map:
+            return
+
+        shortcut_targets = {
+            "tool_brush": "shortcut_tool_b",
+            "tool_eraser": "shortcut_tool_e",
+            "tool_shapes": "shortcut_tool_u",
+            "tool_text": "shortcut_tool_t",
+            "edit_undo": "shortcut_undo",
+            "edit_redo": "shortcut_redo_y",
+        }
+
+        for item_id, attr_name in shortcut_targets.items():
+            if item_id in shortcuts_map and hasattr(self, attr_name):
+                shortcut_obj = getattr(self, attr_name)
+                if shortcut_obj and isinstance(shortcut_obj, QtGui.QShortcut):
+                    seq = shortcuts_map[item_id]
+                    if seq:
+                        shortcut_obj.setKey(QtGui.QKeySequence(seq))
+
+        if hasattr(self, "status_bar") and self.status_bar:
+            self.status_bar.showMessage("Atalhos de teclado atualizados e aplicados.", 3000)
 
     def open_cursor_settings_dialog(self) -> None:
         from ui.core.screens.cursor_settings_dialog import CursorSettingsDialog
@@ -440,3 +462,16 @@ class MainWindowMenuActionsMixin:
         self.workspace._load_custom_texture(is_shape)
         kind = "Shape" if is_shape else "Heightmap"
         self.status_bar.showMessage(f"Textura {kind} carregada.", 3000)
+
+    def set_application_language(self, locale_code: str) -> None:
+        from ui.core.i18n import I18nManager, tr
+        mgr = I18nManager.instance()
+        if locale_code == "auto":
+            mgr.set_auto_mode(emit_signal=True)
+            msg = tr("status.language_changed", "Idioma sincronizado com o sistema operacional.")
+            if hasattr(self, "status_bar") and self.status_bar:
+                self.status_bar.showMessage(msg, 3000)
+        elif mgr.set_locale(locale_code, is_auto=False, emit_signal=True):
+            msg = tr("status.language_changed", "Idioma alterado com sucesso.")
+            if hasattr(self, "status_bar") and self.status_bar:
+                self.status_bar.showMessage(msg, 3000)

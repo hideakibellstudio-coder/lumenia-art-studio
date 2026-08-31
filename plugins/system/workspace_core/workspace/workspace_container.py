@@ -167,11 +167,11 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
 
         self.left_dock.drawer_opened.connect(self._on_dock_state_changed)
         self.left_dock.drawer_closed.connect(self._on_dock_state_changed)
-        self.left_dock.drawer_container.header.pin_toggled.connect(self._on_dock_state_changed)
+        self.left_dock.pin_toggled.connect(self._on_dock_state_changed)
 
         self.right_dock.drawer_opened.connect(self._on_dock_state_changed)
         self.right_dock.drawer_closed.connect(self._on_dock_state_changed)
-        self.right_dock.drawer_container.header.pin_toggled.connect(self._on_dock_state_changed)
+        self.right_dock.pin_toggled.connect(self._on_dock_state_changed)
 
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         """Filtro de eventos nativo no canvas para fechar gavetas flutuantes com 100% de confiabilidade."""
@@ -202,6 +202,15 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
         QtCore.QTimer.singleShot(50, self.update_toolbar_position)
+
+    def retranslate_ui(self) -> None:
+        """Propaga a re-tradução aos subsistemas do workspace."""
+        if hasattr(self, "left_dock") and self.left_dock:
+            self.left_dock.retranslate_ui()
+        if hasattr(self, "right_dock") and self.right_dock:
+            self.right_dock.retranslate_ui()
+        if hasattr(self, "floating_toolbar") and self.floating_toolbar:
+            self.floating_toolbar.retranslate_ui()
 
     # ── Engine ────────────────────────────────────────────────────────────
 

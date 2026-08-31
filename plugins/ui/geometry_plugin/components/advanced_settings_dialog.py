@@ -3,8 +3,8 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
-from plugins.ui.brush_plugin.compact_slider import CompactSlider
-from plugins.ui.brush_plugin.collapsible_section import CollapsibleSection
+from ui.core.widgets.compact_slider import CompactSlider
+from ui.core.widgets.collapsible_section import CollapsibleSection
 
 
 class AdvancedGeometryDialog(QtWidgets.QDialog):
@@ -39,15 +39,10 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self._drag_pos = None
 
     def show_near(self, anchor_widget: QtWidgets.QWidget):
-        curr = anchor_widget
-        workspace, left_dock, right_dock = None, None, None
-        while curr:
-            if hasattr(curr, "workspace_area"):
-                workspace = curr
-                left_dock = getattr(curr, "left_dock", None)
-                right_dock = getattr(curr, "right_dock", None)
-                break
-            curr = curr.parentWidget()
+        top = anchor_widget.window()
+        workspace = getattr(top, "workspace", None) if top else None
+        left_dock = getattr(workspace, "left_dock", None) if workspace else None
+        right_dock = getattr(workspace, "right_dock", None) if workspace else None
 
         scr = anchor_widget.screen().availableGeometry() if anchor_widget.screen() else QtCore.QRect(0, 0, 1920, 1080)
         anchor_global = anchor_widget.mapToGlobal(QtCore.QPoint(0, 0))
@@ -59,16 +54,10 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
             y = workspace_global.y() + 10
 
             if is_on_right and right_dock:
-                dock_left = right_dock.mapToGlobal(QtCore.QPoint(0, 0)).x()
-                if hasattr(right_dock, "drawer_container") and right_dock.drawer_container.isVisible():
-                    drawer_left = right_dock.drawer_container.mapToGlobal(QtCore.QPoint(0, 0)).x()
-                    dock_left = min(dock_left, drawer_left)
+                dock_left = getattr(right_dock, "effective_left_x", right_dock.mapToGlobal(QtCore.QPoint(0, 0)).x())
                 x = dock_left - self.width() - 10
             elif left_dock:
-                dock_right = left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x()
-                if hasattr(left_dock, "drawer_container") and left_dock.drawer_container.isVisible():
-                    drawer_right = left_dock.drawer_container.mapToGlobal(QtCore.QPoint(left_dock.drawer_container.width(), 0)).x()
-                    dock_right = max(dock_right, drawer_right)
+                dock_right = getattr(left_dock, "effective_right_x", left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x())
                 x = dock_right + 10
             else:
                 x = anchor_global.x() - self.width() - 10 if is_on_right else anchor_global.x() + anchor_widget.width() + 10
@@ -132,18 +121,33 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self.stack.addWidget(self._build_snap_page())
         self.stack.addWidget(self._build_sym_page())
 
-        for w in self.findChildren((QtWidgets.QComboBox, QtWidgets.QSlider, QtWidgets.QSpinBox)):
-            w.installEventFilter(self)
+        for widget_type in (QtWidgets.QComboBox, QtWidgets.QSlider, QtWidgets.QSpinBox):
+            for w in self.findChildren(widget_type):
+                w.installEventFilter(self)
 
         footer = QtWidgets.QWidget()
         fl = QtWidgets.QHBoxLayout(footer)
-        fl.setContentsMargins(8, 4, 8, 8)
-        self.btn_reset = QtWidgets.QPushButton("Restaurar Padrões")
+        from ui.core.i18n import tr, I18nManager
+        self.btn_reset = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
         self.btn_reset.setObjectName("AdvResetBtn")
         self.btn_reset.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_reset.clicked.connect(self._on_reset)
         fl.addWidget(self.btn_reset)
         outer.addWidget(footer)
+
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        self.setWindowTitle(tr("geometry.advanced_dialog_title", "Configurações Avançadas de Geometria"))
+        if hasattr(self, "lbl_title"):
+            self.lbl_title.setText(tr("geometry.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA"))
+        if hasattr(self, "btn_reset"):
+            self.btn_reset.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
+        if hasattr(self, "tab_bar"):
+            self.tab_bar.setTabText(0, tr("geometry.tab_persp6p", "Perspectiva 6P"))
+            self.tab_bar.setTabText(1, tr("geometry.tab_snapping", "Snapping & Guias"))
+            self.tab_bar.setTabText(2, tr("geometry.tab_symmetry", "Simetria"))
 
     def eventFilter(self, watched, event):
         if event.type() == QtCore.QEvent.Wheel:
@@ -165,8 +169,9 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         icon.setFixedSize(16, 16)
         icon.setPixmap(get_icon("settings").pixmap(QtCore.QSize(14, 14)))
 
-        title = QtWidgets.QLabel("CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA")
-        title.setObjectName("AdvTitleLabel")
+        from ui.core.i18n import tr
+        self.lbl_title = QtWidgets.QLabel(tr("geometry.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA"))
+        self.lbl_title.setObjectName("AdvTitleLabel")
 
         self.btn_close = QtWidgets.QToolButton()
         self.btn_close.setObjectName("AdvCloseBtn")
@@ -177,7 +182,7 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         self.btn_close.clicked.connect(self.hide)
 
         lo.addWidget(icon)
-        lo.addWidget(title)
+        lo.addWidget(self.lbl_title)
         lo.addStretch()
         lo.addWidget(self.btn_close)
         return bar

@@ -261,7 +261,7 @@ class LayersPanel(QWidget):
             layer_name = name if name else f"Camada {len(self.layer_manager.layers) + 1}"
             self._sync_to_native_engine("add", layer_name)
             self.layer_manager.add_layer(layer_name)
-            self._native_uids = [l.uid for l in self.layer_manager.layers]
+            self._synced_uids = [l.uid for l in self.layer_manager.layers]
             active = self.layer_manager.get_active_layer()
             if active:
                 self._select_uid_in_view(active.uid)
@@ -275,7 +275,7 @@ class LayersPanel(QWidget):
             group_name = name if name else "Novo Grupo"
             self._sync_to_native_engine("add_group", group_name)
             self.layer_manager.add_group(group_name)
-            self._native_uids = [l.uid for l in self.layer_manager.layers]
+            self._synced_uids = [l.uid for l in self.layer_manager.layers]
             active = self.layer_manager.get_active_layer()
             if active:
                 self._select_uid_in_view(active.uid)

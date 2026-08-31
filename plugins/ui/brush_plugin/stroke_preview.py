@@ -8,10 +8,7 @@ Fallback gracioso para renderização vetorial caso o nativo esteja indisponíve
 import math
 from PySide6 import QtWidgets, QtCore, QtGui
 
-try:
-    import aladyn_engine_native as native
-except ImportError:
-    native = None
+from ui.core.engine.registry import EngineRegistry
 
 
 class StrokePreview(QtWidgets.QWidget):
@@ -70,42 +67,27 @@ class StrokePreview(QtWidgets.QWidget):
         self.update()
 
     def _render_native_preview(self, w: int, h: int) -> QtGui.QImage:
-        if not native:
+        backend = EngineRegistry.instance().get_backend()
+        if not backend or not hasattr(backend, "render_brush_preview"):
             return None
 
         try:
-            prof = native.BrushProfile()
-            prof.engine_type = native.EngineType(int(self._engine_type))
-            prof.brush_size = float(self._size)
-            prof.opacity = float(self._opacity)
-            prof.hardness = float(self._hardness)
-            prof.spacing_factor = max(0.01, float(self._spacing))
-
-            c = self._color
-            r = int(c[0] * 255) if isinstance(c[0], float) else int(c[0])
-            g = int(c[1] * 255) if isinstance(c[1], float) else int(c[1])
-            b = int(c[2] * 255) if isinstance(c[2], float) else int(c[2])
-            prof.base_color = native.ColorRGBA(r, g, b, 255)
-
-            if self._watercolor_params and hasattr(prof, "watercolor_params"):
-                for k, v in self._watercolor_params.items():
-                    if hasattr(prof.watercolor_params, k):
-                        setattr(prof.watercolor_params, k, v)
-
-            if self._oil_params and hasattr(prof, "oil_params"):
-                for k, v in self._oil_params.items():
-                    if hasattr(prof.oil_params, k):
-                        setattr(prof.oil_params, k, v)
-
-            if self._pencil_params and hasattr(prof, "pencil_params"):
-                for k, v in self._pencil_params.items():
-                    if hasattr(prof.pencil_params, k):
-                        setattr(prof.pencil_params, k, v)
-
-            raw_bytes = native.render_stroke_preview(prof, w, h)
+            state = {
+                "size": self._size,
+                "opacity": self._opacity,
+                "hardness": self._hardness,
+                "spacing": self._spacing,
+                "pressure": self._pressure,
+                "color": self._color,
+                "engine_type": self._engine_type,
+                "watercolor_params": self._watercolor_params,
+                "oil_params": self._oil_params,
+                "pencil_params": self._pencil_params,
+            }
+            raw_bytes = backend.render_brush_preview(w, h, state)
             if raw_bytes and len(raw_bytes) == w * h * 4:
                 img = QtGui.QImage(raw_bytes, w, h, w * 4, QtGui.QImage.Format_RGBA8888)
-                return img.copy()  # Cria cópia desacoplada do buffer C++
+                return img.copy()  # Cópia segura
         except Exception:
             return None
 

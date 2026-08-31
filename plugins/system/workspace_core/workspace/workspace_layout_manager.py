@@ -33,33 +33,23 @@ class WorkspaceLayoutMixin:
     def _get_left_dock_visual_width(self) -> int:
         if not hasattr(self, "left_dock"):
             return 0
-        if self.left_dock.is_pinned:
-            return self.left_dock.width()
-        else:
-            w = self.left_dock.sidebar.width() if self.left_dock.sidebar.isVisible() else 0
-            if self.left_dock.is_open and self.left_dock.drawer_container.isVisible():
-                w += self.left_dock.drawer_container.width()
-            return w
+        return getattr(self.left_dock, "visual_width", self.left_dock.width())
 
     def _get_right_dock_visual_width(self) -> int:
         if not hasattr(self, "right_dock"):
             return 0
-        if self.right_dock.is_pinned:
-            return self.right_dock.width()
-        else:
-            w = self.right_dock.sidebar.width() if self.right_dock.sidebar.isVisible() else 0
-            if self.right_dock.is_open and self.right_dock.drawer_container.isVisible():
-                w += self.right_dock.drawer_container.width()
-            return w
+        return getattr(self.right_dock, "visual_width", self.right_dock.width())
 
     def update_toolbar_position(self) -> None:
         """Atualiza a posição da FloatingToolbar nativa de topo de acordo com o estado magnético."""
-        if not hasattr(self, "floating_toolbar") or not self.floating_toolbar.isVisible():
+        if not hasattr(self, "floating_toolbar"):
             return
 
-        state = self.floating_toolbar.dock_state
-        if not state:
-            return
+        if not self.floating_toolbar.isVisible():
+            self.floating_toolbar.show()
+            self.floating_toolbar.raise_()
+
+        state = self.floating_toolbar.dock_state or "snapped_bottom"
 
         if state in ("snapped_left", "snapped_right"):
             self.floating_toolbar.set_orientation(QtCore.Qt.Vertical)
@@ -161,7 +151,7 @@ class WorkspaceLayoutMixin:
             self.update_toolbar_position()
             return
 
-        self.floating_toolbar.dock_state = None
+        self.floating_toolbar.dock_state = "free_floating"
         self.update_toolbar_position()
 
     def apply_floating_toolbar_settings(self, cfg: dict) -> None:

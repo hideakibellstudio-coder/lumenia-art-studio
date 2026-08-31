@@ -2,11 +2,12 @@
 
 from PySide6 import QtWidgets, QtCore
 from ui.core.widgets.slider import LabeledSlider
+from ui.core.i18n import tr
 from ..collapsible_section import CollapsibleSection
 from ..non_scroll_combo_box import NonScrollComboBox
 
 def create_tip_geometry_section(panel) -> CollapsibleSection:
-    sec = CollapsibleSection("2. Geometria da Ponta", expanded=True)
+    sec = CollapsibleSection(tr("brush.sec_tip_geometry", "2. Geometria da Ponta"), expanded=True)
     w = QtWidgets.QWidget()
     lo = QtWidgets.QVBoxLayout(w)
     lo.setContentsMargins(0, 0, 0, 0)
@@ -25,10 +26,15 @@ def create_tip_geometry_section(panel) -> CollapsibleSection:
     tip_info_lo.setSpacing(4)
 
     panel.cmb_shape = NonScrollComboBox()
-    panel.cmb_shape.addItems(["Ponta Suave (Radial)", "Ponta Dura (Circular)", "Cerdas Secas", "Quadrado / Chato"])
+    panel.cmb_shape.addItems([
+        tr("brush.tip_soft", "Ponta Suave (Radial)"),
+        tr("brush.tip_hard", "Ponta Dura (Circular)"),
+        tr("brush.tip_bristles", "Cerdas Secas"),
+        tr("brush.tip_flat", "Quadrado / Chato")
+    ])
     panel.cmb_shape.currentIndexChanged.connect(panel._on_shape_preset_changed)
 
-    btn_load_shape = QtWidgets.QPushButton("Carregar PNG da Ponta")
+    btn_load_shape = QtWidgets.QPushButton(tr("brush.load_tip_png", "Carregar PNG da Ponta"))
     btn_load_shape.setObjectName("BTexBtn")
     btn_load_shape.setFixedHeight(22)
     btn_load_shape.setCursor(QtCore.Qt.PointingHandCursor)
@@ -39,23 +45,23 @@ def create_tip_geometry_section(panel) -> CollapsibleSection:
     tip_header.addWidget(tip_info, 1)
     lo.addLayout(tip_header)
 
-    panel.sl_hardness = LabeledSlider("Dureza da Ponta (Hardness):", 0, 100, 100, "%")
+    panel.sl_hardness = LabeledSlider(f"{tr('brush.tip_hardness', 'Dureza da Ponta (Hardness)')}:", 0, 100, 100, "%")
     panel.sl_hardness.valueChanged.connect(panel._on_tip_hardness)
     lo.addWidget(panel.sl_hardness)
 
-    panel.sl_angle = LabeledSlider("Ângulo da Ponta:", 0, 360, 0, "°")
+    panel.sl_angle = LabeledSlider(f"{tr('brush.tip_angle', 'Ângulo da Ponta')}:", 0, 360, 0, "°")
     panel.sl_angle.valueChanged.connect(panel._on_tip_angle)
     lo.addWidget(panel.sl_angle)
 
-    panel.sl_press_angle = LabeledSlider("Ângulo por Pressão:", 0, 360, 0, "°")
+    panel.sl_press_angle = LabeledSlider(f"{tr('brush.pressure_angle', 'Ângulo por Pressão')}:", 0, 360, 0, "°")
     panel.sl_press_angle.valueChanged.connect(panel._on_press_angle)
     lo.addWidget(panel.sl_press_angle)
 
-    panel.sl_aspect = LabeledSlider("Elipse / Proporção:", 1, 100, 100, "%")
+    panel.sl_aspect = LabeledSlider(f"{tr('brush.aspect_ratio', 'Elipse / Proporção')}:", 1, 100, 100, "%")
     panel.sl_aspect.valueChanged.connect(panel._on_tip_aspect)
     lo.addWidget(panel.sl_aspect)
 
-    panel.chk_follow = QtWidgets.QCheckBox("Seguir Direção do Traço (Follow Stroke)")
+    panel.chk_follow = QtWidgets.QCheckBox(tr("brush.follow_stroke", "Seguir Direção do Traço (Follow Stroke)"))
     panel.chk_follow.stateChanged.connect(panel._on_tip_follow)
     lo.addWidget(panel.chk_follow)
 

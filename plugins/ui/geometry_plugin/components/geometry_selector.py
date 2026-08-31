@@ -3,7 +3,11 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
-from .constants import GUIDE_TYPES, GUIDE_NAMES, SYM_TYPES, SYM_NAMES
+from ui.core.i18n import tr, I18nManager
+from .constants import (
+    GUIDE_TYPES, GUIDE_NAMES, SYM_TYPES, SYM_NAMES,
+    get_guide_name, get_sym_name
+)
 
 class GeometrySelectorPopup(QtWidgets.QFrame):
     """Popup flutuante de seleção com 2 abas (Réguas / Simetrias) e grid de opções."""
@@ -21,6 +25,7 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
         self.setFixedSize(330, 250)
         self._build_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self._apply_theme()
 
     def _apply_theme(self, *args):
@@ -65,12 +70,12 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
 
         # Tab Bar
         tabs = QtWidgets.QHBoxLayout()
-        self.btn_tab_ruler = QtWidgets.QPushButton("📏  Réguas & Guias")
+        self.btn_tab_ruler = QtWidgets.QPushButton(f"📏  {tr('geometry.tab_rulers', 'Réguas & Guias')}")
         self.btn_tab_ruler.setProperty("class", "tab-btn")
         self.btn_tab_ruler.setCheckable(True)
         self.btn_tab_ruler.setChecked(True)
 
-        self.btn_tab_sym = QtWidgets.QPushButton("🪞  Simetrias")
+        self.btn_tab_sym = QtWidgets.QPushButton(f"🪞  {tr('geometry.tab_symmetries', 'Simetrias')}")
         self.btn_tab_sym.setProperty("class", "tab-btn")
         self.btn_tab_sym.setCheckable(True)
 
@@ -89,8 +94,8 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
         grid_r.setSpacing(6)
         grid_r.setContentsMargins(0, 4, 0, 0)
         self.ruler_buttons = []
-        for idx, (gtype, gname) in enumerate(zip(GUIDE_TYPES, GUIDE_NAMES)):
-            btn = QtWidgets.QPushButton(gname)
+        for idx, gtype in enumerate(GUIDE_TYPES):
+            btn = QtWidgets.QPushButton(get_guide_name(idx))
             btn.setProperty("class", "grid-item")
             btn.setCheckable(True)
             icon_file = os.path.join(self.assets_dir, f"ruler_{gtype}.svg") if gtype != "none" else ""
@@ -108,8 +113,8 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
         grid_s.setSpacing(6)
         grid_s.setContentsMargins(0, 4, 0, 0)
         self.sym_buttons = []
-        for idx, (stype, sname) in enumerate(zip(SYM_TYPES, SYM_NAMES)):
-            btn = QtWidgets.QPushButton(sname)
+        for idx, stype in enumerate(SYM_TYPES):
+            btn = QtWidgets.QPushButton(get_sym_name(idx))
             btn.setProperty("class", "grid-item")
             btn.setCheckable(True)
             icon_file = os.path.join(self.assets_dir, f"symmetry_{stype}.svg") if stype != "none" else ""
@@ -122,7 +127,17 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
         self.stack.addWidget(page_sym)
 
         c_lay.addWidget(self.stack, 1)
-        main_lay.addWidget(container)
+        main_lay.addWidget(self.container)
+
+    def retranslate_ui(self):
+        if hasattr(self, "btn_tab_ruler"):
+            self.btn_tab_ruler.setText(f"📏  {tr('geometry.tab_rulers', 'Réguas & Guias')}")
+        if hasattr(self, "btn_tab_sym"):
+            self.btn_tab_sym.setText(f"🪞  {tr('geometry.tab_symmetries', 'Simetrias')}")
+        for idx, btn in enumerate(self.ruler_buttons):
+            btn.setText(get_guide_name(idx))
+        for idx, btn in enumerate(self.sym_buttons):
+            btn.setText(get_sym_name(idx))
 
     def _switch_tab(self, idx: int):
         self.stack.setCurrentIndex(idx)
@@ -161,6 +176,7 @@ class GeometrySelectorButton(QtWidgets.QPushButton):
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self.setFixedHeight(34)
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        I18nManager.instance().languageChanged.connect(self._update_text)
         self._apply_theme()
         self._update_text()
         self.clicked.connect(self._open_popup)
@@ -182,14 +198,14 @@ class GeometrySelectorButton(QtWidgets.QPushButton):
         """)
 
     def _update_text(self):
-        r_name = GUIDE_NAMES[self.active_ruler_idx] if self.active_ruler_idx < len(GUIDE_NAMES) else "None"
-        s_name = SYM_NAMES[self.active_sym_idx] if self.active_sym_idx < len(SYM_NAMES) else "None"
+        r_name = get_guide_name(self.active_ruler_idx)
+        s_name = get_sym_name(self.active_sym_idx)
         if self.active_ruler_idx == 0 and self.active_sym_idx == 0:
-            self.setText("📐  Geometria: Desativada  ▾")
+            self.setText(f"📐  {tr('geometry.disabled', 'Geometria: Desativada')}  ▾")
         elif self.active_ruler_idx > 0 and self.active_sym_idx == 0:
-            self.setText(f"📏  Régua: {r_name}  ▾")
+            self.setText(f"📏  {tr('geometry.ruler_prefix', 'Régua')}: {r_name}  ▾")
         elif self.active_ruler_idx == 0 and self.active_sym_idx > 0:
-            self.setText(f"🪞  Simetria: {s_name}  ▾")
+            self.setText(f"🪞  {tr('geometry.symmetry_prefix', 'Simetria')}: {s_name}  ▾")
         else:
             self.setText(f"📐  {r_name} | {s_name}  ▾")
 

@@ -34,7 +34,7 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
         row_sample.setContentsMargins(0, 0, 0, 0)
         row_sample.setSpacing(4)
         self.lbl_s = QtWidgets.QLabel(f"{tr('tools.sample', 'Amostra')}:")
-        self.lbl_s.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_s.setProperty("muted", "true")
         self.combo_sample = QtWidgets.QComboBox()
         self.combo_sample.addItems([
             tr("tools.sample_1x1", "1x1 Ponto"),
@@ -43,7 +43,6 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
             tr("tools.sample_11x11", "11x11 Média")
         ])
         self.combo_sample.setFixedHeight(22)
-        self.combo_sample.setStyleSheet("font-size: 10px; padding: 1px 4px;")
         self.combo_sample.currentIndexChanged.connect(self._emit_changes)
         row_sample.addWidget(self.lbl_s)
         row_sample.addWidget(self.combo_sample, 1)
@@ -81,9 +80,9 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
         info_layout.setSpacing(2)
 
         self.lbl_hex = QtWidgets.QLabel("#000000")
-        self.lbl_hex.setStyleSheet("font-size: 11px; font-weight: bold; font-family: monospace;")
+        self.lbl_hex.setProperty("heading", "true")
         self.lbl_rgb = QtWidgets.QLabel("RGB: 0, 0, 0")
-        self.lbl_rgb.setStyleSheet("font-size: 9px; color: #a1a1aa;")
+        self.lbl_rgb.setProperty("muted", "true")
 
         info_layout.addWidget(self.lbl_hex)
         info_layout.addWidget(self.lbl_rgb)

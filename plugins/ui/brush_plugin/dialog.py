@@ -409,7 +409,7 @@ class BrushSettingsDialog(QtWidgets.QDialog):
             #BAdvBtn:hover {{ background: {accent}; border-color: {accent}; }}
             #BStrokePreview {{ border-radius: 6px; }}
             #BTexLabel {{ color: {muted}; font-size: 10px; }}
-            #BTexPreview {{ border: 1px solid {border}; border-radius: 4px; background: #101010; }}
+            #BTexPreview {{ border: 1px solid {border}; border-radius: 4px; background: {bg2}; }}
             #BTexBtn {{ background: {bg2}; color: {text}; border: 1px solid {border}; border-radius: 3px; font-size: 10px; padding: 0 4px; }}
             #BTexBtn:hover {{ border-color: {accent}; color: {accent}; }}
             #BSectionLabel {{ color: {muted}; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }}

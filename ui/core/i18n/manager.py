@@ -78,8 +78,8 @@ class I18nManager(QtCore.QObject):
         self._fallback_dict = self._load_locale_file("en_US")
 
         # 2. Restaura o idioma salvo nas preferências ou detecta o idioma do sistema operacional
-        settings = QtCore.QSettings("Aladyn", "Lumenia")
-        saved_locale = settings.value("locale/current", "auto")
+        from ui.core.config import ConfigManager
+        saved_locale = ConfigManager.instance().get("locale", "current", "auto")
 
         if saved_locale is None or str(saved_locale).lower() in ("auto", "system", ""):
             self._is_auto = True
@@ -147,9 +147,11 @@ class I18nManager(QtCore.QObject):
         self._current_locale = locale_code
         self._active_dict = self._load_locale_file(locale_code)
 
-        # Persiste em QSettings
+        # Persiste no ConfigManager (JSON)
+        from ui.core.config import ConfigManager
         val = "auto" if is_auto else locale_code
-        QtCore.QSettings("Aladyn", "Lumenia").setValue("locale/current", val)
+        ConfigManager.instance().set("locale", "current", val, auto_save=False)
+        ConfigManager.instance().set("locale", "auto_detect", is_auto, auto_save=True)
 
         logger.info(f"[I18nManager] Idioma alterado para '{locale_code}' (auto={is_auto}).")
 

@@ -124,69 +124,55 @@ class KeySequenceRecorder(QtWidgets.QLineEdit):
         self.clearFocus()
 
 
-class KeyboardShortcutsDialog(QtWidgets.QDialog):
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
+
+
+class KeyboardShortcutsDialog(BaseFramelessDialog):
     """Diálogo de personalização visual de atalhos de teclado."""
 
     shortcutsApplied = QtCore.Signal(dict)
 
     def __init__(self, parent=None):
-        super().__init__(parent, QtCore.Qt.FramelessWindowHint | QtCore.Qt.Window)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        self.setMinimumSize(580, 520)
-        self.resize(640, 560)
-        self._drag_pos = None
+        super().__init__(
+            title=tr("dialogs.shortcuts_title", "Configurações de Atalhos de Teclado"),
+            icon_name="keyboard",
+            parent=parent,
+            modal=True
+        )
+        self.resize(660, 580)
+        self.setMinimumSize(580, 500)
+
+        # Aliases de compatibilidade arquitetural
+        self.card = self.root_container
+        self.lbl_title = self.title_bar.lbl_title
 
         self._shortcuts_map = self._load_saved_shortcuts()
         self._current_category = "Todas"
         self._search_query = ""
 
-        self._build_ui()
+        self._build_shortcuts_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
     def _load_saved_shortcuts(self) -> dict:
-        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
+        from ui.core.config import ConfigManager
+        saved = ConfigManager.instance().get_section("shortcuts")
         data = {}
         for item in DEFAULT_SHORTCUTS:
-            saved = settings.value(f"shortcuts/{item['id']}", item["default"])
-            data[item["id"]] = saved
+            data[item["id"]] = saved.get(item["id"], item["default"])
         return data
 
-    def _build_ui(self):
-        main_lay = QtWidgets.QVBoxLayout(self)
-        main_lay.setContentsMargins(10, 10, 10, 10)
-
-        self.card = QtWidgets.QFrame(self)
-        self.card.setObjectName("ShortcutsContainer")
-        card_lay = QtWidgets.QVBoxLayout(self.card)
-        card_lay.setContentsMargins(14, 12, 14, 14)
-        card_lay.setSpacing(10)
-
-        # ── Cabeçalho Draggable
-        hdr = QtWidgets.QHBoxLayout()
-        icon_lbl = QtWidgets.QLabel()
-        icon_lbl.setPixmap(get_icon("keyboard", "ACCENT", QtCore.QSize(18, 18)).pixmap(18, 18))
-        hdr.addWidget(icon_lbl)
-
-        title = QtWidgets.QLabel(tr("dialogs.shortcuts_title", "Configurações de Atalhos de Teclado"))
-        title.setStyleSheet("font-weight: 700; font-size: 13px; letter-spacing: 0.5px;")
-        hdr.addWidget(title)
-        hdr.addStretch()
-
-        btn_close = QtWidgets.QPushButton("✕")
-        btn_close.setFixedSize(24, 24)
-        btn_close.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_close.clicked.connect(self.reject)
-        hdr.addWidget(btn_close)
-        card_lay.addLayout(hdr)
-
+    def _build_shortcuts_ui(self):
         # ── Barra de Pesquisa e Filtros
         search_row = QtWidgets.QHBoxLayout()
         self.txt_search = QtWidgets.QLineEdit()
         self.txt_search.setPlaceholderText(f"🔍 {tr('dialogs.search_placeholder', 'Buscar ação ou atalho...')}")
         self.txt_search.textChanged.connect(self._on_search_changed)
         search_row.addWidget(self.txt_search, 1)
-        card_lay.addLayout(search_row)
+        self.content_layout.addLayout(search_row)
 
         # ── Abas de Categorias
         self.tab_bar = QtWidgets.QTabBar()
@@ -204,7 +190,7 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
         for cat_id, cat_label in self.category_names:
             self.tab_bar.addTab(cat_label)
         self.tab_bar.currentChanged.connect(self._on_category_changed)
-        card_lay.addWidget(self.tab_bar)
+        self.content_layout.addWidget(self.tab_bar)
 
         # ── Tabela de Atalhos
         self.table = QtWidgets.QTableWidget(0, 3)
@@ -219,35 +205,72 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        card_lay.addWidget(self.table, 1)
+        self.content_layout.addWidget(self.table, 1)
 
         # ── Rodapé com Botões de Ação
         footer = QtWidgets.QHBoxLayout()
-        btn_restore = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
-        btn_restore.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_restore.clicked.connect(self._on_restore_defaults)
-        footer.addWidget(btn_restore)
+        self.btn_restore = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
+        self.btn_restore.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_restore.clicked.connect(self._on_restore_defaults)
+        footer.addWidget(self.btn_restore)
         footer.addStretch()
 
-        btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
-        btn_cancel.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_cancel.clicked.connect(self.reject)
-        footer.addWidget(btn_cancel)
+        self.btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
+        self.btn_cancel.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_cancel.clicked.connect(self.reject)
+        footer.addWidget(self.btn_cancel)
 
         self.btn_save = QtWidgets.QPushButton(tr("dialogs.save_apply", "Salvar e Aplicar"))
         self.btn_save.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_save.clicked.connect(self._on_save_and_apply)
         footer.addWidget(self.btn_save)
 
-        card_lay.addLayout(footer)
-        main_lay.addWidget(self.card)
+        self.content_layout.addLayout(footer)
 
+        self._populate_table()
+
+    def retranslate_ui(self) -> None:
+        """Atualiza dinamicamente os textos da tela de atalhos."""
+        from ui.core.i18n import tr
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(tr("dialogs.shortcuts_title", "Configurações de Atalhos de Teclado"))
+        if hasattr(self, "txt_search"):
+            self.txt_search.setPlaceholderText(f"🔍 {tr('dialogs.search_placeholder', 'Buscar ação ou atalho...')}")
+        if hasattr(self, "btn_restore"):
+            self.btn_restore.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
+        if hasattr(self, "btn_cancel"):
+            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        if hasattr(self, "btn_save"):
+            self.btn_save.setText(tr("dialogs.save_apply", "Salvar e Aplicar"))
+        if hasattr(self, "table"):
+            self.table.setHorizontalHeaderLabels([
+                tr("dialogs.action_col", "Ação"),
+                tr("dialogs.category_col", "Categoria"),
+                tr("dialogs.shortcut_col", "Atalho")
+            ])
+        self.category_names = [
+            ("Todas", tr("dialogs.tab_all", "Todas")),
+            ("Ferramentas", tr("dialogs.tab_tools", "Ferramentas")),
+            ("Arquivo", tr("menu.file.title", "Arquivo")),
+            ("Edição", tr("menu.edit.title", "Edição")),
+            ("Camadas", tr("menu.layer.title", "Camadas")),
+            ("Exibir", tr("menu.view.title", "Exibir")),
+            ("Seleção", tr("menu.select.title", "Seleção")),
+        ]
+        if hasattr(self, "tab_bar"):
+            for idx, (_, cat_label) in enumerate(self.category_names):
+                self.tab_bar.setTabText(idx, cat_label)
         self._populate_table()
 
     def _populate_table(self):
         self.table.setRowCount(0)
         q = self._search_query.lower()
         cat_filter = self._current_category
+        tm = ThemeManager.instance()
+        text_main = tm.get_color("text_main", "#f3f4f6")
+        text_sec = tm.get_color("text_sec", "#9ca3af")
+        bg_panel = tm.get_color("bg_panel", "#1e1e24")
+        border = tm.get_color("border", "#313244")
 
         for item in DEFAULT_SHORTCUTS:
             if cat_filter != "Todas" and item["category"] != cat_filter:
@@ -264,16 +287,28 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
             # Coluna 0: Ação
             act_item = QtWidgets.QTableWidgetItem(f" {item['name']}")
             act_item.setIcon(get_icon(item.get("icon", "settings"), size=QtCore.QSize(16, 16)))
+            act_item.setForeground(QtGui.QBrush(QtGui.QColor(text_main)))
             self.table.setItem(row, 0, act_item)
 
             # Coluna 1: Categoria
             cat_item = QtWidgets.QTableWidgetItem(item["category"])
             cat_item.setTextAlignment(QtCore.Qt.AlignCenter)
+            cat_item.setForeground(QtGui.QBrush(QtGui.QColor(text_sec)))
             self.table.setItem(row, 1, cat_item)
 
             # Coluna 2: Gravador de Atalho
             rec = KeySequenceRecorder(current_key)
             rec.setProperty("item_id", item["id"])
+            rec.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {bg_panel};
+                    color: {text_main};
+                    border: 1px solid {border};
+                    border-radius: 4px;
+                    padding: 4px;
+                    font-weight: bold;
+                }}
+            """)
             rec.shortcutRecorded.connect(lambda k, iid=item["id"]: self._on_shortcut_recorded(iid, k))
             self.table.setCellWidget(row, 2, rec)
 
@@ -303,28 +338,40 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
             self._populate_table()
 
     def _on_save_and_apply(self):
-        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
-        for item_id, val in self._shortcuts_map.items():
-            settings.setValue(f"shortcuts/{item_id}", val)
+        from ui.core.config import ConfigManager
+        ConfigManager.instance().set_section("shortcuts", self._shortcuts_map)
         self.shortcutsApplied.emit(self._shortcuts_map)
         self.accept()
 
     def _apply_theme(self, *args):
         tm = ThemeManager.instance()
+        bg_main = tm.get_color("bg_main", "#0f172a")
         bg_card = tm.get_color("bg_card", "#181825")
         bg_panel = tm.get_color("bg_panel", "#1e1e24")
+        bg_input = tm.get_color("bg_input", "#0f172a")
         border = tm.get_color("border", "#313244")
         accent = tm.get_color("accent", "#6366f1")
+        accent_hover = tm.get_color("accent_hover", "#4f46e5")
         text_main = tm.get_color("text_main", "#f3f4f6")
         text_sec = tm.get_color("text_sec", "#9ca3af")
 
-        self.card.setStyleSheet(f"""
-            QFrame#ShortcutsContainer {{
-                background-color: {bg_card}; border: 1px solid {border}; border-radius: 10px;
-            }}
+        if hasattr(self, "root_container") and self.root_container:
+            self.root_container.setStyleSheet(f"""
+                QWidget#DialogRootContainer {{
+                    background-color: {bg_main};
+                    border: 1px solid {border};
+                    border-radius: 10px;
+                }}
+                QFrame#DialogHeaderSep {{
+                    background-color: {border};
+                    border: none;
+                }}
+            """)
+
+        self.setStyleSheet(f"""
             QLabel {{ color: {text_main}; }}
             QLineEdit {{
-                background-color: {bg_panel}; color: {text_main}; border: 1px solid {border};
+                background-color: {bg_input}; color: {text_main}; border: 1px solid {border};
                 border-radius: 6px; padding: 6px 10px; font-size: 11px;
             }}
             QLineEdit:focus {{ border-color: {accent}; }}
@@ -347,14 +394,13 @@ class KeyboardShortcutsDialog(QtWidgets.QDialog):
             }}
             QPushButton:hover {{ background-color: {accent}; color: #ffffff; border-color: {accent}; }}
         """)
+        if hasattr(self, "btn_save"):
+            self.btn_save.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {accent}; color: #ffffff; border: none;
+                    border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold;
+                }}
+                QPushButton:hover {{ background-color: {accent_hover}; }}
+            """)
+        self._populate_table()
 
-    def mousePressEvent(self, e):
-        if e.button() == QtCore.Qt.LeftButton:
-            self._drag_pos = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
-
-    def mouseMoveEvent(self, e):
-        if self._drag_pos and e.buttons() & QtCore.Qt.LeftButton:
-            self.move(e.globalPosition().toPoint() - self._drag_pos)
-
-    def mouseReleaseEvent(self, e):
-        self._drag_pos = None

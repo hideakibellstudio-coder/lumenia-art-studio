@@ -131,6 +131,12 @@ class TelemetryPanel(QtWidgets.QWidget):
                 self.btn_toggle_telemetry.setText(f"🟢 {tr('telemetry.disable_capture', 'Desativar Captura')}")
             else:
                 self.btn_toggle_telemetry.setText(f"⚪ {tr('telemetry.enable_capture', 'Ativar Captura de Telemetria')}")
+            self.btn_toggle_telemetry.setToolTip(tr("telemetry.tooltip", "Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória."))
+        if hasattr(self, "lbl_status"):
+            if self._is_capturing:
+                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.capturing', 'Capturando métricas (30 FPS)')}")
+            else:
+                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% {tr('telemetry.overhead', 'Sobrecarga')})")
         if hasattr(self, "lbl_hdr_pressure"):
             self.lbl_hdr_pressure.setText(tr("telemetry.pen_pressure", "PRESSÃO DA CANETA"))
         if hasattr(self, "lbl_hdr_velocity"):
@@ -154,17 +160,17 @@ class TelemetryPanel(QtWidgets.QWidget):
         if self._is_capturing:
             if backend and hasattr(backend, "set_telemetry_enabled"):
                 backend.set_telemetry_enabled(True)
-            self.btn_toggle_telemetry.setText("🟢 Telemetria Ativa (Pausar)")
-            self.lbl_status.setText("Status: Capturando métricas (30 FPS)")
-            self.lbl_status.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 10px;")
+            self.retranslate_ui()
+            tm = ThemeManager.instance()
+            self.lbl_status.setStyleSheet(f"color: {tm.get_color('success')}; font-weight: bold; font-size: 10px;")
             self._timer.start()
         else:
             if backend and hasattr(backend, "set_telemetry_enabled"):
                 backend.set_telemetry_enabled(False)
             self._timer.stop()
-            self.btn_toggle_telemetry.setText("⚪ Ativar Captura de Telemetria")
-            self.lbl_status.setText("Status: Em Espera (0% Sobrecarga)")
-            self.lbl_status.setStyleSheet("color: #888888; font-size: 10px;")
+            self.retranslate_ui()
+            tm = ThemeManager.instance()
+            self.lbl_status.setStyleSheet(f"color: {tm.get_color('text_sec')}; font-size: 10px;")
             # Reseta os medidores para estado de repouso
             self.bar_pressure.setValue(0)
             self.lbl_pressure_val.setText("0 %")

@@ -381,8 +381,8 @@ bool PaintEngineFacade::floodFill(
     document::Layer* activeLayer = m_layerStack.getActiveLayer();
     if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) return false;
 
-    const document::Layer* clipBaseLayer = activeLayer->isClippingMask() ? m_layerStack.getClipBaseLayer(m_layerStack.getActiveIndex()) : nullptr;
-    const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), clipBaseLayer, &m_selectionMask };
+    // Clipping Mask é 100% não-destrutivo: o preenchimento atua no espaço da camada e o recorte é visual
+    const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &m_selectionMask };
 
     m_undoManager.beginStep("Bucket Fill");
     math::Rect2D affectedBounds{0, 0, 0, 0};

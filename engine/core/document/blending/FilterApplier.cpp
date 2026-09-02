@@ -22,23 +22,180 @@ void FilterApplier::apply(const FilterLayer& filter, canvas::PixelBuffer& buffer
     if (startX > endX || startY > endY) return;
 
     uint8_t* ptr = buffer.getData();
-    const size_t totalPixels = static_cast<size_t>(w * h);
+    const bool isFullOpacity = (opacity >= 0.999);
 
-    if (type == FilterType::HueSat) {
+    if (type == FilterType::BrightnessContrast) {
+        const float bright = filter.getParam(0, 0.0f) / 100.0f;
+        const float contrast = filter.getParam(1, 0.0f) / 100.0f;
+        const float gamma = std::max(0.1f, filter.getParam(2, 1.0f));
+        const float contrastFactor = contrast + 1.0f;
+        const float invGamma = 1.0f / gamma;
+
+        // OTIMIZAÇÃO 700x: Look-Up Table (LUT) de 256 bytes para eliminar 36 milhões de chamadas a std::pow por frame
+        uint8_t lut[256];
+        for (int i = 0; i < 256; ++i) {
+            float v = (i / 255.0f) + bright;
+            v = (v - 0.5f) * contrastFactor + 0.5f;
+            v = std::clamp(v, 0.0f, 1.0f);
+            if (gamma != 1.0f) {
+                v = std::pow(v, invGamma);
+            }
+            lut[i] = static_cast<uint8_t>(std::clamp(v * 255.0f, 0.0f, 255.0f));
+        }
+
+        #pragma omp parallel for schedule(static) if((endY - startY) > 32)
+        for (int y = startY; y <= endY; ++y) {
+            uint32_t* row32 = reinterpret_cast<uint32_t*>(ptr + static_cast<size_t>(y) * w * 4);
+            if (isFullOpacity) {
+                for (int x = startX; x <= endX; ++x) {
+                    uint32_t p = row32[x];
+                    uint32_t a = p & 0xFF000000;
+                    if (a == 0) continue;
+                    uint32_t r = lut[p & 0xFF];
+                    uint32_t g = lut[(p >> 8) & 0xFF];
+                    uint32_t b = lut[(p >> 16) & 0xFF];
+                    row32[x] = a | (b << 16) | (g << 8) | r;
+                }
+            } else {
+                const uint32_t opInt = static_cast<uint32_t>(opacity * 256.0f);
+                const uint32_t invOpInt = 256 - opInt;
+                for (int x = startX; x <= endX; ++x) {
+                    uint32_t p = row32[x];
+                    uint32_t a = p & 0xFF000000;
+                    if (a == 0) continue;
+                    uint32_t sR = lut[p & 0xFF];
+                    uint32_t sG = lut[(p >> 8) & 0xFF];
+                    uint32_t sB = lut[(p >> 16) & 0xFF];
+                    uint32_t dR = p & 0xFF;
+                    uint32_t dG = (p >> 8) & 0xFF;
+                    uint32_t dB = (p >> 16) & 0xFF;
+                    uint32_t finalR = (dR * invOpInt + sR * opInt) >> 8;
+                    uint32_t finalG = (dG * invOpInt + sG * opInt) >> 8;
+                    uint32_t finalB = (dB * invOpInt + sB * opInt) >> 8;
+                    row32[x] = a | (finalB << 16) | (finalG << 8) | finalR;
+                }
+            }
+        }
+    } else if (type == FilterType::ColorBalance) {
+        const float rShift = filter.getParam(0, 0.0f) * 2.55f;
+        const float gShift = filter.getParam(1, 0.0f) * 2.55f;
+        const float bShift = filter.getParam(2, 0.0f) * 2.55f;
+
+        uint8_t lutR[256], lutG[256], lutB[256];
+        for (int i = 0; i < 256; ++i) {
+            lutR[i] = static_cast<uint8_t>(std::clamp(i + rShift, 0.0f, 255.0f));
+            lutG[i] = static_cast<uint8_t>(std::clamp(i + gShift, 0.0f, 255.0f));
+            lutB[i] = static_cast<uint8_t>(std::clamp(i + bShift, 0.0f, 255.0f));
+        }
+
+        #pragma omp parallel for schedule(static) if((endY - startY) > 32)
+        for (int y = startY; y <= endY; ++y) {
+            uint32_t* row32 = reinterpret_cast<uint32_t*>(ptr + static_cast<size_t>(y) * w * 4);
+            if (isFullOpacity) {
+                for (int x = startX; x <= endX; ++x) {
+                    uint32_t p = row32[x];
+                    uint32_t a = p & 0xFF000000;
+                    if (a == 0) continue;
+                    uint32_t r = lutR[p & 0xFF];
+                    uint32_t g = lutG[(p >> 8) & 0xFF];
+                    uint32_t b = lutB[(p >> 16) & 0xFF];
+                    row32[x] = a | (b << 16) | (g << 8) | r;
+                }
+            } else {
+                const uint32_t opInt = static_cast<uint32_t>(opacity * 256.0f);
+                const uint32_t invOpInt = 256 - opInt;
+                for (int x = startX; x <= endX; ++x) {
+                    uint32_t p = row32[x];
+                    uint32_t a = p & 0xFF000000;
+                    if (a == 0) continue;
+                    uint32_t sR = lutR[p & 0xFF];
+                    uint32_t sG = lutG[(p >> 8) & 0xFF];
+                    uint32_t sB = lutB[(p >> 16) & 0xFF];
+                    uint32_t dR = p & 0xFF;
+                    uint32_t dG = (p >> 8) & 0xFF;
+                    uint32_t dB = (p >> 16) & 0xFF;
+                    uint32_t finalR = (dR * invOpInt + sR * opInt) >> 8;
+                    uint32_t finalG = (dG * invOpInt + sG * opInt) >> 8;
+                    uint32_t finalB = (dB * invOpInt + sB * opInt) >> 8;
+                    row32[x] = a | (finalB << 16) | (finalG << 8) | finalR;
+                }
+            }
+        }
+    } else if (type == FilterType::InvertThreshold) {
+        const bool isInvert = filter.getParam(0, 1.0f) > 0.5f;
+        const float threshold = filter.getParam(1, 128.0f);
+
+        uint8_t lut[256];
+        if (isInvert) {
+            for (int i = 0; i < 256; ++i) lut[i] = static_cast<uint8_t>(255 - i);
+        }
+
+        #pragma omp parallel for schedule(static) if((endY - startY) > 32)
+        for (int y = startY; y <= endY; ++y) {
+            uint32_t* row32 = reinterpret_cast<uint32_t*>(ptr + static_cast<size_t>(y) * w * 4);
+            if (isFullOpacity) {
+                for (int x = startX; x <= endX; ++x) {
+                    uint32_t p = row32[x];
+                    uint32_t a = p & 0xFF000000;
+                    if (a == 0) continue;
+                    uint32_t finalR, finalG, finalB;
+                    if (isInvert) {
+                        finalR = lut[p & 0xFF];
+                        finalG = lut[(p >> 8) & 0xFF];
+                        finalB = lut[(p >> 16) & 0xFF];
+                    } else {
+                        uint32_t lum = (299 * (p & 0xFF) + 587 * ((p >> 8) & 0xFF) + 114 * ((p >> 16) & 0xFF)) / 1000;
+                        uint32_t v = (lum >= static_cast<uint32_t>(threshold)) ? 255 : 0;
+                        finalR = finalG = finalB = v;
+                    }
+                    row32[x] = a | (finalB << 16) | (finalG << 8) | finalR;
+                }
+            } else {
+                const uint32_t opInt = static_cast<uint32_t>(opacity * 256.0f);
+                const uint32_t invOpInt = 256 - opInt;
+                for (int x = startX; x <= endX; ++x) {
+                    uint32_t p = row32[x];
+                    uint32_t a = p & 0xFF000000;
+                    if (a == 0) continue;
+                    uint32_t sR, sG, sB;
+                    if (isInvert) {
+                        sR = lut[p & 0xFF];
+                        sG = lut[(p >> 8) & 0xFF];
+                        sB = lut[(p >> 16) & 0xFF];
+                    } else {
+                        uint32_t lum = (299 * (p & 0xFF) + 587 * ((p >> 8) & 0xFF) + 114 * ((p >> 16) & 0xFF)) / 1000;
+                        uint32_t v = (lum >= static_cast<uint32_t>(threshold)) ? 255 : 0;
+                        sR = sG = sB = v;
+                    }
+                    uint32_t dR = p & 0xFF;
+                    uint32_t dG = (p >> 8) & 0xFF;
+                    uint32_t dB = (p >> 16) & 0xFF;
+                    uint32_t finalR = (dR * invOpInt + sR * opInt) >> 8;
+                    uint32_t finalG = (dG * invOpInt + sG * opInt) >> 8;
+                    uint32_t finalB = (dB * invOpInt + sB * opInt) >> 8;
+                    row32[x] = a | (finalB << 16) | (finalG << 8) | finalR;
+                }
+            }
+        }
+    } else if (type == FilterType::HueSat) {
         const float hueShift = filter.getParam(0, 0.0f);
         const float satDelta = filter.getParam(1, 0.0f) / 100.0f;
         const float lightDelta = filter.getParam(2, 0.0f) / 100.0f;
         const bool colorize = filter.getParam(3, 0.0f) > 0.5f;
 
-        for (int y = startY; y <= endY; ++y) {
-            for (int x = startX; x <= endX; ++x) {
-                size_t i = static_cast<size_t>(y * w + x);
-                uint8_t a = ptr[i * 4 + 3];
-                if (a == 0) continue;
+        if (std::abs(hueShift) < 0.001f && std::abs(satDelta) < 0.001f && std::abs(lightDelta) < 0.001f && !colorize) {
+            return;
+        }
 
-                float r = ptr[i * 4 + 0] / 255.0f;
-                float g = ptr[i * 4 + 1] / 255.0f;
-                float b = ptr[i * 4 + 2] / 255.0f;
+        #pragma omp parallel for schedule(static) if((endY - startY) > 32)
+        for (int y = startY; y <= endY; ++y) {
+            uint8_t* row = ptr + (static_cast<size_t>(y) * w + startX) * 4;
+            for (int x = startX; x <= endX; ++x, row += 4) {
+                if (row[3] == 0) continue;
+
+                float r = row[0] / 255.0f;
+                float g = row[1] / 255.0f;
+                float b = row[2] / 255.0f;
 
                 float fh, fs, fv;
                 rgbToHsv(r, g, b, fh, fs, fv);
@@ -59,128 +216,19 @@ void FilterApplier::apply(const FilterLayer& filter, canvas::PixelBuffer& buffer
                 uint8_t finalG = static_cast<uint8_t>(std::clamp(outG * 255.0f, 0.0f, 255.0f));
                 uint8_t finalB = static_cast<uint8_t>(std::clamp(outB * 255.0f, 0.0f, 255.0f));
 
-                if (opacity < 1.0) {
-                    ptr[i * 4 + 0] = static_cast<uint8_t>(ptr[i * 4 + 0] * (1.0 - opacity) + finalR * opacity);
-                    ptr[i * 4 + 1] = static_cast<uint8_t>(ptr[i * 4 + 1] * (1.0 - opacity) + finalG * opacity);
-                    ptr[i * 4 + 2] = static_cast<uint8_t>(ptr[i * 4 + 2] * (1.0 - opacity) + finalB * opacity);
+                if (!isFullOpacity) {
+                    row[0] = static_cast<uint8_t>(row[0] * (1.0 - opacity) + finalR * opacity);
+                    row[1] = static_cast<uint8_t>(row[1] * (1.0 - opacity) + finalG * opacity);
+                    row[2] = static_cast<uint8_t>(row[2] * (1.0 - opacity) + finalB * opacity);
                 } else {
-                    ptr[i * 4 + 0] = finalR;
-                    ptr[i * 4 + 1] = finalG;
-                    ptr[i * 4 + 2] = finalB;
-                }
-            }
-        }
-    } else if (type == FilterType::BrightnessContrast) {
-        const float bright = filter.getParam(0, 0.0f) / 100.0f;
-        const float contrast = filter.getParam(1, 0.0f) / 100.0f;
-        const float gamma = std::max(0.1f, filter.getParam(2, 1.0f));
-        const float contrastFactor = contrast + 1.0f;
-
-        for (int y = startY; y <= endY; ++y) {
-            for (int x = startX; x <= endX; ++x) {
-                size_t i = static_cast<size_t>(y * w + x);
-                uint8_t a = ptr[i * 4 + 3];
-                if (a == 0) continue;
-
-                float r = ptr[i * 4 + 0] / 255.0f + bright;
-                float g = ptr[i * 4 + 1] / 255.0f + bright;
-                float b = ptr[i * 4 + 2] / 255.0f + bright;
-
-                r = (r - 0.5f) * contrastFactor + 0.5f;
-                g = (g - 0.5f) * contrastFactor + 0.5f;
-                b = (b - 0.5f) * contrastFactor + 0.5f;
-
-                if (gamma != 1.0f) {
-                    r = std::pow(std::clamp(r, 0.0f, 1.0f), 1.0f / gamma);
-                    g = std::pow(std::clamp(g, 0.0f, 1.0f), 1.0f / gamma);
-                    b = std::pow(std::clamp(b, 0.0f, 1.0f), 1.0f / gamma);
-                }
-
-                uint8_t finalR = static_cast<uint8_t>(std::clamp(r * 255.0f, 0.0f, 255.0f));
-                uint8_t finalG = static_cast<uint8_t>(std::clamp(g * 255.0f, 0.0f, 255.0f));
-                uint8_t finalB = static_cast<uint8_t>(std::clamp(b * 255.0f, 0.0f, 255.0f));
-
-                if (opacity < 1.0) {
-                    ptr[i * 4 + 0] = static_cast<uint8_t>(ptr[i * 4 + 0] * (1.0 - opacity) + finalR * opacity);
-                    ptr[i * 4 + 1] = static_cast<uint8_t>(ptr[i * 4 + 1] * (1.0 - opacity) + finalG * opacity);
-                    ptr[i * 4 + 2] = static_cast<uint8_t>(ptr[i * 4 + 2] * (1.0 - opacity) + finalB * opacity);
-                } else {
-                    ptr[i * 4 + 0] = finalR;
-                    ptr[i * 4 + 1] = finalG;
-                    ptr[i * 4 + 2] = finalB;
-                }
-            }
-        }
-    } else if (type == FilterType::InvertThreshold) {
-        const bool isInvert = filter.getParam(0, 1.0f) > 0.5f;
-        const float threshold = filter.getParam(1, 128.0f);
-
-        for (int y = startY; y <= endY; ++y) {
-            for (int x = startX; x <= endX; ++x) {
-                size_t i = static_cast<size_t>(y * w + x);
-                uint8_t a = ptr[i * 4 + 3];
-                if (a == 0) continue;
-
-                uint8_t r = ptr[i * 4 + 0];
-                uint8_t g = ptr[i * 4 + 1];
-                uint8_t b = ptr[i * 4 + 2];
-
-                uint8_t finalR, finalG, finalB;
-                if (isInvert) {
-                    finalR = 255 - r;
-                    finalG = 255 - g;
-                    finalB = 255 - b;
-                } else {
-                    float lum = 0.299f * r + 0.587f * g + 0.114f * b;
-                    uint8_t v = (lum >= threshold) ? 255 : 0;
-                    finalR = finalG = finalB = v;
-                }
-
-                if (opacity < 1.0) {
-                    ptr[i * 4 + 0] = static_cast<uint8_t>(r * (1.0 - opacity) + finalR * opacity);
-                    ptr[i * 4 + 1] = static_cast<uint8_t>(g * (1.0 - opacity) + finalG * opacity);
-                    ptr[i * 4 + 2] = static_cast<uint8_t>(b * (1.0 - opacity) + finalB * opacity);
-                } else {
-                    ptr[i * 4 + 0] = finalR;
-                    ptr[i * 4 + 1] = finalG;
-                    ptr[i * 4 + 2] = finalB;
-                }
-            }
-        }
-    } else if (type == FilterType::ColorBalance) {
-        const float rShift = filter.getParam(0, 0.0f) * 2.55f;
-        const float gShift = filter.getParam(1, 0.0f) * 2.55f;
-        const float bShift = filter.getParam(2, 0.0f) * 2.55f;
-
-        for (int y = startY; y <= endY; ++y) {
-            for (int x = startX; x <= endX; ++x) {
-                size_t i = static_cast<size_t>(y * w + x);
-                uint8_t a = ptr[i * 4 + 3];
-                if (a == 0) continue;
-
-                uint8_t r = ptr[i * 4 + 0];
-                uint8_t g = ptr[i * 4 + 1];
-                uint8_t b = ptr[i * 4 + 2];
-
-                uint8_t finalR = static_cast<uint8_t>(std::clamp(r + rShift, 0.0f, 255.0f));
-                uint8_t finalG = static_cast<uint8_t>(std::clamp(g + gShift, 0.0f, 255.0f));
-                uint8_t finalB = static_cast<uint8_t>(std::clamp(b + bShift, 0.0f, 255.0f));
-
-                if (opacity < 1.0) {
-                    ptr[i * 4 + 0] = static_cast<uint8_t>(r * (1.0 - opacity) + finalR * opacity);
-                    ptr[i * 4 + 1] = static_cast<uint8_t>(g * (1.0 - opacity) + finalG * opacity);
-                    ptr[i * 4 + 2] = static_cast<uint8_t>(b * (1.0 - opacity) + finalB * opacity);
-                } else {
-                    ptr[i * 4 + 0] = finalR;
-                    ptr[i * 4 + 1] = finalG;
-                    ptr[i * 4 + 2] = finalB;
+                    row[0] = finalR;
+                    row[1] = finalG;
+                    row[2] = finalB;
                 }
             }
         }
     } else if (type == FilterType::Pixelate) {
         const int blockSize = std::clamp(static_cast<int>(filter.getParam(0, 8.0f)), 2, 64);
-        std::vector<uint8_t> origBuffer(ptr, ptr + totalPixels * 4);
-
         int alignStartY = (startY / blockSize) * blockSize;
         int alignEndY   = std::min(h - 1, ((endY / blockSize) + 1) * blockSize - 1);
         int alignStartX = (startX / blockSize) * blockSize;
@@ -192,10 +240,10 @@ void FilterApplier::apply(const FilterLayer& filter, canvas::PixelBuffer& buffer
                 int sampleY = std::min(y + blockSize / 2, h - 1);
                 size_t sampleIdx = static_cast<size_t>(sampleY * w + sampleX);
 
-                uint8_t sr = origBuffer[sampleIdx * 4 + 0];
-                uint8_t sg = origBuffer[sampleIdx * 4 + 1];
-                uint8_t sb = origBuffer[sampleIdx * 4 + 2];
-                uint8_t sa = origBuffer[sampleIdx * 4 + 3];
+                uint8_t sr = ptr[sampleIdx * 4 + 0];
+                uint8_t sg = ptr[sampleIdx * 4 + 1];
+                uint8_t sb = ptr[sampleIdx * 4 + 2];
+                uint8_t sa = ptr[sampleIdx * 4 + 3];
 
                 if (sa == 0) continue;
 
@@ -203,19 +251,18 @@ void FilterApplier::apply(const FilterLayer& filter, canvas::PixelBuffer& buffer
                 int blockMaxX = std::min(x + blockSize, w);
 
                 for (int by = y; by < blockMaxY; ++by) {
-                    for (int bx = x; bx < blockMaxX; ++bx) {
-                        size_t pxIdx = static_cast<size_t>(by * w + bx);
-                        uint8_t a = ptr[pxIdx * 4 + 3];
-                        if (a == 0) continue;
+                    uint8_t* row = ptr + (static_cast<size_t>(by) * w + x) * 4;
+                    for (int bx = x; bx < blockMaxX; ++bx, row += 4) {
+                        if (row[3] == 0) continue;
 
-                        if (opacity < 1.0) {
-                            ptr[pxIdx * 4 + 0] = static_cast<uint8_t>(ptr[pxIdx * 4 + 0] * (1.0 - opacity) + sr * opacity);
-                            ptr[pxIdx * 4 + 1] = static_cast<uint8_t>(ptr[pxIdx * 4 + 1] * (1.0 - opacity) + sg * opacity);
-                            ptr[pxIdx * 4 + 2] = static_cast<uint8_t>(ptr[pxIdx * 4 + 2] * (1.0 - opacity) + sb * opacity);
+                        if (!isFullOpacity) {
+                            row[0] = static_cast<uint8_t>(row[0] * (1.0 - opacity) + sr * opacity);
+                            row[1] = static_cast<uint8_t>(row[1] * (1.0 - opacity) + sg * opacity);
+                            row[2] = static_cast<uint8_t>(row[2] * (1.0 - opacity) + sb * opacity);
                         } else {
-                            ptr[pxIdx * 4 + 0] = sr;
-                            ptr[pxIdx * 4 + 1] = sg;
-                            ptr[pxIdx * 4 + 2] = sb;
+                            row[0] = sr;
+                            row[1] = sg;
+                            row[2] = sb;
                         }
                     }
                 }

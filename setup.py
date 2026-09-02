@@ -44,6 +44,7 @@ ext_modules = [
         "aladyn_engine_native",
         cpp_sources,
         cxx_std=17,
+        extra_compile_args=["/EHsc", "/bigobj", "/std:c++17", "/openmp", "/arch:AVX2", "/O2"],
     ),
 ]
 

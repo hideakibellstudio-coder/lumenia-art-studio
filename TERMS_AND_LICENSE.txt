@@ -1,0 +1,96 @@
+================================================================================
+                    LUMENIA — DIGITAL ART & PAINT STUDIO
+            TERMOS DE USO, LICENÇA & ISENÇÃO DE RESPONSABILIDADE (EULA)
+             END USER LICENSE AGREEMENT & ALPHA DISCLAIMER (EULA)
+                            Versão / Version: Alpha 0.2.0
+================================================================================
+
+[PT-BR] Ao baixar, extrair ou utilizar o Lumenia ("Software"), você concorda com
+os seguintes termos. Se você não concordar, não utilize o Software.
+
+[EN] By downloading, extracting, or using Lumenia ("Software"), you agree to be 
+bound by the following terms. If you do not agree to these terms, do not use it.
+
+================================================================================
+ 🇧🇷 VERSÃO EM PORTUGUÊS (PT-BR)
+================================================================================
+
+1. CONCESSÃO DE LICENÇA
+A equipe Lumenia concede a você uma licença não exclusiva e intransferível para
+usar esta versão Alpha do Software para trabalhos criativos pessoais,
+educacionais ou comerciais.
+
+2. SUA ARTE É 100% SUA (PROPRIEDADE INTELECTUAL)
+• Propriedade Total: Você retém 100% de todos os direitos autorais, propriedade 
+  e direitos comerciais sobre qualquer arte, ilustração ou desenho criado no Lumenia.
+• Zero Coleta para IA: O Lumenia NÃO coleta, não inspeciona, não envia e não usa 
+  suas artes ou desenhos para treinar modelos de inteligência artificial.
+
+3. SOFTWARE EM ESTÁGIO ALPHA — ISENÇÃO "NO ESTADO EM QUE SE ENCONTRA" (AS IS)
+O Software é fornecido "no estado em que se encontra" e "conforme disponível",
+sem garantias de qualquer tipo, expressas ou implícitas.
+• Por se tratar de uma versão de testes Alpha, o programa pode conter instabilidades
+  ou fechamentos inesperados.
+• Recomendamos que você salve seus arquivos e faça backups regulares do seu trabalho.
+
+4. LIMITAÇÃO DE RESPONSABILIDADE
+Na extensão máxima permitida pela lei aplicável, os desenvolvedores do Lumenia
+não serão responsáveis por quaisquer danos diretos, indiretos, incidentais ou por
+perda de dados decorrentes do uso ou incapacidade de uso deste software. Sob qualquer
+circunstância, a responsabilidade máxima limita-se ao valor pago pelo software.
+
+5. PRIVACIDADE E TELEMETRIA
+O aplicativo desktop funciona 100% offline, não coleta dados pessoais identificáveis
+e não transmite arquivos do seu computador. O envio de relatórios de feedback é
+totalmente voluntário.
+
+6. ATUALIZAÇÕES
+Os desenvolvedores reservam-se o direito de atualizar, aprimorar ou modificar
+recursos em versões futuras.
+
+
+================================================================================
+ 🇺🇸 ENGLISH VERSION (EN)
+================================================================================
+
+1. LICENSE GRANT
+Lumenia Team grants you a non-exclusive, non-transferable license to use this 
+Alpha build of the Software for personal, educational, and commercial creative work.
+
+2. USER ARTWORK & INTELLECTUAL PROPERTY (100% YOURS)
+• Full Ownership: You retain 100% full copyright, ownership, and commercial rights 
+  to any artwork, illustrations, designs, or content you create using Lumenia.
+• Zero Data Harvesting: Lumenia does NOT collect, upload, inspect, or use your 
+  artwork to train artificial intelligence models or algorithms.
+
+3. ALPHA SOFTWARE — "AS IS" DISCLAIMER
+The Software is provided "AS IS" and "AS AVAILABLE", without warranty of any kind, 
+either express or implied, including but not limited to fitness for a particular 
+purpose or non-infringement.
+• Because this Software is currently in an Alpha stage of development, it may 
+  contain bugs, crashes, or unintended behaviors.
+• You are strongly advised to regularly save and backup your creative work and files.
+
+4. LIMITATION OF LIABILITY
+To the maximum extent permitted by applicable international law, in no event 
+shall the developer(s) of Lumenia be liable for any direct, indirect, incidental, 
+special, consequential, or punitive damages (including, without limitation, loss 
+of data, loss of profits, or business interruption) arising out of the use or 
+inability to use this Software.
+Under any circumstances, the developer's maximum liability shall not exceed the 
+amount actually paid by you for this Software.
+
+5. PRIVACY & TELEMETRY
+Lumenia respects your privacy. The standalone desktop application does NOT collect 
+personally identifiable information (PII) or transmit system files. Any telemetry 
+diagnostics are strictly local/offline, and feedback submitted via the optional 
+feedback form is 100% voluntary.
+
+6. MODIFICATIONS & UPDATES
+The developer reserves the right to update, modify, or enhance features in 
+future releases of the Software.
+
+================================================================================
+                          Lumenia Team / ALADYN Engine
+                        Contact: lumeniateam@protonmail.com
+================================================================================

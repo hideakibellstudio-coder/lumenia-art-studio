@@ -41,11 +41,23 @@ def main():
     if result.wasSuccessful():
         print(f" 🟢 [OK] TODOS OS TESTES PASSARAM COM SUCESSO! ({result.testsRun} testes executados)")
         print("=" * 75)
-        sys.exit(0)
+        try:
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app:
+                app.closeAllWindows()
+                app.processEvents()
+        except Exception:
+            pass
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)
     else:
         print(f" 🔴 [FALHA] ENCONTRADOS ERROS NOS TESTES! ({len(result.failures)} falhas, {len(result.errors)} erros)")
         print("=" * 75)
-        sys.exit(1)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
 
 
 if __name__ == "__main__":

@@ -25,20 +25,24 @@ class CanvasSizeDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
     def _build_ui(self):
         # Informações atuais
-        curr_lbl = QtWidgets.QLabel(f"{tr('dialogs.current_dimensions', 'Dimensões Atuais')}: {self.orig_w} × {self.orig_h} px")
-        curr_lbl.setStyleSheet("color: #9ca3af; font-size: 12px;")
-        self.content_layout.addWidget(curr_lbl)
+        self.curr_lbl = QtWidgets.QLabel(f"{tr('dialogs.current_dimensions', 'Dimensões Atuais')}: {self.orig_w} × {self.orig_h} px")
+        self.curr_lbl.setProperty("muted", "true")
+        self.content_layout.addWidget(self.curr_lbl)
 
         # Formulário de Novas Dimensões
-        form_group = QtWidgets.QGroupBox(tr("dialogs.new_dimensions", "Novas Dimensões"))
-        form_layout = QtWidgets.QGridLayout(form_group)
+        self.form_group = QtWidgets.QGroupBox(tr("dialogs.new_dimensions", "Novas Dimensões"))
+        form_layout = QtWidgets.QGridLayout(self.form_group)
         form_layout.setContentsMargins(14, 14, 14, 14)
         form_layout.setSpacing(10)
 
         # Largura
-        form_layout.addWidget(QtWidgets.QLabel(f"{tr('dialogs.width', 'Largura')}:"), 0, 0)
+        self.lbl_w = QtWidgets.QLabel(f"{tr('dialogs.width', 'Largura')}:")
+        form_layout.addWidget(self.lbl_w, 0, 0)
         self.width_spin = QtWidgets.QSpinBox()
         self.width_spin.setRange(1, 32000)
         self.width_spin.setValue(self.orig_w)
@@ -47,7 +51,8 @@ class CanvasSizeDialog(BaseFramelessDialog):
         form_layout.addWidget(self.width_spin, 0, 1)
 
         # Altura
-        form_layout.addWidget(QtWidgets.QLabel(f"{tr('dialogs.height', 'Altura')}:"), 1, 0)
+        self.lbl_h = QtWidgets.QLabel(f"{tr('dialogs.height', 'Altura')}:")
+        form_layout.addWidget(self.lbl_h, 1, 0)
         self.height_spin = QtWidgets.QSpinBox()
         self.height_spin.setRange(1, 32000)
         self.height_spin.setValue(self.orig_h)
@@ -60,12 +65,12 @@ class CanvasSizeDialog(BaseFramelessDialog):
         self.ratio_check.setChecked(True)
         form_layout.addWidget(self.ratio_check, 2, 0, 1, 2)
 
-        self.content_layout.addWidget(form_group)
+        self.content_layout.addWidget(self.form_group)
 
         if not self.is_image_resize:
             # Ponto de Ancoragem para Canvas
-            anchor_group = QtWidgets.QGroupBox(tr("dialogs.anchor", "Âncora de Expansão"))
-            anchor_layout = QtWidgets.QGridLayout(anchor_group)
+            self.anchor_group = QtWidgets.QGroupBox(tr("dialogs.anchor", "Âncora de Expansão"))
+            anchor_layout = QtWidgets.QGridLayout(self.anchor_group)
             anchor_layout.setContentsMargins(14, 14, 14, 14)
             anchor_layout.setSpacing(6)
 
@@ -86,11 +91,11 @@ class CanvasSizeDialog(BaseFramelessDialog):
                     row_btns.append(btn)
                 self.anchor_buttons.append(row_btns)
 
-            self.content_layout.addWidget(anchor_group)
+            self.content_layout.addWidget(self.anchor_group)
         else:
             # Modo de Reamostragem para Imagem
-            resample_group = QtWidgets.QGroupBox(tr("dialogs.interpolation", "Qualidade de Interpolação"))
-            resample_layout = QtWidgets.QVBoxLayout(resample_group)
+            self.resample_group = QtWidgets.QGroupBox(tr("dialogs.interpolation", "Qualidade de Interpolação"))
+            resample_layout = QtWidgets.QVBoxLayout(self.resample_group)
             resample_layout.setContentsMargins(14, 14, 14, 14)
             self.resample_combo = QtWidgets.QComboBox()
             self.resample_combo.addItems([
@@ -99,7 +104,7 @@ class CanvasSizeDialog(BaseFramelessDialog):
                 tr("dialogs.resample_nearest", "Nearest Neighbor (Pixel Art / Nítido)")
             ])
             resample_layout.addWidget(self.resample_combo)
-            self.content_layout.addWidget(resample_group)
+            self.content_layout.addWidget(self.resample_group)
 
         self.content_layout.addStretch()
 
@@ -113,12 +118,50 @@ class CanvasSizeDialog(BaseFramelessDialog):
         btn_box.addWidget(self.btn_cancel)
 
         self.btn_apply = QtWidgets.QPushButton(tr("dialogs.resize_btn", "Redimensionar"))
+        self.btn_apply.setObjectName("accentButton")
         self.btn_apply.setDefault(True)
-        self.btn_apply.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
         self.btn_apply.clicked.connect(self.accept)
         btn_box.addWidget(self.btn_apply)
 
         self.content_layout.addLayout(btn_box)
+
+    def retranslate_ui(self) -> None:
+        title = tr("menu.image.image_size", "Redimensionar Imagem") if self.is_image_resize else tr("menu.image.canvas_size", "Tamanho do Canvas")
+        self.setWindowTitle(title)
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(title)
+
+        if hasattr(self, "curr_lbl"):
+            self.curr_lbl.setText(f"{tr('dialogs.current_dimensions', 'Dimensões Atuais')}: {self.orig_w} × {self.orig_h} px")
+        if hasattr(self, "form_group"):
+            self.form_group.setTitle(tr("dialogs.new_dimensions", "Novas Dimensões"))
+        if hasattr(self, "lbl_w"):
+            self.lbl_w.setText(f"{tr('dialogs.width', 'Largura')}:")
+        if hasattr(self, "lbl_h"):
+            self.lbl_h.setText(f"{tr('dialogs.height', 'Altura')}:")
+        if hasattr(self, "ratio_check"):
+            self.ratio_check.setText(tr("dialogs.keep_proportions", "Manter proporções"))
+
+        if hasattr(self, "anchor_group"):
+            self.anchor_group.setTitle(tr("dialogs.anchor", "Âncora de Expansão"))
+        if hasattr(self, "resample_group"):
+            self.resample_group.setTitle(tr("dialogs.interpolation", "Qualidade de Interpolação"))
+        if hasattr(self, "resample_combo"):
+            idx = max(0, self.resample_combo.currentIndex())
+            self.resample_combo.blockSignals(True)
+            self.resample_combo.clear()
+            self.resample_combo.addItems([
+                tr("dialogs.resample_bilinear", "Bilinear (Padrão - Equilibrado)"),
+                tr("dialogs.resample_bicubic", "Bicúbico (Suave - Alta Qualidade)"),
+                tr("dialogs.resample_nearest", "Nearest Neighbor (Pixel Art / Nítido)")
+            ])
+            self.resample_combo.setCurrentIndex(idx)
+            self.resample_combo.blockSignals(False)
+
+        if hasattr(self, "btn_cancel"):
+            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        if hasattr(self, "btn_apply"):
+            self.btn_apply.setText(tr("dialogs.resize_btn", "Redimensionar"))
 
     def _select_anchor(self, row: int, col: int):
         self.selected_anchor = (row, col)

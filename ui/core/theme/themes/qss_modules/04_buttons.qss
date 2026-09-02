@@ -36,6 +36,29 @@ QPushButton#accentButton:hover, QDialogButtonBox QPushButton[text="OK"]:hover, Q
     background-color: @ACCENT_HOVER;
 }
 
+/* Botões de Sucesso e Perigo */
+QPushButton#successButton, QToolButton#successButton {
+    background-color: @SUCCESS;
+    color: #000000;
+    font-weight: bold;
+    border: none;
+    border-radius: @RADIUS_SMALL;
+    padding: 2px 8px;
+}
+
+QPushButton#dangerButton, QToolButton#dangerButton {
+    background-color: @DANGER;
+    color: #ffffff;
+    font-weight: bold;
+    border: none;
+    border-radius: @RADIUS_SMALL;
+    padding: 2px 8px;
+}
+
+QPushButton#dangerButton:hover, QToolButton#dangerButton:hover {
+    background-color: @DANGER_HOVER;
+}
+
 /* ================================================================
    Botões de Ferramenta (QToolButton) - Comuns em Toolbars e Painéis
    ================================================================ */

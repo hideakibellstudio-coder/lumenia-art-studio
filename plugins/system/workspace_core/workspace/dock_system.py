@@ -146,15 +146,16 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self._hover_delay_ms = DELAY_MAP.get(delay, 350)
         self._update_anim_duration()
 
-        if self._auto_collapse:
-            # Se auto_collapse estiver ativo e o mouse não está sobre a sidebar, recolhe
-            if not self.sidebar.underMouse() and not self.is_open:
+        if self._auto_collapse or self.is_pinned:
+            # Se auto_collapse ou pin estiver ativo e o mouse não está sobre a sidebar, recolhe
+            if not self.sidebar.underMouse() and (not self.is_open or self.is_pinned):
                 self._do_collapse()
         else:
-            # Auto-recolhimento desligado → expande a sidebar e para timers
+            # Auto-recolhimento desligado e não pinada → expande a sidebar e para timers
             self._collapse_timer.stop()
             self._expand_timer.stop()
-            self._do_expand()
+            if self.sidebar.maximumWidth() == 0:
+                self._do_expand()
 
     def _update_anim_duration(self) -> None:
         self._sidebar_anim.setDuration(self._speed_ms)
@@ -256,7 +257,8 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         # Não recolhe se a gaveta despinada está aberta (o usuário está interagindo)
         if self.is_open and not self.is_pinned:
             return
-        if self._auto_collapse:
+        # Recolhe se auto_collapse ou is_pinned estiver ativo
+        if self._auto_collapse or self.is_pinned:
             if not self.sidebar.underMouse():
                 self._collapse_timer.start(self._speed_ms)
 
@@ -399,8 +401,9 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.resolve_state()
         self.drawer_closed.emit()
 
-        # Quando fecha a gaveta, só recolhe a sidebar se auto_collapse estiver explicitamente ativado
-        if self._auto_collapse and not self.sidebar.underMouse():
+        # Quando fecha a gaveta, avalia se deve recolher a sidebar:
+        # recolhe tanto no modo auto_collapse quanto quando a gaveta estava pinada
+        if (self._auto_collapse or self.is_pinned) and not self.sidebar.underMouse():
             self._collapse_timer.start(self._speed_ms)
 
     def set_pinned(self, pinned: bool) -> None:
@@ -408,6 +411,12 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.drawer_container.header.set_pinned(pinned)
         if self.is_open:
             self.resolve_state()
+        # Ao pinar: sidebar recolhe automaticamente para dar espaço ao painel inline
+        if pinned and not self.sidebar.underMouse():
+            self._do_collapse()
+        # Ao despinar: expande a sidebar de volta
+        elif not pinned:
+            self._do_expand()
 
     # ── Animação da Gaveta ────────────────────────────────────────────────
 
@@ -421,6 +430,8 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         current = self.drawer_container.maximumWidth()
         if current == self.DRAWER_WIDTH and self.drawer_container.width() == self.DRAWER_WIDTH:
             self.drawer_container.setMinimumWidth(self.DRAWER_WIDTH)
+            if not self.is_pinned:
+                self.update_unpinned_position()
             return
         self._drawer_anim.stop()
         self._drawer_anim.setStartValue(current)
@@ -455,6 +466,8 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         else:
             self.drawer_container.setMinimumWidth(self.DRAWER_WIDTH)
             self.drawer_container.setMaximumWidth(self.DRAWER_WIDTH)
+            if not self.is_pinned:
+                self.update_unpinned_position()
 
     def resolve_state(self) -> None:
         """
@@ -470,16 +483,21 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         target_parent = getattr(self._workspace, "workspace_area", self._workspace)
 
         if self.is_pinned:
-            self.drawer_container.setParent(self)
-            if self.side == "left":
-                self._outer_layout.insertWidget(1, self.drawer_container)
-            else:
-                self._outer_layout.insertWidget(0, self.drawer_container)
+            if self._outer_layout.indexOf(self.drawer_container) == -1:
+                self.drawer_container.setParent(self)
+                if self.side == "left":
+                    self._outer_layout.insertWidget(1, self.drawer_container)
+                else:
+                    self._outer_layout.insertWidget(0, self.drawer_container)
         else:
-            self._outer_layout.removeWidget(self.drawer_container)
+            if self._outer_layout.indexOf(self.drawer_container) != -1:
+                self._outer_layout.removeWidget(self.drawer_container)
             self.drawer_container.setParent(target_parent)
+            self.update_unpinned_position()
 
         self.open_drawer_anim()
+        if not self.is_pinned:
+            self.update_unpinned_position()
 
     def update_unpinned_position(self) -> None:
         """Posiciona a gaveta flutuante no workspace_area colada ao slot de 54px da sidebar."""

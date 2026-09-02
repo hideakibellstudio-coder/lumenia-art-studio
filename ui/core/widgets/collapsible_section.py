@@ -61,3 +61,6 @@ class CollapsibleSection(QtWidgets.QWidget):
 
     def add_layout(self, layout: QtWidgets.QLayout):
         self._content_layout.addLayout(layout)
+
+    def set_title(self, title: str):
+        self._title_lbl.setText(title)

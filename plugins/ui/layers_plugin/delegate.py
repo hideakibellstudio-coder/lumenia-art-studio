@@ -171,7 +171,7 @@ class LayerItemDelegate(QStyledItemDelegate):
 
         # 1. Clipping Mask Icon
         clip_rect = QRect(curr_x, icons_y, icon_dim, icon_dim)
-        clip_color = QColor("#10b981") if clip else QColor(text_muted)
+        clip_color = QColor(self.colors.get("SUCCESS", "#10b981")) if clip else QColor(text_muted)
         if not clip:
             painter.setOpacity(0.35)
         clip_icon = get_icon("clip-mask", clip_color.name())
@@ -181,7 +181,7 @@ class LayerItemDelegate(QStyledItemDelegate):
 
         # 2. Alpha Lock Icon
         alpha_rect = QRect(curr_x + 24, icons_y, icon_dim, icon_dim)
-        alpha_color = QColor("#f59e0b") if alpha_locked else QColor(text_muted)
+        alpha_color = QColor(self.colors.get("WARNING", "#f59e0b")) if alpha_locked else QColor(text_muted)
         if not alpha_locked:
             painter.setOpacity(0.35)
         alpha_icon = get_icon("alpha-lock", alpha_color.name())

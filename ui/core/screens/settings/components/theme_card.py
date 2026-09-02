@@ -77,10 +77,10 @@ class ThemeCard(QtWidgets.QFrame):
         name = meta.get("name") or self.theme_data.get("file", "Tema")
         author = meta.get("author", "Lumenia")
         self.name_label = QtWidgets.QLabel(name)
-        self.name_label.setStyleSheet("font-size: 12px; font-weight: bold;")
+        self.name_label.setProperty("heading", "true")
 
         self.author_label = QtWidgets.QLabel(f"por {author}")
-        self.author_label.setStyleSheet("font-size: 10px; color: #888888;")
+        self.author_label.setProperty("muted", "true")
 
         text_layout.addWidget(self.name_label)
         text_layout.addWidget(self.author_label)
@@ -96,10 +96,7 @@ class ThemeCard(QtWidgets.QFrame):
         right_box.addWidget(self.swatches)
 
         self.badge_label = QtWidgets.QLabel("ATIVO" if self.is_active else "")
-        self.badge_label.setStyleSheet(
-            "font-size: 9px; font-weight: bold; color: #ff5252; background: rgba(255,82,82,0.15); "
-            "padding: 1px 5px; border-radius: 4px;" if self.is_active else "color: transparent;"
-        )
+        self.badge_label.setProperty("accent", "true")
         right_box.addWidget(self.badge_label)
         layout.addLayout(right_box)
 
@@ -110,14 +107,22 @@ class ThemeCard(QtWidgets.QFrame):
     def set_active_state(self, is_active: bool):
         self.is_active = is_active
         self.badge_label.setText("ATIVO" if is_active else "")
-        self.badge_label.setStyleSheet(
-            "font-size: 9px; font-weight: bold; color: #ff5252; background: rgba(255,82,82,0.15); "
-            "padding: 1px 5px; border-radius: 4px;" if is_active else "color: transparent;"
-        )
         self.update_style()
 
     def update_style(self):
         tm = ThemeManager.instance()
+        accent = tm.get_color("accent")
+        accent_bg = tm.get_color("accent_muted")
+        text_sec = tm.get_color("text_sec")
+
+        self.author_label.setStyleSheet(f"font-size: 10px; color: {text_sec};")
+        if self.is_active:
+            self.badge_label.setStyleSheet(
+                f"font-size: 9px; font-weight: bold; color: {accent}; background: {accent_bg}; "
+                "padding: 1px 5px; border-radius: 4px;"
+            )
+        else:
+            self.badge_label.setStyleSheet("color: transparent; background: transparent;")
         border_color = tm.get_color("accent") if self.is_selected else tm.get_color("border")
         bg_color = tm.get_color("bg_card_hover") if self.is_selected else tm.get_color("bg_card")
         self.setStyleSheet(f"""

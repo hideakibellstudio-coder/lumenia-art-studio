@@ -26,7 +26,8 @@ class ThemeDialog(BaseFramelessDialog):
     """Gerenciador Visual Completo de Temas e Customizações de Interface."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Personalização de Interface & Temas", icon_name="palette", parent=parent, modal=True)
+        from ui.core.i18n import tr, I18nManager
+        super().__init__(title=tr("dialogs.theme_title", "Personalização de Interface & Temas"), icon_name="palette", parent=parent, modal=True)
         self.setObjectName("ThemeDialog")
         self.resize(820, 560)
 
@@ -40,6 +41,9 @@ class ThemeDialog(BaseFramelessDialog):
         self._setup_ui()
         self._apply_theme()
         self.theme_manager.themeChanged.connect(self._apply_theme)
+
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
 
     def _get_active_theme_data(self) -> dict:
         for t in self._available_themes:
@@ -112,13 +116,12 @@ class ThemeDialog(BaseFramelessDialog):
         title_box = QtWidgets.QVBoxLayout()
         title_box.setSpacing(2)
         self.lbl_insp_title = QtWidgets.QLabel("Dark Premium")
-        font = self.lbl_insp_title.font()
-        font.setPointSize(13)
-        font.setBold(True)
-        self.lbl_insp_title.setFont(font)
+        _title_font = QtGui.QFont("Segoe UI", 13)
+        _title_font.setBold(True)
+        self.lbl_insp_title.setFont(_title_font)
 
         self.lbl_insp_meta = QtWidgets.QLabel("TEMA ESCURO • por Lumenia")
-        self.lbl_insp_meta.setStyleSheet("color: #ff5252; font-size: 11px; font-weight: bold;")
+        self.lbl_insp_meta.setProperty("accent", "true")
 
         title_box.addWidget(self.lbl_insp_title)
         title_box.addWidget(self.lbl_insp_meta)
@@ -127,8 +130,8 @@ class ThemeDialog(BaseFramelessDialog):
         right_layout.addLayout(header_box)
 
         # Paleta de Cores do Tema
-        palette_group = QtWidgets.QGroupBox("Amostras da Paleta de Cores")
-        palette_layout = QtWidgets.QGridLayout(palette_group)
+        self.palette_group = QtWidgets.QGroupBox()
+        palette_layout = QtWidgets.QGridLayout(self.palette_group)
         palette_layout.setContentsMargins(12, 12, 12, 12)
         palette_layout.setSpacing(8)
 
@@ -147,8 +150,8 @@ class ThemeDialog(BaseFramelessDialog):
             col = (i % 2) * 2
 
             lbl = QtWidgets.QLabel(label)
-            lbl.setStyleSheet("font-size: 11px; color: #a1a1aa;")
-            palette_layout.addWidget(lbl, row, col)
+            lbl.setProperty("muted", "true")
+            lbl.setStyleSheet("font-size: 11px;")
 
             chip = QtWidgets.QLabel("#000000")
             chip.setFixedHeight(22)
@@ -157,33 +160,33 @@ class ThemeDialog(BaseFramelessDialog):
             palette_layout.addWidget(chip, row, col + 1)
             self.swatch_items[(k1, k2)] = chip
 
-        right_layout.addWidget(palette_group)
+        right_layout.addWidget(self.palette_group)
 
-        # Ajustes de Interface (UI Tweaks)
-        tweaks_group = QtWidgets.QGroupBox("Ajustes Globais de Geometria & Tipografia")
+        # Ajustes Finos (Geometria & Tipografia)
+        tweaks_group = QtWidgets.QGroupBox()
+        self.tweaks_group = tweaks_group
         tweaks_layout = QtWidgets.QVBoxLayout(tweaks_group)
-        tweaks_layout.setContentsMargins(12, 12, 12, 12)
+        tweaks_layout.setContentsMargins(14, 14, 14, 14)
         tweaks_layout.setSpacing(10)
 
         # Raio dos Cantos
         row_radius = QtWidgets.QHBoxLayout()
-        lbl_rad = QtWidgets.QLabel("Arredondamento dos Cantos:")
-        lbl_rad.setStyleSheet("font-size: 12px;")
+        self.lbl_rad = QtWidgets.QLabel()
+        self.lbl_rad.setStyleSheet("font-size: 12px;")
         self.combo_radius = QtWidgets.QComboBox()
-        self.combo_radius.addItems(["Compacto (4px)", "Padrão Studio (6px)", "Arredondado (8px)", "Ultra-Smooth (12px)"])
-        self.combo_radius.setCurrentIndex(1)
-        row_radius.addWidget(lbl_rad)
+        self.combo_radius.addItems(["Padrão do Tema", "Quadrado (0px)", "Suave (4px)", "Arredondado (8px)", "Cápsula (16px)"])
+        row_radius.addWidget(self.lbl_rad)
         row_radius.addStretch()
         row_radius.addWidget(self.combo_radius)
         tweaks_layout.addLayout(row_radius)
 
         # Família da Fonte
         row_font = QtWidgets.QHBoxLayout()
-        lbl_fnt = QtWidgets.QLabel("Família da Fonte da Interface:")
-        lbl_fnt.setStyleSheet("font-size: 12px;")
+        self.lbl_fnt = QtWidgets.QLabel()
+        self.lbl_fnt.setStyleSheet("font-size: 12px;")
         self.combo_font = QtWidgets.QComboBox()
         self.combo_font.addItems(["Segoe UI (Padrão Windows)", "Roboto / System", "Inter Display", "Helvetica / Arial"])
-        row_font.addWidget(lbl_fnt)
+        row_font.addWidget(self.lbl_fnt)
         row_font.addStretch()
         row_font.addWidget(self.combo_font)
         tweaks_layout.addLayout(row_font)
@@ -193,7 +196,7 @@ class ThemeDialog(BaseFramelessDialog):
 
         # Botões de Ação
         btn_box = QtWidgets.QHBoxLayout()
-        self.btn_apply = QtWidgets.QPushButton("Aplicar este Tema")
+        self.btn_apply = QtWidgets.QPushButton()
         self.btn_apply.setIcon(get_icon("check"))
         self.btn_apply.setFixedHeight(34)
         self.btn_apply.clicked.connect(self._on_apply_theme)
@@ -201,16 +204,85 @@ class ThemeDialog(BaseFramelessDialog):
 
         btn_box.addSpacing(8)
 
-        btn_close = QtWidgets.QPushButton("Fechar")
-        btn_close.setFixedHeight(34)
-        btn_close.clicked.connect(self.accept)
-        btn_box.addWidget(btn_close)
+        self.btn_close = QtWidgets.QPushButton()
+        self.btn_close.setFixedHeight(34)
+        self.btn_close.clicked.connect(self.accept)
+        btn_box.addWidget(self.btn_close)
 
         right_layout.addLayout(btn_box)
         cols_layout.addWidget(right_col, 1)
 
         self._build_cards()
         self._select_theme(self._selected_theme_data)
+
+    def retranslate_ui(self) -> None:
+        """Atualiza dinamicamente todos os textos deste diálogo quando o idioma muda."""
+        from ui.core.i18n import tr
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(tr("dialogs.theme_title", "Personalização de Interface & Temas"))
+
+        if hasattr(self, "search_box"):
+            self.search_box.setPlaceholderText(tr("dialogs.theme_search", "Buscar tema..."))
+
+        if hasattr(self, "palette_group"):
+            self.palette_group.setTitle(tr("dialogs.theme_swatches", "Amostras da Paleta de Cores"))
+        if hasattr(self, "btn_apply"):
+            self.btn_apply.setText(tr("dialogs.theme_apply", "Aplicar este Tema"))
+        if hasattr(self, "btn_close"):
+            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+
+        if hasattr(self, "combo_filter"):
+            cur_idx = max(0, self.combo_filter.currentIndex())
+            self.combo_filter.blockSignals(True)
+            self.combo_filter.clear()
+            items = [
+                tr("dialogs.theme_filter_all", "Todos os Temas"),
+                tr("dialogs.theme_filter_dark", "Temas Escuros (Dark)"),
+                tr("dialogs.theme_filter_light", "Temas Claros (Light)"),
+            ]
+            for label in items:
+                self.combo_filter.addItem(label)
+            self.combo_filter.setCurrentIndex(cur_idx)
+            self.combo_filter.blockSignals(False)
+
+        if hasattr(self, "tweaks_group"):
+            self.tweaks_group.setTitle(tr("dialogs.theme_tweaks", "Ajustes Finos (Geometria & Tipografia)"))
+
+        if hasattr(self, "lbl_rad"):
+            self.lbl_rad.setText(tr("dialogs.theme_radius", "Raio dos Cantos:"))
+
+        if hasattr(self, "lbl_fnt"):
+            self.lbl_fnt.setText(tr("dialogs.theme_font", "Família da Fonte:"))
+
+        if hasattr(self, "combo_radius"):
+            cur_r = max(0, self.combo_radius.currentIndex())
+            self.combo_radius.blockSignals(True)
+            self.combo_radius.clear()
+            self.combo_radius.addItems([
+                tr("dialogs.theme_rad_default", "Padrão do Tema"),
+                tr("dialogs.theme_rad_square", "Quadrado (0px)"),
+                tr("dialogs.theme_rad_soft", "Suave (4px)"),
+                tr("dialogs.theme_rad_rounded", "Arredondado (8px)"),
+                tr("dialogs.theme_rad_capsule", "Cápsula (16px)"),
+            ])
+            self.combo_radius.setCurrentIndex(cur_r)
+            self.combo_radius.blockSignals(False)
+
+        if hasattr(self, "combo_font"):
+            cur_f = max(0, self.combo_font.currentIndex())
+            self.combo_font.blockSignals(True)
+            self.combo_font.clear()
+            self.combo_font.addItems([
+                tr("dialogs.theme_font_segoe", "Segoe UI (Padrão Windows)"),
+                tr("dialogs.theme_font_roboto", "Roboto / System"),
+                tr("dialogs.theme_font_inter", "Inter Display"),
+                tr("dialogs.theme_font_helvetica", "Helvetica / Arial"),
+            ])
+            self.combo_font.setCurrentIndex(cur_f)
+            self.combo_font.blockSignals(False)
+
+        if hasattr(self, "_selected_theme_data"):
+            self._select_theme(self._selected_theme_data)
 
     def _build_cards(self):
         for card in self._cards:

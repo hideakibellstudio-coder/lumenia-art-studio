@@ -34,11 +34,9 @@ void StrokeOrchestrator::renderSegment(
     const double maxRadius = std::max(startDab.radius, endDab.radius);
     const double padding = maxRadius * 2.5 + 4.0;
 
-    const document::Layer* clipBaseLayer = activeLayer->isClippingMask()
-        ? layerStack.getClipBaseLayer(layerStack.getActiveIndex())
-        : nullptr;
-
-    const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), clipBaseLayer, &selectionMask, nullptr };
+    // Clipping Mask é 100% não-destrutivo: a grade de tiles armazena o traço completo.
+    // O recorte é aplicado dinamicamente pelo Compositor durante a renderização.
+    const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &selectionMask, nullptr };
 
     const auto interpolatedDabs = raster::DabInterpolator::interpolate(
         startDab, endDab, brushProfile.spacingFactor, distanceCarryover

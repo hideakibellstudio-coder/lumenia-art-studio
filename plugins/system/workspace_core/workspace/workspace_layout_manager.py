@@ -45,10 +45,6 @@ class WorkspaceLayoutMixin:
         if not hasattr(self, "floating_toolbar"):
             return
 
-        if not self.floating_toolbar.isVisible():
-            self.floating_toolbar.show()
-            self.floating_toolbar.raise_()
-
         state = self.floating_toolbar.dock_state or "snapped_bottom"
 
         if state in ("snapped_left", "snapped_right"):
@@ -64,8 +60,13 @@ class WorkspaceLayoutMixin:
         wa_w = self.workspace_area.width()
         wa_h = self.workspace_area.height()
 
-        tb_w = self.floating_toolbar.width()
-        tb_h = self.floating_toolbar.height()
+        if wa_w < 50 or wa_h < 50:
+            QtCore.QTimer.singleShot(100, self.update_toolbar_position)
+            return
+
+        self.floating_toolbar.adjustSize()
+        tb_w = max(60, self.floating_toolbar.width())
+        tb_h = max(36, self.floating_toolbar.height())
 
         margin_x, margin_y = 16, 12
 
@@ -86,7 +87,13 @@ class WorkspaceLayoutMixin:
         else:
             return
 
+        # Clamping de segurança para evitar coordenadas negativas ou fora da tela
+        gx = max(wa_global.x() + margin_x, min(wa_global.x() + wa_w - tb_w - margin_x, gx))
+        gy = max(wa_global.y() + margin_y, min(wa_global.y() + wa_h - tb_h - margin_y, gy))
+
         self.floating_toolbar.move(gx, gy)
+        if not self.floating_toolbar.isVisible():
+            self.floating_toolbar.show()
         self.floating_toolbar.raise_()
 
         if hasattr(self, "secondary_toolbar") and self.secondary_toolbar.isVisible():
@@ -159,8 +166,12 @@ class WorkspaceLayoutMixin:
         if not hasattr(self, "floating_toolbar"):
             return
 
+        from ui.core.tools import DEFAULT_TOOLS
         self.floating_toolbar.set_auto_collapse_speed(cfg.get("speed", "Rápido"))
-        self.floating_toolbar.visible_tool_ids = cfg.get("tools", [])
+        tools = cfg.get("tools", [])
+        if not tools:
+            tools = list(DEFAULT_TOOLS)
+        self.floating_toolbar.visible_tool_ids = tools
         self.floating_toolbar.rebuild_tools()
 
         if cfg.get("active", True):

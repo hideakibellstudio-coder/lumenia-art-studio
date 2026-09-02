@@ -2,7 +2,11 @@
 
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
-from .components.constants import GUIDE_NAMES, SYM_NAMES, GUIDE_TYPES, SYM_TYPES
+from ui.core.icons import get_icon
+from .components.constants import (
+    GUIDE_NAMES, SYM_NAMES, GUIDE_TYPES, SYM_TYPES,
+    get_guide_name, get_sym_name
+)
 from .components.geometry_selector import GeometrySelectorButton
 from .components.advanced_settings_dialog import AdvancedGeometryDialog
 
@@ -37,7 +41,9 @@ class GeometryPanel(QtWidgets.QWidget):
         header = QtWidgets.QHBoxLayout()
         header.setSpacing(6)
 
-        self.btn_advanced = QtWidgets.QPushButton("⚙")
+        self.btn_advanced = QtWidgets.QPushButton()
+        self.btn_advanced.setIcon(get_icon("settings"))
+        self.btn_advanced.setIconSize(QtCore.QSize(18, 18))
         self.btn_advanced.setFixedSize(34, 34)
         self.btn_advanced.setToolTip(tr("geometry.advanced_settings", "Configurações Avançadas de Simetria e Réguas"))
         self.btn_advanced.clicked.connect(self._toggle_advanced)
@@ -83,6 +89,7 @@ class GeometryPanel(QtWidgets.QWidget):
             self.btn_center_pivot.setText(f"🎯 {tr('geometry.center_pivot', 'Centralizar Pivô no Canvas')}")
         if hasattr(self, "btn_reset_angle"):
             self.btn_reset_angle.setText(f"🔄 {tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)')}")
+        self._update_status()
 
     def _apply_theme(self, *args):
         tm = ThemeManager.instance()
@@ -94,10 +101,11 @@ class GeometryPanel(QtWidgets.QWidget):
         text_sec = tm.get_color("text_sec", "#9ca3af")
         bg_hover = tm.get_color("accent_muted", "#4f46e5")
 
+        self.btn_advanced.setIcon(get_icon("settings", color=accent))
         self.btn_advanced.setStyleSheet(f"""
             QPushButton {{
-                background: {bg_panel}; color: {accent}; border: 1px solid {border};
-                border-radius: 6px; font-size: 16px; font-weight: bold;
+                background: {bg_panel}; border: 1px solid {border};
+                border-radius: 6px;
             }}
             QPushButton:hover {{ background: {bg_hover}; border-color: {accent}; }}
         """)
@@ -165,21 +173,24 @@ class GeometryPanel(QtWidgets.QWidget):
         self._sync_to_render_widget()
 
     def _update_status(self):
-        r_name = GUIDE_NAMES[self.state["ruler_idx"]]
-        s_name = SYM_NAMES[self.state["sym_idx"]]
+        from ui.core.i18n import tr
+        r_name = get_guide_name(self.state["ruler_idx"])
+        s_name = get_sym_name(self.state["sym_idx"])
 
         lines = []
         if self.state["sym_type"] != "none":
-            lines.append(f"🪞 <b>Simetria:</b> {s_name}")
+            lbl_sym = tr("geometry.symmetry_label", "Simetria")
+            lines.append(f"🪞 <b>{lbl_sym}:</b> {s_name}")
         if self.state["ruler_type"] != "none":
-            lines.append(f"📏 <b>Régua:</b> {r_name}")
+            lbl_ruler = tr("geometry.ruler_label", "Régua")
+            lines.append(f"📏 <b>{lbl_ruler}:</b> {r_name}")
 
         tm = ThemeManager.instance()
         accent = tm.get_color("accent", "#6366f1")
         text_sec = tm.get_color("text_sec", "#9ca3af")
 
         if not lines:
-            self.lbl_status.setText("Selecione um modo de régua ou simetria acima para iniciar o desenho assistido.")
+            self.lbl_status.setText(tr("geometry.status_idle", "Selecione um modo de régua ou simetria acima para iniciar o desenho assistido."))
             self.lbl_status.setStyleSheet(f"color: {text_sec}; margin: 8px 0;")
             self.btn_center_pivot.setVisible(False)
             self.btn_reset_angle.setVisible(False)

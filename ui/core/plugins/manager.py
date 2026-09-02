@@ -35,10 +35,14 @@ class PluginManager:
 
     def __init__(self, plugins_dir: str | None = None) -> None:
         if plugins_dir is None:
-            self.plugins_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-                "plugins",
-            )
+            candidate_dirs = [
+                os.path.join(os.path.dirname(sys.executable), "plugins"),
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                    "plugins",
+                ),
+            ]
+            self.plugins_dir = next((d for d in candidate_dirs if os.path.isdir(d)), candidate_dirs[0])
         else:
             self.plugins_dir = plugins_dir
 
@@ -128,16 +132,35 @@ class PluginManager:
                 if plugin_dir not in sys.path:
                     sys.path.insert(0, plugin_dir)
 
-                safe_mod_name = f"_plugin_{module_name.replace('-', '_')}"
-                spec = importlib.util.spec_from_file_location(safe_mod_name, file_path)
-                if spec and spec.loader:
-                    if file_path.endswith("__init__.py"):
-                        spec.submodule_search_locations = [plugin_dir]
-                    module = importlib.util.module_from_spec(spec)
-                    module.__package__ = safe_mod_name
-                    sys.modules[safe_mod_name] = module
-                    spec.loader.exec_module(module)
+                # 1. Tentar importar canonicamente como submódulo do pacote 'plugins'
+                rel_path = os.path.relpath(file_path, os.path.dirname(self.plugins_dir))
+                parts = os.path.splitext(rel_path)[0].replace("\\", "/").split("/")
+                if parts[-1] == "__init__":
+                    parts = parts[:-1]
+                canonical_pkg = ".".join(parts)
 
+                module = None
+                try:
+                    module = importlib.import_module(canonical_pkg)
+                except Exception:
+                    pass
+
+                # 2. Fallback: carregar via spec_from_file_location com submódulos registrados
+                if module is None:
+                    safe_mod_name = f"_plugin_{module_name.replace('-', '_')}"
+                    sub_locations = [plugin_dir] if file_path.endswith("__init__.py") else None
+                    spec = importlib.util.spec_from_file_location(
+                        safe_mod_name, file_path, submodule_search_locations=sub_locations
+                    )
+                    if spec and spec.loader:
+                        module = importlib.util.module_from_spec(spec)
+                        if sub_locations:
+                            module.__path__ = sub_locations
+                        module.__package__ = safe_mod_name
+                        sys.modules[safe_mod_name] = module
+                        spec.loader.exec_module(module)
+
+                if module:
                     for attr_name in dir(module):
                         attr = getattr(module, attr_name)
                         if (

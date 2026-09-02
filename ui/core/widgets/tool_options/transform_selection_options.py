@@ -28,7 +28,7 @@ class TransformOptionsWidget(QtWidgets.QWidget):
         row_mode.setContentsMargins(0, 0, 0, 0)
         row_mode.setSpacing(4)
         self.lbl_m = QtWidgets.QLabel(f"{tr('tools.selection_mode', 'Modo')}:")
-        self.lbl_m.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_m.setProperty("muted", "true")
         self.combo_mode = QtWidgets.QComboBox()
         self.combo_mode.addItems([
             tr("tools.transform_free", "Livre"),
@@ -36,7 +36,6 @@ class TransformOptionsWidget(QtWidgets.QWidget):
             tr("tools.transform_distort", "Distorcer")
         ])
         self.combo_mode.setFixedHeight(22)
-        self.combo_mode.setStyleSheet("font-size: 10px; padding: 1px 4px;")
         row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)
@@ -77,7 +76,7 @@ class SelectionOptionsWidget(QtWidgets.QWidget):
         row_mode.setContentsMargins(0, 0, 0, 0)
         row_mode.setSpacing(4)
         self.lbl_m = QtWidgets.QLabel(f"{tr('tools.selection_mode', 'Modo')}:")
-        self.lbl_m.setStyleSheet("font-size: 10px; color: #a1a1aa;")
+        self.lbl_m.setProperty("muted", "true")
         self.combo_mode = QtWidgets.QComboBox()
         self.combo_mode.addItems([
             tr("tools.mode_new", "Nova"),
@@ -86,7 +85,6 @@ class SelectionOptionsWidget(QtWidgets.QWidget):
             tr("tools.mode_intersect", "Interseção")
         ])
         self.combo_mode.setFixedHeight(22)
-        self.combo_mode.setStyleSheet("font-size: 10px; padding: 1px 4px;")
         row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)

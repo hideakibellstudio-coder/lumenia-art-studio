@@ -14,12 +14,13 @@ class ToolCursorRenderer:
 
     @staticmethod
     def get_cursor_settings() -> dict:
-        settings = QtCore.QSettings("Aladyn", "Lumenia")
+        from ui.core.config import ConfigManager
+        sec = ConfigManager.instance().get_section("cursor")
         return {
-            "mode": settings.value("cursor/mode", "ring_and_dot"),
-            "hide_on_stroke": settings.value("cursor/hide_on_stroke", "false").lower() in ("true", "1"),
-            "show_crosshair": settings.value("cursor/show_crosshair", "false").lower() in ("true", "1"),
-            "ring_opacity": float(settings.value("cursor/ring_opacity", 0.9)),
+            "mode": sec.get("mode", "ring_and_dot"),
+            "hide_on_stroke": sec.get("hide_on_stroke", False),
+            "show_crosshair": sec.get("show_crosshair", False),
+            "ring_opacity": float(sec.get("ring_opacity", 0.9)),
         }
 
     @staticmethod

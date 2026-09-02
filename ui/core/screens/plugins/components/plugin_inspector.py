@@ -101,16 +101,23 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         self.lbl_deps = QtWidgets.QLabel()
         self.lbl_deps.setWordWrap(True)
 
-        props_form.addRow("ID Único:", self.lbl_id)
-        props_form.addRow("Caminho:", self.lbl_path)
-        props_form.addRow("Tipo:", self.lbl_type)
-        props_form.addRow("Prioridade:", self.lbl_priority)
-        props_form.addRow("Dependências:", self.lbl_deps)
+        self.lbl_id_title = QtWidgets.QLabel("Identificador:")
+        self.lbl_path_title = QtWidgets.QLabel("Caminho:")
+        self.lbl_type_title = QtWidgets.QLabel("Tipo:")
+        self.lbl_priority_title = QtWidgets.QLabel("Prioridade:")
+        self.lbl_deps_title = QtWidgets.QLabel("Dependências:")
+
+        props_form.addRow(self.lbl_id_title, self.lbl_id)
+        props_form.addRow(self.lbl_path_title, self.lbl_path)
+        props_form.addRow(self.lbl_type_title, self.lbl_type)
+        props_form.addRow(self.lbl_priority_title, self.lbl_priority)
+        props_form.addRow(self.lbl_deps_title, self.lbl_deps)
 
         det_layout.addLayout(props_form)
 
         # Descrição Completa
-        det_layout.addWidget(QtWidgets.QLabel("Descrição Completa:"))
+        self.lbl_desc_title = QtWidgets.QLabel("Descrição Completa:")
+        det_layout.addWidget(self.lbl_desc_title)
         self.txt_desc = QtWidgets.QTextEdit()
         self.txt_desc.setReadOnly(True)
         self.txt_desc.setFixedHeight(85)
@@ -150,8 +157,32 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         layout.addWidget(self.scroll_area)
         self.scroll_area.hide()
 
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "empty_label"):
+            self.empty_label.setText(tr("plugins.select_plugin", "Selecione um plugin na lista ao lado para visualizar os detalhes."))
+        if hasattr(self, "btn_config"):
+            self.btn_config.setText(f" {tr('plugins.configure', 'Configurações')}")
+        if hasattr(self, "btn_delete"):
+            self.btn_delete.setText(f" {tr('plugins.uninstall', 'Desinstalar Plugin')}")
+        if hasattr(self, "lbl_id_title"):
+            self.lbl_id_title.setText(tr("plugins.id", "Identificador:"))
+        if hasattr(self, "lbl_path_title"):
+            self.lbl_path_title.setText(tr("plugins.path", "Caminho no Disco:"))
+        if hasattr(self, "lbl_type_title"):
+            self.lbl_type_title.setText(tr("plugins.type", "Tipo de Plugin:"))
+        if hasattr(self, "lbl_priority_title"):
+            self.lbl_priority_title.setText(tr("plugins.priority", "Prioridade:"))
+        if hasattr(self, "lbl_deps_title"):
+            self.lbl_deps_title.setText(tr("plugins.deps", "Dependências:"))
+        if hasattr(self, "lbl_desc_title"):
+            self.lbl_desc_title.setText(tr("plugins.desc", "Descrição:"))
+        if hasattr(self, "current_plugin") and self.current_plugin:
+            self.set_plugin(self.current_plugin, getattr(self, "_is_active", False))
+
     def set_plugin(self, plugin, is_active: bool) -> None:
         self.current_plugin = plugin
+        self._is_active = is_active
         if not plugin:
             self.empty_label.show()
             self.scroll_area.hide()
@@ -170,11 +201,11 @@ class PluginDetailsInspector(QtWidgets.QFrame):
 
         try:
             meta = plugin.get_metadata()
-            p_id = str(meta.id)
-            p_name = str(meta.name)
-            p_version = str(meta.version)
-            p_author = str(meta.author)
-            p_desc = str(meta.description)
+            p_id = meta.id if hasattr(meta, "id") and meta.id else class_name
+            p_name = meta.name
+            p_version = meta.version
+            p_author = meta.author
+            p_desc = meta.description
             if hasattr(meta, "plugin_type"):
                 pt = meta.plugin_type
                 if hasattr(pt, "name"):
@@ -218,18 +249,19 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         self.lbl_deps.setText(p_deps)
         self.txt_desc.setText(p_desc)
 
+        from ui.core.i18n import tr
         if is_system:
-            self.btn_toggle.setText(" Sistema")
+            self.btn_toggle.setText(f" {tr('plugins.filter_system', 'Sistema')}")
             self.btn_toggle.setIcon(get_icon("lock", "#9ca3af"))
             self.btn_toggle.setEnabled(False)
             self.btn_toggle.setProperty("btn_type", "system")
         elif is_active:
-            self.btn_toggle.setText(" Desativar")
+            self.btn_toggle.setText(f" {tr('plugins.deactivate', 'Desativar')}")
             self.btn_toggle.setIcon(get_icon("power", "#ffffff"))
             self.btn_toggle.setEnabled(True)
             self.btn_toggle.setProperty("btn_type", "deactivate")
         else:
-            self.btn_toggle.setText(" Ativar")
+            self.btn_toggle.setText(f" {tr('plugins.activate', 'Ativar')}")
             self.btn_toggle.setIcon(get_icon("power", "#ffffff"))
             self.btn_toggle.setEnabled(True)
             self.btn_toggle.setProperty("btn_type", "activate")
@@ -276,10 +308,16 @@ class PluginDetailsInspector(QtWidgets.QFrame):
     def update_theme_style(self, *args) -> None:
         theme = ThemeManager.instance()
         bg_panel = theme.get_color("bg_panel", "#1e1e24")
+        bg_card = theme.get_color("bg_card", "#1e1e24")
+        bg_input = theme.get_color("bg_input", "#121214")
         border = theme.get_color("border", "#2e2e38")
         text_main = theme.get_color("text_main", "#f3f4f6")
-        text_sec = theme.get_color("text_sec", "#9ca3af")
+        text_sec = theme.get_color("text_sec", "#94a3b8")
         accent = theme.get_color("accent", "#6366f1")
+        accent_hover = theme.get_color("accent_hover", "#4f46e5")
+        danger = theme.get_color("danger", "#ef4444")
+        danger_hover = theme.get_color("danger_hover", "#dc2626")
+        success = theme.get_color("success", "#10b981")
 
         self.setStyleSheet(f"""
             PluginDetailsInspector {{
@@ -289,7 +327,7 @@ class PluginDetailsInspector(QtWidgets.QFrame):
             }}
             QLabel {{ color: {text_main}; }}
             QTextEdit {{
-                background-color: rgba(0, 0, 0, 0.15);
+                background-color: {bg_input};
                 border: 1px solid {border};
                 border-radius: 4px;
                 color: {text_main};
@@ -299,33 +337,37 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         self.empty_label.setStyleSheet(f"color: {text_sec}; font-size: 13px;")
         self.sep.setStyleSheet(f"background-color: {border}; max-height: 1px;")
 
-        self.btn_toggle.setStyleSheet("""
-            QPushButton[btn_type="activate"] {
-                background-color: #10b981; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
-            }
-            QPushButton[btn_type="activate"]:hover { background-color: #059669; }
-            QPushButton[btn_type="deactivate"] {
-                background-color: #3b82f6; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
-            }
-            QPushButton[btn_type="deactivate"]:hover { background-color: #2563eb; }
-            QPushButton[btn_type="system"] {
-                background-color: rgba(255, 255, 255, 0.08); color: #9ca3af; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
-            }
+        for lbl in [getattr(self, a, None) for a in ["lbl_id_title", "lbl_path_title", "lbl_type_title", "lbl_priority_title", "lbl_deps_title", "lbl_desc_title"]]:
+            if lbl:
+                lbl.setStyleSheet(f"color: {text_sec}; font-size: 11px; font-weight: 500;")
+
+        self.btn_toggle.setStyleSheet(f"""
+            QPushButton[btn_type="activate"] {{
+                background-color: {success}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+            }}
+            QPushButton[btn_type="activate"]:hover {{ background-color: #059669; }}
+            QPushButton[btn_type="deactivate"] {{
+                background-color: {accent}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+            }}
+            QPushButton[btn_type="deactivate"]:hover {{ background-color: {accent_hover}; }}
+            QPushButton[btn_type="system"] {{
+                background-color: {bg_card}; color: {text_sec}; border: 1px solid {border}; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+            }}
         """)
 
         self.btn_config.setStyleSheet(f"""
             QPushButton {{
                 background-color: {accent}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
             }}
-            QPushButton:hover {{ background-color: #4f46e5; }}
+            QPushButton:hover {{ background-color: {accent_hover}; }}
         """)
 
-        self.btn_delete.setStyleSheet("""
-            QPushButton {
-                background-color: #ef4444; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
-            }
-            QPushButton:hover { background-color: #dc2626; }
-            QPushButton:disabled {
-                background-color: rgba(239, 68, 68, 0.15); color: rgba(239, 68, 68, 0.35); border: 1px solid rgba(239, 68, 68, 0.2);
-            }
+        self.btn_delete.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {danger}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+            }}
+            QPushButton:hover {{ background-color: {danger_hover}; }}
+            QPushButton:disabled {{
+                background-color: {bg_card}; color: {text_sec}; border: 1px solid {border};
+            }}
         """)

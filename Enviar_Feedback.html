@@ -3,18 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumenia — Relatório de Teste Alpha</title>
+    <title id="pageTitle">Lumenia — Relatório Completo de Teste Alpha</title>
     <style>
         :root {
-            --bg-darkest: #13111c;
-            --bg-card: #1c1829;
-            --bg-input: #262137;
-            --border: #382f50;
+            --bg-darkest: #0f0d17;
+            --bg-panel: #161324;
+            --bg-card: #1d1930;
+            --bg-input: #27223f;
+            --border: #3b325c;
+            --border-light: #524580;
             --accent: #9333ea;
             --accent-hover: #a855f7;
             --accent-glow: #c084fc;
+            --accent-subtle: rgba(147, 51, 234, 0.15);
             --text-main: #f4f4f8;
-            --text-muted: #a1a1aa;
+            --text-sec: #c4b5fd;
+            --text-muted: #9ca3af;
             --success: #10b981;
         }
 
@@ -22,85 +26,163 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
         }
 
         body {
-            background-color: var(--bg-darkest);
+            background: radial-gradient(circle at top center, #1f1838 0%, var(--bg-darkest) 100%);
             color: var(--text-main);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
-            padding: 24px 16px;
+            padding: 32px 16px;
         }
 
         .container {
-            background-color: var(--bg-card);
+            background-color: var(--bg-panel);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 20px;
             width: 100%;
-            max-width: 680px;
-            padding: 36px 32px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            max-width: 860px;
+            padding: 40px 36px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
         }
 
+        /* Header */
         .header {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 24px;
+            gap: 20px;
+            margin-bottom: 28px;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 20px;
+            padding-bottom: 24px;
+            flex-wrap: wrap;
         }
 
-        .header-icon {
-            font-size: 40px;
-            line-height: 1;
+        .header-logo {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #7e22ce, #9333ea, #c084fc);
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.4);
+            flex-shrink: 0;
         }
 
-        .header-title h1 {
-            font-size: 24px;
+        .header-text h1 {
+            font-size: 28px;
             font-weight: 800;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             color: #ffffff;
         }
 
-        .header-title p {
-            font-size: 13px;
+        .header-text p {
+            font-size: 14px;
             color: var(--accent-glow);
             font-weight: 500;
-            margin-top: 2px;
+            margin-top: 4px;
+        }
+
+        .header-controls {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .lang-selector-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 4px 10px;
+        }
+
+        .lang-selector-wrap select {
+            background: transparent;
+            border: none;
+            color: var(--text-sec);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 6px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .lang-selector-wrap select option {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+        }
+
+        .header-badge {
+            background-color: var(--accent-subtle);
+            border: 1px solid var(--border-light);
+            color: var(--text-sec);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* Sections */
+        .card-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .section-icon {
+            font-size: 20px;
         }
 
         .section-title {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 700;
             color: #ffffff;
-            margin: 20px 0 12px 0;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.5px;
         }
 
-        .form-grid {
+        /* Form Controls */
+        .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
         }
 
         .form-group {
             margin-bottom: 14px;
         }
 
-        .form-group.full-width {
-            grid-column: span 2;
-        }
-
         label {
             display: block;
             font-size: 12px;
             font-weight: 600;
-            color: var(--text-muted);
+            color: var(--text-sec);
             margin-bottom: 6px;
         }
 
@@ -113,341 +195,1401 @@
             padding: 10px 14px;
             font-size: 13px;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: all 0.2s ease;
         }
 
         input[type="text"]:focus, input[type="email"]:focus, select:focus, textarea:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.25);
+            box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.3);
+            background-color: #2e284b;
         }
 
         textarea {
             resize: vertical;
-            min-height: 90px;
+            min-height: 85px;
         }
 
-        /* Ratings Table */
-        .rating-group {
-            background-color: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border);
+        /* Rating Item Block */
+        .rating-table {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .rating-item-card {
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 10px;
             padding: 12px 16px;
-            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: border-color 0.2s;
         }
 
-        .rating-row {
+        .rating-item-card:hover {
+            border-color: var(--border-light);
+        }
+
+        .rating-main-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .rating-row:last-child {
-            border-bottom: none;
+        .rating-desc {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 55%;
         }
 
-        .rating-label {
+        .rating-name {
             font-size: 13px;
-            font-weight: 500;
-            color: #e4e4e7;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .rating-hint {
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
         .rating-options {
             display: flex;
+            gap: 6px;
+        }
+
+        .rate-btn-label {
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .rate-btn-label input[type="radio"] {
+            display: none;
+        }
+
+        .rate-badge {
+            display: inline-block;
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .rate-btn-label input[type="radio"]:checked + .rate-badge {
+            background: linear-gradient(135deg, var(--accent), #7e22ce);
+            color: #ffffff;
+            border-color: var(--accent-glow);
+            box-shadow: 0 2px 8px rgba(147, 51, 234, 0.5);
+            font-weight: bold;
+        }
+
+        /* Specific Item Comment Input */
+        .item-comment-input {
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.25);
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: var(--text-sec);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .item-comment-input:focus {
+            border: 1px solid var(--accent);
+            background-color: var(--bg-input);
+            color: #ffffff;
+        }
+
+        .item-comment-input::placeholder {
+            color: #71717a;
+            font-style: italic;
+        }
+
+        /* Actions Card */
+        .actions-card {
+            background: linear-gradient(180deg, var(--bg-card), #161226);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            margin-top: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .btn-main-action {
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 24px;
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.5);
+            transition: transform 0.15s, box-shadow 0.2s;
+        }
+
+        .btn-main-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(147, 51, 234, 0.7);
+        }
+
+        .btn-secondary-row {
+            display: flex;
             gap: 12px;
         }
 
-        .rating-options label {
-            margin: 0;
-            font-size: 12px;
-            font-weight: normal;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
+        .btn-sub-action {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
             color: var(--text-main);
-        }
-
-        /* Actions */
-        .actions-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 24px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            color: #ffffff;
-            border: none;
             border-radius: 8px;
-            padding: 12px 20px;
-            font-size: 14px;
-            font-weight: 700;
+            padding: 12px 18px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 8px;
-            transition: transform 0.1s, box-shadow 0.2s;
-            box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4);
+            transition: all 0.2s ease;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.6);
-        }
-
-        .btn-secondary-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-secondary {
-            flex: 1;
-            background-color: rgba(255, 255, 255, 0.06);
-            border: 1px solid var(--border);
-            color: #e4e4e7;
-            border-radius: 8px;
-            padding: 10px 16px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            transition: background 0.2s, border-color 0.2s;
-        }
-
-        .btn-secondary:hover {
+        .btn-sub-action:hover {
             background-color: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: var(--border-light);
         }
 
-        .notification {
+        .toast-box {
             display: none;
             background-color: rgba(16, 185, 129, 0.15);
             border: 1px solid var(--success);
             color: #6ee7b7;
-            padding: 10px 14px;
+            padding: 12px 16px;
             border-radius: 8px;
-            font-size: 12px;
-            margin-top: 12px;
-            text-align: center;
+            font-size: 13px;
             font-weight: 600;
+            text-align: center;
         }
 
-        .footer-note {
+        .official-footer {
             text-align: center;
-            font-size: 11px;
-            color: #71717a;
-            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+
+        .official-footer strong {
+            color: var(--accent-glow);
+        }
+
+        @media (max-width: 700px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .rating-main-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .rating-desc {
+                max-width: 100%;
+            }
+            .btn-secondary-row {
+                flex-direction: column;
+            }
+            .header-controls {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Header -->
+        <!-- Header Oficial com Seletor de Idioma -->
         <div class="header">
-            <div class="header-icon">🎨</div>
-            <div class="header-title">
-                <h1>LUMENIA — Relatório Alpha</h1>
-                <p>Formulário Oficial de Feedback de Testes (v0.2.0)</p>
+            <div class="header-logo">🎨</div>
+            <div class="header-text">
+                <h1>LUMENIA</h1>
+                <p id="headerSubtitle">Relatório Oficial de Avaliação & Testes Alpha</p>
+            </div>
+            <div class="header-controls">
+                <div class="lang-selector-wrap">
+                    <span>🌐</span>
+                    <select id="langSelector" onchange="changeLanguage(this.value)">
+                        <option value="pt_BR">🇧🇷 Português (pt_BR)</option>
+                        <option value="en_US">🇺🇸 English (en_US)</option>
+                        <option value="es_ES">🇪🇸 Español (es_ES)</option>
+                        <option value="ja_JP">🇯🇵 日本語 (ja_JP)</option>
+                    </select>
+                </div>
+                <div class="header-badge">v0.2.0 Alpha</div>
             </div>
         </div>
 
-        <form id="feedbackForm">
-            <!-- 1. Informações do Testador -->
-            <div class="section-title">1. Informações do Sistema</div>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="testerName">Seu Nome ou Apelido (Opcional):</label>
-                    <input type="text" id="testerName" placeholder="Ex: Alex">
+        <form id="lumeniaReportForm">
+            <!-- 1. Perfil do Testador e Hardware -->
+            <div class="card-section">
+                <div class="section-header">
+                    <span class="section-icon">💻</span>
+                    <span class="section-title" id="sec1_title">1. Dispositivo & Ambiente de Teste</span>
                 </div>
-                <div class="form-group">
-                    <label for="testerEmail">Seu E-mail (Opcional para contato):</label>
-                    <input type="email" id="testerEmail" placeholder="seu@email.com">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="testerName" id="lbl_testerName">Seu Nome ou Apelido (Opcional):</label>
+                        <input type="text" id="testerName" placeholder="Ex: Artista Digital">
+                    </div>
+                    <div class="form-group">
+                        <label for="testerEmail" id="lbl_testerEmail">Seu E-mail (Opcional para contato):</label>
+                        <input type="email" id="testerEmail" placeholder="artista@email.com">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="deviceType">Dispositivo / Mesa Digitalizadora:</label>
-                    <select id="deviceType">
-                        <option value="Mesa Wacom">Mesa Digitalizadora Wacom</option>
-                        <option value="Mesa Huion">Mesa Digitalizadora Huion</option>
-                        <option value="Mesa XP-Pen">Mesa Digitalizadora XP-Pen</option>
-                        <option value="Mesa Gaomon / Outra">Outra Mesa / Display Interativo</option>
-                        <option value="Apenas Mouse / Teclado">Apenas Mouse e Teclado</option>
-                        <option value="Touchscreen / Stylus Windows">Touchscreen / Caneta Windows</option>
-                    </select>
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label for="deviceType" id="lbl_deviceType">Mesa Digitalizadora / Stylus:</label>
+                        <select id="deviceType" onchange="toggleCustomDevice()">
+                            <option value="Wacom (Intuos / Cintiq / One)" id="opt_wacom">Wacom (Intuos / Cintiq / One)</option>
+                            <option value="Huion (Kamvas / Inspiroy)" id="opt_huion">Huion (Kamvas / Inspiroy)</option>
+                            <option value="XP-Pen (Artist / Deco)" id="opt_xppen">XP-Pen (Artist / Deco)</option>
+                            <option value="Gaomon (PD / M-Series)" id="opt_gaomon">Gaomon (PD / M-Series)</option>
+                            <option value="Veikk / Parblo / Ugee / Artisul" id="opt_veikk">Veikk / Parblo / Ugee / Artisul</option>
+                            <option value="Touchscreen / Caneta Windows" id="opt_touch">Touchscreen / Caneta Windows</option>
+                            <option value="Apenas Mouse e Teclado" id="opt_mouse">Apenas Mouse e Teclado</option>
+                            <option value="Outra Marca / Modelo (Especificar)" id="opt_other">Outra Marca / Modelo Específico...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="osVersion" id="lbl_osVersion">Sistema Operacional:</label>
+                        <select id="osVersion">
+                            <option value="Windows 11 (64-bit)">Windows 11 (64-bit)</option>
+                            <option value="Windows 10 (64-bit)">Windows 10 (64-bit)</option>
+                            <option value="Outro Windows" id="opt_other_win">Outro Windows</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="displayRes" id="lbl_displayRes">Resolução do Monitor:</label>
+                        <select id="displayRes">
+                            <option value="Full HD 1080p (1920x1080)">Full HD (1920x1080)</option>
+                            <option value="Quad HD 2K (2560x1440)">Quad HD 2K (2560x1440)</option>
+                            <option value="4K UHD (3840x2160)">4K UHD (3840x2160)</option>
+                            <option value="Ultrawide / Múltiplos Monitores" id="opt_ultrawide">Ultrawide / Múltiplos Monitores</option>
+                            <option value="HD / Notebook (1366x768)" id="opt_hd">HD / Notebook (1366x768)</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="osVersion">Sistema Operacional:</label>
-                    <select id="osVersion">
-                        <option value="Windows 11 64-bit">Windows 11 (64-bit)</option>
-                        <option value="Windows 10 64-bit">Windows 10 (64-bit)</option>
-                        <option value="Outro">Outro</option>
-                    </select>
+                <!-- Campo de Modelo Específico de Mesa -->
+                <div class="form-group" style="margin-top: 4px;">
+                    <label for="customDevice" id="lbl_customDevice">Modelo Específico / Versão da Mesa Digitalizadora (Opcional):</label>
+                    <input type="text" id="customDevice" placeholder="Ex: Veikk A15 Pro, Parblo Coast10, Genius EasyPen, Wacom CTL-472...">
                 </div>
             </div>
 
-            <!-- 2. Avaliação dos Recursos -->
-            <div class="section-title">2. Avaliação dos Recursos Testados</div>
-            <div class="rating-group">
-                <div class="rating-row">
-                    <span class="rating-label">🖌️ Fluidez do Traço & Motores de Pincel</span>
-                    <div class="rating-options">
-                        <label><input type="radio" name="rate_brush" value="Excelente" checked> Excelente</label>
-                        <label><input type="radio" name="rate_brush" value="Bom"> Bom</label>
-                        <label><input type="radio" name="rate_brush" value="Regular"> Regular</label>
-                        <label><input type="radio" name="rate_brush" value="Ruim"> Ruim</label>
-                    </div>
+            <!-- 2. Motores de Pincel e Física do Traço -->
+            <div class="card-section">
+                <div class="section-header">
+                    <span class="section-icon">🖌️</span>
+                    <span class="section-title" id="sec2_title">2. Motores de Pincel & Resposta ao Traço</span>
                 </div>
-                <div class="rating-row">
-                    <span class="rating-label">📐 Suíte de Seleção (Varinha, Laço, Retângulo)</span>
-                    <div class="rating-options">
-                        <label><input type="radio" name="rate_select" value="Excelente" checked> Excelente</label>
-                        <label><input type="radio" name="rate_select" value="Bom"> Bom</label>
-                        <label><input type="radio" name="rate_select" value="Regular"> Regular</label>
-                        <label><input type="radio" name="rate_select" value="Ruim"> Ruim</label>
+                <div class="rating-table">
+                    <!-- Item 1 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_pressure_name">Sensibilidade de Pressão & Dinâmica</span>
+                                <span class="rating-hint" id="item_pressure_hint">Resposta à força da caneta e curvas de pressão</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_pressure" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_pressure" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_pressure" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_pressure" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_pressure" class="item-comment-input" placeholder="💬 Observação específica sobre a pressão da caneta (opcional)...">
                     </div>
-                </div>
-                <div class="rating-row">
-                    <span class="rating-label">🪣 Balde de Tinta (Preenchimento)</span>
-                    <div class="rating-options">
-                        <label><input type="radio" name="rate_bucket" value="Excelente" checked> Excelente</label>
-                        <label><input type="radio" name="rate_bucket" value="Bom"> Bom</label>
-                        <label><input type="radio" name="rate_bucket" value="Regular"> Regular</label>
-                        <label><input type="radio" name="rate_bucket" value="Ruim"> Ruim</label>
+
+                    <!-- Item 2 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_stabilizer_name">Estabilizador Dinâmico & Suavização</span>
+                                <span class="rating-hint" id="item_stabilizer_hint">Precisão de traço sem tremor (Catmull-Rom)</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_stabilizer" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_stabilizer" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_stabilizer" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_stabilizer" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_stabilizer" class="item-comment-input" placeholder="💬 Observação sobre o estabilizador e suavidade (opcional)...">
                     </div>
-                </div>
-                <div class="rating-row">
-                    <span class="rating-label">🔄 Transformação Livre (8 alças, rotação, pivô)</span>
-                    <div class="rating-options">
-                        <label><input type="radio" name="rate_trans" value="Excelente" checked> Excelente</label>
-                        <label><input type="radio" name="rate_trans" value="Bom"> Bom</label>
-                        <label><input type="radio" name="rate_trans" value="Regular"> Regular</label>
-                        <label><input type="radio" name="rate_trans" value="Ruim"> Ruim</label>
+
+                    <!-- Item 3 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_inker_name">Pincel Tinta / Inker (Arte-Final)</span>
+                                <span class="rating-hint" id="item_inker_hint">Linhas limpas, afilamento e ponta sólida</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_inker" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_inker" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_inker" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_inker" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_inker" class="item-comment-input" placeholder="💬 Observação sobre o pincel de arte-final inker (opcional)...">
                     </div>
-                </div>
-                <div class="rating-row">
-                    <span class="rating-label">⚡ Velocidade e Estabilidade Geral</span>
-                    <div class="rating-options">
-                        <label><input type="radio" name="rate_speed" value="Excelente" checked> Excelente</label>
-                        <label><input type="radio" name="rate_speed" value="Bom"> Bom</label>
-                        <label><input type="radio" name="rate_speed" value="Regular"> Regular</label>
-                        <label><input type="radio" name="rate_speed" value="Ruim"> Ruim</label>
+
+                    <!-- Item 4 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_media_name">Pincéis de Aquarela & Óleo Impasto 3D</span>
+                                <span class="rating-hint" id="item_media_hint">Mistura de cor e textura procedural de tinta</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_natural_media" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_natural_media" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_natural_media" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_natural_media" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_natural_media" class="item-comment-input" placeholder="💬 Observação sobre aquarela / textura de óleo (opcional)...">
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Comentários, Bugs e Sugestões -->
-            <div class="section-title">3. Detalhes, Bugs ou Sugestões</div>
-            <div class="form-group">
-                <label for="comments">Descreva sua experiência, eventuais bugs ou recursos que gostaria de ver:</label>
-                <textarea id="comments" placeholder="Ex: O traço do inker é muito bom, mas gostaria de atalho para alterar o tamanho do pincel com o botão da caneta..."></textarea>
+            <!-- 3. Suíte de Seleção e Balde de Tinta -->
+            <div class="card-section">
+                <div class="section-header">
+                    <span class="section-icon">📐</span>
+                    <span class="section-title" id="sec3_title">3. Suíte de Seleção & Balde de Tinta</span>
+                </div>
+                <div class="rating-table">
+                    <!-- Item 1 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_wand_name">Varinha Mágica (W) & Tolerância</span>
+                                <span class="rating-hint" id="item_wand_hint">Detecção de áreas contíguas e expansão de borda</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_wand" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_wand" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_wand" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_wand" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_wand" class="item-comment-input" placeholder="💬 Observação sobre a varinha mágica e tolerância (opcional)...">
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_lasso_name">Seleções Geométricas & Laço (L)</span>
+                                <span class="rating-hint" id="item_lasso_hint">Retângulo, Elipse, Laço Livre e Poligonal</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_lasso" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_lasso" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_lasso" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_lasso" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_lasso" class="item-comment-input" placeholder="💬 Observação sobre as ferramentas de laço/geometria (opcional)...">
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_ants_name">Marching Ants Pontilhado & Modificadores</span>
+                                <span class="rating-hint" id="item_ants_hint">Visual da seleção e atalhos Shift (+) / Alt (-)</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_ants" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_ants" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_ants" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_ants" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_ants" class="item-comment-input" placeholder="💬 Observação sobre o contorno pontilhado ou modificadores (opcional)...">
+                    </div>
+
+                    <!-- Item 4 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_bucket_name">Balde de Tinta com Contenção em Seleções</span>
+                                <span class="rating-hint" id="item_bucket_hint">Preenchimento respeitando a máscara ativa</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_bucket" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_bucket" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_bucket" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_bucket" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_bucket" class="item-comment-input" placeholder="💬 Observação sobre o balde de tinta dentro de seleções (opcional)...">
+                    </div>
+                </div>
             </div>
 
-            <!-- Botões de Ação -->
-            <div class="actions-container">
-                <button type="button" class="btn-primary" onclick="sendViaEmail()">
-                    📧 Enviar Relatório por E-mail (Automático)
+            <!-- 4. Ferramenta de Transformação Livre -->
+            <div class="card-section">
+                <div class="section-header">
+                    <span class="section-icon">🔄</span>
+                    <span class="section-title" id="sec4_title">4. Ferramenta de Transformação Livre (Ctrl+T)</span>
+                </div>
+                <div class="rating-table">
+                    <!-- Item 1 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_handles_name">Controle das 8 Alças & Escala Proporcional</span>
+                                <span class="rating-hint" id="item_handles_hint">Arrasto pelos cantos/bordas com Shift e Alt</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_handles" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_handles" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_handles" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_handles" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_trans_handles" class="item-comment-input" placeholder="💬 Observação sobre a facilidade de redimensionar com as alças (opcional)...">
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_pivot_name">Pivô Central Móvel & Rotação Externa</span>
+                                <span class="rating-hint" id="item_pivot_hint">Mover o pivô e girar em torno dele (com passos de 15°)</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_pivot" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_pivot" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_pivot" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_pivot" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_trans_pivot" class="item-comment-input" placeholder="💬 Observação sobre o pivô de ancoragem ou rotação (opcional)...">
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_interp_name">Qualidade da Interpolação Bicúbica (C++)</span>
+                                <span class="rating-hint" id="item_interp_hint">Preservação de detalhes e ausência de serrilhado</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_interp" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_interp" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_interp" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_interp" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_trans_interp" class="item-comment-input" placeholder="💬 Observação sobre a nitidez da imagem após transformar (opcional)...">
+                    </div>
+
+                    <!-- Item 4 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_float_name">Transformação de Seleção Flutuante</span>
+                                <span class="rating-hint" id="item_float_hint">Transformar apenas a área selecionada isoladamente</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_float" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_float" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_float" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_trans_float" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_trans_float" class="item-comment-input" placeholder="💬 Observação sobre transformar partes recortadas pela seleção (opcional)...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Gerenciamento de Cores, Temas e Interface -->
+            <div class="card-section">
+                <div class="section-header">
+                    <span class="section-icon">🎨</span>
+                    <span class="section-title" id="sec5_title">5. Gerenciamento de Cores, Temas & Interface</span>
+                </div>
+                <div class="rating-table">
+                    <!-- Item 1 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_profiles_name">Perfis de Cor (sRGB, Display P3, Prova CMYK)</span>
+                                <span class="rating-hint" id="item_profiles_hint">Fidelidade cromática e simulação de impressão/daltonismo</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_profiles" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_profiles" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_profiles" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_profiles" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_profiles" class="item-comment-input" placeholder="💬 Observação sobre cores, P3 ou simulação de impressão/daltonismo (opcional)...">
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_eyedrop_name">Conta-Gotas com Lupa Dinâmica 4x (HUD Loupe)</span>
+                                <span class="rating-hint" id="item_eyedrop_hint">Zoom dos pixels e captura de cor precisa</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_eyedrop" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_eyedrop" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_eyedrop" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_eyedrop" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_eyedrop" class="item-comment-input" placeholder="💬 Observação sobre a lupa HUD do conta-gotas (opcional)...">
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_themes_name">Temas Visuais (Lumenia Purple, Dark, OLED, etc.)</span>
+                                <span class="rating-hint" id="item_themes_hint">Estética dos painéis, contraste e elegância</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_themes" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_themes" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_themes" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_themes" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_themes" class="item-comment-input" placeholder="💬 Observação sobre o visual, tema roxo oficial ou outros temas (opcional)...">
+                    </div>
+
+                    <!-- Item 4 -->
+                    <div class="rating-item-card">
+                        <div class="rating-main-row">
+                            <div class="rating-desc">
+                                <span class="rating-name" id="item_perf_name">Velocidade Geral & Desfazer/Refazer (Undo/Redo)</span>
+                                <span class="rating-hint" id="item_perf_hint">Taxa de quadros a 60 FPS e resposta imediata</span>
+                            </div>
+                            <div class="rating-options">
+                                <label class="rate-btn-label"><input type="radio" name="rate_perf" value="Excelente" checked><span class="rate-badge rate-badge-1">Excelente</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_perf" value="Bom"><span class="rate-badge rate-badge-2">Bom</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_perf" value="Regular"><span class="rate-badge rate-badge-3">Regular</span></label>
+                                <label class="rate-btn-label"><input type="radio" name="rate_perf" value="Ruim"><span class="rate-badge rate-badge-4">Ruim</span></label>
+                            </div>
+                        </div>
+                        <input type="text" id="comm_perf" class="item-comment-input" placeholder="💬 Observação sobre a taxa de FPS, fluidez ou desfazer/refazer (opcional)...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Detalhes, Bugs e Feedback Aberto -->
+            <div class="card-section">
+                <div class="section-header">
+                    <span class="section-icon">✍️</span>
+                    <span class="section-title" id="sec6_title">6. Comentários Gerais, Bugs & Sugestões</span>
+                </div>
+                <div class="form-group">
+                    <label for="feedbackLikes" id="lbl_feedbackLikes">O que você MAIS GOSTOU no Lumenia até agora?</label>
+                    <textarea id="feedbackLikes" placeholder="Ex: A suavidade do pincel inker é incrível e a transformação livre com 8 alças é muito prática..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="feedbackBugs" id="lbl_feedbackBugs">Encontrou algum BUG, travamento ou comportamento estranho?</label>
+                    <textarea id="feedbackBugs" placeholder="Descreva os passos para reproduzir o problema (ex: ao usar a varinha mágica em tela cheia...)"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="feedbackWishes" id="lbl_feedbackWishes">Quais RECURSOS ou FERRAMENTAS você mais gostaria de ver nas próximas versões?</label>
+                    <textarea id="feedbackWishes" placeholder="Ex: Formas vetoriais (círculo/retângulo), ferramenta de texto, réguas de perspectiva, modos de cor do Infinite Painter..."></textarea>
+                </div>
+            </div>
+
+            <!-- Botões de Ação de Envio -->
+            <div class="actions-card">
+                <button type="button" class="btn-main-action" id="btn_send_email" onclick="sendViaEmail()">
+                    🚀 Enviar Relatório Oficial por E-mail (1 Clique)
                 </button>
-                <div class="btn-secondary-group">
-                    <button type="button" class="btn-secondary" onclick="downloadReport()">
-                        💾 Salvar Arquivo (.txt)
+                <div class="btn-secondary-row">
+                    <button type="button" class="btn-sub-action" id="btn_save_file" onclick="downloadReport()">
+                        💾 Salvar Relatório (.txt)
                     </button>
-                    <button type="button" class="btn-secondary" onclick="copyReport()">
-                        📋 Copiar Relatório
+                    <button type="button" class="btn-sub-action" id="btn_copy_text" onclick="copyReport()">
+                        📋 Copiar Texto do Relatório
                     </button>
                 </div>
-            </div>
-
-            <div id="notification" class="notification"></div>
-            <div class="footer-note">
-                Destinatário Oficial: <strong>lumeniateam@protonmail.com</strong>
+                <div id="toastBox" class="toast-box"></div>
+                <div class="official-footer" id="footerText">
+                    Envio direto para a equipe de desenvolvimento: <strong>lumeniateam@protonmail.com</strong>
+                </div>
             </div>
         </form>
     </div>
 
     <script>
-        function generateReportText() {
-            const name = document.getElementById('testerName').value.trim() || 'Anônimo';
-            const email = document.getElementById('testerEmail').value.trim() || 'Não informado';
-            const device = document.getElementById('deviceType').value;
-            const os = document.getElementById('osVersion').value;
-            const comments = document.getElementById('comments').value.trim() || 'Nenhum comentário adicional.';
+        const I18N = {
+            pt_BR: {
+                pageTitle: "Lumenia — Relatório Completo de Teste Alpha",
+                headerSubtitle: "Relatório Oficial de Avaliação & Testes Alpha",
+                sec1_title: "1. Dispositivo & Ambiente de Teste",
+                lbl_testerName: "Seu Nome ou Apelido (Opcional):",
+                ph_testerName: "Ex: Artista Digital",
+                lbl_testerEmail: "Seu E-mail (Opcional para contato):",
+                ph_testerEmail: "artista@email.com",
+                lbl_deviceType: "Mesa Digitalizadora / Stylus:",
+                opt_touch: "Touchscreen / Caneta Windows",
+                opt_mouse: "Apenas Mouse e Teclado",
+                opt_other: "Outra Marca / Modelo Específico...",
+                lbl_osVersion: "Sistema Operacional:",
+                opt_other_win: "Outro Windows",
+                lbl_displayRes: "Resolução do Monitor:",
+                opt_ultrawide: "Ultrawide / Múltiplos Monitores",
+                opt_hd: "HD / Notebook (1366x768)",
+                lbl_customDevice: "Modelo Específico / Versão da Mesa Digitalizadora (Opcional):",
+                ph_customDevice: "Ex: Veikk A15 Pro, Parblo Coast10, Genius EasyPen, Wacom CTL-472...",
 
-            const rBrush = document.querySelector('input[name="rate_brush"]:checked').value;
-            const rSelect = document.querySelector('input[name="rate_select"]:checked').value;
-            const rBucket = document.querySelector('input[name="rate_bucket"]:checked').value;
-            const rTrans = document.querySelector('input[name="rate_trans"]:checked').value;
-            const rSpeed = document.querySelector('input[name="rate_speed"]:checked').value;
+                sec2_title: "2. Motores de Pincel & Resposta ao Traço",
+                item_pressure_name: "Sensibilidade de Pressão & Dinâmica",
+                item_pressure_hint: "Resposta à força da caneta e curvas de pressão",
+                ph_pressure: "💬 Observação específica sobre a pressão da caneta (opcional)...",
+                item_stabilizer_name: "Estabilizador Dinâmico & Suavização",
+                item_stabilizer_hint: "Precisão de traço sem tremor (Catmull-Rom)",
+                ph_stabilizer: "💬 Observação sobre o estabilizador e suavidade (opcional)...",
+                item_inker_name: "Pincel Tinta / Inker (Arte-Final)",
+                item_inker_hint: "Linhas limpas, afilamento e ponta sólida",
+                ph_inker: "💬 Observação sobre o pincel de arte-final inker (opcional)...",
+                item_media_name: "Pincéis de Aquarela & Óleo Impasto 3D",
+                item_media_hint: "Mistura de cor e textura procedural de tinta",
+                ph_media: "💬 Observação sobre aquarela / textura de óleo (opcional)...",
 
-            const dateStr = new Date().toLocaleString('pt-BR');
+                sec3_title: "3. Suíte de Seleção & Balde de Tinta",
+                item_wand_name: "Varinha Mágica (W) & Tolerância",
+                item_wand_hint: "Detecção de áreas contíguas e expansão de borda",
+                ph_wand: "💬 Observação sobre a varinha mágica e tolerância (opcional)...",
+                item_lasso_name: "Seleções Geométricas & Laço (L)",
+                item_lasso_hint: "Retângulo, Elipse, Laço Livre e Poligonal",
+                ph_lasso: "💬 Observação sobre as ferramentas de laço/geometria (opcional)...",
+                item_ants_name: "Marching Ants Pontilhado & Modificadores",
+                item_ants_hint: "Visual da seleção e atalhos Shift (+) / Alt (-)",
+                ph_ants: "💬 Observação sobre o contorno pontilhado ou modificadores (opcional)...",
+                item_bucket_name: "Balde de Tinta com Contenção em Seleções",
+                item_bucket_hint: "Preenchimento respeitando a máscara ativa",
+                ph_bucket: "💬 Observação sobre o balde de tinta dentro de seleções (opcional)...",
 
-            return `=======================================================
-          RELATÓRIO DE TESTE — LUMENIA ALPHA v0.2.0
-=======================================================
-Data/Hora: ${dateStr}
+                sec4_title: "4. Ferramenta de Transformação Livre (Ctrl+T)",
+                item_handles_name: "Controle das 8 Alças & Escala Proporcional",
+                item_handles_hint: "Arrasto pelos cantos/bordas com Shift e Alt",
+                ph_handles: "💬 Observação sobre a facilidade de redimensionar com as alças (opcional)...",
+                item_pivot_name: "Pivô Central Móvel & Rotação Externa",
+                item_pivot_hint: "Mover o pivô e girar em torno dele (com passos de 15°)",
+                ph_pivot: "💬 Observação sobre o pivô de ancoragem ou rotação (opcional)...",
+                item_interp_name: "Qualidade da Interpolação Bicúbica (C++)",
+                item_interp_hint: "Preservação de detalhes e ausência de serrilhado",
+                ph_interp: "💬 Observação sobre a nitidez da imagem após transformar (opcional)...",
+                item_float_name: "Transformação de Seleção Flutuante",
+                item_float_hint: "Transformar apenas a área selecionada isoladamente",
+                ph_float: "💬 Observação sobre transformar partes recortadas pela seleção (opcional)...",
 
-[1. INFORMAÇÕES DO TESTADOR]
-• Testador: ${name}
-• E-mail: ${email}
-• Dispositivo: ${device}
-• Sistema: ${os}
+                sec5_title: "5. Gerenciamento de Cores, Temas & Interface",
+                item_profiles_name: "Perfis de Cor (sRGB, Display P3, Prova CMYK)",
+                item_profiles_hint: "Fidelidade cromática e simulação de impressão/daltonismo",
+                ph_profiles: "💬 Observação sobre cores, P3 ou simulação de impressão/daltonismo (opcional)...",
+                item_eyedrop_name: "Conta-Gotas com Lupa Dinâmica 4x (HUD Loupe)",
+                item_eyedrop_hint: "Zoom dos pixels e captura de cor precisa",
+                ph_eyedrop: "💬 Observação sobre a lupa HUD do conta-gotas (opcional)...",
+                item_themes_name: "Temas Visuais (Lumenia Purple, Dark, OLED, etc.)",
+                item_themes_hint: "Estética dos painéis, contraste e elegância",
+                ph_themes: "💬 Observação sobre o visual, tema roxo oficial ou outros temas (opcional)...",
+                item_perf_name: "Velocidade Geral & Desfazer/Refazer (Undo/Redo)",
+                item_perf_hint: "Taxa de quadros a 60 FPS e resposta imediata",
+                ph_perf: "💬 Observação sobre a taxa de FPS, fluidez ou desfazer/refazer (opcional)...",
 
-[2. AVALIAÇÕES]
-• Fluidez do Traço & Motores: ${rBrush}
-• Suíte de Seleção: ${rSelect}
-• Balde de Tinta: ${rBucket}
-• Transformação Livre: ${rTrans}
-• Velocidade & Estabilidade: ${rSpeed}
+                sec6_title: "6. Comentários Gerais, Bugs & Sugestões",
+                lbl_feedbackLikes: "O que você MAIS GOSTOU no Lumenia até agora?",
+                ph_likes: "Ex: A suavidade do pincel inker é incrível e a transformação livre com 8 alças é muito prática...",
+                lbl_feedbackBugs: "Encontrou algum BUG, travamento ou comportamento estranho?",
+                ph_bugs: "Descreva os passos para reproduzir o problema (ex: ao usar a varinha mágica em tela cheia...)",
+                lbl_feedbackWishes: "Quais RECURSOS ou FERRAMENTAS você mais gostaria de ver nas próximas versões?",
+                ph_wishes: "Ex: Formas vetoriais (círculo/retângulo), ferramenta de texto, réguas de perspectiva, modos de cor do Infinite Painter...",
 
-[3. COMENTÁRIOS, BUGS E SUGESTÕES]
-${comments}
-=======================================================`;
+                rates: ["Excelente", "Bom", "Regular", "Ruim"],
+                btn_send_email: "🚀 Enviar Relatório Oficial por E-mail (1 Clique)",
+                btn_save_file: "💾 Salvar Relatório (.txt)",
+                btn_copy_text: "📋 Copiar Texto do Relatório",
+                footerText: "Envio direto para a equipe de desenvolvimento: <strong>lumeniateam@protonmail.com</strong>",
+
+                toast_email: "✓ Abrindo seu programa de e-mail com o relatório detalhado pronto para envio!",
+                toast_file: "✓ Relatório completo salvo na sua pasta de Downloads!",
+                toast_copy: "✓ Relatório completo copiado para a Área de Transferência!",
+                toast_copy_err: "Erro ao copiar automaticamente. Use o botão de salvar em arquivo.",
+                report_title: "RELATÓRIO DE TESTE ALPHA — LUMENIA v0.2.0 (PROFISSIONAL)",
+                report_date: "Data/Hora do Teste",
+                report_sec1: "1. PERFIL DO TESTADOR & DISPOSITIVO",
+                report_sec2: "2. MOTORES DE PINCEL & FÍSICA DO TRAÇO",
+                report_sec3: "3. SUÍTE DE SELEÇÃO & BALDE DE TINTA",
+                report_sec4: "4. FERRAMENTA DE TRANSFORMAÇÃO LIVRE (Ctrl+T)",
+                report_sec5: "5. GERENCIAMENTO DE CORES, TEMAS & INTERFACE",
+                report_sec6: "6. COMENTÁRIOS GERAIS E FEEDBACK QUALITATIVO",
+                report_likes: "★ O QUE MAIS GOSTOU:",
+                report_bugs: "⚠️ BUGS OU COMPORTAMENTOS ESTRANHOS:",
+                report_wishes: "💡 RECURSOS DESEJADOS PARA AS PRÓXIMAS VERSÕES:",
+                email_subject: "[Lumenia Alpha Feedback] - Relatório Completo de Teste"
+            },
+            en_US: {
+                pageTitle: "Lumenia — Alpha Test Evaluation Report",
+                headerSubtitle: "Official Alpha Evaluation & Testing Report",
+                sec1_title: "1. Device & Test Environment",
+                lbl_testerName: "Your Name or Nickname (Optional):",
+                ph_testerName: "E.g. Digital Artist",
+                lbl_testerEmail: "Your Email (Optional for contact):",
+                ph_testerEmail: "artist@email.com",
+                lbl_deviceType: "Graphics Tablet / Stylus:",
+                opt_touch: "Touchscreen / Windows Pen",
+                opt_mouse: "Mouse & Keyboard Only",
+                opt_other: "Other Brand / Specific Model...",
+                lbl_osVersion: "Operating System:",
+                opt_other_win: "Other Windows",
+                lbl_displayRes: "Display Resolution:",
+                opt_ultrawide: "Ultrawide / Multi-Monitor",
+                opt_hd: "HD / Laptop (1366x768)",
+                lbl_customDevice: "Specific Tablet Model / Revision (Optional):",
+                ph_customDevice: "E.g. Veikk A15 Pro, Parblo Coast10, Genius EasyPen, Wacom CTL-472...",
+
+                sec2_title: "2. Brush Engines & Stroke Physics",
+                item_pressure_name: "Pressure Sensitivity & Dynamics",
+                item_pressure_hint: "Pen force response and pressure response curves",
+                ph_pressure: "💬 Specific note regarding pen pressure (optional)...",
+                item_stabilizer_name: "Dynamic Stabilizer & Smoothing",
+                item_stabilizer_hint: "Stroke precision without jitter (Catmull-Rom)",
+                ph_stabilizer: "💬 Note regarding stabilizer and stroke smoothing (optional)...",
+                item_inker_name: "Inker / Linework Brush",
+                item_inker_hint: "Crisp lines, dynamic tapering and solid tip",
+                ph_inker: "💬 Note regarding the inker linework brush (optional)...",
+                item_media_name: "Watercolor & 3D Impasto Oil Brushes",
+                item_media_hint: "Color blending and procedural paint texture",
+                ph_media: "💬 Note regarding watercolor / oil impasto texture (optional)...",
+
+                sec3_title: "3. Selection Suite & Paint Bucket",
+                item_wand_name: "Magic Wand (W) & Tolerance",
+                item_wand_hint: "Contiguous area detection and edge expansion",
+                ph_wand: "💬 Note regarding the magic wand and tolerance (optional)...",
+                item_lasso_name: "Geometric & Lasso Selections (L)",
+                item_lasso_hint: "Rectangle, Ellipse, Freehand and Polygonal Lasso",
+                ph_lasso: "💬 Note regarding lasso / geometry tools (optional)...",
+                item_ants_name: "Dotted Marching Ants & Modifiers",
+                item_ants_hint: "Selection visuals and Shift (+) / Alt (-) shortcuts",
+                ph_ants: "💬 Note regarding marching ants outline or modifier keys (optional)...",
+                item_bucket_name: "Paint Bucket Contained by Selections",
+                item_bucket_hint: "Fill strictly respecting the active selection mask",
+                ph_bucket: "💬 Note regarding bucket fill inside selections (optional)...",
+
+                sec4_title: "4. Free Transform Tool (Ctrl+T)",
+                item_handles_name: "8-Handle Controls & Aspect Ratio Scale",
+                item_handles_hint: "Corner/edge drag with Shift and Alt shortcuts",
+                ph_handles: "💬 Note regarding ease of resizing with handles (optional)...",
+                item_pivot_name: "Movable Center Pivot & External Rotation",
+                item_pivot_hint: "Move pivot anchor and rotate around it (15° snap)",
+                ph_pivot: "💬 Note regarding rotation or anchor pivot (optional)...",
+                item_interp_name: "Bicubic Interpolation Quality (C++)",
+                item_interp_hint: "Detail preservation and anti-aliased sharpness",
+                ph_interp: "💬 Note regarding image sharpness after transforming (optional)...",
+                item_float_name: "Floating Selection Transformation",
+                item_float_hint: "Transform only the isolated selected pixels",
+                ph_float: "💬 Note regarding transforming selected cutout areas (optional)...",
+
+                sec5_title: "5. Color Management, Themes & UI",
+                item_profiles_name: "Color Profiles (sRGB, Display P3, CMYK Proof)",
+                item_profiles_hint: "Color fidelity and print / color blindness simulation",
+                ph_profiles: "💬 Note regarding color fidelity, P3 or print proofing (optional)...",
+                item_eyedrop_name: "Eyedropper with 4x Dynamic HUD Loupe",
+                item_eyedrop_hint: "Pixel magnification and precision color picking",
+                ph_eyedrop: "💬 Note regarding the eyedropper HUD loupe (optional)...",
+                item_themes_name: "Visual Themes (Lumenia Purple, Dark, OLED)",
+                item_themes_hint: "Panel aesthetics, contrast, and elegance",
+                ph_themes: "💬 Note regarding UI visuals, official purple or dark themes (optional)...",
+                item_perf_name: "Overall Speed & Unlimited Undo/Redo",
+                item_perf_hint: "60 FPS rendering and instantaneous response",
+                ph_perf: "💬 Note regarding frame rate, fluidity or undo/redo speed (optional)...",
+
+                sec6_title: "6. General Comments, Bugs & Suggestions",
+                lbl_feedbackLikes: "What did you LIKE MOST about Lumenia so far?",
+                ph_likes: "E.g. The smoothness of the inker brush is amazing and free transform is very intuitive...",
+                lbl_feedbackBugs: "Did you encounter any BUGS, crashes or unexpected behavior?",
+                ph_bugs: "Describe the steps to reproduce the issue (e.g. when using magic wand in full screen...)",
+                lbl_feedbackWishes: "Which FEATURES or TOOLS would you like to see in future versions?",
+                ph_wishes: "E.g. Vector shapes, text tool, perspective guides, Infinite Painter color modes...",
+
+                rates: ["Excellent", "Good", "Fair", "Poor"],
+                btn_send_email: "🚀 Send Official Report via Email (1 Click)",
+                btn_save_file: "💾 Save Report (.txt)",
+                btn_copy_text: "📋 Copy Report Text",
+                footerText: "Direct submission to development core: <strong>lumeniateam@protonmail.com</strong>",
+
+                toast_email: "✓ Launching your email client with the full report ready to send!",
+                toast_file: "✓ Evaluation report saved to your Downloads folder!",
+                toast_copy: "✓ Evaluation report copied to clipboard!",
+                toast_copy_err: "Unable to copy automatically. Please use the Save File button.",
+                report_title: "ALPHA TEST EVALUATION REPORT — LUMENIA v0.2.0 (PROFESSIONAL)",
+                report_date: "Test Timestamp",
+                report_sec1: "1. TESTER PROFILE & DEVICE ENVIRONMENT",
+                report_sec2: "2. BRUSH ENGINES & STROKE PHYSICS",
+                report_sec3: "3. SELECTION SUITE & PAINT BUCKET",
+                report_sec4: "4. FREE TRANSFORM TOOL (Ctrl+T)",
+                report_sec5: "5. COLOR MANAGEMENT, THEMES & UI",
+                report_sec6: "6. GENERAL FEEDBACK & QUALITATIVE COMMENTS",
+                report_likes: "★ WHAT YOU LIKED MOST:",
+                report_bugs: "⚠️ BUGS OR UNEXPECTED BEHAVIOR:",
+                report_wishes: "💡 REQUESTED FEATURES FOR UPCOMING RELEASES:",
+                email_subject: "[Lumenia Alpha Feedback] - Evaluation Report"
+            },
+            es_ES: {
+                pageTitle: "Lumenia — Informe Completo de Pruebas Alpha",
+                headerSubtitle: "Informe Oficial de Evaluación y Pruebas Alpha",
+                sec1_title: "1. Dispositivo y Entorno de Prueba",
+                lbl_testerName: "Tu Nombre o Apodo (Opcional):",
+                ph_testerName: "Ej: Artista Digital",
+                lbl_testerEmail: "Tu Correo Electrónico (Opcional):",
+                ph_testerEmail: "artista@email.com",
+                lbl_deviceType: "Tableta Digitalizadora / Stylus:",
+                opt_touch: "Pantalla Táctil / Lápiz Windows",
+                opt_mouse: "Solo Ratón y Teclado",
+                opt_other: "Otra Marca / Modelo Específico...",
+                lbl_osVersion: "Sistema Operativo:",
+                opt_other_win: "Otro Windows",
+                lbl_displayRes: "Resolución de Pantalla:",
+                opt_ultrawide: "Ultrawide / Múltiples Monitores",
+                opt_hd: "HD / Portátil (1366x768)",
+                lbl_customDevice: "Modelo Específico / Versión de la Tableta (Opcional):",
+                ph_customDevice: "Ej: Veikk A15 Pro, Parblo Coast10, Genius EasyPen, Wacom CTL-472...",
+
+                sec2_title: "2. Motores de Pincel y Respuesta del Trazo",
+                item_pressure_name: "Sensibilidad de Presión y Dinámica",
+                item_pressure_hint: "Respuesta a la fuerza del lápiz y curvas de presión",
+                ph_pressure: "💬 Observación sobre la presión del lápiz (opcional)...",
+                item_stabilizer_name: "Estabilizador Dinámico y Suavizado",
+                item_stabilizer_hint: "Precisión de trazo sin temblores (Catmull-Rom)",
+                ph_stabilizer: "💬 Observación sobre el estabilizador y suavizado (opcional)...",
+                item_inker_name: "Pincel de Tinta / Inker (Entintado)",
+                item_inker_hint: "Líneas limpias, afilamiento y punta sólida",
+                ph_inker: "💬 Observación sobre el pincel inker (opcional)...",
+                item_media_name: "Pinceles de Acuarela y Óleo Impasto 3D",
+                item_media_hint: "Mezcla de color y textura procedural de pintura",
+                ph_media: "💬 Observación sobre acuarela / textura de óleo (opcional)...",
+
+                sec3_title: "3. Suite de Selección y Bote de Pintura",
+                item_wand_name: "Varita Mágica (W) y Tolerancia",
+                item_wand_hint: "Detección de áreas contiguas y expansión de bordes",
+                ph_wand: "💬 Observación sobre la varita mágica y tolerancia (opcional)...",
+                item_lasso_name: "Selecciones Geométricas y Lazo (L)",
+                item_lasso_hint: "Rectángulo, Elipse, Lazo Libre y Poligonal",
+                ph_lasso: "💬 Observación sobre las herramientas de lazo/geometría (opcional)...",
+                item_ants_name: "Hormigas Marchantes y Modificadores",
+                item_ants_hint: "Visual de selección y atajos Shift (+) / Alt (-)",
+                ph_ants: "💬 Observación sobre el contorno punteado o teclas modificadoras (opcional)...",
+                item_bucket_name: "Bote de Pintura con Contención en Selección",
+                item_bucket_hint: "Relleno respetando estrictamente la máscara activa",
+                ph_bucket: "💬 Observación sobre el bote de pintura dentro de selecciones (opcional)...",
+
+                sec4_title: "4. Herramienta de Transformación Libre (Ctrl+T)",
+                item_handles_name: "Control de 8 Manijas y Escala Proporcional",
+                item_handles_hint: "Arrastre por esquinas y bordes con Shift y Alt",
+                ph_handles: "💬 Observación sobre el redimensionamiento con manijas (opcional)...",
+                item_pivot_name: "Pivote Central Móvil y Rotación Externa",
+                item_pivot_hint: "Mover el pivote y rotar en torno a él (pasos de 15°)",
+                ph_pivot: "💬 Observación sobre el pivote o rotación (opcional)...",
+                item_interp_name: "Calidad de Interpolación Bicúbica (C++)",
+                item_interp_hint: "Preservación de detalles y nitidez sin bordes dentados",
+                ph_interp: "💬 Observación sobre la nitidez de imagen al transformar (opcional)...",
+                item_float_name: "Transformación de Selección Flotante",
+                item_float_hint: "Transformar sólo el área seleccionada de forma aislada",
+                ph_float: "💬 Observación sobre transformar áreas recortadas por selección (opcional)...",
+
+                sec5_title: "5. Gestión de Color, Temas e Interfaz",
+                item_profiles_name: "Perfiles de Color (sRGB, Display P3, Prueba CMYK)",
+                item_profiles_hint: "Fidelidad cromática y simulación de impresión/daltonismo",
+                ph_profiles: "💬 Observación sobre colores, P3 o simulación de impresión (opcional)...",
+                item_eyedrop_name: "Cuentagotas con Lupa HUD Dinámica 4x",
+                item_eyedrop_hint: "Aumento de píxeles y captura precisa de color",
+                ph_eyedrop: "💬 Observación sobre la lupa HUD del cuentagotas (opcional)...",
+                item_themes_name: "Temas Visuales (Lumenia Purple, Dark, OLED)",
+                item_themes_hint: "Estética de paneles, contraste y elegancia",
+                ph_themes: "💬 Observación sobre la apariencia visual o temas (opcional)...",
+                item_perf_name: "Velocidade General y Deshacer/Rehacer Ilimitado",
+                item_perf_hint: "Renderizado a 60 FPS y respuesta instantánea",
+                ph_perf: "💬 Observación sobre FPS, fluidez o deshacer/rehacer (opcional)...",
+
+                sec6_title: "6. Comentarios Generales, Errores y Sugerencias",
+                lbl_feedbackLikes: "¿Qué es lo que MÁS TE GUSTÓ de Lumenia hasta ahora?",
+                ph_likes: "Ej: La suavidad del pincel inker es fantástica y la transformación libre es muy práctica...",
+                lbl_feedbackBugs: "¿Encontraste algún ERROR, cuelgue o comportamiento extraño?",
+                ph_bugs: "Describe los pasos para reproducir el problema (ej: al usar la varita mágica en pantalla completa...)",
+                lbl_feedbackWishes: "¿Qué FUNCIONES o HERRAMIENTAS te gustaría ver en las próximas versiones?",
+                ph_wishes: "Ej: Formas vectoriales, herramienta de texto, guías de perspectiva, modos de color...",
+
+                rates: ["Excelente", "Bueno", "Regular", "Malo"],
+                btn_send_email: "🚀 Enviar Informe Oficial por Correo (1 Clic)",
+                btn_save_file: "💾 Guardar Informe (.txt)",
+                btn_copy_text: "📋 Copiar Texto del Informe",
+                footerText: "Envío directo al equipo de desarrollo: <strong>lumeniateam@protonmail.com</strong>",
+
+                toast_email: "✓ ¡Abriendo tu cliente de correo con el informe listo para enviar!",
+                toast_file: "✓ ¡Informe completo guardado en tu carpeta de Descargas!",
+                toast_copy: "✓ ¡Informe completo copiado al portapapeles!",
+                toast_copy_err: "Error al copiar automáticamente. Usa el botón de guardar archivo.",
+                report_title: "INFORME DE PRUEBAS ALPHA — LUMENIA v0.2.0 (PROFESIONAL)",
+                report_date: "Fecha/Hora de la Prueba",
+                report_sec1: "1. PERFIL DEL EVALUADOR Y DISPOSITIVO",
+                report_sec2: "2. MOTORES DE PINCEL Y RESPUESTA DEL TRAZO",
+                report_sec3: "3. SUITE DE SELECCIÓN Y BOTE DE PINTURA",
+                report_sec4: "4. HERRAMIENTA DE TRANSFORMACIÓN LIBRE (Ctrl+T)",
+                report_sec5: "5. GESTIÓN DE COLOR, TEMAS E INTERFAZ",
+                report_sec6: "6. COMENTARIOS GENERALES Y FEEDBACK CUALITATIVO",
+                report_likes: "★ LO QUE MÁS TE GUSTÓ:",
+                report_bugs: "⚠️ ERRORES O COMPORTAMIENTO EXTRAÑO:",
+                report_wishes: "💡 FUNCIONES DESEADAS PARA FUTURAS VERSIONES:",
+                email_subject: "[Lumenia Alpha Feedback] - Informe de Evaluación"
+            },
+            ja_JP: {
+                pageTitle: "Lumenia — アルファ版評価テスト総合レポート",
+                headerSubtitle: "アルファ版公式評価・テストレポート",
+                sec1_title: "1. デバイスとテスト環境",
+                lbl_testerName: "お名前またはニックネーム (任意):",
+                ph_testerName: "例: デジタルアーティスト",
+                lbl_testerEmail: "メールアドレス (任意・連絡用):",
+                ph_testerEmail: "artist@email.com",
+                lbl_deviceType: "ペンタブレット / スタイラス:",
+                opt_touch: "タッチスクリーン / Windows Pen",
+                opt_mouse: "マウスとキーボードのみ",
+                opt_other: "その他のメーカー / 特定モデル...",
+                lbl_osVersion: "オペレーティングシステム:",
+                opt_other_win: "その他の Windows",
+                lbl_displayRes: "画面解像度:",
+                opt_ultrawide: "ウルトラワイド / マルチモニター",
+                opt_hd: "HD / ノートPC (1366x768)",
+                lbl_customDevice: "ペンタブレットの具体的なモデル名 (任意):",
+                ph_customDevice: "例: Veikk A15 Pro, Parblo Coast10, Genius EasyPen, Wacom CTL-472...",
+
+                sec2_title: "2. ブラシエンジンと筆圧応答",
+                item_pressure_name: "筆圧感度とダイナミクス",
+                item_pressure_hint: "ペンの筆圧応答と筆圧曲線の滑らかさ",
+                ph_pressure: "💬 筆圧感度に関する具体的なご意見 (任意)...",
+                item_stabilizer_name: "手ブレ補正とストロークのスムージング",
+                item_stabilizer_hint: "ブレのない正確な線画描画 (Catmull-Rom)",
+                ph_stabilizer: "💬 手ブレ補正や描画の滑らかさについて (任意)...",
+                item_inker_name: "インクブラシ / ペン入れ",
+                item_inker_hint: "明瞭な線、抜きと入りのキレ、ソリッドな筆先",
+                ph_inker: "💬 線画・インクブラシについて (任意)...",
+                item_media_name: "水彩および厚塗り3D油彩ブラシ",
+                item_media_hint: "リアルタイム混色と絵具テクスチャ表現",
+                ph_media: "💬 水彩や油彩テクスチャについて (任意)...",
+
+                sec3_title: "3. 選択範囲スイート＆塗りつぶしバケツ",
+                item_wand_name: "自動選択ツール (W) と許容値",
+                item_wand_hint: "隣接領域の検出と境界拡張",
+                ph_wand: "💬 自動選択や許容値に関するご意見 (任意)...",
+                item_lasso_name: "幾何学選択と投げ縄ツール (L)",
+                item_lasso_hint: "長方形、楕円、フリーハンド投げ縄、多角形",
+                ph_lasso: "💬 投げ縄・幾何選択ツールについて (任意)...",
+                item_ants_name: "点線マーチングアンツと修飾キー",
+                item_ants_hint: "選択枠の視認性と Shift(+) / Alt(-) ショートカット",
+                ph_ants: "💬 選択枠表示や修飾キーの操作性について (任意)...",
+                item_bucket_name: "選択範囲内での塗りつぶしバケツ",
+                item_bucket_hint: "アクティブな選択マスク内を正確に塗りつぶす",
+                ph_bucket: "💬 選択範囲内の塗りつぶしについて (任意)...",
+
+                sec4_title: "4. 自由変形ツール (Ctrl+T)",
+                item_handles_name: "8つのハンドルと縦横比維持拡大縮小",
+                item_handles_hint: "Shift/Altキーと連動した四隅・境界ドラッグ",
+                ph_handles: "💬 ハンドル操作や変形の使いやすさについて (任意)...",
+                item_pivot_name: "移動可能な中心軸と回転",
+                item_pivot_hint: "回転軸の移動と15度刻み回転スナップ",
+                ph_pivot: "💬 回転や回転軸の操作性について (任意)...",
+                item_interp_name: "バイキュービック補間品質 (C++)",
+                item_interp_hint: "変形後のジャギーのない鮮明なディテール保持",
+                ph_interp: "💬 変形後の画像の鮮明さについて (任意)...",
+                item_float_name: "選択範囲のフローティング変形",
+                item_float_hint: "選択範囲内の領域のみを単独で変形",
+                ph_float: "💬 選択部分の切り抜き変形について (任意)...",
+
+                sec5_title: "5. カラー管理・テーマ・UI",
+                item_profiles_name: "カラープロファイル (sRGB, Display P3, CMYK校正)",
+                item_profiles_hint: "色の忠実性と印刷/色覚シミュレーション",
+                ph_profiles: "💬 色域・P3や印刷校正について (任意)...",
+                item_eyedrop_name: "4倍拡大鏡付きスポイト (HUD Loupe)",
+                item_eyedrop_hint: "ピクセル拡大と正確なカラーピック",
+                ph_eyedrop: "💬 スポイト拡大鏡HUDについて (任意)...",
+                item_themes_name: "ビジュアルテーマ (Lumenia Purple, Dark, OLED等)",
+                item_themes_hint: "パネルの美観、コントラスト、洗練されたデザイン",
+                ph_themes: "💬 UIの外観やテーマについて (任意)...",
+                item_perf_name: "全体的な描画速度と取り消し/やり直し",
+                item_perf_hint: "60 FPS レンダリングと瞬時の応答",
+                ph_perf: "💬 FPS、動作の軽快さ、Undo/Redoについて (任意)...",
+
+                sec6_title: "6. 全体的なご意見・不具合報告・要望",
+                lbl_feedbackLikes: "Lumeniaで最も気に入った点は何ですか？",
+                ph_likes: "例: インクブラシの描き心地が素晴らしく、自由変形が直感的で使いやすい...",
+                lbl_feedbackBugs: "不具合やクラッシュ、異常な動作はありましたか？",
+                ph_bugs: "不具合の再現手順をご記入ください (例: フルスクリーンで自動選択を使用した時...)",
+                lbl_feedbackWishes: "今後のバージョンで追加してほしい機能やツールはありますか？",
+                ph_wishes: "例: ベクターシェイプ、テキストツール、パース定規、カラーモード...",
+
+                rates: ["優秀", "良い", "普通", "悪い"],
+                btn_send_email: "🚀 公式レポートをメールで送信 (1クリック)",
+                btn_save_file: "💾 レポートを保存 (.txt)",
+                btn_copy_text: "📋 レポートをコピー",
+                footerText: "開発チームへの直接送信先: <strong>lumeniateam@protonmail.com</strong>",
+
+                toast_email: "✓ レポートが入力されたメールソフトを起動しています...",
+                toast_file: "✓ 評価レポートをダウンロードフォルダに保存しました！",
+                toast_copy: "✓ レポートをクリップボードにコピーしました！",
+                toast_copy_err: "自動コピーに失敗しました。ファイル保存ボタンをご利用ください。",
+                report_title: "アルファ版評価テスト総合レポート — LUMENIA v0.2.0 (PROFESSIONAL)",
+                report_date: "テスト実施日時",
+                report_sec1: "1. テスター情報と環境",
+                report_sec2: "2. ブラシエンジンと筆圧応答",
+                report_sec3: "3. 選択範囲スイート＆塗りつぶしバケツ",
+                report_sec4: "4. 自由変形ツール (Ctrl+T)",
+                report_sec5: "5. カラー管理・テーマ・UI",
+                report_sec6: "6. 定性評価とフィードバック",
+                report_likes: "★ 最も気に入った点:",
+                report_bugs: "⚠️ 不具合または異常な動作:",
+                report_wishes: "💡 今後要望する機能・ツール:",
+                email_subject: "[Lumenia Alpha Feedback] - 評価テストレポート"
+            }
+        };
+
+        let currentLang = 'pt_BR';
+
+        function changeLanguage(langKey) {
+            if (!I18N[langKey]) langKey = 'pt_BR';
+            currentLang = langKey;
+            localStorage.setItem('lumenia_feedback_lang', langKey);
+            document.documentElement.lang = langKey.replace('_', '-');
+
+            const t = I18N[langKey];
+
+            // Título e Header
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
+            document.getElementById('langSelector').value = langKey;
+
+            // Seção 1
+            document.getElementById('sec1_title').textContent = t.sec1_title;
+            document.getElementById('lbl_testerName').textContent = t.lbl_testerName;
+            document.getElementById('testerName').placeholder = t.ph_testerName;
+            document.getElementById('lbl_testerEmail').textContent = t.lbl_testerEmail;
+            document.getElementById('testerEmail').placeholder = t.ph_testerEmail;
+            document.getElementById('lbl_deviceType').textContent = t.lbl_deviceType;
+            document.getElementById('opt_touch').textContent = t.opt_touch;
+            document.getElementById('opt_mouse').textContent = t.opt_mouse;
+            document.getElementById('opt_other').textContent = t.opt_other;
+            document.getElementById('lbl_osVersion').textContent = t.lbl_osVersion;
+            document.getElementById('opt_other_win').textContent = t.opt_other_win;
+            document.getElementById('lbl_displayRes').textContent = t.lbl_displayRes;
+            document.getElementById('opt_ultrawide').textContent = t.opt_ultrawide;
+            document.getElementById('opt_hd').textContent = t.opt_hd;
+            document.getElementById('lbl_customDevice').textContent = t.lbl_customDevice;
+            document.getElementById('customDevice').placeholder = t.ph_customDevice;
+
+            // Seção 2
+            document.getElementById('sec2_title').textContent = t.sec2_title;
+            document.getElementById('item_pressure_name').textContent = t.item_pressure_name;
+            document.getElementById('item_pressure_hint').textContent = t.item_pressure_hint;
+            document.getElementById('comm_pressure').placeholder = t.ph_pressure;
+            document.getElementById('item_stabilizer_name').textContent = t.item_stabilizer_name;
+            document.getElementById('item_stabilizer_hint').textContent = t.item_stabilizer_hint;
+            document.getElementById('comm_stabilizer').placeholder = t.ph_stabilizer;
+            document.getElementById('item_inker_name').textContent = t.item_inker_name;
+            document.getElementById('item_inker_hint').textContent = t.item_inker_hint;
+            document.getElementById('comm_inker').placeholder = t.ph_inker;
+            document.getElementById('item_media_name').textContent = t.item_media_name;
+            document.getElementById('item_media_hint').textContent = t.item_media_hint;
+            document.getElementById('comm_natural_media').placeholder = t.ph_media;
+
+            // Seção 3
+            document.getElementById('sec3_title').textContent = t.sec3_title;
+            document.getElementById('item_wand_name').textContent = t.item_wand_name;
+            document.getElementById('item_wand_hint').textContent = t.item_wand_hint;
+            document.getElementById('comm_wand').placeholder = t.ph_wand;
+            document.getElementById('item_lasso_name').textContent = t.item_lasso_name;
+            document.getElementById('item_lasso_hint').textContent = t.item_lasso_hint;
+            document.getElementById('comm_lasso').placeholder = t.ph_lasso;
+            document.getElementById('item_ants_name').textContent = t.item_ants_name;
+            document.getElementById('item_ants_hint').textContent = t.item_ants_hint;
+            document.getElementById('comm_ants').placeholder = t.ph_ants;
+            document.getElementById('item_bucket_name').textContent = t.item_bucket_name;
+            document.getElementById('item_bucket_hint').textContent = t.item_bucket_hint;
+            document.getElementById('comm_bucket').placeholder = t.ph_bucket;
+
+            // Seção 4
+            document.getElementById('sec4_title').textContent = t.sec4_title;
+            document.getElementById('item_handles_name').textContent = t.item_handles_name;
+            document.getElementById('item_handles_hint').textContent = t.item_handles_hint;
+            document.getElementById('comm_trans_handles').placeholder = t.ph_handles;
+            document.getElementById('item_pivot_name').textContent = t.item_pivot_name;
+            document.getElementById('item_pivot_hint').textContent = t.item_pivot_hint;
+            document.getElementById('comm_trans_pivot').placeholder = t.ph_pivot;
+            document.getElementById('item_interp_name').textContent = t.item_interp_name;
+            document.getElementById('item_interp_hint').textContent = t.item_interp_hint;
+            document.getElementById('comm_trans_interp').placeholder = t.ph_interp;
+            document.getElementById('item_float_name').textContent = t.item_float_name;
+            document.getElementById('item_float_hint').textContent = t.item_float_hint;
+            document.getElementById('comm_trans_float').placeholder = t.ph_float;
+
+            // Seção 5
+            document.getElementById('sec5_title').textContent = t.sec5_title;
+            document.getElementById('item_profiles_name').textContent = t.item_profiles_name;
+            document.getElementById('item_profiles_hint').textContent = t.item_profiles_hint;
+            document.getElementById('comm_profiles').placeholder = t.ph_profiles;
+            document.getElementById('item_eyedrop_name').textContent = t.item_eyedrop_name;
+            document.getElementById('item_eyedrop_hint').textContent = t.item_eyedrop_hint;
+            document.getElementById('comm_eyedrop').placeholder = t.ph_eyedrop;
+            document.getElementById('item_themes_name').textContent = t.item_themes_name;
+            document.getElementById('item_themes_hint').textContent = t.item_themes_hint;
+            document.getElementById('comm_themes').placeholder = t.ph_themes;
+            document.getElementById('item_perf_name').textContent = t.item_perf_name;
+            document.getElementById('item_perf_hint').textContent = t.item_perf_hint;
+            document.getElementById('comm_perf').placeholder = t.ph_perf;
+
+            // Seção 6
+            document.getElementById('sec6_title').textContent = t.sec6_title;
+            document.getElementById('lbl_feedbackLikes').textContent = t.lbl_feedbackLikes;
+            document.getElementById('feedbackLikes').placeholder = t.ph_likes;
+            document.getElementById('lbl_feedbackBugs').textContent = t.lbl_feedbackBugs;
+            document.getElementById('feedbackBugs').placeholder = t.ph_bugs;
+            document.getElementById('lbl_feedbackWishes').textContent = t.lbl_feedbackWishes;
+            document.getElementById('feedbackWishes').placeholder = t.ph_wishes;
+
+            // Badges das Avaliações
+            document.querySelectorAll('.rate-badge-1').forEach(el => el.textContent = t.rates[0]);
+            document.querySelectorAll('.rate-badge-2').forEach(el => el.textContent = t.rates[1]);
+            document.querySelectorAll('.rate-badge-3').forEach(el => el.textContent = t.rates[2]);
+            document.querySelectorAll('.rate-badge-4').forEach(el => el.textContent = t.rates[3]);
+
+            // Botões e Rodapé
+            document.getElementById('btn_send_email').textContent = t.btn_send_email;
+            document.getElementById('btn_save_file').textContent = t.btn_save_file;
+            document.getElementById('btn_copy_text').textContent = t.btn_copy_text;
+            document.getElementById('footerText').innerHTML = t.footerText;
         }
 
-        function showNotification(msg) {
-            const el = document.getElementById('notification');
+        function initLanguage() {
+            const params = new URLSearchParams(window.location.search);
+            const urlLang = params.get('lang');
+            const storedLang = localStorage.getItem('lumenia_feedback_lang');
+            let initialLang = urlLang || storedLang;
+
+            if (!initialLang) {
+                const navLang = navigator.language || navigator.userLanguage || 'pt-BR';
+                if (navLang.startsWith('en')) initialLang = 'en_US';
+                else if (navLang.startsWith('es')) initialLang = 'es_ES';
+                else if (navLang.startsWith('ja')) initialLang = 'ja_JP';
+                else initialLang = 'pt_BR';
+            }
+
+            if (!I18N[initialLang]) {
+                if (initialLang.includes('pt')) initialLang = 'pt_BR';
+                else if (initialLang.includes('en')) initialLang = 'en_US';
+                else if (initialLang.includes('es')) initialLang = 'es_ES';
+                else if (initialLang.includes('ja')) initialLang = 'ja_JP';
+                else initialLang = 'pt_BR';
+            }
+
+            changeLanguage(initialLang);
+        }
+
+        window.addEventListener('DOMContentLoaded', initLanguage);
+
+        function toggleCustomDevice() {
+            const devSelect = document.getElementById('deviceType');
+            const customInput = document.getElementById('customDevice');
+            if (devSelect.value.includes('Outra') || devSelect.value.includes('Other') || devSelect.value.includes('Otra') || devSelect.value.includes('その他')) {
+                customInput.focus();
+            }
+        }
+
+        function fmtLine(label, rateName, commentId) {
+            const t = I18N[currentLang];
+            const rInput = document.querySelector(`input[name="${rateName}"]:checked`);
+            let rVal = rInput ? rInput.value : "Excelente";
+            
+            // Mapeia valor PT original para o idioma atual se necessário
+            const ptRates = ["Excelente", "Bom", "Regular", "Ruim"];
+            const rIdx = ptRates.indexOf(rVal);
+            if (rIdx !== -1 && t.rates[rIdx]) {
+                rVal = t.rates[rIdx];
+            }
+
+            const cVal = document.getElementById(commentId).value.trim();
+            if (cVal) {
+                return `• ${label}: ${rVal} — "${cVal}"`;
+            }
+            return `• ${label}: ${rVal}`;
+        }
+
+        function generateComprehensiveReport() {
+            const t = I18N[currentLang];
+            const name = document.getElementById('testerName').value.trim() || 'N/A';
+            const email = document.getElementById('testerEmail').value.trim() || 'N/A';
+            
+            // Dispositivo / Mesa
+            const selectDevice = document.getElementById('deviceType').value;
+            const customDevice = document.getElementById('customDevice').value.trim();
+            let finalDevice = selectDevice;
+            if (customDevice) {
+                finalDevice = `${selectDevice} [${customDevice}]`;
+            }
+
+            const os = document.getElementById('osVersion').value;
+            const display = document.getElementById('displayRes').value;
+
+            // Seção 2
+            const lPressure = fmtLine(t.item_pressure_name, "rate_pressure", "comm_pressure");
+            const lStab = fmtLine(t.item_stabilizer_name, "rate_stabilizer", "comm_stabilizer");
+            const lInker = fmtLine(t.item_inker_name, "rate_inker", "comm_inker");
+            const lMedia = fmtLine(t.item_media_name, "rate_natural_media", "comm_natural_media");
+
+            // Seção 3
+            const lWand = fmtLine(t.item_wand_name, "rate_wand", "comm_wand");
+            const lLasso = fmtLine(t.item_lasso_name, "rate_lasso", "comm_lasso");
+            const lAnts = fmtLine(t.item_ants_name, "rate_ants", "comm_ants");
+            const lBucket = fmtLine(t.item_bucket_name, "rate_bucket", "comm_bucket");
+
+            // Seção 4
+            const lHandles = fmtLine(t.item_handles_name, "rate_trans_handles", "comm_trans_handles");
+            const lPivot = fmtLine(t.item_pivot_name, "rate_trans_pivot", "comm_trans_pivot");
+            const lInterp = fmtLine(t.item_interp_name, "rate_trans_interp", "comm_trans_interp");
+            const lFloat = fmtLine(t.item_float_name, "rate_trans_float", "comm_trans_float");
+
+            // Seção 5
+            const lProfiles = fmtLine(t.item_profiles_name, "rate_profiles", "comm_profiles");
+            const lEyedrop = fmtLine(t.item_eyedrop_name, "rate_eyedrop", "comm_eyedrop");
+            const lThemes = fmtLine(t.item_themes_name, "rate_themes", "comm_themes");
+            const lPerf = fmtLine(t.item_perf_name, "rate_perf", "comm_perf");
+
+            // Seção 6
+            const likes = document.getElementById('feedbackLikes').value.trim() || 'N/A';
+            const bugs = document.getElementById('feedbackBugs').value.trim() || 'N/A';
+            const wishes = document.getElementById('feedbackWishes').value.trim() || 'N/A';
+
+            const dateStr = new Date().toLocaleString(currentLang.replace('_', '-'));
+
+            return `======================================================================
+         ${t.report_title}
+======================================================================
+${t.report_date}: ${dateStr} [Locale: ${currentLang}]
+
+[${t.report_sec1}]
+• ${t.lbl_testerName.replace(':', '')}: ${name}
+• ${t.lbl_testerEmail.replace(':', '')}: ${email}
+• ${t.lbl_deviceType.replace(':', '')}: ${finalDevice}
+• ${t.lbl_osVersion.replace(':', '')}: ${os}
+• ${t.lbl_displayRes.replace(':', '')}: ${display}
+
+[${t.report_sec2}]
+${lPressure}
+${lStab}
+${lInker}
+${lMedia}
+
+[${t.report_sec3}]
+${lWand}
+${lLasso}
+${lAnts}
+${lBucket}
+
+[${t.report_sec4}]
+${lHandles}
+${lPivot}
+${lInterp}
+${lFloat}
+
+[${t.report_sec5}]
+${lProfiles}
+${lEyedrop}
+${lThemes}
+${lPerf}
+
+[${t.report_sec6}]
+${t.report_likes}
+${likes}
+
+${t.report_bugs}
+${bugs}
+
+${t.report_wishes}
+${wishes}
+======================================================================`;
+        }
+
+        function showToast(msg) {
+            const el = document.getElementById('toastBox');
             el.textContent = msg;
             el.style.display = 'block';
             setTimeout(() => {
                 el.style.display = 'none';
-            }, 4000);
+            }, 4500);
         }
 
         function sendViaEmail() {
-            const bodyText = encodeURIComponent(generateReportText());
-            const subject = encodeURIComponent('[Lumenia Alpha Feedback] - Relatório de Teste');
+            const t = I18N[currentLang];
+            const report = generateComprehensiveReport();
+            const subject = encodeURIComponent(t.email_subject);
+            const body = encodeURIComponent(report);
             const targetEmail = 'lumeniateam@protonmail.com';
-            
-            window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${bodyText}`;
-            showNotification('Abrindo seu programa de e-mail com o relatório preenchido!');
+
+            window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+            showToast(t.toast_email);
         }
 
         function downloadReport() {
-            const text = generateReportText();
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const t = I18N[currentLang];
+            const report = generateComprehensiveReport();
+            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'Lumenia_Feedback_Relatorio.txt';
+            a.download = `Lumenia_Alpha_Report_${currentLang}.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showNotification('Relatório salvo com sucesso em seu computador!');
+            showToast(t.toast_file);
         }
 
         function copyReport() {
-            const text = generateReportText();
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification('Relatório copiado para a Área de Transferência com sucesso!');
+            const t = I18N[currentLang];
+            const report = generateComprehensiveReport();
+            navigator.clipboard.writeText(report).then(() => {
+                showToast(t.toast_copy);
             }).catch(() => {
-                showNotification('Erro ao copiar. Use o botão de salvar em arquivo.');
+                showToast(t.toast_copy_err);
             });
         }
     </script>

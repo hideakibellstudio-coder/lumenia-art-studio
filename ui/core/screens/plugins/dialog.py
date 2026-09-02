@@ -29,7 +29,8 @@ class PluginsWindow(BaseFramelessDialog):
     """Diálogo completo de gerenciamento e inspeção de plugins."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Gerenciador de Plugins", icon_name="plugin", parent=parent, modal=True)
+        from ui.core.i18n import tr, I18nManager
+        super().__init__(title=tr("plugins.dialog_title", "Gerenciador de Plugins"), icon_name="plugin", parent=parent, modal=True)
         self.resize(1080, 680)
         self.setMinimumSize(960, 600)
 
@@ -41,6 +42,9 @@ class PluginsWindow(BaseFramelessDialog):
 
         ThemeManager.instance().themeChanged.connect(self.update_theme_style)
         self.update_theme_style()
+
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
 
     def _build_ui(self) -> None:
         cols_widget = QtWidgets.QWidget()
@@ -54,10 +58,10 @@ class PluginsWindow(BaseFramelessDialog):
         filter_box.setSpacing(6)
         filter_box.setAlignment(QtCore.Qt.AlignTop)
 
-        lbl_filters = QtWidgets.QLabel("FILTROS")
-        lbl_filters.setStyleSheet("font-size: 10px; font-weight: bold;")
+        self.lbl_filters = QtWidgets.QLabel("FILTROS")
+        self.lbl_filters.setStyleSheet("font-size: 10px; font-weight: bold;")
 
-        filter_box.addWidget(lbl_filters)
+        filter_box.addWidget(self.lbl_filters)
 
         self.btn_grp = QtWidgets.QButtonGroup(self)
         self.btn_grp.setExclusive(True)
@@ -83,32 +87,16 @@ class PluginsWindow(BaseFramelessDialog):
 
         from ui.core.icons import get_icon
 
-        btn_import = QtWidgets.QPushButton(" Importar .zip")
-        btn_import.setIcon(get_icon("import", "#ffffff"))
-        btn_import.setIconSize(QtCore.QSize(15, 15))
-        btn_import.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_import.setStyleSheet("""
-            QPushButton {
-                background-color: #3b82f6;
-                color: #ffffff;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 12px;
-                font-weight: bold;
-                font-size: 11px;
-            }
-            QPushButton:hover {
-                background-color: #2563eb;
-            }
-            QPushButton:pressed {
-                background-color: #1d4ed8;
-            }
-        """)
-        btn_import.clicked.connect(self.import_zip)
-        filter_box.addWidget(btn_import)
+        self.btn_import = QtWidgets.QPushButton(" Importar .zip")
+        self.btn_import.setObjectName("pluginImportBtn")
+        self.btn_import.setIcon(get_icon("import", "#ffffff"))
+        self.btn_import.setIconSize(QtCore.QSize(15, 15))
+        self.btn_import.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_import.clicked.connect(self.import_zip)
+        filter_box.addWidget(self.btn_import)
 
         filter_widget = QtWidgets.QWidget()
-
+        filter_widget.setObjectName("PluginFilterWidget")
         filter_widget.setFixedWidth(160)
         filter_widget.setLayout(filter_box)
         cols_layout.addWidget(filter_widget)
@@ -161,7 +149,32 @@ class PluginsWindow(BaseFramelessDialog):
 
         cols_layout.addWidget(self.inspector)
 
-
+    def retranslate_ui(self) -> None:
+        from ui.core.i18n import tr
+        self.setWindowTitle(tr("plugins.dialog_title", "Gerenciador de Plugins"))
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(tr("plugins.dialog_title", "Gerenciador de Plugins"))
+        if hasattr(self, "lbl_filters"):
+            self.lbl_filters.setText(tr("plugins.filters", "FILTROS"))
+        if hasattr(self, "btn_grp"):
+            mapping = {
+                "all": tr("plugins.filter_all", "Todos os Plugins"),
+                "active": tr("plugins.filter_active", "Ativos"),
+                "inactive": tr("plugins.filter_inactive", "Inativos"),
+                "system": tr("plugins.filter_system", "Sistema")
+            }
+            for btn in self.btn_grp.buttons():
+                fid = btn.property("filter_id")
+                if fid in mapping:
+                    btn.setText(mapping[fid])
+        if hasattr(self, "btn_import"):
+            self.btn_import.setText(f" {tr('plugins.import_zip', 'Importar .zip')}")
+        if hasattr(self, "lbl_heading"):
+            self.lbl_heading.setText(tr("plugins.heading", "Meus Plugins"))
+        if hasattr(self, "txt_search"):
+            self.txt_search.setPlaceholderText(tr("plugins.search_placeholder", "Pesquisar plugins..."))
+        if hasattr(self, "inspector") and hasattr(self.inspector, "retranslate_ui"):
+            self.inspector.retranslate_ui()
 
     def populate_list(self) -> None:
         # Limpa layout anterior
@@ -298,18 +311,34 @@ class PluginsWindow(BaseFramelessDialog):
         theme = ThemeManager.instance()
         bg_main = theme.get_color("bg_main", "#0f172a")
         bg_panel = theme.get_color("bg_panel", "#1e293b")
+        bg_card = theme.get_color("bg_card", "#1e293b")
+        bg_input = theme.get_color("bg_input", "#0f172a")
         border = theme.get_color("border", "#334155")
         text_main = theme.get_color("text_main", "#f8fafc")
         text_sec = theme.get_color("text_sec", "#94a3b8")
         accent = theme.get_color("accent", "#3b82f6")
+        accent_hover = theme.get_color("accent_hover", "#60a5fa")
+
+        if hasattr(self, "root_container") and self.root_container:
+            self.root_container.setStyleSheet(f"""
+                QWidget#DialogRootContainer {{
+                    background-color: {bg_main};
+                    border: 1px solid {border};
+                    border-radius: 10px;
+                }}
+                QFrame#DialogHeaderSep {{
+                    background-color: {border};
+                    border: none;
+                }}
+            """)
 
         self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {bg_main};
-                color: {text_main};
+            QWidget#PluginFilterWidget {{
+                background-color: transparent;
+                border-right: 1px solid {border};
             }}
             QLineEdit {{
-                background-color: {bg_panel};
+                background-color: {bg_input};
                 border: 1px solid {border};
                 border-radius: 6px;
                 padding: 6px 12px;
@@ -331,7 +360,7 @@ class PluginsWindow(BaseFramelessDialog):
             }}
             QPushButton:hover {{
                 border-color: {accent};
-                background-color: rgba(99, 102, 241, 0.1);
+                background-color: {bg_card};
             }}
             QPushButton:checked {{
                 background-color: {accent};
@@ -339,5 +368,21 @@ class PluginsWindow(BaseFramelessDialog):
                 color: #ffffff;
                 font-weight: bold;
             }}
+            QPushButton#pluginImportBtn {{
+                background-color: {accent};
+                border: none;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #ffffff;
+                font-weight: bold;
+                font-size: 11px;
+                text-align: center;
+            }}
+            QPushButton#pluginImportBtn:hover {{
+                background-color: {accent_hover};
+            }}
         """)
-        self.lbl_heading.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {text_main};")
+        if hasattr(self, "lbl_filters"):
+            self.lbl_filters.setStyleSheet(f"font-size: 10px; font-weight: bold; color: {text_sec};")
+        if hasattr(self, "lbl_heading"):
+            self.lbl_heading.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {text_main};")

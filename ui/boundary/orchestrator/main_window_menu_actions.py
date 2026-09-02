@@ -393,12 +393,14 @@ class MainWindowMenuActionsMixin:
         dialog.exec()
 
     def open_user_guide(self) -> None:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        readme_path = os.path.join(project_root, "README.md")
-        if os.path.exists(readme_path):
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(readme_path))
-        else:
-            self.open_shortcuts_dialog()
+        from ui.core.dialogs.user_guide_dialog import UserGuideDialog
+        dialog = UserGuideDialog(self)
+        dialog.exec()
+
+    def open_test_report_dialog(self) -> None:
+        from ui.core.dialogs.test_report_dialog import TestReportDialog
+        dialog = TestReportDialog(self)
+        dialog.exec()
 
     def open_shortcuts_dialog(self) -> None:
         from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog
@@ -422,10 +424,13 @@ class MainWindowMenuActionsMixin:
         for item_id, attr_name in shortcut_targets.items():
             if item_id in shortcuts_map and hasattr(self, attr_name):
                 shortcut_obj = getattr(self, attr_name)
-                if shortcut_obj and isinstance(shortcut_obj, QtGui.QShortcut):
-                    seq = shortcuts_map[item_id]
-                    if seq:
-                        shortcut_obj.setKey(QtGui.QKeySequence(seq))
+                seq = shortcuts_map[item_id]
+                if not seq:
+                    continue
+                if isinstance(shortcut_obj, QtGui.QShortcut):
+                    shortcut_obj.setKey(QtGui.QKeySequence(seq))
+                elif isinstance(shortcut_obj, QtGui.QAction):
+                    shortcut_obj.setShortcut(QtGui.QKeySequence(seq))
 
         if hasattr(self, "status_bar") and self.status_bar:
             self.status_bar.showMessage("Atalhos de teclado atualizados e aplicados.", 3000)
@@ -446,12 +451,16 @@ class MainWindowMenuActionsMixin:
         self.status_bar.showMessage("Preferências de cursor aplicadas.", 3000)
 
     def open_feedback_form(self) -> None:
+        from ui.core.i18n import I18nManager
+        current_locale = I18nManager.instance().get_current_locale()
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         feedback_path = os.path.join(project_root, "Enviar_Feedback.html")
         if os.path.exists(feedback_path):
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(feedback_path))
+            url = QtCore.QUrl.fromLocalFile(feedback_path)
+            url.setQuery(f"lang={current_locale}")
+            QtGui.QDesktopServices.openUrl(url)
         else:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl("mailto:lumeniateam@protonmail.com?subject=[Lumenia%20Alpha%20Feedback]"))
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl(f"mailto:lumeniateam@protonmail.com?subject=[Lumenia%20Alpha%20Feedback%20{current_locale}]"))
 
     def open_about_dialog(self) -> None:
         from ui.core.screens.about_dialog import AboutDialog

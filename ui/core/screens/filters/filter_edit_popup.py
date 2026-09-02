@@ -38,6 +38,11 @@ class FilterEditPopup(QtWidgets.QDialog):
         self.fdef = next((f for f in FILTER_DEFINITIONS if f["type_id"] == filter_type_id), FILTER_DEFINITIONS[0])
         self._param_widgets: Dict[str, Any] = {}
 
+        self._preview_timer = QtCore.QTimer(self)
+        self._preview_timer.setSingleShot(True)
+        self._preview_timer.setInterval(16)
+        self._preview_timer.timeout.connect(self._do_emit_params_changed)
+
         self._build_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
@@ -54,7 +59,7 @@ class FilterEditPopup(QtWidgets.QDialog):
         header_icon.setFixedSize(16, 16)
         header_icon.setPixmap(get_icon("settings").pixmap(16, 16))
         header_lbl = QtWidgets.QLabel(self.fdef['name'].upper())
-        header_lbl.setStyleSheet("font-size: 13px; font-weight: bold;")
+        header_lbl.setProperty("heading", "true")
         header_box.addWidget(header_icon)
         header_box.addWidget(header_lbl)
         header_box.addStretch()
@@ -62,7 +67,7 @@ class FilterEditPopup(QtWidgets.QDialog):
 
         desc_lbl = QtWidgets.QLabel(self.fdef["description"])
         desc_lbl.setWordWrap(True)
-        desc_lbl.setStyleSheet("font-size: 11px; color: #9ca3af;")
+        desc_lbl.setProperty("muted", "true")
         layout.addWidget(desc_lbl)
 
         sep = QtWidgets.QFrame()
@@ -101,6 +106,10 @@ class FilterEditPopup(QtWidgets.QDialog):
         layout.addWidget(btn_close)
 
     def _on_param_changed(self, *args) -> None:
+        if not self._preview_timer.isActive():
+            self._preview_timer.start()
+
+    def _do_emit_params_changed(self) -> None:
         new_params = []
         for p in self.fdef["params"]:
             w = self._param_widgets.get(p["id"])

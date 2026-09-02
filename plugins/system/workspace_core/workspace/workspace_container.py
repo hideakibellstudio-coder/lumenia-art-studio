@@ -398,3 +398,10 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
         self.canvas_widget.update()
         self._on_status_notification("Seleção cancelada.")
 
+    def retranslate_ui(self) -> None:
+        """Propaga a re-tradução para todos os sub-componentes do workspace."""
+        if hasattr(self, "floating_toolbar") and hasattr(self.floating_toolbar, "retranslate_ui"):
+            self.floating_toolbar.retranslate_ui()
+        if hasattr(self, "secondary_toolbar") and hasattr(self.secondary_toolbar, "retranslate_ui"):
+            self.secondary_toolbar.retranslate_ui()
+

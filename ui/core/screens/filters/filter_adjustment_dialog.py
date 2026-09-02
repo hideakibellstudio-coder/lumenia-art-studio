@@ -115,15 +115,15 @@ class FilterCard(QtWidgets.QFrame):
         info_box = QtWidgets.QVBoxLayout()
         info_box.setSpacing(2)
         
-        name_lbl = QtWidgets.QLabel(self.filter_def["name"])
-        name_lbl.setStyleSheet("font-weight: bold; font-size: 12px;")
+        self.name_lbl = QtWidgets.QLabel(self.filter_def["name"])
+        self.name_lbl.setStyleSheet("font-size: 13px; font-weight: bold;")
         
-        desc_lbl = QtWidgets.QLabel(self.filter_def["description"])
-        desc_lbl.setWordWrap(True)
-        desc_lbl.setStyleSheet("font-size: 10px; color: #9ca3af;")
+        self.desc_lbl = QtWidgets.QLabel(self.filter_def.get("description", ""))
+        self.desc_lbl.setWordWrap(True)
+        self.desc_lbl.setStyleSheet("font-size: 11px;")
 
-        info_box.addWidget(name_lbl)
-        info_box.addWidget(desc_lbl)
+        info_box.addWidget(self.name_lbl)
+        info_box.addWidget(self.desc_lbl)
         layout.addLayout(info_box, 1)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
@@ -137,11 +137,13 @@ class FilterCard(QtWidgets.QFrame):
 
     def update_style(self, *args) -> None:
         theme = ThemeManager.instance()
-        bg_panel = theme.get_color("bg_panel", "#1e1e24")
+        bg_card = theme.get_color("bg_card", "#1e1e24")
         border = theme.get_color("border", "#2e2e38")
         accent = theme.get_color("accent", "#6366f1")
+        text_main = theme.get_color("text_main", "#f3f4f6")
+        text_sec = theme.get_color("text_sec", "#9ca3af")
 
-        bg_color = theme.get_color("bg_hover", "#2a2a32") if self.is_selected else bg_panel
+        bg_color = theme.get_color("bg_hover", "#2a2a32") if self.is_selected else bg_card
         border_color = accent if self.is_selected else border
 
         self.setStyleSheet(f"""
@@ -158,6 +160,10 @@ class FilterCard(QtWidgets.QFrame):
                 background: transparent;
             }}
         """)
+        if hasattr(self, "name_lbl"):
+            self.name_lbl.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {text_main};")
+        if hasattr(self, "desc_lbl"):
+            self.desc_lbl.setStyleSheet(f"font-size: 11px; color: {text_sec};")
 
 
 class FilterAdjustmentDialog(BaseFramelessDialog):
@@ -184,6 +190,11 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
         self._active_def: dict = target_def
         self._param_widgets: Dict[str, Any] = {}
 
+        self._preview_timer = QtCore.QTimer(self)
+        self._preview_timer.setSingleShot(True)
+        self._preview_timer.setInterval(16)
+        self._preview_timer.timeout.connect(self._do_emit_preview)
+
         self._build_ui()
         self._select_filter(target_def)
 
@@ -208,10 +219,10 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
         icon_gallery = QtWidgets.QLabel()
         icon_gallery.setFixedSize(16, 16)
         icon_gallery.setPixmap(get_icon("filter").pixmap(16, 16))
-        title_lbl = QtWidgets.QLabel("GALERIA DE FILTROS")
-        title_lbl.setStyleSheet("font-size: 13px; font-weight: bold; text-transform: uppercase;")
+        self.title_lbl = QtWidgets.QLabel("GALERIA DE FILTROS")
+        self.title_lbl.setStyleSheet("font-size: 13px; font-weight: bold; text-transform: uppercase;")
         title_box.addWidget(icon_gallery)
-        title_box.addWidget(title_lbl)
+        title_box.addWidget(self.title_lbl)
         title_box.addStretch()
         left_layout.addLayout(title_box)
 
@@ -247,9 +258,9 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
         cols_layout.addWidget(left_box, 4)
 
         # Divisor vertical
-        v_line = QtWidgets.QFrame()
-        v_line.setFrameShape(QtWidgets.QFrame.VLine)
-        cols_layout.addWidget(v_line)
+        self.v_line = QtWidgets.QFrame()
+        self.v_line.setFrameShape(QtWidgets.QFrame.VLine)
+        cols_layout.addWidget(self.v_line)
 
         # ── Coluna Direita: Inspector de Parâmetros ────────────────────────
         right_box = QtWidgets.QWidget(self)
@@ -258,12 +269,12 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
         right_layout.setSpacing(10)
 
         self.inspector_title = QtWidgets.QLabel("PARÂMETROS DO FILTRO")
-        self.inspector_title.setStyleSheet("font-size: 13px; font-weight: bold;")
+        self.inspector_title.setProperty("heading", "true")
         right_layout.addWidget(self.inspector_title)
 
         self.inspector_desc = QtWidgets.QLabel("Ajuste os parâmetros abaixo para criar a camada.")
         self.inspector_desc.setWordWrap(True)
-        self.inspector_desc.setStyleSheet("font-size: 11px; color: #9ca3af;")
+        self.inspector_desc.setProperty("muted", "true")
         right_layout.addWidget(self.inspector_desc)
 
         # Container dos sliders dinâmicos
@@ -284,19 +295,38 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
         btn_box = QtWidgets.QHBoxLayout()
         btn_box.setSpacing(8)
 
-        btn_cancel = QtWidgets.QPushButton("Cancelar")
-        btn_cancel.clicked.connect(self.reject)
+        self.btn_cancel = QtWidgets.QPushButton("Cancelar")
+        self.btn_cancel.clicked.connect(self.reject)
         
         self.btn_apply = QtWidgets.QPushButton("Criar Camada de Ajuste")
         self.btn_apply.setIcon(get_icon("plus"))
         self.btn_apply.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_apply.clicked.connect(self._create_layer)
 
-        btn_box.addWidget(btn_cancel)
+        btn_box.addWidget(self.btn_cancel)
         btn_box.addWidget(self.btn_apply)
 
         right_layout.addLayout(btn_box)
         cols_layout.addWidget(right_box, 5)
+
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
+
+    def retranslate_ui(self) -> None:
+        from ui.core.i18n import tr
+        title = tr("filters.gallery", "Galeria de Filtros")
+        self.setWindowTitle(title)
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(title)
+        if hasattr(self, "title_lbl"):
+            self.title_lbl.setText(tr("filters.gallery", "GALERIA DE FILTROS").upper())
+        if hasattr(self, "search_input"):
+            self.search_input.setPlaceholderText(tr("filters.search_placeholder", "Pesquisar ajuste..."))
+        if hasattr(self, "btn_cancel"):
+            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        if hasattr(self, "btn_apply"):
+            self.btn_apply.setText(tr("filters.create_adjustment_layer", "Criar Camada de Ajuste"))
 
     def _select_filter(self, fdef: dict) -> None:
         self._active_def = fdef
@@ -334,9 +364,17 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
                 self.params_layout.addWidget(slider)
                 self._param_widgets[p["id"]] = slider
 
-        self._emit_preview()
+        self._do_emit_preview()
 
     def _emit_preview(self, *args) -> None:
+        if not self._active_def:
+            return
+        if not self._preview_timer.isActive():
+            self._preview_timer.start()
+
+    def _do_emit_preview(self) -> None:
+        if not self._active_def:
+            return
         name = self._active_def["name"]
         type_id = self._active_def["type_id"]
         params = self.get_current_params()
@@ -353,10 +391,13 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
             desc = card.filter_def["description"].lower()
             card.setVisible(query in name or query in desc)
 
-    def get_current_params(self) -> List[float]:
+    def get_current_params(self) -> list[float]:
+        if not self._active_def:
+            return [0.0] * 8
         result = []
         for p in self._active_def["params"]:
-            w = self._param_widgets.get(p["id"])
+            pid = p["id"]
+            w = self._param_widgets.get(pid)
             if w:
                 if isinstance(w, QtWidgets.QCheckBox):
                     val = 1.0 if w.isChecked() else 0.0
@@ -380,20 +421,77 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
 
     def _apply_theme(self, *args) -> None:
         theme = ThemeManager.instance()
+        bg_main = theme.get_color("bg_main", "#0f172a")
         bg_panel = theme.get_color("bg_panel", "#1e1e24")
+        bg_card = theme.get_color("bg_card", "#1e1e24")
+        bg_input = theme.get_color("bg_input", "#121214")
         border = theme.get_color("border", "#2e2e38")
         text_main = theme.get_color("text_main", "#f3f4f6")
-        
+        text_sec = theme.get_color("text_sec", "#9ca3af")
+        accent = theme.get_color("accent", "#6366f1")
+        accent_hover = theme.get_color("accent_hover", "#4f46e5")
+
+        if hasattr(self, "root_container") and self.root_container:
+            self.root_container.setStyleSheet(f"""
+                QWidget#DialogRootContainer {{
+                    background-color: {bg_main};
+                    border: 1px solid {border};
+                    border-radius: 10px;
+                }}
+                QFrame#DialogHeaderSep {{
+                    background-color: {border};
+                    border: none;
+                }}
+            """)
+
         self.setStyleSheet(f"""
-            QDialog {{
+            QLabel {{ color: {text_main}; }}
+            QLineEdit {{
+                background-color: {bg_input};
+                border: 1px solid {border};
+                border-radius: 6px;
+                padding: 6px 10px;
+                color: {text_main};
+                font-size: 11px;
+            }}
+            QLineEdit:focus {{
+                border-color: {accent};
+            }}
+            QPushButton {{
                 background-color: {bg_panel};
                 color: {text_main};
-            }}
-            QLineEdit {{
-                background-color: {theme.get_color('bg_main', '#121214')};
                 border: 1px solid {border};
-                border-radius: 4px;
-                padding: 4px 8px;
-                color: {text_main};
+                border-radius: 6px;
+                padding: 6px 14px;
+                font-size: 11px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {accent};
+                color: #ffffff;
+                border-color: {accent};
             }}
         """)
+        if hasattr(self, "title_lbl"):
+            self.title_lbl.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_sec};")
+        if hasattr(self, "inspector_title"):
+            self.inspector_title.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {text_main};")
+        if hasattr(self, "inspector_desc"):
+            self.inspector_desc.setStyleSheet(f"font-size: 11px; color: {text_sec};")
+        if hasattr(self, "v_line"):
+            self.v_line.setStyleSheet(f"border: none; background-color: {border}; max-width: 1px;")
+        if hasattr(self, "btn_apply"):
+            self.btn_apply.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {accent};
+                    color: #ffffff;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 6px 14px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {accent_hover};
+                }}
+            """)

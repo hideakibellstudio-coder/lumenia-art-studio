@@ -14,6 +14,7 @@ from ui.core.i18n import tr
 class HelpMenu(QtWidgets.QMenu):
     shortcutsRequested   = QtCore.Signal()
     userGuideRequested   = QtCore.Signal()
+    testReportRequested  = QtCore.Signal()
     diagnosticsRequested = QtCore.Signal()
     feedbackRequested    = QtCore.Signal()
     aboutRequested       = QtCore.Signal()
@@ -32,6 +33,10 @@ class HelpMenu(QtWidgets.QMenu):
         self.act_guide = QtGui.QAction(get_icon("help"), "", self)
         self.act_guide.triggered.connect(self.userGuideRequested.emit)
         self.addAction(self.act_guide)
+
+        self.act_test_report = QtGui.QAction(get_icon("check"), "", self)
+        self.act_test_report.triggered.connect(self.testReportRequested.emit)
+        self.addAction(self.act_test_report)
 
         self.addSeparator()
 
@@ -53,6 +58,7 @@ class HelpMenu(QtWidgets.QMenu):
         self.setTitle(tr("menu.help.title", "Ajuda"))
         self.act_shortcuts.setText(tr("menu.help.shortcuts", "Atalhos de Teclado"))
         self.act_guide.setText(tr("menu.help.guide", "Guia do Usuário..."))
+        self.act_test_report.setText(tr("menu.help.test_report", "Relatório de Testes da Suíte..."))
         self.act_diag.setText(tr("menu.help.diagnostics", "Diagnósticos do Motor & Telemetria"))
         self.act_feedback.setText(tr("menu.help.feedback", "Enviar Feedback / Relatório Alpha..."))
         self.act_about.setText(tr("menu.help.about", "Sobre o Lumenia..."))

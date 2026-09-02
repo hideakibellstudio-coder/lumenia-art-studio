@@ -28,3 +28,14 @@ QLabel[heading="true"] {
 QLabel[accent="true"] {
     color: @ACCENT;
 }
+
+/* ToolTips (Balões de Dica Flutuantes) */
+QToolTip {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER_LIGHT;
+    border-radius: @RADIUS_SMALL;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: @FONT_FAMILY;
+}

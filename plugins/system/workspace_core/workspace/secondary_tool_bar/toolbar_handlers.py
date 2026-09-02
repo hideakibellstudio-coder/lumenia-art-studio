@@ -62,16 +62,17 @@ class SecondaryToolbarHandlersMixin:
         pix = get_icon(shape_id).pixmap(14, 14)
         self.lbl_shape_icon_v.setPixmap(pix)
 
+        from ui.core.i18n import tr
         if shape_id == "shape_rect":
             for lbl, sld, val in [(self.lbl_shape_extra_h, self.slider_shape_extra_h, self.lbl_shape_extra_val_h),
                                   (self.lbl_shape_extra_v, self.slider_shape_extra_v, self.lbl_shape_extra_val_v)]:
-                lbl.setText("Raio:")
+                lbl.setText(tr("tool_options.radius", "Raio:"))
                 lbl.show(); sld.show(); val.show()
                 sld.setRange(0, 100); sld.setValue(0); val.setText("0px")
         elif shape_id in ("shape_polygon", "shape_star"):
             for lbl, sld, val in [(self.lbl_shape_extra_h, self.slider_shape_extra_h, self.lbl_shape_extra_val_h),
                                   (self.lbl_shape_extra_v, self.slider_shape_extra_v, self.lbl_shape_extra_val_v)]:
-                lbl.setText("Lados:" if shape_id == "shape_polygon" else "Pontas:")
+                lbl.setText(tr("tool_options.sides", "Lados:") if shape_id == "shape_polygon" else tr("tool_options.points", "Pontas:"))
                 lbl.show(); sld.show(); val.show()
                 sld.setRange(3, 16); sld.setValue(5); val.setText("5")
         else:

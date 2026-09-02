@@ -11,9 +11,9 @@ def build_transform_panels(toolbar):
     l_h.setAlignment(QtCore.Qt.AlignVCenter)
 
     toolbar.btn_trans_commit_h = QtWidgets.QToolButton()
+    toolbar.btn_trans_commit_h.setObjectName("successButton")
     toolbar.btn_trans_commit_h.setText("✔ Aplicar")
     toolbar.btn_trans_commit_h.setFixedHeight(24)
-    toolbar.btn_trans_commit_h.setStyleSheet("background-color: #10b981; color: #ffffff; font-weight: bold; border-radius: 4px; padding: 0px 8px;")
     toolbar.btn_trans_commit_h.clicked.connect(toolbar._on_transform_commit_clicked)
     l_h.addWidget(toolbar.btn_trans_commit_h)
 
@@ -41,7 +41,8 @@ def build_transform_panels(toolbar):
     toolbar.btn_trans_rot_90_h.clicked.connect(toolbar._on_transform_rot_90_clicked)
     l_h.addWidget(toolbar.btn_trans_rot_90_h)
 
-    l_h.addWidget(QtWidgets.QLabel("Interp:"))
+    toolbar.lbl_trans_interp_h = QtWidgets.QLabel("Interp:")
+    l_h.addWidget(toolbar.lbl_trans_interp_h)
     toolbar.cbo_trans_interp_h = QtWidgets.QComboBox()
     toolbar.cbo_trans_interp_h.addItems(["Mais Próximo", "Bilinear", "Bicúbica"])
     toolbar.cbo_trans_interp_h.setCurrentIndex(2)
@@ -62,15 +63,15 @@ def build_transform_panels(toolbar):
     l_v.setContentsMargins(0, 0, 0, 0)
     l_v.setSpacing(6)
 
-    lbl_t = QtWidgets.QLabel("TRANSFORMAÇÃO")
-    lbl_t.setStyleSheet("font-size: 10px; font-weight: bold; color: #a1a1aa;")
-    l_v.addWidget(lbl_t)
+    toolbar.lbl_trans_title_v = QtWidgets.QLabel("TRANSFORMAÇÃO")
+    toolbar.lbl_trans_title_v.setProperty("heading", "true")
+    l_v.addWidget(toolbar.lbl_trans_title_v)
 
     r1 = QtWidgets.QHBoxLayout()
     toolbar.btn_trans_commit_v = QtWidgets.QToolButton()
+    toolbar.btn_trans_commit_v.setObjectName("successButton")
     toolbar.btn_trans_commit_v.setText("✔ Aplicar")
     toolbar.btn_trans_commit_v.setFixedHeight(24)
-    toolbar.btn_trans_commit_v.setStyleSheet("background-color: #10b981; color: #ffffff; font-weight: bold; border-radius: 4px; padding: 0px 8px;")
     toolbar.btn_trans_commit_v.clicked.connect(toolbar._on_transform_commit_clicked)
     r1.addWidget(toolbar.btn_trans_commit_v)
 

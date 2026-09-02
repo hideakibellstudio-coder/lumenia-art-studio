@@ -207,7 +207,7 @@ class ColorWheelWidget(QtWidgets.QWidget):
         recent_vbox.setSpacing(4)
         
         lbl_recent = QtWidgets.QLabel("CORES RECENTES")
-        lbl_recent.setStyleSheet("font-size: 10px; font-weight: bold; color: #8b949e;")
+        lbl_recent.setProperty("muted", "true")
         
         self.recent_colors = RecentColorsWidget()
         self.recent_colors.colorSelected.connect(self._on_manual_input)

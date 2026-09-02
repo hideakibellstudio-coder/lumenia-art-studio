@@ -63,6 +63,10 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
         from ui.core.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(lambda _: self._apply_theme())
 
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
+
     def _build_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(6, 6, 6, 10)
@@ -434,3 +438,163 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
 
     def _apply_theme(self):
         pass
+
+    def retranslate_ui(self) -> None:
+        """Atualiza dinamicamente rótulos, comboboxes e tooltips da barra secundária."""
+        from ui.core.i18n import tr
+        # Eyedrop
+        if hasattr(self, "cbo_sample_h"):
+            for cbo in (self.cbo_sample_h, self.cbo_sample_v):
+                idx = max(0, cbo.currentIndex())
+                cbo.blockSignals(True)
+                cbo.clear()
+                cbo.addItems([
+                    tr("tool_options.sample_1x1", "1x1 Ponto"),
+                    tr("tool_options.sample_3x3", "3x3 Média"),
+                    tr("tool_options.sample_5x5", "5x5 Média"),
+                    "11x11 " + tr("tool_options.sample_3x3", "Média").split()[-1]
+                ])
+                cbo.setCurrentIndex(idx)
+                cbo.blockSignals(False)
+            self.btn_eye_merged_h.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
+            self.btn_eye_merged_v.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
+
+        # Bucket & Wand
+        if hasattr(self, "btn_bkt_contig_h"):
+            self.btn_bkt_contig_h.setText(tr("tool_options.contiguous", "Contíguo"))
+            self.btn_bkt_contig_v.setText(tr("tool_options.contiguous", "Contíguo"))
+            self.btn_bkt_merged_h.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
+            self.btn_bkt_merged_v.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
+
+        if hasattr(self, "btn_wand_contig_h"):
+            self.btn_wand_contig_h.setText(tr("tool_options.contiguous", "Contíguo"))
+            self.btn_wand_contig_v.setText(tr("tool_options.contiguous", "Contíguo"))
+            self.btn_wand_merged_h.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
+            self.btn_wand_merged_v.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
+
+        # Transform & Text
+        if hasattr(self, "btn_trans_commit_h"):
+            self.btn_trans_commit_h.setText(f"✔ {tr('common.apply', 'Aplicar')}")
+            self.btn_trans_commit_v.setText(f"✔ {tr('common.apply', 'Aplicar')}")
+            self.btn_trans_cancel_h.setText(f"✖ {tr('common.cancel', 'Cancelar')}")
+            self.btn_trans_cancel_v.setText(f"✖ {tr('common.cancel', 'Cancelar')}")
+            self.btn_trans_flip_h_h.setText(tr("transform.flip_h", "Espelhar H"))
+            self.btn_trans_flip_h_v.setText(tr("transform.flip_h", "Espelhar H"))
+            self.btn_trans_flip_v_h.setText(tr("transform.flip_v", "Espelhar V"))
+            self.btn_trans_flip_v_v.setText(tr("transform.flip_v", "Espelhar V"))
+            self.btn_trans_rot_90_h.setText(tr("transform.rotate_90", "Girar 90°"))
+            self.btn_trans_rot_90_v.setText(tr("transform.rotate_90", "Girar 90°"))
+            self.btn_trans_aspect_h.setText(tr("transform.lock_aspect", "Travar Proporção"))
+            self.btn_trans_commit_h.setToolTip(tr("tool_options.commit_text", "Confirmar"))
+            self.btn_trans_cancel_h.setToolTip(tr("tool_options.cancel_text", "Cancelar"))
+            self.btn_trans_aspect_h.setToolTip(tr("tool_options.lock_aspect", "Travar Proporções"))
+            if hasattr(self, "lbl_trans_title_v"):
+                self.lbl_trans_title_v.setText(tr("transform.title", "TRANSFORMAÇÃO"))
+            if hasattr(self, "lbl_trans_interp_h"):
+                self.lbl_trans_interp_h.setText(tr("transform.interp", "Interp:"))
+            if hasattr(self, "cbo_trans_interp_h"):
+                idx = max(0, self.cbo_trans_interp_h.currentIndex())
+                self.cbo_trans_interp_h.blockSignals(True)
+                self.cbo_trans_interp_h.clear()
+                self.cbo_trans_interp_h.addItems([
+                    tr("transform.interp_nearest", "Mais Próximo"),
+                    tr("transform.interp_bilinear", "Bilinear"),
+                    tr("transform.interp_bicubic", "Bicúbica")
+                ])
+                self.cbo_trans_interp_h.setCurrentIndex(idx)
+                self.cbo_trans_interp_h.blockSignals(False)
+
+        if hasattr(self, "btn_commit_text_h"):
+            self.btn_commit_text_h.setToolTip(tr("tool_options.commit_text", "Confirmar"))
+            self.btn_cancel_text_h.setToolTip(tr("tool_options.cancel_text", "Cancelar"))
+        if hasattr(self, "btn_text_commit_h"):
+            self.btn_text_commit_h.setText(tr("tool_options.insert_text", "Inserir"))
+            self.btn_text_align_l_h.setText(tr("tool_options.align_left", "Esq"))
+            self.btn_text_align_c_h.setText(tr("tool_options.align_center", "Cen"))
+            self.btn_text_align_r_h.setText(tr("tool_options.align_right", "Dir"))
+
+        # Shapes (Primitivas)
+        if hasattr(self, "shape_dropdown_h"):
+            self.shape_dropdown_h.retranslate_ui()
+        if hasattr(self, "shape_dropdown_v"):
+            self.shape_dropdown_v.retranslate_ui()
+        if hasattr(self, "cbo_shape_mode_h"):
+            modes = [
+                tr("tool_options.shapes_stroke_and_fill", "Contorno & Preenchimento"),
+                tr("tool_options.shapes_stroke_only", "Apenas Contorno"),
+                tr("tool_options.shapes_fill_only", "Apenas Preenchimento")
+            ]
+            for cbo in (self.cbo_shape_mode_h, self.cbo_shape_mode_v):
+                idx = max(0, cbo.currentIndex())
+                cbo.blockSignals(True)
+                cbo.clear()
+                cbo.addItems(modes)
+                cbo.setCurrentIndex(idx)
+                cbo.blockSignals(False)
+
+        if hasattr(self, "lbl_shape_stroke_h"):
+            self.lbl_shape_stroke_h.setText(tr("tool_options.stroke", "Traço:"))
+        if hasattr(self, "lbl_shape_border_h"):
+            self.lbl_shape_border_h.setText(tr("tool_options.border", "Borda:"))
+        if hasattr(self, "lbl_shape_border_v"):
+            self.lbl_shape_border_v.setText(tr("tool_options.border", "Borda:"))
+        if hasattr(self, "lbl_shape_fill_h"):
+            self.lbl_shape_fill_h.setText(tr("tool_options.fill", "Fundo:"))
+        if hasattr(self, "lbl_shape_fill_v"):
+            self.lbl_shape_fill_v.setText(tr("tool_options.fill", "Fundo:"))
+        if hasattr(self, "lbl_shape_opac_h"):
+            self.lbl_shape_opac_h.setText(tr("tool_options.opacity", "Opac:"))
+        if hasattr(self, "slider_shape_width_v"):
+            self.slider_shape_width_v.setPrefix(tr("tool_options.stroke", "Traço:"))
+        if hasattr(self, "slider_shape_fill_opac_v"):
+            self.slider_shape_fill_opac_v.setPrefix(tr("tool_options.fill_opacity", "Opac. Fundo:"))
+        if hasattr(self, "lbl_shape_title_v"):
+            self.lbl_shape_title_v.setText(tr("tool_options.shapes_title", "FORMAS VETORIAIS"))
+
+        if hasattr(self, "lbl_shape_extra_h"):
+            if self._active_tool_id == "shape_rect":
+                self.lbl_shape_extra_h.setText(tr("tool_options.radius", "Raio:"))
+                self.lbl_shape_extra_v.setText(tr("tool_options.radius", "Raio:"))
+            elif self._active_tool_id in ("shape_polygon", "shape_star"):
+                txt = tr("tool_options.sides", "Lados:") if self._active_tool_id == "shape_polygon" else tr("tool_options.points", "Pontas:")
+                self.lbl_shape_extra_h.setText(txt)
+                self.lbl_shape_extra_v.setText(txt)
+
+        # Geom & Lasso
+        if hasattr(self, "cbo_geom_mode_h"):
+            modes = [
+                tr("selection.new", "Nova Seleção"),
+                tr("selection.add", "Adicionar (+)"),
+                tr("selection.subtract", "Subtrair (-)"),
+                tr("selection.intersect", "Interseção")
+            ]
+            for cbo in (self.cbo_geom_mode_h, self.cbo_geom_mode_v):
+                idx = max(0, cbo.currentIndex())
+                cbo.blockSignals(True)
+                cbo.clear()
+                cbo.addItems(modes)
+                cbo.setCurrentIndex(idx)
+                cbo.blockSignals(False)
+            self.btn_geom_deselect_h.setText(f" {tr('selection.deselect', 'Desmarcar')}")
+            self.btn_geom_deselect_v.setText(f" {tr('selection.deselect', 'Desmarcar')}")
+            self.btn_geom_aa_h.setText(tr("selection.anti_alias", "Anti-Alias"))
+            self.btn_geom_aa_v.setText(tr("selection.anti_alias", "Anti-Alias"))
+
+        if hasattr(self, "cbo_lasso_mode_h"):
+            modes = [
+                tr("selection.new", "Nova Seleção"),
+                tr("selection.add", "Adicionar (+)"),
+                tr("selection.subtract", "Subtrair (-)"),
+                tr("selection.intersect", "Interseção")
+            ]
+            for cbo in (self.cbo_lasso_mode_h, self.cbo_lasso_mode_v):
+                idx = max(0, cbo.currentIndex())
+                cbo.blockSignals(True)
+                cbo.clear()
+                cbo.addItems(modes)
+                cbo.setCurrentIndex(idx)
+                cbo.blockSignals(False)
+            self.btn_lasso_deselect_h.setText(f" {tr('selection.deselect', 'Desmarcar')}")
+            self.btn_lasso_deselect_v.setText(f" {tr('selection.deselect', 'Desmarcar')}")
+            self.btn_lasso_aa_h.setText(tr("selection.anti_alias", "Anti-Alias"))
+            self.btn_lasso_aa_v.setText(tr("selection.anti_alias", "Anti-Alias"))

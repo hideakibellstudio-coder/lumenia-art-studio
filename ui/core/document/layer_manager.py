@@ -176,6 +176,7 @@ class LocalLayerManager(QtCore.QObject):
                 self._active_uid = None
                 
         self.order_changed.emit()
+        self._validate_clipping_masks()
         return True
 
     def duplicate_layer(self, target) -> int:
@@ -232,6 +233,7 @@ class LocalLayerManager(QtCore.QObject):
         self.order_about_to_change.emit()
         self.layers[idx], self.layers[idx - 1] = self.layers[idx - 1], self.layers[idx]
         self.order_changed.emit()
+        self._validate_clipping_masks()
         self.set_active_layer(uid)
         return True
 
@@ -255,10 +257,19 @@ class LocalLayerManager(QtCore.QObject):
         self.layers.remove(layer)
         self.set_active_layer(target_layer.uid)
         self.order_changed.emit()
+        self._validate_clipping_masks()
         return True
+
+    def _validate_clipping_masks(self) -> None:
+        """Garante que a primeira camada (índice 0) nunca permaneça como máscara de recorte."""
+        if self.layers and self.layers[0].clipping_mask:
+            self.layers[0].clipping_mask = False
+            self.layer_property_changed.emit(self.layers[0].uid)
 
     def set_clipping_mask(self, idx: int, enabled: bool) -> None:
         if 0 <= idx < len(self.layers):
+            if idx == 0 and enabled:
+                enabled = False  # A camada na base nunca pode ser máscara de recorte
             self.layers[idx].clipping_mask = bool(enabled)
             self.layer_property_changed.emit(self.layers[idx].uid)
 

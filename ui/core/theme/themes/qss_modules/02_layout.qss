@@ -53,3 +53,55 @@ QGroupBox::title {
     color: @FG_PRIMARY;
     font-weight: bold;
 }
+
+/* ================================================================
+   StatusBar (Barra de Status Inferior)
+   ================================================================ */
+QStatusBar {
+    background-color: @BG_DARKEST;
+    color: @FG_SECONDARY;
+    border-top: 1px solid @BORDER;
+    font-size: 11px;
+}
+
+QStatusBar::item {
+    border: none;
+    padding: 2px 6px;
+}
+
+/* ================================================================
+   Splitters (Divisores de Painéis)
+   ================================================================ */
+QSplitter::handle {
+    background-color: @BORDER;
+}
+
+QSplitter::handle:horizontal {
+    width: 2px;
+}
+
+QSplitter::handle:vertical {
+    height: 2px;
+}
+
+QSplitter::handle:hover {
+    background-color: @ACCENT;
+}
+
+/* ================================================================
+   Progress Bars
+   ================================================================ */
+QProgressBar {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SMALL;
+    text-align: center;
+    font-size: 11px;
+    height: 14px;
+}
+
+QProgressBar::chunk {
+    background-color: @ACCENT;
+    border-radius: @RADIUS_SMALL;
+}

@@ -247,24 +247,14 @@ class WorkspaceBrushMixin:
 
     def _on_stroke_finished_sync_previews(self) -> None:
         try:
-            from ui.core.engine.registry import EngineRegistry
-            backend = EngineRegistry.instance().get_backend()
-            facade = getattr(backend, "_facade", None)
-
-            if hasattr(self, "_layers_panel") and self._layers_panel and hasattr(self._layers_panel, "layer_manager"):
-                lm = self._layers_panel.layer_manager
-                if lm and lm.get_active_layer() and facade:
-                    lm.update_thumbnail(lm.get_active_layer().uid, facade)
-
             if hasattr(self, "_navigator_panel") and self._navigator_panel:
-                if hasattr(self.canvas_widget, "get_canvas_image"):
-                    canvas_img = self.canvas_widget.get_canvas_image()
-                    if canvas_img and not canvas_img.isNull():
-                        self._navigator_panel.set_artwork(canvas_img)
-                elif backend and hasattr(backend, "get_qimage"):
+                from ui.core.engine.registry import EngineRegistry
+                backend = EngineRegistry.instance().get_backend()
+                if backend and hasattr(backend, "get_qimage"):
                     qimg = backend.get_qimage()
                     if qimg and not qimg.isNull():
-                        self._navigator_panel.set_artwork(qimg)
+                        thumb = qimg.scaled(320, 240, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation)
+                        self._navigator_panel.set_artwork(thumb)
         except Exception as e:
             logger.debug(f"[WorkspaceContainer] Erro ao sincronizar previews: {e}")
 

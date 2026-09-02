@@ -80,10 +80,9 @@ class DialogTitleBar(QtWidgets.QWidget):
 
     def _apply_theme(self, *args) -> None:
         theme = ThemeManager.instance()
-        text_main = theme.get_color("text_main", "#f3f4f6")
-        border = theme.get_color("border", "#374151")
-        bg_bar = theme.get_color("bg_panel", "#1f2937")
-        accent = theme.get_color("accent", "#8b5cf6")
+        text_main = theme.get_color("text_main")
+        bg_bar = theme.get_color("bg_panel")
+        danger = theme.get_color("danger", "#f43f5e")
 
         self.setStyleSheet(f"""
             QWidget#DialogTitleBar {{
@@ -101,8 +100,7 @@ class DialogTitleBar(QtWidgets.QWidget):
                 padding: 3px;
             }}
             QToolButton#DialogCloseBtn:hover {{
-                background-color: rgba(239, 68, 68, 0.25);
-                border: 1px solid rgba(239, 68, 68, 0.4);
+                background-color: {danger};
             }}
         """)
         self.btn_close.setIcon(get_icon("close", text_main))
@@ -183,10 +181,9 @@ class BaseFramelessDialog(QtWidgets.QDialog):
 
     def _apply_base_theme(self, *args) -> None:
         theme = ThemeManager.instance()
-        bg_card = theme.get_color("bg_canvas", "#121214")
-        bg_panel = theme.get_color("bg_panel", "#1e1e24")
-        border = theme.get_color("border", "#2e2e38")
-        text_main = theme.get_color("text_main", "#ffffff")
+        bg_card = theme.get_color("bg_main")
+        border = theme.get_color("border")
+        text_main = theme.get_color("text_main")
 
         self.root_container.setStyleSheet(f"""
             QWidget#DialogRootContainer {{

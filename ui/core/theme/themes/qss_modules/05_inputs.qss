@@ -91,6 +91,30 @@ QSlider::handle:horizontal:hover {
     background-color: @ACCENT_HOVER;
 }
 
+QSlider::groove:vertical {
+    border: none;
+    width: 8px;
+    background-color: @BG_DARKEST;
+    border-radius: 4px;
+}
+
+QSlider::sub-page:vertical {
+    background-color: @ACCENT;
+    border-radius: 4px;
+}
+
+QSlider::handle:vertical {
+    background-color: @ACCENT;
+    width: 14px;
+    height: 14px;
+    margin: 0 -3px;
+    border-radius: 7px;
+}
+
+QSlider::handle:vertical:hover {
+    background-color: @ACCENT_HOVER;
+}
+
 /* ================================================================
    DROPDOWNS (QComboBox)
    ================================================================ */

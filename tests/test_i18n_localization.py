@@ -22,12 +22,15 @@ from ui.core.components.menu_bar.menu_bar import MenuBar
 class TestI18nLocalization(unittest.TestCase):
 
     def setUp(self):
+        from ui.core.config import ConfigManager
+        ConfigManager.instance().set_test_mode(True)
         self.mgr = I18nManager.instance()
-        # Salva o locale original para restaurar no tearDown
         self._orig_locale = self.mgr.get_current_locale()
 
     def tearDown(self):
         self.mgr.set_locale(self._orig_locale, emit_signal=False)
+        from ui.core.config import ConfigManager
+        ConfigManager.instance().set_test_mode(False)
 
     def test_01_singleton_and_available_locales(self):
         """Valida se o I18nManager é singleton e expõe todos os 4 idiomas suportados."""
@@ -95,9 +98,9 @@ class TestI18nLocalization(unittest.TestCase):
             self.assertIn("es_ES", received_signals)
             self.assertEqual(self.mgr.get_current_locale(), "es_ES")
 
-            # Verifica persistência no QSettings
-            settings = QtCore.QSettings("Aladyn", "Lumenia")
-            saved = settings.value("locale/current")
+            # Verifica persistência no ConfigManager (JSON)
+            from ui.core.config import ConfigManager
+            saved = ConfigManager.instance().get("locale", "current")
             self.assertEqual(saved, "es_ES")
         finally:
             self.mgr.languageChanged.disconnect(on_lang_changed)

@@ -55,8 +55,8 @@ class FilterLayerDialog(BaseFramelessDialog):
         btn_box.addWidget(btn_cancel)
 
         btn_ok = QPushButton(tr("dialogs.ok", "OK"))
+        btn_ok.setObjectName("accentButton")
         btn_ok.setDefault(True)
-        btn_ok.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
         btn_ok.clicked.connect(self.accept)
         btn_box.addWidget(btn_ok)
 
@@ -155,8 +155,8 @@ class FilterParamsDialog(BaseFramelessDialog):
         btn_box.addStretch()
 
         btn_ok = QPushButton(tr("dialogs.ok", "OK"))
+        btn_ok.setObjectName("accentButton")
         btn_ok.setDefault(True)
-        btn_ok.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
         btn_ok.clicked.connect(self.accept)
         btn_box.addWidget(btn_ok)
 

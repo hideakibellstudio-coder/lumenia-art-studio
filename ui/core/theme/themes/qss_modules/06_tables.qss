@@ -78,3 +78,34 @@ QTableWidget QScrollBar::handle:vertical, QTableView QScrollBar::handle:vertical
     background: @BORDER_LIGHT;
     border-radius: 3px;
 }
+
+/* ================================================================
+   Listas e Árvores (QListWidget, QListView, QTreeWidget, QTreeView)
+   ================================================================ */
+QListWidget, QListView, QTreeWidget, QTreeView {
+    background-color: @BG_DARKEST;
+    color: @FG_PRIMARY;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MEDIUM;
+    outline: none;
+    padding: 4px;
+}
+
+QListWidget::item, QListView::item, QTreeWidget::item, QTreeView::item {
+    background-color: transparent;
+    color: @FG_PRIMARY;
+    padding: 6px 8px;
+    border-radius: @RADIUS_SMALL;
+    margin: 1px 2px;
+}
+
+QListWidget::item:hover, QListView::item:hover, QTreeWidget::item:hover, QTreeView::item:hover {
+    background-color: @BG_LIGHT;
+    color: @FG_PRIMARY;
+}
+
+QListWidget::item:selected, QListView::item:selected, QTreeWidget::item:selected, QTreeView::item:selected {
+    background-color: @ACCENT_MUTED;
+    color: @FG_PRIMARY;
+    border-left: 2px solid @ACCENT;
+}

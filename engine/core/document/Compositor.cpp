@@ -114,7 +114,7 @@ void Compositor::compositeRegion(
             auto it = std::find(layers.begin(), layers.end(), layerPtr);
             if (it != layers.begin()) {
                 for (auto prevIt = it - 1; ; --prevIt) {
-                    if (*prevIt && !(*prevIt)->isBackground() && !(*prevIt)->isClippingMask() && (*prevIt)->isVisible()) {
+                    if (*prevIt && !(*prevIt)->isBackground() && !(*prevIt)->isClippingMask() && !(*prevIt)->isFilter() && !(*prevIt)->isGroup() && (*prevIt)->isVisible()) {
                         clipBaseLayer = *prevIt;
                         break;
                     }
@@ -161,7 +161,7 @@ void Compositor::compositeRegion(
                             const int bPy = globalY % canvas::Tile::TILE_SIZE;
                             const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
                             if (!bTile) continue;
-                            const double baseA = static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0;
+                            const double baseA = (static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0) * clipBaseLayer->getEffectiveOpacity();
                             if (baseA <= 0.0) continue;
                             curOpacity *= baseA;
                         }
@@ -258,9 +258,9 @@ void Compositor::compositeRegionWithScratch(
                             const int bTy = globalY / canvas::Tile::TILE_SIZE;
                             const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(clipBase->getTileGrid()).getTile(bTx, bTy);
                             if (!bTile) continue;
-                            const double baseA = static_cast<double>(bTile->getBuffer().getPixel(
+                            const double baseA = (static_cast<double>(bTile->getBuffer().getPixel(
                                 globalX % canvas::Tile::TILE_SIZE,
-                                globalY % canvas::Tile::TILE_SIZE).a) / 255.0;
+                                globalY % canvas::Tile::TILE_SIZE).a) / 255.0) * clipBase->getEffectiveOpacity();
                             if (baseA <= 0.0) continue;
                             curOpacity *= baseA;
                         }
@@ -293,7 +293,7 @@ void Compositor::compositeRegionWithScratch(
             auto it = std::find(layers.begin(), layers.end(), layerPtr);
             if (it != layers.begin()) {
                 for (auto prevIt = it - 1; ; --prevIt) {
-                    if (*prevIt && !(*prevIt)->isBackground() && !(*prevIt)->isClippingMask() && (*prevIt)->isVisible()) {
+                    if (*prevIt && !(*prevIt)->isBackground() && !(*prevIt)->isClippingMask() && !(*prevIt)->isFilter() && !(*prevIt)->isGroup() && (*prevIt)->isVisible()) {
                         clipBaseLayer = *prevIt;
                         break;
                     }

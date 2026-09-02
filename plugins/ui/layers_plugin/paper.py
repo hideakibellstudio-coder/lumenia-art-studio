@@ -121,6 +121,11 @@ class TexturePopup(QDialog):
                 margin: -4px 0; 
                 border-radius: 6px; 
             }
+            QLabel#PaperGrainPreview {
+                border: 1px solid @BORDER;
+                background-color: @BG_DARKEST;
+                border-radius: 4px;
+            }
         """
         self.setStyleSheet(ThemeManager.instance().compile_qss(qss))
 
@@ -132,15 +137,15 @@ class TexturePopup(QDialog):
 
         # Title
         lbl_title = QLabel(tr("layers.paper_texture_title", "Textura da Tela (Papel Background)"))
-        lbl_title.setStyleSheet("font-weight: bold; font-size: 11px; color: @ACCENT;")
+        lbl_title.setProperty("accent", "true")
         layout.addWidget(lbl_title)
 
         # Row 1: Preview + Presets Combobox
         row_c = QHBoxLayout()
         row_c.setSpacing(6)
         self.preview_c_grain = QLabel()
+        self.preview_c_grain.setObjectName("PaperGrainPreview")
         self.preview_c_grain.setFixedSize(46, 46)
-        self.preview_c_grain.setStyleSheet("border:1px solid #3a3a4e;background:#181824;border-radius:4px;")
         
         self.cmb_c_grain = QComboBox()
         for pid, name in self.PRESETS:

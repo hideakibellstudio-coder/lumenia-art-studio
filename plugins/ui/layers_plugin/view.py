@@ -18,6 +18,7 @@ class LayerTreeView(QTreeView):
     clearRequested = Signal()
     addLayerRequested = Signal()
     addGroupRequested = Signal()
+    toggleClippingRequested = Signal(int)
     editFilterRequested = Signal(int)
     renameRequested = Signal(int, object)  # (uid, rect)
 
@@ -244,16 +245,28 @@ class LayerTreeView(QTreeView):
                 self.addGroupRequested.emit()
             return
 
-        from .model import ROLE_IS_FILTER, ROLE_UID
+        from .model import ROLE_IS_FILTER, ROLE_CLIPPING_MASK, ROLE_UID
         menu = QMenu(self)
 
         is_filter = bool(index.data(ROLE_IS_FILTER))
+        is_clip = bool(index.data(ROLE_CLIPPING_MASK))
         uid = index.data(ROLE_UID)
 
         act_edit_filter = None
         if is_filter:
             act_edit_filter = menu.addAction(get_icon("settings"), tr("layers.edit_filter", "Editar Filtro / Ajuste..."))
             menu.addSeparator()
+
+        clip_label = tr("layers.release_clipping", "Liberar Máscara de Recorte") if is_clip else tr("layers.create_clipping", "Criar Máscara de Recorte")
+        act_toggle_clip = menu.addAction(get_icon("clip-mask"), clip_label)
+        
+        # A primeira camada do documento (índice 0) nunca pode ser máscara de recorte
+        model = self.model()
+        if hasattr(model, "layer_manager") and model.layer_manager.layers:
+            if model.layer_manager.layers[0].uid == uid and not is_clip:
+                act_toggle_clip.setEnabled(False)
+
+        menu.addSeparator()
 
         act_rename = menu.addAction(get_icon("edit"), tr("layers.rename", "Renomear"))
         act_duplicate = menu.addAction(get_icon("duplicate"), tr("layers.duplicate", "Duplicar Camada"))
@@ -270,6 +283,8 @@ class LayerTreeView(QTreeView):
         action = menu.exec(event.globalPos())
         if act_edit_filter and action == act_edit_filter:
             self.editFilterRequested.emit(int(uid))
+        elif action == act_toggle_clip:
+            self.toggleClippingRequested.emit(int(uid))
         elif action == act_rename:
             rect = self.visualRect(index)
             self.renameRequested.emit(int(uid), rect)

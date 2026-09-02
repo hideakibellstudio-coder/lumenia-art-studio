@@ -28,12 +28,16 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
     def _load_settings(self):
-        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
-        self.mode = settings.value("cursor/mode", "ring_and_dot")
-        self.hide_on_stroke = settings.value("cursor/hide_on_stroke", False, type=bool)
-        self.show_crosshair = settings.value("cursor/show_crosshair", False, type=bool)
-        self.ring_opacity = int(settings.value("cursor/ring_opacity", 0.9, type=float) * 100)
+        from ui.core.config import ConfigManager
+        sec = ConfigManager.instance().get_section("cursor")
+        self.mode = sec.get("mode", "ring_and_dot")
+        self.hide_on_stroke = sec.get("hide_on_stroke", False)
+        self.show_crosshair = sec.get("show_crosshair", False)
+        self.ring_opacity = int(sec.get("ring_opacity", 0.9) * 100)
 
     def _build_ui(self):
         main_lay = QtWidgets.QVBoxLayout(self)
@@ -51,9 +55,9 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         icon_lbl.setPixmap(get_icon("cursor", "ACCENT", QtCore.QSize(18, 18)).pixmap(18, 18))
         hdr.addWidget(icon_lbl)
 
-        title = QtWidgets.QLabel(tr("dialogs.cursor_title", "Configurações de Cursor"))
-        title.setStyleSheet("font-weight: 700; font-size: 12px; letter-spacing: 0.5px;")
-        hdr.addWidget(title)
+        self.lbl_title = QtWidgets.QLabel(tr("dialogs.cursor_title", "Configurações de Cursor"))
+        self.lbl_title.setStyleSheet("font-weight: 700; font-size: 12px; letter-spacing: 0.5px;")
+        hdr.addWidget(self.lbl_title)
         hdr.addStretch()
 
         btn_close = QtWidgets.QPushButton("✕")
@@ -64,8 +68,8 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         card_lay.addLayout(hdr)
 
         # ── Seção 1: Formato do Cursor do Pincel
-        grp_box = QtWidgets.QGroupBox(tr("dialogs.cursor_shape_title", "Formato do Cursor de Pintura"))
-        grp_lay = QtWidgets.QVBoxLayout(grp_box)
+        self.grp_box = QtWidgets.QGroupBox(tr("dialogs.cursor_shape_title", "Formato do Cursor de Pintura"))
+        grp_lay = QtWidgets.QVBoxLayout(self.grp_box)
         grp_lay.setSpacing(8)
 
         self.rb_ring_dot = QtWidgets.QRadioButton(f"◎  {tr('dialogs.cursor_ring_dot', 'Anel de Contorno com Ponto Central (Padrão)')}")
@@ -96,11 +100,11 @@ class CursorSettingsDialog(QtWidgets.QDialog):
             rb.setCursor(QtCore.Qt.PointingHandCursor)
             grp_lay.addWidget(rb)
 
-        card_lay.addWidget(grp_box)
+        card_lay.addWidget(self.grp_box)
 
         # ── Seção 2: Comportamento
-        grp_beh = QtWidgets.QGroupBox(tr("dialogs.cursor_behavior_title", "Comportamento e Dinâmica"))
-        beh_lay = QtWidgets.QVBoxLayout(grp_beh)
+        self.grp_beh = QtWidgets.QGroupBox(tr("dialogs.cursor_behavior_title", "Comportamento e Dinâmica"))
+        beh_lay = QtWidgets.QVBoxLayout(self.grp_beh)
         beh_lay.setSpacing(8)
 
         self.chk_hide = QtWidgets.QCheckBox(tr("dialogs.cursor_hide_on_stroke", "Ocultar anel de contorno durante o traço de pintura"))
@@ -124,29 +128,48 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         op_row.addWidget(self.slider_op, 1)
         beh_lay.addLayout(op_row)
 
-        card_lay.addWidget(grp_beh)
+        card_lay.addWidget(self.grp_beh)
         card_lay.addStretch()
 
         # ── Rodapé
         footer = QtWidgets.QHBoxLayout()
-        btn_restore = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
-        btn_restore.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_restore.clicked.connect(self._on_restore)
-        footer.addWidget(btn_restore)
+        self.btn_restore = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
+        self.btn_restore.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_restore.clicked.connect(self._on_restore)
+        footer.addWidget(self.btn_restore)
         footer.addStretch()
 
-        btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
-        btn_cancel.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_cancel.clicked.connect(self.reject)
-        footer.addWidget(btn_cancel)
+        self.btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
+        self.btn_cancel.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_cancel.clicked.connect(self.reject)
+        footer.addWidget(self.btn_cancel)
 
-        btn_save = QtWidgets.QPushButton(tr("dialogs.save_apply", "Salvar e Aplicar"))
-        btn_save.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_save.clicked.connect(self._on_save)
-        footer.addWidget(btn_save)
+        self.btn_save = QtWidgets.QPushButton(tr("dialogs.save_apply", "Salvar e Aplicar"))
+        self.btn_save.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_save.clicked.connect(self._on_save)
+        footer.addWidget(self.btn_save)
 
         card_lay.addLayout(footer)
         main_lay.addWidget(self.card)
+
+    def retranslate_ui(self) -> None:
+        """Atualiza dinamicamente os textos da tela de configurações de cursor."""
+        from ui.core.i18n import tr
+        if hasattr(self, "lbl_title"):
+            self.lbl_title.setText(tr("dialogs.cursor_title", "Configurações de Cursor"))
+            self.grp_box.setTitle(tr("dialogs.cursor_shape_title", "Formato do Cursor de Pintura"))
+            self.rb_ring_dot.setText(f"◎  {tr('dialogs.cursor_ring_dot', 'Anel de Contorno com Ponto Central (Padrão)')}")
+            self.rb_ring_only.setText(f"◯  {tr('dialogs.cursor_ring_only', 'Apenas Anel de Contorno (Círculo de Raio)')}")
+            self.rb_dot_only.setText(f"•   {tr('dialogs.cursor_dot_only', 'Apenas Ponto Central de Precisão')}")
+            self.rb_crosshair.setText(f"✛  {tr('dialogs.cursor_crosshair', 'Mira de Precisão (Crosshair)')}")
+            self.rb_system.setText(f"↖  {tr('dialogs.cursor_system', 'Cursor Padrão do Sistema Operacional')}")
+            self.grp_beh.setTitle(tr("dialogs.cursor_behavior_title", "Comportamento e Dinâmica"))
+            self.chk_hide.setText(tr("dialogs.cursor_hide_on_stroke", "Ocultar anel de contorno durante o traço de pintura"))
+            self.chk_ch.setText(tr("dialogs.cursor_show_guides_crosshair", "Exibir mira de precisão em réguas e guias de perspectiva"))
+            self.lbl_op.setText(f"{tr('dialogs.cursor_ring_opacity', 'Opacidade do Anel')}: {self.slider_op.value()}%")
+            self.btn_restore.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
+            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+            self.btn_save.setText(tr("dialogs.save_apply", "Salvar e Aplicar"))
 
     def _on_restore(self):
         self.rb_ring_dot.setChecked(True)
@@ -155,7 +178,6 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         self.slider_op.setValue(90)
 
     def _on_save(self):
-        settings = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
         if self.rb_ring_only.isChecked():
             mode = "ring_only"
         elif self.rb_dot_only.isChecked():
@@ -167,17 +189,14 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         else:
             mode = "ring_and_dot"
 
-        settings.setValue("cursor/mode", mode)
-        settings.setValue("cursor/hide_on_stroke", self.chk_hide.isChecked())
-        settings.setValue("cursor/show_crosshair", self.chk_ch.isChecked())
-        settings.setValue("cursor/ring_opacity", self.slider_op.value() / 100.0)
-
         cfg = {
             "mode": mode,
             "hide_on_stroke": self.chk_hide.isChecked(),
             "show_crosshair": self.chk_ch.isChecked(),
             "ring_opacity": self.slider_op.value() / 100.0
         }
+        from ui.core.config import ConfigManager
+        ConfigManager.instance().set_section("cursor", cfg)
         self.cursorSettingsChanged.emit(cfg)
         self.accept()
 

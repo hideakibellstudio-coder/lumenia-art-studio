@@ -47,6 +47,17 @@ QMenu::icon {
     padding-left: 10px;
 }
 
+QMenu::indicator {
+    width: 14px;
+    height: 14px;
+    left: 8px;
+}
+
+QMenu::indicator:checked {
+    background-color: @ACCENT;
+    border-radius: 3px;
+}
+
 QMenu::separator {
     height: 1px;
     background-color: @BORDER;

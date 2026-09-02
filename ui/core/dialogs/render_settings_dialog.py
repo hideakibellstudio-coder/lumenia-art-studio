@@ -22,27 +22,23 @@ from .render_settings_components import ProofingPreviewBar, ProfileCard
 
 
 def load_render_settings() -> dict:
-    """Carrega as configurações salvas de renderização e perfil de cor."""
-    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
+    """Carrega as configurações salvas de renderização e perfil de cor do ConfigManager (JSON)."""
+    from ui.core.config import ConfigManager
+    sec = ConfigManager.instance().get_section("render")
     return {
-        "profile_id": s.value("render/profile_id", 0, type=int),
-        "low_latency": s.value("render/low_latency", True, type=bool),
-        "linear_gamma": s.value("render/linear_gamma", False, type=bool),
-        "deep_color": s.value("render/deep_color", True, type=bool),
-        "undo_limit_mb": s.value("render/undo_limit_mb", 256, type=int),
-        "undo_max_steps": s.value("render/undo_max_steps", 50, type=int),
+        "profile_id": int(sec.get("profile_id", 0)) if isinstance(sec.get("profile_id"), (int, float)) else 0,
+        "low_latency": bool(sec.get("low_latency", True)),
+        "linear_gamma": bool(sec.get("linear_gamma", False)),
+        "deep_color": bool(sec.get("deep_color", True)),
+        "undo_limit_mb": int(sec.get("undo_limit_mb", 256)),
+        "undo_max_steps": int(sec.get("undo_max_steps", 50)),
     }
 
 
 def save_render_settings(cfg_dict: dict) -> None:
-    """Salva as configurações de renderização e perfil de cor no QSettings."""
-    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
-    s.setValue("render/profile_id", int(cfg_dict.get("profile_id", 0)))
-    s.setValue("render/low_latency", bool(cfg_dict.get("low_latency", True)))
-    s.setValue("render/linear_gamma", bool(cfg_dict.get("linear_gamma", False)))
-    s.setValue("render/deep_color", bool(cfg_dict.get("deep_color", True)))
-    s.setValue("render/undo_limit_mb", int(cfg_dict.get("undo_limit_mb", 256)))
-    s.setValue("render/undo_max_steps", int(cfg_dict.get("undo_max_steps", 50)))
+    """Salva as configurações de renderização e perfil de cor no ConfigManager (JSON)."""
+    from ui.core.config import ConfigManager
+    ConfigManager.instance().set_section("render", cfg_dict)
 
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
@@ -53,7 +49,8 @@ class RenderSettingsDialog(BaseFramelessDialog):
     profileChanged = QtCore.Signal(int)
 
     def __init__(self, parent=None):
-        super().__init__(title="Configurações de Renderização & Modos de Cor", icon_name="settings", parent=parent, modal=True)
+        from ui.core.i18n import tr, I18nManager
+        super().__init__(title=tr("dialogs.render_title", "Configurações de Renderização & Modos de Cor"), icon_name="settings", parent=parent, modal=True)
         self.setObjectName("RenderSettingsDialog")
         self.resize(860, 580)
 
@@ -67,6 +64,9 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self._setup_ui()
         self._apply_theme()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
+
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
 
     def _load_data(self):
         backend = EngineRegistry.instance().get_backend()
@@ -162,13 +162,12 @@ class RenderSettingsDialog(BaseFramelessDialog):
         title_box = QtWidgets.QVBoxLayout()
         title_box.setSpacing(2)
         self.lbl_insp_title = QtWidgets.QLabel("Padrão (sRGB)")
-        font = self.lbl_insp_title.font()
-        font.setPointSize(13)
-        font.setBold(True)
-        self.lbl_insp_title.setFont(font)
+        _title_font = QtGui.QFont("Segoe UI", 13)
+        _title_font.setBold(True)
+        self.lbl_insp_title.setFont(_title_font)
 
         self.lbl_insp_cat = QtWidgets.QLabel("Digital (RGB)")
-        self.lbl_insp_cat.setStyleSheet("color: #ff5252; font-size: 11px; font-weight: bold;")
+        self.lbl_insp_cat.setProperty("accent", "true")
 
         title_box.addWidget(self.lbl_insp_title)
         title_box.addWidget(self.lbl_insp_cat)
@@ -179,7 +178,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         # Descrição do Perfil
         self.lbl_insp_desc = QtWidgets.QLabel("")
         self.lbl_insp_desc.setWordWrap(True)
-        self.lbl_insp_desc.setStyleSheet("font-size: 12px; color: #a0aec0; line-height: 1.4;")
+        self.lbl_insp_desc.setProperty("muted", "true")
         right_layout.addWidget(self.lbl_insp_desc)
 
         # Barra de Simulação / Prova de Cores
@@ -260,16 +259,46 @@ class RenderSettingsDialog(BaseFramelessDialog):
 
         btn_box.addSpacing(8)
 
-        btn_close = QtWidgets.QPushButton("Fechar")
-        btn_close.setFixedHeight(34)
-        btn_close.clicked.connect(self.accept)
-        btn_box.addWidget(btn_close)
+        self.btn_close = QtWidgets.QPushButton("Fechar")
+        self.btn_close.setFixedHeight(34)
+        self.btn_close.clicked.connect(self.accept)
+        btn_box.addWidget(self.btn_close)
 
         right_layout.addLayout(btn_box)
         cols_layout.addWidget(right_col, 1)
 
         self._build_cards()
         self._select_profile(self._selected_profile)
+
+    def retranslate_ui(self) -> None:
+        """Atualiza dinamicamente todos os textos deste diálogo quando o idioma muda."""
+        from ui.core.i18n import tr
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(tr("dialogs.render_title", "Configurações de Renderização & Modos de Cor"))
+
+        if hasattr(self, "search_box"):
+            self.search_box.setPlaceholderText(tr("dialogs.render_search", "Buscar perfil de cor..."))
+
+        if hasattr(self, "combo_cat"):
+            cur_idx = max(0, self.combo_cat.currentIndex())
+            self.combo_cat.blockSignals(True)
+            self.combo_cat.clear()
+            items = [
+                tr("dialogs.render_cat_all", "Todas as Categorias"),
+                tr("dialogs.render_cat_rgb", "Digital (RGB)"),
+                tr("dialogs.render_cat_cmyk", "Impressão (CMYK)"),
+                tr("dialogs.render_cat_a11y", "Acessibilidade"),
+                tr("dialogs.render_cat_physics", "Motor Físico"),
+            ]
+            for label in items:
+                self.combo_cat.addItem(label)
+            self.combo_cat.setCurrentIndex(cur_idx)
+            self.combo_cat.blockSignals(False)
+
+        if hasattr(self, "btn_apply"):
+            self.btn_apply.setText(tr("dialogs.render_apply_btn", "Aplicar como Modo Ativo"))
+        if hasattr(self, "btn_close"):
+            self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
     def _save_switch_settings(self, *args):
         """Salva o estado atual dos switches e limites no QSettings e aplica ao motor."""
@@ -389,11 +418,20 @@ class RenderSettingsDialog(BaseFramelessDialog):
         accent = tm.get_color("accent")
         accent_hover = tm.get_color("accent_hover")
 
+        if hasattr(self, "root_container") and self.root_container:
+            self.root_container.setStyleSheet(f"""
+                QWidget#DialogRootContainer {{
+                    background-color: {bg_app};
+                    border: 1px solid {border};
+                    border-radius: 10px;
+                }}
+                QFrame#DialogHeaderSep {{
+                    background-color: {border};
+                    border: none;
+                }}
+            """)
+
         self.setStyleSheet(f"""
-            QDialog#RenderSettingsDialog {{
-                background-color: {bg_app};
-                color: {text_main};
-            }}
             QGroupBox {{
                 font-size: 11px;
                 font-weight: bold;
@@ -441,6 +479,9 @@ class RenderSettingsDialog(BaseFramelessDialog):
                 border-color: {border_muted};
             }}
         """)
+        if hasattr(self, "lbl_insp_icon") and self.lbl_insp_icon:
+            self.lbl_insp_icon.setStyleSheet(f"border: 1px solid {border}; background: {bg_card}; border-radius: 8px;")
+
         self.btn_apply.setStyleSheet(f"""
             QPushButton {{
                 background-color: {accent};

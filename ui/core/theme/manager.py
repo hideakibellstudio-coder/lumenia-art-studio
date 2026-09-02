@@ -1,3 +1,4 @@
+import sys
 import os
 import json
 import logging
@@ -13,31 +14,47 @@ class ThemeManager(QtCore.QObject):
 
     ALIASES = {
         "bg_main": "BG_DARKEST",
+        "bg_canvas": "BG_DARKEST",
         "bg_panel": "BG_DARKER",
         "bg_card": "BG_MID",
         "bg_card_hover": "BG_TERTIARY",
         "bg_input": "BG_DARK",
+        "bg_darkest": "BG_DARKEST",
+        "bg_darker": "BG_DARKER",
+        "bg_dark": "BG_DARK",
+        "bg_mid": "BG_MID",
+        "bg_tertiary": "BG_TERTIARY",
+        "bg_light": "BG_LIGHT",
+        "bg_lighter": "BG_LIGHTER",
+        "bg_lightest": "BG_LIGHTEST",
+        "bg_hover": "BG_TERTIARY",
         "border": "BORDER",
         "border_color": "BORDER",
         "border_control": "BORDER_LIGHT",
+        "border_light": "BORDER_LIGHT",
         "border_muted": "BORDER_LIGHT",
         "text_main": "FG_PRIMARY",
         "text_sec": "FG_SECONDARY",
         "text_muted": "FG_TERTIARY",
+        "fg_primary": "FG_PRIMARY",
+        "fg_secondary": "FG_SECONDARY",
+        "fg_tertiary": "FG_TERTIARY",
+        "fg_link": "FG_LINK",
         "accent": "ACCENT",
         "accent_hover": "ACCENT_HOVER",
         "accent_bg": "ACCENT_MUTED",
         "accent_muted": "ACCENT_MUTED",
         "accent_text": "FG_PRIMARY",
-        "bg_hover": "BG_TERTIARY",
-        "bg_mid": "BG_MID",
         "slider_groove": "BG_DARK",
         "slider_handle": "ACCENT",
         "badge_bg": "ACCENT_MUTED",
         "badge_text": "ACCENT",
         "danger": "DANGER",
+        "danger_hover": "DANGER_HOVER",
         "success": "SUCCESS",
         "warning": "WARNING",
+        "shadow": "SHADOW",
+        "transparent": "TRANSPARENT",
     }
     REVERSE_ALIASES = {v: k for k, v in ALIASES.items()}
 
@@ -45,6 +62,7 @@ class ThemeManager(QtCore.QObject):
         "RADIUS_SMALL": "4px",
         "RADIUS_MEDIUM": "6px",
         "RADIUS_LARGE": "8px",
+        "RADIUS_XLARGE": "12px",
         "FONT_FAMILY": "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif"
     }
 
@@ -59,16 +77,25 @@ class ThemeManager(QtCore.QObject):
         self._themes = {}
         
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.themes_dir = os.path.join(self.base_dir, "themes")
+        candidate_themes = [
+            os.path.join(self.base_dir, "themes"),
+            os.path.join(os.path.dirname(sys.executable), "ui", "core", "theme", "themes"),
+            os.path.join(os.path.dirname(sys.executable), "themes"),
+        ]
+        self.themes_dir = next((d for d in candidate_themes if os.path.isdir(d)), candidate_themes[0])
         self.modules_dir = os.path.join(self.themes_dir, "qss_modules")
         
         # Caminho absoluto da pasta assets na raiz
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(self.base_dir)))
-        self.assets_dir = os.path.join(project_root, "assets").replace("\\", "/")
+        app_root = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) or "__compiled__" in globals() else os.path.dirname(os.path.dirname(os.path.dirname(self.base_dir)))
+        self.assets_dir = os.path.join(app_root, "assets").replace("\\", "/")
         
         self.load_all_themes()
 
-        if "lumenia_purple" in self._themes:
+        from ui.core.config import ConfigManager
+        saved_theme = ConfigManager.instance().get("theme", "active", "lumenia_purple")
+        if saved_theme in self._themes:
+            self._current_theme = saved_theme
+        elif "lumenia_purple" in self._themes:
             self._current_theme = "lumenia_purple"
         elif "dark_default" in self._themes:
             self._current_theme = "dark_default"
@@ -148,6 +175,9 @@ class ThemeManager(QtCore.QObject):
         if theme_name in self._themes and theme_name != self._current_theme:
             self._current_theme = theme_name
 
+            from ui.core.config import ConfigManager
+            ConfigManager.instance().set("theme", "active", theme_name)
+
             # Aplica folha de estilos globalmente
             app = QtWidgets.QApplication.instance()
             if app:
@@ -197,9 +227,9 @@ class ThemeManager(QtCore.QObject):
 
     def _compile_qss(self, template: str) -> str:
         """Substitui os marcadores @VARIAVEL pelos valores do JSON resolvido."""
-        theme = self._themes.get(self._current_theme, self._themes.get("dark_default"))
-        colors = theme.get("colors", {})
-        metrics = theme.get("metrics", {})
+        theme = self._themes.get(self._current_theme) or self._themes.get("dark_default") or self._themes.get("lumenia_purple") or {}
+        colors = theme.get("colors", {}) if isinstance(theme, dict) else {}
+        metrics = theme.get("metrics", {}) if isinstance(theme, dict) else {}
 
         def replace_token(match):
             token = match.group(1)

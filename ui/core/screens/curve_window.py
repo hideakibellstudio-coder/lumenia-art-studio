@@ -205,6 +205,15 @@ class CurveSection(QtWidgets.QFrame):
         ThemeManager.instance().themeChanged.connect(self.apply_theme)
         self.apply_theme()
 
+    def retranslate(self, title: str, label_x: str, label_y: str = ""):
+        from ui.core.i18n import tr
+        self.lbl_title.setText(title)
+        self.btn_inv.setText(tr("curves.invert", "Inverter"))
+        self.curve.label_x = label_x
+        if label_y:
+            self.curve.label_y = label_y
+        self.curve.update()
+
     def _on_toggle(self, active: bool):
         self.curve.setEnabled(active)
         self.curve.setGraphicsEffect(None)
@@ -255,7 +264,8 @@ class CurveWindow(BaseFramelessDialog):
     """Janela flutuante de Perfis e Curvas do Pincel (C++ ALADYN ENGINE)."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Perfis & Curvas LUT", icon_name="curve", parent=parent, modal=False)
+        from ui.core.i18n import tr, I18nManager
+        super().__init__(title=tr("curves.window_title", "Perfis & Curvas LUT"), icon_name="curve", parent=parent, modal=False)
         self.setMinimumWidth(310)
 
         self.pressure_sec = CurveSection("Perfil de Tamanho (Ponta)", label_x="Pressão")
@@ -280,8 +290,36 @@ class CurveWindow(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self.apply_theme)
         self.apply_theme()
 
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
+
         self.adjustSize()
         self.sync_to_engine()
+
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        title = tr("curves.window_title", "Perfis & Curvas LUT")
+        self.setWindowTitle(title)
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(title)
+        if hasattr(self, "pressure_sec"):
+            self.pressure_sec.retranslate(
+                tr("curves.sec_size", "Perfil de Tamanho (Ponta)"),
+                tr("curves.pressure", "Pressão"),
+                tr("curves.output", "Saída")
+            )
+        if hasattr(self, "flow_sec"):
+            self.flow_sec.retranslate(
+                tr("curves.sec_flow", "Perfil de Fluxo (Esmaecer)"),
+                tr("curves.pressure", "Pressão"),
+                tr("curves.output", "Saída")
+            )
+        if hasattr(self, "velocity_sec"):
+            self.velocity_sec.retranslate(
+                tr("curves.sec_velocity", "Modificador por Velocidade"),
+                tr("curves.velocity", "Velocidade"),
+                tr("curves.output", "Saída")
+            )
 
     def sync_to_engine(self):
         from ui.core.engine.registry import EngineRegistry

@@ -116,13 +116,13 @@ class ToolToggleCard(QtWidgets.QFrame):
         text_layout.setSpacing(0)
         text_layout.setAlignment(QtCore.Qt.AlignVCenter)
 
-        name = self.meta.get("name", self.tool_id)
-        shortcut = self.meta.get("shortcut", "")
-        self.name_lbl = QtWidgets.QLabel(name)
+        self.name_lbl = QtWidgets.QLabel()
         self.name_lbl.setStyleSheet("font-size: 11px; font-weight: bold;")
 
-        self.shortcut_lbl = QtWidgets.QLabel(f"Atalho: [{shortcut}]" if shortcut else "Sem atalho")
+        self.shortcut_lbl = QtWidgets.QLabel()
         self.shortcut_lbl.setStyleSheet("font-size: 9px;")
+
+        self.retranslate_ui()
 
         text_layout.addWidget(self.name_lbl)
         text_layout.addWidget(self.shortcut_lbl)
@@ -134,6 +134,16 @@ class ToolToggleCard(QtWidgets.QFrame):
         self.switch.setChecked(self.is_active)
         self.switch.toggled.connect(self._on_toggled)
         layout.addWidget(self.switch)
+
+    def retranslate_ui(self):
+        from ui.core.tools import get_tool_name
+        from ui.core.i18n import tr
+        self.name_lbl.setText(get_tool_name(self.tool_id))
+        shortcut = self.meta.get("shortcut", "")
+        if shortcut:
+            self.shortcut_lbl.setText(tr("dialogs.floating_toolbar_shortcut", f"Atalho: [{shortcut}]").replace("{key}", shortcut))
+        else:
+            self.shortcut_lbl.setText(tr("dialogs.floating_toolbar_no_shortcut", "Sem atalho"))
 
     def _on_toggled(self, checked: bool):
         self.is_active = checked
@@ -175,23 +185,20 @@ class ToolToggleCard(QtWidgets.QFrame):
 # ── CARREGAMENTO / PERSISTÊNCIA ──────────────────────────────────────────────
 
 def load_floating_toolbar_settings() -> dict:
-    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    active = s.value("active", True, type=bool)
-    speed  = s.value("speed", "Normal")
-    tools_str = s.value("tools", "")
-    if tools_str:
-        tools = [t.strip() for t in tools_str.split(",") if t.strip() in TOOL_META]
-    else:
+    from ui.core.config import ConfigManager
+    cm = ConfigManager.instance()
+    sec = cm.get_section("floating_toolbar")
+    active = sec.get("active", True)
+    speed  = sec.get("speed", "Normal")
+    tools  = sec.get("tools", list(DEFAULT_TOOLS))
+    if not tools:
         tools = list(DEFAULT_TOOLS)
     return {"active": active, "speed": speed, "tools": tools}
 
 
 def save_floating_toolbar_settings(cfg: dict) -> None:
-    s = QtCore.QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-    s.setValue("active", cfg.get("active", True))
-    s.setValue("speed",  cfg.get("speed", "Normal"))
-    tools = cfg.get("tools", DEFAULT_TOOLS)
-    s.setValue("tools",  ",".join(tools))
+    from ui.core.config import ConfigManager
+    ConfigManager.instance().set_section("floating_toolbar", cfg)
 
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
@@ -202,7 +209,8 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
     settings_applied = QtCore.Signal(dict)
 
     def __init__(self, parent=None):
-        super().__init__(title="Configurações da Barra Flutuante", icon_name="tools", parent=parent, modal=True)
+        from ui.core.i18n import tr, I18nManager
+        super().__init__(title=tr("dialogs.floating_toolbar_title", "Configurações da Barra Flutuante"), icon_name="tools", parent=parent, modal=True)
         self.setObjectName("FloatingToolbarSettingsDialog")
         self.resize(820, 550)
 
@@ -214,7 +222,11 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
         self._apply_theme()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
 
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
+
     def _setup_ui(self):
+        from ui.core.i18n import tr
         cols_widget = QtWidgets.QWidget()
         cols_layout = QtWidgets.QHBoxLayout(cols_widget)
         cols_layout.setContentsMargins(0, 0, 0, 0)
@@ -230,7 +242,7 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
 
         # Campo de busca
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("Buscar ferramenta...")
+        self.search_box.setPlaceholderText(tr("dialogs.floating_toolbar_search", "Buscar ferramenta..."))
         self.search_box.addAction(get_icon("search"), QtWidgets.QLineEdit.LeadingPosition)
         self.search_box.textChanged.connect(self._filter_tools)
         left_layout.addWidget(self.search_box)
@@ -274,14 +286,13 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
 
         title_box = QtWidgets.QVBoxLayout()
         title_box.setSpacing(2)
-        self.lbl_insp_title = QtWidgets.QLabel("Barra Rápida Flutuante")
-        font = self.lbl_insp_title.font()
-        font.setPointSize(13)
-        font.setBold(True)
-        self.lbl_insp_title.setFont(font)
+        self.lbl_insp_title = QtWidgets.QLabel(tr("dialogs.floating_toolbar_heading", "Barra Rápida Flutuante"))
+        _title_font = QtGui.QFont("Segoe UI", 13)
+        _title_font.setBold(True)
+        self.lbl_insp_title.setFont(_title_font)
 
-        self.lbl_insp_meta = QtWidgets.QLabel("HUD CONTEXTUAL DE CRIAÇÃO")
-        self.lbl_insp_meta.setStyleSheet("color: #ff5252; font-size: 11px; font-weight: bold;")
+        self.lbl_insp_meta = QtWidgets.QLabel(tr("dialogs.floating_toolbar_meta", "HUD CONTEXTUAL DE CRIAÇÃO"))
+        self.lbl_insp_meta.setProperty("accent", "true")
 
         title_box.addWidget(self.lbl_insp_title)
         title_box.addWidget(self.lbl_insp_meta)
@@ -290,57 +301,57 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
         right_layout.addLayout(header_box)
 
         # Live Preview
-        lbl_prev = QtWidgets.QLabel("Pré-Visualização em Tempo Real da Barra:")
-        lbl_prev.setStyleSheet("font-size: 11px; font-weight: bold; margin-top: 4px;")
-        right_layout.addWidget(lbl_prev)
+        self.lbl_prev = QtWidgets.QLabel(tr("dialogs.floating_toolbar_preview", "Pré-Visualização em Tempo Real da Barra:"))
+        self.lbl_prev.setStyleSheet("font-size: 11px; font-weight: bold; margin-top: 4px;")
+        right_layout.addWidget(self.lbl_prev)
 
         self.live_preview = ToolbarLivePreview()
         self.live_preview.set_tools(self._active_tools)
         right_layout.addWidget(self.live_preview)
 
         # Grupo de Comportamento & Física
-        behavior_group = QtWidgets.QGroupBox("Comportamento & Física Magnética")
-        behavior_layout = QtWidgets.QVBoxLayout(behavior_group)
+        self.behavior_group = QtWidgets.QGroupBox(tr("dialogs.floating_toolbar_behavior", "Comportamento & Física Magnética"))
+        behavior_layout = QtWidgets.QVBoxLayout(self.behavior_group)
         behavior_layout.setContentsMargins(14, 14, 14, 14)
         behavior_layout.setSpacing(10)
 
         # Master Switch (Ativa/Desativa)
         row_master = QtWidgets.QHBoxLayout()
-        lbl_master = QtWidgets.QLabel("Exibir Barra Flutuante no Workspace")
+        self.lbl_master = QtWidgets.QLabel(tr("dialogs.floating_toolbar_show", "Exibir Barra Flutuante no Workspace"))
         self.switch_master = ToggleSwitch()
         self.switch_master.setChecked(self._cfg.get("active", True))
-        row_master.addWidget(lbl_master)
+        row_master.addWidget(self.lbl_master)
         row_master.addStretch()
         row_master.addWidget(self.switch_master)
         behavior_layout.addLayout(row_master)
 
         # Velocidade de Auto-Recolhimento
         row_speed = QtWidgets.QHBoxLayout()
-        lbl_speed = QtWidgets.QLabel("Auto-Recolhimento por Inatividade:")
-        lbl_speed.setStyleSheet("font-size: 12px;")
+        self.lbl_speed = QtWidgets.QLabel(tr("dialogs.floating_toolbar_collapse", "Auto-Recolhimento por Inatividade:"))
+        self.lbl_speed.setStyleSheet("font-size: 12px;")
         self.combo_speed = QtWidgets.QComboBox()
-        self.combo_speed.addItems([
-            "Desativado (Sempre Visível)",
-            "Rápido (150ms)",
-            "Normal (300ms)",
-            "Lento (500ms)"
-        ])
         current_speed = self._cfg.get("speed", "Normal")
-        for i in range(self.combo_speed.count()):
-            if current_speed in self.combo_speed.itemText(i):
-                self.combo_speed.setCurrentIndex(i)
-                break
-        row_speed.addWidget(lbl_speed)
+        items = [
+            ("Desativado", tr("dialogs.floating_toolbar_speed_off", "Desativado (Sempre Visível)")),
+            ("Rápido", tr("dialogs.floating_toolbar_speed_fast", "Rápido (2 segundos)")),
+            ("Normal", tr("dialogs.floating_toolbar_speed_normal", "Normal (4 segundos)")),
+            ("Lento", tr("dialogs.floating_toolbar_speed_slow", "Lento (8 segundos)")),
+        ]
+        for canonical, label in items:
+            self.combo_speed.addItem(label, canonical)
+            if canonical == current_speed or current_speed in label:
+                self.combo_speed.setCurrentIndex(self.combo_speed.count() - 1)
+        row_speed.addWidget(self.lbl_speed)
         row_speed.addStretch()
         row_speed.addWidget(self.combo_speed)
         behavior_layout.addLayout(row_speed)
 
-        right_layout.addWidget(behavior_group)
+        right_layout.addWidget(self.behavior_group)
         right_layout.addStretch()
 
         # Botões de Ação na Base
         btn_box = QtWidgets.QHBoxLayout()
-        self.btn_apply = QtWidgets.QPushButton("Aplicar & Salvar")
+        self.btn_apply = QtWidgets.QPushButton(tr("dialogs.save_apply", "Salvar e Aplicar"))
         self.btn_apply.setIcon(get_icon("check"))
         self.btn_apply.setFixedHeight(34)
         self.btn_apply.clicked.connect(self._on_apply)
@@ -348,13 +359,48 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
 
         btn_box.addSpacing(8)
 
-        btn_close = QtWidgets.QPushButton("Fechar")
-        btn_close.setFixedHeight(34)
-        btn_close.clicked.connect(self.accept)
-        btn_box.addWidget(btn_close)
+        self.btn_close = QtWidgets.QPushButton(tr("dialogs.close", "Fechar"))
+        self.btn_close.setFixedHeight(34)
+        self.btn_close.clicked.connect(self.accept)
+        btn_box.addWidget(self.btn_close)
 
         right_layout.addLayout(btn_box)
         cols_layout.addWidget(right_col, 1)
+
+    def retranslate_ui(self) -> None:
+        """Atualiza dinamicamente todos os textos deste diálogo quando o idioma muda."""
+        from ui.core.i18n import tr
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(tr("dialogs.floating_toolbar_title", "Configurações da Barra Flutuante"))
+        if hasattr(self, "search_box"):
+            self.search_box.setPlaceholderText(tr("dialogs.floating_toolbar_search", "Buscar ferramenta..."))
+        if hasattr(self, "lbl_insp_title"):
+            self.lbl_insp_title.setText(tr("dialogs.floating_toolbar_heading", "Barra Rápida Flutuante"))
+            self.lbl_insp_meta.setText(tr("dialogs.floating_toolbar_meta", "HUD CONTEXTUAL DE CRIAÇÃO"))
+            self.lbl_prev.setText(tr("dialogs.floating_toolbar_preview", "Pré-Visualização em Tempo Real da Barra:"))
+            self.behavior_group.setTitle(tr("dialogs.floating_toolbar_behavior", "Comportamento & Física Magnética"))
+            self.lbl_master.setText(tr("dialogs.floating_toolbar_show", "Exibir Barra Flutuante no Workspace"))
+            self.lbl_speed.setText(tr("dialogs.floating_toolbar_collapse", "Auto-Recolhimento por Inatividade:"))
+            self.btn_apply.setText(tr("dialogs.save_apply", "Salvar e Aplicar"))
+            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+
+        if hasattr(self, "combo_speed"):
+            cur_idx = max(0, self.combo_speed.currentIndex())
+            self.combo_speed.blockSignals(True)
+            self.combo_speed.clear()
+            items = [
+                ("Desativado", tr("dialogs.floating_toolbar_speed_off", "Desativado (Sempre Visível)")),
+                ("Rápido", tr("dialogs.floating_toolbar_speed_fast", "Rápido (2 segundos)")),
+                ("Normal", tr("dialogs.floating_toolbar_speed_normal", "Normal (4 segundos)")),
+                ("Lento", tr("dialogs.floating_toolbar_speed_slow", "Lento (8 segundos)")),
+            ]
+            for canonical, label in items:
+                self.combo_speed.addItem(label, canonical)
+            self.combo_speed.setCurrentIndex(cur_idx)
+            self.combo_speed.blockSignals(False)
+
+        for card in self._cards:
+            card.retranslate_ui()
 
     def _filter_tools(self):
         query = self.search_box.text().strip().lower()

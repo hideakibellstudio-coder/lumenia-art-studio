@@ -44,10 +44,11 @@ class SliderStepButton(QtWidgets.QAbstractButton):
 
     def _update_colors(self, *args):
         tm = ThemeManager.instance()
-        self._bg_color = QtGui.QColor(tm.get_color("bg_panel", "#1e1e24"))
-        self._border_color = QtGui.QColor(tm.get_color("border", "#2e2e38"))
-        self._accent_color = QtGui.QColor(tm.get_color("accent", "#6366f1"))
-        self._icon_color_str = tm.get_color("text_main", "#f3f4f6")
+        self._bg_color = QtGui.QColor(tm.get_color("bg_panel"))
+        self._bg_hover_color = QtGui.QColor(tm.get_color("bg_light"))
+        self._border_color = QtGui.QColor(tm.get_color("border"))
+        self._accent_color = QtGui.QColor(tm.get_color("accent"))
+        self._icon_color_str = tm.get_color("text_main")
         self.update()
 
     def enterEvent(self, event):
@@ -90,9 +91,9 @@ class SliderStepButton(QtWidgets.QAbstractButton):
             border = self._accent_color
             icon_hex = "#ffffff"
         elif self._hover:
-            bg = self._bg_color.lighter(135)
+            bg = self._bg_hover_color
             border = self._accent_color
-            icon_hex = "#ffffff"
+            icon_hex = self._icon_color_str
         else:
             bg = QtGui.QColor(self._bg_color)
             border = QtGui.QColor(self._border_color)

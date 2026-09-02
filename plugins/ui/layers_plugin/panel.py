@@ -104,6 +104,7 @@ class LayersPanel(QWidget):
         self.view.clearRequested.connect(self.grid_clear)
         self.view.addLayerRequested.connect(self.add_layer)
         self.view.addGroupRequested.connect(self.add_group)
+        self.view.toggleClippingRequested.connect(self._on_context_toggle_clipping)
         self.view.editFilterRequested.connect(self.open_edit_filter_popup)
         self.view.renameRequested.connect(self.open_rename_popup)
         
@@ -156,10 +157,11 @@ class LayersPanel(QWidget):
         self._apply_theme("")
 
     def _on_order_changed(self):
-        self._sync_to_native_engine("reorder_all")
+        if not self._updating_selection:
+            self._sync_to_native_engine("reorder_all")
 
     def _on_layer_added(self, layer):
-        self._sync_to_native_engine("reorder_all")
+        pass
 
     def set_layer_manager(self, manager):
         if self.layer_manager:
@@ -246,6 +248,11 @@ class LayersPanel(QWidget):
     def grid_toggle_clip(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
+            self._on_context_toggle_clipping(layer.uid)
+
+    def _on_context_toggle_clipping(self, uid: int):
+        layer = self.layer_manager.get_layer_by_uid(uid)
+        if layer:
             idx = self.model._find_index_by_uid(layer.uid)
             new_val = not layer.clipping_mask
             self.model.setData(idx, new_val, ROLE_CLIPPING_MASK)
@@ -265,7 +272,6 @@ class LayersPanel(QWidget):
             active = self.layer_manager.get_active_layer()
             if active:
                 self._select_uid_in_view(active.uid)
-                self._sync_to_native_engine("select")
         finally:
             self._updating_selection = False
 
@@ -279,7 +285,6 @@ class LayersPanel(QWidget):
             active = self.layer_manager.get_active_layer()
             if active:
                 self._select_uid_in_view(active.uid)
-                self._sync_to_native_engine("select")
             self._show_status(f"Grupo '{group_name}' criado com sucesso.")
         finally:
             self._updating_selection = False
@@ -374,13 +379,19 @@ class LayersPanel(QWidget):
         if indexes:
             uid = indexes[0].data(ROLE_UID)
             if uid:
-                self.layer_manager.set_active_layer(uid)
-                self._sync_to_native_engine("select")
+                self._updating_selection = True
+                try:
+                    self.layer_manager.set_active_layer(uid)
+                    self._sync_header_controls()
+                    self._sync_to_native_engine("select")
+                finally:
+                    self._updating_selection = False
 
     def _on_engine_active_layer_changed(self, uid):
         self._sync_header_controls()
         self._sync_to_native_engine("select")
-        self._select_uid_in_view(uid)
+        if not self._updating_selection:
+            self._select_uid_in_view(uid)
 
     def _select_uid_in_view(self, uid):
         self._updating_selection = True

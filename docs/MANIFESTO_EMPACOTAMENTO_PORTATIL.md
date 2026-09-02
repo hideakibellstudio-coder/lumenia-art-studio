@@ -1,247 +1,167 @@
-# 📦 MANIFESTO: ENGENHARIA DE EMPACOTAMENTO PORTÁTIL UNIVERSAL
-> **Padrão Arquitetural para Distribuição Autocontida (Zero-Install) de Aplicações Python, Qt/PySide e Extensões Nativas (C++/Rust)**
+# 🛡️ MANIFESTO: EMPACOTAMENTO PORTÁTIL BLINDADO COM NUITKA
+> **Padrão Arquitetural para Compilação em Código de Máquina Nativo (Zero-Source-Code, Zero-Install, Boot Instantâneo) de Aplicações Python, PySide6/Qt e Extensões C++**
 
 ---
 
 ## 🧭 1. Introdução e Filosofia
 
-Distribuir software desktop moderno construído em **Python com GUIs ricas (PySide6/PyQt6) e módulos nativos de alto desempenho (C++/PyBind11/Rust)** exige uma estratégia que garanta:
+O padrão tradicional de empacotamento em Python (baseado em PyInstaller) tem uma fragilidade grave para software comercial ou proprietário: **ele apenas empacota bytecodes (`.pyc`)**, os quais podem ser descompilados de volta para código-fonte legível em poucos segundos.
 
-1. **Zero Instalação (True Portability):** O usuário apenas descompacta e roda. Sem necessidade de privilégios de Administrador, sem instaladores invasivos e sem depender de Python ou compiladores pré-instalados na máquina alvo.
-2. **Boot Instantâneo:** Inicialização entre **0.3s e 1.2s**, eliminando o atraso de auto-extração do modo `--onefile`.
-3. **Imunidade a Conflitos de DLL:** Todas as bibliotecas C/C++, runtimes do sistema e dependências gráficas ficam encapsuladas em um diretório isolado.
-4. **Resiliência contra Falsos-Positivos de Antivírus:** Evita descompactações suspeitas no diretório `%TEMP%`.
+Para atingir **proteção total de propriedade intelectual**, sem abrir mão da **velocidade de boot instantânea** e da **simplicidade de um pacote portátil (descompactou -> usou)**, este manifesto adota o **[Nuitka](https://nuitka.net/)** como compilador oficial de distribuição.
+
+### O Salto de Paradigma: PyInstaller vs. Nuitka
+
+| Critério | PyInstaller Padrão | Nuitka Standalone (`--standalone`) |
+| :--- | :--- | :--- |
+| **Proteção do Código** | 🔴 **Nula**: Extraível e descompilável em segundos via `pycdc` ou `uncompyle6`. | 🟢 **Máxima**: Código Python é transpilado para **C** e compilado para **Assembly de Máquina (x86_64)** via MSVC/GCC. Não existem bytecodes. |
+| **Velocidade de Abertura (Boot)** | ⚡ Rápido no modo `--onedir` (~1.0s). | ⚡ **Tão rápido ou mais rápido (~0.6s - 1.0s)**: Funções C nativas são chamadas diretamente na inicialização. |
+| **Experiência do Usuário Final** | 📦 Pasta portátil com `.exe` (Zero-Install). | 📦 **Exatamente igual**: Pasta portátil com `.exe` (Zero-Install). |
+| **Tamanho e Limpeza** | ⚖️ Inclui interpretador CPython e biblioteca padrão. | 🧹 Otimizado: Descarta bibliotecas não utilizadas do Qt e do Python. |
+| **Tempo de Build (Para o Dev)** | ⚡ 30 a 60 segundos. | ⏳ 3 a 8 minutos (compilação C/C++ otimizada com `/O2`). |
 
 ---
 
-## 🏛️ 2. Topologia Arquitetural: O Padrão `Onedir + _internal`
+## 🏛️ 2. Topologia do Pacote Portátil Nuitka Standalone
 
-A partir do **PyInstaller 6.0+**, o padrão de diretório único (`--onedir`) isola toda a complexidade técnica dentro da subpasta `_internal/`, mantendo a raiz do usuário limpa e profissional.
+No modo `--standalone`, o Nuitka gera uma pasta autônoma (distribuível via `.zip`) com todo o ecossistema compilado:
 
 ```
 📁 MeuSoftware_v1.0.0_Portable/
 │
-├── 🚀 MeuSoftware.exe              ← Bootloader C compilado (inicia o Python em C)
-├── 📄 LEIA-ME.txt                  ← Instruções rápidas de uso e suporte
-├── 🌐 Suporte_ou_Feedback.html     ← Página de apoio/contato offline
+├── 🚀 MeuSoftware.exe                  ← Binário compilado em C puro (Sem Python legível)
+├── 📄 LEIA-ME.txt                      ← Instruções rápidas para o usuário final
+├── 🌐 Suporte_ou_Feedback.html         ← Guia ou formulário de feedback offline
 │
-└── 📁 _internal/                   ← NÚCLEO AUTOCONTIDO (Isolamento total)
-    ├── 🐍 python314.dll / python3.dll ← Interpretador CPython isolado
-    ├── 📦 base_library.zip         ← Módulos padrão do Python (.pyc)
-    │
-    ├── ⚡ meu_modulo_nativo.*.pyd   ← Binários C++ / PyBind11 / Rust
-    ├── ⚙️ VCRUNTIME140.dll / MSVCP* ← Runtimes MSVC do Visual Studio
-    │
-    ├── 🎨 PySide6/ / PyQt6/        ← Framework gráfico e DLLs do Qt (Qt6Core, Qt6Gui, etc.)
-    │   └── plugins/platforms/qwindows.dll ← Driver de janela do Windows
-    │
-    ├── 🧩 numpy/, psutil/, ...     ← Bibliotecas externas compiladas
-    ├── 📁 app/ ou 📁 src/          ← Código-fonte da aplicação compilado em bytecode
-    └── 📁 assets/                  ← Recursos visuais (ícones, temas, fontes, sons)
+├── ⚡ meu_modulo_nativo.*.pyd           ← Suas extensões C++ / PyBind11 já compiladas
+├── ⚙️ python314.dll / vcruntime140*.dll ← Runtimes nativos necessários
+│
+├── 🎨 PySide6/ (ou PyQt6/)             ← DLLs Qt6 enxutas (apenas o que o app realmente usa)
+│   ├── Qt6Core.dll, Qt6Gui.dll, Qt6Widgets.dll
+│   └── plugins/platforms/qwindows.dll  ← Driver de janelas Windows
+│
+├── 📁 assets/                          ← Ícones (.ico, .svg, .png), temas, fontes
+└── 📁 plugins/ (ou dados extras)       ← Plugins ou módulos dinâmicos adicionais
 ```
 
 ---
 
-## 📐 3. Os 4 Pilares da Engenharia de Portabilidade
+## 📐 3. Os 4 Pilares da Engenharia com Nuitka
 
-### 🔹 Pilar 1: Resolução Canônica de Caminhos (`Path Resolver`)
-**Problema:** Em desenvolvimento, os arquivos estão relativos a `__file__`. Quando empacotado pelo PyInstaller, os arquivos ficam dentro de `sys._MEIPASS` (que aponta para a pasta `_internal/`).
+### 🔹 Pilar 1: Resolução Canônica de Caminhos com Detecção de Código Compilado
+O Nuitka injeta uma variável especial chamada `__compiled__` no runtime. Além disso, no modo `--standalone`, os assets ficam localizados diretamente na mesma pasta do executável principal (`sys.executable`).
 
-**Solução Obrigatória:** Crie um módulo universal de resolução de caminhos (`path_resolver.py` ou adicione no seu `utils.py`):
+Crie um módulo `path_resolver.py` universal para seu projeto:
 
 ```python
 """
-path_resolver.py — Resolução universal de recursos para Dev e Produção.
+path_resolver.py — Resolução de caminhos transparente para Dev e Nuitka Compilado.
 """
 from __future__ import annotations
 import os
 import sys
 
-def get_bundle_dir() -> str:
+def is_compiled_by_nuitka() -> bool:
+    """Verifica se o código está rodando compilado pelo Nuitka."""
+    return "__compiled__" in globals() or getattr(sys, "frozen", False)
+
+def get_app_root() -> str:
     """
-    Retorna o diretório base dos recursos:
-    - Se congelado (PyInstaller): retorna o caminho de '_internal' (sys._MEIPASS).
-    - Se em desenvolvimento: retorna a raiz do projeto.
+    Retorna o diretório raiz da aplicação:
+    - Se compilado pelo Nuitka Standalone: diretório da pasta onde está o MeuSoftware.exe
+    - Se em desenvolvimento (python main.py): diretório do projeto fonte.
     """
-    if getattr(sys, 'frozen', False):
-        # Modo empacotado (PyInstaller)
-        return getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    if is_compiled_by_nuitka():
+        return os.path.dirname(os.path.abspath(sys.executable))
     
-    # Modo de desenvolvimento (executando via 'python main.py')
-    # Ajuste o número de os.path.dirname conforme a profundidade deste arquivo
+    # Modo desenvolvimento: sobe os níveis necessários até a raiz
     return os.path.dirname(os.path.abspath(__file__))
 
-def get_asset_path(*rel_path_parts: str) -> str:
-    """Retorna o caminho absoluto determinístico para qualquer recurso em assets/."""
-    return os.path.join(get_bundle_dir(), "assets", *rel_path_parts)
+def get_asset_path(*relative_parts: str) -> str:
+    """Retorna o caminho absoluto determinístico para qualquer arquivo em assets/."""
+    return os.path.join(get_app_root(), "assets", *relative_parts)
 
-def get_app_data_dir(app_name: str = "MeuSoftware") -> str:
+def get_portable_data_dir(app_name: str = "MeuSoftware") -> str:
     """
-    Retorna o diretório para salvar configurações e preferências:
-    - Modo Portátil Puro: salva numa pasta local 'data/' ao lado do executável.
-    - Se não tiver permissão de escrita: faz fallback seguro para APPDATA.
+    Retorna o diretório para gravar configs, logs e preferências:
+    - Modo Portátil: prioriza uma subpasta local 'data/' ao lado do executável.
+    - Fallback: usa a pasta APPDATA se o diretório do app estiver em local somente-leitura.
     """
-    if getattr(sys, 'frozen', False):
-        exe_dir = os.path.dirname(sys.executable)
-        local_data = os.path.join(exe_dir, "data")
-        try:
-            os.makedirs(local_data, exist_ok=True)
-            test_file = os.path.join(local_data, ".write_test")
-            with open(test_file, "w") as f:
-                f.write("ok")
-            os.remove(test_file)
-            return local_data
-        except OSError:
-            pass  # Sem permissão de escrita local, usa fallback
-
-    fallback_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), app_name)
-    os.makedirs(fallback_dir, exist_ok=True)
-    return fallback_dir
+    app_root = get_app_root()
+    local_data = os.path.join(app_root, "data")
+    try:
+        os.makedirs(local_data, exist_ok=True)
+        test_file = os.path.join(local_data, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("ok")
+        os.remove(test_file)
+        return local_data
+    except OSError:
+        # Sem permissão de escrita local (ex: Arquivos de Programas)
+        fallback = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), app_name)
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
 ```
 
 ---
 
-### 🔹 Pilar 2: Inclusão Determinística de Módulos Nativos (`.pyd`, `.dll`, `.so`)
-Quando seu projeto consome C++ (PyBind11/Cython) ou Rust (PyO3), o binário compilado (`.pyd`) deve ser explicitamente declarado no `.spec` em `binaries` para que o PyInstaller resolva suas dependências dinâmicas no PE header (Windows).
-
-- **Regra:** O compilador C++ e o interpretador Python usado no empacotamento **devem ter exatamente a mesma arquitetura e versão** (ex: CPython 3.14 64-bit com MSVC v143 x64).
-
----
-
-### 🔹 Pilar 3: Dependências de Plataforma do Qt / Framework Gráfico
-Se você usa PySide6 ou PyQt6:
-- O PyInstaller precisa empacotar os plugins de plataforma (`platforms/qwindows.dll`).
-- Drivers de software fallback como `opengl32sw.dll` devem ser incluídos para garantir que a interface abra mesmo em máquinas virtuais ou PCs antigos sem aceleração de hardware OpenGL.
+### 🔹 Pilar 2: Integração com Extensões C++ Existentes (`.pyd`)
+Se o seu projeto consome um módulo C++ nativo (como o `aladyn_engine_native.*.pyd` compilado com PyBind11):
+- O Nuitka é inteligente o suficiente para não tentar recompilar o que já é binário C++.
+- Você apenas instrui o Nuitka a incluir esse `.pyd` no diretório raiz do pacote via flag:
+  `--include-data-files=meu_modulo_nativo*.pyd=.`
 
 ---
 
-### 🔹 Pilar 4: Executável Limpo sem Terminal Fantasma
-Para aplicativos gráficos:
-- Defina `console=False` no `.spec`.
-- Isso evita que uma janela de prompt de comando preta abra junto com a janela do seu programa.
+### 🔹 Pilar 3: Plugin Especializado para PySide6 / PyQt6
+Frameworks Qt exigem dezenas de arquivos auxiliares (traduções, plugins de plataforma como `qwindows.dll`, engines de renderização de SVG e drivers de fallback OpenGL).
+- O Nuitka possui um plugin dedicado de altíssima eficiência: **`--enable-plugin=pyside6`**.
+- Ele faz **análise estática** e remove módulos não utilizados do Qt (como `QtWebEngine`, `QtQuick3D`, etc.), economizando até 200 MB no tamanho final do pacote.
 
 ---
 
-## 📑 4. O Arquivo Universal de Especificação (`app.spec`)
+### 🔹 Pilar 4: Executável de Produção Windows (Sem Terminal Fantasma)
+Para softwares com interface gráfica:
+- `--windows-disable-console`: Impede que uma janela de prompt preta abra atrás da interface.
+- `--windows-icon-from-ico=...`: Grava o ícone oficial dentro dos recursos do executável PE do Windows.
+- `--windows-company-name=...` e `--windows-product-version=...`: Adiciona metadados profissionais aos detalhes do arquivo no Windows Explorer.
 
-Salve este arquivo na raiz do seu projeto com o nome `portable_build.spec`. Ele é agnóstico e configurável:
+---
 
-```python
-# -*- mode: python ; coding: utf-8 -*-
-"""
-portable_build.spec — Especificação Universal de Empacotamento Portátil
-========================================================================
-Compatível com Python 3.10+, PySide6/PyQt6, Módulos Nativos C++/Rust e Assets.
-"""
-import os
-import sys
+## ⚡ 4. O Comando Universal do Nuitka (CLI)
 
-block_cipher = None
+No PowerShell (ou prompt do VS 2022):
 
-# 1. Configurações Principais do Seu Projeto
-APP_NAME = "MeuSoftware"
-ENTRY_POINT = "main.py"
-ICON_FILE = os.path.join("assets", "icons", "app_icon.ico")
-
-PROJECT_ROOT = os.path.abspath(os.path.curdir)
-
-# 2. Definição de Arquivos de Dados (Assets, Temas, JSONs, Configs)
-# Sintaxe: (caminho_origem_no_disco, pasta_destino_dentro_do__internal)
-datas = []
-
-optional_folders = ["assets", "templates", "locales", "plugins"]
-for folder in optional_folders:
-    folder_path = os.path.join(PROJECT_ROOT, folder)
-    if os.path.exists(folder_path):
-        datas.append((folder_path, folder))
-
-# 3. Definição de Binários Nativos (.pyd, .dll C++, .so)
-binaries = []
-
-# Exemplo: Procura por qualquer .pyd ou .dll customizada na raiz
-for file in os.listdir(PROJECT_ROOT):
-    if file.endswith(".pyd") or (file.endswith(".dll") and not file.startswith("python")):
-        binaries.append((os.path.join(PROJECT_ROOT, file), "."))
-
-# 4. Hidden Imports (Módulos importados dinamicamente via importlib ou Qt plugins)
-hiddenimports = [
-    "PySide6.QtCore",
-    "PySide6.QtGui",
-    "PySide6.QtWidgets",
-    "PySide6.QtSvg",
-    "numpy",
-    "ctypes",
-]
-
-# 5. Módulos a Excluir (Reduz drasticamente o tamanho final do pacote)
-excludes = [
-    "tkinter",
-    "unittest",
-    "pydoc",
-    "test",
-    "sqlite3",
-]
-
-# 6. Análise de Código e Dependências
-a = Analysis(
-    [os.path.join(PROJECT_ROOT, ENTRY_POINT)],
-    pathex=[PROJECT_ROOT],
-    binaries=binaries,
-    datas=datas,
-    hiddenimports=hiddenimports,
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=excludes,
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
-    noarchive=False,
-)
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-# 7. Configuração do Executável Bootloader
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],
-    exclude_binaries=True,
-    name=APP_NAME,
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,                    # Comprime binários se UPX estiver no PATH
-    console=False,               # False = Sem janela preta de console
-    disable_windowed_traceback=False,
-    icon=ICON_FILE if os.path.exists(ICON_FILE) else None,
-)
-
-# 8. Coleta dos Arquivos para a Pasta '_internal'
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name=APP_NAME,               # Nome da subpasta gerada em dist/
-)
+```powershell
+python -m nuitka `
+    --standalone `
+    --enable-plugin=pyside6 `
+    --windows-disable-console `
+    --windows-icon-from-ico=assets/images/app_icon.ico `
+    --windows-company-name="MinhaEmpresa" `
+    --windows-product-name="MeuSoftware" `
+    --windows-product-version="1.0.0.0" `
+    --include-data-dir=assets=assets `
+    --include-data-dir=plugins=plugins `
+    --include-data-files=*.pyd=. `
+    --output-dir=dist_nuitka `
+    --remove-output `
+    main.py
 ```
 
 ---
 
-## ⚡ 5. Script Completo de Automação de Build (`package_portable.py`)
+## 🤖 5. Script Completo de Automação de Build (`package_nuitka_portable.py`)
 
-Crie o arquivo `package_portable.py` na raiz do seu projeto. Ele cuida do ciclo completo: compilação, injeção de documentação, geração do `.zip` e validação com teste de fumaça:
+Salve este script na raiz do seu projeto. Ele gerencia o build do Nuitka, copia documentação complementar, gera o arquivo `.zip` portátil e executa um teste de fumaça (Smoke Test) automatizado:
 
 ```python
 """
-package_portable.py — Pipeline de Build e Distribuição Portátil 1-Click
-=======================================================================
+package_nuitka_portable.py — Pipeline de Compilação Nativa & Empacotamento Blindado
+===================================================================================
+Executa a compilação C/C++ via Nuitka, injeta arquivos auxiliares e gera o .zip final.
+
 Uso:
-    python package_portable.py
+    python package_nuitka_portable.py
 """
 from __future__ import annotations
 import os
@@ -251,139 +171,189 @@ import subprocess
 import time
 import zipfile
 
-# CONFIGURAÇÕES DO PROJETO
+# -----------------------------------------------------------------------------
+# ⚙️ CONFIGURAÇÕES DO PROJETO (Personalize para seu app)
+# -----------------------------------------------------------------------------
 APP_NAME = "MeuSoftware"
 APP_VERSION = "v1.0.0"
-DIST_DIR = os.path.abspath("dist")
-APP_OUTPUT_DIR = os.path.join(DIST_DIR, APP_NAME)
-ZIP_OUTPUT_NAME = f"{APP_NAME}_{APP_VERSION}_Portable.zip"
+ENTRY_POINT = "main.py"
 
-def log_step(step: str, msg: str):
-    print(f"\n\033[1;34m[{step}]\033[0m \033[1m{msg}\033[0m")
+ICON_PATH = os.path.join("assets", "images", "app_icon.ico")
+OUTPUT_PARENT_DIR = "dist_nuitka"
+# O Nuitka cria a pasta de saída nomeada como <entrypoint>.dist
+NUITKA_DIST_DIR = os.path.join(OUTPUT_PARENT_DIR, f"{os.path.splitext(ENTRY_POINT)[0]}.dist")
+FINAL_PORTABLE_DIR = os.path.join(OUTPUT_PARENT_DIR, APP_NAME)
+ZIP_PACKAGE_NAME = f"{APP_NAME}_{APP_VERSION}_Portable.zip"
+
+
+def print_step(step: str, description: str):
+    print(f"\n\033[1;36m[{step}]\033[0m \033[1m{description}\033[0m")
+
+
+def verify_prerequisites():
+    print_step("1/6", "Verificando dependências de compilação...")
+    try:
+        import nuitka
+        print(f"   -> Nuitka encontrado: versão {nuitka.__version__}")
+    except ImportError:
+        print("❌ Nuitka não instalado. Execute: pip install nuitka")
+        sys.exit(1)
+
 
 def clean_previous_builds():
-    log_step("1/5", "Limpando diretórios de builds anteriores...")
-    for folder in ["build", "dist"]:
-        if os.path.exists(folder):
-            shutil.rmtree(folder, ignore_errors=True)
-            print(f"   -> Removido: {folder}/")
-    if os.path.exists(ZIP_OUTPUT_NAME):
-        os.remove(ZIP_OUTPUT_NAME)
-        print(f"   -> Removido arquivo ZIP anterior: {ZIP_OUTPUT_NAME}")
+    print_step("2/6", "Limpando diretórios de compilações anteriores...")
+    for target in [OUTPUT_PARENT_DIR, ZIP_PACKAGE_NAME]:
+        if os.path.isdir(target):
+            shutil.rmtree(target, ignore_errors=True)
+            print(f"   -> Removido diretório: {target}/")
+        elif os.path.isfile(target):
+            os.remove(target)
+            print(f"   -> Removido arquivo: {target}")
 
-def run_pyinstaller():
-    log_step("2/5", "Executando PyInstaller (Standalone Onedir Engine)...")
-    spec_file = "portable_build.spec"
+
+def run_nuitka_compilation():
+    print_step("3/6", "Executando compilação nativa C/C++ com Nuitka...")
+    print("   ⏳ Isso pode levar entre 3 a 7 minutos (compilação completa com MSVC)...")
     
-    if not os.path.exists(spec_file):
-        print(f"❌ Erro: Arquivo de especificação '{spec_file}' não encontrado!")
-        sys.exit(1)
-
     cmd = [
-        sys.executable, "-m", "PyInstaller",
-        "--noconfirm",
-        "--clean",
-        spec_file
+        sys.executable, "-m", "nuitka",
+        "--standalone",
+        "--enable-plugin=pyside6",
+        "--windows-disable-console",
+        "--output-dir=" + OUTPUT_PARENT_DIR,
+        "--remove-output",  # Remove a pasta de build temporária (.build) após finalizar
+        "--assume-yes-for-downloads",
     ]
-    
-    res = subprocess.run(cmd)
-    if res.returncode != 0:
-        print("❌ Erro durante o empacotamento com PyInstaller.")
-        sys.exit(res.returncode)
-    print("✅ Binários empacotados com sucesso.")
 
-def inject_documentation_and_support():
-    log_step("3/5", "Injetando arquivos de apoio na raiz do pacote portátil...")
-    
-    # Cria um LEIA-ME caso não exista
-    readme_path = os.path.join(APP_OUTPUT_DIR, "LEIA-ME_PORTATIL.txt")
-    if not os.path.exists(readme_path):
-        with open(readme_path, "w", encoding="utf-8") as f:
-            f.write(f"==================================================================\n")
-            f.write(f" {APP_NAME} — {APP_VERSION} (Versão Portátil Autocontida)\n")
-            f.write(f"==================================================================\n\n")
-            f.write(f"Como usar:\n")
-            f.write(f"1. Extraia o arquivo .zip para qualquer pasta.\n")
-            f.write(f"2. Execute: {APP_NAME}.exe\n\n")
-            f.write(f"Não requer instalação nem permissões de administrador.\n")
-        print(f"   -> Criado: LEIA-ME_PORTATIL.txt")
+    # Adiciona ícone se existir
+    if os.path.exists(ICON_PATH):
+        cmd.append(f"--windows-icon-from-ico={ICON_PATH}")
 
-    # Copia outros arquivos auxiliares se existirem
-    aux_files = ["LICENSE", "Enviar_Feedback.html", "CHANGELOG.md"]
-    for file in aux_files:
-        if os.path.exists(file):
-            shutil.copy2(file, os.path.join(APP_OUTPUT_DIR, file))
-            print(f"   -> Copiado para a raiz: {file}")
+    # Adiciona pastas de dados
+    for folder in ["assets", "plugins", "templates", "locales"]:
+        if os.path.exists(folder):
+            cmd.append(f"--include-data-dir={folder}={folder}")
+
+    # Inclui módulos nativos pré-compilados (.pyd) se houver
+    for item in os.listdir("."):
+        if item.endswith(".pyd"):
+            cmd.append(f"--include-data-files={item}=.")
+
+    # Ponto de entrada
+    cmd.append(ENTRY_POINT)
+
+    t0 = time.time()
+    result = subprocess.run(cmd)
+    t1 = time.time()
+
+    if result.returncode != 0:
+        print(f"❌ Falha na compilação do Nuitka (código {result.returncode}).")
+        sys.exit(result.returncode)
+
+    print(f"✅ Compilação C/C++ concluída em {t1 - t0:.1f} segundos!")
+
+    # Renomeia <entrypoint>.dist para o nome canônico do App
+    if os.path.exists(NUITKA_DIST_DIR):
+        if os.path.exists(FINAL_PORTABLE_DIR):
+            shutil.rmtree(FINAL_PORTABLE_DIR)
+        os.rename(NUITKA_DIST_DIR, FINAL_PORTABLE_DIR)
+
+
+def inject_auxiliary_files():
+    print_step("4/6", "Injetando guias e documentação na raiz do pacote...")
+    
+    readme_file = os.path.join(FINAL_PORTABLE_DIR, "LEIA-ME_PORTATIL.txt")
+    with open(readme_file, "w", encoding="utf-8") as f:
+        f.write(f"====================================================================\n")
+        f.write(f" {APP_NAME} — {APP_VERSION} (Versão Portátil Blindada)\n")
+        f.write(f"====================================================================\n\n")
+        f.write(f"Instruções:\n")
+        f.write(f"1. Extraia o conteúdo deste arquivo para uma pasta qualquer.\n")
+        f.write(f"2. Execute o arquivo: {APP_NAME}.exe\n\n")
+        f.write(f"• 100% Autocontido: Não requer instalação nem privilégios de Admin.\n")
+        f.write(f"• Código Nativo Compilado de Alto Desempenho.\n")
+    print(f"   -> Criado: LEIA-ME_PORTATIL.txt")
+
+    for aux in ["Enviar_Feedback.html", "LICENSE"]:
+        if os.path.exists(aux):
+            shutil.copy2(aux, os.path.join(FINAL_PORTABLE_DIR, aux))
+            print(f"   -> Copiado: {aux}")
+
 
 def create_portable_zip():
-    log_step("4/5", f"Compactando diretório em {ZIP_OUTPUT_NAME}...")
-    
-    with zipfile.ZipFile(ZIP_OUTPUT_NAME, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-        for root, dirs, files in os.walk(APP_OUTPUT_DIR):
+    print_step("5/6", f"Compactando pacote em {ZIP_PACKAGE_NAME}...")
+    with zipfile.ZipFile(ZIP_PACKAGE_NAME, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+        for root, dirs, files in os.walk(FINAL_PORTABLE_DIR):
             for file in files:
                 abs_path = os.path.join(root, file)
-                rel_path = os.path.relpath(abs_path, start=DIST_DIR)
+                rel_path = os.path.relpath(abs_path, start=OUTPUT_PARENT_DIR)
                 zipf.write(abs_path, rel_path)
-    
-    zip_size_mb = os.path.getsize(ZIP_OUTPUT_NAME) / (1024 * 1024)
-    print(f"✅ Arquivo ZIP gerado: {ZIP_OUTPUT_NAME} ({zip_size_mb:.2f} MB)")
 
-def smoke_test_executable():
-    log_step("5/5", "Executando Teste de Fumaça (Smoke Test) no executável portátil...")
-    exe_path = os.path.join(APP_OUTPUT_DIR, f"{APP_NAME}.exe")
+    mb_size = os.path.getsize(ZIP_PACKAGE_NAME) / (1024 * 1024)
+    print(f"✅ Pacote compactado gerado com sucesso: {ZIP_PACKAGE_NAME} ({mb_size:.2f} MB)")
+
+
+def smoke_test_distribution():
+    print_step("6/6", "Executando Teste de Fumaça (Smoke Test) no binário gerado...")
     
-    if not os.path.exists(exe_path):
-        print(f"❌ Executável não encontrado em: {exe_path}")
+    # No Nuitka, o executável herda o nome do entrypoint ou do diretório
+    exe_candidates = [
+        os.path.join(FINAL_PORTABLE_DIR, f"{APP_NAME}.exe"),
+        os.path.join(FINAL_PORTABLE_DIR, f"{os.path.splitext(ENTRY_POINT)[0]}.exe")
+    ]
+    target_exe = next((p for p in exe_candidates if os.path.exists(p)), None)
+
+    if not target_exe:
+        print(f"❌ Executável principal não localizado em {FINAL_PORTABLE_DIR}")
         sys.exit(1)
 
-    print(f"   -> Testando inicialização de: {exe_path}")
-    proc = subprocess.Popen([exe_path])
-    time.sleep(3)  # Aguarda 3 segundos para detectar crash imediato
-    
-    exit_code = proc.poll()
-    if exit_code is None:
-        print("   -> 🟢 Executável inicializou normalmente sem crashes de DLL ou Python!")
+    print(f"   -> Abrindo processo para validação de boot: {target_exe}")
+    proc = subprocess.Popen([target_exe])
+    time.sleep(3)  # Aguarda 3 segundos para certificar que o boot ocorreu
+
+    status = proc.poll()
+    if status is None:
+        print("   -> 🟢 Executável compilado abriu com sucesso e sem crashes de DLL!")
         proc.terminate()
     else:
-        print(f"   -> 🔴 FALHA NO SMOKE TEST: Executável encerrou com código {exit_code}")
+        print(f"   -> 🔴 Erro de runtime: o executável encerrou prematuramente com código {status}")
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    print(f"🚀 Iniciando Pipeline de Empacotamento Portátil para '{APP_NAME}'...")
+    print(f"\n🚀 Iniciando Pipeline de Distribuição Blindada com Nuitka: {APP_NAME}\n")
+    verify_prerequisites()
     clean_previous_builds()
-    run_pyinstaller()
-    inject_documentation_and_support()
+    run_nuitka_compilation()
+    inject_auxiliary_files()
     create_portable_zip()
-    smoke_test_executable()
-    print("\n🎉 \033[1;32mPIPELINE CONCLUÍDO COM SUCESSO! PACOTE PRONTO PARA DISTRIBUIÇÃO.\033[0m\n")
+    smoke_test_distribution()
+    print(f"\n🎉 \033[1;32mDISTRIBUIÇÃO CONCLUÍDA! PACOTE FINAL BLINDADO DISPONÍVEL EM: {ZIP_PACKAGE_NAME}\033[0m\n")
 ```
 
 ---
 
-## 🛠️ 6. Guia de Resolução de Problemas (Troubleshooting)
+## 💡 6. Dicas de Otimização e Performance do Nuitka
 
-### ❌ 1. O `.exe` abre e fecha instantaneamente (sem mensagem de erro)
-- **Causa:** Um erro de importação ocorreu antes da interface gráfica inicializar.
-- **Diagnóstico Rápido:** Altere temporariamente no seu `.spec` a linha `console=False` para `console=True`. Recompile e rode pelo terminal para ver o traceback completo do Python.
+### 🚀 Acelerando Compilações com Cache (`ccache`)
+Como o Nuitka compila dezenas de arquivos C++, compilações subsequentes podem demorar apenas segundos se o cache estiver ativo. O Nuitka faz o download automático do `ccache` no Windows caso você autorize (`--assume-yes-for-downloads`).
 
-### ❌ 2. `ModuleNotFoundError: No module named 'meu_pacote'`
-- **Causa:** O módulo foi importado dinamicamente ou através de plugins que o PyInstaller não detectou na análise estática.
-- **Solução:** Adicione o nome do módulo na lista `hiddenimports = ['meu_pacote']` no arquivo `.spec`.
+### 📦 Reduzindo o Tamanho Final (`--nofollow-import-to`)
+Se o seu projeto importa alguma biblioteca que traz dependências pesadas e dispensáveis (como `matplotlib`, `pytest` ou ferramentas de teste), bloqueie sua inclusão:
+```powershell
+--nofollow-import-to=pytest,unittest,tkinter,scipy
+```
 
-### ❌ 3. `ImportError: DLL load failed while importing meu_modulo_nativo`
-- **Causa:** O arquivo `.pyd` depende de DLLs C++ que não estão no `PATH` ou a versão do Python é incompatível (ex: compilado para Python 3.12, mas empacotado com Python 3.14).
-- **Solução:** Verifique se as DLLs do Visual C++ (`VCRUNTIME140.dll`, `MSVCP140.dll`) estão presentes no `_internal` e certifique-se de compilar o `.pyd` com o mesmo executável Python que roda o PyInstaller.
-
-### ❌ 4. Janela Qt não renderiza ou dá erro de `platforms plugin "windows"`
-- **Causa:** O plugin `qwindows.dll` não foi copiado.
-- **Solução:** O PyInstaller resolve isso automaticamente se `PySide6` for incluído nos `hiddenimports`. Certifique-se de que a pasta `_internal/PySide6/plugins/platforms/qwindows.dll` existe.
+### 🛡️ Por que NÃO usar `--onefile` em projetos grandes de GUI?
+O Nuitka oferece a opção `--onefile`, que empacota tudo em um único `.exe`. No entanto, para softwares com PySide6 (que têm 100+ MB de DLLs Qt), o modo `--onefile` é obrigado a descompactar tudo na memória ou no disco temporário a cada clique do usuário, gerando um atraso de inicialização de vários segundos.
+O modo **`--standalone` compactado em `.zip`** é o padrão ouro da indústria: **boot em menos de 1 segundo e integridade total**.
 
 ---
 
-## 📋 7. Checklist Rápido de Aplicação
+## 📋 7. Checklist Rápido de Adoção
 
-- [ ] Arquivo `path_resolver.py` implementado no projeto para carregar assets via `sys._MEIPASS`.
-- [ ] Arquivo `portable_build.spec` criado na raiz.
-- [ ] Script de automação `package_portable.py` configurado com o nome do aplicativo.
-- [ ] Executar `python package_portable.py`.
-- [ ] Testar a descompactação do `.zip` em uma máquina sem Python instalado para homologação final.
+- [ ] Instalar o Nuitka no ambiente virtual: `pip install nuitka`.
+- [ ] Ter o Visual Studio 2022 instalado com o workload "Desenvolvimento para Desktop com C++".
+- [ ] Implementar o `path_resolver.py` para carregar assets sem caminhos relativos frágeis.
+- [ ] Rodar `python package_nuitka_portable.py`.
+- [ ] Testar o executável extraído do `.zip` em uma máquina sem Python e sem Visual Studio.

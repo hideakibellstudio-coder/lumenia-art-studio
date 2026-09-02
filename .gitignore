@@ -33,3 +33,7 @@ dist/
 *.tmp
 *.log
 logs/
+dist_nuitka/
+*.exe
+*.zip
+nuitka-crash-report.xml

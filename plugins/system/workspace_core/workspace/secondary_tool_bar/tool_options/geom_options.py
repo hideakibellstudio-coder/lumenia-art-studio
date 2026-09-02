@@ -61,7 +61,7 @@ def build_geom_panels(toolbar):
     toolbar.lbl_geom_icon_v.setPixmap(get_icon("select_rect").pixmap(14, 14))
     h.addWidget(toolbar.lbl_geom_icon_v)
     lbl_t = QtWidgets.QLabel("SELEÇÃO")
-    lbl_t.setStyleSheet("font-size: 10px; font-weight: bold; color: #a1a1aa;")
+    lbl_t.setProperty("heading", "true")
     h.addWidget(lbl_t)
     h.addStretch()
     l_v.addLayout(h)

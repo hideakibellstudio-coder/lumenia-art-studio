@@ -44,6 +44,9 @@ class StatCard(QtWidgets.QFrame):
         self._apply_theme()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
 
+    def set_label(self, label: str) -> None:
+        self.lbl_title.setText(label.upper())
+
     def set_value(self, val_str: str) -> None:
         self.lbl_value.setText(val_str)
 
@@ -93,6 +96,9 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self._timer.timeout.connect(self._refresh_metrics)
 
         self._build_content()
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
         self._timer.start()
 
     def _build_content(self) -> None:
@@ -127,7 +133,8 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_hw.setSpacing(8)
 
         self.lbl_simd_status = QtWidgets.QLabel("AVX2 / SSE2 Ativo (Vetorizado)")
-        self.lbl_simd_status.setStyleSheet("color: #4CAF50; font-weight: bold;")
+        succ_col = ThemeManager.instance().get_color("success", "#10b981")
+        self.lbl_simd_status.setStyleSheet(f"color: {succ_col}; font-weight: bold;")
         self.lbl_engine_active = QtWidgets.QLabel("InkerEngine (Rasterizador SIMD)")
         lo_hw.addRow("Conjunto de Instruções:", self.lbl_simd_status)
         lo_hw.addRow("Mini-Motor Ativo:", self.lbl_engine_active)
@@ -240,16 +247,62 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
 
         self.tabs.addTab(tab_tools, "⚙️ Logs & Benchmark")
 
+        self.grp_hw = grp_hw
+        self.grp_opt = grp_opt
+        self.grp_logs = grp_logs
+        self.grp_bench = grp_bench
+
         self.content_layout.addWidget(self.tabs)
 
         # Botão Fechar no rodapé
-        btn_close = QtWidgets.QPushButton("Fechar")
-        btn_close.setFixedWidth(100)
-        btn_close.clicked.connect(self.accept)
+        self.btn_close = QtWidgets.QPushButton("Fechar")
+        self.btn_close.setFixedWidth(100)
+        self.btn_close.clicked.connect(self.accept)
         btn_row = QtWidgets.QHBoxLayout()
         btn_row.addStretch()
-        btn_row.addWidget(btn_close)
+        btn_row.addWidget(self.btn_close)
         self.content_layout.addLayout(btn_row)
+
+    def retranslate_ui(self) -> None:
+        from ui.core.i18n import tr
+        self.setWindowTitle(tr("telemetry.dialog_title", "Diagnóstico & Telemetria do Motor"))
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(tr("telemetry.dialog_title", "Diagnóstico & Telemetria do Motor"))
+
+        if hasattr(self, "tabs"):
+            self.tabs.setTabText(0, tr("telemetry.tab_performance", "📈 Desempenho"))
+            self.tabs.setTabText(1, tr("telemetry.tab_memory", "🧠 Memória & Tiles"))
+            self.tabs.setTabText(2, tr("telemetry.tab_pen", "🖊️ Sensor da Caneta"))
+            self.tabs.setTabText(3, tr("telemetry.tab_system", "⚙️ Sistema & Logs"))
+
+        if hasattr(self, "card_latency"):
+            self.card_latency.set_label(tr("telemetry.card_latency", "Latência do Motor (C++)"))
+            self.card_dabs_sec.set_label(tr("telemetry.card_dabs", "Taxa de Carimbos"))
+            self.card_stylus_hz.set_label(tr("telemetry.card_stylus_hz", "Frequência da Mesa"))
+            self.card_stroke_time.set_label(tr("telemetry.card_stroke_time", "Duração do Traço"))
+
+            self.card_tiles_count.set_label(tr("telemetry.card_tiles", "Tiles Alocados (64x64)"))
+            self.card_canvas_ram.set_label(tr("telemetry.card_canvas_ram", "RAM do Documento"))
+            self.card_undo_ram.set_label(tr("telemetry.card_undo_ram", "RAM do Histórico (Undo)"))
+            self.card_undo_steps.set_label(tr("telemetry.card_undo_steps", "Passos de Desfazer"))
+
+            self.card_raw_press.set_label(tr("telemetry.card_raw_press", "Pressão Física"))
+            self.card_dyn_press.set_label(tr("telemetry.card_curve_press", "Pressão Curva/Modulada"))
+            self.card_velocity.set_label(tr("telemetry.stroke_velocity", "Velocidade do Traço"))
+            self.card_lag.set_label(tr("telemetry.card_lag", "Lag do Estabilizador"))
+
+        if hasattr(self, "grp_hw"):
+            self.grp_hw.setTitle(tr("telemetry.hw_acceleration", "Aceleração de Hardware & Motor"))
+        if hasattr(self, "grp_opt"):
+            self.grp_opt.setTitle(tr("telemetry.mem_management", "Gestão & Limpeza de Memória"))
+        if hasattr(self, "btn_clear_undo"):
+            self.btn_clear_undo.setText(tr("telemetry.clear_undo", "🧹 Limpar Histórico de Desfazer"))
+        if hasattr(self, "grp_logs"):
+            self.grp_logs.setTitle(tr("telemetry.sys_logs", "Logs do Sistema & Nível de Depuração"))
+        if hasattr(self, "grp_bench"):
+            self.grp_bench.setTitle(tr("telemetry.bench_group", "Testes de Desempenho & Diagnóstico Técnico"))
+        if hasattr(self, "btn_close"):
+            self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
     def _refresh_metrics(self) -> None:
         backend = EngineRegistry.instance().get_backend()

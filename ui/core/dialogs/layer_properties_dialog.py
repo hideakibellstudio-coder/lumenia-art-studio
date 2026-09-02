@@ -39,18 +39,23 @@ class LayerPropertiesDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
     def _build_ui(self):
         # Formulário
         form_layout = QtWidgets.QGridLayout()
         form_layout.setSpacing(10)
 
         # Nome
-        form_layout.addWidget(QtWidgets.QLabel(f"{tr('dialogs.layer_name', 'Nome da Camada')}:"), 0, 0)
+        self.lbl_name = QtWidgets.QLabel(f"{tr('dialogs.layer_name', 'Nome da Camada')}:")
+        form_layout.addWidget(self.lbl_name, 0, 0)
         self.name_edit = QtWidgets.QLineEdit(self._name)
         form_layout.addWidget(self.name_edit, 0, 1)
 
         # Opacidade
-        form_layout.addWidget(QtWidgets.QLabel(f"{tr('layers.opacity', 'Opacidade')}:"), 1, 0)
+        self.lbl_op = QtWidgets.QLabel(f"{tr('layers.opacity', 'Opacidade')}:")
+        form_layout.addWidget(self.lbl_op, 1, 0)
         op_box = QtWidgets.QHBoxLayout()
         self.op_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.op_slider.setRange(0, 100)
@@ -69,7 +74,8 @@ class LayerPropertiesDialog(BaseFramelessDialog):
         form_layout.addLayout(op_box, 1, 1)
 
         # Modo de Mesclagem
-        form_layout.addWidget(QtWidgets.QLabel(f"{tr('layers.blend_mode', 'Modo de Mesclagem')}:"), 2, 0)
+        self.lbl_blend = QtWidgets.QLabel(f"{tr('layers.blend_mode', 'Modo de Mesclagem')}:")
+        form_layout.addWidget(self.lbl_blend, 2, 0)
         self.blend_combo = QtWidgets.QComboBox()
         for mode_id, mode_label in get_blend_modes():
             self.blend_combo.addItem(mode_label, mode_id)
@@ -80,8 +86,8 @@ class LayerPropertiesDialog(BaseFramelessDialog):
         self.content_layout.addLayout(form_layout)
 
         # Travas e Modificadores
-        box_mod = QtWidgets.QGroupBox(tr("dialogs.layer_modifiers", "Modificadores Rápidos"))
-        box_mod_layout = QtWidgets.QVBoxLayout(box_mod)
+        self.box_mod = QtWidgets.QGroupBox(tr("dialogs.layer_modifiers", "Modificadores Rápidos"))
+        box_mod_layout = QtWidgets.QVBoxLayout(self.box_mod)
         self.check_vis = QtWidgets.QCheckBox(tr("dialogs.layer_visible", "Camada Visível"))
         self.check_vis.setChecked(self._is_visible)
         box_mod_layout.addWidget(self.check_vis)
@@ -93,7 +99,7 @@ class LayerPropertiesDialog(BaseFramelessDialog):
         self.check_clip = QtWidgets.QCheckBox(tr("layers.clipping_mask", "Máscara de Corte (Clipping Mask)"))
         self.check_clip.setChecked(self._is_clipping)
         box_mod_layout.addWidget(self.check_clip)
-        self.content_layout.addWidget(box_mod)
+        self.content_layout.addWidget(self.box_mod)
 
         self.content_layout.addStretch()
 
@@ -106,12 +112,49 @@ class LayerPropertiesDialog(BaseFramelessDialog):
         btn_box.addWidget(self.btn_cancel)
 
         self.btn_ok = QtWidgets.QPushButton(tr("dialogs.apply", "Aplicar"))
+        self.btn_ok.setObjectName("accentButton")
         self.btn_ok.setDefault(True)
-        self.btn_ok.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
         self.btn_ok.clicked.connect(self.accept)
         btn_box.addWidget(self.btn_ok)
 
         self.content_layout.addLayout(btn_box)
+
+    def retranslate_ui(self) -> None:
+        title = tr("dialogs.layer_properties_title", "Propriedades da Camada")
+        self.setWindowTitle(title)
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(title)
+
+        if hasattr(self, "lbl_name"):
+            self.lbl_name.setText(f"{tr('dialogs.layer_name', 'Nome da Camada')}:")
+        if hasattr(self, "lbl_op"):
+            self.lbl_op.setText(f"{tr('layers.opacity', 'Opacidade')}:")
+        if hasattr(self, "lbl_blend"):
+            self.lbl_blend.setText(f"{tr('layers.blend_mode', 'Modo de Mesclagem')}:")
+
+        if hasattr(self, "box_mod"):
+            self.box_mod.setTitle(tr("dialogs.layer_modifiers", "Modificadores Rápidos"))
+        if hasattr(self, "check_vis"):
+            self.check_vis.setText(tr("dialogs.layer_visible", "Camada Visível"))
+        if hasattr(self, "check_alock"):
+            self.check_alock.setText(tr("layers.alpha_lock", "Bloquear Transparência (Alpha Lock)"))
+        if hasattr(self, "check_clip"):
+            self.check_clip.setText(tr("layers.clipping_mask", "Máscara de Corte (Clipping Mask)"))
+
+        if hasattr(self, "btn_cancel"):
+            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        if hasattr(self, "btn_ok"):
+            self.btn_ok.setText(tr("dialogs.apply", "Aplicar"))
+
+        if hasattr(self, "blend_combo"):
+            cur_data = self.blend_combo.currentData()
+            self.blend_combo.blockSignals(True)
+            self.blend_combo.clear()
+            for mode_id, mode_label in get_blend_modes():
+                self.blend_combo.addItem(mode_label, mode_id)
+                if mode_id == cur_data:
+                    self.blend_combo.setCurrentIndex(self.blend_combo.count() - 1)
+            self.blend_combo.blockSignals(False)
 
     def get_results(self) -> dict:
         return {

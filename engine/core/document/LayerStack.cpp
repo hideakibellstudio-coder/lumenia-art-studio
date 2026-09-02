@@ -367,13 +367,15 @@ bool LayerStack::mergeLayerDown(int index) {
     const int tilesX = upperGrid.getTilesCountX();
 
     const LayerBlendMode upperBlend = upperLayer->getBlendMode();
+    const bool upperIsClipping = upperLayer->isClippingMask();
 
     for (int ty = 0; ty < tilesY; ++ty) {
         for (int tx = 0; tx < tilesX; ++tx) {
             canvas::Tile* uTile = upperGrid.getTile(tx, ty);
             if (!uTile) continue;
 
-            canvas::Tile* lTile = lowerGrid.getOrCreateTile(tx, ty);
+            // Se for clipping mask, só opera onde a camada base já tem tile
+            canvas::Tile* lTile = upperIsClipping ? lowerGrid.getTile(tx, ty) : lowerGrid.getOrCreateTile(tx, ty);
             if (!lTile) continue;
 
             canvas::PixelBuffer& uBuf = uTile->getBuffer();
@@ -385,6 +387,9 @@ bool LayerStack::mergeLayerDown(int index) {
                     if (src.a == 0) continue;
 
                     raster::ColorRGBA dst = lBuf.getPixel(px, py);
+                    // Não mescla fora da silhueta da camada base
+                    if (upperIsClipping && dst.a == 0) continue;
+
                     raster::ColorRGBA blended = Compositor::blendPixel(src, upperOpacity, dst, upperBlend);
                     lBuf.setPixel(px, py, blended);
                 }
@@ -433,11 +438,29 @@ std::vector<const Layer*> LayerStack::getAllLayersForComposition() const {
         m_backgroundLayer->setEffectiveOpacity(m_backgroundLayer->getOpacity());
         list.push_back(m_backgroundLayer.get());
     }
-    for (const auto& layerPtr : m_drawingLayers) {
+    for (size_t i = 0; i < m_drawingLayers.size(); ++i) {
+        const auto& layerPtr = m_drawingLayers[i];
         if (!layerPtr || layerPtr->isGroup()) continue;
 
         bool effVis = layerPtr->isVisible();
         double effOpacity = layerPtr->getOpacity();
+
+        // Se for máscara de recorte, sua visibilidade depende da visibilidade da camada base
+        if (layerPtr->isClippingMask()) {
+            const Layer* base = getClipBaseLayer(static_cast<int>(i));
+            if (!base || !base->isVisible()) {
+                effVis = false;
+            } else {
+                const LayerNode* bCurr = base->getParent();
+                while (bCurr) {
+                    if (!bCurr->isVisible()) {
+                        effVis = false;
+                        break;
+                    }
+                    bCurr = bCurr->getParent();
+                }
+            }
+        }
 
         const LayerNode* curr = layerPtr->getParent();
         while (curr) {
@@ -463,9 +486,11 @@ const Layer* LayerStack::getClipBaseLayer(int drawingIndex) const {
     }
     for (int i = drawingIndex - 1; i >= 0; --i) {
         const auto& l = m_drawingLayers[i];
-        if (l && !l->isClippingMask() && l->isVisible()) {
-            return l.get();
-        }
+        if (!l) continue;
+        if (l->isClippingMask()) continue; // Pula outras camadas recortadas na cadeia
+        if (l->isFilter()) continue;       // Filtro não possui pixels raster
+        if (l->isGroup()) continue;        // Grupo não possui tiles diretos
+        return l.get();
     }
     return nullptr;
 }

@@ -136,6 +136,7 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         outer.addWidget(footer)
 
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
 
     def retranslate_ui(self):
         from ui.core.i18n import tr
@@ -148,6 +149,103 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
             self.tab_bar.setTabText(0, tr("geometry.tab_persp6p", "Perspectiva 6P"))
             self.tab_bar.setTabText(1, tr("geometry.tab_snapping", "Snapping & Guias"))
             self.tab_bar.setTabText(2, tr("geometry.tab_symmetry", "Simetria"))
+
+        # ── Tab 0: Perspectiva 6P ──
+        if hasattr(self, "sec_cam"):
+            self.sec_cam.set_title(tr("geometry.adv_sec_camera", "CÂMERA 3D & DISTORÇÃO"))
+        if hasattr(self, "slider_yaw"):
+            self.slider_yaw.setPrefix(tr("geometry.adv_yaw", "Yaw:"))
+        if hasattr(self, "slider_pitch"):
+            self.slider_pitch.setPrefix(tr("geometry.adv_pitch", "Pitch:"))
+        if hasattr(self, "slider_fov"):
+            self.slider_fov.setPrefix(tr("geometry.adv_fov", "FOV:"))
+
+        if hasattr(self, "sec_grid"):
+            self.sec_grid.set_title(tr("geometry.adv_sec_grid", "GRADE CURVILÍNEA & ELEMENTOS"))
+        if hasattr(self, "lbl_d"):
+            self.lbl_d.setText(tr("geometry.adv_density", "Densidade:"))
+        if hasattr(self, "combo_density"):
+            curr_d = self.combo_density.currentIndex()
+            self.combo_density.blockSignals(True)
+            self.combo_density.clear()
+            self.combo_density.addItems([
+                tr("geometry.adv_density_fine", "Fina (15°)"),
+                tr("geometry.adv_density_med", "Média (30°)"),
+                tr("geometry.adv_density_sparse", "Esparsa (45°)")
+            ])
+            self.combo_density.setCurrentIndex(curr_d if curr_d >= 0 else 1)
+            self.combo_density.blockSignals(False)
+        if hasattr(self, "lbl_a"):
+            self.lbl_a.setText(tr("geometry.adv_aspect", "Proporção:"))
+
+        if hasattr(self, "chk_ring"):
+            self.chk_ring.setText(tr("geometry.adv_chk_ring", "Limites (180°)"))
+        if hasattr(self, "chk_straight_v"):
+            self.chk_straight_v.setText(tr("geometry.adv_chk_straight_v", "Verticais Retas"))
+        if hasattr(self, "chk_v"):
+            self.chk_v.setText(tr("geometry.adv_chk_v", "Grade Vert. (V)"))
+        if hasattr(self, "chk_vps"):
+            self.chk_vps.setText(tr("geometry.adv_chk_vps", "Pontos Fuga (VPs)"))
+        if hasattr(self, "chk_h"):
+            self.chk_h.setText(tr("geometry.adv_chk_h", "Grade Horiz. (H)"))
+        if hasattr(self, "chk_letterbox"):
+            self.chk_letterbox.setText(tr("geometry.adv_chk_letterbox", "Letterbox"))
+        if hasattr(self, "chk_d"):
+            self.chk_d.setText(tr("geometry.adv_chk_d", "Grade Prof. (D)"))
+        if hasattr(self, "chk_cube"):
+            self.chk_cube.setText(tr("geometry.adv_chk_cube", "Cubo 3D"))
+        if hasattr(self, "chk_ground"):
+            self.chk_ground.setText(tr("geometry.adv_chk_ground", "Grade Chão"))
+        if hasattr(self, "chk_ceiling"):
+            self.chk_ceiling.setText(tr("geometry.adv_chk_ceiling", "Grade Teto"))
+        if hasattr(self, "chk_ground_v"):
+            self.chk_ground_v.setText(tr("geometry.adv_chk_ground_v", "Verticais Chão"))
+        if hasattr(self, "chk_ceiling_v"):
+            self.chk_ceiling_v.setText(tr("geometry.adv_chk_ceiling_v", "Verticais Teto"))
+
+        # ── Tab 1: Snapping & Guias ──
+        if hasattr(self, "sec_snap"):
+            self.sec_snap.set_title(tr("geometry.adv_sec_snap", "MODO & SENSIBILIDADE"))
+        if hasattr(self, "lbl_m"):
+            self.lbl_m.setText(tr("geometry.adv_snap_axis", "Eixo de Snap:"))
+        if hasattr(self, "combo_snap_mode"):
+            curr_s = self.combo_snap_mode.currentIndex()
+            self.combo_snap_mode.blockSignals(True)
+            self.combo_snap_mode.clear()
+            self.combo_snap_mode.addItems([
+                tr("geometry.adv_snap_auto", "Auto (Todas as Guias)"),
+                tr("geometry.adv_snap_v", "Apenas Vertical (V)"),
+                tr("geometry.adv_snap_h", "Apenas Horizontal (H)"),
+                tr("geometry.adv_snap_d", "Apenas Profundidade (D)")
+            ])
+            self.combo_snap_mode.setCurrentIndex(curr_s if curr_s >= 0 else 0)
+            self.combo_snap_mode.blockSignals(False)
+        if hasattr(self, "slider_sens"):
+            self.slider_sens.setPrefix(tr("geometry.adv_sens", "Sensib:"))
+
+        if hasattr(self, "sec_draw"):
+            self.sec_draw.set_title(tr("geometry.adv_sec_draw", "COMPORTAMENTO DE DESENHO"))
+        if hasattr(self, "chk_dynamic"):
+            self.chk_dynamic.setText(tr("geometry.adv_chk_dynamic", "Ativar Snap Dinâmico (Desenho Livre)"))
+        if hasattr(self, "chk_hint"):
+            self.chk_hint.setText(tr("geometry.adv_chk_hint", "Exibir Guia Cursor Hint (Laranja)"))
+        if hasattr(self, "chk_hide"):
+            self.chk_hide.setText(tr("geometry.adv_chk_hide", "Ocultar guias visuais durante a pintura"))
+
+        # ── Tab 2: Simetria ──
+        if hasattr(self, "sec_axes"):
+            self.sec_axes.set_title(tr("geometry.adv_sec_axes", "EIXOS & ÂNGULO"))
+        if hasattr(self, "slider_seg"):
+            self.slider_seg.setPrefix(tr("geometry.adv_segments", "Segmentos:"))
+        if hasattr(self, "slider_ang"):
+            self.slider_ang.setPrefix(tr("geometry.adv_angle", "Ângulo:"))
+
+        if hasattr(self, "sec_rest"):
+            self.sec_rest.set_title(tr("geometry.adv_sec_rest", "RESTRIÇÕES DE PINTURA"))
+        if hasattr(self, "chk_stop"):
+            self.chk_stop.setText(tr("geometry.adv_chk_stop", "Parar traço no centro (Stop-at-Center)"))
+        if hasattr(self, "chk_lock"):
+            self.chk_lock.setText(tr("geometry.adv_chk_lock", "Bloquear posição do centro no canvas"))
 
     def eventFilter(self, watched, event):
         if event.type() == QtCore.QEvent.Wheel:
@@ -198,45 +296,45 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         lay.setContentsMargins(8, 6, 8, 8)
         lay.setSpacing(6)
 
-        sec_cam = CollapsibleSection("CÂMERA 3D & DISTORÇÃO", content)
-        self.slider_yaw = CompactSlider("Yaw:", 0, 360, "°", sec_cam, step=5)
+        self.sec_cam = CollapsibleSection("CÂMERA 3D & DISTORÇÃO", content)
+        self.slider_yaw = CompactSlider("Yaw:", 0, 360, "°", self.sec_cam, step=5)
         self.slider_yaw.setValue(int(self.state.get("yaw", 0)))
         self.slider_yaw.valueChanged.connect(self._on_changed)
-        sec_cam.add_widget(self.slider_yaw)
+        self.sec_cam.add_widget(self.slider_yaw)
 
-        self.slider_pitch = CompactSlider("Pitch:", -90, 90, "°", sec_cam, step=5)
+        self.slider_pitch = CompactSlider("Pitch:", -90, 90, "°", self.sec_cam, step=5)
         self.slider_pitch.setValue(int(self.state.get("pitch", 0)))
         self.slider_pitch.valueChanged.connect(self._on_changed)
-        sec_cam.add_widget(self.slider_pitch)
+        self.sec_cam.add_widget(self.slider_pitch)
 
-        self.slider_fov = CompactSlider("FOV:", 10, 180, "°", sec_cam, step=5)
+        self.slider_fov = CompactSlider("FOV:", 10, 180, "°", self.sec_cam, step=5)
         self.slider_fov.setValue(int(self.state.get("fov", 130)))
         self.slider_fov.valueChanged.connect(self._on_changed)
-        sec_cam.add_widget(self.slider_fov)
-        lay.addWidget(sec_cam)
+        self.sec_cam.add_widget(self.slider_fov)
+        lay.addWidget(self.sec_cam)
 
-        sec_grid = CollapsibleSection("GRADE CURVILÍNEA & ELEMENTOS", content)
+        self.sec_grid = CollapsibleSection("GRADE CURVILÍNEA & ELEMENTOS", content)
         row_d = QtWidgets.QHBoxLayout()
-        lbl_d = QtWidgets.QLabel("Densidade:")
-        lbl_d.setObjectName("AdvFieldLabel")
-        row_d.addWidget(lbl_d)
+        self.lbl_d = QtWidgets.QLabel("Densidade:")
+        self.lbl_d.setObjectName("AdvFieldLabel")
+        row_d.addWidget(self.lbl_d)
         self.combo_density = QtWidgets.QComboBox()
         self.combo_density.addItems(["Fina (15°)", "Média (30°)", "Esparsa (45°)"])
         self.combo_density.setCurrentIndex(self.state.get("density_idx", 1))
         self.combo_density.currentIndexChanged.connect(self._on_changed)
         row_d.addWidget(self.combo_density, 1)
-        sec_grid.add_layout(row_d)
+        self.sec_grid.add_layout(row_d)
 
         row_a = QtWidgets.QHBoxLayout()
-        lbl_a = QtWidgets.QLabel("Proporção:")
-        lbl_a.setObjectName("AdvFieldLabel")
-        row_a.addWidget(lbl_a)
+        self.lbl_a = QtWidgets.QLabel("Proporção:")
+        self.lbl_a.setObjectName("AdvFieldLabel")
+        row_a.addWidget(self.lbl_a)
         self.combo_aspect = QtWidgets.QComboBox()
         self.combo_aspect.addItems(["16:9", "2.35:1"])
         self.combo_aspect.setCurrentText(self.state.get("aspect_ratio", "16:9"))
         self.combo_aspect.currentIndexChanged.connect(self._on_changed)
         row_a.addWidget(self.combo_aspect, 1)
-        sec_grid.add_layout(row_a)
+        self.sec_grid.add_layout(row_a)
 
         grid = QtWidgets.QGridLayout()
         grid.setSpacing(4)
@@ -265,8 +363,8 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
             chk.setChecked(self.state.get(key, def_val))
             chk.toggled.connect(self._on_changed)
             grid.addWidget(chk, r, c)
-        sec_grid.add_layout(grid)
-        lay.addWidget(sec_grid)
+        self.sec_grid.add_layout(grid)
+        lay.addWidget(self.sec_grid)
         lay.addStretch()
 
         scroll.setWidget(content)
@@ -283,41 +381,41 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         lay.setContentsMargins(8, 6, 8, 8)
         lay.setSpacing(6)
 
-        sec_snap = CollapsibleSection("MODO & SENSIBILIDADE", content)
+        self.sec_snap = CollapsibleSection("MODO & SENSIBILIDADE", content)
         row_m = QtWidgets.QHBoxLayout()
-        lbl_m = QtWidgets.QLabel("Eixo de Snap:")
-        lbl_m.setObjectName("AdvFieldLabel")
-        row_m.addWidget(lbl_m)
+        self.lbl_m = QtWidgets.QLabel("Eixo de Snap:")
+        self.lbl_m.setObjectName("AdvFieldLabel")
+        row_m.addWidget(self.lbl_m)
         self.combo_snap_mode = QtWidgets.QComboBox()
         self.combo_snap_mode.addItems(["Auto (Todas as Guias)", "Apenas Vertical (V)", "Apenas Horizontal (H)", "Apenas Profundidade (D)"])
         mode_map = {"auto": 0, "v": 1, "h": 2, "d": 3}
         self.combo_snap_mode.setCurrentIndex(mode_map.get(self.state.get("snap_mode", "auto"), 0))
         self.combo_snap_mode.currentIndexChanged.connect(self._on_changed)
         row_m.addWidget(self.combo_snap_mode, 1)
-        sec_snap.add_layout(row_m)
+        self.sec_snap.add_layout(row_m)
 
-        self.slider_sens = CompactSlider("Sensib:", 1, 50, "px", sec_snap)
+        self.slider_sens = CompactSlider("Sensib:", 1, 50, "px", self.sec_snap)
         self.slider_sens.setValue(int(self.state.get("snap_sensitivity", 3)))
         self.slider_sens.valueChanged.connect(self._on_changed)
-        sec_snap.add_widget(self.slider_sens)
-        lay.addWidget(sec_snap)
+        self.sec_snap.add_widget(self.slider_sens)
+        lay.addWidget(self.sec_snap)
 
-        sec_draw = CollapsibleSection("COMPORTAMENTO DE DESENHO", content)
+        self.sec_draw = CollapsibleSection("COMPORTAMENTO DE DESENHO", content)
         self.chk_dynamic = QtWidgets.QCheckBox("Ativar Snap Dinâmico (Desenho Livre)")
         self.chk_dynamic.setChecked(self.state.get("snap_dynamic", True))
         self.chk_dynamic.toggled.connect(self._on_changed)
-        sec_draw.add_widget(self.chk_dynamic)
+        self.sec_draw.add_widget(self.chk_dynamic)
 
         self.chk_hint = QtWidgets.QCheckBox("Exibir Guia Cursor Hint (Laranja)")
         self.chk_hint.setChecked(self.state.get("show_hint", True))
         self.chk_hint.toggled.connect(self._on_changed)
-        sec_draw.add_widget(self.chk_hint)
+        self.sec_draw.add_widget(self.chk_hint)
 
         self.chk_hide = QtWidgets.QCheckBox("Ocultar guias visuais durante a pintura")
         self.chk_hide.setChecked(self.state.get("hidden", False))
         self.chk_hide.toggled.connect(self._on_changed)
-        sec_draw.add_widget(self.chk_hide)
-        lay.addWidget(sec_draw)
+        self.sec_draw.add_widget(self.chk_hide)
+        lay.addWidget(self.sec_draw)
         lay.addStretch()
 
         scroll.setWidget(content)
@@ -334,29 +432,29 @@ class AdvancedGeometryDialog(QtWidgets.QDialog):
         lay.setContentsMargins(8, 6, 8, 8)
         lay.setSpacing(6)
 
-        sec_axes = CollapsibleSection("EIXOS & ÂNGULO", content)
-        self.slider_seg = CompactSlider("Segmentos:", 2, 32, "", sec_axes)
+        self.sec_axes = CollapsibleSection("EIXOS & ÂNGULO", content)
+        self.slider_seg = CompactSlider("Segmentos:", 2, 32, "", self.sec_axes)
         self.slider_seg.setValue(int(self.state.get("segments", 6)))
         self.slider_seg.valueChanged.connect(self._on_changed)
-        sec_axes.add_widget(self.slider_seg)
+        self.sec_axes.add_widget(self.slider_seg)
 
-        self.slider_ang = CompactSlider("Ângulo:", 0, 360, "°", sec_axes, step=5)
+        self.slider_ang = CompactSlider("Ângulo:", 0, 360, "°", self.sec_axes, step=5)
         self.slider_ang.setValue(int(self.state.get("angle", 0)))
         self.slider_ang.valueChanged.connect(self._on_changed)
-        sec_axes.add_widget(self.slider_ang)
-        lay.addWidget(sec_axes)
+        self.sec_axes.add_widget(self.slider_ang)
+        lay.addWidget(self.sec_axes)
 
-        sec_rest = CollapsibleSection("RESTRIÇÕES DE PINTURA", content)
+        self.sec_rest = CollapsibleSection("RESTRIÇÕES DE PINTURA", content)
         self.chk_stop = QtWidgets.QCheckBox("Parar traço no centro (Stop-at-Center)")
         self.chk_stop.setChecked(self.state.get("stop_at_center", False))
         self.chk_stop.toggled.connect(self._on_changed)
-        sec_rest.add_widget(self.chk_stop)
+        self.sec_rest.add_widget(self.chk_stop)
 
         self.chk_lock = QtWidgets.QCheckBox("Bloquear posição do centro no canvas")
         self.chk_lock.setChecked(self.state.get("locked", False))
         self.chk_lock.toggled.connect(self._on_changed)
-        sec_rest.add_widget(self.chk_lock)
-        lay.addWidget(sec_rest)
+        self.sec_rest.add_widget(self.chk_lock)
+        lay.addWidget(self.sec_rest)
         lay.addStretch()
 
         scroll.setWidget(content)

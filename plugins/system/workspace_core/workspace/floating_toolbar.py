@@ -28,6 +28,11 @@ class FloatingToolbarButton(QtWidgets.QPushButton):
 
         self._apply_style(active=False)
 
+    def retranslate_ui(self) -> None:
+        from ui.core.tools import get_tool_name
+        self.tool_name = get_tool_name(self.tool_id)
+        self.setToolTip(self.tool_name)
+
     def set_active(self, active: bool) -> None:
         self.setChecked(active)
         self._apply_style(active=active)
@@ -153,6 +158,15 @@ class FloatingToolbar(QtWidgets.QDialog):
         self.box_layout.addWidget(self.drag_handle, 0, QtCore.Qt.AlignCenter)
 
         self.rebuild_tools()
+
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
+    def retranslate_ui(self) -> None:
+        """Atualiza os tooltips de todas as ferramentas da barra flutuante."""
+        for btn in self.buttons.values():
+            if hasattr(btn, "retranslate_ui"):
+                btn.retranslate_ui()
 
     def _apply_theme(self) -> None:
         theme = ThemeManager.instance()

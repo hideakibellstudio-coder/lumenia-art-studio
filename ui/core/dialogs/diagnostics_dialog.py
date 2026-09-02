@@ -27,6 +27,10 @@ class DiagnosticsDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
+
     def _build_ui(self):
         # Tabela de Telemetria
         self.tree = QtWidgets.QTreeWidget()
@@ -44,6 +48,18 @@ class DiagnosticsDialog(BaseFramelessDialog):
         self.btn_close.clicked.connect(self.accept)
         btn_box.addWidget(self.btn_close)
         self.content_layout.addLayout(btn_box)
+
+    def retranslate_ui(self) -> None:
+        from ui.core.i18n import tr
+        title = tr("telemetry.dialog_title", "Diagnósticos & Telemetria do Motor")
+        self.setWindowTitle(title)
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(title)
+        if hasattr(self, "tree"):
+            self.tree.setHeaderLabels([tr("telemetry.metric", "Métrica"), tr("telemetry.value", "Valor")])
+        if hasattr(self, "btn_close"):
+            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self._refresh_stats()
 
     def _refresh_stats(self):
         self.tree.clear()

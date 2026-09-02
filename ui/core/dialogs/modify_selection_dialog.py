@@ -27,16 +27,13 @@ class ModifySelectionDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
-    def _build_ui(self):
-        title_text = {
-            "expand": f"{tr('menu.select.expand', 'Expandir Seleção')} por:",
-            "contract": f"{tr('menu.select.contract', 'Contrair Seleção')} por:",
-            "feather": f"{tr('dialogs.feather_radius', 'Raio de Suavização (Feather)')}:"
-        }.get(self.mode, f"{tr('dialogs.amount', 'Quantidade')}:")
+        from ui.core.i18n import I18nManager
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
-        title_lbl = QtWidgets.QLabel(title_text)
-        title_lbl.setStyleSheet("font-size: 12px; font-weight: bold;")
-        self.content_layout.addWidget(title_lbl)
+    def _build_ui(self):
+        self.title_lbl = QtWidgets.QLabel()
+        self.title_lbl.setStyleSheet("font-size: 12px; font-weight: bold;")
+        self.content_layout.addWidget(self.title_lbl)
 
         # Campo numérico e Slider
         ctrl_box = QtWidgets.QHBoxLayout()
@@ -57,14 +54,9 @@ class ModifySelectionDialog(BaseFramelessDialog):
         self.content_layout.addLayout(ctrl_box)
 
         # Dica de preview
-        tip_text = {
-            "expand": tr("dialogs.expand_tip", "Aumenta o perímetro da seleção para fora."),
-            "contract": tr("dialogs.contract_tip", "Diminui o perímetro da seleção para dentro."),
-            "feather": tr("dialogs.feather_tip", "Cria uma transição suave e gradiente na borda da seleção.")
-        }.get(self.mode, "")
-        tip_lbl = QtWidgets.QLabel(tip_text)
-        tip_lbl.setStyleSheet("color: #9ca3af; font-size: 11px;")
-        self.content_layout.addWidget(tip_lbl)
+        self.tip_lbl = QtWidgets.QLabel()
+        self.tip_lbl.setProperty("muted", "true")
+        self.content_layout.addWidget(self.tip_lbl)
 
         self.content_layout.addStretch()
 
@@ -77,12 +69,45 @@ class ModifySelectionDialog(BaseFramelessDialog):
         btn_box.addWidget(self.btn_cancel)
 
         self.btn_apply = QtWidgets.QPushButton(tr("dialogs.apply", "Aplicar"))
+        self.btn_apply.setObjectName("accentButton")
         self.btn_apply.setDefault(True)
-        self.btn_apply.setStyleSheet("background-color: #6366f1; color: #ffffff; font-weight: bold; padding: 6px 16px; border-radius: 4px;")
         self.btn_apply.clicked.connect(self.accept)
         btn_box.addWidget(self.btn_apply)
 
         self.content_layout.addLayout(btn_box)
+        self.retranslate_ui()
+
+    def retranslate_ui(self) -> None:
+        mode_titles = {
+            "expand": tr("menu.select.expand", "Expandir Seleção"),
+            "contract": tr("menu.select.contract", "Contrair Seleção"),
+            "feather": tr("menu.select.feather", "Suavizar Borda (Feather)")
+        }
+        title = mode_titles.get(self.mode, tr("menu.select.modify_menu", "Modificar Seleção"))
+        self.setWindowTitle(title)
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(title)
+
+        title_text = {
+            "expand": f"{tr('menu.select.expand', 'Expandir Seleção')} por:",
+            "contract": f"{tr('menu.select.contract', 'Contrair Seleção')} por:",
+            "feather": f"{tr('dialogs.feather_radius', 'Raio de Suavização (Feather)')}:"
+        }.get(self.mode, f"{tr('dialogs.amount', 'Quantidade')}:")
+        if hasattr(self, "title_lbl"):
+            self.title_lbl.setText(title_text)
+
+        tip_text = {
+            "expand": tr("dialogs.expand_tip", "Aumenta o perímetro da seleção para fora."),
+            "contract": tr("dialogs.contract_tip", "Diminui o perímetro da seleção para dentro."),
+            "feather": tr("dialogs.feather_tip", "Cria uma transição suave e gradiente na borda da seleção.")
+        }.get(self.mode, "")
+        if hasattr(self, "tip_lbl"):
+            self.tip_lbl.setText(tip_text)
+
+        if hasattr(self, "btn_cancel"):
+            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        if hasattr(self, "btn_apply"):
+            self.btn_apply.setText(tr("dialogs.apply", "Aplicar"))
 
     def get_pixels(self) -> int:
         return self.spin.value()

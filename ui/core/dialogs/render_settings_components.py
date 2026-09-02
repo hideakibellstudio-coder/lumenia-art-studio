@@ -103,40 +103,52 @@ class ProfileCard(QtWidgets.QFrame):
         text_layout.setAlignment(QtCore.Qt.AlignVCenter)
 
         self.name_label = QtWidgets.QLabel(self.profile_data.get("name", "Perfil"))
-        self.name_label.setStyleSheet("font-size: 12px; font-weight: bold;")
+        self.name_label.setProperty("heading", "true")
 
         self.cat_label = QtWidgets.QLabel(f"{cat}")
-        self.cat_label.setStyleSheet("font-size: 10px; color: #888888;")
+        self.cat_label.setProperty("muted", "true")
 
         text_layout.addWidget(self.name_label)
         text_layout.addWidget(self.cat_label)
         layout.addLayout(text_layout)
         layout.addStretch()
 
-        self.badge_label = QtWidgets.QLabel("ATIVO" if self.is_active else "")
+        from ui.core.i18n import tr, I18nManager
+        badge_text = tr("render.badge_active", "ATIVO") if self.is_active else ""
+        self.badge_label = QtWidgets.QLabel(badge_text)
         self.badge_label.setStyleSheet(
             "font-size: 9px; font-weight: bold; color: #ff5252; background: rgba(255,82,82,0.15); "
             "padding: 2px 6px; border-radius: 4px;" if self.is_active else "color: transparent;"
         )
         layout.addWidget(self.badge_label)
 
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+
     def set_active_state(self, is_active: bool):
+        from ui.core.i18n import tr
         self.is_active = is_active
-        self.badge_label.setText("ATIVO" if is_active else "")
+        badge_text = tr("render.badge_active", "ATIVO") if is_active else ""
+        self.badge_label.setText(badge_text)
         self.badge_label.setStyleSheet(
             "font-size: 9px; font-weight: bold; color: #ff5252; background: rgba(255,82,82,0.15); "
             "padding: 2px 6px; border-radius: 4px;" if is_active else "color: transparent;"
         )
 
+    def retranslate_ui(self):
+        from ui.core.i18n import tr
+        if hasattr(self, "badge_label") and self.is_active:
+            self.badge_label.setText(tr("render.badge_active", "ATIVO"))
+
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self.selected.emit(self.profile_data)
 
-    def update_style(self):
+    def update_style(self, *args):
         tm = ThemeManager.instance()
         bg = tm.get_color("bg_card_hover") if self.is_selected else tm.get_color("bg_card")
         border = tm.get_color("accent") if self.is_selected else tm.get_color("border")
         text_color = tm.get_color("text_main")
+        text_sec = tm.get_color("text_sec")
 
         self.setStyleSheet(f"""
             ProfileCard {{
@@ -148,3 +160,5 @@ class ProfileCard(QtWidgets.QFrame):
                 color: {text_color};
             }}
         """)
+        if hasattr(self, "cat_label"):
+            self.cat_label.setStyleSheet(f"color: {text_sec}; font-size: 11px;")

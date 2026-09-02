@@ -44,6 +44,7 @@ class PluginCard(QtWidgets.QFrame):
         info_layout.setSpacing(2)
         info_layout.setAlignment(QtCore.Qt.AlignVCenter)
 
+        from ui.core.i18n import tr, I18nManager
         is_system = False
         try:
             is_system = self.plugin.is_system_plugin()
@@ -59,17 +60,23 @@ class PluginCard(QtWidgets.QFrame):
         except Exception:
             p_name = self.plugin.__class__.__name__
             p_version = "0.0.0"
-            p_author = "Desconhecido"
-            p_desc = "Sem descrição."
+            p_author = tr("plugins.unknown", "Desconhecido")
+            p_desc = tr("plugins.no_description", "Sem descrição.")
+
+        self._p_name = p_name
+        self._p_version = p_version
+        self._p_author = p_author
+        self._p_desc = p_desc
+        self._is_system = is_system
 
         name_text = p_name
         if is_system:
-            name_text += " [Sistema]"
+            name_text += f" {tr('plugins.system_badge', '[Sistema]')}"
 
         self.name_label = QtWidgets.QLabel(name_text)
         self.name_label.setStyleSheet("font-size: 13px; font-weight: bold;")
 
-        self.meta_label = QtWidgets.QLabel(f"v{p_version} por {p_author}")
+        self.meta_label = QtWidgets.QLabel(f"v{p_version} {tr('plugins.by', 'por')} {p_author}")
         self.meta_label.setStyleSheet("font-size: 11px;")
 
         short_desc = p_desc.split('\n')[0]
@@ -89,9 +96,11 @@ class PluginCard(QtWidgets.QFrame):
         self.switch.setChecked(is_active)
         if is_system:
             self.switch.setEnabled(False)
-            self.switch.setToolTip("Plugins de sistema não podem ser desativados.")
+            self.switch.setToolTip(tr("plugins.system_cannot_disable", "Plugins de sistema não podem ser desativados."))
         else:
             self.switch.toggled.connect(self.toggled.emit)
+
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
         layout.addWidget(self.switch)
 
@@ -132,3 +141,16 @@ class PluginCard(QtWidgets.QFrame):
         self.name_label.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {text_main};")
         self.meta_label.setStyleSheet(f"font-size: 11px; color: {text_sec};")
         self.desc_label.setStyleSheet(f"font-size: 11px; color: {text_sec};")
+
+    def retranslate_ui(self) -> None:
+        from ui.core.i18n import tr
+        if hasattr(self, "name_label"):
+            name_text = self._p_name
+            if self._is_system:
+                name_text += f" {tr('plugins.system_badge', '[Sistema]')}"
+            self.name_label.setText(name_text)
+        if hasattr(self, "meta_label"):
+            self.meta_label.setText(f"v{self._p_version} {tr('plugins.by', 'por')} {self._p_author}")
+        if hasattr(self, "switch") and self._is_system:
+            self.switch.setToolTip(tr("plugins.system_cannot_disable", "Plugins de sistema não podem ser desativados."))
+

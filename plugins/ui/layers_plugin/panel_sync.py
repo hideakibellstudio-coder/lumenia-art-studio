@@ -27,6 +27,8 @@ def sync_to_native_engine(panel, action: str, *args):
     except ValueError:
         c_idx = backend.get_active_layer_index()
 
+    structural_change = False
+
     if action == "clear":
         backend.clear_canvas()
     elif action == "clear_layer":
@@ -65,21 +67,26 @@ def sync_to_native_engine(panel, action: str, *args):
         name = args[0] if args else ""
         backend.add_layer(name)
         panel._synced_uids = [l.uid for l in layer_list]
+        structural_change = True
     elif action == "add_group":
         name = args[0] if args else "Novo Grupo"
         backend.add_group(name)
         panel._synced_uids = [l.uid for l in layer_list]
+        structural_change = True
     elif action == "delete":
         backend.remove_layer(c_idx)
         panel._synced_uids = [l.uid for l in layer_list]
+        structural_change = True
     elif action == "move_up":
         if c_idx < backend.get_drawing_layer_count() - 1:
             backend.reorder_layer(c_idx, c_idx + 1)
             panel._synced_uids = [l.uid for l in layer_list]
+            structural_change = True
     elif action == "move_down":
         if c_idx > 0:
             backend.reorder_layer(c_idx, c_idx - 1)
             panel._synced_uids = [l.uid for l in layer_list]
+            structural_change = True
     elif action == "reorder_all":
         if not hasattr(panel, "_synced_uids") or len(panel._synced_uids) != len(layer_list):
             old_uids = [l.uid for l in layer_list]
@@ -97,35 +104,40 @@ def sync_to_native_engine(panel, action: str, *args):
                 backend.reorder_layers(new_indices)
 
         panel._synced_uids = [l.uid for l in layer_list]
+        structural_change = True
     elif action == "merge_down":
         idx = args[0]
         backend.merge_layer_down(idx)
         panel._synced_uids = [l.uid for l in layer_list]
+        structural_change = True
     elif action == "duplicate":
         backend.duplicate_layer(c_idx)
         panel._synced_uids = [l.uid for l in layer_list]
+        structural_change = True
     elif action == "select":
         backend.select_layer(c_idx)
 
-    # Sincroniza vínculos hierárquicos de pais no C++ sempre
-    parent_indices = []
-    for l in layer_list:
-        if l.parent_uid is not None:
-            p_layer = panel.layer_manager.get_layer_by_uid(l.parent_uid)
-            if p_layer and p_layer in layer_list:
-                parent_indices.append(layer_list.index(p_layer))
+    # Sincroniza vínculos hierárquicos de pais no C++ APENAS quando a estrutura realmente muda
+    if structural_change:
+        parent_indices = []
+        for l in layer_list:
+            if l.parent_uid is not None:
+                p_layer = panel.layer_manager.get_layer_by_uid(l.parent_uid)
+                if p_layer and p_layer in layer_list:
+                    parent_indices.append(layer_list.index(p_layer))
+                else:
+                    parent_indices.append(-1)
             else:
                 parent_indices.append(-1)
-        else:
-            parent_indices.append(-1)
-    backend.set_layer_parents(parent_indices)
+        backend.set_layer_parents(parent_indices)
 
-    # Repinta o CanvasWidget
-    for top_w in QApplication.topLevelWidgets():
-        if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-            top_w.workspace.canvas_widget.update()
-        elif hasattr(top_w, "canvas_widget"):
-            top_w.canvas_widget.update()
+    # Repinta o CanvasWidget apenas para ações visuais (não para simples troca de seleção ou lock)
+    if action not in ("select", "lock", "alpha_lock"):
+        for top_w in QApplication.topLevelWidgets():
+            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
+                top_w.workspace.canvas_widget.update()
+            elif hasattr(top_w, "canvas_widget"):
+                top_w.canvas_widget.update()
 
 
 def refresh_layer_thumbnail(panel, uid: int):

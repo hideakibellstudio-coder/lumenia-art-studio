@@ -72,7 +72,7 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
 
         self.lbl_header = QtWidgets.QLabel(tr("shapes.header", "FORMAS GEOMÉTRICAS"), self.container)
         self.lbl_header.setObjectName("ShapePopupHeader")
-        self.lbl_header.setStyleSheet("font-size: 9px; font-weight: bold; color: #a1a1aa;")
+        self.lbl_header.setProperty("muted", "true")
         container_layout.addWidget(self.lbl_header)
 
         self.grid = QtWidgets.QGridLayout()

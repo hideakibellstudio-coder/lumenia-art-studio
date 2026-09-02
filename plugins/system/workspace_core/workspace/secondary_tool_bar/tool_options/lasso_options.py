@@ -61,7 +61,7 @@ def build_lasso_panels(toolbar):
     lbl_iv.setPixmap(get_icon("lasso").pixmap(14, 14))
     h.addWidget(lbl_iv)
     lbl_t = QtWidgets.QLabel("LAÇO DE SELEÇÃO")
-    lbl_t.setStyleSheet("font-size: 10px; font-weight: bold; color: #a1a1aa;")
+    lbl_t.setProperty("heading", "true")
     h.addWidget(lbl_t)
     h.addStretch()
     l_v.addLayout(h)

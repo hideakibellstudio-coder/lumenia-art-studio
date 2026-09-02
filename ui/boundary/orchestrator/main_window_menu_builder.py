@@ -97,6 +97,7 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
     # 10. Ajuda
     win.menu_bar.shortcutsRequested.connect(win.open_shortcuts_dialog)
     win.menu_bar.userGuideRequested.connect(win.open_user_guide)
+    win.menu_bar.testReportRequested.connect(win.open_test_report_dialog)
     win.menu_bar.diagnosticsRequested.connect(win.open_diagnostics_dialog)
     win.menu_bar.feedbackRequested.connect(win.open_feedback_form)
     win.menu_bar.aboutRequested.connect(win.open_about_dialog)
@@ -116,11 +117,11 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
     win.tool_sidebar.deselectRequested.connect(win.deselect_selection)
 
     # ── Atalhos de Teclado Globais ────────────────────────────────────
-    win.shortcut_undo = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Z"), win)
-    win.shortcut_undo.activated.connect(win.undo)
-
-    win.shortcut_redo_y = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Y"), win)
-    win.shortcut_redo_y.activated.connect(win.redo)
+    # NOTA: Ctrl+Z e Ctrl+Y estão definidos nos QActions do EditMenu.
+    # Apenas Ctrl+Shift+Z (alternativo de Redo) e atalhos de ferramentas
+    # são criados como QShortcut global para evitar conflito de ambiguidade.
+    win.shortcut_undo = win.menu_bar.edit_menu.act_undo
+    win.shortcut_redo_y = win.menu_bar.edit_menu.act_redo
 
     win.shortcut_redo_shift_z = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Shift+Z"), win)
     win.shortcut_redo_shift_z.activated.connect(win.redo)

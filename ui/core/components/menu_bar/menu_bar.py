@@ -115,6 +115,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
     # ── 10. Ajuda ─────────────────────────────────────────────────────────
     userGuideRequested        = QtCore.Signal()
+    testReportRequested       = QtCore.Signal()
     diagnosticsRequested      = QtCore.Signal()
     feedbackRequested         = QtCore.Signal()
     aboutRequested            = QtCore.Signal()
@@ -237,39 +238,40 @@ class MenuBar(QtWidgets.QMenuBar):
         self.addMenu(self.window_menu)
 
         # 9. [Configurações]
-        self.settings_menu = QtWidgets.QMenu("Configurações", self)
+        from ui.core.i18n import tr
+        self.settings_menu = QtWidgets.QMenu(tr("menu.settings.title", "Configurações"), self)
 
         # Submenu de Idioma (Language)
-        self.language_menu = QtWidgets.QMenu("Idioma (Language)", self.settings_menu)
+        self.language_menu = QtWidgets.QMenu(tr("menu.settings.language", "Idioma (Language)"), self.settings_menu)
         self.language_menu.setIcon(get_icon("settings"))
         self._language_group = QtGui.QActionGroup(self)
         self._language_group.setExclusive(True)
         self._rebuild_language_menu()
         self.settings_menu.addMenu(self.language_menu)
 
-        act_render = QtGui.QAction(get_icon("display"), "Renderização & Modos de Cor...", self)
-        act_render.triggered.connect(self.renderSettingsRequested.emit)
-        self.settings_menu.addAction(act_render)
+        self.act_render = QtGui.QAction(get_icon("display"), tr("menu.settings.render", "Renderização & Modos de Cor..."), self)
+        self.act_render.triggered.connect(self.renderSettingsRequested.emit)
+        self.settings_menu.addAction(self.act_render)
 
-        act_curves = QtGui.QAction(get_icon("curves"), "Curvas LUT (Perfis de Pincel)...", self)
-        act_curves.triggered.connect(self.curvesLutRequested.emit)
-        self.settings_menu.addAction(act_curves)
+        self.act_curves = QtGui.QAction(get_icon("curves"), tr("menu.settings.curves", "Curvas LUT (Perfis de Pincel)..."), self)
+        self.act_curves.triggered.connect(self.curvesLutRequested.emit)
+        self.settings_menu.addAction(self.act_curves)
 
-        act_cursor = QtGui.QAction(get_icon("cursor"), "Configurações de Cursor e Ponteiro...", self)
-        act_cursor.triggered.connect(self.cursorSettingsRequested.emit)
-        self.settings_menu.addAction(act_cursor)
+        self.act_cursor = QtGui.QAction(get_icon("cursor"), tr("menu.settings.cursor", "Configurações de Cursor e Ponteiro..."), self)
+        self.act_cursor.triggered.connect(self.cursorSettingsRequested.emit)
+        self.settings_menu.addAction(self.act_cursor)
 
-        act_shortcuts = QtGui.QAction(get_icon("keyboard"), "Atalhos de Teclado...", self)
-        act_shortcuts.triggered.connect(self.shortcutsRequested.emit)
-        self.settings_menu.addAction(act_shortcuts)
+        self.act_shortcuts = QtGui.QAction(get_icon("keyboard"), tr("menu.settings.shortcuts", "Atalhos de Teclado..."), self)
+        self.act_shortcuts.triggered.connect(self.shortcutsRequested.emit)
+        self.settings_menu.addAction(self.act_shortcuts)
 
-        act_theme = QtGui.QAction(get_icon("palette"), "Personalização de Tema...", self)
-        act_theme.triggered.connect(self.themeSettingsRequested.emit)
-        self.settings_menu.addAction(act_theme)
+        self.act_theme = QtGui.QAction(get_icon("palette"), tr("menu.settings.theme", "Personalização de Tema..."), self)
+        self.act_theme.triggered.connect(self.themeSettingsRequested.emit)
+        self.settings_menu.addAction(self.act_theme)
 
-        act_plugins = QtGui.QAction(get_icon("plugin"), "Gerenciador de Plugins...", self)
-        act_plugins.triggered.connect(self.managePluginsRequested.emit)
-        self.settings_menu.addAction(act_plugins)
+        self.act_plugins = QtGui.QAction(get_icon("plugin"), tr("menu.settings.plugins", "Gerenciador de Plugins..."), self)
+        self.act_plugins.triggered.connect(self.managePluginsRequested.emit)
+        self.settings_menu.addAction(self.act_plugins)
 
         self.addMenu(self.settings_menu)
 
@@ -277,6 +279,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.help_menu = HelpMenu(self)
         self.help_menu.shortcutsRequested.connect(self.shortcutsRequested.emit)
         self.help_menu.userGuideRequested.connect(self.userGuideRequested.emit)
+        self.help_menu.testReportRequested.connect(self.testReportRequested.emit)
         self.help_menu.diagnosticsRequested.connect(self.diagnosticsRequested.emit)
         self.help_menu.feedbackRequested.connect(self.feedbackRequested.emit)
         self.help_menu.aboutRequested.connect(self.aboutRequested.emit)
@@ -335,5 +338,17 @@ class MenuBar(QtWidgets.QMenuBar):
         if hasattr(self, "language_menu"):
             self.language_menu.setTitle(tr("menu.settings.language", "Idioma (Language)"))
             self._rebuild_language_menu()
+        if hasattr(self, "act_render"):
+            self.act_render.setText(tr("menu.settings.render", "Renderização & Modos de Cor..."))
+        if hasattr(self, "act_curves"):
+            self.act_curves.setText(tr("menu.settings.curves", "Curvas LUT (Perfis de Pincel)..."))
+        if hasattr(self, "act_cursor"):
+            self.act_cursor.setText(tr("menu.settings.cursor", "Configurações de Cursor e Ponteiro..."))
+        if hasattr(self, "act_shortcuts"):
+            self.act_shortcuts.setText(tr("menu.settings.shortcuts", "Atalhos de Teclado..."))
+        if hasattr(self, "act_theme"):
+            self.act_theme.setText(tr("menu.settings.theme", "Personalização de Tema..."))
+        if hasattr(self, "act_plugins"):
+            self.act_plugins.setText(tr("menu.settings.plugins", "Gerenciador de Plugins..."))
         if hasattr(self, "help_menu") and hasattr(self.help_menu, "retranslate_ui"):
             self.help_menu.retranslate_ui()

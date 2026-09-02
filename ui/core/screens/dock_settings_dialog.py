@@ -18,21 +18,20 @@ from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 
 def load_dock_settings() -> dict:
-    """Carrega as configurações de gavetas do QSettings."""
-    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
+    """Carrega as configurações de gavetas do ConfigManager (JSON)."""
+    from ui.core.config import ConfigManager
+    sec = ConfigManager.instance().get_section("dock")
     return {
-        "auto_collapse": s.value("dock/auto_collapse", False, type=bool),
-        "speed":         s.value("dock/speed", "Rápido"),
-        "hover_delay":   s.value("dock/hover_delay", "Normal (350ms)"),
+        "auto_collapse": sec.get("auto_collapse", False),
+        "speed":         sec.get("speed", "Rápido"),
+        "hover_delay":   sec.get("hover_delay", "Normal (350ms)"),
     }
 
 
 def save_dock_settings(settings_dict: dict) -> None:
-    """Persiste as configurações de gavetas no QSettings."""
-    s = QtCore.QSettings("Lumenia", "LumeniaArtStudio")
-    s.setValue("dock/auto_collapse", settings_dict.get("auto_collapse", False))
-    s.setValue("dock/speed",         settings_dict.get("speed", "Rápido"))
-    s.setValue("dock/hover_delay",   settings_dict.get("hover_delay", "Normal (350ms)"))
+    """Persiste as configurações de gavetas no ConfigManager (JSON)."""
+    from ui.core.config import ConfigManager
+    ConfigManager.instance().set_section("dock", settings_dict)
 
 
 class DockBarsSettingsDialog(BaseFramelessDialog):
@@ -41,7 +40,8 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
     settings_applied = QtCore.Signal(dict)  # emite cfg dict quando o usuário aplica
 
     def __init__(self, workspace=None, parent: QtWidgets.QWidget | None = None) -> None:
-        super().__init__(title="Configurações: Barra de Gavetas", icon_name="settings", parent=parent, modal=True)
+        from ui.core.i18n import tr, I18nManager
+        super().__init__(title=tr("dialogs.dock_title", "Configurações: Barra de Gavetas"), icon_name="settings", parent=parent, modal=True)
         self._workspace = workspace
         self.resize(660, 540)
 
@@ -51,36 +51,41 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
+        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.retranslate_ui()
+
     # ── Construção da UI ──────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
+        from ui.core.i18n import tr
         main = self.content_layout
 
         # ── Seção: Comportamento ───────────────────────────────────────
-        lbl_behavior = QtWidgets.QLabel("Comportamento")
-        lbl_behavior.setStyleSheet("font-size: 13px; font-weight: bold;")
-        main.addWidget(lbl_behavior)
+        self.lbl_behavior = QtWidgets.QLabel(tr("dialogs.dock_behavior", "Comportamento"))
+        self.lbl_behavior.setStyleSheet("font-size: 13px; font-weight: bold;")
+        main.addWidget(self.lbl_behavior)
 
         behavior_grid = QtWidgets.QGridLayout()
         behavior_grid.setSpacing(10)
 
         # Auto-recolhimento
-        behavior_grid.addWidget(QtWidgets.QLabel("Auto-Recolhimento:"), 0, 0)
-        self.chk_collapse = QtWidgets.QCheckBox("Recolher barra ao mover o mouse para fora")
+        self.lbl_collapse = QtWidgets.QLabel(tr("dialogs.dock_collapse_label", "Auto-Recolhimento:"))
+        behavior_grid.addWidget(self.lbl_collapse, 0, 0)
+        self.chk_collapse = QtWidgets.QCheckBox(tr("dialogs.dock_collapse_check", "Recolher barra ao mover o mouse para fora"))
         behavior_grid.addWidget(self.chk_collapse, 0, 1)
         self.chk_collapse.stateChanged.connect(self._update_controls_state)
 
         # Velocidade
-        behavior_grid.addWidget(QtWidgets.QLabel("Velocidade:"), 1, 0)
+        self.lbl_speed = QtWidgets.QLabel(tr("dialogs.dock_speed_label", "Velocidade:"))
+        behavior_grid.addWidget(self.lbl_speed, 1, 0)
         self.cbo_speed = QtWidgets.QComboBox()
-        self.cbo_speed.addItems(["Ultra Rápido", "Rápido", "Normal", "Lento"])
         self.cbo_speed.setFixedWidth(180)
         behavior_grid.addWidget(self.cbo_speed, 1, 1)
 
         # Delay
-        behavior_grid.addWidget(QtWidgets.QLabel("Delay (Pílula Hover):"), 2, 0)
+        self.lbl_delay = QtWidgets.QLabel(tr("dialogs.dock_delay_label", "Delay (Pílula Hover):"))
+        behavior_grid.addWidget(self.lbl_delay, 2, 0)
         self.cbo_delay = QtWidgets.QComboBox()
-        self.cbo_delay.addItems(["Sem Atraso", "Curto (100ms)", "Normal (350ms)", "Longo (800ms)"])
         self.cbo_delay.setFixedWidth(180)
         behavior_grid.addWidget(self.cbo_delay, 2, 1)
 
@@ -92,40 +97,41 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         main.addWidget(sep2)
 
         # ── Seção: Organização dos Painéis ────────────────────────────
-        lbl_org = QtWidgets.QLabel("Organização dos Painéis")
-        lbl_org.setStyleSheet("font-size: 13px; font-weight: bold;")
-        main.addWidget(lbl_org)
+        self.lbl_org = QtWidgets.QLabel(tr("dialogs.dock_panels_org", "Organização dos Painéis"))
+        self.lbl_org.setProperty("heading", "true")
+        main.addWidget(self.lbl_org)
 
-        lbl_org_desc = QtWidgets.QLabel(
-            "Clique nas setas para alterar a ordem dos painéis em cada gaveta. "
-            "Ou arraste diretamente os botões na sidebar."
+        self.lbl_org_desc = QtWidgets.QLabel(
+            tr("dialogs.dock_panels_org_desc",
+               "Clique nas setas para alterar a ordem dos painéis em cada gaveta. "
+               "Ou arraste diretamente os botões na sidebar.")
         )
-        lbl_org_desc.setWordWrap(True)
-        lbl_org_desc.setStyleSheet("color: #8b949e; font-size: 10px;")
-        main.addWidget(lbl_org_desc)
+        self.lbl_org_desc.setWordWrap(True)
+        self.lbl_org_desc.setProperty("muted", "true")
+        main.addWidget(self.lbl_org_desc)
 
         lists_layout = QtWidgets.QHBoxLayout()
         lists_layout.setSpacing(10)
 
         # Gaveta Esquerda
         left_col = QtWidgets.QVBoxLayout()
-        lbl_left = QtWidgets.QLabel("Gaveta Esquerda")
-        lbl_left.setStyleSheet("font-weight: bold; font-size: 11px;")
-        left_col.addWidget(lbl_left)
+        self.lbl_left = QtWidgets.QLabel(tr("dialogs.dock_left_drawer", "Gaveta Esquerda"))
+        self.lbl_left.setStyleSheet("font-weight: bold; font-size: 11px;")
+        left_col.addWidget(self.lbl_left)
         self.list_left = self._make_panel_list()
         left_col.addWidget(self.list_left)
-        arrow_left = self._make_arrow_btns(self.list_left)
+        arrow_left, self.btn_up_left, self.btn_dn_left = self._make_arrow_btns(self.list_left)
         left_col.addLayout(arrow_left)
         lists_layout.addLayout(left_col)
 
         # Gaveta Direita
         right_col = QtWidgets.QVBoxLayout()
-        lbl_right = QtWidgets.QLabel("Gaveta Direita")
-        lbl_right.setStyleSheet("font-weight: bold; font-size: 11px;")
-        right_col.addWidget(lbl_right)
+        self.lbl_right = QtWidgets.QLabel(tr("dialogs.dock_right_drawer", "Gaveta Direita"))
+        self.lbl_right.setStyleSheet("font-weight: bold; font-size: 11px;")
+        right_col.addWidget(self.lbl_right)
         self.list_right = self._make_panel_list()
         right_col.addWidget(self.list_right)
-        arrow_right = self._make_arrow_btns(self.list_right)
+        arrow_right, self.btn_up_right, self.btn_dn_right = self._make_arrow_btns(self.list_right)
         right_col.addLayout(arrow_right)
         lists_layout.addLayout(right_col)
 
@@ -139,23 +145,79 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         btn_row = QtWidgets.QHBoxLayout()
         btn_row.addStretch()
 
-        self.btn_apply = QtWidgets.QPushButton("Aplicar")
+        self.btn_apply = QtWidgets.QPushButton(tr("dialogs.apply", "Aplicar"))
         self.btn_apply.setFixedHeight(30)
         self.btn_apply.clicked.connect(self._on_apply)
         btn_row.addWidget(self.btn_apply)
 
-        self.btn_ok = QtWidgets.QPushButton("OK")
+        self.btn_ok = QtWidgets.QPushButton(tr("dialogs.ok", "OK"))
         self.btn_ok.setFixedHeight(30)
         self.btn_ok.setDefault(True)
         self.btn_ok.clicked.connect(self.accept)
         btn_row.addWidget(self.btn_ok)
 
-        btn_cancel = QtWidgets.QPushButton("Cancelar")
-        btn_cancel.setFixedHeight(30)
-        btn_cancel.clicked.connect(self.reject)
-        btn_row.addWidget(btn_cancel)
+        self.btn_cancel = QtWidgets.QPushButton(tr("dialogs.cancel", "Cancelar"))
+        self.btn_cancel.setFixedHeight(30)
+        self.btn_cancel.clicked.connect(self.reject)
+        btn_row.addWidget(self.btn_cancel)
 
         main.addLayout(btn_row)
+
+    def retranslate_ui(self) -> None:
+        """Atualiza dinamicamente todos os textos deste diálogo quando o idioma é alterado."""
+        from ui.core.i18n import tr
+        if hasattr(self, "title_bar") and self.title_bar:
+            self.title_bar.set_title(tr("dialogs.dock_title", "Configurações: Barra de Gavetas"))
+
+        if hasattr(self, "lbl_behavior"):
+            self.lbl_behavior.setText(tr("dialogs.dock_behavior", "Comportamento"))
+            self.lbl_collapse.setText(tr("dialogs.dock_collapse_label", "Auto-Recolhimento:"))
+            self.chk_collapse.setText(tr("dialogs.dock_collapse_check", "Recolher barra ao mover o mouse para fora"))
+            self.lbl_speed.setText(tr("dialogs.dock_speed_label", "Velocidade:"))
+            self.lbl_delay.setText(tr("dialogs.dock_delay_label", "Delay (Pílula Hover):"))
+            self.lbl_org.setText(tr("dialogs.dock_panels_org", "Organização dos Painéis"))
+            self.lbl_org_desc.setText(tr("dialogs.dock_panels_org_desc",
+                                         "Clique nas setas para alterar a ordem dos painéis em cada gaveta. "
+                                         "Ou arraste diretamente os botões na sidebar."))
+            self.lbl_left.setText(tr("dialogs.dock_left_drawer", "Gaveta Esquerda"))
+            self.lbl_right.setText(tr("dialogs.dock_right_drawer", "Gaveta Direita"))
+            self.btn_apply.setText(tr("dialogs.apply", "Aplicar"))
+            self.btn_ok.setText(tr("dialogs.ok", "OK"))
+            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+            self.btn_up_left.setText("▲ " + tr("layers.move_up", "Mover Cima"))
+            self.btn_dn_left.setText("▼ " + tr("layers.move_down", "Mover Baixo"))
+            self.btn_up_right.setText("▲ " + tr("layers.move_up", "Mover Cima"))
+            self.btn_dn_right.setText("▼ " + tr("layers.move_down", "Mover Baixo"))
+
+        # Atualiza itens de velocidade preservando seleção
+        cur_speed_idx = max(0, self.cbo_speed.currentIndex())
+        self.cbo_speed.blockSignals(True)
+        self.cbo_speed.clear()
+        speed_items = [
+            ("Ultra Rápido", tr("dialogs.dock_speed_ultrafast", "Ultra Rápido")),
+            ("Rápido", tr("dialogs.dock_speed_fast", "Rápido")),
+            ("Normal", tr("dialogs.dock_speed_normal", "Normal")),
+            ("Lento", tr("dialogs.dock_speed_slow", "Lento")),
+        ]
+        for canonical, label in speed_items:
+            self.cbo_speed.addItem(label, canonical)
+        self.cbo_speed.setCurrentIndex(cur_speed_idx)
+        self.cbo_speed.blockSignals(False)
+
+        # Atualiza itens de delay preservando seleção
+        cur_delay_idx = max(0, self.cbo_delay.currentIndex())
+        self.cbo_delay.blockSignals(True)
+        self.cbo_delay.clear()
+        delay_items = [
+            ("Sem Atraso", tr("dialogs.dock_delay_none", "Sem Atraso")),
+            ("Curto (100ms)", tr("dialogs.dock_delay_short", "Curto (100ms)")),
+            ("Normal (350ms)", tr("dialogs.dock_delay_normal", "Normal (350ms)")),
+            ("Longo (800ms)", tr("dialogs.dock_delay_long", "Longo (800ms)")),
+        ]
+        for canonical, label in delay_items:
+            self.cbo_delay.addItem(label, canonical)
+        self.cbo_delay.setCurrentIndex(cur_delay_idx)
+        self.cbo_delay.blockSignals(False)
 
     def _make_panel_list(self) -> QtWidgets.QListWidget:
         lw = QtWidgets.QListWidget()
@@ -165,17 +227,18 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         lw.setFixedHeight(130)
         return lw
 
-    def _make_arrow_btns(self, list_widget: QtWidgets.QListWidget) -> QtWidgets.QHBoxLayout:
+    def _make_arrow_btns(self, list_widget: QtWidgets.QListWidget) -> tuple[QtWidgets.QHBoxLayout, QtWidgets.QPushButton, QtWidgets.QPushButton]:
+        from ui.core.i18n import tr
         row = QtWidgets.QHBoxLayout()
-        btn_up = QtWidgets.QPushButton("▲ Mover para Cima")
+        btn_up = QtWidgets.QPushButton("▲ " + tr("layers.move_up", "Mover Cima"))
         btn_up.setFixedHeight(26)
         btn_up.clicked.connect(lambda: self._move_item(list_widget, -1))
-        btn_dn = QtWidgets.QPushButton("▼ Mover para Baixo")
+        btn_dn = QtWidgets.QPushButton("▼ " + tr("layers.move_down", "Mover Baixo"))
         btn_dn.setFixedHeight(26)
         btn_dn.clicked.connect(lambda: self._move_item(list_widget, +1))
         row.addWidget(btn_up)
         row.addWidget(btn_dn)
-        return row
+        return row, btn_up, btn_dn
 
     # ── Lógica de controle ────────────────────────────────────────────────
 

@@ -11,6 +11,7 @@ class CanvasInputRouter:
 
     def __init__(self, widget):
         self.widget = widget
+        self._previous_engine_type: Optional[int] = None
 
     def handle_pointer_press(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False):
         w = self.widget
@@ -123,6 +124,9 @@ class CanvasInputRouter:
             return
 
         if button == QtCore.Qt.LeftButton:
+            if is_eraser_tip and w.backend and hasattr(w.backend, "set_engine_type") and hasattr(w.backend, "get_active_engine_type"):
+                self._previous_engine_type = w.backend.get_active_engine_type()
+                w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
             w.start_stroke(pos.x(), pos.y(), max(0.02, pressure))
 
     def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False):
@@ -249,6 +253,10 @@ class CanvasInputRouter:
 
         if button == QtCore.Qt.LeftButton and w.drawing:
             w.end_stroke(pos.x(), pos.y())
+            if self._previous_engine_type is not None:
+                if w.backend and hasattr(w.backend, "set_engine_type"):
+                    w.backend.set_engine_type(self._previous_engine_type)
+                self._previous_engine_type = None
         elif button in (QtCore.Qt.MiddleButton, QtCore.Qt.LeftButton):
             w.is_panning = False
 

@@ -183,6 +183,15 @@ class WorkspaceDocSyncMixin:
             self._navigator_panel.set_canvas_size(doc.width, doc.height)
             self._navigator_panel.set_has_document(True)
 
+        if doc and hasattr(doc, "layer_manager"):
+            act_layer = doc.layer_manager.get_active_layer()
+            if act_layer and act_layer in doc.layer_manager.layers:
+                act_idx = doc.layer_manager.layers.index(act_layer)
+                from ui.core.engine.registry import EngineRegistry
+                b = EngineRegistry.instance().get_backend()
+                if b and hasattr(b, "select_layer"):
+                    b.select_layer(act_idx)
+
         active_color = getattr(self, "_saved_color", QtGui.QColor(0, 0, 0))
         self._apply_brush_color(active_color)
         if hasattr(self, "_brush_dock") and self._brush_dock and hasattr(self._brush_dock, "preset_combo"):

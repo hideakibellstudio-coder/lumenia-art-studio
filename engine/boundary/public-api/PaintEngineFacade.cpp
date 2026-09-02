@@ -82,16 +82,16 @@ int PaintEngineFacade::getActiveEngineType() const noexcept {
 
 // ─── GERENCIAMENTO DE CAMADAS ─────────────────────────────────────────────
 
-int PaintEngineFacade::addLayer(const std::string& name) {
-    return internal::LayerStackOrchestrator::addLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name);
+int PaintEngineFacade::addLayer(const std::string& name, int insertIndex) {
+    return internal::LayerStackOrchestrator::addLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, insertIndex);
 }
 
-int PaintEngineFacade::addGroup(const std::string& name) {
-    return internal::LayerStackOrchestrator::addGroup(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name);
+int PaintEngineFacade::addGroup(const std::string& name, int insertIndex) {
+    return internal::LayerStackOrchestrator::addGroup(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, insertIndex);
 }
 
-int PaintEngineFacade::addFilterLayer(const std::string& name, int filterTypeId) {
-    return internal::LayerStackOrchestrator::addFilterLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, filterTypeId);
+int PaintEngineFacade::addFilterLayer(const std::string& name, int filterTypeId, int insertIndex) {
+    return internal::LayerStackOrchestrator::addFilterLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, filterTypeId, insertIndex);
 }
 
 void PaintEngineFacade::setFilterParams(int index, const std::vector<float>& params) {
@@ -272,6 +272,12 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
     m_undoManager.commitStep(m_layerStack);
     m_isDrawing = false;
     m_distanceCarryover = 0.0;
+
+    if (m_activeEngine && m_activeEngine->getType() == brush::EngineType::Eraser) {
+        if (auto* layer = m_layerStack.getActiveLayer()) {
+            layer->getTileGrid().pruneEmptyTiles();
+        }
+    }
 
     if (m_telemetryManager.isEnabled()) {
         uint32_t activeTiles = 0;
@@ -494,12 +500,22 @@ uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
 }
 bool PaintEngineFacade::undo() {
     bool ok = m_undoManager.undo(m_layerStack);
-    if (ok) m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (ok) {
+        if (auto* layer = m_layerStack.getActiveLayer()) {
+            layer->getTileGrid().pruneEmptyTiles();
+        }
+        m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    }
     return ok;
 }
 bool PaintEngineFacade::redo() {
     bool ok = m_undoManager.redo(m_layerStack);
-    if (ok) m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (ok) {
+        if (auto* layer = m_layerStack.getActiveLayer()) {
+            layer->getTileGrid().pruneEmptyTiles();
+        }
+        m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    }
     return ok;
 }
 void PaintEngineFacade::setSymmetryConfig(int mode, double cx, double cy, double angleRad, int segments, bool stopAtCenter) {

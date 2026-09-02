@@ -53,6 +53,7 @@ public:
     void beginStep(const std::string& description = "Stroke");
     void recordTileBefore(int layerIndex, int tileX, int tileY, const uint8_t* data, size_t sizeInBytes);
     void commitStep(document::LayerStack& stack);
+    void cancelStep() noexcept;
 
     bool undo(document::LayerStack& stack);
     bool redo(document::LayerStack& stack);

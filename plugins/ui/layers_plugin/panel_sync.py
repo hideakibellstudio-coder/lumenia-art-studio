@@ -65,12 +65,14 @@ def sync_to_native_engine(panel, action: str, *args):
             backend.set_layer_clipping_mask(idx, bool(val))
     elif action == "add":
         name = args[0] if args else ""
-        backend.add_layer(name)
+        new_idx = layer_list.index(active_layer) + 1 if active_layer and active_layer in layer_list else -1
+        backend.add_layer(name, new_idx)
         panel._synced_uids = [l.uid for l in layer_list]
         structural_change = True
     elif action == "add_group":
         name = args[0] if args else "Novo Grupo"
-        backend.add_group(name)
+        new_idx = layer_list.index(active_layer) + 1 if active_layer and active_layer in layer_list else -1
+        backend.add_group(name, new_idx)
         panel._synced_uids = [l.uid for l in layer_list]
         structural_change = True
     elif action == "delete":

@@ -10,20 +10,20 @@ namespace aladyn::engine::boundary::internal {
 
 class LayerStackOrchestrator {
 public:
-    static int addLayer(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, const std::string& name) {
-        int idx = stack.addLayer(name);
+    static int addLayer(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, const std::string& name, int insertIndex = -1) {
+        int idx = stack.addLayer(name, insertIndex);
         comp.composite(stack.getAllLayersForComposition(), out, bg);
         return idx;
     }
 
-    static int addGroup(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, const std::string& name) {
-        int idx = stack.addGroup(name);
+    static int addGroup(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, const std::string& name, int insertIndex = -1) {
+        int idx = stack.addGroup(name, insertIndex);
         comp.composite(stack.getAllLayersForComposition(), out, bg);
         return idx;
     }
 
-    static int addFilterLayer(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, const std::string& name, int filterTypeId) {
-        int idx = stack.addFilterLayer(name, static_cast<document::FilterType>(filterTypeId));
+    static int addFilterLayer(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, const std::string& name, int filterTypeId, int insertIndex = -1) {
+        int idx = stack.addFilterLayer(name, static_cast<document::FilterType>(filterTypeId), insertIndex);
         comp.composite(stack.getAllLayersForComposition(), out, bg);
         return idx;
     }

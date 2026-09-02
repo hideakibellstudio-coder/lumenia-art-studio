@@ -43,10 +43,18 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
         m_historyCount = maxWindow;
     }
 
-    // 3. Weighted center-of-mass averaging with exponential recency weighting
+    // 3. Weighted center-of-mass averaging with exponential recency weighting (Zero-Cost LUT)
+    static const auto WEIGHT_LUT = []() {
+        std::array<double, MAX_WINDOW_SIZE> arr{};
+        for (size_t k = 0; k < MAX_WINDOW_SIZE; ++k) {
+            arr[k] = std::pow(static_cast<double>(k + 1), 1.25);
+        }
+        return arr;
+    }();
+
     double sumX = 0.0, sumY = 0.0, totalWeight = 0.0;
     for (size_t i = 0; i < m_historyCount; ++i) {
-        const double w = std::pow(static_cast<double>(i + 1), 1.25);
+        const double w = WEIGHT_LUT[i];
         const size_t idx = (m_historyHead + MAX_WINDOW_SIZE + 1 - (m_historyCount - i)) % MAX_WINDOW_SIZE;
         sumX += m_historyBuffer[idx].x * w;
         sumY += m_historyBuffer[idx].y * w;

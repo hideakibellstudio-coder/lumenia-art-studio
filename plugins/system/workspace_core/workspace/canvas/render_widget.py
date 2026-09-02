@@ -7,7 +7,6 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from ui.infrastructure.bridge_client import BridgeClient
 from ui.infrastructure.bridge_client.dispatcher import EngineDispatcher
-from ui.core.plugins.contracts import StartStrokeCommand, DrawCommand, EndStrokeCommand
 from ui.core.engine.backend import PointerEvent
 from ui.core.theme.manager import ThemeManager
 
@@ -23,6 +22,7 @@ from .tools.shape_tool_controller import ShapeToolController
 from .tools.transform_tool_controller import TransformToolController
 from .tools.eyedrop_tool_controller import EyedropToolController
 from .tools.geometry_tool_controller import GeometryToolController
+from .tools.text_tool_controller import TextToolController
 from .viewport.cursor_controller import CanvasCursorController
 
 
@@ -51,6 +51,7 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.transform_ctrl = TransformToolController(self)
         self.eyedrop_ctrl = EyedropToolController(self)
         self.geometry_ctrl = GeometryToolController(self)
+        self.text_ctrl = TextToolController(self)
 
         self.active_tool, self.drawing, self.brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
         self.is_panning, self.is_zoom_dragging = False, False
@@ -60,8 +61,6 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.paper_visible, self.paper_color = True, QtGui.QColor(255, 255, 255)
         self._checker_brush = self._create_checker_brush()
         self.cursor_ctrl = CanvasCursorController(self)
-        self._active_text_editor: Optional[TextOverlayEditor] = None
-        self._text_settings = {"font_family": "Segoe UI", "font_size": 36, "bold": False, "italic": False, "underline": False, "align": "left", "color": QtGui.QColor(0, 0, 0, 255)}
         self._bucket_settings = {"tolerance": 20, "expand_px": 1, "gap_closing_px": 0, "contiguous": True, "aa": True, "sample_all": True}
         self._flood_layers, self._flood_redo_stack = [], []
         from ui.core.i18n import I18nManager
@@ -246,44 +245,33 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         if self.active_tool == "shapes" or self.active_tool.startswith("shape_"): self.active_tool = "shapes"
         self.update()
 
+    @property
+    def _active_text_editor(self):
+        return self.text_ctrl.active_editor
+
+    @_active_text_editor.setter
+    def _active_text_editor(self, val):
+        self.text_ctrl.active_editor = val
+
+    @property
+    def _text_settings(self):
+        return self.text_ctrl.settings
+
+    @_text_settings.setter
+    def _text_settings(self, val):
+        self.text_ctrl.settings = val
+
     def set_text_settings(self, settings: dict):
-        self._text_settings.update(settings)
-        if self._active_text_editor: self._active_text_editor.apply_typography(settings)
+        self.text_ctrl.set_settings(settings)
 
     def open_text_editor(self, canvas_x: float, canvas_y: float):
-        if self._active_text_editor: self.commit_text_overlay()
-        self._active_text_editor = TextOverlayEditor(self, canvas_x, canvas_y, self._text_settings)
-        self.update()
+        self.text_ctrl.open_editor(canvas_x, canvas_y)
 
     def commit_text_overlay(self):
-        ed = self._active_text_editor
-        if not ed: return
-        text = ed.get_text().strip()
-        if text:
-            cfg = ed.settings
-            text_img = QtGui.QImage(self.canvas_w, self.canvas_h, QtGui.QImage.Format_ARGB32_Premultiplied)
-            text_img.fill(QtCore.Qt.transparent)
-            p = QtGui.QPainter(text_img); p.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing, True)
-            qf = QtGui.QFont(cfg.get("font_family", "Segoe UI"), max(6, int(cfg.get("font_size", 36))))
-            qf.setBold(bool(cfg.get("bold", False))); qf.setItalic(bool(cfg.get("italic", False))); qf.setUnderline(bool(cfg.get("underline", False)))
-            p.setFont(qf); p.setPen(QtGui.QPen(QtGui.QColor(cfg.get("color", QtGui.QColor(0, 0, 0, 255)))))
-            al = cfg.get("align", "left")
-            align_f = QtCore.Qt.TextWordWrap | (QtCore.Qt.AlignHCenter if al == "center" else (QtCore.Qt.AlignRight if al == "right" else QtCore.Qt.AlignLeft))
-            p.drawText(QtCore.QRectF(ed.canvas_pos.x(), ed.canvas_pos.y(), max(200.0, float(self.canvas_w) - ed.canvas_pos.x()), max(200.0, float(self.canvas_h) - ed.canvas_pos.y())), align_f, text)
-            p.end()
-            px_bytes = text_img.convertToFormat(QtGui.QImage.Format_RGBA8888).constBits().tobytes()
-            from ui.core.engine.registry import EngineRegistry
-            b = EngineRegistry.instance().get_backend()
-            if b and hasattr(b, "paste_rgba_buffer_on_active_layer") and getattr(b, "available", False):
-                b.paste_rgba_buffer_on_active_layer(0, 0, self.canvas_w, self.canvas_h, px_bytes)
-            else:
-                self._flood_layers.append(text_img); self._flood_redo_stack.clear()
-            self.strokeFinished.emit()
-        ed.hide(); ed.deleteLater(); self._active_text_editor = None; self.update()
+        self.text_ctrl.commit()
 
     def cancel_text_overlay(self):
-        if self._active_text_editor:
-            self._active_text_editor.hide(); self._active_text_editor.deleteLater(); self._active_text_editor = None; self.update()
+        self.text_ctrl.cancel()
 
     def do_flood_fill(self, screen_x: float, screen_y: float):
         evt = self.to_canvas(screen_x, screen_y, 1.0, 0.0)
@@ -329,11 +317,6 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             self._last_draw_pos = (cur_x, cur_y)
             b.start_stroke(cur_x, cur_y, safe_pressure)
             self.update()
-        if self.bridge_client.renderer is None: return
-        self.drawing = True
-        evt = self.to_canvas(screen_x, screen_y, max(0.02, pressure), 0.0)
-        self.dispatcher.dispatch(StartStrokeCommand(x=evt.x, y=evt.y, pressure=evt.pressure))
-        self.update()
 
     def paint_stroke(self, screen_x: float, screen_y: float, pressure: float):
         if not self.drawing: return
@@ -357,12 +340,6 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
                     r_new = ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), br_rad, self.zoom)
                     dirty_s = dirty_s.united(r_old).united(r_new)
                 self.update(dirty_s)
-            return
-
-        if self.bridge_client.renderer is None: return
-        evt = self.to_canvas(screen_x, screen_y, pressure, 0.0)
-        self.dispatcher.dispatch(DrawCommand(x=evt.x, y=evt.y, pressure=evt.pressure, timestamp=time.time()))
-        self.update()
 
     def end_stroke(self, screen_x: float | None = None, screen_y: float | None = None):
         if hasattr(self, "geometry_ctrl"): self.geometry_ctrl.mouse_release()
@@ -377,8 +354,6 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
                 self.update()
                 self.strokeFinished.emit()
                 return
-            if self.bridge_client.renderer is not None:
-                self.dispatcher.dispatch(EndStrokeCommand())
         self.drawing = False
         self.strokeFinished.emit()
 

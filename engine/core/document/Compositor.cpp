@@ -83,10 +83,19 @@ void Compositor::compositeRegion(
     const int startTileY = minY / canvas::Tile::TILE_SIZE;
     const int endTileY   = maxY / canvas::Tile::TILE_SIZE;
 
-    // Reseta a área apenas na bounding box afetada
-    for (int y = minY; y <= maxY; ++y) {
-        for (int x = minX; x <= maxX; ++x) {
-            outputBuffer.setPixel(x, y, bgFill);
+    const uint32_t bg32 = (static_cast<uint32_t>(bgFill.a) << 24) |
+                          (static_cast<uint32_t>(bgFill.b) << 16) |
+                          (static_cast<uint32_t>(bgFill.g) << 8)  |
+                           static_cast<uint32_t>(bgFill.r);
+    uint32_t* outData32 = reinterpret_cast<uint32_t*>(outputBuffer.getData());
+    const int outStride = outputBuffer.getWidth();
+
+    if (minX == 0 && maxX == m_width - 1 && minY == 0 && maxY == m_height - 1 && bg32 == 0) {
+        std::memset(outData32, 0, static_cast<size_t>(m_width) * m_height * 4);
+    } else {
+        #pragma omp parallel for schedule(static) if((maxY - minY) > 64)
+        for (int y = minY; y <= maxY; ++y) {
+            std::fill_n(outData32 + (static_cast<size_t>(y) * outStride + minX), maxX - minX + 1, bg32);
         }
     }
 
@@ -146,11 +155,12 @@ void Compositor::compositeRegion(
 
                 for (int globalY = tileMinY; globalY <= tileMaxY; ++globalY) {
                     const int localY = globalY - tilePixelY;
+                    const raster::ColorRGBA* srcRow = reinterpret_cast<const raster::ColorRGBA*>(tileBuf.getData()) + (localY * canvas::Tile::TILE_SIZE);
+                    raster::ColorRGBA* dstRow = reinterpret_cast<raster::ColorRGBA*>(outData32) + (globalY * outStride);
 
                     for (int globalX = tileMinX; globalX <= tileMaxX; ++globalX) {
                         const int localX = globalX - tilePixelX;
-
-                        const raster::ColorRGBA src = tileBuf.getPixel(localX, localY);
+                        const raster::ColorRGBA src = srcRow[localX];
                         if (src.a == 0) continue;
 
                         double curOpacity = layerOpacity;
@@ -166,8 +176,7 @@ void Compositor::compositeRegion(
                             curOpacity *= baseA;
                         }
 
-                        const raster::ColorRGBA dst = outputBuffer.getPixel(globalX, globalY);
-                        outputBuffer.setPixel(globalX, globalY, blending::blendPixel(src, curOpacity, dst, blendMode));
+                        dstRow[globalX] = blending::blendPixel(src, curOpacity, dstRow[globalX], blendMode);
                     }
                 }
             }

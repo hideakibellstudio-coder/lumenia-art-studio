@@ -76,6 +76,13 @@ void TileUndoManager::commitStep(document::LayerStack& stack) {
     }
 }
 
+void TileUndoManager::cancelStep() noexcept {
+    m_isRecording = false;
+    m_currentStep.snapshots.clear();
+    m_currentStep.description.clear();
+    m_recordedTiles.clear();
+}
+
 bool TileUndoManager::undo(document::LayerStack& stack) {
     if (m_undoStack.empty()) return false;
 

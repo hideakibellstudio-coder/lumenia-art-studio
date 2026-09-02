@@ -44,9 +44,9 @@ public:
     [[nodiscard]] int getActiveEngineType() const noexcept;
 
     // ─── GERENCIAMENTO DE CAMADAS ─────────────────────────────────────────
-    int addLayer(const std::string& name = "");
-    int addGroup(const std::string& name = "Novo Grupo");
-    int addFilterLayer(const std::string& name, int filterTypeId);
+    int addLayer(const std::string& name = "", int insertIndex = -1);
+    int addGroup(const std::string& name = "Novo Grupo", int insertIndex = -1);
+    int addFilterLayer(const std::string& name, int filterTypeId, int insertIndex = -1);
     void setFilterParams(int index, const std::vector<float>& params);
     [[nodiscard]] std::vector<float> getFilterParams(int index) const;
     [[nodiscard]] int getFilterType(int index) const;
@@ -77,6 +77,10 @@ public:
 
     bool undo();
     bool redo();
+    [[nodiscard]] bool canUndo() const noexcept { return m_undoManager.canUndo(); }
+    [[nodiscard]] bool canRedo() const noexcept { return m_undoManager.canRedo(); }
+    [[nodiscard]] size_t getUndoCount() const noexcept { return m_undoManager.getUndoCount(); }
+    [[nodiscard]] size_t getRedoCount() const noexcept { return m_undoManager.getRedoCount(); }
     void setUndoMemoryLimitMB(size_t mb) noexcept { m_undoManager.setMaxMemoryMB(mb); }
     [[nodiscard]] size_t getUndoMemoryLimitMB() const noexcept { return m_undoManager.getMaxMemoryMB(); }
     void setUndoMaxSteps(size_t steps) noexcept { m_undoManager.setMaxSteps(steps); }

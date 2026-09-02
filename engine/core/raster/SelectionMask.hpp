@@ -237,10 +237,10 @@ public:
         auto edgeKey = [](const Point& a, const Point& b) -> uint64_t {
             Point p1 = std::min(a, b);
             Point p2 = std::max(a, b);
-            return (static_cast<uint64_t>(p1.y) << 48) |
-                   (static_cast<uint64_t>(p1.x) << 32) |
-                   (static_cast<uint64_t>(p2.y) << 16) |
-                   (static_cast<uint64_t>(p2.x));
+            return ((static_cast<uint64_t>(p1.y) & 0xFFFFULL) << 48) |
+                   ((static_cast<uint64_t>(p1.x) & 0xFFFFULL) << 32) |
+                   ((static_cast<uint64_t>(p2.y) & 0xFFFFULL) << 16) |
+                   ((static_cast<uint64_t>(p2.x) & 0xFFFFULL));
         };
 
         for (const auto& [startPt, neighbors] : adj) {

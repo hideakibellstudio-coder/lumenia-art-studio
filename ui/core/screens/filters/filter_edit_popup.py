@@ -13,7 +13,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.theme.manager import ThemeManager
 from ui.core.widgets.slider.labeled_slider import LabeledSlider
-from .filter_adjustment_dialog import FILTER_DEFINITIONS
+from .filter_definitions import FILTER_DEFINITIONS
 
 
 class FilterEditPopup(QtWidgets.QDialog):
@@ -131,9 +131,9 @@ class FilterEditPopup(QtWidgets.QDialog):
 
     def _apply_theme(self, *args) -> None:
         theme = ThemeManager.instance()
-        bg_panel = theme.get_color("bg_panel", "#1e1e24")
-        text_main = theme.get_color("text_main", "#f3f4f6")
-        border = theme.get_color("border", "#2e2e38")
+        bg_panel = theme.get_color("bg_panel")
+        text_main = theme.get_color("text_main")
+        border = theme.get_color("border")
 
         self.setStyleSheet(f"""
             QDialog {{

@@ -44,6 +44,7 @@ bool TransformOrchestrator::commitTransform(
     );
 
     if (ok) {
+        undoManager.commitStep(layerStack);
         compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
     }
     return ok;
@@ -67,6 +68,7 @@ bool TransformOrchestrator::cancelTransform(
         activeLayer, canvasWidth, canvasHeight, undoManager, layerStack.getActiveIndex(), dirtyBounds
     );
     if (ok) {
+        undoManager.cancelStep();
         compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
     }
     return ok;
@@ -91,6 +93,7 @@ bool TransformOrchestrator::flipActiveLayer(
         activeLayer, horizontal, width, height, undoManager, layerStack.getActiveIndex(), dirtyBounds
     );
     if (ok) {
+        undoManager.commitStep(layerStack);
         compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
     }
     return ok;
@@ -115,6 +118,7 @@ bool TransformOrchestrator::rotateActiveLayer90(
         activeLayer, clockwise, width, height, undoManager, layerStack.getActiveIndex(), dirtyBounds
     );
     if (ok) {
+        undoManager.commitStep(layerStack);
         compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
     }
     return ok;

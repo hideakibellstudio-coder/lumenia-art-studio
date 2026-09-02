@@ -265,9 +265,9 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def("set_engine_type",        &boundary::PaintEngineFacade::setEngineType)
         .def("get_active_engine_type", &boundary::PaintEngineFacade::getActiveEngineType)
         // Gerenciamento de Camadas e Grupos
-        .def("add_layer",               &boundary::PaintEngineFacade::addLayer, py::arg("name") = "")
-        .def("add_group",               &boundary::PaintEngineFacade::addGroup, py::arg("name") = "Novo Grupo")
-        .def("add_filter_layer",        &boundary::PaintEngineFacade::addFilterLayer)
+        .def("add_layer",               &boundary::PaintEngineFacade::addLayer, py::arg("name") = "", py::arg("insert_index") = -1)
+        .def("add_group",               &boundary::PaintEngineFacade::addGroup, py::arg("name") = "Novo Grupo", py::arg("insert_index") = -1)
+        .def("add_filter_layer",        &boundary::PaintEngineFacade::addFilterLayer, py::arg("name"), py::arg("filter_type_id"), py::arg("insert_index") = -1)
         .def("set_filter_params",       &boundary::PaintEngineFacade::setFilterParams)
         .def("get_filter_params",       &boundary::PaintEngineFacade::getFilterParams)
         .def("get_filter_type",         &boundary::PaintEngineFacade::getFilterType)
@@ -326,6 +326,10 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         // Desfazer / Refazer
         .def("undo", &boundary::PaintEngineFacade::undo)
         .def("redo", &boundary::PaintEngineFacade::redo)
+        .def("can_undo", &boundary::PaintEngineFacade::canUndo)
+        .def("can_redo", &boundary::PaintEngineFacade::canRedo)
+        .def("get_undo_count", &boundary::PaintEngineFacade::getUndoCount)
+        .def("get_redo_count", &boundary::PaintEngineFacade::getRedoCount)
         .def("set_undo_memory_limit_mb", &boundary::PaintEngineFacade::setUndoMemoryLimitMB)
         .def("get_undo_memory_limit_mb", &boundary::PaintEngineFacade::getUndoMemoryLimitMB)
         .def("set_undo_max_steps", &boundary::PaintEngineFacade::setUndoMaxSteps)

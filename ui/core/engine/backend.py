@@ -155,9 +155,9 @@ class EngineBackend(ABC):
 
     # ── Camadas & Grupos ──────────────────────────────────────────────────
 
-    def add_layer(self, name: str = "") -> int: return 0
-    def add_group(self, name: str = "Novo Grupo") -> int: return 0
-    def add_filter_layer(self, name: str, filter_type_id: int) -> int: return 0
+    def add_layer(self, name: str = "", insert_index: int = -1) -> int: return 0
+    def add_group(self, name: str = "Novo Grupo", insert_index: int = -1) -> int: return 0
+    def add_filter_layer(self, name: str, filter_type_id: int, insert_index: int = -1) -> int: return 0
     def remove_layer(self, index: int) -> bool: return False
     def duplicate_layer(self, index: int) -> int: return -1
     def select_layer(self, index: int) -> bool: return False
@@ -238,6 +238,10 @@ class EngineBackend(ABC):
 
     def undo(self) -> bool: return False
     def redo(self) -> bool: return False
+    def get_undo_count(self) -> int: return 0
+    def get_redo_count(self) -> int: return 0
+    def can_undo(self) -> bool: return False
+    def can_redo(self) -> bool: return False
     def set_undo_memory_limit_mb(self, mb: int) -> None: ...
     def set_undo_max_steps(self, steps: int) -> None: ...
 

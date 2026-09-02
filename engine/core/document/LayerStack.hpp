@@ -28,9 +28,9 @@ public:
     void clearAllDrawingLayers();
 
     // ─── GERENCIAMENTO DE CAMADAS ───────────────────────────────────────────
-    int addLayer(const std::string& name = "");
-    int addGroup(const std::string& name = "Novo Grupo");
-    int addFilterLayer(const std::string& name, FilterType type);
+    int addLayer(const std::string& name = "", int insertIndex = -1);
+    int addGroup(const std::string& name = "Novo Grupo", int insertIndex = -1);
+    int addFilterLayer(const std::string& name, FilterType type, int insertIndex = -1);
     bool isGroup(int index) const;
     bool setGroupPassThrough(int index, bool passThrough);
     bool removeLayer(int index);

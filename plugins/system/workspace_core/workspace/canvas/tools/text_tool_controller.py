@@ -1,0 +1,98 @@
+"""
+TextToolController — Controlador de Edição e Inserção de Texto no Canvas.
+==========================================================================
+Encapsula o ciclo de vida do TextOverlayEditor, criação da imagem raster de texto,
+composição na camada ativa via backend nativo C++ e renderização do texto em andamento.
+"""
+
+from __future__ import annotations
+from typing import Optional, TYPE_CHECKING
+from PySide6 import QtCore, QtGui
+
+if TYPE_CHECKING:
+    from ..render_widget import RenderWidget
+
+from ..text_overlay_editor import TextOverlayEditor
+
+
+class TextToolController:
+    """Controlador atômico responsável pela ferramenta de texto."""
+
+    def __init__(self, widget: RenderWidget) -> None:
+        self.widget = widget
+        self.settings: dict = {
+            "font_family": "Segoe UI",
+            "font_size": 36,
+            "bold": False,
+            "italic": False,
+            "underline": False,
+            "align": "left",
+            "color": QtGui.QColor(0, 0, 0, 255),
+        }
+        self.active_editor: Optional[TextOverlayEditor] = None
+
+    def set_settings(self, new_settings: dict) -> None:
+        self.settings.update(new_settings)
+        if self.active_editor:
+            self.active_editor.apply_typography(self.settings)
+
+    def open_editor(self, canvas_x: float, canvas_y: float) -> None:
+        if self.active_editor:
+            self.commit()
+        self.active_editor = TextOverlayEditor(self.widget, canvas_x, canvas_y, self.settings)
+        self.widget.update()
+
+    def commit(self) -> None:
+        ed = self.active_editor
+        if not ed:
+            return
+
+        text = ed.get_text().strip()
+        if text:
+            cfg = ed.settings
+            w = self.widget.canvas_w
+            h = self.widget.canvas_h
+            text_img = QtGui.QImage(w, h, QtGui.QImage.Format_ARGB32_Premultiplied)
+            text_img.fill(QtCore.Qt.transparent)
+
+            p = QtGui.QPainter(text_img)
+            p.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing, True)
+            qf = QtGui.QFont(cfg.get("font_family", "Segoe UI"), max(6, int(cfg.get("font_size", 36))))
+            qf.setBold(bool(cfg.get("bold", False)))
+            qf.setItalic(bool(cfg.get("italic", False)))
+            qf.setUnderline(bool(cfg.get("underline", False)))
+            p.setFont(qf)
+            p.setPen(QtGui.QPen(QtGui.QColor(cfg.get("color", QtGui.QColor(0, 0, 0, 255)))))
+
+            al = cfg.get("align", "left")
+            align_f = QtCore.Qt.TextWordWrap | (
+                QtCore.Qt.AlignHCenter if al == "center" else (
+                    QtCore.Qt.AlignRight if al == "right" else QtCore.Qt.AlignLeft
+                )
+            )
+            max_w = max(200.0, float(w) - ed.canvas_pos.x())
+            max_h = max(200.0, float(h) - ed.canvas_pos.y())
+            p.drawText(QtCore.QRectF(ed.canvas_pos.x(), ed.canvas_pos.y(), max_w, max_h), align_f, text)
+            p.end()
+
+            px_bytes = text_img.convertToFormat(QtGui.QImage.Format_RGBA8888).constBits().tobytes()
+            from ui.core.engine.registry import EngineRegistry
+            b = EngineRegistry.instance().get_backend()
+            if b and hasattr(b, "paste_rgba_buffer_on_active_layer") and getattr(b, "available", False):
+                b.paste_rgba_buffer_on_active_layer(0, 0, w, h, px_bytes)
+            else:
+                self.widget._flood_layers.append(text_img)
+                self.widget._flood_redo_stack.clear()
+            self.widget.strokeFinished.emit()
+
+        ed.hide()
+        ed.deleteLater()
+        self.active_editor = None
+        self.widget.update()
+
+    def cancel(self) -> None:
+        if self.active_editor:
+            self.active_editor.hide()
+            self.active_editor.deleteLater()
+            self.active_editor = None
+            self.widget.update()

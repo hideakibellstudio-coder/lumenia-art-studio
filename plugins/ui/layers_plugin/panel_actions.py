@@ -67,8 +67,10 @@ def create_filter_layer(panel, name: str, type_id: int, params: list):
     try:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
+        active = panel.layer_manager.get_active_layer()
+        target_idx = panel.layer_manager.layers.index(active) + 1 if active and active in panel.layer_manager.layers else -1
         if backend:
-            new_idx = backend.add_filter_layer(name, type_id)
+            new_idx = backend.add_filter_layer(name, type_id, target_idx)
             if new_idx >= 0:
                 backend.set_filter_params(new_idx, params)
 

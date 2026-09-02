@@ -46,7 +46,7 @@ void LayerStack::clearAllDrawingLayers() {
     }
 }
 
-int LayerStack::addLayer(const std::string& name) {
+int LayerStack::addLayer(const std::string& name, int insertIndex) {
     std::string layerName = name;
     if (layerName.empty()) {
         layerName = "Camada " + std::to_string(m_drawingLayers.size() + 1);
@@ -56,12 +56,17 @@ int LayerStack::addLayer(const std::string& name) {
     // As camadas de desenho nascem com transparência pura
     layer->getTileGrid().clearAll({0, 0, 0, 0});
 
-    m_drawingLayers.push_back(std::move(layer));
-    m_activeIndex = static_cast<int>(m_drawingLayers.size() - 1);
+    if (insertIndex >= 0 && insertIndex < static_cast<int>(m_drawingLayers.size())) {
+        m_drawingLayers.insert(m_drawingLayers.begin() + insertIndex, std::move(layer));
+        m_activeIndex = insertIndex;
+    } else {
+        m_drawingLayers.push_back(std::move(layer));
+        m_activeIndex = static_cast<int>(m_drawingLayers.size() - 1);
+    }
     return m_activeIndex;
 }
 
-int LayerStack::addGroup(const std::string& name) {
+int LayerStack::addGroup(const std::string& name, int insertIndex) {
     std::string groupName = name;
     if (groupName.empty()) {
         groupName = "Grupo " + std::to_string(m_drawingLayers.size() + 1);
@@ -72,20 +77,30 @@ int LayerStack::addGroup(const std::string& name) {
     layer->getTileGrid().clearAll({0, 0, 0, 0});
     layer->setBlendMode(LayerBlendMode::PassThrough);
 
-    m_drawingLayers.push_back(std::move(layer));
-    m_activeIndex = static_cast<int>(m_drawingLayers.size() - 1);
+    if (insertIndex >= 0 && insertIndex < static_cast<int>(m_drawingLayers.size())) {
+        m_drawingLayers.insert(m_drawingLayers.begin() + insertIndex, std::move(layer));
+        m_activeIndex = insertIndex;
+    } else {
+        m_drawingLayers.push_back(std::move(layer));
+        m_activeIndex = static_cast<int>(m_drawingLayers.size() - 1);
+    }
     return m_activeIndex;
 }
 
-int LayerStack::addFilterLayer(const std::string& name, FilterType type) {
+int LayerStack::addFilterLayer(const std::string& name, FilterType type, int insertIndex) {
     std::string layerName = name;
     if (layerName.empty()) {
         layerName = "Filtro " + std::to_string(m_drawingLayers.size() + 1);
     }
 
     auto filterLayer = std::make_unique<FilterLayer>(layerName, type, m_width, m_height);
-    m_drawingLayers.push_back(std::move(filterLayer));
-    m_activeIndex = static_cast<int>(m_drawingLayers.size() - 1);
+    if (insertIndex >= 0 && insertIndex < static_cast<int>(m_drawingLayers.size())) {
+        m_drawingLayers.insert(m_drawingLayers.begin() + insertIndex, std::move(filterLayer));
+        m_activeIndex = insertIndex;
+    } else {
+        m_drawingLayers.push_back(std::move(filterLayer));
+        m_activeIndex = static_cast<int>(m_drawingLayers.size() - 1);
+    }
     return m_activeIndex;
 }
 

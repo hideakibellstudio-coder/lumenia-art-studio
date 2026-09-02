@@ -21,9 +21,9 @@ std::vector<TileIndex> SpatialCuller::getIntersectingTiles(
     }
 
     const int minTileX = static_cast<int>(std::floor(left / Tile::TILE_SIZE));
-    const int maxTileX = static_cast<int>(std::floor((right - 1.0) / Tile::TILE_SIZE));
+    const int maxTileX = std::max(minTileX, static_cast<int>(std::floor((right - 1e-6) / Tile::TILE_SIZE)));
     const int minTileY = static_cast<int>(std::floor(top / Tile::TILE_SIZE));
-    const int maxTileY = static_cast<int>(std::floor((bottom - 1.0) / Tile::TILE_SIZE));
+    const int maxTileY = std::max(minTileY, static_cast<int>(std::floor((bottom - 1e-6) / Tile::TILE_SIZE)));
 
     for (int ty = minTileY; ty <= maxTileY; ++ty) {
         for (int tx = minTileX; tx <= maxTileX; ++tx) {

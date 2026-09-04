@@ -24,16 +24,24 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
         return rawPosition;
     }
 
-    // 1. Perceptual curve: 0..100% mapped smoothly across low/mid/high sensitivity
+    // 1. Mapeamento linear contínuo baseado nos níveis do SAI (0 a 22, onde 15 = Nível 15 e 22 = S-7)
     const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
-    const double curved = norm * norm; // Quadratic perceptual ramp
+    const double L = norm * 22.0;
 
-    // 2. Rolling Window size based on perceptual curve
-    const size_t maxWindow = std::clamp(
-        static_cast<size_t>(2 + static_cast<int>(curved * (MAX_WINDOW_SIZE - 2))),
-        static_cast<size_t>(2),
-        MAX_WINDOW_SIZE
-    );
+    // 2. Tamanho da Janela de Amostras e Inércia Hiperbólica (Zero zona morta)
+    size_t maxWindow = 2;
+    double alpha = 1.0;
+
+    if (L <= 15.0) {
+        // Níveis normais 1 a 15 do SAI
+        maxWindow = std::clamp(static_cast<size_t>(2 + static_cast<int>(L * 1.7)), static_cast<size_t>(2), MAX_WINDOW_SIZE);
+        alpha = 1.0 / (1.0 + L * 0.30);
+    } else {
+        // Níveis Super S-1 a S-7 do SAI
+        const double sIndex = L - 15.0; // 0.0 a 7.0
+        maxWindow = std::clamp(static_cast<size_t>(27 + static_cast<int>(sIndex * 9.8)), static_cast<size_t>(2), MAX_WINDOW_SIZE);
+        alpha = 1.0 / (5.5 + sIndex * 3.5);
+    }
 
     m_historyHead = (m_historyHead + 1) % MAX_WINDOW_SIZE;
     m_historyBuffer[m_historyHead] = rawPosition;
@@ -43,11 +51,11 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
         m_historyCount = maxWindow;
     }
 
-    // 3. Weighted center-of-mass averaging with exponential recency weighting (Zero-Cost LUT)
+    // 3. Núcleo ponderado parabólico com expoente gamma = 1.40 do SAI Ver.2
     static const auto WEIGHT_LUT = []() {
         std::array<double, MAX_WINDOW_SIZE> arr{};
         for (size_t k = 0; k < MAX_WINDOW_SIZE; ++k) {
-            arr[k] = std::pow(static_cast<double>(k + 1), 1.25);
+            arr[k] = std::pow(static_cast<double>(k + 1), 1.40);
         }
         return arr;
     }();
@@ -66,29 +74,43 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition) noexcept {
         totalWeight > 0.0 ? (sumY / totalWeight) : rawPosition.y
     };
 
-    // 4. Smooth spring-mass interpolation with adaptive responsiveness
-    const double interpFactor = std::clamp(std::pow(1.0 - norm * 0.92, 1.6), 0.035, 1.0);
+    // 4. Inércia Elástica Trailing Spring contínua (SAI Trailing Spring)
+    const double clampedAlpha = std::clamp(alpha, 0.025, 1.0);
     const math::Point2D delta = windowAvg - m_stabilizedPosition;
-    m_stabilizedPosition = m_stabilizedPosition + (delta * interpFactor);
+    m_stabilizedPosition = m_stabilizedPosition + (delta * clampedAlpha);
     return m_stabilizedPosition;
 }
 
 std::vector<math::Point2D> DynamicStabilizer::flush(math::Point2D endPosition, size_t steps) noexcept {
     std::vector<math::Point2D> catchupPoints;
-    if (m_stabilizationPercentage <= 0.5 || steps == 0) {
+    if (m_stabilizationPercentage <= 0.5) {
         m_stabilizedPosition = endPosition;
         catchupPoints.push_back(endPosition);
         return catchupPoints;
     }
 
-    catchupPoints.reserve(steps);
-    for (size_t i = 1; i <= steps; ++i) {
-        const double t = static_cast<double>(i) / static_cast<double>(steps);
-        const double smoothT = t * t * (3.0 - 2.0 * t); // Smoothstep
-        math::Point2D pt = m_stabilizedPosition + (endPosition - m_stabilizedPosition) * smoothT;
-        catchupPoints.push_back(pt);
+    const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
+    const double L = norm * 22.0;
+    double alpha = 1.0;
+    if (L <= 15.0) {
+        alpha = 1.0 / (1.0 + L * 0.30);
+    } else {
+        alpha = 1.0 / (5.5 + (L - 15.0) * 3.5);
     }
-    m_stabilizedPosition = endPosition;
+
+    const double closeAlpha = std::clamp(alpha * 2.2, 0.14, 0.92);
+    const size_t maxSteps = std::clamp(static_cast<size_t>(steps * 8 + 8), static_cast<size_t>(8), static_cast<size_t>(48));
+
+    for (size_t i = 0; i < maxSteps; ++i) {
+        const double dist = m_stabilizedPosition.distanceTo(endPosition);
+        if (dist < 0.25) {
+            catchupPoints.push_back(endPosition);
+            m_stabilizedPosition = endPosition;
+            break;
+        }
+        m_stabilizedPosition = m_stabilizedPosition + (endPosition - m_stabilizedPosition) * closeAlpha;
+        catchupPoints.push_back(m_stabilizedPosition);
+    }
     return catchupPoints;
 }
 

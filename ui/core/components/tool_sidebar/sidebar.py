@@ -102,6 +102,37 @@ class ToolSidebar(QtWidgets.QToolBar):
         self.action_clear.triggered.connect(self.clearRequested.emit)
         self.addAction(self.action_clear)
 
+        self.addSeparator()
+
+        # ── Dropdown de Estabilização no Topo (ao lado de Limpar Tela) ──
+        self.btn_stab_icon = QtWidgets.QToolButton(self)
+        self.btn_stab_icon.setIcon(get_icon("stabilizer", "FG_SECONDARY"))
+        self.btn_stab_icon.setToolTip(tr("tools.stabilizer_tooltip", "Perfil de Estabilização de Traço"))
+        self.btn_stab_icon.setStyleSheet("border: none; background: transparent;")
+        self.btn_stab_icon.setFixedSize(22, 22)
+        self.addWidget(self.btn_stab_icon)
+
+        from ui.core.engine.stabilizer_hub import StabilizerHub
+        hub = StabilizerHub.instance()
+
+        self.combo_stabilizer = QtWidgets.QComboBox()
+        self.combo_stabilizer.setObjectName("TopBarStabilizerCombo")
+        self.combo_stabilizer.setFixedHeight(24)
+        self.combo_stabilizer.setMinimumWidth(180)
+        self.combo_stabilizer.setToolTip(tr("tools.stabilizer_tooltip", "Perfil de Estabilização do Traço (Estabilizador Lab)"))
+
+        for pid, pdata in hub.PROFILES.items():
+            icon = get_icon(pdata.get("icon_name", "stabilizer"), "FG_SECONDARY")
+            self.combo_stabilizer.addItem(icon, pdata["name"], pid)
+
+        idx = self.combo_stabilizer.findData(hub.current_profile)
+        if idx >= 0:
+            self.combo_stabilizer.setCurrentIndex(idx)
+
+        self.combo_stabilizer.currentIndexChanged.connect(self._on_topbar_stabilizer_changed)
+        hub.profileChanged.connect(self._sync_combo_from_hub)
+        self.addWidget(self.combo_stabilizer)
+
     def retranslate_ui(self):
         self.setWindowTitle(tr("tools.toolbar_title", "Ferramentas"))
         self.action_brush.setText(tr("tools.brush", "Pincel (B)"))
@@ -142,3 +173,18 @@ class ToolSidebar(QtWidgets.QToolBar):
     def _on_theme_changed(self, theme_name: str):
         self.setup_actions()
         self.retranslate_ui()
+
+    def _on_topbar_stabilizer_changed(self, index: int) -> None:
+        if hasattr(self, "combo_stabilizer"):
+            pid = self.combo_stabilizer.currentData()
+            if pid:
+                from ui.core.engine.stabilizer_hub import StabilizerHub
+                StabilizerHub.instance().set_profile(pid)
+
+    def _sync_combo_from_hub(self, profile_id: str) -> None:
+        if hasattr(self, "combo_stabilizer"):
+            idx = self.combo_stabilizer.findData(profile_id)
+            if idx >= 0 and self.combo_stabilizer.currentIndex() != idx:
+                self.combo_stabilizer.blockSignals(True)
+                self.combo_stabilizer.setCurrentIndex(idx)
+                self.combo_stabilizer.blockSignals(False)

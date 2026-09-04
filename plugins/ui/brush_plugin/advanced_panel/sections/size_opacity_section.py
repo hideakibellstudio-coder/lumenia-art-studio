@@ -48,7 +48,7 @@ def create_size_opacity_section(panel) -> CollapsibleSection:
     panel.chk_vel_size.stateChanged.connect(panel._on_vel_size)
     lo.addWidget(panel.chk_vel_size)
 
-    panel.slider_stabilizer = LabeledSlider(f"{tr('brush.stabilizer_label', 'Suavização (Estabilizador)')}:", 0, 98, 40, "%", param_name="stabilizer", show_pin=True, default_pinned=False)
+    panel.slider_stabilizer = LabeledSlider(f"{tr('brush.stabilizer_label', 'Suavização (Estabilizador)')}:", 0, 100, 65, "%", param_name="stabilizer", show_pin=True, default_pinned=False)
     panel.slider_stabilizer.valueChanged.connect(lambda v: panel.stabilizerWeightChanged.emit(v / 100.0))
     panel.slider_stabilizer.valueChanged.connect(panel._on_stabilizer_changed)
     panel.slider_stabilizer.pinToggled.connect(panel.pinToggled.emit)

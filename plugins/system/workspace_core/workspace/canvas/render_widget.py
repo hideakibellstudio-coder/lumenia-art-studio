@@ -9,6 +9,8 @@ from ui.infrastructure.bridge_client import BridgeClient
 from ui.infrastructure.bridge_client.dispatcher import EngineDispatcher
 from ui.core.engine.backend import PointerEvent
 from ui.core.theme.manager import ThemeManager
+from ui.core.plugins.registry import ServiceRegistry
+from ui.core.plugins.base import BrushDynamicsService
 
 from .text_overlay_editor import TextOverlayEditor
 from .viewport.camera_controller import CameraController
@@ -314,6 +316,18 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
                 cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom)
             else:
                 cur_x, cur_y = evt.x, evt.y
+
+            # Pipeline de dinâmicas / estabilizadores via plugins
+            dynamics = ServiceRegistry.instance().get_services(BrushDynamicsService)
+            for svc in dynamics:
+                try:
+                    if hasattr(svc, "on_start_stroke"):
+                        cur_x, cur_y, safe_pressure = svc.on_start_stroke(cur_x, cur_y, safe_pressure, 0.0)
+                    else:
+                        cur_x, cur_y, safe_pressure = svc.process_stroke_point(cur_x, cur_y, safe_pressure, 0.0)
+                except Exception:
+                    pass
+
             self._last_draw_pos = (cur_x, cur_y)
             b.start_stroke(cur_x, cur_y, safe_pressure)
             self.update()
@@ -327,6 +341,15 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             safe_p = max(0.02, pressure)
             evt = self.to_canvas(screen_x, screen_y, safe_p, 0.0)
             cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom) if hasattr(self, "geometry_ctrl") else (evt.x, evt.y)
+
+            # Pipeline de dinâmicas / estabilizadores via plugins
+            dynamics = ServiceRegistry.instance().get_services(BrushDynamicsService)
+            for svc in dynamics:
+                try:
+                    cur_x, cur_y, safe_p = svc.process_stroke_point(cur_x, cur_y, safe_p, time.time())
+                except Exception:
+                    pass
+
             res = b.paint_stroke(cur_x, cur_y, safe_p)
             self._last_draw_pos = (cur_x, cur_y)
             is_sym = hasattr(self, "geometry_ctrl") and (self.geometry_ctrl.sym_state.get("mode", "none") != "none")
@@ -346,6 +369,17 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         if self.drawing:
             b = self.backend
             if b is not None:
+                # Flush residual de inércia elástica dos plugins (ex: SAI Pen Up flush)
+                dynamics = ServiceRegistry.instance().get_services(BrushDynamicsService)
+                for svc in dynamics:
+                    if hasattr(svc, "on_end_stroke"):
+                        try:
+                            flush_pts = svc.on_end_stroke()
+                            for f_x, f_y, f_p in flush_pts:
+                                b.paint_stroke(f_x, f_y, f_p)
+                        except Exception:
+                            pass
+
                 if screen_x is not None and screen_y is not None:
                     evt = self.to_canvas(screen_x, screen_y, 0.0, 0.0)
                     b.end_stroke(evt.x, evt.y)

@@ -485,6 +485,45 @@ BRUSH_CATEGORIES = [
     },
 ]
 
+# ─────────────────────────────────────────────────────────────────────────
+# Calibração Padrão de Estabilização por Categoria e Preset (Single Source of Truth)
+# ─────────────────────────────────────────────────────────────────────────
+CATEGORY_DEFAULT_STABILIZER = {
+    "brush": 0.40,        # Pintura & Ilustração (40%)
+    "pencil": 0.20,       # Fluido (20%)
+    "inker": 0.65,        # Lineart & Mangá (65%)
+    "eraser": 0.30,       # Borracha (30%)
+    "marker": 0.45,       # Marcador (45%)
+    "blur": 0.20,         # Desfoque (20%)
+    "smudge": 0.25,       # Arrasto (25%)
+    "watercolor": 0.35,   # Aquarela (35%)
+    "oil": 0.40,          # Óleo (40%)
+}
+
+PRESET_SPECIFIC_STABILIZER = {
+    "G-Pen (Mangá)": 0.65,
+    "Pena Redonda": 0.60,
+    "Nanquim Técnico": 0.70,
+    "Caneta Tinteiro": 0.55,
+    "Lápis 2H (Duro)": 0.20,
+    "Lápis HB (Médio)": 0.20,
+    "Lápis 6B (Mole)": 0.25,
+    "Carvão Vegetal": 0.15,
+    "Giz de Pastel": 0.15,
+    "Pincel Chato (Flat)": 0.45,
+    "Aerógrafo": 0.25,
+    "Borracha Dura": 0.30,
+    "Borracha Mole": 0.20,
+    "Borracha de Aerógrafo": 0.15,
+}
+
+for _cat in BRUSH_CATEGORIES:
+    _cat_default_stab = CATEGORY_DEFAULT_STABILIZER.get(_cat.get("id"), 0.40)
+    for _p in _cat.get("presets", []):
+        if "stabilizer_weight" not in _p:
+            _lbl = _p.get("label", "")
+            _p["stabilizer_weight"] = PRESET_SPECIFIC_STABILIZER.get(_lbl, _cat_default_stab)
+
 # Mapa rápido id → categoria para lookup por engine_type
 ENGINE_TYPE_TO_CATEGORY = {cat["engine_type"]: cat for cat in BRUSH_CATEGORIES}
 

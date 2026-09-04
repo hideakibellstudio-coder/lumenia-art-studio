@@ -197,6 +197,35 @@ SVG_ICONS = {
         <path d="m14 12-8.5 8.5a2.12 2.12 0 1 1-3-3L11 9"/><path d="m18 8 3 3-7 7-3-3 7-7z"/><path d="m15 5 4 4"/>
     </svg>""",
 
+    # ── ESTABILIZADOR E DINÂMICA DE TRAÇO ──────────────────────────────────
+    "stabilizer": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12c4-8 8 8 12 0s6 4 8 0"/><circle cx="6" cy="8" r="1.5" fill="currentColor"/><circle cx="14" cy="12" r="1.5" fill="currentColor"/><circle cx="20" cy="12" r="1.5" fill="currentColor"/>
+    </svg>""",
+
+    "stabilizer_off": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>""",
+
+    "stabilizer_fluid": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>
+    </svg>""",
+
+    "stabilizer_paint": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m14 12 4 4L7 21H3v-4L14 12z"/><path d="m18 8 2-2a2.828 2.828 0 1 0-4-4l-2 2 4 4z"/>
+    </svg>""",
+
+    "stabilizer_lineart": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="11" cy="11" r="2"/>
+    </svg>""",
+
+    "stabilizer_sculpted": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><polyline points="2 9 12 22 22 9"/><polyline points="2 9 12 9 22 9"/><polyline points="6 3 12 9 18 3"/>
+    </svg>""",
+
+    "stabilizer_silk": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 15c6.667-6 13.333 6 20 0"/><path d="M2 9c6.667-6 13.333 6 20 0"/>
+    </svg>""",
+
     "eraser": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/>
     </svg>""",

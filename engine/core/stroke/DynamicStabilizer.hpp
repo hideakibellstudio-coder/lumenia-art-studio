@@ -10,7 +10,7 @@ namespace aladyn::engine::stroke {
 
 class DynamicStabilizer {
 public:
-    static constexpr size_t MAX_WINDOW_SIZE = 32;
+    static constexpr size_t MAX_WINDOW_SIZE = 96;
 
     explicit DynamicStabilizer(double stabilizationPercentage = 40.0) noexcept;
 

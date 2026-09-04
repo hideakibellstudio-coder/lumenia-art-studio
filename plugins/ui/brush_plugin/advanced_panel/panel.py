@@ -39,6 +39,9 @@ class AdvancedPanel(QtWidgets.QDialog):
         self._drag_pos = None
         self._build_ui()
 
+        from ui.core.engine.stabilizer_hub import StabilizerHub
+        StabilizerHub.instance().fineTuningChanged.connect(self._sync_stabilizer_from_hub)
+
         from ui.core.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme("")
@@ -338,6 +341,15 @@ class AdvancedPanel(QtWidgets.QDialog):
         b = EngineRegistry.instance().get_backend()
         if b: b.set_stabilizer_weight(float(v) / 100.0)
         self.stabilizerWeightChanged.emit(float(v) / 100.0)
+        from ui.core.engine.stabilizer_hub import StabilizerHub
+        StabilizerHub.instance().set_fine_tuning_pct(int(v), source="advanced_panel")
+
+    def _sync_stabilizer_from_hub(self, val: int) -> None:
+        if hasattr(self, "slider_stabilizer"):
+            if self.slider_stabilizer.value() != val:
+                self.slider_stabilizer.blockSignals(True)
+                self.slider_stabilizer.setValue(val)
+                self.slider_stabilizer.blockSignals(False)
 
     def _on_tip_hardness(self, v):
         from ui.core.engine.registry import EngineRegistry

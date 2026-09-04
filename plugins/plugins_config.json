@@ -6,5 +6,6 @@
     "LayersPlugin": true,
     "GeometryPlugin": true,
     "TelemetryPlugin": true,
+    "StabilizerLabPlugin": true,
     "RainbowDynamics": false
 }

@@ -50,6 +50,8 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self._tool_buttons = {}
 
         self.setup_ui()
+        from ui.core.engine.stabilizer_hub import StabilizerHub
+        StabilizerHub.instance().fineTuningChanged.connect(self._sync_stabilizer_from_hub)
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
@@ -187,7 +189,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             ("contrast", "Dur:", 1, 30, "", 10, lambda v: self.contrastChanged.emit(v / 10.0)),
             ("pressure", "Press:", 1, 100, "%", 50, lambda v: self.pressureChanged.emit(v / 100.0)),
             ("curve", "Curv:", 1, 40, "", 10, lambda v: self.pressureCurvePowerChanged.emit(v / 10.0)),
-            ("stabilizer", "Stab:", 0, 95, "%", 0, lambda v: self.stabilizerWeightChanged.emit(v / 100.0)),
+            ("stabilizer", "Stab:", 0, 100, "%", 65, self._on_quick_stabilizer_changed),
             ("spacing", "Espac:", 1, 100, "%", 10, lambda v: self.spacingChanged.emit(v / 100.0)),
             ("min_density", "Dens:", 0, 100, "%", 0, lambda v: self.minDensityValueChanged.emit(v / 100.0)),
         ]
@@ -422,6 +424,12 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self.opacity_slider.blockSignals(False)
             self.opacityChanged.emit(float(data["opacity"]))
 
+        if "stabilizer_weight" in data:
+            raw_w = data["stabilizer_weight"]
+            val_pct = int(raw_w * 100 if raw_w <= 1.0 else raw_w)
+            from ui.core.engine.stabilizer_hub import StabilizerHub
+            StabilizerHub.instance().set_fine_tuning_pct(val_pct, source="preset")
+
         if self._adv_panel:
             self._adv_panel.sync_from_engine_profile()
 
@@ -474,6 +482,18 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self.opacityChanged.emit(val)
         if hasattr(self, "stroke_preview"):
             self.stroke_preview.update_preview()
+
+    def _on_quick_stabilizer_changed(self, val: int) -> None:
+        self.stabilizerWeightChanged.emit(val / 100.0)
+        from ui.core.engine.stabilizer_hub import StabilizerHub
+        StabilizerHub.instance().set_fine_tuning_pct(int(val), source="quick_slider")
+
+    def _sync_stabilizer_from_hub(self, val: int) -> None:
+        if hasattr(self, "stabilizer_slider"):
+            if self.stabilizer_slider.value() != val:
+                self.stabilizer_slider.blockSignals(True)
+                self.stabilizer_slider.setValue(val)
+                self.stabilizer_slider.blockSignals(False)
 
     def _sync_stabilizer_from_adv(self, val: float) -> None:
         self.stabilizer_slider.blockSignals(True)

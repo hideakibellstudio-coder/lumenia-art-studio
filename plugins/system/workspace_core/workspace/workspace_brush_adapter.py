@@ -274,10 +274,21 @@ class WorkspaceBrushMixin:
                 if hasattr(self.canvas_widget, "_update_cursor_shape"):
                     self.canvas_widget._update_cursor_shape()
 
-            if tool in ("brush", "bucket"):
+            from ui.core.engine.registry import EngineRegistry
+            backend = EngineRegistry.instance().get_backend()
+
+            if tool == "eraser":
+                if backend and hasattr(backend, "get_active_engine_type") and hasattr(backend, "set_engine_type"):
+                    cur_eng = backend.get_active_engine_type()
+                    if cur_eng != 3:
+                        self._saved_engine_type = cur_eng
+                    backend.set_engine_type(3)
+            elif tool in ("brush", "bucket", "pencil", "inker"):
+                if backend and hasattr(backend, "set_engine_type") and hasattr(backend, "get_active_engine_type"):
+                    if backend.get_active_engine_type() == 3:
+                        target_eng = getattr(self, "_saved_engine_type", 0)
+                        backend.set_engine_type(target_eng)
                 self._apply_brush_color(self._saved_color)
-            elif tool == "eraser":
-                self._apply_brush_color(QtGui.QColor("#ffffff"))
 
             if hasattr(self, "_brush_dock") and self._brush_dock:
                 self._brush_dock.set_tool_active(tool)

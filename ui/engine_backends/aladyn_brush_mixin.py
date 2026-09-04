@@ -180,6 +180,8 @@ class AladynBrushMixin:
             self.set_brush_spacing(float(data["spacing_factor"]))
         if "hardness" in data:
             self.set_brush_hardness(float(data["hardness"]))
+        if "stabilizer_weight" in data:
+            self.set_stabilizer_weight(float(data["stabilizer_weight"]))
         if "brush_grain_enabled" in data:
             self.set_brush_grain_enabled(bool(data["brush_grain_enabled"]))
         if "brush_height_preset" in data:

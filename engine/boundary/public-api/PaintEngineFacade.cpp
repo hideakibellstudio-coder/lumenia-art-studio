@@ -82,10 +82,6 @@ void PaintEngineFacade::setEngineType(int engineTypeId) {
     initEngine(type);
 }
 
-int PaintEngineFacade::getActiveEngineType() const noexcept {
-    return static_cast<int>(m_brushProfile.engineType);
-}
-
 // ─── GERENCIAMENTO DE CAMADAS ─────────────────────────────────────────────
 
 int PaintEngineFacade::addLayer(const std::string& name, int insertIndex) {
@@ -124,8 +120,6 @@ int PaintEngineFacade::getFilterType(int index) const {
     return 0;
 }
 
-
-
 bool PaintEngineFacade::setGroupPassThrough(int index, bool passThrough) {
     bool ok = m_layerStack.setGroupPassThrough(index, passThrough);
     if (ok) m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
@@ -139,7 +133,6 @@ bool PaintEngineFacade::removeLayer(int index) {
 int PaintEngineFacade::duplicateLayer(int index) {
     return internal::LayerStackOrchestrator::duplicateLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
 }
-
 
 bool PaintEngineFacade::reorderLayer(int fromIndex, int toIndex) {
     return internal::LayerStackOrchestrator::reorderLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, fromIndex, toIndex);
@@ -235,8 +228,11 @@ void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
     m_velocityTracker.reset(event.position, event.timestamp);
     m_undoManager.beginStep("Stroke");
     if (m_activeEngine) m_activeEngine->onBeginStroke();
-    auto mapped = brush::DynamicMapper::map(m_brushProfile, event.position, event.pressure, 0.0, 0.0);
-    m_lastDab = raster::Dab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
+    auto mapped = brush::DynamicMapper::map(
+        m_brushProfile, event.position, event.pressure, 0.0, 0.0,
+        event.twist, event.altitude, event.azimuth
+    );
+    m_lastDab = raster::Dab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color, mapped.aspectRatio);
     m_telemetryManager.onBeginStroke(event.pressure, static_cast<int>(m_brushProfile.engineType));
 }
 
@@ -247,8 +243,20 @@ TelemetryData PaintEngineFacade::updateStroke(const stroke::PointerEvent& event)
     const double currentVelocity = m_velocityTracker.update(event.position, event.timestamp);
     const double normVel = m_velocityTracker.getNormalizedVelocity(1500.0);
     math::Point2D pos = m_stabilizer.update(event.position, normVel);
-    auto mapped = brush::DynamicMapper::map(m_brushProfile, pos, event.pressure, normVel, 0.0);
-    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
+
+    double strokeAngle = 0.0;
+    const double dx = pos.x - m_lastDab.position.x;
+    const double dy = pos.y - m_lastDab.position.y;
+    if (dx * dx + dy * dy > 0.01) {
+        strokeAngle = std::atan2(dy, dx) * (180.0 / 3.14159265358979323846);
+        if (strokeAngle < 0.0) strokeAngle += 360.0;
+    }
+
+    auto mapped = brush::DynamicMapper::map(
+        m_brushProfile, pos, event.pressure, normVel, strokeAngle,
+        event.twist, event.altitude, event.azimuth
+    );
+    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color, mapped.aspectRatio);
     renderStrokeSegment(m_lastDab, currentDab);
     m_lastDab = currentDab;
     return { event.pressure, currentVelocity, currentDab.opacity };
@@ -291,7 +299,8 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
     }
 }
 
-void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, double timestamp) {
+void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, double timestamp,
+                                       double tiltX, double tiltY, double twist) {
     m_lastRawPoint = {x, y};
     m_hasLastRawPoint = true;
     m_lastRawPressure = pressure;
@@ -301,10 +310,13 @@ void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, doub
         auto now = std::chrono::high_resolution_clock::now();
         t = std::chrono::duration<double>(now.time_since_epoch()).count();
     }
-    beginStroke({stroke::PointerEventType::Press, {x, y}, pressure, t});
+    stroke::PointerEvent ev{stroke::PointerEventType::Press, {x, y}, pressure, t, tiltX, tiltY, twist};
+    ev.computeAltitudeAzimuthFromTilt();
+    beginStroke(ev);
 }
 
-std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure, double timestamp) {
+std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure, double timestamp,
+                                                       double tiltX, double tiltY, double twist) {
     internal::RawStrokeContext ctx{
         m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, m_firstSample,
         m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
@@ -313,7 +325,7 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
         m_selectionMask, m_undoManager, m_compositor, m_outputBuffer,
         m_symmetryConfig, m_telemetryManager
     };
-    return internal::StrokeOrchestrator::updateStrokeRaw(ctx, x, y, pressure, timestamp);
+    return internal::StrokeOrchestrator::updateStrokeRaw(ctx, x, y, pressure, timestamp, tiltX, tiltY, twist);
 }
 
 std::vector<double> PaintEngineFacade::endStrokeRaw() {

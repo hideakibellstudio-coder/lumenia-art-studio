@@ -9,7 +9,10 @@ MappedBrushState DynamicMapper::map(
     math::Point2D position,
     double rawPressure,
     double normalizedVelocity,
-    double strokeAngle
+    double strokeAngle,
+    double twist,
+    double altitude,
+    double azimuth
 ) noexcept {
     static thread_local std::mt19937 rng(1337);
     std::uniform_real_distribution<double> distJitter(-1.0, 1.0);
@@ -49,10 +52,18 @@ MappedBrushState DynamicMapper::map(
     const double thickness = minSizePx + (profile.brushSize - minSizePx) * fSize;
     const double radius = thickness * 0.5;
 
-    // ─── CÁLCULO DE ÂNGULO E ACHATAMENTO REATIVOS À PRESSÃO ─────────────────
+    // ─── CÁLCULO DE ÂNGULO E ROTAÇÃO DINÂMICA (CANETA & TRAÇO) ─────────────────
     double angle = profile.tip.angle;
     if (profile.tip.followStroke) {
         angle += strokeAngle;
+    }
+
+    if (profile.tip.useTwistForAngle) {
+        angle += twist;
+    }
+
+    if (profile.tip.tiltToAngle > 0.0) {
+        angle += azimuth * profile.tip.tiltToAngle;
     }
 
     if (profile.pressureToAngle != 0.0) {
@@ -64,6 +75,20 @@ MappedBrushState DynamicMapper::map(
         angle += distJitter(rng) * profile.tip.jitterAngle * 180.0;
     }
 
+    angle = std::fmod(angle, 360.0);
+    if (angle < 0.0) angle += 360.0;
+
+    // ─── CÁLCULO DO ACHATAMENTO ELÍPTICO (ASPECT RATIO) ───────────────────────
+    double aspect = profile.tip.aspectRatio;
+    if (profile.pressureToAspect > 0.0) {
+        aspect = std::clamp(aspect - (rawPressure * profile.pressureToAspect), 0.05, 1.0);
+    }
+    if (profile.tip.tiltToAspect > 0.0) {
+        const double tiltFlatness = std::clamp((90.0 - altitude) / 70.0, 0.0, 1.0);
+        aspect = std::clamp(aspect * (1.0 - tiltFlatness * profile.tip.tiltToAspect), 0.05, 1.0);
+    }
+    aspect = std::clamp(aspect, 0.05, 1.0);
+
     // Jitter de Posição (Dispersão)
     math::Point2D finalPos = position;
     if (profile.tip.jitterPosition > 0.0) {
@@ -72,10 +97,61 @@ MappedBrushState DynamicMapper::map(
         finalPos.y += distJitter(rng) * scatterRadius;
     }
 
+    // ─── COR E JITTER CROMÁTICO (HUE / SATURATION / BRIGHTNESS JITTER) ─────────
     raster::ColorRGBA color = profile.baseColor;
+    if (profile.tip.jitterHue > 0.0 || profile.tip.jitterSaturation > 0.0 || profile.tip.jitterBrightness > 0.0) {
+        float r = static_cast<float>(color.r) / 255.0f;
+        float g = static_cast<float>(color.g) / 255.0f;
+        float b = static_cast<float>(color.b) / 255.0f;
+
+        const float minVal = std::min({r, g, b});
+        const float maxVal = std::max({r, g, b});
+        const float delta = maxVal - minVal;
+        float h = 0.0f, s = 0.0f, v = maxVal;
+        if (maxVal > 0.0f && delta > 0.0f) {
+            s = delta / maxVal;
+            if (r == maxVal) h = (g - b) / delta;
+            else if (g == maxVal) h = 2.0f + (b - r) / delta;
+            else h = 4.0f + (r - g) / delta;
+            h *= 60.0f;
+            if (h < 0.0f) h += 360.0f;
+        }
+
+        if (profile.tip.jitterHue > 0.0) {
+            h += static_cast<float>(distJitter(rng) * profile.tip.jitterHue * 180.0);
+            h = std::fmod(h, 360.0f);
+            if (h < 0.0f) h += 360.0f;
+        }
+        if (profile.tip.jitterSaturation > 0.0) {
+            s = std::clamp(s + static_cast<float>(distJitter(rng) * profile.tip.jitterSaturation), 0.0f, 1.0f);
+        }
+        if (profile.tip.jitterBrightness > 0.0) {
+            v = std::clamp(v + static_cast<float>(distJitter(rng) * profile.tip.jitterBrightness), 0.0f, 1.0f);
+        }
+
+        if (s == 0.0f) {
+            r = g = b = v;
+        } else {
+            const float c = v * s;
+            const float x = c * (1.0f - std::abs(std::fmod(h / 60.0f, 2.0f) - 1.0f));
+            const float m = v - c;
+            float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f;
+            if (h < 60.0f)       { r1 = c; g1 = x; b1 = 0.0f; }
+            else if (h < 120.0f) { r1 = x; g1 = c; b1 = 0.0f; }
+            else if (h < 180.0f) { r1 = 0.0f; g1 = c; b1 = x; }
+            else if (h < 240.0f) { r1 = 0.0f; g1 = x; b1 = c; }
+            else if (h < 300.0f) { r1 = x; g1 = 0.0f; b1 = c; }
+            else                 { r1 = c; g1 = 0.0f; b1 = x; }
+            r = r1 + m; g = g1 + m; b = b1 + m;
+        }
+        color.r = static_cast<uint8_t>(std::clamp(r * 255.0f, 0.0f, 255.0f));
+        color.g = static_cast<uint8_t>(std::clamp(g * 255.0f, 0.0f, 255.0f));
+        color.b = static_cast<uint8_t>(std::clamp(b * 255.0f, 0.0f, 255.0f));
+    }
+
     color.a = static_cast<uint8_t>(std::clamp(mappedFlow * 255.0, 0.0, 255.0));
 
-    return MappedBrushState{finalPos, radius, mappedFlow, rawPressure, angle, color};
+    return MappedBrushState{finalPos, radius, mappedFlow, rawPressure, angle, color, aspect};
 }
 
 std::vector<MappedBrushState> DynamicMapper::map_scatter(
@@ -83,14 +159,17 @@ std::vector<MappedBrushState> DynamicMapper::map_scatter(
     math::Point2D position,
     double rawPressure,
     double normalizedVelocity,
-    double strokeAngle
+    double strokeAngle,
+    double twist,
+    double altitude,
+    double azimuth
 ) {
     int count = std::max(1, profile.scatterCount);
     std::vector<MappedBrushState> states;
     states.reserve(static_cast<size_t>(count));
 
     for (int i = 0; i < count; ++i) {
-        states.push_back(map(profile, position, rawPressure, normalizedVelocity, strokeAngle));
+        states.push_back(map(profile, position, rawPressure, normalizedVelocity, strokeAngle, twist, altitude, azimuth));
     }
 
     return states;

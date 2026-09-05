@@ -50,9 +50,11 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         .def("update_stroke",    &boundary::PaintEngineFacade::updateStroke)
         .def("end_stroke",       &boundary::PaintEngineFacade::endStroke)
         .def("begin_stroke_raw",  &boundary::PaintEngineFacade::beginStrokeRaw,
-             py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0)
+             py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0,
+             py::arg("tilt_x") = 0.0, py::arg("tilt_y") = 0.0, py::arg("twist") = 0.0)
         .def("update_stroke_raw", &boundary::PaintEngineFacade::updateStrokeRaw,
-             py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0)
+             py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0,
+             py::arg("tilt_x") = 0.0, py::arg("tilt_y") = 0.0, py::arg("twist") = 0.0)
         .def("end_stroke_raw",    &boundary::PaintEngineFacade::endStrokeRaw)
         // Texturas e presets
         .def("set_shape_preset", &boundary::PaintEngineFacade::setShapePreset)

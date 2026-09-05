@@ -75,13 +75,14 @@ std::vector<Dab> DabInterpolator::interpolate(
         const double opacity = startDab.opacity + (endDab.opacity - startDab.opacity) * t;
         const double pressure = startDab.pressure + (endDab.pressure - startDab.pressure) * t;
         const double angle = std::fmod(startDab.angle + diffAngle * t + 360.0, 360.0);
+        const double aspect = startDab.aspectRatio + (endDab.aspectRatio - startDab.aspectRatio) * t;
 
         const uint8_t r = static_cast<uint8_t>(std::clamp(startDab.color.r + (endDab.color.r - startDab.color.r) * t, 0.0, 255.0));
         const uint8_t g = static_cast<uint8_t>(std::clamp(startDab.color.g + (endDab.color.g - startDab.color.g) * t, 0.0, 255.0));
         const uint8_t b = static_cast<uint8_t>(std::clamp(startDab.color.b + (endDab.color.b - startDab.color.b) * t, 0.0, 255.0));
         const uint8_t a = static_cast<uint8_t>(std::clamp(startDab.color.a + (endDab.color.a - startDab.color.a) * t, 0.0, 255.0));
 
-        dabs.emplace_back(pos, radius, opacity, pressure, angle, startDab.blendMode, ColorRGBA{r, g, b, a});
+        dabs.emplace_back(pos, radius, opacity, pressure, angle, startDab.blendMode, ColorRGBA{r, g, b, a}, aspect);
 
         lastDabPos = d;
 

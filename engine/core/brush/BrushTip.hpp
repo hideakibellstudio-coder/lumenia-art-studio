@@ -11,6 +11,16 @@ struct BrushTip {
     double jitterSize{0.0};      // % de variação aleatória de tamanho por dab (0.0 a 1.0)
     double jitterAngle{0.0};     // % de variação aleatória de ângulo por dab (0.0 a 1.0)
     double jitterPosition{0.0};  // Dispersão/espalhamento da posição por dab (0.0 a 1.0)
+
+    // ─── DINÂMICAS CROMÁTICAS (COLOR JITTER) ─────────────────────────────────
+    double jitterHue{0.0};        // Variação estocástica de matiz (0.0 a 1.0, onde 1.0 = ±180°)
+    double jitterSaturation{0.0}; // Variação estocástica de saturação (0.0 a 1.0)
+    double jitterBrightness{0.0}; // Variação estocástica de brilho/valor (0.0 a 1.0)
+
+    // ─── DINÂMICAS DE CANETA AVANÇADAS ───────────────────────────────────────
+    bool   useTwistForAngle{false}; // Ângulo sincronizado com Barrel Roll / Twist da caneta
+    double tiltToAngle{0.0};        // Modulação de rotação por azimute de inclinação (0.0 a 1.0)
+    double tiltToAspect{0.0};       // Achatamento da ponta conforme caneta se deita (0.0 a 1.0)
 };
 
 } // namespace aladyn::engine::brush

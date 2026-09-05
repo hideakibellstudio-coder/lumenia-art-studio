@@ -13,6 +13,7 @@ struct MappedBrushState {
     double pressure{1.0};
     double angle{0.0};
     raster::ColorRGBA color{0, 0, 0, 255};
+    double aspectRatio{1.0};
 };
 
 class DynamicMapper {
@@ -22,7 +23,10 @@ public:
         math::Point2D position,
         double rawPressure,
         double normalizedVelocity,
-        double strokeAngle = 0.0
+        double strokeAngle = 0.0,
+        double twist = 0.0,
+        double altitude = 90.0,
+        double azimuth = 0.0
     ) noexcept;
 
     static std::vector<MappedBrushState> map_scatter(
@@ -30,7 +34,10 @@ public:
         math::Point2D position,
         double rawPressure,
         double normalizedVelocity,
-        double strokeAngle = 0.0
+        double strokeAngle = 0.0,
+        double twist = 0.0,
+        double altitude = 90.0,
+        double azimuth = 0.0
     );
 };
 

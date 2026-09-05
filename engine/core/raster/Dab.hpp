@@ -32,6 +32,7 @@ struct Dab {
     double angle{0.0};
     DabBlendMode blendMode{DabBlendMode::Normal};
     ColorRGBA color{0, 0, 0, 255};
+    double aspectRatio{1.0};
 
     constexpr Dab() noexcept = default;
     constexpr Dab(
@@ -41,10 +42,12 @@ struct Dab {
         double pPressure,
         double pAngle,
         DabBlendMode pBlendMode,
-        ColorRGBA pColor
+        ColorRGBA pColor,
+        double pAspectRatio = 1.0
     ) noexcept
         : position(pPos), radius(pRadius), opacity(pOpacity),
-          pressure(pPressure), angle(pAngle), blendMode(pBlendMode), color(pColor) {}
+          pressure(pPressure), angle(pAngle), blendMode(pBlendMode), color(pColor),
+          aspectRatio(pAspectRatio) {}
 };
 
 } // namespace aladyn::engine::raster

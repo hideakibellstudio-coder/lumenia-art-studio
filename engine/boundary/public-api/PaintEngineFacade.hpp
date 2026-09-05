@@ -42,7 +42,7 @@ public:
 
     // ─── TROCA DE MOTOR SEM VAZAMENTO ─────────────────────────────────────
     void setEngineType(int engineTypeId);
-    [[nodiscard]] int getActiveEngineType() const noexcept;
+    [[nodiscard]] int getActiveEngineType() const noexcept { return static_cast<int>(m_brushProfile.engineType); }
 
     // ─── GERENCIAMENTO DE CAMADAS ─────────────────────────────────────────
     int addLayer(const std::string& name = "", int insertIndex = -1);
@@ -95,8 +95,10 @@ public:
     void endStroke(const stroke::PointerEvent& event);
 
     // ── Fast-Path Nativo Direto (Zero Alocações / Zero Overhead Python) ────
-    void beginStrokeRaw(double x, double y, double pressure = 1.0, double timestamp = 0.0);
-    std::vector<double> updateStrokeRaw(double x, double y, double pressure = 1.0, double timestamp = 0.0);
+    void beginStrokeRaw(double x, double y, double pressure = 1.0, double timestamp = 0.0,
+                        double tiltX = 0.0, double tiltY = 0.0, double twist = 0.0);
+    std::vector<double> updateStrokeRaw(double x, double y, double pressure = 1.0, double timestamp = 0.0,
+                                        double tiltX = 0.0, double tiltY = 0.0, double twist = 0.0);
     std::vector<double> endStrokeRaw();
 
     bool floodFill(int seedX, int seedY, const raster::ColorRGBA& fillColor,

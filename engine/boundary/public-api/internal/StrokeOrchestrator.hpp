@@ -26,6 +26,11 @@ struct TouchdownSample {
     math::Point2D stabilizedPos{0.0, 0.0};
     double normVel{0.0};
     double vel{0.0};
+    double tiltX{0.0};
+    double tiltY{0.0};
+    double twist{0.0};
+    double altitude{90.0};
+    double azimuth{0.0};
 };
 
 struct RawStrokeContext {
@@ -78,7 +83,8 @@ public:
 
     static std::vector<double> updateStrokeRaw(
         RawStrokeContext& ctx,
-        double x, double y, double pressure, double timestamp
+        double x, double y, double pressure, double timestamp,
+        double tiltX = 0.0, double tiltY = 0.0, double twist = 0.0
     );
 
     static std::vector<double> endStrokeRaw(

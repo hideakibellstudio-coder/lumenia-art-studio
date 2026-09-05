@@ -2,6 +2,7 @@
 #include "../canvas/SpatialCuller.hpp"
 #include "../math/MathUtils.hpp"
 #include "../document/Layer.hpp"
+#include "../color/LinearColorSpace.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -18,10 +19,10 @@ void DabRenderer::renderDab(
 
     const double r = dab.radius;
     
-    // Achatamento elíptico (Aspect Ratio) com modulação por pressão
-    double aspect = profile.tip.aspectRatio;
-    if (profile.pressureToAspect > 0.0) {
-        aspect = std::clamp(aspect - (dab.pressure * profile.pressureToAspect), 0.05, 1.0);
+    // Achatamento elíptico (Aspect Ratio) com modulação de caneta/dab e perfil
+    double aspect = std::clamp(dab.aspectRatio, 0.05, 1.0);
+    if (profile.pressureToAspect > 0.0 && dab.aspectRatio >= 0.999) {
+        aspect = std::clamp(profile.tip.aspectRatio - (dab.pressure * profile.pressureToAspect), 0.05, 1.0);
     }
     aspect = std::max(0.05, aspect);
 
@@ -262,14 +263,9 @@ void DabRenderer::renderDab(
 
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
-                    const uint32_t sA = static_cast<uint32_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
-                    const uint32_t invA = 255 - sA;
-                    dst = ColorRGBA{
-                        static_cast<uint8_t>((dab.color.r * sA + dst.r * invA + 127) / 255),
-                        static_cast<uint8_t>((dab.color.g * sA + dst.g * invA + 127) / 255),
-                        static_cast<uint8_t>((dab.color.b * sA + dst.b * invA + 127) / 255),
-                        dst.a
-                    };
+                    const uint8_t origA = dst.a;
+                    dst = color::blendLinearNormal(dab.color, static_cast<float>(curFinalAlpha), dst);
+                    dst.a = origA;
                     tileModified = true;
                     continue;
                 }
@@ -285,45 +281,13 @@ void DabRenderer::renderDab(
                         }
 
                         if (dst.a == 255) {
-                            const uint32_t sA = static_cast<uint32_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
-                            const uint32_t invA = 255 - sA;
-                            dst = ColorRGBA{
-                                static_cast<uint8_t>((dab.color.r * sA + dst.r * invA + 127) / 255),
-                                static_cast<uint8_t>((dab.color.g * sA + dst.g * invA + 127) / 255),
-                                static_cast<uint8_t>((dab.color.b * sA + dst.b * invA + 127) / 255),
-                                255
-                            };
+                            dst = color::blendLinearNormalOpaque(dab.color, static_cast<float>(curFinalAlpha), dst);
                             tileModified = true;
                             break;
                         }
 
-                        const double srcA = curFinalAlpha;
-                        const double dstA = static_cast<double>(dst.a) / 255.0;
-                        const double outA = srcA + dstA * (1.0 - srcA);
-
-                        if (outA > 0.0) {
-                            const double srcR = static_cast<double>(dab.color.r);
-                            const double srcG = static_cast<double>(dab.color.g);
-                            const double srcB = static_cast<double>(dab.color.b);
-
-                            const double dstR = static_cast<double>(dst.r);
-                            const double dstG = static_cast<double>(dst.g);
-                            const double dstB = static_cast<double>(dst.b);
-
-                            const double invOutA = 1.0 / outA;
-                            const double oneMinusSrcA = 1.0 - srcA;
-                            const double outR = (srcR * srcA + dstR * dstA * oneMinusSrcA) * invOutA;
-                            const double outG = (srcG * srcA + dstG * dstA * oneMinusSrcA) * invOutA;
-                            const double outB = (srcB * srcA + dstB * dstA * oneMinusSrcA) * invOutA;
-
-                            dst = ColorRGBA{
-                                static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
-                                static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
-                                static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
-                                static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
-                            };
-                            tileModified = true;
-                        }
+                        dst = color::blendLinearNormal(dab.color, static_cast<float>(curFinalAlpha), dst);
+                        tileModified = true;
                         break;
                     }
                     case DabBlendMode::Multiply: { // Modo Canetinha / Marker

@@ -106,13 +106,20 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
 
     py::class_<stroke::PointerEvent>(m, "PointerEvent")
         .def(py::init<>())
-        .def(py::init<stroke::PointerEventType, math::Point2D, double, double>(),
+        .def(py::init<stroke::PointerEventType, math::Point2D, double, double, double, double, double>(),
              py::arg("type"), py::arg("position"),
-             py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0)
+             py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0,
+             py::arg("tilt_x") = 0.0, py::arg("tilt_y") = 0.0, py::arg("twist") = 0.0)
         .def_readwrite("type",      &stroke::PointerEvent::type)
         .def_readwrite("position",  &stroke::PointerEvent::position)
         .def_readwrite("pressure",  &stroke::PointerEvent::pressure)
-        .def_readwrite("timestamp", &stroke::PointerEvent::timestamp);
+        .def_readwrite("timestamp", &stroke::PointerEvent::timestamp)
+        .def_readwrite("tilt_x",    &stroke::PointerEvent::tiltX)
+        .def_readwrite("tilt_y",    &stroke::PointerEvent::tiltY)
+        .def_readwrite("twist",     &stroke::PointerEvent::twist)
+        .def_readwrite("altitude",  &stroke::PointerEvent::altitude)
+        .def_readwrite("azimuth",   &stroke::PointerEvent::azimuth)
+        .def("compute_altitude_azimuth_from_tilt", &stroke::PointerEvent::computeAltitudeAzimuthFromTilt);
 
     py::class_<stroke::DynamicStabilizer>(m, "DynamicStabilizer")
         .def(py::init<double>(), py::arg("stabilization_percentage") = 40.0)
@@ -129,12 +136,18 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
     // ─── BRUSH TIP GEOMETRY ──────────────────────────────────────────────────
     py::class_<brush::BrushTip>(m, "BrushTip")
         .def(py::init<>())
-        .def_readwrite("angle",           &brush::BrushTip::angle)
-        .def_readwrite("aspect_ratio",    &brush::BrushTip::aspectRatio)
-        .def_readwrite("follow_stroke",   &brush::BrushTip::followStroke)
-        .def_readwrite("jitter_size",     &brush::BrushTip::jitterSize)
-        .def_readwrite("jitter_angle",    &brush::BrushTip::jitterAngle)
-        .def_readwrite("jitter_position", &brush::BrushTip::jitterPosition);
+        .def_readwrite("angle",               &brush::BrushTip::angle)
+        .def_readwrite("aspect_ratio",        &brush::BrushTip::aspectRatio)
+        .def_readwrite("follow_stroke",       &brush::BrushTip::followStroke)
+        .def_readwrite("jitter_size",         &brush::BrushTip::jitterSize)
+        .def_readwrite("jitter_angle",        &brush::BrushTip::jitterAngle)
+        .def_readwrite("jitter_position",     &brush::BrushTip::jitterPosition)
+        .def_readwrite("jitter_hue",          &brush::BrushTip::jitterHue)
+        .def_readwrite("jitter_saturation",   &brush::BrushTip::jitterSaturation)
+        .def_readwrite("jitter_brightness",   &brush::BrushTip::jitterBrightness)
+        .def_readwrite("use_twist_for_angle", &brush::BrushTip::useTwistForAngle)
+        .def_readwrite("tilt_to_angle",       &brush::BrushTip::tiltToAngle)
+        .def_readwrite("tilt_to_aspect",      &brush::BrushTip::tiltToAspect);
 
     // ─── PARÂMETROS EXCLUSIVOS POR MOTOR ─────────────────────────────────────
     py::class_<brush::PencilParams>(m, "PencilParams")

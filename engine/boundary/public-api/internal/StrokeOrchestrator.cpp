@@ -168,7 +168,8 @@ void StrokeOrchestrator::renderSegment(
 
 std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     RawStrokeContext& ctx,
-    double x, double y, double pressure, double timestamp
+    double x, double y, double pressure, double timestamp,
+    double tiltX, double tiltY, double twist
 ) {
     if (!ctx.isDrawing) return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     ctx.lastRawPoint = {x, y};
@@ -187,6 +188,20 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     const double normVel = ctx.velocityTracker.getNormalizedVelocity(1500.0);
     const math::Point2D pos = ctx.stabilizer.update({x, y}, normVel);
 
+    double altitude = 90.0;
+    double azimuth = 0.0;
+    if (std::abs(tiltX) >= 0.001 || std::abs(tiltY) >= 0.001) {
+        constexpr double deg2rad = 3.14159265358979323846 / 180.0;
+        constexpr double rad2deg = 180.0 / 3.14159265358979323846;
+        const double tanX = std::tan(tiltX * deg2rad);
+        const double tanY = std::tan(tiltY * deg2rad);
+        const double tanTilt = std::sqrt(tanX * tanX + tanY * tanY);
+        altitude = std::clamp(90.0 - std::atan(tanTilt) * rad2deg, 0.0, 90.0);
+        double az = std::atan2(tanY, tanX) * rad2deg;
+        if (az < 0.0) az += 360.0;
+        azimuth = az;
+    }
+
     // Amostra 1 do movimento (P1): Reter para confirmar alinhamento direcional com P2
     if (ctx.segmentsRenderedInStroke == 0 && !ctx.pendingFirstSegment) {
         ctx.firstSample.rawPoint = {x, y};
@@ -195,6 +210,11 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
         ctx.firstSample.stabilizedPos = pos;
         ctx.firstSample.normVel = normVel;
         ctx.firstSample.vel = vel;
+        ctx.firstSample.tiltX = tiltX;
+        ctx.firstSample.tiltY = tiltY;
+        ctx.firstSample.twist = twist;
+        ctx.firstSample.altitude = altitude;
+        ctx.firstSample.azimuth = azimuth;
         ctx.pendingFirstSegment = true;
         ctx.segmentsRenderedInStroke = 1;
         return { 0.0, 0.0, 0.0, 0.0, x, y, pressure, vel, ctx.lastDab.opacity };
@@ -231,13 +251,25 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
                 ctx.stabilizer.reanchorInitialPosition(alignedP0);
 
                 auto mappedP0 = brush::DynamicMapper::map(ctx.brushProfile, alignedP0, ctx.lastDab.pressure, 0.0, 0.0);
-                ctx.lastDab = raster::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color);
+                ctx.lastDab = raster::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color, mappedP0.aspectRatio);
             }
         }
 
+        double strokeAngle1 = 0.0;
+        const double dx1 = ctx.firstSample.stabilizedPos.x - ctx.lastDab.position.x;
+        const double dy1 = ctx.firstSample.stabilizedPos.y - ctx.lastDab.position.y;
+        if (dx1 * dx1 + dy1 * dy1 > 0.01) {
+            strokeAngle1 = std::atan2(dy1, dx1) * (180.0 / 3.14159265358979323846);
+            if (strokeAngle1 < 0.0) strokeAngle1 += 360.0;
+        }
+
         // Renderiza o segmento 1 (P0 -> P1 estabilizado)
-        auto mapped1 = brush::DynamicMapper::map(ctx.brushProfile, ctx.firstSample.stabilizedPos, ctx.firstSample.pressure, ctx.firstSample.normVel, 0.0);
-        raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, ctx.brushProfile.blendMode, mapped1.color);
+        auto mapped1 = brush::DynamicMapper::map(
+            ctx.brushProfile, ctx.firstSample.stabilizedPos, ctx.firstSample.pressure,
+            ctx.firstSample.normVel, strokeAngle1, ctx.firstSample.twist,
+            ctx.firstSample.altitude, ctx.firstSample.azimuth
+        );
+        raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, ctx.brushProfile.blendMode, mapped1.color, mapped1.aspectRatio);
         math::Rect2D dirty1{0, 0, 0, 0};
         uint32_t dabs1 = 0;
         telemetry::StageMetrics stages1{};
@@ -262,9 +294,19 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
         ++ctx.segmentsRenderedInStroke;
     }
 
+    double strokeAngle = 0.0;
+    const double dx = pos.x - ctx.lastDab.position.x;
+    const double dy = pos.y - ctx.lastDab.position.y;
+    if (dx * dx + dy * dy > 0.01) {
+        strokeAngle = std::atan2(dy, dx) * (180.0 / 3.14159265358979323846);
+        if (strokeAngle < 0.0) strokeAngle += 360.0;
+    }
+
     // Renderiza o segmento atual
-    auto mapped = brush::DynamicMapper::map(ctx.brushProfile, pos, pressure, normVel, 0.0);
-    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color);
+    auto mapped = brush::DynamicMapper::map(
+        ctx.brushProfile, pos, pressure, normVel, strokeAngle, twist, altitude, azimuth
+    );
+    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
     math::Rect2D dirtyCurrent{0, 0, 0, 0};
     uint32_t dabsCurrent = 0;
     telemetry::StageMetrics stagesCurrent{};
@@ -315,8 +357,12 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
 
     if (ctx.isDrawing) {
         if (ctx.pendingFirstSegment) {
-            auto mapped1 = brush::DynamicMapper::map(ctx.brushProfile, ctx.firstSample.stabilizedPos, ctx.firstSample.pressure, ctx.firstSample.normVel, 0.0);
-            raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, ctx.brushProfile.blendMode, mapped1.color);
+            auto mapped1 = brush::DynamicMapper::map(
+                ctx.brushProfile, ctx.firstSample.stabilizedPos, ctx.firstSample.pressure,
+                ctx.firstSample.normVel, 0.0, ctx.firstSample.twist,
+                ctx.firstSample.altitude, ctx.firstSample.azimuth
+            );
+            raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, ctx.brushProfile.blendMode, mapped1.color, mapped1.aspectRatio);
             math::Rect2D dirty1{0, 0, 0, 0};
             uint32_t dabs1 = 0;
             renderSegment(
@@ -375,7 +421,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
                 auto mapped = brush::DynamicMapper::map(ctx.brushProfile, targetPt, targetPressure, 0.0, 0.0);
                 mapped.radius *= targetRadiusMult;
                 mapped.opacity *= targetOpacityMult;
-                raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color);
+                raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
                 math::Rect2D dirty{0, 0, 0, 0};
                 uint32_t dabsRendered = 0;
                 renderSegment(

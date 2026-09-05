@@ -4,6 +4,7 @@
 #include "LayerNode.hpp"
 #include "../canvas/TileGrid.hpp"
 #include <string>
+#include <cstddef>
 
 namespace aladyn::engine::document {
 
@@ -30,6 +31,11 @@ public:
 
     [[nodiscard]] canvas::TileGrid& getTileGrid() noexcept { return m_tileGrid; }
     [[nodiscard]] const canvas::TileGrid& getTileGrid() const noexcept { return m_tileGrid; }
+
+    // ─── FASE 4: COMPRESSÃO & MEMÓRIA ────────────────────────────────────────
+    size_t compressInactiveTiles() { return m_tileGrid.compressInactiveTiles(); }
+    size_t decompressAllTiles() { return m_tileGrid.decompressAllTiles(); }
+    [[nodiscard]] size_t getMemoryFootprintBytes() const noexcept { return m_tileGrid.getMemoryFootprintBytes(); }
 
 private:
     bool m_alphaLocked{false};

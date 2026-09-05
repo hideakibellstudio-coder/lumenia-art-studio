@@ -2,6 +2,7 @@
 #define ALADYN_ENGINE_TILE_UNDO_MANAGER_HPP
 
 #include "TileGrid.hpp"
+#include "ScratchDiskManager.hpp"
 #include "../document/LayerStack.hpp"
 #include <vector>
 #include <string>
@@ -36,19 +37,32 @@ struct TileSnapshot {
     int layerIndex{0};
     int tileX{0};
     int tileY{0};
+
+    bool isCompressed{false};
+    size_t uncompressedBeforeBytes{0};
+    size_t uncompressedAfterBytes{0};
+
     std::vector<uint8_t> beforeData;
     std::vector<uint8_t> afterData;
+
+    // Paginação em Scratch Disk
+    bool isPagedToDisk{false};
+    uint64_t diskOffsetBefore{0};
+    uint64_t diskOffsetAfter{0};
+    size_t pagedBeforeSize{0};
+    size_t pagedAfterSize{0};
 };
 
 struct UndoStep {
     std::string description;
     std::vector<TileSnapshot> snapshots;
+    bool isPagedToDisk{false};
 };
 
 class TileUndoManager {
 public:
-    explicit TileUndoManager(size_t maxSteps = 50, size_t maxMemoryMB = 256)
-        : m_maxSteps(maxSteps), m_maxMemoryBytes(maxMemoryMB * 1024 * 1024) {}
+    explicit TileUndoManager(size_t maxSteps = 50, size_t maxMemoryMB = 256, bool scratchDiskEnabled = true);
+    ~TileUndoManager() = default;
 
     void beginStep(const std::string& description = "Stroke");
     void recordTileBefore(int layerIndex, int tileX, int tileY, const uint8_t* data, size_t sizeInBytes);
@@ -65,13 +79,22 @@ public:
     [[nodiscard]] size_t getUndoCount() const noexcept { return m_undoStack.size(); }
     [[nodiscard]] size_t getRedoCount() const noexcept { return m_redoStack.size(); }
     [[nodiscard]] size_t getMemoryUsageBytes() const noexcept { return m_currentMemoryBytes; }
+
     void setMaxMemoryMB(size_t mb) noexcept { m_maxMemoryBytes = mb * 1024 * 1024; }
     [[nodiscard]] size_t getMaxMemoryMB() const noexcept { return m_maxMemoryBytes / (1024 * 1024); }
     void setMaxSteps(size_t steps) noexcept { m_maxSteps = steps; }
     [[nodiscard]] size_t getMaxSteps() const noexcept { return m_maxSteps; }
 
+    // ─── FASE 4: SCRATCH DISK PAGING & DIAGNÓSTICO ───────────────────────────
+    void setScratchDiskEnabled(bool enabled);
+    [[nodiscard]] bool isScratchDiskEnabled() const noexcept;
+    [[nodiscard]] size_t getPagedStepsCount() const noexcept;
+    [[nodiscard]] uint64_t getScratchDiskBytes() const noexcept;
+
 private:
     static size_t calculateStepBytes(const UndoStep& step) noexcept;
+    bool pageOldestStepToDisk();
+    bool restoreStepFromDisk(UndoStep& step);
 
     size_t m_maxSteps{50};
     size_t m_maxMemoryBytes{256 * 1024 * 1024}; // 256 MB de teto padrão
@@ -82,6 +105,8 @@ private:
     std::unordered_set<TileSnapshotKey, TileSnapshotKeyHash> m_recordedTiles;
     std::deque<UndoStep> m_undoStack;
     std::deque<UndoStep> m_redoStack;
+
+    std::unique_ptr<ScratchDiskManager> m_scratchDisk;
 };
 
 } // namespace aladyn::engine::canvas

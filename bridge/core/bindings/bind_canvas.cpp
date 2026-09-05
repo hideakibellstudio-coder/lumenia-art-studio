@@ -64,7 +64,16 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         .def("paste_rgba_buffer_on_active_layer", [](boundary::PaintEngineFacade& self, int x, int y, int w, int h, py::bytes buffer, int blendMode, double opacity) {
             std::string s = buffer;
             return self.pasteRgbaBufferOnActiveLayer(x, y, w, h, reinterpret_cast<const uint8_t*>(s.data()), blendMode, opacity);
-        }, py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"), py::arg("buffer"), py::arg("blend_mode_id") = 0, py::arg("opacity") = 1.0);
+        }, py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"), py::arg("buffer"), py::arg("blend_mode_id") = 0, py::arg("opacity") = 1.0)
+        // ─── FASE 4: MEMÓRIA & SCRATCH DISK ─────────────────────────
+        .def("compress_inactive_layers", &boundary::PaintEngineFacade::compressInactiveLayers)
+        .def("decompress_all_layers", &boundary::PaintEngineFacade::decompressAllLayers)
+        .def("get_total_tile_memory_mb", &boundary::PaintEngineFacade::getTotalTileMemoryMB)
+        .def("get_cow_shared_tiles_count", &boundary::PaintEngineFacade::getCowSharedTilesCount)
+        .def("set_scratch_disk_enabled", &boundary::PaintEngineFacade::setScratchDiskEnabled)
+        .def("is_scratch_disk_enabled", &boundary::PaintEngineFacade::isScratchDiskEnabled)
+        .def("get_undo_paged_steps_count", &boundary::PaintEngineFacade::getUndoPagedStepsCount)
+        .def("get_scratch_disk_usage_mb", &boundary::PaintEngineFacade::getScratchDiskUsageMB);
 }
 
 } // namespace aladyn::bridge

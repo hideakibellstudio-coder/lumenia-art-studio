@@ -22,6 +22,7 @@
 #include "../../core/math/GuideSnapEngine.hpp"
 #include "../../core/telemetry/EngineTelemetry.hpp"
 #include "internal/StrokeOrchestrator.hpp"
+#include "internal/MemoryOrchestrator.hpp"
 #include <vector>
 #include <memory>
 
@@ -202,8 +203,17 @@ public:
     [[nodiscard]] bool isDetailedLoggingEnabled() const noexcept { return m_telemetryManager.isDetailedLogging(); }
     [[nodiscard]] telemetry::RealTimeStrokeMetrics getTelemetrySnapshot() const;
     void resetTelemetry() noexcept { m_telemetryManager.reset(); }
-    [[nodiscard]] telemetry::EngineTelemetryManager& getTelemetryManager() noexcept { return m_telemetryManager; }
-    [[nodiscard]] const telemetry::EngineTelemetryManager& getTelemetryManager() const noexcept { return m_telemetryManager; }
+    // ─── FASE 4: ESCALABILIDADE DE MEMÓRIA & SCRATCH DISK ─────────────────────
+    size_t compressInactiveLayers() { return internal::MemoryOrchestrator::compressInactiveLayers(m_layerStack); }
+    size_t decompressAllLayers() { return internal::MemoryOrchestrator::decompressAllLayers(m_layerStack); }
+    [[nodiscard]] double getTotalTileMemoryMB() const { return internal::MemoryOrchestrator::getTotalTileMemoryMB(m_layerStack); }
+    [[nodiscard]] size_t getCowSharedTilesCount() const { return internal::MemoryOrchestrator::getCowSharedTilesCount(m_layerStack); }
+    void setScratchDiskEnabled(bool enabled) { m_undoManager.setScratchDiskEnabled(enabled); }
+    [[nodiscard]] bool isScratchDiskEnabled() const noexcept { return m_undoManager.isScratchDiskEnabled(); }
+    [[nodiscard]] size_t getUndoPagedStepsCount() const noexcept { return m_undoManager.getPagedStepsCount(); }
+    [[nodiscard]] double getScratchDiskUsageMB() const noexcept {
+        return static_cast<double>(m_undoManager.getScratchDiskBytes()) / (1024.0 * 1024.0);
+    }
 
 private:
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);

@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <memory>
 #include <cstdint>
+#include <cstddef>
 
 namespace aladyn::engine::canvas {
 
@@ -32,8 +33,16 @@ public:
     void clearTiles();
     // Remove tiles 100% transparentes (liberação de RAM pós-borracha)
     size_t pruneEmptyTiles();
+    // Copia com Copy-on-Write (compartilha buffers imutáveis sem clonar 64KB)
     void copyFrom(const TileGrid& src);
     [[nodiscard]] size_t getActiveTilesCount() const noexcept { return m_tiles.size(); }
+
+    // ─── FASE 4: ESCALABILIDADE DE MEMÓRIA & COMPRESSÃO ─────────────────────
+    size_t compressInactiveTiles();
+    size_t decompressAllTiles();
+    [[nodiscard]] size_t getMemoryFootprintBytes() const noexcept;
+    [[nodiscard]] size_t getCompressedTilesCount() const noexcept;
+    [[nodiscard]] size_t getCowSharedTilesCount() const noexcept;
 
     // Itera sobre todos os tiles alocados (para commitScratch)
     template<typename Fn>

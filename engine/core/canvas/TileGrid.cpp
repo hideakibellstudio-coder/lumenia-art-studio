@@ -62,11 +62,62 @@ void TileGrid::copyFrom(const TileGrid& src) {
     m_tiles.clear();
     for (const auto& [idx, tile] : src.m_tiles) {
         if (tile) {
-            auto dupTile = std::make_unique<Tile>(idx.x, idx.y);
-            dupTile->getBuffer() = tile->getBuffer();
+            // Copy-on-Write (COW): compartilha o buffer com zero alocação de 64KB!
+            auto dupTile = std::make_unique<Tile>(idx.x, idx.y, tile->getSharedBuffer());
+            dupTile->setDirty(tile->isDirty());
             m_tiles[idx] = std::move(dupTile);
         }
     }
+}
+
+size_t TileGrid::compressInactiveTiles() {
+    size_t count = 0;
+    for (auto& [idx, tile] : m_tiles) {
+        if (tile && !tile->isCompressed()) {
+            if (tile->compress()) {
+                ++count;
+            }
+        }
+    }
+    return count;
+}
+
+size_t TileGrid::decompressAllTiles() {
+    size_t count = 0;
+    for (auto& [idx, tile] : m_tiles) {
+        if (tile && tile->isCompressed()) {
+            if (tile->decompress()) {
+                ++count;
+            }
+        }
+    }
+    return count;
+}
+
+size_t TileGrid::getMemoryFootprintBytes() const noexcept {
+    size_t total = sizeof(TileGrid) + (m_tiles.size() * (sizeof(TileIndex) + sizeof(std::unique_ptr<Tile>)));
+    for (const auto& [idx, tile] : m_tiles) {
+        if (tile) {
+            total += tile->getMemoryFootprint();
+        }
+    }
+    return total;
+}
+
+size_t TileGrid::getCompressedTilesCount() const noexcept {
+    size_t count = 0;
+    for (const auto& [idx, tile] : m_tiles) {
+        if (tile && tile->isCompressed()) ++count;
+    }
+    return count;
+}
+
+size_t TileGrid::getCowSharedTilesCount() const noexcept {
+    size_t count = 0;
+    for (const auto& [idx, tile] : m_tiles) {
+        if (tile && tile->isShared()) ++count;
+    }
+    return count;
 }
 
 } // namespace aladyn::engine::canvas

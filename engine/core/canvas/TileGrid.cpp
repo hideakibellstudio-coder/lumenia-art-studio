@@ -120,4 +120,33 @@ size_t TileGrid::getCowSharedTilesCount() const noexcept {
     return count;
 }
 
+std::vector<std::pair<int, int>> TileGrid::getDirtyTileIndices() const {
+    std::vector<std::pair<int, int>> dirty;
+    for (const auto& [idx, tile] : m_tiles) {
+        if (tile && tile->isDirty()) {
+            dirty.emplace_back(idx.x, idx.y);
+        }
+    }
+    return dirty;
+}
+
+void TileGrid::clearDirtyFlags() noexcept {
+    for (auto& [idx, tile] : m_tiles) {
+        if (tile) tile->setDirty(false);
+    }
+}
+
+const uint8_t* TileGrid::getTileData(int tileX, int tileY) const noexcept {
+    const TileIndex idx{tileX, tileY};
+    auto it = m_tiles.find(idx);
+    if (it != m_tiles.end() && it->second) {
+        return it->second->getBuffer().getData();
+    }
+    return nullptr;
+}
+
+size_t TileGrid::getTileDataSize() const noexcept {
+    return Tile::TILE_BYTES;
+}
+
 } // namespace aladyn::engine::canvas

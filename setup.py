@@ -5,6 +5,7 @@ cpp_sources = [
     "engine/core/math/BezierCurve.cpp",
     "engine/core/math/SymmetryEngine.cpp",
     "engine/core/math/GuideSnapEngine.cpp",
+    "engine/core/math/ViewportTransform.cpp",
     "engine/core/stroke/VelocityTracker.cpp",
     "engine/core/stroke/DynamicStabilizer.cpp",
     "engine/core/brush/DynamicMapper.cpp",

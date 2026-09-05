@@ -1,4 +1,5 @@
 #include "BindingsCommon.hpp"
+#include "../../../engine/core/math/ViewportTransform.hpp"
 
 namespace aladyn::bridge {
 
@@ -47,6 +48,36 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .value("ThreePoint", math::GuideType::ThreePoint)
         .value("Isometric", math::GuideType::Isometric)
         .export_values();
+
+    py::class_<math::ViewportTransform>(m, "ViewportTransform")
+        .def(py::init<double, double, double, double>(),
+             py::arg("viewport_width") = 1920.0,
+             py::arg("viewport_height") = 1080.0,
+             py::arg("canvas_width") = 1920.0,
+             py::arg("canvas_height") = 1080.0)
+        .def("set_viewport_size", &math::ViewportTransform::setViewportSize)
+        .def("set_canvas_size", &math::ViewportTransform::setCanvasSize)
+        .def("set_camera", &math::ViewportTransform::setCamera,
+             py::arg("pan_x"), py::arg("pan_y"), py::arg("zoom"), py::arg("rotation_deg"),
+             py::arg("flip_h") = false, py::arg("flip_v") = false)
+        .def("canvas_to_screen", [](const math::ViewportTransform& self, double cx, double cy) {
+            auto pt = self.canvasToScreen(cx, cy);
+            return std::make_pair(pt.x, pt.y);
+        })
+        .def("screen_to_canvas", [](const math::ViewportTransform& self, double sx, double sy) {
+            auto pt = self.screenToCanvas(sx, sy);
+            return std::make_pair(pt.x, pt.y);
+        })
+        .def("get_visible_canvas_bounds", [](const math::ViewportTransform& self) {
+            auto r = self.getVisibleCanvasBounds();
+            return std::make_tuple(r.x, r.y, r.width, r.height);
+        })
+        .def("get_visible_tile_range", &math::ViewportTransform::getVisibleTileRange)
+        .def("is_tile_visible", &math::ViewportTransform::isTileVisible)
+        .def_property_readonly("zoom", &math::ViewportTransform::getZoom)
+        .def_property_readonly("pan_x", &math::ViewportTransform::getPanX)
+        .def_property_readonly("pan_y", &math::ViewportTransform::getPanY)
+        .def_property_readonly("rotation_deg", &math::ViewportTransform::getRotationDeg);
 
     // ─── ENGINE TYPE (CATEGORIAS DE MOTOR) ───────────────────────────────────
     py::enum_<brush::EngineType>(m, "EngineType")

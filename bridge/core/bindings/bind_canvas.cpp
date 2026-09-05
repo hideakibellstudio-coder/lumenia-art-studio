@@ -73,7 +73,10 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         .def("set_scratch_disk_enabled", &boundary::PaintEngineFacade::setScratchDiskEnabled)
         .def("is_scratch_disk_enabled", &boundary::PaintEngineFacade::isScratchDiskEnabled)
         .def("get_undo_paged_steps_count", &boundary::PaintEngineFacade::getUndoPagedStepsCount)
-        .def("get_scratch_disk_usage_mb", &boundary::PaintEngineFacade::getScratchDiskUsageMB);
+        .def("get_scratch_disk_usage_mb", &boundary::PaintEngineFacade::getScratchDiskUsageMB)
+        // ─── FASE 5: VIEWPORT & DIRTY TILE STREAMING ─────────────────
+        .def("get_dirty_tile_indices", &boundary::PaintEngineFacade::getDirtyTileIndices)
+        .def("clear_dirty_tiles", &boundary::PaintEngineFacade::clearDirtyTiles);
 }
 
 } // namespace aladyn::bridge

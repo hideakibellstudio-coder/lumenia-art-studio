@@ -214,6 +214,18 @@ public:
     [[nodiscard]] double getScratchDiskUsageMB() const noexcept {
         return static_cast<double>(m_undoManager.getScratchDiskBytes()) / (1024.0 * 1024.0);
     }
+    // ─── FASE 5: DIRTY TILE STREAMING & VIEWPORT ──────────────────────────────
+    [[nodiscard]] std::vector<std::pair<int, int>> getDirtyTileIndices() const {
+        if (const auto* layer = m_layerStack.getActiveLayer()) {
+            return layer->getTileGrid().getDirtyTileIndices();
+        }
+        return {};
+    }
+    void clearDirtyTiles() noexcept {
+        if (auto* layer = m_layerStack.getActiveLayer()) {
+            layer->getTileGrid().clearDirtyFlags();
+        }
+    }
 
 private:
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);

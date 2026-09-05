@@ -1,10 +1,18 @@
-"""RenderWidget — High-performance interactive 2D canvas view for Lumenia."""
-
+import os
 import time
 import math
 import collections
 from typing import Optional, ClassVar
 from PySide6 import QtWidgets, QtCore, QtGui
+
+try:
+    from PySide6.QtOpenGLWidgets import QOpenGLWidget
+    _HAS_OPENGL = True
+except ImportError:
+    _HAS_OPENGL = False
+
+_OPENGL_ENABLED = _HAS_OPENGL and os.environ.get("LUMENIA_DISABLE_OPENGL", "0") != "1"
+_BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 
 from ui.infrastructure.bridge_client import BridgeClient
 from ui.infrastructure.bridge_client.dispatcher import EngineDispatcher
@@ -15,6 +23,7 @@ from .text_overlay_editor import TextOverlayEditor
 from .viewport.camera_controller import CameraController
 from .viewport.input_router import CanvasInputRouter
 from .viewport.canvas_compat import CanvasCompatMixin
+from .viewport.viewport_renderer import ViewportRenderer
 from .renderers.overlay_renderer import OverlayRenderer
 from .renderers.geometry_overlay_renderer import GeometryOverlayRenderer
 from .renderers.tool_cursor_renderer import ToolCursorRenderer
@@ -27,7 +36,7 @@ from .tools.text_tool_controller import TextToolController
 from .viewport.cursor_controller import CanvasCursorController
 
 
-class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
+class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     """Widget de visualização e renderização do canvas com suporte nativo C++."""
 
     _active_instance: ClassVar[Optional['RenderWidget']] = None
@@ -40,6 +49,14 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
+        if _OPENGL_ENABLED:
+            fmt = QtGui.QSurfaceFormat()
+            fmt.setRenderableType(QtGui.QSurfaceFormat.OpenGL)
+            fmt.setVersion(3, 3)
+            fmt.setProfile(QtGui.QSurfaceFormat.CoreProfile)
+            fmt.setSwapInterval(0)
+            self.setFormat(fmt)
+
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setAttribute(QtCore.Qt.WA_StaticContents)
@@ -159,124 +176,16 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         return self.camera.to_canvas(screen_x, screen_y, pressure, timestamp, self.canvas_w, self.canvas_h)
 
     def get_canvas_image(self, apply_proofing: bool = True) -> QtGui.QImage | None:
-        from ui.core.engine.registry import EngineRegistry
-        composite = QtGui.QImage(self.canvas_w, self.canvas_h, QtGui.QImage.Format_RGBA8888)
-        composite.fill(self.paper_color if self.paper_visible else QtCore.Qt.transparent)
-
-        p = QtGui.QPainter(composite)
-        backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "get_qimage"):
-            qimg = backend.get_qimage()
-            if qimg and not qimg.isNull():
-                p.drawImage(0, 0, qimg)
-        for fl in self._flood_layers:
-            if fl and not fl.isNull():
-                p.drawImage(0, 0, fl)
-        p.end()
-        return composite
+        return ViewportRenderer.get_canvas_image(self, apply_proofing)
 
     def paintEvent(self, event):
-        t_paint_start = time.perf_counter()
-        from ui.core.document.manager import DocumentManager
-        from ui.core.engine.registry import EngineRegistry
-
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        # Mantém interpolação suave (Bilinear) sempre ativa para eliminar serrilhados em qualquer nível de zoom (ex: 120%, 39%)
-        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, True)
-        painter.fillRect(event.rect(), QtGui.QColor(128, 128, 128))
-
-        active_doc = DocumentManager.instance().active_document()
-        if active_doc is None:
-            tm = ThemeManager.instance()
-            painter.setPen(QtGui.QColor(tm.get_color("text_sec", "#9ca3af")))
-            painter.setFont(QtGui.QFont("Segoe UI", 12, QtGui.QFont.Bold))
-            from ui.core.i18n import tr
-            title = tr("workspace.no_document", "Nenhum Documento Aberto")
-            hint = tr("workspace.no_document_hint", "Pressione Ctrl+N ou Arquivo > Novo Documento")
-            painter.drawText(self.rect(), QtCore.Qt.AlignCenter, f"{title}\n\n{hint}")
-            painter.end()
-            return
-
-        self.canvas_w, self.canvas_h = active_doc.width, active_doc.height
-        backend = EngineRegistry.instance().get_backend()
-        t = self._get_canvas_transform()
-        canvas_rect = QtCore.QRectF(0, 0, self.canvas_w, self.canvas_h)
-
-        # Mapeia a região dirty do evento para o canvas local com alinhamento inteiro (evita redimensionar e interpolação flutuante)
-        inv_t, ok = t.inverted()
-        if ok:
-            dirty_canvas = inv_t.mapRect(QtCore.QRectF(event.rect())).toAlignedRect().intersected(canvas_rect.toRect())
-        else:
-            dirty_canvas = canvas_rect.toRect()
-
-        try:
-            painter.save()
-            try:
-                painter.setTransform(t, combine=False)
-
-                if not dirty_canvas.isEmpty():
-                    painter.fillRect(dirty_canvas, self.paper_color if self.paper_visible else self._checker_brush)
-
-                    if backend and hasattr(backend, "get_qimage"):
-                        qimg = backend.get_qimage()
-                        if qimg and not qimg.isNull():
-                            t_blit_0 = time.perf_counter()
-                            painter.drawImage(dirty_canvas, qimg, dirty_canvas)
-                            self._last_qt_draw_image_ms = (time.perf_counter() - t_blit_0) * 1000.0
-
-                    for fl in getattr(self, "_flood_layers", []):
-                        if fl and not fl.isNull():
-                            painter.drawImage(dirty_canvas, fl, dirty_canvas)
-
-                if backend and hasattr(backend, "has_selection") and backend.has_selection():
-                    OverlayRenderer.render_selection_overlay(painter, backend, self.zoom, self.selection_ctrl.selection_dash_offset, self.canvas_w, self.canvas_h)
-
-                if self.selection_ctrl.drag_active or self.selection_ctrl.lasso_is_drawing or (self.active_tool == "lasso" and len(self.selection_ctrl.lasso_points) > 0):
-                    OverlayRenderer.render_selection_drag_preview(painter, self, self.zoom)
-
-                if self.transform_ctrl.active:
-                    OverlayRenderer.render_transform_overlay(painter, self.transform_ctrl, self.zoom)
-
-                if self.shape_ctrl.drag_active:
-                    OverlayRenderer.render_shape_drag_preview(painter, self.shape_ctrl)
-
-                if hasattr(self, "geometry_ctrl"):
-                    if not (self.drawing and self.geometry_ctrl.guide_state.get("hidden", False)):
-                        GeometryOverlayRenderer.render_symmetry(painter, self.geometry_ctrl.sym_state, self.zoom)
-                        GeometryOverlayRenderer.render_guides(painter, self.geometry_ctrl, self.zoom)
-            finally:
-                painter.restore()
-
-            if self.eyedrop_ctrl.active and self.eyedrop_ctrl.settings.get("show_loupe", True):
-                OverlayRenderer.render_color_loupe(painter, self.eyedrop_ctrl.pos, self, backend, self.eyedrop_ctrl.current_color, self.eyedrop_ctrl.old_color)
-
-            t_cur_0 = time.perf_counter()
-            # Renderiza o cursor flutuante e garante que só desenha se o anel intersectar a região repintada
-            should_hide = self.drawing and self._cursor_settings.get("hide_on_stroke", False)
-            if self._cursor_in_viewport and not should_hide and self.active_tool in ("brush", "eraser"):
-                cur_rect = ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), self.current_brush_radius, self.zoom)
-                if event.rect().intersects(cur_rect) or event.region().intersects(cur_rect):
-                    self.cursor_ctrl.render(painter, self.current_brush_radius, self.zoom, self.drawing)
-                    self._last_rendered_cursor_rect = cur_rect
-            else:
-                self.cursor_ctrl.render(painter, self.current_brush_radius, self.zoom, self.drawing)
-                self._last_rendered_cursor_rect = QtCore.QRect()
-            self._last_qt_cursor_ms = (time.perf_counter() - t_cur_0) * 1000.0
-        finally:
-            painter.end()
-            t_paint_end = time.perf_counter()
-            self._last_qt_paint_total_ms = (t_paint_end - t_paint_start) * 1000.0
-            self._last_qt_dirty_rect = event.rect()
-            self._paint_event_timestamps.append(t_paint_end)
-            if len(self._paint_event_timestamps) >= 2:
-                dt = self._paint_event_timestamps[-1] - self._paint_event_timestamps[0]
-                if dt > 0.001:
-                    self._current_viewport_fps = (len(self._paint_event_timestamps) - 1) / dt
+        ViewportRenderer.render(self, event)
 
     def get_viewport_telemetry(self) -> dict:
         """Retorna snapshot instantâneo do tempo de apresentação Qt na Viewport."""
         return {
+            "is_gpu_accelerated": _OPENGL_ENABLED,
+            "renderer_type": "OpenGL" if _OPENGL_ENABLED else "Software Raster",
             "qt_paint_total_ms": self._last_qt_paint_total_ms,
             "qt_draw_image_ms": self._last_qt_draw_image_ms,
             "qt_cursor_ms": self._last_qt_cursor_ms,
@@ -307,20 +216,14 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.update()
 
     @property
-    def _active_text_editor(self):
-        return self.text_ctrl.active_editor
-
+    def _active_text_editor(self): return self.text_ctrl.active_editor
     @_active_text_editor.setter
-    def _active_text_editor(self, val):
-        self.text_ctrl.active_editor = val
+    def _active_text_editor(self, val): self.text_ctrl.active_editor = val
 
     @property
-    def _text_settings(self):
-        return self.text_ctrl.settings
-
+    def _text_settings(self): return self.text_ctrl.settings
     @_text_settings.setter
-    def _text_settings(self, val):
-        self.text_ctrl.settings = val
+    def _text_settings(self, val): self.text_ctrl.settings = val
 
     def set_text_settings(self, settings: dict):
         self.text_ctrl.set_settings(settings)

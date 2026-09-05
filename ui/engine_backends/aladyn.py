@@ -138,5 +138,14 @@ class AladynBackend(
                 return QImage(memview, w, h, w * 4, QImage.Format_RGBA8888)
         return None
 
+    def get_dirty_tile_indices(self) -> list[tuple[int, int]]:
+        if self._facade and hasattr(self._facade, "get_dirty_tile_indices"):
+            return self._facade.get_dirty_tile_indices()
+        return []
+
+    def clear_dirty_tiles(self) -> None:
+        if self._facade and hasattr(self._facade, "clear_dirty_tiles"):
+            self._facade.clear_dirty_tiles()
+
     def dispatch(self, command: Any) -> None:
         pass

@@ -44,6 +44,12 @@ public:
     [[nodiscard]] size_t getCompressedTilesCount() const noexcept;
     [[nodiscard]] size_t getCowSharedTilesCount() const noexcept;
 
+    // ─── FASE 5: VIEWPORT DIRTY TILE STREAMING ──────────────────────────────
+    [[nodiscard]] std::vector<std::pair<int, int>> getDirtyTileIndices() const;
+    void clearDirtyFlags() noexcept;
+    [[nodiscard]] const uint8_t* getTileData(int tileX, int tileY) const noexcept;
+    [[nodiscard]] size_t getTileDataSize() const noexcept;
+
     // Itera sobre todos os tiles alocados (para commitScratch)
     template<typename Fn>
     void forEachTile(Fn&& fn) {

@@ -111,6 +111,7 @@ class TestLowLevelPhase3GiantBrushesSimd(unittest.TestCase):
         profile.hardness = 0.5
         profile.spacing_factor = 0.25      # Espaçamento moderado
         profile.base_color = aen.ColorRGBA(10, 200, 100, 255)
+        profile.stroke_taper_enabled = False
 
         # Movimento diagonal rápido de (250, 250) a (550, 550) com passos espaçados
         self.facade.begin_stroke_raw(250.0, 250.0, 1.0)

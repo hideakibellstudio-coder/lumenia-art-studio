@@ -110,11 +110,7 @@ void DabRenderer::renderDab(
 
     const bool hasSelection = (ctx.selectionMask != nullptr && ctx.selectionMask->hasSelection());
     const bool hasClip = (ctx.clipBaseLayer != nullptr);
-    const bool canUseCore = isCircular && !shapeTex && !hasTextures &&
-                            !hasSelection && !hasClip && !ctx.alphaLocked &&
-                            (dab.blendMode == DabBlendMode::Normal);
-    const double effectiveHardR = canUseCore ? std::min(hardSpan, outerSubpixelThresh) : 0.0;
-    const double effectiveHardRSq = effectiveHardR * effectiveHardR;
+
 
     // ─── 3. EXECUÇÃO PARALELA MULTI-CORE EM MICRO-TILES INDEPENDENTES ─────────
     const int numTiles = static_cast<int>(validTiles.size());
@@ -154,30 +150,7 @@ void DabRenderer::renderDab(
             const double vCanvas = (hasTextures && canvasTexture.canvasGrainEnabled && canvasHeightTex) ? (globalY * canvasGrainFactor) : 0.0;
             ColorRGBA* dstRow = tileBasePtr + (py * canvas::Tile::TILE_SIZE);
 
-            int coreMinX = -1;
-            int coreMaxX = -2;
-            if (canUseCore && effectiveHardRSq > 0.0 && dySq < effectiveHardRSq) {
-                const double dxCore = std::sqrt(effectiveHardRSq - dySq);
-                const int cMin = std::max(rowMinX, static_cast<int>(std::ceil(dab.position.x - dxCore - 0.5)) - tilePixelX);
-                const int cMax = std::min(rowMaxX, static_cast<int>(std::floor(dab.position.x + dxCore - 0.5)) - tilePixelX);
-                if (cMin <= cMax) {
-                    coreMinX = cMin;
-                    coreMaxX = cMax;
-                    const size_t coreCount = static_cast<size_t>(coreMaxX - coreMinX + 1);
-                    if (dabEffectiveAlpha >= 0.999f) {
-                        SimdSpanBlender::blendSpanSolidOpaque(dstRow + coreMinX, coreCount, ColorRGBA{dab.color.r, dab.color.g, dab.color.b, 255});
-                    } else {
-                        SimdSpanBlender::blendSpanLinearNormal(dstRow + coreMinX, coreCount, dab.color, static_cast<float>(dabEffectiveAlpha));
-                    }
-                    tileModified = true;
-                }
-            }
-
             for (int px = rowMinX; px <= rowMaxX; ++px) {
-                if (px == coreMinX) {
-                    px = coreMaxX;
-                    continue;
-                }
 
                 const double globalX = static_cast<double>(tilePixelX + px) + 0.5;
                 const double dx = globalX - dab.position.x;

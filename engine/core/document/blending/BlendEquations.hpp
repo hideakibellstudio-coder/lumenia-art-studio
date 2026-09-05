@@ -64,7 +64,14 @@ inline raster::ColorRGBA blendPixel(
     if (mode == LayerBlendMode::Normal && layerOpacity == 1.0) {
         if (src.a == 255) return src;
         if (dst.a == 255) {
-            return color::blendLinearNormalOpaque(src, static_cast<float>(src.a) / 255.0f, dst);
+            const uint32_t sA = src.a;
+            const uint32_t invA = 255 - sA;
+            return raster::ColorRGBA{
+                static_cast<uint8_t>((src.r * sA + dst.r * invA) / 255),
+                static_cast<uint8_t>((src.g * sA + dst.g * invA) / 255),
+                static_cast<uint8_t>((src.b * sA + dst.b * invA) / 255),
+                255
+            };
         }
     }
 

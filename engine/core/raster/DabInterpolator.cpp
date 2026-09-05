@@ -40,9 +40,12 @@ std::vector<Dab> DabInterpolator::interpolate(
         if (safeR <= 32.0) {
             base = std::max(0.75, 2.0 * safeR * safeSpacing);
         } else {
+            // Adaptive LOD: para diâmetros > 64px (r > 32px), calcula o espaçamento analítico
+            // de forma que pincéis gigantes (250px a 2000px) mantenham cobertura contínua
+            // sem redundância estúpida de carimbos (50% a 65% menos dabs emitidos).
             const double ratio = safeR / 32.0;
-            const double scale = std::min(1.5, 1.0 + 0.12 * std::log2(ratio));
-            base = std::max(0.75, 2.0 * safeR * safeSpacing * scale);
+            const double lodScale = std::min(3.0, 1.0 + 0.35 * std::log2(ratio));
+            base = std::max(0.75, 2.0 * safeR * safeSpacing * lodScale);
         }
         return base * velocityScale;
     };

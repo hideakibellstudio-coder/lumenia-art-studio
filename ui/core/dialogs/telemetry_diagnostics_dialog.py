@@ -89,8 +89,8 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
             parent=parent,
             modal=True,
         )
-        self.resize(680, 520)
-        self.setMinimumSize(580, 420)
+        self.resize(720, 540)
+        self.setMinimumSize(600, 440)
         self._timer = QtCore.QTimer(self)
         self._timer.setInterval(33)  # 30 FPS polling
         self._timer.timeout.connect(self._refresh_metrics)
@@ -177,7 +177,52 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
 
         self.tabs.addTab(tab_mem, "🧠 Memória & Tiles")
 
-        # ── 3. Aba: Sensor & Cinemática da Caneta ────────────────────────────
+        # ── 3. Aba: Pipeline Granular & Viewport ──────────────────────────────
+        tab_pipe = QtWidgets.QWidget()
+        lo_pipe = QtWidgets.QVBoxLayout(tab_pipe)
+        lo_pipe.setContentsMargins(12, 12, 12, 12)
+        lo_pipe.setSpacing(10)
+
+        grp_stages = QtWidgets.QGroupBox("Decomposição do Pipeline em Microssegundos (µs)")
+        lo_stages = QtWidgets.QGridLayout(grp_stages)
+        lo_stages.setContentsMargins(10, 10, 10, 10)
+        lo_stages.setSpacing(8)
+
+        self.card_stage_kin = StatCard("1. Cinemática / Dinâmica", "0.0 µs")
+        self.card_stage_int = StatCard("2. Interpolação Dabs", "0.0 µs")
+        self.card_stage_dab = StatCard("3. RasterDab (Shaders)", "0.0 µs")
+        self.card_stage_und = StatCard("4. Undo Record (Tiles)", "0.0 µs")
+        self.card_stage_cmp = StatCard("5. Compositor Camadas", "0.0 µs")
+        self.card_stage_blt = StatCard("6. Apresentação Blit Qt", "0.00 ms")
+
+        lo_stages.addWidget(self.card_stage_kin, 0, 0)
+        lo_stages.addWidget(self.card_stage_int, 0, 1)
+        lo_stages.addWidget(self.card_stage_dab, 0, 2)
+        lo_stages.addWidget(self.card_stage_und, 1, 0)
+        lo_stages.addWidget(self.card_stage_cmp, 1, 1)
+        lo_stages.addWidget(self.card_stage_blt, 1, 2)
+        lo_pipe.addWidget(grp_stages)
+
+        grp_geom = QtWidgets.QGroupBox("Pegada Geométrica e Taxa Real da Tela")
+        lo_geom = QtWidgets.QGridLayout(grp_geom)
+        lo_geom.setContentsMargins(10, 10, 10, 10)
+        lo_geom.setSpacing(8)
+
+        self.card_vp_fps = StatCard("Taxa Real da Viewport", "0.0 FPS")
+        self.card_vp_dirty = StatCard("Região Repintada (Último Blit)", "0 × 0 px")
+        self.card_vp_tiles = StatCard("Tiles Gravados (Segmento)", "0 tiles")
+        self.card_vp_dabs = StatCard("Dabs Emitidos (Segmento)", "0 dabs")
+
+        lo_geom.addWidget(self.card_vp_fps, 0, 0)
+        lo_geom.addWidget(self.card_vp_dirty, 0, 1)
+        lo_geom.addWidget(self.card_vp_tiles, 1, 0)
+        lo_geom.addWidget(self.card_vp_dabs, 1, 1)
+        lo_pipe.addWidget(grp_geom)
+        lo_pipe.addStretch()
+
+        self.tabs.addTab(tab_pipe, "🔬 Pipeline & Viewport")
+
+        # ── 4. Aba: Sensor & Cinemática da Caneta ────────────────────────────
         tab_pen = QtWidgets.QWidget()
         lo_pen = QtWidgets.QVBoxLayout(tab_pen)
         lo_pen.setContentsMargins(12, 12, 12, 12)
@@ -272,14 +317,27 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         if hasattr(self, "tabs"):
             self.tabs.setTabText(0, tr("telemetry.tab_performance", "📈 Desempenho"))
             self.tabs.setTabText(1, tr("telemetry.tab_memory", "🧠 Memória & Tiles"))
-            self.tabs.setTabText(2, tr("telemetry.tab_pen", "🖊️ Sensor da Caneta"))
-            self.tabs.setTabText(3, tr("telemetry.tab_system", "⚙️ Sistema & Logs"))
+            self.tabs.setTabText(2, tr("telemetry.tab_pipeline", "🔬 Pipeline & Viewport"))
+            self.tabs.setTabText(3, tr("telemetry.tab_pen", "🖊️ Sensor da Caneta"))
+            self.tabs.setTabText(4, tr("telemetry.tab_system", "⚙️ Sistema & Logs"))
 
         if hasattr(self, "card_latency"):
             self.card_latency.set_label(tr("telemetry.card_latency", "Latência do Motor (C++)"))
             self.card_dabs_sec.set_label(tr("telemetry.card_dabs", "Taxa de Carimbos"))
             self.card_stylus_hz.set_label(tr("telemetry.card_stylus_hz", "Frequência da Mesa"))
             self.card_stroke_time.set_label(tr("telemetry.card_stroke_time", "Duração do Traço"))
+
+            self.card_stage_kin.set_label("1. Cinemática / Dinâmica")
+            self.card_stage_int.set_label("2. Interpolação Dabs")
+            self.card_stage_dab.set_label("3. RasterDab (Shaders)")
+            self.card_stage_und.set_label("4. Undo Record (Tiles)")
+            self.card_stage_cmp.set_label("5. Compositor Camadas")
+            self.card_stage_blt.set_label("6. Apresentação Blit Qt")
+
+            self.card_vp_fps.set_label("Taxa Real da Viewport")
+            self.card_vp_dirty.set_label("Região Repintada (Último Blit)")
+            self.card_vp_tiles.set_label("Tiles Gravados (Segmento)")
+            self.card_vp_dabs.set_label("Dabs Emitidos (Segmento)")
 
             self.card_tiles_count.set_label(tr("telemetry.card_tiles", "Tiles Alocados (64x64)"))
             self.card_canvas_ram.set_label(tr("telemetry.card_canvas_ram", "RAM do Documento"))
@@ -313,23 +371,49 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         if snap is None:
             return
 
-        # 1. Desempenho
+        # 1. Desempenho Geral
         self.card_latency.set_value(f"{snap.last_segment_latency_us:.2f} µs")
         self.card_dabs_sec.set_value(f"{snap.total_dabs_per_second:,} dabs/s")
         self.card_stylus_hz.set_value(f"{snap.input_event_rate_hz} Hz")
         self.card_stroke_time.set_value(f"{snap.stroke_total_time_ms:.1f} ms")
 
-        # 2. Memória & Tiles
+        # 2. Pipeline Granular & Viewport
+        from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+        vp = RenderWidget.get_active_viewport_telemetry()
+        blit_ms = vp.get("qt_draw_image_ms", 0.0)
+        vp_fps = vp.get("qt_fps", 0.0)
+        dw = int(getattr(snap, "last_dirty_width", 0.0))
+        dh = int(getattr(snap, "last_dirty_height", 0.0))
+        tiles_rec = getattr(snap, "last_tiles_recorded", 0)
+        dabs_rendered = getattr(snap, "last_dabs_rendered", 0)
+
+        self.card_stage_kin.set_value(f"{getattr(snap, 'time_kinematics_us', 0.0):.1f} µs")
+        self.card_stage_int.set_value(f"{getattr(snap, 'time_interpolation_us', 0.0):.1f} µs")
+        self.card_stage_dab.set_value(f"{getattr(snap, 'time_raster_dab_us', 0.0):.1f} µs")
+        self.card_stage_und.set_value(f"{getattr(snap, 'time_undo_record_us', 0.0):.1f} µs")
+        self.card_stage_cmp.set_value(f"{getattr(snap, 'time_composite_us', 0.0):.1f} µs")
+        self.card_stage_blt.set_value(f"{blit_ms:.2f} ms")
+
+        self.card_vp_fps.set_value(f"{vp_fps:.1f} FPS")
+        self.card_vp_dirty.set_value(f"{dw} × {dh} px")
+        self.card_vp_tiles.set_value(f"{tiles_rec} tiles")
+        self.card_vp_dabs.set_value(f"{dabs_rendered} dabs")
+
+        # 3. Memória & Tiles
         self.card_tiles_count.set_value(f"{snap.active_tile_count}")
         self.card_canvas_ram.set_value(f"{snap.tile_grid_memory_mb:.2f} MB")
         self.card_undo_ram.set_value(f"{snap.undo_stack_memory_mb:.2f} MB")
         self.card_undo_steps.set_value(f"{snap.undo_steps_count}")
 
-        # 3. Sensor & Cinemática
+        # 4. Sensor & Cinemática
         self.card_raw_press.set_value(f"{int(snap.raw_pressure * 100)} %")
         self.card_dyn_press.set_value(f"{int(snap.dynamic_pressure * 100)} %")
         self.card_velocity.set_value(f"{int(snap.stroke_velocity)} px/s")
         self.card_lag.set_value(f"{snap.stabilizer_lag_px:.1f} px")
+
+        # Atualiza o TelemetryTracker global unificado
+        from ui.core.engine.telemetry_tracker import TelemetryTracker
+        TelemetryTracker.instance().update(snap, vp)
 
     def _on_clear_undo(self) -> None:
         backend = EngineRegistry.instance().get_backend()
@@ -373,27 +457,17 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         )
 
     def _copy_diagnostic_report(self) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        snap = backend.get_telemetry_snapshot() if (backend and hasattr(backend, "get_telemetry_snapshot")) else None
-
-        report = [
-            "==================================================",
-            " 🏛️ LUMENIA ART STUDIO -- RELATÓRIO DE TELEMETRIA ",
-            "==================================================",
-            f"Data / Hora: {time.strftime('%Y-%m-%d %H:%M:%S')}",
-            f"Latência por Dab: {getattr(snap, 'last_segment_latency_us', 0.0):.2f} µs",
-            f"Taxa de Dabs: {getattr(snap, 'total_dabs_per_second', 0):,} dabs/s",
-            f"Taxa da Mesa: {getattr(snap, 'input_event_rate_hz', 0)} Hz",
-            f"Tiles Alocados: {getattr(snap, 'active_tile_count', 0)}",
-            f"RAM Documento: {getattr(snap, 'tile_grid_memory_mb', 0.0):.2f} MB",
-            f"RAM Undo Stack: {getattr(snap, 'undo_stack_memory_mb', 0.0):.2f} MB",
-            f"Passos de Desfazer: {getattr(snap, 'undo_steps_count', 0)}",
-            "Aceleração SIMD: Ativa (AVX2 / SSE2)",
-            "==================================================",
-        ]
-        text_report = "\n".join(report)
-        QtWidgets.QApplication.clipboard().setText(text_report)
-        QtWidgets.QMessageBox.information(self, "Relatório", "Relatório de diagnóstico copiado para a Área de Transferência!")
+        """Copia o relatório completo com 20 medidores do Grid e histórico de transições."""
+        from ui.core.engine.telemetry_tracker import TelemetryTracker
+        report = TelemetryTracker.instance().generate_full_report()
+        QtWidgets.QApplication.clipboard().setText(report)
+        QtWidgets.QMessageBox.information(
+            self,
+            "Relatório de Telemetria Copiado",
+            "Relatório completo de telemetria (incluindo todos os 20 medidores do Grid, "
+            "diagnóstico do pipeline, picos de estresse e histórico de alterações de estado) "
+            "foi copiado para a Área de Transferência com sucesso!"
+        )
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self._timer.stop()

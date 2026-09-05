@@ -94,9 +94,9 @@ public:
     void endStroke(const stroke::PointerEvent& event);
 
     // ── Fast-Path Nativo Direto (Zero Alocações / Zero Overhead Python) ────
-    void beginStrokeRaw(double x, double y, double pressure = 1.0);
-    std::vector<double> updateStrokeRaw(double x, double y, double pressure = 1.0);
-    void endStrokeRaw();
+    void beginStrokeRaw(double x, double y, double pressure = 1.0, double timestamp = 0.0);
+    std::vector<double> updateStrokeRaw(double x, double y, double pressure = 1.0, double timestamp = 0.0);
+    std::vector<double> endStrokeRaw();
 
     bool floodFill(int seedX, int seedY, const raster::ColorRGBA& fillColor,
                    int tolerance = 20, bool contiguous = true,
@@ -230,8 +230,21 @@ private:
     math::GuideConfig    m_guideConfig;
     math::Point2D        m_strokeStartPoint{0.0, 0.0};
     math::Point2D        m_lastRawPoint{0.0, 0.0};
+    double               m_lastRawPressure{1.0};
     bool                 m_hasLastRawPoint{false};
     double               m_distanceCarryover{0.0};
+    uint32_t             m_segmentsRenderedInStroke{0};
+
+    struct TouchdownSample {
+        math::Point2D rawPoint{0.0, 0.0};
+        double pressure{1.0};
+        double timestamp{0.0};
+        math::Point2D stabilizedPos{0.0, 0.0};
+        double normVel{0.0};
+        double vel{0.0};
+    };
+    bool            m_pendingFirstSegment{false};
+    TouchdownSample m_firstSample{};
 
     telemetry::EngineTelemetryManager m_telemetryManager;
 };

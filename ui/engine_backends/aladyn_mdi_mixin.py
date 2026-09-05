@@ -49,6 +49,8 @@ class AladynMdiMixin:
         self._facade = self._doc_facades[uid]
         self._width = self._facade.get_width()
         self._height = self._facade.get_height()
+        if hasattr(self, "_last_brush_preset") and self._last_brush_preset:
+            self.apply_brush_preset_dict(self._last_brush_preset)
 
     def close_document_context(self, uid: str) -> None:
         """Libera a memória C++ e deleta a PaintEngineFacade do documento fechado."""

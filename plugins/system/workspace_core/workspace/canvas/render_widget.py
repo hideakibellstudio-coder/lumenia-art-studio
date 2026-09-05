@@ -2,7 +2,8 @@
 
 import time
 import math
-from typing import Optional
+import collections
+from typing import Optional, ClassVar
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from ui.infrastructure.bridge_client import BridgeClient
@@ -28,6 +29,8 @@ from .viewport.cursor_controller import CanvasCursorController
 
 class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
     """Widget de visualização e renderização do canvas com suporte nativo C++."""
+
+    _active_instance: ClassVar[Optional['RenderWidget']] = None
 
     zoomChanged = QtCore.Signal(float)
     cameraChanged = QtCore.Signal(float, float, float, float, float, float)
@@ -61,10 +64,21 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.paper_visible, self.paper_color = True, QtGui.QColor(255, 255, 255)
         self._checker_brush = self._create_checker_brush()
         self.cursor_ctrl = CanvasCursorController(self)
+        self._last_rendered_cursor_rect = QtCore.QRect()
         self._bucket_settings = {"tolerance": 20, "expand_px": 1, "gap_closing_px": 0, "contiguous": True, "aa": True, "sample_all": True}
         self._flood_layers, self._flood_redo_stack = [], []
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(lambda *_: self.update())
+
+        RenderWidget._active_instance = self
+        from ui.core.engine.registry import EngineRegistry
+        EngineRegistry.register_viewport_telemetry_provider(RenderWidget.get_active_viewport_telemetry)
+        self._last_qt_paint_total_ms = 0.0
+        self._last_qt_draw_image_ms = 0.0
+        self._last_qt_cursor_ms = 0.0
+        self._last_qt_dirty_rect = QtCore.QRect()
+        self._paint_event_timestamps = collections.deque(maxlen=60)
+        self._current_viewport_fps = 0.0
 
     def _create_checker_brush(self) -> QtGui.QBrush:
         pix = QtGui.QPixmap(32, 32); p = QtGui.QPainter(pix)
@@ -78,15 +92,21 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         from ui.core.engine.registry import EngineRegistry
         return EngineRegistry.instance().get_backend()
 
-    @property
-    def current_brush_radius(self) -> float:
+    def sync_brush_radius(self):
         b = self.backend
         if b:
             prof_data = b.get_brush_profile_dict()
             sz = prof_data.get("brush_size", 0.0)
             if sz > 0:
-                return float(sz) / 2.0
-        return getattr(self, "brush_size", 24.0) / 2.0
+                self._cached_brush_radius = float(sz) / 2.0
+                return
+        self._cached_brush_radius = getattr(self, "brush_size", 24.0) / 2.0
+
+    @property
+    def current_brush_radius(self) -> float:
+        if not hasattr(self, "_cached_brush_radius"):
+            self.sync_brush_radius()
+        return self._cached_brush_radius
 
     @property
     def _cursor_in_viewport(self): return self.cursor_ctrl.cursor_in_viewport
@@ -156,6 +176,7 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         return composite
 
     def paintEvent(self, event):
+        t_paint_start = time.perf_counter()
         from ui.core.document.manager import DocumentManager
         from ui.core.engine.registry import EngineRegistry
 
@@ -182,12 +203,12 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         t = self._get_canvas_transform()
         canvas_rect = QtCore.QRectF(0, 0, self.canvas_w, self.canvas_h)
 
-        # Mapeia a região dirty do evento para o canvas local (evita redimensionar a imagem inteira de 48MB)
+        # Mapeia a região dirty do evento para o canvas local com alinhamento inteiro (evita redimensionar e interpolação flutuante)
         inv_t, ok = t.inverted()
         if ok:
-            dirty_canvas = inv_t.mapRect(QtCore.QRectF(event.rect())).intersected(canvas_rect)
+            dirty_canvas = inv_t.mapRect(QtCore.QRectF(event.rect())).toAlignedRect().intersected(canvas_rect.toRect())
         else:
-            dirty_canvas = canvas_rect
+            dirty_canvas = canvas_rect.toRect()
 
         try:
             painter.save()
@@ -200,7 +221,9 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
                     if backend and hasattr(backend, "get_qimage"):
                         qimg = backend.get_qimage()
                         if qimg and not qimg.isNull():
+                            t_blit_0 = time.perf_counter()
                             painter.drawImage(dirty_canvas, qimg, dirty_canvas)
+                            self._last_qt_draw_image_ms = (time.perf_counter() - t_blit_0) * 1000.0
 
                     for fl in getattr(self, "_flood_layers", []):
                         if fl and not fl.isNull():
@@ -228,9 +251,47 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
             if self.eyedrop_ctrl.active and self.eyedrop_ctrl.settings.get("show_loupe", True):
                 OverlayRenderer.render_color_loupe(painter, self.eyedrop_ctrl.pos, self, backend, self.eyedrop_ctrl.current_color, self.eyedrop_ctrl.old_color)
 
-            self.cursor_ctrl.render(painter, self.current_brush_radius, self.zoom, self.drawing)
+            t_cur_0 = time.perf_counter()
+            # Renderiza o cursor flutuante e garante que só desenha se o anel intersectar a região repintada
+            should_hide = self.drawing and self._cursor_settings.get("hide_on_stroke", False)
+            if self._cursor_in_viewport and not should_hide and self.active_tool in ("brush", "eraser"):
+                cur_rect = ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), self.current_brush_radius, self.zoom)
+                if event.rect().intersects(cur_rect) or event.region().intersects(cur_rect):
+                    self.cursor_ctrl.render(painter, self.current_brush_radius, self.zoom, self.drawing)
+                    self._last_rendered_cursor_rect = cur_rect
+            else:
+                self.cursor_ctrl.render(painter, self.current_brush_radius, self.zoom, self.drawing)
+                self._last_rendered_cursor_rect = QtCore.QRect()
+            self._last_qt_cursor_ms = (time.perf_counter() - t_cur_0) * 1000.0
         finally:
             painter.end()
+            t_paint_end = time.perf_counter()
+            self._last_qt_paint_total_ms = (t_paint_end - t_paint_start) * 1000.0
+            self._last_qt_dirty_rect = event.rect()
+            self._paint_event_timestamps.append(t_paint_end)
+            if len(self._paint_event_timestamps) >= 2:
+                dt = self._paint_event_timestamps[-1] - self._paint_event_timestamps[0]
+                if dt > 0.001:
+                    self._current_viewport_fps = (len(self._paint_event_timestamps) - 1) / dt
+
+    def get_viewport_telemetry(self) -> dict:
+        """Retorna snapshot instantâneo do tempo de apresentação Qt na Viewport."""
+        return {
+            "qt_paint_total_ms": self._last_qt_paint_total_ms,
+            "qt_draw_image_ms": self._last_qt_draw_image_ms,
+            "qt_cursor_ms": self._last_qt_cursor_ms,
+            "qt_fps": self._current_viewport_fps,
+            "qt_dirty_w": self._last_qt_dirty_rect.width(),
+            "qt_dirty_h": self._last_qt_dirty_rect.height(),
+            "qt_dirty_area": self._last_qt_dirty_rect.width() * self._last_qt_dirty_rect.height(),
+        }
+
+    @classmethod
+    def get_active_viewport_telemetry(cls) -> dict:
+        """Acesso global estático à telemetria da Viewport ativa."""
+        if cls._active_instance:
+            return cls._active_instance.get_viewport_telemetry()
+        return {}
 
     # ── Tool Delegation & Overlays ──
     def start_transform_mode(self) -> bool: return self.transform_ctrl.start_mode()
@@ -302,56 +363,107 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.shape_ctrl.drag_active = False
         self.update()
 
-    def start_stroke(self, screen_x: float, screen_y: float, pressure: float):
+    def start_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0):
+        self.sync_brush_radius()
         self.strokeStarted.emit()
+        self._last_rendered_cursor_rect = QtCore.QRect()
         b = self.backend
         if b is not None:
             self.drawing = True
             safe_pressure = max(0.02, pressure)
-            evt = self.to_canvas(screen_x, screen_y, safe_pressure, 0.0)
+            evt = self.to_canvas(screen_x, screen_y, safe_pressure, timestamp)
             if hasattr(self, "geometry_ctrl"):
                 self.geometry_ctrl.start_stroke_snap((evt.x, evt.y))
                 cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom)
             else:
                 cur_x, cur_y = evt.x, evt.y
             self._last_draw_pos = (cur_x, cur_y)
-            b.start_stroke(cur_x, cur_y, safe_pressure)
+            b.start_stroke(cur_x, cur_y, safe_pressure, timestamp)
             self.update()
 
-    def paint_stroke(self, screen_x: float, screen_y: float, pressure: float):
+    def paint_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0):
         if not self.drawing: return
         b = self.backend
         if b is not None:
-            old_screen_pos = self._mouse_pos
             self._mouse_pos = QtCore.QPointF(screen_x, screen_y)
+            self.cursor_ctrl.sync_position(self._mouse_pos, self.current_brush_radius, self.zoom)
             safe_p = max(0.02, pressure)
-            evt = self.to_canvas(screen_x, screen_y, safe_p, 0.0)
+            evt = self.to_canvas(screen_x, screen_y, safe_p, timestamp)
             cur_x, cur_y = self.geometry_ctrl.snap_point(evt.x, evt.y, self.zoom) if hasattr(self, "geometry_ctrl") else (evt.x, evt.y)
-            res = b.paint_stroke(cur_x, cur_y, safe_p)
+            res = b.paint_stroke(cur_x, cur_y, safe_p, timestamp)
             self._last_draw_pos = (cur_x, cur_y)
             is_sym = hasattr(self, "geometry_ctrl") and (self.geometry_ctrl.sym_state.get("mode", "none") != "none")
-            if is_sym or not (res and len(res) >= 6 and res[2] > 0 and res[3] > 0):
+            has_rendered_dabs = bool(res and len(res) >= 6 and res[2] > 0 and res[3] > 0)
+            if is_sym:
                 self.update()
             else:
-                dirty_s = self._get_canvas_transform().mapRect(QtCore.QRectF(res[0], res[1], res[2], res[3])).toAlignedRect().adjusted(-6, -6, 6, 6)
-                if self._cursor_in_viewport and not self._cursor_settings.get("hide_on_stroke", False):
-                    br_rad = self.current_brush_radius
-                    r_old = ToolCursorRenderer.get_cursor_rect(old_screen_pos.x(), old_screen_pos.y(), br_rad, self.zoom)
-                    r_new = ToolCursorRenderer.get_cursor_rect(self._mouse_pos.x(), self._mouse_pos.y(), br_rad, self.zoom)
-                    dirty_s = dirty_s.united(r_old).united(r_new)
-                self.update(dirty_s)
+                br_rad = self.current_brush_radius
+                cursor_visible = self._cursor_in_viewport and not self._cursor_settings.get("hide_on_stroke", False)
+                cur_cursor_rect = ToolCursorRenderer.get_cursor_rect(screen_x, screen_y, br_rad, self.zoom) if cursor_visible else QtCore.QRect()
+
+                if has_rendered_dabs:
+                    dirty_s = self._get_canvas_transform().mapRect(QtCore.QRectF(res[0], res[1], res[2], res[3])).toAlignedRect().adjusted(-6, -6, 6, 6)
+                    if cursor_visible:
+                        if not self._last_rendered_cursor_rect.isEmpty():
+                            dirty_s = dirty_s.united(self._last_rendered_cursor_rect)
+                        dirty_s = dirty_s.united(cur_cursor_rect)
+                    elif not self._last_rendered_cursor_rect.isEmpty():
+                        dirty_s = dirty_s.united(self._last_rendered_cursor_rect)
+                    self.update(dirty_s)
+                else:
+                    if cursor_visible:
+                        dirty_cursor = cur_cursor_rect
+                        if not self._last_rendered_cursor_rect.isEmpty():
+                            dirty_cursor = dirty_cursor.united(self._last_rendered_cursor_rect)
+                        self.update(dirty_cursor)
+                    elif not self._last_rendered_cursor_rect.isEmpty():
+                        self.update(self._last_rendered_cursor_rect)
 
     def end_stroke(self, screen_x: float | None = None, screen_y: float | None = None):
         if hasattr(self, "geometry_ctrl"): self.geometry_ctrl.mouse_release()
         if self.drawing:
             b = self.backend
+            res = []
             if b is not None:
                 if screen_x is not None and screen_y is not None:
                     evt = self.to_canvas(screen_x, screen_y, 0.0, 0.0)
-                    b.end_stroke(evt.x, evt.y)
-                else: b.end_stroke()
+                    res = b.end_stroke(evt.x, evt.y)
+                    end_pos = QtCore.QPointF(screen_x, screen_y)
+                else:
+                    res = b.end_stroke()
+                    end_pos = self._mouse_pos
+
                 self.drawing = False
-                self.update()
+                self._mouse_pos = end_pos
+                self.cursor_ctrl.sync_position(end_pos, self.current_brush_radius, self.zoom)
+                self.cursor_ctrl._is_over_canvas = self.cursor_ctrl.is_over_canvas(end_pos)
+
+                t = self._get_canvas_transform()
+                dirty_to_update = QtCore.QRect()
+                if res and len(res) >= 4 and res[2] > 0 and res[3] > 0:
+                    dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
+                    dirty_to_update = t.mapRect(dirty_c).toAlignedRect()
+
+                cur_cursor_rect = ToolCursorRenderer.get_cursor_rect(
+                    end_pos.x(), end_pos.y(), self.current_brush_radius, self.zoom
+                )
+
+                if not self._last_rendered_cursor_rect.isEmpty():
+                    if not dirty_to_update.isEmpty():
+                        dirty_to_update = dirty_to_update.united(self._last_rendered_cursor_rect)
+                    else:
+                        dirty_to_update = self._last_rendered_cursor_rect
+
+                if not dirty_to_update.isEmpty():
+                    dirty_to_update = dirty_to_update.united(cur_cursor_rect)
+                else:
+                    dirty_to_update = cur_cursor_rect
+
+                self._last_rendered_cursor_rect = cur_cursor_rect
+                self.cursor_ctrl._last_cursor_rect = cur_cursor_rect
+
+                if not dirty_to_update.isEmpty():
+                    self.update(dirty_to_update)
                 self.strokeFinished.emit()
                 return
         self.drawing = False
@@ -359,7 +471,7 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
     # ── Events delegated to CanvasInputRouter ──
     def _is_synthesized_or_tablet_active(self, e: QtGui.QMouseEvent) -> bool:
-        if self._tablet_in_use or (time.time() - self._last_tablet_time < 0.25):
+        if self._tablet_in_use:
             return True
         if e.source() == QtCore.Qt.MouseEventSource.MouseEventSynthesizedBySystem:
             return True
@@ -379,22 +491,28 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
         self.cursor_ctrl.update_cursor_shape()
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
-        if not self._is_synthesized_or_tablet_active(e):
-            self.input_router.handle_pointer_press(e.position(), e.button(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers())
-        else: e.ignore()
+        if self._is_synthesized_or_tablet_active(e):
+            e.accept()
+            return
+        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        self.input_router.handle_pointer_press(e.position(), e.button(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseMoveEvent(self, e: QtGui.QMouseEvent):
-        dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
-        if dirty:
-            self.update(dirty)
-        if not self._is_synthesized_or_tablet_active(e):
-            self.input_router.handle_pointer_move(e.position(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers())
-        else: e.ignore()
+        if self._is_synthesized_or_tablet_active(e):
+            e.accept()
+            return
+        if not self.drawing:
+            dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
+            if dirty:
+                self.update(dirty)
+        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        self.input_router.handle_pointer_move(e.position(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseReleaseEvent(self, e: QtGui.QMouseEvent):
-        if not self._is_synthesized_or_tablet_active(e):
-            self.input_router.handle_pointer_release(e.position(), e.button(), QtWidgets.QApplication.keyboardModifiers())
-        else: e.ignore()
+        if self._is_synthesized_or_tablet_active(e):
+            e.accept()
+            return
+        self.input_router.handle_pointer_release(e.position(), e.button(), QtWidgets.QApplication.keyboardModifiers())
 
     def mouseDoubleClickEvent(self, e: QtGui.QMouseEvent):
         if e.button() == QtCore.Qt.LeftButton and self.active_tool == "lasso" and self.selection_ctrl.lasso_points:
@@ -404,9 +522,10 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
     def tabletEvent(self, e: QtGui.QTabletEvent):
         self._last_tablet_time = time.time()
-        dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
-        if dirty:
-            self.update(dirty)
+        if not self.drawing:
+            dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
+            if dirty:
+                self.update(dirty)
         is_er = False
         if hasattr(e, "pointingDevice") and e.pointingDevice():
             is_er = (e.pointingDevice().pointerType() == QtGui.QPointingDevice.PointerType.Eraser)
@@ -415,12 +534,13 @@ class RenderWidget(QtWidgets.QWidget, CanvasCompatMixin):
 
         et = e.type()
         btn = e.button() if e.button() != QtCore.Qt.NoButton else QtCore.Qt.LeftButton
+        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
         if et == QtCore.QEvent.TabletPress:
             self._tablet_in_use = True
-            self.input_router.handle_pointer_press(e.position(), btn, e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er)
+            self.input_router.handle_pointer_press(e.position(), btn, e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts)
             e.accept()
         elif et == QtCore.QEvent.TabletMove:
-            self.input_router.handle_pointer_move(e.position(), e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er)
+            self.input_router.handle_pointer_move(e.position(), e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts)
             e.accept()
         elif et == QtCore.QEvent.TabletRelease:
             self._tablet_in_use = False

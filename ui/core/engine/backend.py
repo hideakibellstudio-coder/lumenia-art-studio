@@ -78,20 +78,20 @@ class EngineBackend(ABC):
     # ── Traço (Stroke) & Fast-Path ────────────────────────────────────────
 
     @abstractmethod
-    def start_stroke(self, x: float, y: float, pressure: float) -> None:
+    def start_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> None:
         """Inicia um traço no canvas."""
 
     @abstractmethod
-    def paint_stroke(self, x: float, y: float, pressure: float) -> None:
+    def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> None:
         """Continua um traço em andamento."""
 
     @abstractmethod
-    def end_stroke(self) -> None:
+    def end_stroke(self) -> Any:
         """Finaliza o traço atual."""
 
-    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0) -> None: pass
-    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0) -> List[float]: return [0.0, 0.0, 0.0]
-    def end_stroke_raw(self) -> None: pass
+    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> None: pass
+    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> List[float]: return [0.0, 0.0, 0.0]
+    def end_stroke_raw(self) -> List[float]: return []
 
     # ── Parâmetros Básicos de Pincel ──────────────────────────────────────
 

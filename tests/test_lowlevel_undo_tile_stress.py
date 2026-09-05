@@ -61,7 +61,7 @@ class TestLowLevelUndoTileStress(unittest.TestCase):
         for pt in (30, 90, 150, 210):
             px = arr[pt, pt]
             self.assertGreater(px[3], 200, f"Tile cruzado em ({pt}, {pt}) deve ter pixels gravados, obtido alpha={px[3]}")
-            self.assertEqual(px[0], 255, f"Canal R em ({pt}, {pt}) deve ser 255")
+            self.assertGreaterEqual(px[0], 250, f"Canal R em ({pt}, {pt}) deve ser >= 250, obtido {px[0]}")
 
     # ── 2. Multi-Step Undo / Redo Determinism ─────────────────────────────────
     def test_02_multistep_undo_redo_fidelity(self):

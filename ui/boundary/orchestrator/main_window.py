@@ -67,6 +67,13 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         super().closeEvent(event)
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_F12:
+            self.open_telemetry_grid_window()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     # ── Setup de componentes da janela ────────────────────────────────────
 
     def _setup_components(self) -> None:
@@ -77,6 +84,11 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
         """
         from .main_window_menu_builder import setup_menu_and_shortcuts
         setup_menu_and_shortcuts(self)
+
+        # Atalho Global F12 de Telemetria com prioridade máxima de aplicação
+        self._shortcut_f12_global = QtGui.QShortcut(QtGui.QKeySequence("F12"), self)
+        self._shortcut_f12_global.setContext(QtCore.Qt.ApplicationShortcut)
+        self._shortcut_f12_global.activated.connect(self.open_telemetry_grid_window)
 
         # ── Wiring: documento ativo → status bar ─────────────────────────
         self.dm.activeDocumentChanged.connect(self._on_active_document_status)

@@ -385,6 +385,7 @@ class BrushDropdown(QtWidgets.QToolButton):
 
             # Dispara aplicação no backend
             self._apply_preset_backend(name, preset_info)
+            self.preset_changed.emit(name, preset_info)
 
     def set_preset(self, name: str) -> None:
         self._active_preset = name

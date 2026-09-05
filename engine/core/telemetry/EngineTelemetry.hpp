@@ -9,16 +9,44 @@
 
 namespace aladyn::engine::telemetry {
 
+struct StageMetrics {
+    double timeInterpolationUs{0.0};
+    double timeRasterDabUs{0.0};
+    double timeUndoRecordUs{0.0};
+    double timeCompositeUs{0.0};
+    uint32_t dabsRendered{0};
+    double dirtyWidth{0.0};
+    double dirtyHeight{0.0};
+    double dirtyAreaPx{0.0};
+    uint32_t tilesRecorded{0};
+    uint32_t tilesComposited{0};
+};
+
 struct RealTimeStrokeMetrics {
-    // ⏱️ Latência e Tempo de Processamento
+    // ⏱️ Latência e Tempo de Processamento Geral
     double lastSegmentLatencyUs{0.0};   // Tempo do último segmento em microssegundos (µs)
     double strokeTotalTimeMs{0.0};       // Duração total do traço ativo em ms
     uint32_t totalDabsInStroke{0};       // Total de carimbos no traço atual
     uint32_t totalDabsPerSecond{0};      // Taxa instantânea de dabs/segundo
     uint32_t inputEventRateHz{0};        // Frequência de eventos de entrada (Hz)
 
+    // 🔬 Decomposição Granular do Pipeline (µs)
+    double timeKinematicsUs{0.0};       // Mapeamento dinâmico, estabilização e velocidade
+    double timeInterpolationUs{0.0};   // Interpolação adaptativa de dabs e resíduos
+    double timeRasterDabUs{0.0};        // Execução de renderDab (cálculo de ponta, grão, papel)
+    double timeUndoRecordUs{0.0};       // Backup de tiles no UndoManager
+    double timeCompositeUs{0.0};        // Mesclagem de camadas visíveis no Compositor
+
+    // 📐 Pegada Geométrica e Densidade Instantânea
+    uint32_t lastDabsRendered{0};       // Dabs emitidos no micro-evento
+    double lastDirtyWidth{0.0};         // Largura da bounding box suja (px)
+    double lastDirtyHeight{0.0};        // Altura da bounding box suja (px)
+    double lastDirtyAreaPx{0.0};        // Área de pixels da bounding box suja
+    uint32_t lastTilesRecorded{0};      // Quantidade de tiles salvos no histórico
+    uint32_t lastTilesComposited{0};    // Quantidade de tiles mesclados no compositor
+
     // 🧱 Memória e Gestão de Blocos (Tiles)
-    uint32_t activeTileCount{0};         // Total de blocos 64x64 alocados
+    uint32_t activeTileCount{0};         // Total de blocos 128x128 alocados
     uint32_t dirtyTilesLastStroke{0};    // Quantidade de blocos modificados no último traço
     double tileGridMemoryMB{0.0};        // RAM ocupada pelo TileGrid (MB)
     double undoStackMemoryMB{0.0};       // RAM ocupada pela pilha de Undo (MB)
@@ -74,6 +102,53 @@ public:
         if (!isEnabled()) return;
         m_currentMetrics.lastSegmentLatencyUs = latencyUs;
         m_currentMetrics.totalDabsInStroke += dabsRendered;
+        m_currentMetrics.lastDabsRendered = dabsRendered;
+        m_currentMetrics.rawPressure = rawPressure;
+        m_currentMetrics.dynamicPressure = dynamicPressure;
+        m_currentMetrics.strokeVelocity = velocity;
+        m_currentMetrics.stabilizerLagPx = stabilizerLag;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        double elapsedStroke = std::chrono::duration<double, std::milli>(now - m_strokeStartTime).count();
+        m_currentMetrics.strokeTotalTimeMs = elapsedStroke;
+
+        double dtSec = std::chrono::duration<double>(now - m_lastEventTime).count();
+        if (dtSec > 0.0001) {
+            m_currentMetrics.inputEventRateHz = static_cast<uint32_t>(1.0 / dtSec);
+        }
+        m_lastEventTime = now;
+
+        if (elapsedStroke > 10.0 && m_currentMetrics.totalDabsInStroke > 0) {
+            m_currentMetrics.totalDabsPerSecond = static_cast<uint32_t>((m_currentMetrics.totalDabsInStroke / elapsedStroke) * 1000.0);
+        }
+        m_eventCountInStroke++;
+    }
+
+    void onSegmentRenderedDetailed(
+        double latencyUs,
+        double timeKinematicsUs,
+        const StageMetrics& stages,
+        double rawPressure,
+        double dynamicPressure,
+        double velocity,
+        double stabilizerLag
+    ) {
+        if (!isEnabled()) return;
+        m_currentMetrics.lastSegmentLatencyUs = latencyUs;
+        m_currentMetrics.timeKinematicsUs = timeKinematicsUs;
+        m_currentMetrics.timeInterpolationUs = stages.timeInterpolationUs;
+        m_currentMetrics.timeRasterDabUs = stages.timeRasterDabUs;
+        m_currentMetrics.timeUndoRecordUs = stages.timeUndoRecordUs;
+        m_currentMetrics.timeCompositeUs = stages.timeCompositeUs;
+
+        m_currentMetrics.lastDabsRendered = stages.dabsRendered;
+        m_currentMetrics.totalDabsInStroke += stages.dabsRendered;
+        m_currentMetrics.lastDirtyWidth = stages.dirtyWidth;
+        m_currentMetrics.lastDirtyHeight = stages.dirtyHeight;
+        m_currentMetrics.lastDirtyAreaPx = stages.dirtyAreaPx;
+        m_currentMetrics.lastTilesRecorded = stages.tilesRecorded;
+        m_currentMetrics.lastTilesComposited = stages.tilesComposited;
+
         m_currentMetrics.rawPressure = rawPressure;
         m_currentMetrics.dynamicPressure = dynamicPressure;
         m_currentMetrics.strokeVelocity = velocity;

@@ -484,3 +484,14 @@ class MainWindowMenuActionsMixin:
             msg = tr("status.language_changed", "Idioma alterado com sucesso.")
             if hasattr(self, "status_bar") and self.status_bar:
                 self.status_bar.showMessage(msg, 3000)
+
+    def open_telemetry_grid_window(self) -> None:
+        """Abre a janela flutuante não-modal do Cockpit de Telemetria em Grid (F12)."""
+        from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
+        if not hasattr(self, "_telemetry_grid_win") or self._telemetry_grid_win is None or not self._telemetry_grid_win.isVisible():
+            self._telemetry_grid_win = TelemetryGridWindow(self)
+        self._telemetry_grid_win.show()
+        self._telemetry_grid_win.raise_()
+        self._telemetry_grid_win.activateWindow()
+        if hasattr(self, "status_bar") and self.status_bar:
+            self.status_bar.showMessage("Cockpit de Telemetria (Grid) ativado.", 3000)

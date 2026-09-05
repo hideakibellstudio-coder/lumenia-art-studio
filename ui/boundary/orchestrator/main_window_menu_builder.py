@@ -83,6 +83,7 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
     win.menu_bar.renderSettingsRequested.connect(win.open_render_settings_dialog)
     win.menu_bar.toggleGridRequested.connect(win.toggle_grid)
     win.menu_bar.toggleRulersRequested.connect(win.toggle_rulers)
+    win.menu_bar.telemetryGridRequested.connect(win.open_telemetry_grid_window)
 
     # 8. Janela & Docks
     win.menu_bar.dockSettingsRequested.connect(win.open_dock_settings_dialog)
@@ -137,6 +138,8 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
 
     win.shortcut_tool_t = QtGui.QShortcut(QtGui.QKeySequence("T"), win)
     win.shortcut_tool_t.activated.connect(win.select_text_tool)
+
+    win.shortcut_telemetry_f12 = win.menu_bar.view_menu.action_telemetry_grid
 
     # ── Status Bar ────────────────────────────────────────────────────
     win.status_bar = StatusBar(win)

@@ -14,7 +14,7 @@ void DabRenderer::renderDab(
     canvas::TileGrid& tileGrid,
     const PixelContext& ctx
 ) {
-    if (dab.radius <= 0.0 || dab.color.a == 0) return;
+    if (dab.radius <= 0.5 || dab.color.a == 0 || dab.opacity < 0.005) return;
 
     const double r = dab.radius;
     
@@ -40,18 +40,80 @@ void DabRenderer::renderDab(
         tileGrid.getHeight()
     );
 
+    // ─── 1. CIRCLE-AABB CULLING: Descarte antecipado dos cantos do bounding box ───
+    const double maxRSq = maxR * maxR;
+    std::vector<canvas::Tile*> validTiles;
+    validTiles.reserve(tileIndices.size());
+
+    for (const auto& idx : tileIndices) {
+        const double tileX0 = static_cast<double>(idx.x * canvas::Tile::TILE_SIZE);
+        const double tileX1 = tileX0 + canvas::Tile::TILE_SIZE;
+        const double tileY0 = static_cast<double>(idx.y * canvas::Tile::TILE_SIZE);
+        const double tileY1 = tileY0 + canvas::Tile::TILE_SIZE;
+
+        const double clampX = std::clamp(dab.position.x, tileX0, tileX1);
+        const double clampY = std::clamp(dab.position.y, tileY0, tileY1);
+        const double dX = dab.position.x - clampX;
+        const double dY = dab.position.y - clampY;
+        if (dX * dX + dY * dY > maxRSq) {
+            continue; // Pula o tile completamente sem alocar buffer
+        }
+
+        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
+        if (tile) {
+            validTiles.push_back(tile);
+        }
+    }
+
+    if (validTiles.empty()) return;
+
+    // ─── 2. PRÉ-CÁLCULOS ANALÍTICOS FORA DO LOOP ──────────────────────────────
     const auto shapeTex = profile.shapeTexture;
     const auto brushHeightTex = profile.brushHeightTexture;
     const auto canvasHeightTex = canvasTexture.canvasHeightTexture;
 
-    const double radAngle = -dab.angle * (3.14159265358979323846 / 180.0);
-    const double cosA = std::cos(radAngle);
-    const double sinA = std::sin(radAngle);
+    const bool isCircular = (aspect >= 0.999) && (std::abs(dab.angle) < 0.001);
+    const double radAngle = isCircular ? 0.0 : (-dab.angle * (3.14159265358979323846 / 180.0));
+    const double cosA = isCircular ? 1.0 : std::cos(radAngle);
+    const double sinA = isCircular ? 0.0 : std::sin(radAngle);
+    const double invAspect = isCircular ? 1.0 : (1.0 / aspect);
 
-    for (const auto& idx : tileIndices) {
-        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
-        if (!tile) continue;
+    const double safeR = std::max(0.001, r);
+    const double invTwoSafeR = 0.5 / safeR;
+    const double maxRadius = r + 1.0;
+    const double maxRadiusSq = maxRadius * maxRadius;
+    const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
+    const double hardSpanSq = hardSpan * hardSpan;
+    const double invSoftSpan = 1.0 / std::max(0.001, safeR - hardSpan);
+    const double outerSubpixelThresh = safeR - 0.5;
+    const double outerSubpixelThreshSq = (outerSubpixelThresh > 0.0) ? (outerSubpixelThresh * outerSubpixelThresh) : 0.0;
 
+    const double dabColorAlphaNorm = static_cast<double>(dab.color.a) / 255.0;
+    const double dabBaseAlpha = dabColorAlphaNorm * dab.opacity;
+    const double threshold = 1.0 - dab.pressure;
+    constexpr double feather = 0.15;
+    const double invBrushGrainContrast = (profile.brushGrainContrast != 1.0 && profile.brushGrainContrast > 0.0)
+        ? (0.5 / profile.brushGrainContrast) : 0.0;
+    const double canvasGrainFactor = 0.002 * canvasTexture.canvasGrainScale;
+
+    // Fast-path de texturas: quando desligadas (padrão de desenho de alto desempenho),
+    // o valor de depositedInk é puramente analítico e 100% constante para todo o dab.
+    const bool hasTextures = (profile.brushGrainEnabled && brushHeightTex) || (canvasTexture.canvasGrainEnabled && canvasHeightTex);
+    const double defaultDepositedInk = hasTextures ? 1.0 : math::MathUtils::smoothstep(threshold - feather, threshold + feather, 1.0);
+    if (!hasTextures && defaultDepositedInk <= 0.0) {
+        return; // Zero tinta depositada
+    }
+    const double dabEffectiveAlpha = dabBaseAlpha * defaultDepositedInk;
+    if (dabEffectiveAlpha <= 0.0) return;
+
+    const bool hasSelection = (ctx.selectionMask != nullptr && ctx.selectionMask->hasSelection());
+    const bool hasClip = (ctx.clipBaseLayer != nullptr);
+
+    // ─── 3. EXECUÇÃO PARALELA MULTI-CORE EM MICRO-TILES INDEPENDENTES ─────────
+    const int numTiles = static_cast<int>(validTiles.size());
+    #pragma omp parallel for schedule(static) if(numTiles >= 4)
+    for (int t = 0; t < numTiles; ++t) {
+        canvas::Tile* tile = validTiles[t];
         canvas::PixelBuffer& buffer = tile->getBuffer();
         const int tilePixelX = tile->getPixelX();
         const int tilePixelY = tile->getPixelY();
@@ -61,52 +123,85 @@ void DabRenderer::renderDab(
         const int minY = std::max(0, static_cast<int>(std::floor(bounds.getTop())) - tilePixelY);
         const int maxY = std::min(canvas::Tile::TILE_SIZE - 1, static_cast<int>(std::ceil(bounds.getBottom())) - tilePixelY);
 
+        if (minX > maxX || minY > maxY) continue;
+
         bool tileModified = false;
+        ColorRGBA* tileBasePtr = reinterpret_cast<ColorRGBA*>(buffer.getData());
 
         for (int py = minY; py <= maxY; ++py) {
             const double globalY = static_cast<double>(tilePixelY + py) + 0.5;
             const double dy = globalY - dab.position.y;
+            const double dySq = dy * dy;
 
-            for (int px = minX; px <= maxX; ++px) {
+            int rowMinX = minX;
+            int rowMaxX = maxX;
+
+            if (isCircular) {
+                if (dySq > maxRadiusSq) continue;
+                const double dxSpan = std::sqrt(maxRadiusSq - dySq);
+                rowMinX = std::max(minX, static_cast<int>(std::floor(dab.position.x - dxSpan)) - tilePixelX);
+                rowMaxX = std::min(maxX, static_cast<int>(std::ceil(dab.position.x + dxSpan)) - tilePixelX);
+                if (rowMinX > rowMaxX) continue;
+            }
+
+            const double vCanvas = (hasTextures && canvasTexture.canvasGrainEnabled && canvasHeightTex) ? (globalY * canvasGrainFactor) : 0.0;
+            ColorRGBA* dstRow = tileBasePtr + (py * canvas::Tile::TILE_SIZE);
+
+            for (int px = rowMinX; px <= rowMaxX; ++px) {
                 const double globalX = static_cast<double>(tilePixelX + px) + 0.5;
                 const double dx = globalX - dab.position.x;
 
-                // Rotação da Ponta
-                const double rotX = dx * cosA - dy * sinA;
-                const double rotY = dx * sinA + dy * cosA;
+                double rotX, scaledY, distSq;
+                if (isCircular) {
+                    rotX = dx;
+                    scaledY = dy;
+                    distSq = dx * dx + dySq;
+                } else {
+                    rotX = dx * cosA - dy * sinA;
+                    const double rotY = dx * sinA + dy * cosA;
+                    scaledY = rotY * invAspect;
+                    distSq = rotX * rotX + scaledY * scaledY;
+                }
 
-                // Achatamento Elíptico (Aspect Ratio)
-                const double scaledY = rotY / aspect;
-                const double distSq = rotX * rotX + scaledY * scaledY;
-                const double maxR = r + 1.0;
+                if (distSq > maxRadiusSq) continue;
 
-                if (distSq <= maxR * maxR) {
-                    const double dist = std::sqrt(distSq);
-                    const double safeR = std::max(0.001, r);
-                    const double uDab = (rotX + safeR) / (2.0 * safeR);
-                    const double vDab = (scaledY + safeR) / (2.0 * safeR);
-
-                    // 1. FORMA DA PONTA (Shape Alpha com Suporte a Hardness e Subpixel Anti-aliasing)
-                    double shapeAlpha = 1.0;
-                    if (shapeTex) {
-                        shapeAlpha = shapeTex->sampleNormalized(uDab, vDab, texture::TextureWrapMode::Clamp);
-                    } else {
-                        const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
-                        if (dist > hardSpan) {
-                            shapeAlpha = std::clamp((safeR - dist) / std::max(0.001, safeR - hardSpan), 0.0, 1.0);
+                // 1. FORMA DA PONTA (Shape Alpha com Suporte a Hardness e Subpixel Anti-aliasing)
+                double shapeAlpha = 1.0;
+                if (shapeTex) {
+                    const double uDab = (rotX + safeR) * invTwoSafeR;
+                    const double vDab = (scaledY + safeR) * invTwoSafeR;
+                    shapeAlpha = shapeTex->sampleNormalized(uDab, vDab, texture::TextureWrapMode::Clamp);
+                    if (distSq > outerSubpixelThreshSq) {
+                        const double dist = std::sqrt(distSq);
+                        if (dist > outerSubpixelThresh) {
+                            shapeAlpha *= std::clamp((safeR - dist) * 2.0, 0.0, 1.0);
                         }
                     }
-
-                    // Suavização subpixel de 0.5px na borda externa circular
-                    if (dist > safeR - 0.5) {
-                        shapeAlpha *= std::clamp((safeR - dist) / 0.5, 0.0, 1.0);
+                } else {
+                    // Fast-path: no miolo sólido (distSq <= hardSpanSq && distSq <= outerSubpixelThreshSq),
+                    // dispensamos std::sqrt e divisões flutuantes!
+                    if (distSq > hardSpanSq || distSq > outerSubpixelThreshSq) {
+                        const double dist = std::sqrt(distSq);
+                        if (dist > hardSpan) {
+                            shapeAlpha = std::clamp((safeR - dist) * invSoftSpan, 0.0, 1.0);
+                        }
+                        if (dist > outerSubpixelThresh) {
+                            shapeAlpha *= std::clamp((safeR - dist) * 2.0, 0.0, 1.0);
+                        }
                     }
+                }
 
-                    if (shapeAlpha <= 0.0) continue;
+                if (shapeAlpha <= 0.0) continue;
 
+                double curFinalAlpha;
+                if (!hasTextures) {
+                    curFinalAlpha = dabEffectiveAlpha * shapeAlpha;
+                } else {
                     // 2. TEXTURA DO PINCEL (Brush Heightmap - Móvel no UV do Dab)
                     double brushHeight = 1.0;
                     if (profile.brushGrainEnabled && brushHeightTex) {
+                        const double uDab = (rotX + safeR) * invTwoSafeR;
+                        const double vDab = (scaledY + safeR) * invTwoSafeR;
                         const double uBrush = uDab * profile.brushGrainScale;
                         const double vBrush = vDab * profile.brushGrainScale;
                         brushHeight = brushHeightTex->sampleNormalized(uBrush, vBrush, texture::TextureWrapMode::Repeat);
@@ -115,9 +210,8 @@ void DabRenderer::renderDab(
                             brushHeight = 1.0 - brushHeight;
                         }
 
-                        if (profile.brushGrainContrast != 1.0 && profile.brushGrainContrast > 0.0) {
-                            const double halfSpan = 0.5 / profile.brushGrainContrast;
-                            brushHeight = math::MathUtils::smoothstep(0.5 - halfSpan, 0.5 + halfSpan, brushHeight);
+                        if (invBrushGrainContrast > 0.0) {
+                            brushHeight = math::MathUtils::smoothstep(0.5 - invBrushGrainContrast, 0.5 + invBrushGrainContrast, brushHeight);
                         }
 
                         brushHeight = profile.brushTextureCurve.sample(brushHeight);
@@ -126,161 +220,153 @@ void DabRenderer::renderDab(
                     // 3. TEXTURA DA TELA / PAPEL (Canvas Heightmap - Estática no Canvas World)
                     double canvasHeight = 1.0;
                     if (canvasTexture.canvasGrainEnabled && canvasHeightTex) {
-                        const double uCanvas = globalX * 0.002 * canvasTexture.canvasGrainScale;
-                        const double vCanvas = globalY * 0.002 * canvasTexture.canvasGrainScale;
+                        const double uCanvas = globalX * canvasGrainFactor;
                         const uint8_t rawVal = canvasHeightTex->sampleNormalizedFastByte(uCanvas, vCanvas);
                         canvasHeight = canvasTexture.sampleLUT(rawVal);
                     }
 
-                    // --- EQUAÇÃO DE CONJUNTO E CONTATO TRIDIMENSIONAL ---
                     const double combinedHeight = brushHeight * canvasHeight;
-                    const double threshold = 1.0 - dab.pressure;
-                    const double feather = 0.15;
                     const double depositedInk = math::MathUtils::smoothstep(threshold - feather, threshold + feather, combinedHeight);
+                    curFinalAlpha = dabBaseAlpha * shapeAlpha * depositedInk;
+                }
 
-                    const double finalAlpha = (static_cast<double>(dab.color.a) / 255.0) * dab.opacity * shapeAlpha * depositedInk;
-                    if (finalAlpha <= 0.0) continue;
+                if (curFinalAlpha <= 0.0) continue;
 
-                    double curFinalAlpha = finalAlpha;
-                    if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
-                        const int globalX = tilePixelX + px;
-                        const int globalY = tilePixelY + py;
-                        const uint8_t sVal = ctx.selectionMask->getValue(globalX, globalY);
-                        if (sVal == 0) continue;
-                        if (sVal < 255) {
-                            curFinalAlpha *= (static_cast<double>(sVal) / 255.0);
-                        }
+                if (hasSelection) {
+                    const int gX = tilePixelX + px;
+                    const int gY = tilePixelY + py;
+                    const uint8_t sVal = ctx.selectionMask->getValue(gX, gY);
+                    if (sVal == 0) continue;
+                    if (sVal < 255) {
+                        curFinalAlpha *= (static_cast<double>(sVal) / 255.0);
                     }
+                }
 
-                    if (ctx.clipBaseLayer) {
-                        const int globalX = tilePixelX + px;
-                        const int globalY = tilePixelY + py;
-                        const int bTx = globalX / canvas::Tile::TILE_SIZE;
-                        const int bTy = globalY / canvas::Tile::TILE_SIZE;
-                        const int bPx = globalX % canvas::Tile::TILE_SIZE;
-                        const int bPy = globalY % canvas::Tile::TILE_SIZE;
-                        const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(ctx.clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
-                        if (!bTile) continue;
-                        const double baseA = static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0;
-                        if (baseA <= 0.0) continue;
-                        curFinalAlpha *= baseA;
-                    }
+                if (hasClip) {
+                    const int gX = tilePixelX + px;
+                    const int gY = tilePixelY + py;
+                    const int bTx = gX / canvas::Tile::TILE_SIZE;
+                    const int bTy = gY / canvas::Tile::TILE_SIZE;
+                    const int bPx = gX % canvas::Tile::TILE_SIZE;
+                    const int bPy = gY % canvas::Tile::TILE_SIZE;
+                    const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(ctx.clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
+                    if (!bTile) continue;
+                    const double baseA = static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0;
+                    if (baseA <= 0.0) continue;
+                    curFinalAlpha *= baseA;
+                }
 
-                    if (curFinalAlpha <= 0.0) continue;
+                if (curFinalAlpha <= 0.0) continue;
 
-                    ColorRGBA dst = buffer.getPixel(px, py);
+                ColorRGBA& dst = dstRow[px];
 
-                    if (ctx.alphaLocked) {
-                        if (dst.a == 0) continue;
-                        const uint32_t sA = static_cast<uint32_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
-                        const uint32_t invA = 255 - sA;
-                        const ColorRGBA newColor{
-                            static_cast<uint8_t>((dab.color.r * sA + dst.r * invA) / 255),
-                            static_cast<uint8_t>((dab.color.g * sA + dst.g * invA) / 255),
-                            static_cast<uint8_t>((dab.color.b * sA + dst.b * invA) / 255),
-                            dst.a
-                        };
-                        buffer.setPixel(px, py, newColor);
-                        tileModified = true;
-                        continue;
-                    }
+                if (ctx.alphaLocked) {
+                    if (dst.a == 0) continue;
+                    const uint32_t sA = static_cast<uint32_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
+                    const uint32_t invA = 255 - sA;
+                    dst = ColorRGBA{
+                        static_cast<uint8_t>((dab.color.r * sA + dst.r * invA + 127) / 255),
+                        static_cast<uint8_t>((dab.color.g * sA + dst.g * invA + 127) / 255),
+                        static_cast<uint8_t>((dab.color.b * sA + dst.b * invA + 127) / 255),
+                        dst.a
+                    };
+                    tileModified = true;
+                    continue;
+                }
 
-                    // ─── PROCESSAMENTO DE MODO DE MESCLAGEM (DAB BLEND MODES) ──────
-                    switch (dab.blendMode) {
-                        case DabBlendMode::Normal: {
-                            if (dst.a == 0) {
-                                const uint8_t fa8 = static_cast<uint8_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
-                                buffer.setPixel(px, py, ColorRGBA{dab.color.r, dab.color.g, dab.color.b, fa8});
-                                tileModified = true;
-                                break;
-                            }
-
-                            if (dst.a == 255) {
-                                const uint32_t sA = static_cast<uint32_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
-                                const uint32_t invA = 255 - sA;
-                                const ColorRGBA newColor{
-                                    static_cast<uint8_t>((dab.color.r * sA + dst.r * invA) / 255),
-                                    static_cast<uint8_t>((dab.color.g * sA + dst.g * invA) / 255),
-                                    static_cast<uint8_t>((dab.color.b * sA + dst.b * invA) / 255),
-                                    255
-                                };
-                                buffer.setPixel(px, py, newColor);
-                                tileModified = true;
-                                break;
-                            }
-
-                            const double srcA = finalAlpha;
-                            const double dstA = static_cast<double>(dst.a) / 255.0;
-                            const double outA = srcA + dstA * (1.0 - srcA);
-
-                            if (outA > 0.0) {
-                                const double srcR = static_cast<double>(dab.color.r);
-                                const double srcG = static_cast<double>(dab.color.g);
-                                const double srcB = static_cast<double>(dab.color.b);
-
-                                const double dstR = static_cast<double>(dst.r);
-                                const double dstG = static_cast<double>(dst.g);
-                                const double dstB = static_cast<double>(dst.b);
-
-                                const double outR = (srcR * srcA + dstR * dstA * (1.0 - srcA)) / outA;
-                                const double outG = (srcG * srcA + dstG * dstA * (1.0 - srcA)) / outA;
-                                const double outB = (srcB * srcA + dstB * dstA * (1.0 - srcA)) / outA;
-
-                                const ColorRGBA newColor{
-                                    static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
-                                    static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
-                                    static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
-                                    static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
-                                };
-                                buffer.setPixel(px, py, newColor);
-                                tileModified = true;
-                            }
-                            break;
-                        }
-                        case DabBlendMode::Multiply: { // Modo Canetinha / Marker
-                            const double srcA = finalAlpha;
-                            const double dstR = static_cast<double>(dst.r) / 255.0;
-                            const double dstG = static_cast<double>(dst.g) / 255.0;
-                            const double dstB = static_cast<double>(dst.b) / 255.0;
-
-                            const double srcR = static_cast<double>(dab.color.r) / 255.0;
-                            const double srcG = static_cast<double>(dab.color.g) / 255.0;
-                            const double srcB = static_cast<double>(dab.color.b) / 255.0;
-
-                            const double multR = dstR * (1.0 - srcA * (1.0 - srcR));
-                            const double multG = dstG * (1.0 - srcA * (1.0 - srcG));
-                            const double multB = dstB * (1.0 - srcA * (1.0 - srcB));
-
-                            ColorRGBA newColor{
-                                static_cast<uint8_t>(std::clamp(multR * 255.0, 0.0, 255.0)),
-                                static_cast<uint8_t>(std::clamp(multG * 255.0, 0.0, 255.0)),
-                                static_cast<uint8_t>(std::clamp(multB * 255.0, 0.0, 255.0)),
-                                dst.a
-                            };
-                            buffer.setPixel(px, py, newColor);
+                // ─── PROCESSAMENTO DE MODO DE MESCLAGEM (DAB BLEND MODES) ──────
+                switch (dab.blendMode) {
+                    case DabBlendMode::Normal: {
+                        if (dst.a == 0) {
+                            const uint8_t fa8 = static_cast<uint8_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
+                            dst = ColorRGBA{dab.color.r, dab.color.g, dab.color.b, fa8};
                             tileModified = true;
                             break;
                         }
-                        case DabBlendMode::Additive: { // Modo Luz / Glow
-                            const double srcA = finalAlpha;
+
+                        if (dst.a == 255) {
+                            const uint32_t sA = static_cast<uint32_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
+                            const uint32_t invA = 255 - sA;
+                            dst = ColorRGBA{
+                                static_cast<uint8_t>((dab.color.r * sA + dst.r * invA + 127) / 255),
+                                static_cast<uint8_t>((dab.color.g * sA + dst.g * invA + 127) / 255),
+                                static_cast<uint8_t>((dab.color.b * sA + dst.b * invA + 127) / 255),
+                                255
+                            };
+                            tileModified = true;
+                            break;
+                        }
+
+                        const double srcA = curFinalAlpha;
+                        const double dstA = static_cast<double>(dst.a) / 255.0;
+                        const double outA = srcA + dstA * (1.0 - srcA);
+
+                        if (outA > 0.0) {
+                            const double srcR = static_cast<double>(dab.color.r);
+                            const double srcG = static_cast<double>(dab.color.g);
+                            const double srcB = static_cast<double>(dab.color.b);
+
                             const double dstR = static_cast<double>(dst.r);
                             const double dstG = static_cast<double>(dst.g);
                             const double dstB = static_cast<double>(dst.b);
 
-                            const double addR = dstR + static_cast<double>(dab.color.r) * srcA;
-                            const double addG = dstG + static_cast<double>(dab.color.g) * srcA;
-                            const double addB = dstB + static_cast<double>(dab.color.b) * srcA;
+                            const double invOutA = 1.0 / outA;
+                            const double oneMinusSrcA = 1.0 - srcA;
+                            const double outR = (srcR * srcA + dstR * dstA * oneMinusSrcA) * invOutA;
+                            const double outG = (srcG * srcA + dstG * dstA * oneMinusSrcA) * invOutA;
+                            const double outB = (srcB * srcA + dstB * dstA * oneMinusSrcA) * invOutA;
 
-                            ColorRGBA newColor{
-                                static_cast<uint8_t>(std::clamp(addR, 0.0, 255.0)),
-                                static_cast<uint8_t>(std::clamp(addG, 0.0, 255.0)),
-                                static_cast<uint8_t>(std::clamp(addB, 0.0, 255.0)),
-                                255
+                            dst = ColorRGBA{
+                                static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
+                                static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
+                                static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
+                                static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
                             };
-                            buffer.setPixel(px, py, newColor);
                             tileModified = true;
-                            break;
                         }
+                        break;
+                    }
+                    case DabBlendMode::Multiply: { // Modo Canetinha / Marker
+                        const double srcA = curFinalAlpha;
+                        const double dstR = static_cast<double>(dst.r) / 255.0;
+                        const double dstG = static_cast<double>(dst.g) / 255.0;
+                        const double dstB = static_cast<double>(dst.b) / 255.0;
+
+                        const double srcR = static_cast<double>(dab.color.r) / 255.0;
+                        const double srcG = static_cast<double>(dab.color.g) / 255.0;
+                        const double srcB = static_cast<double>(dab.color.b) / 255.0;
+
+                        const double multR = dstR * (1.0 - srcA * (1.0 - srcR));
+                        const double multG = dstG * (1.0 - srcA * (1.0 - srcG));
+                        const double multB = dstB * (1.0 - srcA * (1.0 - srcB));
+
+                        dst = ColorRGBA{
+                            static_cast<uint8_t>(std::clamp(multR * 255.0, 0.0, 255.0)),
+                            static_cast<uint8_t>(std::clamp(multG * 255.0, 0.0, 255.0)),
+                            static_cast<uint8_t>(std::clamp(multB * 255.0, 0.0, 255.0)),
+                            dst.a
+                        };
+                        tileModified = true;
+                        break;
+                    }
+                    case DabBlendMode::Additive: { // Modo Luz / Glow
+                        const double srcA = curFinalAlpha;
+                        const double dstR = static_cast<double>(dst.r);
+                        const double dstG = static_cast<double>(dst.g);
+                        const double dstB = static_cast<double>(dst.b);
+
+                        const double addR = dstR + static_cast<double>(dab.color.r) * srcA;
+                        const double addG = dstG + static_cast<double>(dab.color.g) * srcA;
+                        const double addB = dstB + static_cast<double>(dab.color.b) * srcA;
+
+                        dst = ColorRGBA{
+                            static_cast<uint8_t>(std::clamp(addR, 0.0, 255.0)),
+                            static_cast<uint8_t>(std::clamp(addG, 0.0, 255.0)),
+                            static_cast<uint8_t>(std::clamp(addB, 0.0, 255.0)),
+                            255
+                        };
+                        tileModified = true;
+                        break;
                     }
                 }
             }

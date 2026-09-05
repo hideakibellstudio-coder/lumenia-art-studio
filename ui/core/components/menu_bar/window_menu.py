@@ -25,6 +25,7 @@ class WindowMenu(QtWidgets.QMenu):
     # Diálogo de configurações
     dock_settings_requested             = QtCore.Signal()
     floating_toolbar_settings_requested = QtCore.Signal()
+    telemetry_grid_requested            = QtCore.Signal()
 
     def __init__(self, parent=None) -> None:
         super().__init__("Janela", parent)
@@ -40,6 +41,12 @@ class WindowMenu(QtWidgets.QMenu):
         self._add_panel_action("color_plugin",    "Cores & Harmonias",    "left",  "Alt+C", icon="palette")
         self._add_panel_action("layers_plugin",   "Camadas",              "right", "Alt+L", icon="layers")
         self._add_panel_action("navigator_plugin","Navegador do Canvas",  "right", "Alt+N", icon="navigator")
+        self._add_panel_action("telemetry",       "Painel de Telemetria", "right", icon="chart")
+
+        self.act_telemetry_grid = QtGui.QAction(get_icon("chart"), "Cockpit de Telemetria em Grid...", self)
+        self.act_telemetry_grid.setShortcut("F12")
+        self.act_telemetry_grid.triggered.connect(self.telemetry_grid_requested.emit)
+        self.addAction(self.act_telemetry_grid)
 
         # ── Sidebar ────────────────────────────────────────────────────
         self.addSeparator()
@@ -101,6 +108,10 @@ class WindowMenu(QtWidgets.QMenu):
             self._panel_actions["layers_plugin"].setText(tr("menu.window.layers_panel", "Camadas"))
         if "navigator_plugin" in self._panel_actions:
             self._panel_actions["navigator_plugin"].setText(tr("menu.window.navigator", "Navegador do Canvas"))
+        if "telemetry" in self._panel_actions:
+            self._panel_actions["telemetry"].setText(tr("menu.window.telemetry_panel", "Painel de Telemetria"))
+        if hasattr(self, "act_telemetry_grid"):
+            self.act_telemetry_grid.setText(tr("menu.view.telemetry_grid", "Cockpit de Telemetria em Grid..."))
 
         if hasattr(self, "act_collapse"):
             self.act_collapse.setText(tr("menu.window.collapse_all", "Recolher Todas as Barras"))

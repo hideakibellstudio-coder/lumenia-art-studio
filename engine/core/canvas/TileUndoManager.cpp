@@ -41,25 +41,43 @@ void TileUndoManager::commitStep(document::LayerStack& stack) {
     m_isRecording = false;
 
     // Grava o estado final ('afterData') de cada tile alterado
-    auto it = m_currentStep.snapshots.begin();
-    while (it != m_currentStep.snapshots.end()) {
-        document::Layer* layer = stack.getDrawingLayer(it->layerIndex);
+    // Otimização O(N): valida alteração via memcmp antes de alocar memória
+    // e usa transferência direta sem realocação quadrática de vetor.
+    std::vector<TileSnapshot> keptSnapshots;
+    keptSnapshots.reserve(m_currentStep.snapshots.size());
 
-        if (layer) {
-            Tile* tile = layer->getTileGrid().getTile(it->tileX, it->tileY);
-            if (tile) {
-                const auto& buf = tile->getBuffer();
-                it->afterData.assign(buf.getData(), buf.getData() + buf.getSizeInBytes());
-            }
-        }
+    static const uint8_t s_emptyTileData[canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * sizeof(raster::ColorRGBA)] = {0};
+    constexpr size_t s_emptyTileBytes = sizeof(s_emptyTileData);
 
-        // Se o tile não foi alterado de fato (before == after), ignora
-        if (it->beforeData == it->afterData) {
-            it = m_currentStep.snapshots.erase(it);
+    for (auto& snap : m_currentStep.snapshots) {
+        document::Layer* layer = stack.getDrawingLayer(snap.layerIndex);
+        if (!layer) continue;
+
+        Tile* tile = layer->getTileGrid().getTile(snap.tileX, snap.tileY);
+        const uint8_t* currentData = nullptr;
+        size_t currentSize = 0;
+
+        if (tile) {
+            const auto& buf = tile->getBuffer();
+            currentData = buf.getData();
+            currentSize = buf.getSizeInBytes();
         } else {
-            ++it;
+            currentData = s_emptyTileData;
+            currentSize = s_emptyTileBytes;
         }
+
+        // Se o tile não foi alterado de fato (beforeData == currentData), descarta sem alocar afterData!
+        if (currentSize == snap.beforeData.size() &&
+            std::memcmp(snap.beforeData.data(), currentData, currentSize) == 0) {
+            continue;
+        }
+
+        snap.afterData.assign(currentData, currentData + currentSize);
+        keptSnapshots.push_back(std::move(snap));
     }
+
+    m_recordedTiles.clear();
+    m_currentStep.snapshots = std::move(keptSnapshots);
 
     if (!m_currentStep.snapshots.empty()) {
         const size_t stepBytes = calculateStepBytes(m_currentStep);

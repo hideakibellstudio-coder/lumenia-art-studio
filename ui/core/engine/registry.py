@@ -85,3 +85,22 @@ class EngineRegistry:
     def clear(self) -> None:
         """Remove o backend ativo (usado em testes/boot limp)."""
         self._backend = None
+
+    # ── Telemetria da Viewport (Qt Blit & Taxa da Tela) ───────────────────
+
+    _viewport_telemetry_provider: Optional[Any] = None
+
+    @classmethod
+    def register_viewport_telemetry_provider(cls, provider: Any) -> None:
+        """Registra o provedor de métricas da Viewport (ex: RenderWidget)."""
+        cls._viewport_telemetry_provider = provider
+
+    @classmethod
+    def get_viewport_telemetry(cls) -> dict[str, Any]:
+        """Retorna as métricas da Viewport ativa sem acoplamento direto de plugin."""
+        if cls._viewport_telemetry_provider is not None:
+            try:
+                return cls._viewport_telemetry_provider()
+            except Exception:
+                return {}
+        return {}

@@ -96,6 +96,12 @@ class AladynBrushMixin:
         prof = self._facade.get_brush_profile()
         if not prof:
             return {}
+        stab_pct = 40.0
+        if self._facade and hasattr(self._facade, "get_stabilizer"):
+            try:
+                stab_pct = float(self._facade.get_stabilizer().get_stabilization_percentage())
+            except Exception:
+                stab_pct = 40.0
         data = {
             "brush_size": getattr(prof, "brush_size", 20.0),
             "opacity": getattr(prof, "opacity", 1.0),
@@ -109,6 +115,8 @@ class AladynBrushMixin:
             "brush_grain_invert": getattr(prof, "brush_grain_invert", False),
             "pressure_size_enabled": getattr(prof, "pressure_size_enabled", True),
             "pressure_flow_enabled": getattr(prof, "pressure_flow_enabled", True),
+            "stroke_taper_enabled": getattr(prof, "stroke_taper_enabled", True),
+            "stabilizer_weight": stab_pct / 100.0,
             "min_size_percent": getattr(prof, "min_size_percent", 0.0),
             "min_opacity_percent": getattr(prof, "min_opacity_percent", 0.0),
         }
@@ -170,6 +178,9 @@ class AladynBrushMixin:
     def apply_brush_preset_dict(self, data: dict) -> None:
         if not data:
             return
+        if not hasattr(self, "_last_brush_preset"):
+            self._last_brush_preset = {}
+        self._last_brush_preset.update(data)
         if "engine_type" in data:
             self.set_engine_type(int(data["engine_type"]))
         if "brush_size" in data:
@@ -192,11 +203,16 @@ class AladynBrushMixin:
             self.set_brush_invert_height(bool(data["brush_grain_invert"]))
         if "shape_preset" in data:
             self.set_shape_preset(int(data["shape_preset"]))
+        if "stabilizer_weight" in data:
+            self.set_stabilizer_weight(float(data["stabilizer_weight"]))
+        elif "stabilizer" in data:
+            self.set_stabilizer_weight(float(data["stabilizer"]))
 
         key_mappings = {
             "tip_aspect": ("tip", "aspect_ratio"),
             "tip_angle": ("tip", "angle"),
             "follow_stroke": ("tip", "follow_stroke"),
+            "stroke_taper_enabled": ("root", "stroke_taper_enabled"),
             "scatter_count": ("root", "scatter_count"),
             "scatter_radius": ("root", "scatter_radius"),
             "jitter_size": ("dynamics", "jitter_size"),

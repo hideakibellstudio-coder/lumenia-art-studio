@@ -54,5 +54,10 @@ def create_size_opacity_section(panel) -> CollapsibleSection:
     panel.slider_stabilizer.pinToggled.connect(panel.pinToggled.emit)
     lo.addWidget(panel.slider_stabilizer)
 
+    panel.chk_stroke_taper = QtWidgets.QCheckBox(tr("brush.stroke_taper", "Afunilamento na Soltura (Tapering no Pen Up)"))
+    panel.chk_stroke_taper.setChecked(True)
+    panel.chk_stroke_taper.stateChanged.connect(panel._on_stroke_taper_changed)
+    lo.addWidget(panel.chk_stroke_taper)
+
     sec.add_widget(w)
     return sec

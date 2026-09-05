@@ -32,14 +32,55 @@ void EraserEngine::renderDab(
         bounds, tileGrid.getWidth(), tileGrid.getHeight()
     );
 
-    const double radAngle = -dab.angle * (3.14159265358979323846 / 180.0);
-    const double cosA = std::cos(radAngle);
-    const double sinA = std::sin(radAngle);
+    // ─── 1. CIRCLE-AABB CULLING: Descarte antecipado ───
+    const double maxRSq = maxR * maxR;
+    std::vector<canvas::Tile*> validTiles;
+    validTiles.reserve(tileIndices.size());
 
     for (const auto& idx : tileIndices) {
-        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
-        if (!tile) continue;
+        const double tileX0 = static_cast<double>(idx.x * canvas::Tile::TILE_SIZE);
+        const double tileX1 = tileX0 + canvas::Tile::TILE_SIZE;
+        const double tileY0 = static_cast<double>(idx.y * canvas::Tile::TILE_SIZE);
+        const double tileY1 = tileY0 + canvas::Tile::TILE_SIZE;
 
+        const double clampX = std::clamp(dab.position.x, tileX0, tileX1);
+        const double clampY = std::clamp(dab.position.y, tileY0, tileY1);
+        const double dX = dab.position.x - clampX;
+        const double dY = dab.position.y - clampY;
+        if (dX * dX + dY * dY > maxRSq) {
+            continue;
+        }
+
+        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
+        if (tile) {
+            validTiles.push_back(tile);
+        }
+    }
+
+    if (validTiles.empty()) return;
+
+    // ─── 2. PRÉ-CÁLCULOS ANALÍTICOS ───
+    const bool isCircular = (aspect >= 0.999) && (std::abs(dab.angle) < 0.001);
+    const double radAngle = isCircular ? 0.0 : (-dab.angle * (3.14159265358979323846 / 180.0));
+    const double cosA = isCircular ? 1.0 : std::cos(radAngle);
+    const double sinA = isCircular ? 0.0 : std::sin(radAngle);
+    const double invAspect = isCircular ? 1.0 : (1.0 / aspect);
+
+    const double safeR = std::max(0.001, r);
+    const double invTwoSafeR = 0.5 / safeR;
+    const double maxRadius = r + 1.0;
+    const double maxRadiusSq = maxRadius * maxRadius;
+    const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
+    const double hardSpanSq = hardSpan * hardSpan;
+    const double invSoftSpan = 1.0 / std::max(0.001, safeR - hardSpan);
+    const double outerSubpixelThresh = safeR - 0.5;
+    const double outerSubpixelThreshSq = (outerSubpixelThresh > 0.0) ? (outerSubpixelThresh * outerSubpixelThresh) : 0.0;
+
+    // ─── 3. EXECUÇÃO PARALELA MULTI-CORE ───
+    const int numTiles = static_cast<int>(validTiles.size());
+    #pragma omp parallel for schedule(static) if(numTiles >= 6)
+    for (int t = 0; t < numTiles; ++t) {
+        canvas::Tile* tile = validTiles[t];
         canvas::PixelBuffer& buffer = tile->getBuffer();
         const int tilePixelX = tile->getPixelX();
         const int tilePixelY = tile->getPixelY();
@@ -57,36 +98,43 @@ void EraserEngine::renderDab(
             for (int px = minX; px <= maxX; ++px) {
                 const double dx = static_cast<double>(tilePixelX + px) + 0.5 - dab.position.x;
 
-                const double rotX = dx * cosA - dy * sinA;
-                const double rotY = dx * sinA + dy * cosA;
-                const double scaledY = rotY / aspect;
-                const double dist = std::sqrt(rotX * rotX + scaledY * scaledY);
-
-                if (dist > r + 1.0) continue;
-
-                const double uDab = std::clamp((rotX + r) / (2.0 * r), 0.0, 1.0);
-                const double vDab = std::clamp((scaledY + r) / (2.0 * r), 0.0, 1.0);
-
-                // Forma da ponta (shapeTexture ou fallback com hardness)
-                double shapeAlpha = 1.0;
-                if (profile.shapeTexture) {
-                    shapeAlpha = profile.shapeTexture->sampleNormalized(uDab, vDab,
-                        texture::TextureWrapMode::Clamp);
+                double rotX, scaledY, distSq;
+                if (isCircular) {
+                    rotX = dx;
+                    scaledY = dy;
+                    distSq = dx * dx + dy * dy;
                 } else {
-                    const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
-                    if (dist > hardSpan) {
-                        shapeAlpha = std::clamp((r - dist) / std::max(0.001, r - hardSpan), 0.0, 1.0);
-                    }
+                    rotX = dx * cosA - dy * sinA;
+                    const double rotY = dx * sinA + dy * cosA;
+                    scaledY = rotY * invAspect;
+                    distSq = rotX * rotX + scaledY * scaledY;
                 }
 
-                // Subpixel anti-aliasing na extremidade
-                if (dist > r - 0.5) {
-                    shapeAlpha *= std::clamp((r - dist) / 0.5, 0.0, 1.0);
+                if (distSq > maxRadiusSq) continue;
+
+                double shapeAlpha = 1.0;
+                if (profile.shapeTexture) {
+                    const double uDab = std::clamp((rotX + safeR) * invTwoSafeR, 0.0, 1.0);
+                    const double vDab = std::clamp((scaledY + safeR) * invTwoSafeR, 0.0, 1.0);
+                    shapeAlpha = profile.shapeTexture->sampleNormalized(uDab, vDab, texture::TextureWrapMode::Clamp);
+                    const double dist = std::sqrt(distSq);
+                    if (dist > outerSubpixelThresh) {
+                        shapeAlpha *= std::clamp((safeR - dist) * 2.0, 0.0, 1.0);
+                    }
+                } else {
+                    if (distSq > hardSpanSq || distSq > outerSubpixelThreshSq) {
+                        const double dist = std::sqrt(distSq);
+                        if (dist > hardSpan) {
+                            shapeAlpha = std::clamp((safeR - dist) * invSoftSpan, 0.0, 1.0);
+                        }
+                        if (dist > outerSubpixelThresh) {
+                            shapeAlpha *= std::clamp((safeR - dist) * 2.0, 0.0, 1.0);
+                        }
+                    }
                 }
 
                 if (shapeAlpha <= 0.0) continue;
 
-                // Força de apagamento = opacidade do dab × alpha da forma
                 double eraseStrength = dab.opacity * shapeAlpha;
                 if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
                     const int gx = tilePixelX + px;
@@ -111,7 +159,6 @@ void EraserEngine::renderDab(
                 }
                 if (eraseStrength <= 0.0) continue;
 
-                // DabBlendMode::Erase — reduz alpha do destino proporcionalmente
                 raster::ColorRGBA dst = buffer.getPixel(px, py);
                 const double dstA = static_cast<double>(dst.a) / 255.0;
                 const double newA = dstA * (1.0 - eraseStrength);

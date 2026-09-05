@@ -98,6 +98,7 @@ public:
     bool pressureSizeEnabled{true};
     bool pressureFlowEnabled{true};
     bool velocitySizeEnabled{false};
+    bool strokeTaperEnabled{true};
 
     math::BezierCurve pressureSizeCurve{math::CurvePreset::Linear};
     math::BezierCurve pressureFlowCurve{math::CurvePreset::Linear};

@@ -5,7 +5,8 @@ Isola completamente o ciclo de vida do cursor da viewport:
   - Ativação do anel geométrico flutuante ESTRITAMENTE dentro dos limites da área em pixels do canvas/imagem.
   - Alternância imediata para a seta padrão do sistema (Qt.ArrowCursor) na área cinza do workspace fora do canvas.
   - Restauração determinística do cursor do sistema ao sair da viewport para docas, abas e menus.
-  - Cálculo atômico de dirty rects para repintura de alta taxa (240+ FPS) com custo zero de CPU.
+  - Cálculo atômico de dirty rects / QRegion para repintura de ultra-alta taxa sem repaints de tela inteira.
+  - Zero chamadas Win32 redundantes e cache de transformações para altíssima performance.
 """
 
 from __future__ import annotations
@@ -30,6 +31,11 @@ class CanvasCursorController:
         self.mouse_pos: QtCore.QPointF = QtCore.QPointF(-1000.0, -1000.0)
         self.cursor_settings: dict = ToolCursorRenderer.get_cursor_settings()
         self._last_radius: float = 12.0
+        self._current_shape: Optional[QtGui.QCursor | QtCore.Qt.CursorShape] = None
+        self._last_cursor_rect: QtCore.QRect = QtCore.QRect()
+        self._cached_transform: Optional[QtGui.QTransform] = None
+        self._cached_inv_transform: Optional[QtGui.QTransform] = None
+        self._cached_inv_ok: bool = False
 
     def reload_settings(self) -> None:
         """Recarrega as preferências do usuário para o cursor."""
@@ -38,35 +44,42 @@ class CanvasCursorController:
 
     def is_over_canvas(self, pos: QtCore.QPointF) -> bool:
         """Verifica se a posição do mouse na tela está dentro da área definida do canvas/imagem."""
-        from ui.core.document.manager import DocumentManager
-        if not DocumentManager.instance().has_document():
-            return False
         w = self.widget
-        if not hasattr(w, "_get_canvas_transform"):
-            return False
-        t = w._get_canvas_transform()
-        inv_t, ok = t.inverted()
-        if not ok:
-            return False
-        canvas_pt = inv_t.map(pos)
         cw = getattr(w, "canvas_w", 0)
         ch = getattr(w, "canvas_h", 0)
+        if cw <= 0 or ch <= 0:
+            return False
+
+        if not hasattr(w, "_get_canvas_transform"):
+            return False
+
+        t = w._get_canvas_transform()
+        if self._cached_transform != t:
+            self._cached_transform = t
+            self._cached_inv_transform, self._cached_inv_ok = t.inverted()
+
+        if not self._cached_inv_ok or self._cached_inv_transform is None:
+            return False
+
+        canvas_pt = self._cached_inv_transform.map(pos)
         return (0.0 <= canvas_pt.x() <= float(cw)) and (0.0 <= canvas_pt.y() <= float(ch))
+
+    def _set_widget_cursor(self, cursor: QtGui.QCursor | QtCore.Qt.CursorShape) -> None:
+        """Aplica o cursor ao widget evitando chamadas redundantes ao Win32."""
+        if self._current_shape == cursor:
+            return
+        self._current_shape = cursor
+        self.widget.setCursor(cursor)
 
     def update_cursor_shape(self) -> None:
         """Define o formato do cursor do widget com base na ferramenta ativa, posição e preferências."""
-        from ui.core.document.manager import DocumentManager
         w = self.widget
+        cw = getattr(w, "canvas_w", 0)
+        ch = getattr(w, "canvas_h", 0)
 
-        if not DocumentManager.instance().has_document():
-            w.unsetCursor()
-            w.setCursor(QtCore.Qt.ArrowCursor)
-            return
-
-        # Se o cursor estiver fora dos limites do canvas (na área cinza do workspace), mostra SEMPRE a seta do sistema
-        if not self._is_over_canvas:
-            w.unsetCursor()
-            w.setCursor(QtCore.Qt.ArrowCursor)
+        # Fora do canvas ou sem documento: mostra SEMPRE a seta padrão
+        if cw <= 0 or ch <= 0 or not self._is_over_canvas:
+            self._set_widget_cursor(QtCore.Qt.ArrowCursor)
             return
 
         active_tool = getattr(w, "active_tool", "brush")
@@ -74,17 +87,15 @@ class CanvasCursorController:
 
         if active_tool in ("brush", "eraser"):
             if mode == "system":
-                w.unsetCursor()
-                w.setCursor(QtCore.Qt.ArrowCursor)
+                self._set_widget_cursor(QtCore.Qt.ArrowCursor)
             else:
-                w.setCursor(QtCore.Qt.BlankCursor)
+                self._set_widget_cursor(QtCore.Qt.BlankCursor)
         elif active_tool in ("eyedropper", "bucket", "wand", "transform"):
-            w.setCursor(ToolCursorRenderer.create_custom_cursor(active_tool))
+            self._set_widget_cursor(ToolCursorRenderer.create_custom_cursor(active_tool))
         elif active_tool in ("lasso", "rect_select", "ellipse_select"):
-            w.setCursor(QtCore.Qt.CrossCursor)
+            self._set_widget_cursor(QtCore.Qt.CrossCursor)
         else:
-            w.unsetCursor()
-            w.setCursor(QtCore.Qt.ArrowCursor)
+            self._set_widget_cursor(QtCore.Qt.ArrowCursor)
 
     def handle_enter(self, event: QtCore.QEnterEvent) -> None:
         """Chamado quando o ponteiro entra na viewport."""
@@ -96,28 +107,41 @@ class CanvasCursorController:
     def handle_leave(self, event: QtCore.QEvent) -> Optional[QtCore.QRect]:
         """
         Chamado quando o ponteiro sai da viewport.
-        GARANTIA ARCcC: Restaura imediatamente e incondicionalmente a seta padrão do sistema operacional.
+        GARANTIA ARCcC: Restaura imediatamente a seta padrão e invalida o último anel.
         """
         self.cursor_in_viewport = False
         self._is_over_canvas = False
-        w = self.widget
+        self._set_widget_cursor(QtCore.Qt.ArrowCursor)
 
-        # 1. Restauração imediata do cursor do sistema operacional
-        w.unsetCursor()
-        w.setCursor(QtCore.Qt.ArrowCursor)
-
-        # 2. Retorna a bounding box onde o anel estava para ser limpo do canvas
-        dirty_rect = ToolCursorRenderer.get_cursor_rect(
-            self.mouse_pos.x(), self.mouse_pos.y(),
-            self._last_radius, getattr(w, "zoom", 1.0)
-        )
+        dirty_rect = self._last_cursor_rect
+        if dirty_rect.isEmpty() and self.mouse_pos.x() >= 0:
+            w = self.widget
+            dirty_rect = ToolCursorRenderer.get_cursor_rect(
+                self.mouse_pos.x(), self.mouse_pos.y(),
+                self._last_radius, getattr(w, "zoom", 1.0)
+            )
         self.mouse_pos = QtCore.QPointF(-1000.0, -1000.0)
-        return dirty_rect
+        self._last_cursor_rect = QtCore.QRect()
+        return dirty_rect if not dirty_rect.isEmpty() else None
 
-    def handle_move(self, pos: QtCore.QPointF, brush_radius: float, zoom: float, is_drawing: bool) -> Optional[QtCore.QRect]:
+    def sync_position(self, pos: QtCore.QPointF, brush_radius: float, zoom: float) -> None:
+        """Sincroniza atomicamente a posição durante traços sem disparar eventos de hover."""
+        self.mouse_pos = pos
+        self.cursor_in_viewport = True
+        self._last_radius = brush_radius
+        self._is_over_canvas = True
+
+    def handle_move(
+        self,
+        pos: QtCore.QPointF,
+        brush_radius: float,
+        zoom: float,
+        is_drawing: bool
+    ) -> Optional[QtCore.QRect | QtGui.QRegion]:
         """
         Atualiza a posição do cursor e alterna determinística entre o anel do pincel (no canvas)
         e a seta do sistema operacional (fora do canvas).
+        Garante cálculo inteligente de dirty region sem repintar a tela inteira em saltos.
         """
         old_pos = self.mouse_pos
         self.mouse_pos = pos
@@ -128,16 +152,39 @@ class CanvasCursorController:
         now_over = self.is_over_canvas(pos)
         self._is_over_canvas = now_over
 
-        w = self.widget
-        # Transição de fronteira do canvas:
         if now_over != was_over:
             self.update_cursor_shape()
 
-        from ui.core.document.manager import DocumentManager
+        w = self.widget
         active_tool = getattr(w, "active_tool", "brush")
-        if DocumentManager.instance().has_document() and active_tool in ("brush", "eraser") and not is_drawing:
-            r_old = ToolCursorRenderer.get_cursor_rect(old_pos.x(), old_pos.y(), brush_radius, zoom)
+        if active_tool in ("brush", "eraser") and not is_drawing:
+            # Se não está nem estava sobre o canvas, não há anel geométrico a redesenhar
+            if not now_over and not was_over:
+                return None
+
             r_new = ToolCursorRenderer.get_cursor_rect(self.mouse_pos.x(), self.mouse_pos.y(), brush_radius, zoom)
+
+            # Se a posição anterior era inválida/fora da tela ou fora do canvas
+            if old_pos.x() < -500.0 or old_pos.y() < -500.0 or not was_over:
+                self._last_cursor_rect = r_new
+                return r_new
+
+            r_old = self._last_cursor_rect
+            if r_old.isEmpty():
+                r_old = ToolCursorRenderer.get_cursor_rect(old_pos.x(), old_pos.y(), brush_radius, zoom)
+            self._last_cursor_rect = r_new
+
+            # Se o cursor se moveu uma distância muito grande (ex: salto após final de traço ou teletransporte),
+            # união em bounding box único cobriria a tela inteira!
+            # Usar QRegion evita repintar o intervalo vazio entre as posições.
+            dx = pos.x() - old_pos.x()
+            dy = pos.y() - old_pos.y()
+            span_thresh = (brush_radius * zoom * 2.0 + 32.0)
+            if (dx * dx + dy * dy) > (span_thresh * span_thresh):
+                region = QtGui.QRegion(r_old)
+                region = region.united(QtGui.QRegion(r_new))
+                return region
+
             return r_old.united(r_new)
         return None
 

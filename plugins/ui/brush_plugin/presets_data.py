@@ -30,6 +30,18 @@ PARAM_GROUPS = {
     "smudge_params",    # Coleta de Cor + Mix + Arrasto (exclusivo Smudge) [Fase 3]
 }
 
+CATEGORY_DEFAULTS = {
+    "brush": {"stabilizer_weight": 0.35, "stroke_taper_enabled": True},
+    "pencil": {"stabilizer_weight": 0.15, "stroke_taper_enabled": True},
+    "inker": {"stabilizer_weight": 0.50, "stroke_taper_enabled": True},
+    "eraser": {"stabilizer_weight": 0.15, "stroke_taper_enabled": False},
+    "marker": {"stabilizer_weight": 0.20, "stroke_taper_enabled": False},
+    "blur": {"stabilizer_weight": 0.10, "stroke_taper_enabled": False},
+    "smudge": {"stabilizer_weight": 0.15, "stroke_taper_enabled": False},
+    "watercolor": {"stabilizer_weight": 0.20, "stroke_taper_enabled": True},
+    "oil": {"stabilizer_weight": 0.25, "stroke_taper_enabled": False},
+}
+
 BRUSH_CATEGORIES = [
     # ─────────────────────────────────────────────────────────────────────────
     # Categoria 0: Pincel Básico (motor genérico existente)
@@ -50,6 +62,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 0.85, "spacing_factor": 0.08,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
                 "brush_grain_enabled": False,
+                "stabilizer_weight": 0.35, "stroke_taper_enabled": True,
             },
             {
                 "label": "Pincel Suave",
@@ -58,6 +71,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 0.2, "spacing_factor": 0.08,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
                 "brush_grain_enabled": False,
+                "stabilizer_weight": 0.30, "stroke_taper_enabled": True,
             },
             {
                 "label": "Pincel Chato (Flat)",
@@ -66,6 +80,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 0.9, "spacing_factor": 0.06,
                 "tip_angle": 0.0, "tip_aspect": 0.3, "follow_stroke": True,
                 "brush_grain_enabled": False,
+                "stabilizer_weight": 0.25, "stroke_taper_enabled": True,
             },
             {
                 "label": "Aerógrafo",
@@ -74,6 +89,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 0.0, "spacing_factor": 0.05,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
                 "brush_grain_enabled": False,
+                "stabilizer_weight": 0.05, "stroke_taper_enabled": True,
             },
         ],
     },
@@ -177,6 +193,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 1.0, "spacing_factor": 0.035,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
                 "inker_flow_rate": 1.0, "inker_taper_smoothing": 0.7,
+                "stabilizer_weight": 0.55, "stroke_taper_enabled": True,
             },
             {
                 "label": "Pena Redonda",
@@ -185,6 +202,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 1.0, "spacing_factor": 0.035,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
                 "inker_flow_rate": 1.0, "inker_taper_smoothing": 0.5,
+                "stabilizer_weight": 0.50, "stroke_taper_enabled": True,
             },
             {
                 "label": "Nanquim Técnico",
@@ -193,6 +211,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 1.0, "spacing_factor": 0.035,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
                 "inker_flow_rate": 1.0, "inker_taper_smoothing": 0.0,
+                "stabilizer_weight": 0.65, "stroke_taper_enabled": True,
             },
             {
                 "label": "Caneta Tinteiro",
@@ -201,6 +220,7 @@ BRUSH_CATEGORIES = [
                 "hardness": 0.95, "spacing_factor": 0.035,
                 "tip_angle": 45.0, "tip_aspect": 0.6, "follow_stroke": True,
                 "inker_flow_rate": 0.9, "inker_taper_smoothing": 0.4,
+                "stabilizer_weight": 0.45, "stroke_taper_enabled": True,
             },
         ],
     },
@@ -223,6 +243,7 @@ BRUSH_CATEGORIES = [
                 "opacity": 1.0, "min_opacity_percent": 0.0,
                 "hardness": 0.95, "spacing_factor": 0.04,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
+                "stabilizer_weight": 0.20, "stroke_taper_enabled": False,
             },
             {
                 "label": "Borracha Mole",
@@ -230,6 +251,7 @@ BRUSH_CATEGORIES = [
                 "opacity": 0.8, "min_opacity_percent": 0.0,
                 "hardness": 0.2, "spacing_factor": 0.04,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
+                "stabilizer_weight": 0.10, "stroke_taper_enabled": False,
             },
             {
                 "label": "Borracha de Aerógrafo",
@@ -237,6 +259,7 @@ BRUSH_CATEGORIES = [
                 "opacity": 0.3, "min_opacity_percent": 0.0,
                 "hardness": 0.0, "spacing_factor": 0.025,
                 "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
+                "stabilizer_weight": 0.05, "stroke_taper_enabled": False,
             },
         ],
     },
@@ -484,6 +507,15 @@ BRUSH_CATEGORIES = [
         ],
     },
 ]
+
+# Injeta automaticamente defaults canônicos de estabilização e dinâmica se ausentes
+for _cat in BRUSH_CATEGORIES:
+    _cid = _cat.get("id", "brush")
+    _cdefs = CATEGORY_DEFAULTS.get(_cid, {"stabilizer_weight": 0.35, "stroke_taper_enabled": True})
+    for _p in _cat.get("presets", []):
+        for _k, _v in _cdefs.items():
+            if _k not in _p:
+                _p[_k] = _v
 
 # Mapa rápido id → categoria para lookup por engine_type
 ENGINE_TYPE_TO_CATEGORY = {cat["engine_type"]: cat for cat in BRUSH_CATEGORIES}

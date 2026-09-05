@@ -141,18 +141,23 @@ class CompactSlider(QtWidgets.QWidget):
     def _decrement(self):
         new_val = max(self.core._min, self.core.value() - self._step)
         self.setValue(new_val)
-        self.valueChanged.emit(new_val)
 
     def _increment(self):
         new_val = min(self.core._max, self.core.value() + self._step)
         self.setValue(new_val)
-        self.valueChanged.emit(new_val)
 
     def setPrefix(self, prefix: str):
         self.core.setPrefix(prefix)
 
     def setValue(self, val: int):
+        old_val = self.core.value()
         self.core.setValue(val)
+        if self.core.value() != old_val and not self.signalsBlocked():
+            self.valueChanged.emit(self.core.value())
+
+    def blockSignals(self, b: bool) -> bool:
+        self.core.blockSignals(b)
+        return super().blockSignals(b)
 
     def value(self) -> int:
         return self.core.value()

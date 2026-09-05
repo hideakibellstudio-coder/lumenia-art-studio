@@ -25,6 +25,18 @@ public:
         return std::sqrt(dx * dx + dy * dy);
     }
 
+    [[nodiscard]] double length() const noexcept {
+        return std::sqrt(x * x + y * y);
+    }
+
+    [[nodiscard]] constexpr bool operator==(const Point2D& other) const noexcept {
+        return x == other.x && y == other.y;
+    }
+
+    [[nodiscard]] constexpr bool operator!=(const Point2D& other) const noexcept {
+        return !(*this == other);
+    }
+
     [[nodiscard]] constexpr Point2D operator+(const Point2D& other) const noexcept {
         return Point2D{x + other.x, y + other.y};
     }

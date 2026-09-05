@@ -24,20 +24,21 @@ void StrokeOrchestrator::renderSegment(
     const math::SymmetryConfig& symmetryConfig,
     const math::Point2D* strokeStart,
     math::Rect2D* outDirtyBounds,
-    uint32_t* outDabsRendered
+    uint32_t* outDabsRendered,
+    telemetry::StageMetrics* outStages,
+    bool performComposite
 ) {
     document::Layer* activeLayer = layerStack.getActiveLayer();
     if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) {
+        if (outStages) *outStages = telemetry::StageMetrics{};
         return;
     }
-
-    const double maxRadius = std::max(startDab.radius, endDab.radius);
-    const double padding = maxRadius * 2.5 + 4.0;
 
     // Clipping Mask é 100% não-destrutivo: a grade de tiles armazena o traço completo.
     // O recorte é aplicado dinamicamente pelo Compositor durante a renderização.
     const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &selectionMask, nullptr };
 
+    auto tInterp0 = std::chrono::high_resolution_clock::now();
     const auto interpolatedDabs = raster::DabInterpolator::interpolate(
         startDab, endDab, brushProfile.spacingFactor, distanceCarryover
     );
@@ -69,23 +70,30 @@ void StrokeOrchestrator::renderSegment(
                 math::SymmetryEngine::apply(symmetryConfig, renderDab, strokeStart, symDabs);
                 for (const auto& sd : symDabs) {
                     finalDabs.push_back(sd);
-                    boundMinX = std::min(boundMinX, sd.position.x - padding);
-                    boundMaxX = std::max(boundMaxX, sd.position.x + padding);
-                    boundMinY = std::min(boundMinY, sd.position.y - padding);
-                    boundMaxY = std::max(boundMaxY, sd.position.y + padding);
+                    const double dabPad = sd.radius + 2.5;
+                    boundMinX = std::min(boundMinX, sd.position.x - dabPad);
+                    boundMaxX = std::max(boundMaxX, sd.position.x + dabPad);
+                    boundMinY = std::min(boundMinY, sd.position.y - dabPad);
+                    boundMaxY = std::max(boundMaxY, sd.position.y + dabPad);
                 }
             } else {
                 finalDabs.push_back(renderDab);
-                boundMinX = std::min(boundMinX, renderDab.position.x - padding);
-                boundMaxX = std::max(boundMaxX, renderDab.position.x + padding);
-                boundMinY = std::min(boundMinY, renderDab.position.y - padding);
-                boundMaxY = std::max(boundMaxY, renderDab.position.y + padding);
+                const double dabPad = renderDab.radius + 2.5;
+                boundMinX = std::min(boundMinX, renderDab.position.x - dabPad);
+                boundMaxX = std::max(boundMaxX, renderDab.position.x + dabPad);
+                boundMinY = std::min(boundMinY, renderDab.position.y - dabPad);
+                boundMaxY = std::max(boundMaxY, renderDab.position.y + dabPad);
             }
         }
     }
+    auto tInterp1 = std::chrono::high_resolution_clock::now();
 
     if (finalDabs.empty()) {
         if (outDabsRendered) *outDabsRendered = 0;
+        if (outStages) {
+            *outStages = telemetry::StageMetrics{};
+            outStages->timeInterpolationUs = std::chrono::duration<double, std::micro>(tInterp1 - tInterp0).count();
+        }
         return;
     }
     if (outDabsRendered) *outDabsRendered = static_cast<uint32_t>(finalDabs.size());
@@ -95,19 +103,26 @@ void StrokeOrchestrator::renderSegment(
     const int startTileY = static_cast<int>(std::floor(boundMinY / canvas::Tile::TILE_SIZE));
     const int endTileY   = static_cast<int>(std::floor(boundMaxY / canvas::Tile::TILE_SIZE));
 
+    static const uint8_t s_emptyTileData[canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * sizeof(raster::ColorRGBA)] = {0};
+    constexpr size_t s_emptyTileBytes = sizeof(s_emptyTileData);
+
+    auto tUndo0 = std::chrono::high_resolution_clock::now();
+    uint32_t tilesCount = 0;
     for (int ty = startTileY; ty <= endTileY; ++ty) {
         for (int tx = startTileX; tx <= endTileX; ++tx) {
+            ++tilesCount;
             canvas::Tile* tile = grid.getTile(tx, ty);
             if (tile) {
                 const auto& buf = tile->getBuffer();
                 undoManager.recordTileBefore(activeIdx, tx, ty, buf.getData(), buf.getSizeInBytes());
             } else {
-                canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
-                undoManager.recordTileBefore(activeIdx, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
+                undoManager.recordTileBefore(activeIdx, tx, ty, s_emptyTileData, s_emptyTileBytes);
             }
         }
     }
+    auto tUndo1 = std::chrono::high_resolution_clock::now();
 
+    auto tRaster0 = std::chrono::high_resolution_clock::now();
     for (const auto& rDab : finalDabs) {
         if (activeEngine) {
             activeEngine->renderDab(rDab, brushProfile, canvasTexture, grid, &outputBuffer, pCtx);
@@ -115,6 +130,7 @@ void StrokeOrchestrator::renderSegment(
             raster::DabRenderer::renderDab(rDab, brushProfile, canvasTexture, grid, pCtx);
         }
     }
+    auto tRaster1 = std::chrono::high_resolution_clock::now();
 
     const math::Rect2D dirtyBounds{
         boundMinX, boundMinY,
@@ -122,9 +138,29 @@ void StrokeOrchestrator::renderSegment(
         std::max(0.0, boundMaxY - boundMinY)
     };
 
-    compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
+    double timeCompUs = 0.0;
+    if (performComposite) {
+        auto tComp0 = std::chrono::high_resolution_clock::now();
+        compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
+        auto tComp1 = std::chrono::high_resolution_clock::now();
+        timeCompUs = std::chrono::duration<double, std::micro>(tComp1 - tComp0).count();
+    }
+
     if (outDirtyBounds) {
         *outDirtyBounds = dirtyBounds;
+    }
+
+    if (outStages) {
+        outStages->timeInterpolationUs = std::chrono::duration<double, std::micro>(tInterp1 - tInterp0).count();
+        outStages->timeUndoRecordUs = std::chrono::duration<double, std::micro>(tUndo1 - tUndo0).count();
+        outStages->timeRasterDabUs = std::chrono::duration<double, std::micro>(tRaster1 - tRaster0).count();
+        outStages->timeCompositeUs = timeCompUs;
+        outStages->dabsRendered = static_cast<uint32_t>(finalDabs.size());
+        outStages->dirtyWidth = dirtyBounds.width;
+        outStages->dirtyHeight = dirtyBounds.height;
+        outStages->dirtyAreaPx = dirtyBounds.width * dirtyBounds.height;
+        outStages->tilesRecorded = tilesCount;
+        outStages->tilesComposited = performComposite ? tilesCount : 0;
     }
 }
 

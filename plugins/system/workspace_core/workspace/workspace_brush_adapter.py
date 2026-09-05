@@ -246,6 +246,13 @@ class WorkspaceBrushMixin:
         self.canvas_widget.update()
 
     def _on_stroke_finished_sync_previews(self) -> None:
+        if not hasattr(self, "_preview_sync_timer"):
+            self._preview_sync_timer = QtCore.QTimer(self)
+            self._preview_sync_timer.setSingleShot(True)
+            self._preview_sync_timer.timeout.connect(self._do_sync_previews)
+        self._preview_sync_timer.start(100)
+
+    def _do_sync_previews(self) -> None:
         try:
             if hasattr(self, "_navigator_panel") and self._navigator_panel:
                 from ui.core.engine.registry import EngineRegistry

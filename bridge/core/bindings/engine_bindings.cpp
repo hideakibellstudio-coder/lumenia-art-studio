@@ -110,15 +110,31 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def_readwrite("total_dabs_in_stroke",     &telemetry::RealTimeStrokeMetrics::totalDabsInStroke)
         .def_readwrite("total_dabs_per_second",    &telemetry::RealTimeStrokeMetrics::totalDabsPerSecond)
         .def_readwrite("input_event_rate_hz",      &telemetry::RealTimeStrokeMetrics::inputEventRateHz)
+        // Decomposição Granular do Pipeline (µs)
+        .def_readwrite("time_kinematics_us",       &telemetry::RealTimeStrokeMetrics::timeKinematicsUs)
+        .def_readwrite("time_interpolation_us",   &telemetry::RealTimeStrokeMetrics::timeInterpolationUs)
+        .def_readwrite("time_raster_dab_us",       &telemetry::RealTimeStrokeMetrics::timeRasterDabUs)
+        .def_readwrite("time_undo_record_us",      &telemetry::RealTimeStrokeMetrics::timeUndoRecordUs)
+        .def_readwrite("time_composite_us",        &telemetry::RealTimeStrokeMetrics::timeCompositeUs)
+        // Pegada Geométrica e Densidade Instantânea
+        .def_readwrite("last_dabs_rendered",       &telemetry::RealTimeStrokeMetrics::lastDabsRendered)
+        .def_readwrite("last_dirty_width",         &telemetry::RealTimeStrokeMetrics::lastDirtyWidth)
+        .def_readwrite("last_dirty_height",        &telemetry::RealTimeStrokeMetrics::lastDirtyHeight)
+        .def_readwrite("last_dirty_area_px",       &telemetry::RealTimeStrokeMetrics::lastDirtyAreaPx)
+        .def_readwrite("last_tiles_recorded",      &telemetry::RealTimeStrokeMetrics::lastTilesRecorded)
+        .def_readwrite("last_tiles_composited",    &telemetry::RealTimeStrokeMetrics::lastTilesComposited)
+        // Memória e Gestão de Blocos (Tiles)
         .def_readwrite("active_tile_count",        &telemetry::RealTimeStrokeMetrics::activeTileCount)
         .def_readwrite("dirty_tiles_last_stroke",  &telemetry::RealTimeStrokeMetrics::dirtyTilesLastStroke)
         .def_readwrite("tile_grid_memory_mb",      &telemetry::RealTimeStrokeMetrics::tileGridMemoryMB)
         .def_readwrite("undo_stack_memory_mb",     &telemetry::RealTimeStrokeMetrics::undoStackMemoryMB)
         .def_readwrite("undo_steps_count",         &telemetry::RealTimeStrokeMetrics::undoStepsCount)
+        // Cinemática e Estabilização
         .def_readwrite("raw_pressure",             &telemetry::RealTimeStrokeMetrics::rawPressure)
         .def_readwrite("dynamic_pressure",         &telemetry::RealTimeStrokeMetrics::dynamicPressure)
         .def_readwrite("stroke_velocity",          &telemetry::RealTimeStrokeMetrics::strokeVelocity)
         .def_readwrite("stabilizer_lag_px",        &telemetry::RealTimeStrokeMetrics::stabilizerLagPx)
+        // Mini-Motor & SIMD
         .def_readwrite("active_engine_id",         &telemetry::RealTimeStrokeMetrics::activeEngineId)
         .def_readwrite("simd_active",              &telemetry::RealTimeStrokeMetrics::simdActive);
 
@@ -140,9 +156,16 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def_readwrite("timestamp", &stroke::PointerEvent::timestamp);
 
     py::class_<stroke::DynamicStabilizer>(m, "DynamicStabilizer")
+        .def(py::init<double>(), py::arg("stabilization_percentage") = 40.0)
         .def("set_stabilization_percentage", &stroke::DynamicStabilizer::setStabilizationPercentage)
         .def("get_stabilization_percentage", &stroke::DynamicStabilizer::getStabilizationPercentage)
-        .def("reset", &stroke::DynamicStabilizer::reset);
+        .def("reset", &stroke::DynamicStabilizer::reset)
+        .def("reanchor_initial_position", &stroke::DynamicStabilizer::reanchorInitialPosition, py::arg("new_initial_position"))
+        .def("update", &stroke::DynamicStabilizer::update, py::arg("raw_position"), py::arg("normalized_velocity") = 0.0)
+        .def("flush", &stroke::DynamicStabilizer::flush, py::arg("end_position"), py::arg("steps") = 3)
+        .def("get_taper_points", &stroke::DynamicStabilizer::getTaperPoints, py::arg("steps") = 4, py::arg("max_distance") = 30.0)
+        .def("get_stabilized_position", &stroke::DynamicStabilizer::getStabilizedPosition)
+        .def("get_last_movement_delta", &stroke::DynamicStabilizer::getLastMovementDelta);
 
     // ─── BRUSH TIP GEOMETRY ──────────────────────────────────────────────────
     py::class_<brush::BrushTip>(m, "BrushTip")
@@ -213,6 +236,7 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def_readwrite("pressure_size_enabled", &brush::BrushProfile::pressureSizeEnabled)
         .def_readwrite("pressure_flow_enabled", &brush::BrushProfile::pressureFlowEnabled)
         .def_readwrite("velocity_size_enabled", &brush::BrushProfile::velocitySizeEnabled)
+        .def_readwrite("stroke_taper_enabled",  &brush::BrushProfile::strokeTaperEnabled)
         // LUT Curves
         .def_readwrite("pressure_size_curve",   &brush::BrushProfile::pressureSizeCurve)
         .def_readwrite("pressure_flow_curve",   &brush::BrushProfile::pressureFlowCurve)
@@ -312,8 +336,10 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
         .def("begin_stroke",     &boundary::PaintEngineFacade::beginStroke)
         .def("update_stroke",    &boundary::PaintEngineFacade::updateStroke)
         .def("end_stroke",       &boundary::PaintEngineFacade::endStroke)
-        .def("begin_stroke_raw",  &boundary::PaintEngineFacade::beginStrokeRaw, py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0)
-        .def("update_stroke_raw", &boundary::PaintEngineFacade::updateStrokeRaw, py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0)
+        .def("begin_stroke_raw",  &boundary::PaintEngineFacade::beginStrokeRaw,
+             py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0)
+        .def("update_stroke_raw", &boundary::PaintEngineFacade::updateStrokeRaw,
+             py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0)
         .def("end_stroke_raw",    &boundary::PaintEngineFacade::endStrokeRaw)
         // Preenchimento (Flood Fill / Balde de Tinta Nativo)
         .def("flood_fill", [](boundary::PaintEngineFacade& self, int seedX, int seedY, const raster::ColorRGBA& fillColor,

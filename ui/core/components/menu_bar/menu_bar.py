@@ -96,6 +96,7 @@ class MenuBar(QtWidgets.QMenuBar):
     resetRotationRequested  = QtCore.Signal()
     toggleGridRequested     = QtCore.Signal()
     toggleRulersRequested   = QtCore.Signal()
+    telemetryGridRequested  = QtCore.Signal()
 
     # ── Janela & Docks ───────────────────────────────────────────────────
     togglePanelRequested             = QtCore.Signal(str, str)  # panel_id, side
@@ -226,6 +227,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.view_menu.renderSettingsRequested.connect(self.renderSettingsRequested.emit)
         self.view_menu.toggleGridRequested.connect(self.toggleGridRequested.emit)
         self.view_menu.toggleRulersRequested.connect(self.toggleRulersRequested.emit)
+        self.view_menu.telemetryGridRequested.connect(self.telemetryGridRequested.emit)
         self.addMenu(self.view_menu)
 
         # 8. [Janela]
@@ -235,6 +237,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.window_menu.expand_all_sidebars_requested.connect(self.expandAllSidebarsRequested.emit)
         self.window_menu.dock_settings_requested.connect(self.dockSettingsRequested.emit)
         self.window_menu.floating_toolbar_settings_requested.connect(self.floatingToolbarSettingsRequested.emit)
+        self.window_menu.telemetry_grid_requested.connect(self.telemetryGridRequested.emit)
         self.addMenu(self.window_menu)
 
         # 9. [Configurações]

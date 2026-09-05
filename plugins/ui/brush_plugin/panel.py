@@ -55,6 +55,11 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self.retranslate_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme_style)
         self._apply_theme_style()
+        QtCore.QTimer.singleShot(0, self.sync_initial_state)
+
+    def sync_initial_state(self) -> None:
+        if hasattr(self, "preset_combo") and self.preset_combo:
+            self.preset_combo.sync_to_tool("brush")
 
     def retranslate_ui(self):
         from ui.core.i18n import tr
@@ -184,11 +189,11 @@ class BrushSettingsPanel(QtWidgets.QWidget):
 
         # Sliders Pináveis Adicionais (Iniciam ocultos por padrão)
         pinned_defs = [
-            ("contrast", "Dur:", 1, 30, "", 10, lambda v: self.contrastChanged.emit(v / 10.0)),
+            ("contrast", "Dur:", 1, 30, "", 10, self._on_contrast_changed),
             ("pressure", "Press:", 1, 100, "%", 50, lambda v: self.pressureChanged.emit(v / 100.0)),
             ("curve", "Curv:", 1, 40, "", 10, lambda v: self.pressureCurvePowerChanged.emit(v / 10.0)),
-            ("stabilizer", "Stab:", 0, 95, "%", 0, lambda v: self.stabilizerWeightChanged.emit(v / 100.0)),
-            ("spacing", "Espac:", 1, 100, "%", 10, lambda v: self.spacingChanged.emit(v / 100.0)),
+            ("stabilizer", "Stab:", 0, 98, "%", 35, self._on_stabilizer_changed),
+            ("spacing", "Espac:", 1, 100, "%", 10, self._on_spacing_changed),
             ("min_density", "Dens:", 0, 100, "%", 0, lambda v: self.minDensityValueChanged.emit(v / 100.0)),
         ]
         for name, lbl, mi, ma, sfx, val, cb in pinned_defs:
@@ -409,6 +414,32 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         if hasattr(self, "stroke_preview"):
             self.stroke_preview.update_brush_state(opacity=val / 100.0)
 
+    def _on_stabilizer_changed(self, val: float) -> None:
+        weight = val / 100.0
+        self.stabilizerWeightChanged.emit(weight)
+        if self._adv_panel and hasattr(self._adv_panel, "slider_stabilizer"):
+            self._adv_panel.slider_stabilizer.blockSignals(True)
+            self._adv_panel.slider_stabilizer.setValue(int(val))
+            self._adv_panel.slider_stabilizer.blockSignals(False)
+
+    def _on_spacing_changed(self, val: float) -> None:
+        factor = val / 100.0
+        self.spacingChanged.emit(factor)
+        if self._adv_panel and hasattr(self._adv_panel, "slider_spacing"):
+            self._adv_panel.slider_spacing.blockSignals(True)
+            self._adv_panel.slider_spacing.setValue(int(val))
+            self._adv_panel.slider_spacing.blockSignals(False)
+        if hasattr(self, "stroke_preview"):
+            self.stroke_preview.update_brush_state(spacing=factor)
+
+    def _on_contrast_changed(self, val: float) -> None:
+        c_val = val / 10.0
+        self.contrastChanged.emit(c_val)
+        if self._adv_panel and hasattr(self._adv_panel, "slider_contrast"):
+            self._adv_panel.slider_contrast.blockSignals(True)
+            self._adv_panel.slider_contrast.setValue(int(val * 10))
+            self._adv_panel.slider_contrast.blockSignals(False)
+
     def _on_preset_changed(self, name: str, data: dict) -> None:
         if "brush_size" in data:
             self.size_slider.blockSignals(True)
@@ -421,6 +452,36 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self.opacity_slider.setValue(int(data["opacity"] * 100))
             self.opacity_slider.blockSignals(False)
             self.opacityChanged.emit(float(data["opacity"]))
+
+        if "stabilizer_weight" in data or "stabilizer" in data:
+            sw = float(data.get("stabilizer_weight", data.get("stabilizer", 0.35)))
+            stab_val = int(round(sw * 100))
+            if hasattr(self, "stabilizer_slider"):
+                self.stabilizer_slider.blockSignals(True)
+                self.stabilizer_slider.setValue(stab_val)
+                self.stabilizer_slider.blockSignals(False)
+            self.stabilizerWeightChanged.emit(sw)
+
+        if "spacing_factor" in data:
+            sp = float(data["spacing_factor"])
+            if hasattr(self, "spacing_slider"):
+                self.spacing_slider.blockSignals(True)
+                self.spacing_slider.setValue(int(round(sp * 100)))
+                self.spacing_slider.blockSignals(False)
+            self.spacingChanged.emit(sp)
+
+        if "brush_grain_contrast" in data:
+            c_val = float(data["brush_grain_contrast"])
+            if hasattr(self, "contrast_slider"):
+                self.contrast_slider.blockSignals(True)
+                self.contrast_slider.setValue(int(round(c_val * 10)))
+                self.contrast_slider.blockSignals(False)
+            self.contrastChanged.emit(c_val)
+        elif "hardness" in data and hasattr(self, "contrast_slider"):
+            hd_val = float(data["hardness"])
+            self.contrast_slider.blockSignals(True)
+            self.contrast_slider.setValue(int(round(hd_val * 10)))
+            self.contrast_slider.blockSignals(False)
 
         if self._adv_panel:
             self._adv_panel.sync_from_engine_profile()

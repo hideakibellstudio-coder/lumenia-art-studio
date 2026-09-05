@@ -17,32 +17,32 @@ logger = logging.getLogger(__name__)
 class AladynStrokeMixin:
     """Mixin responsável pelo ciclo de vida do traço e telemetria no AladynBackend."""
 
-    def start_stroke(self, x: float, y: float, pressure: float) -> None:
+    def start_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> None:
         self._last_x = float(x)
         self._last_y = float(y)
         if self._facade:
             if hasattr(self._facade, "begin_stroke_raw"):
-                self._facade.begin_stroke_raw(float(x), float(y), float(pressure))
+                self._facade.begin_stroke_raw(float(x), float(y), float(pressure), float(timestamp))
             elif self._native:
                 pt = self._native.Point2D(float(x), float(y))
                 evt = self._native.PointerEvent(
-                    self._native.PointerEventType.Press, pt, float(pressure), time.time()
+                    self._native.PointerEventType.Press, pt, float(pressure), float(timestamp) if timestamp > 0 else time.time()
                 )
                 self._facade.begin_stroke(evt)
 
-    def paint_stroke(self, x: float, y: float, pressure: float) -> list[float]:
+    def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> list[float]:
         self._last_x = float(x)
         self._last_y = float(y)
         if self._facade:
             if hasattr(self._facade, "update_stroke_raw"):
-                res = self._facade.update_stroke_raw(float(x), float(y), float(pressure))
+                res = self._facade.update_stroke_raw(float(x), float(y), float(pressure), float(timestamp))
                 if res and len(res) >= 9:
                     self.last_telemetry = (float(res[6]), float(res[7]), float(res[8]))
                     return res
             elif self._native:
                 pt = self._native.Point2D(float(x), float(y))
                 evt = self._native.PointerEvent(
-                    self._native.PointerEventType.Move, pt, float(pressure), time.time()
+                    self._native.PointerEventType.Move, pt, float(pressure), float(timestamp) if timestamp > 0 else time.time()
                 )
                 telemetry = self._facade.update_stroke(evt)
                 if telemetry:
@@ -53,10 +53,11 @@ class AladynStrokeMixin:
                     )
         return []
 
-    def end_stroke(self, x: float | None = None, y: float | None = None) -> None:
+    def end_stroke(self, x: float | None = None, y: float | None = None) -> list[float]:
+        res = []
         if self._facade:
             if hasattr(self._facade, "end_stroke_raw"):
-                self._facade.end_stroke_raw()
+                res = self._facade.end_stroke_raw()
             elif self._native:
                 rx = float(x) if x is not None else getattr(self, "_last_x", 0.0)
                 ry = float(y) if y is not None else getattr(self, "_last_y", 0.0)
@@ -70,24 +71,30 @@ class AladynStrokeMixin:
             if hasattr(self._facade, "is_telemetry_enabled") and self._facade.is_telemetry_enabled():
                 snap = self._facade.get_telemetry_snapshot()
                 if snap and snap.total_dabs_in_stroke > 0:
+                    breakdown = (
+                        f" [Estágios µs: Kin={getattr(snap, 'time_kinematics_us', 0.0):.0f} | Interp={getattr(snap, 'time_interpolation_us', 0.0):.0f} | "
+                        f"Dab={getattr(snap, 'time_raster_dab_us', 0.0):.0f} | Undo={getattr(snap, 'time_undo_record_us', 0.0):.0f} | Comp={getattr(snap, 'time_composite_us', 0.0):.0f}]"
+                        if getattr(snap, "time_raster_dab_us", 0.0) > 0.0 or getattr(snap, "time_composite_us", 0.0) > 0.0 else ""
+                    )
                     logger.info(
                         f"🖋️ [Traço C++] {snap.total_dabs_in_stroke} dabs em {snap.stroke_total_time_ms:.1f}ms | "
                         f"Latência dab: {snap.last_segment_latency_us:.1f}µs | "
-                        f"Taxa: {snap.total_dabs_per_second:.0f} dabs/s"
+                        f"Taxa: {snap.total_dabs_per_second:.0f} dabs/s{breakdown}"
                     )
 
         if not getattr(self, "_is_filling", False):
             self._action_stack.append(("stroke", 1))
             self._redo_stack.clear()
+        return res or []
 
-    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0) -> None:
-        self.start_stroke(x, y, pressure)
+    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> None:
+        self.start_stroke(x, y, pressure, timestamp)
 
-    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0) -> list[float]:
-        return self.paint_stroke(x, y, pressure)
+    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> list[float]:
+        return self.paint_stroke(x, y, pressure, timestamp)
 
-    def end_stroke_raw(self) -> None:
-        self.end_stroke()
+    def end_stroke_raw(self) -> list[float]:
+        return self.end_stroke()
 
     def flood_fill(
         self,

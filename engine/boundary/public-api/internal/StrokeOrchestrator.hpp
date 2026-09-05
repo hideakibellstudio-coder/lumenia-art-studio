@@ -10,6 +10,7 @@
 #include "../../../core/raster/SelectionMask.hpp"
 #include "../../../core/engines/IBrushEngine.hpp"
 #include "../../../core/math/SymmetryEngine.hpp"
+#include "../../../core/telemetry/EngineTelemetry.hpp"
 
 namespace aladyn::engine::boundary::internal {
 
@@ -31,7 +32,9 @@ public:
         const math::SymmetryConfig& symmetryConfig = {},
         const math::Point2D* strokeStart = nullptr,
         math::Rect2D* outDirtyBounds = nullptr,
-        uint32_t* outDabsRendered = nullptr
+        uint32_t* outDabsRendered = nullptr,
+        telemetry::StageMetrics* outStages = nullptr,
+        bool performComposite = true
     );
 };
 

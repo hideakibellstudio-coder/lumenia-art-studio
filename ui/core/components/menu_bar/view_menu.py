@@ -20,6 +20,7 @@ class ViewMenu(QtWidgets.QMenu):
     renderSettingsRequested = QtCore.Signal()
     toggleGridRequested    = QtCore.Signal()
     toggleRulersRequested  = QtCore.Signal()
+    telemetryGridRequested = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__("Exibir", parent)
@@ -78,6 +79,14 @@ class ViewMenu(QtWidgets.QMenu):
         self.action_rulers.triggered.connect(self.toggleRulersRequested.emit)
         self.addAction(self.action_rulers)
 
+        self.addSeparator()
+
+        # 5. Diagnóstico & Telemetria em Grid
+        self.action_telemetry_grid = QtGui.QAction(get_icon("chart"), "", self)
+        self.action_telemetry_grid.setShortcut("F12")
+        self.action_telemetry_grid.triggered.connect(self.telemetryGridRequested.emit)
+        self.addAction(self.action_telemetry_grid)
+
     def retranslate_ui(self):
         self.setTitle(tr("menu.view.title", "Exibir"))
         self.action_zoom_in.setText(tr("menu.view.zoom_in", "Aproximar Zoom"))
@@ -88,3 +97,4 @@ class ViewMenu(QtWidgets.QMenu):
         self.action_proof.setText(tr("menu.view.render_settings", "Prova de Cores & Renderização..."))
         self.action_grid.setText(tr("menu.view.toggle_grid", "Alternar Grade Guia"))
         self.action_rulers.setText(tr("menu.view.toggle_rulers", "Alternar Réguas"))
+        self.action_telemetry_grid.setText(tr("menu.view.telemetry_grid", "Cockpit de Telemetria (Grid)..."))

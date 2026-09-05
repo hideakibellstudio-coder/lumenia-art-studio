@@ -13,7 +13,7 @@ class CanvasInputRouter:
         self.widget = widget
         self._previous_engine_type: Optional[int] = None
 
-    def handle_pointer_press(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False):
+    def handle_pointer_press(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0):
         w = self.widget
         effective_tool = "eraser" if is_eraser_tip else w.active_tool
 
@@ -127,12 +127,12 @@ class CanvasInputRouter:
             if is_eraser_tip and w.backend and hasattr(w.backend, "set_engine_type") and hasattr(w.backend, "get_active_engine_type"):
                 self._previous_engine_type = w.backend.get_active_engine_type()
                 w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
-            w.start_stroke(pos.x(), pos.y(), max(0.02, pressure))
+            w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp)
 
-    def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False):
+    def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0):
         w = self.widget
         if w.drawing:
-            w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure))
+            w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp)
             if hasattr(w, "geometry_ctrl") and hasattr(w, "_last_draw_pos"):
                 w.geometry_ctrl.hover_point = QtCore.QPointF(w._last_draw_pos[0], w._last_draw_pos[1])
             return

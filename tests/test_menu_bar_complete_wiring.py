@@ -131,6 +131,35 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
         self.win._on_shortcuts_applied(test_map)
         self.assertEqual(self.win.shortcut_tool_b.key().toString(), "B")
 
+    def test_10_telemetry_grid_window_and_shortcut(self):
+        """Verifica a abertura e funcionamento do Cockpit de Telemetria em Grid (F12)."""
+        from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
+
+        # 1. Instanciação direta
+        grid_win = TelemetryGridWindow(self.win)
+        self.assertIsNotNone(grid_win)
+        self.assertEqual(len(grid_win._cards), 20)
+        self.assertTrue(grid_win._stay_on_top)
+
+        # 2. Toggle Stay-on-Top
+        grid_win._on_toggle_pin()
+        self.assertFalse(grid_win._stay_on_top)
+        grid_win._on_toggle_pin()
+        self.assertTrue(grid_win._stay_on_top)
+
+        # 3. Refresh de métricas sem crash
+        grid_win._refresh_metrics()
+
+        # 4. Acionamento via sinal do menu_bar
+        self.win.menu_bar.telemetryGridRequested.emit()
+        self.assertIsNotNone(self.win._telemetry_grid_win)
+        self.assertTrue(self.win._telemetry_grid_win.isVisible())
+
+        # Limpeza
+        grid_win.deleteLater()
+        if hasattr(self.win, "_telemetry_grid_win") and self.win._telemetry_grid_win:
+            self.win._telemetry_grid_win.close()
+
 
 if __name__ == "__main__":
     unittest.main()

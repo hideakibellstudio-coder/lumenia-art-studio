@@ -18,8 +18,11 @@ Herda recursivamente de mixins atômicos especializados por domínio:
 
 from __future__ import annotations
 
+import os
 import logging
 from typing import Any, Optional
+
+os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
 
 from PySide6.QtGui import QImage
 from ui.core.engine.backend import EngineBackend, PointerEvent
@@ -66,6 +69,7 @@ class AladynBackend(
             import aladyn_engine_native
             self._native = aladyn_engine_native
             logger.info("[AladynBackend] Módulo nativo aladyn_engine_native carregado com sucesso.")
+            self.set_active_document_context("default_doc", self._width, self._height)
         except Exception as e:
             logger.info(
                 f"[AladynBackend] aladyn_engine_native indisponível "

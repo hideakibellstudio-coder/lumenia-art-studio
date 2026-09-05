@@ -26,9 +26,32 @@ std::vector<Dab> DabInterpolator::interpolate(
     // Calcula o menor arco angular (shortest angular path)
     const double diffAngle = std::fmod((endDab.angle - startDab.angle) + 540.0, 360.0) - 180.0;
 
+    // Modulação de passo adaptativo por velocidade / distância do micro-segmento
+    // Em movimentos em alta velocidade (> 12px por segmento de ~8ms), o olho humano não
+    // consegue distinguir dabs sub-pixel; aplicar uma suave escala (até 1.45x) mantém 
+    // a linha perfeitamente contínua e evita saturação desnecessária de dabs.
+    const double velocityScale = (distance > 12.0)
+        ? std::min(1.45, 1.0 + 0.018 * (distance - 12.0))
+        : 1.0;
+
+    auto calculateAdaptiveStep = [velocityScale](double r, double safeSpacing) -> double {
+        const double safeR = std::max(0.001, r);
+        double base;
+        if (safeR <= 32.0) {
+            base = std::max(0.75, 2.0 * safeR * safeSpacing);
+        } else {
+            const double ratio = safeR / 32.0;
+            const double scale = std::min(1.5, 1.0 + 0.12 * std::log2(ratio));
+            base = std::max(0.75, 2.0 * safeR * safeSpacing * scale);
+        }
+        return base * velocityScale;
+    };
+
     // Raio inicial e passo inicial estimado
     const double initRadius = std::max(0.001, startDab.radius);
-    double curStep = std::max(0.5, 2.0 * initRadius * safeSpacing);
+    const double nominalStep = calculateAdaptiveStep(initRadius, safeSpacing);
+    const double minStepClamp = std::max(0.75, nominalStep * 0.25);
+    double curStep = nominalStep;
 
     // Determina a primeira distância de emissão considerando o resíduo do segmento anterior
     double d = curStep - distanceCarryover;
@@ -63,8 +86,7 @@ std::vector<Dab> DabInterpolator::interpolate(
         lastDabPos = d;
 
         // Atualiza o passo ideal para o raio do ponto atual de emissão
-        const double safeR = std::max(0.001, radius);
-        curStep = std::max(0.5, 2.0 * safeR * safeSpacing);
+        curStep = std::max(minStepClamp, calculateAdaptiveStep(radius, safeSpacing));
 
         d += curStep;
 

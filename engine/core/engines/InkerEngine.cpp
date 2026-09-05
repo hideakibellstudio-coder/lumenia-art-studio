@@ -31,17 +31,57 @@ void InkerEngine::renderDab(
         bounds, tileGrid.getWidth(), tileGrid.getHeight()
     );
 
-    const double radAngle = -dab.angle * (3.14159265358979323846 / 180.0);
-    const double cosA = std::cos(radAngle);
-    const double sinA = std::sin(radAngle);
-
-    // inkFlowRate escala a opacidade de saída diretamente
-    const double flowOpacity = dab.opacity * profile.inkerParams.inkFlowRate;
+    // ─── 1. CIRCLE-AABB CULLING: Descarte antecipado ───
+    const double maxRSq = maxR * maxR;
+    std::vector<canvas::Tile*> validTiles;
+    validTiles.reserve(tileIndices.size());
 
     for (const auto& idx : tileIndices) {
-        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
-        if (!tile) continue;
+        const double tileX0 = static_cast<double>(idx.x * canvas::Tile::TILE_SIZE);
+        const double tileX1 = tileX0 + canvas::Tile::TILE_SIZE;
+        const double tileY0 = static_cast<double>(idx.y * canvas::Tile::TILE_SIZE);
+        const double tileY1 = tileY0 + canvas::Tile::TILE_SIZE;
 
+        const double clampX = std::clamp(dab.position.x, tileX0, tileX1);
+        const double clampY = std::clamp(dab.position.y, tileY0, tileY1);
+        const double dX = dab.position.x - clampX;
+        const double dY = dab.position.y - clampY;
+        if (dX * dX + dY * dY > maxRSq) {
+            continue;
+        }
+
+        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
+        if (tile) {
+            validTiles.push_back(tile);
+        }
+    }
+
+    if (validTiles.empty()) return;
+
+    // ─── 2. PRÉ-CÁLCULOS ANALÍTICOS ───
+    const bool isCircular = (aspect >= 0.999) && (std::abs(dab.angle) < 0.001);
+    const double radAngle = isCircular ? 0.0 : (-dab.angle * (3.14159265358979323846 / 180.0));
+    const double cosA = isCircular ? 1.0 : std::cos(radAngle);
+    const double sinA = isCircular ? 0.0 : std::sin(radAngle);
+    const double invAspect = isCircular ? 1.0 : (1.0 / aspect);
+
+    const double flowOpacity = dab.opacity * profile.inkerParams.inkFlowRate;
+    const double maxRadius = r + 1.0;
+    const double maxRadiusSq = maxRadius * maxRadius;
+
+    const double feather = std::max(0.6, r * (1.0 - std::clamp(profile.hardness, 0.0, 1.0)) * 0.25 + 0.6);
+    const double solidR = r - feather;
+    const double solidRSq = (solidR > 0.0) ? (solidR * solidR) : 0.0;
+    const double invFeather = 1.0 / feather;
+    const double ts = std::clamp(profile.inkerParams.taperSmoothing, 0.0, 1.0);
+    const double dabColorAlphaNorm = static_cast<double>(dab.color.a) / 255.0;
+    const double baseAlpha = dabColorAlphaNorm * flowOpacity;
+
+    // ─── 3. EXECUÇÃO PARALELA MULTI-CORE ───
+    const int numTiles = static_cast<int>(validTiles.size());
+    #pragma omp parallel for schedule(static) if(numTiles >= 6)
+    for (int t = 0; t < numTiles; ++t) {
+        canvas::Tile* tile = validTiles[t];
         canvas::PixelBuffer& buffer = tile->getBuffer();
         const int tilePixelX = tile->getPixelX();
         const int tilePixelY = tile->getPixelY();
@@ -59,27 +99,32 @@ void InkerEngine::renderDab(
             for (int px = minX; px <= maxX; ++px) {
                 const double dx = static_cast<double>(tilePixelX + px) + 0.5 - dab.position.x;
 
-                const double rotX = dx * cosA - dy * sinA;
-                const double rotY = dx * sinA + dy * cosA;
-                const double scaledY = rotY / aspect;
-                const double dist = std::sqrt(rotX * rotX + scaledY * scaledY);
+                double rotX, scaledY, distSq;
+                if (isCircular) {
+                    rotX = dx;
+                    scaledY = dy;
+                    distSq = dx * dx + dy * dy;
+                } else {
+                    rotX = dx * cosA - dy * sinA;
+                    const double rotY = dx * sinA + dy * cosA;
+                    scaledY = rotY * invAspect;
+                    distSq = rotX * rotX + scaledY * scaledY;
+                }
 
-                if (dist > r + 1.0) continue;
+                if (distSq > maxRadiusSq) continue;
 
-                // Anti-aliasing suave subpixel de nanquim (corte nítido com feather cúbico subpixel de 0.6px)
                 double edgeAlpha = 1.0;
-                const double feather = std::max(0.6, r * (1.0 - std::clamp(profile.hardness, 0.0, 1.0)) * 0.25 + 0.6);
-                if (dist > r - feather) {
-                    const double t = std::clamp((r - dist) / feather, 0.0, 1.0);
-                    const double ts = std::clamp(profile.inkerParams.taperSmoothing, 0.0, 1.0);
-                    // Curva cúbica com modulação de afilamento taperSmoothing
-                    edgeAlpha = t * t * (3.0 - 2.0 * t) * (1.0 - ts * 0.25) + (t * t * t) * (ts * 0.25);
+                if (distSq > solidRSq) {
+                    const double dist = std::sqrt(distSq);
+                    if (dist > r - feather) {
+                        const double tVal = std::clamp((r - dist) * invFeather, 0.0, 1.0);
+                        edgeAlpha = tVal * tVal * (3.0 - 2.0 * tVal) * (1.0 - ts * 0.25) + (tVal * tVal * tVal) * (ts * 0.25);
+                    }
                 }
 
                 if (edgeAlpha <= 0.0) continue;
 
-                const double finalAlpha = (static_cast<double>(dab.color.a) / 255.0)
-                    * flowOpacity * edgeAlpha;
+                const double finalAlpha = baseAlpha * edgeAlpha;
                 if (finalAlpha <= 0.0) continue;
 
                 double curFinalAlpha = finalAlpha;

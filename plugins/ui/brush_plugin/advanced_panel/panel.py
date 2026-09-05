@@ -233,6 +233,7 @@ class AdvancedPanel(QtWidgets.QDialog):
             getattr(self, "sl_min_op", None),
             getattr(self, "cmb_blend", None),
             getattr(self, "chk_vel_size", None),
+            getattr(self, "chk_stroke_taper", None),
             getattr(self, "slider_stabilizer", None),
             getattr(self, "sl_hardness", None),
             getattr(self, "sl_angle", None),
@@ -267,6 +268,8 @@ class AdvancedPanel(QtWidgets.QDialog):
                 self.cmb_blend.setCurrentIndex(min(bm_val, self.cmb_blend.count() - 1))
             if hasattr(self, "chk_vel_size"):
                 self.chk_vel_size.setChecked(bool(prof.get("velocity_size_enabled", False)))
+            if hasattr(self, "chk_stroke_taper"):
+                self.chk_stroke_taper.setChecked(bool(prof.get("stroke_taper_enabled", True)))
             if hasattr(self, "slider_stabilizer"):
                 self.slider_stabilizer.setValue(int(prof.get("stabilizer_weight", 0.0) * 100 if prof.get("stabilizer_weight", 0.0) <= 1.0 else prof.get("stabilizer_weight", 0.0)))
             if hasattr(self, "sl_hardness"):
@@ -332,6 +335,12 @@ class AdvancedPanel(QtWidgets.QDialog):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
         if b: b.set_brush_param("root", "velocity_size_enabled", bool(self.chk_vel_size.isChecked()))
+
+    def _on_stroke_taper_changed(self, _s):
+        from ui.core.engine.registry import EngineRegistry
+        b = EngineRegistry.instance().get_backend()
+        if b and hasattr(self, "chk_stroke_taper"):
+            b.set_brush_param("root", "stroke_taper_enabled", bool(self.chk_stroke_taper.isChecked()))
 
     def _on_stabilizer_changed(self, v):
         from ui.core.engine.registry import EngineRegistry

@@ -21,6 +21,7 @@
 #include "../../core/math/SymmetryEngine.hpp"
 #include "../../core/math/GuideSnapEngine.hpp"
 #include "../../core/telemetry/EngineTelemetry.hpp"
+#include "internal/StrokeOrchestrator.hpp"
 #include <vector>
 #include <memory>
 
@@ -50,29 +51,29 @@ public:
     void setFilterParams(int index, const std::vector<float>& params);
     [[nodiscard]] std::vector<float> getFilterParams(int index) const;
     [[nodiscard]] int getFilterType(int index) const;
-    [[nodiscard]] bool isFilterLayer(int index) const;
-    bool isGroup(int index) const;
+    [[nodiscard]] bool isFilterLayer(int index) const { const auto* l = m_layerStack.getDrawingLayer(index); return l && l->isFilter(); }
+    [[nodiscard]] bool isGroup(int index) const { return m_layerStack.isGroup(index); }
     bool setGroupPassThrough(int index, bool passThrough);
     bool removeLayer(int index);
     int duplicateLayer(int index);
-    bool selectLayer(int index);
+    bool selectLayer(int index) { return m_layerStack.selectLayer(index); }
     bool reorderLayer(int fromIndex, int toIndex);
     bool reorderLayers(const std::vector<int>& newOrder);
     bool setLayerParents(const std::vector<int>& parentIndices);
-    void setLayerName(int index, const std::string& name);
+    void setLayerName(int index, const std::string& name) { if (auto* l = m_layerStack.getDrawingLayer(index)) l->setName(name); }
     void setLayerOpacity(int index, double opacity);
     void setLayerBlendMode(int index, int blendModeId);
     void setLayerVisibility(int index, bool visible);
     void setLayerLock(int index, bool locked);
     void setLayerAlphaLock(int index, bool locked);
-    [[nodiscard]] bool isLayerAlphaLocked(int index) const noexcept;
+    [[nodiscard]] bool isLayerAlphaLocked(int index) const noexcept { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->isAlphaLocked() : false; }
     void setLayerClippingMask(int index, bool clipped);
-    [[nodiscard]] bool isLayerClippingMask(int index) const noexcept;
+    [[nodiscard]] bool isLayerClippingMask(int index) const noexcept { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->isClippingMask() : false; }
     bool flattenGroup(int index);
     bool mergeLayerDown(int index);
     void clearLayer(int index);
     void setBackgroundVisibility(bool visible);
-    [[nodiscard]] bool isBackgroundVisible() const noexcept;
+    [[nodiscard]] bool isBackgroundVisible() const noexcept { return m_layerStack.getBackgroundLayer().isVisible(); }
     void setBackgroundColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
 
     bool undo();
@@ -109,14 +110,14 @@ public:
     bool selectRect(int x, int y, int w, int h, int mode = 0, int featherPx = 0, int cornerRadiusPx = 0);
     bool selectEllipse(int cx, int cy, int rx, int ry, int mode = 0, bool antiAliasing = true, int featherPx = 0);
     bool selectPolygon(const std::vector<int>& flatPoints, int mode = 0, bool antiAliasing = true, int featherPx = 0);
-    void clearSelection() noexcept;
-    void invertSelection() noexcept;
-    void selectAll() noexcept;
-    [[nodiscard]] bool hasSelection() const noexcept;
+    void clearSelection() noexcept { m_selectionMask.clear(); }
+    void invertSelection() noexcept { m_selectionMask.invert(); }
+    void selectAll() noexcept { m_selectionMask.selectAll(); }
+    [[nodiscard]] bool hasSelection() const noexcept { return m_selectionMask.hasSelection(); }
     bool deleteSelectionOnActiveLayer();
     bool fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor);
-    [[nodiscard]] uint8_t* getSelectionMaskData() noexcept;
-    [[nodiscard]] size_t getSelectionMaskSize() const noexcept;
+    [[nodiscard]] uint8_t* getSelectionMaskData() noexcept { return m_selectionMask.getData(); }
+    [[nodiscard]] size_t getSelectionMaskSize() const noexcept { return m_selectionMask.getSizeInBytes(); }
     [[nodiscard]] std::vector<int> getSelectionBounds() const;
     [[nodiscard]] std::vector<int> getSelectionContourSegments() const;
     [[nodiscard]] std::vector<std::vector<int>> getSelectionContourLoops() const;
@@ -137,8 +138,10 @@ public:
     [[nodiscard]] uint8_t* getTransformSourceBufferData() noexcept;
 
     // ── Métodos de Simetria & Guias/Réguas ──────────────────────────────────
-    void setSymmetryConfig(int mode, double cx, double cy, double angleRad, int segments, bool stopAtCenter);
-    void clearSymmetry();
+    void setSymmetryConfig(int mode, double cx, double cy, double angleRad, int segments, bool stopAtCenter) {
+        m_symmetryConfig = { static_cast<math::SymmetryMode>(mode), cx, cy, angleRad, segments, stopAtCenter };
+    }
+    void clearSymmetry() { m_symmetryConfig.mode = math::SymmetryMode::None; }
     [[nodiscard]] const math::SymmetryConfig& getSymmetryConfig() const noexcept { return m_symmetryConfig; }
 
     void setGuideConfig(int type, double p0x, double p0y, double p1x, double p1y,
@@ -146,7 +149,7 @@ public:
                         double vpAx, double vpAy, double vpBx, double vpBy,
                         double vpCx, double vpCy, double cx, double cy,
                         double fov, double pitch, double yaw, double snapRadius);
-    void clearGuide();
+    void clearGuide() { m_guideConfig.type = math::GuideType::None; }
     [[nodiscard]] const math::GuideConfig& getGuideConfig() const noexcept { return m_guideConfig; }
     [[nodiscard]] std::vector<double> snapPoint(double rawX, double rawY, double lastX = 0.0, double lastY = 0.0, bool hasLast = false) const;
 
@@ -156,15 +159,15 @@ public:
 
     bool pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId = 0, double opacity = 1.0);
 
-    void setShapePreset(int presetId);
-    void setBrushHeightPreset(int presetId);
-    void setCanvasHeightPreset(int presetId);
+    void setShapePreset(int presetId) { m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(presetId)); }
+    void setBrushHeightPreset(int presetId) { m_brushProfile.brushHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId)); }
+    void setCanvasHeightPreset(int presetId) { m_canvasTexture.canvasHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId)); }
 
     void loadShapeTextureFromBuffer(int width, int height, const uint8_t* buffer);
     void loadBrushHeightTextureFromBuffer(int width, int height, const uint8_t* buffer);
     void loadCanvasHeightTextureFromBuffer(int width, int height, const uint8_t* buffer);
 
-    void setColorProfile(int profileId) noexcept;
+    void setColorProfile(int profileId) noexcept { m_colorProfileId = profileId; }
     [[nodiscard]] int getColorProfile() const noexcept { return m_colorProfileId; }
     void applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept;
 
@@ -235,16 +238,8 @@ private:
     double               m_distanceCarryover{0.0};
     uint32_t             m_segmentsRenderedInStroke{0};
 
-    struct TouchdownSample {
-        math::Point2D rawPoint{0.0, 0.0};
-        double pressure{1.0};
-        double timestamp{0.0};
-        math::Point2D stabilizedPos{0.0, 0.0};
-        double normVel{0.0};
-        double vel{0.0};
-    };
-    bool            m_pendingFirstSegment{false};
-    TouchdownSample m_firstSample{};
+    bool                             m_pendingFirstSegment{false};
+    internal::TouchdownSample        m_firstSample{};
 
     telemetry::EngineTelemetryManager m_telemetryManager;
 };

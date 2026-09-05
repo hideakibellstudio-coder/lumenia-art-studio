@@ -15,6 +15,7 @@
 #include "internal/TransformOrchestrator.hpp"
 #include "internal/BufferPasteOrchestrator.hpp"
 #include "internal/LayerStackOrchestrator.hpp"
+#include "internal/FloodFillOrchestrator.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -123,14 +124,7 @@ int PaintEngineFacade::getFilterType(int index) const {
     return 0;
 }
 
-bool PaintEngineFacade::isFilterLayer(int index) const {
-    const auto* l = m_layerStack.getDrawingLayer(index);
-    return l && l->isFilter();
-}
 
-bool PaintEngineFacade::isGroup(int index) const {
-    return m_layerStack.isGroup(index);
-}
 
 bool PaintEngineFacade::setGroupPassThrough(int index, bool passThrough) {
     bool ok = m_layerStack.setGroupPassThrough(index, passThrough);
@@ -146,9 +140,6 @@ int PaintEngineFacade::duplicateLayer(int index) {
     return internal::LayerStackOrchestrator::duplicateLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
 }
 
-bool PaintEngineFacade::selectLayer(int index) {
-    return m_layerStack.selectLayer(index);
-}
 
 bool PaintEngineFacade::reorderLayer(int fromIndex, int toIndex) {
     return internal::LayerStackOrchestrator::reorderLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, fromIndex, toIndex);
@@ -162,9 +153,6 @@ bool PaintEngineFacade::setLayerParents(const std::vector<int>& parentIndices) {
     return internal::LayerStackOrchestrator::setLayerParents(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, parentIndices);
 }
 
-void PaintEngineFacade::setLayerName(int index, const std::string& name) {
-    if (auto* l = m_layerStack.getDrawingLayer(index)) l->setName(name);
-}
 
 void PaintEngineFacade::setLayerOpacity(int index, double opacity) {
     internal::LayerStackOrchestrator::setLayerOpacity(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, opacity);
@@ -186,19 +174,11 @@ void PaintEngineFacade::setLayerAlphaLock(int index, bool locked) {
     if (auto* l = m_layerStack.getDrawingLayer(index)) l->setAlphaLocked(locked);
 }
 
-bool PaintEngineFacade::isLayerAlphaLocked(int index) const noexcept {
-    const auto* l = m_layerStack.getDrawingLayer(index);
-    return l ? l->isAlphaLocked() : false;
-}
 
 void PaintEngineFacade::setLayerClippingMask(int index, bool clipped) {
     internal::LayerStackOrchestrator::setLayerClippingMask(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, clipped);
 }
 
-bool PaintEngineFacade::isLayerClippingMask(int index) const noexcept {
-    const auto* l = m_layerStack.getDrawingLayer(index);
-    return l ? l->isClippingMask() : false;
-}
 
 bool PaintEngineFacade::flattenGroup(int index) {
     return internal::LayerStackOrchestrator::flattenGroup(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
@@ -217,9 +197,6 @@ void PaintEngineFacade::setBackgroundVisibility(bool visible) {
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
 }
 
-bool PaintEngineFacade::isBackgroundVisible() const noexcept {
-    return m_layerStack.getBackgroundLayer().isVisible();
-}
 
 void PaintEngineFacade::setBackgroundColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     m_canvasTexture.backgroundColor = {r, g, b, a};
@@ -328,236 +305,29 @@ void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, doub
 }
 
 std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure, double timestamp) {
-    if (!m_isDrawing) return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    m_lastRawPoint = {x, y};
-    m_hasLastRawPoint = true;
-    m_lastRawPressure = pressure;
-
-    auto tKinematicsStart = std::chrono::high_resolution_clock::now();
-
-    double t = timestamp;
-    if (t <= 0.0) {
-        auto now = std::chrono::high_resolution_clock::now();
-        t = std::chrono::duration<double>(now.time_since_epoch()).count();
-    }
-
-    const double vel = m_velocityTracker.update({x, y}, t);
-    const double normVel = m_velocityTracker.getNormalizedVelocity(1500.0);
-    const math::Point2D pos = m_stabilizer.update({x, y}, normVel);
-
-    // Amostra 1 do movimento (P1): Reter para confirmar alinhamento direcional com P2
-    if (m_segmentsRenderedInStroke == 0 && !m_pendingFirstSegment) {
-        m_firstSample.rawPoint = {x, y};
-        m_firstSample.pressure = pressure;
-        m_firstSample.timestamp = t;
-        m_firstSample.stabilizedPos = pos;
-        m_firstSample.normVel = normVel;
-        m_firstSample.vel = vel;
-        m_pendingFirstSegment = true;
-        m_segmentsRenderedInStroke = 1;
-        return { 0.0, 0.0, 0.0, 0.0, x, y, pressure, vel, m_lastDab.opacity };
-    }
-
-    auto tKinematicsEnd = std::chrono::high_resolution_clock::now();
-    double timeKinematicsUs = std::chrono::duration<double, std::micro>(tKinematicsEnd - tKinematicsStart).count();
-
-    math::Rect2D dirty{0, 0, 0, 0};
-    uint32_t dabsRendered = 0;
-    auto tStart = std::chrono::high_resolution_clock::now();
-    telemetry::StageMetrics totalStages{};
-
-    // Amostra 2 do movimento (P2 com P1 pendente):
-    // Avalia o alinhamento entre o pouso (P0 -> P1) e a trajetória da curva (P1 -> P2)
-    if (m_pendingFirstSegment) {
-        const math::Point2D p0 = m_strokeStartPoint;
-        const math::Point2D p1 = m_firstSample.rawPoint;
-        const math::Point2D p2 = {x, y};
-
-        const math::Point2D v01 = p1 - p0;
-        const math::Point2D v12 = p2 - p1;
-        const double len01 = v01.length();
-        const double len12 = v12.length();
-
-        if (len01 > 0.5 && len12 > 0.5) {
-            const double dot = (v01.x * v12.x + v01.y * v12.y) / (len01 * len12);
-            if (dot < 0.4) {
-                // Deflexão de impacto detectada no pouso do stylus:
-                // Realinha o ponto inicial P0 tangencialmente para trás na direção de v12
-                const math::Point2D u12 = v12 * (1.0 / len12);
-                const math::Point2D alignedP0 = p1 - (u12 * len01);
-                m_strokeStartPoint = alignedP0;
-                m_stabilizer.reanchorInitialPosition(alignedP0);
-
-                auto mappedP0 = brush::DynamicMapper::map(m_brushProfile, alignedP0, m_lastDab.pressure, 0.0, 0.0);
-                m_lastDab = raster::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, m_brushProfile.blendMode, mappedP0.color);
-            }
-        }
-
-        // Renderiza o segmento 1 (P0 -> P1 estabilizado)
-        auto mapped1 = brush::DynamicMapper::map(m_brushProfile, m_firstSample.stabilizedPos, m_firstSample.pressure, m_firstSample.normVel, 0.0);
-        raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, m_brushProfile.blendMode, mapped1.color);
-        math::Rect2D dirty1{0, 0, 0, 0};
-        uint32_t dabs1 = 0;
-        telemetry::StageMetrics stages1{};
-        internal::StrokeOrchestrator::renderSegment(
-            m_lastDab, dab1, m_brushProfile, m_canvasTexture,
-            m_activeEngine.get(), m_layerStack, m_selectionMask,
-            m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-            m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty1, &dabs1,
-            &stages1
-        );
-        totalStages.timeInterpolationUs += stages1.timeInterpolationUs;
-        totalStages.timeRasterDabUs += stages1.timeRasterDabUs;
-        totalStages.timeUndoRecordUs += stages1.timeUndoRecordUs;
-        totalStages.timeCompositeUs += stages1.timeCompositeUs;
-        totalStages.tilesRecorded += stages1.tilesRecorded;
-        totalStages.tilesComposited += stages1.tilesComposited;
-
-        m_lastDab = dab1;
-        dirty = dirty1;
-        dabsRendered += dabs1;
-        m_pendingFirstSegment = false;
-        ++m_segmentsRenderedInStroke;
-    }
-
-    // Renderiza o segmento atual
-    auto mapped = brush::DynamicMapper::map(m_brushProfile, pos, pressure, normVel, 0.0);
-    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
-    math::Rect2D dirtyCurrent{0, 0, 0, 0};
-    uint32_t dabsCurrent = 0;
-    telemetry::StageMetrics stagesCurrent{};
-    internal::StrokeOrchestrator::renderSegment(
-        m_lastDab, currentDab, m_brushProfile, m_canvasTexture,
-        m_activeEngine.get(), m_layerStack, m_selectionMask,
-        m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-        m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirtyCurrent, &dabsCurrent,
-        &stagesCurrent
-    );
-    totalStages.timeInterpolationUs += stagesCurrent.timeInterpolationUs;
-    totalStages.timeRasterDabUs += stagesCurrent.timeRasterDabUs;
-    totalStages.timeUndoRecordUs += stagesCurrent.timeUndoRecordUs;
-    totalStages.timeCompositeUs += stagesCurrent.timeCompositeUs;
-    totalStages.tilesRecorded += stagesCurrent.tilesRecorded;
-    totalStages.tilesComposited += stagesCurrent.tilesComposited;
-
-    if (dirty.width > 0 && dirty.height > 0) {
-        dirty = dirty.united(dirtyCurrent);
-    } else {
-        dirty = dirtyCurrent;
-    }
-    dabsRendered += dabsCurrent;
-    ++m_segmentsRenderedInStroke;
-
-    totalStages.dabsRendered = dabsRendered;
-    totalStages.dirtyWidth = dirty.width;
-    totalStages.dirtyHeight = dirty.height;
-    totalStages.dirtyAreaPx = dirty.width * dirty.height;
-
-    if (m_telemetryManager.isEnabled()) {
-        auto tEnd = std::chrono::high_resolution_clock::now();
-        double latUs = std::chrono::duration<double, std::micro>(tEnd - tStart).count() + timeKinematicsUs;
-        double lag = pos.distanceTo(math::Point2D{x, y});
-        m_telemetryManager.onSegmentRenderedDetailed(latUs, timeKinematicsUs, totalStages, pressure, mapped.pressure, vel, lag);
-    }
-
-    m_lastDab = currentDab;
-    return { dirty.x, dirty.y, dirty.width, dirty.height, x, y, pressure, vel, currentDab.opacity };
+    internal::RawStrokeContext ctx{
+        m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, m_firstSample,
+        m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
+        m_distanceCarryover, m_lastDab, m_velocityTracker, m_stabilizer,
+        m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
+        m_selectionMask, m_undoManager, m_compositor, m_outputBuffer,
+        m_symmetryConfig, m_telemetryManager
+    };
+    return internal::StrokeOrchestrator::updateStrokeRaw(ctx, x, y, pressure, timestamp);
 }
 
 std::vector<double> PaintEngineFacade::endStrokeRaw() {
-    math::Rect2D totalCatchupDirty{0, 0, 0, 0};
-    telemetry::StageMetrics stagesCatchup{};
-
-    if (m_isDrawing) {
-        if (m_pendingFirstSegment) {
-            auto mapped1 = brush::DynamicMapper::map(m_brushProfile, m_firstSample.stabilizedPos, m_firstSample.pressure, m_firstSample.normVel, 0.0);
-            raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, m_brushProfile.blendMode, mapped1.color);
-            math::Rect2D dirty1{0, 0, 0, 0};
-            uint32_t dabs1 = 0;
-            internal::StrokeOrchestrator::renderSegment(
-                m_lastDab, dab1, m_brushProfile, m_canvasTexture,
-                m_activeEngine.get(), m_layerStack, m_selectionMask,
-                m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-                m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty1, &dabs1
-            );
-            if (dirty1.width > 0 && dirty1.height > 0) {
-                totalCatchupDirty = dirty1;
-            }
-            m_lastDab = dab1;
-            m_pendingFirstSegment = false;
-        }
-
-        if (m_hasLastRawPoint && m_segmentsRenderedInStroke > 0) {
-            const math::Point2D stabPos = m_stabilizer.getStabilizedPosition();
-            const math::Point2D v = m_stabilizer.getLastMovementDelta();
-            const double speed = v.length();
-            const math::Point2D toRaw = m_lastRawPoint - stabPos;
-            const double distToRaw = toRaw.length();
-
-            bool isCollinear = false;
-            if (speed > 0.1 && distToRaw > 0.5) {
-                const double dot = (v.x * toRaw.x + v.y * toRaw.y) / (speed * distToRaw);
-                isCollinear = (dot > 0.4);
-            }
-
-            math::Point2D targetPt = stabPos;
-            bool shouldRenderCatchup = false;
-            double targetPressure = m_lastRawPressure;
-            double targetRadiusMult = 1.0;
-            double targetOpacityMult = 1.0;
-
-            if (isCollinear) {
-                targetPt = m_lastRawPoint;
-                shouldRenderCatchup = (distToRaw > 1.0);
-                if (m_brushProfile.strokeTaperEnabled) {
-                    targetPressure = 0.0;
-                    targetRadiusMult = 0.1;
-                    targetOpacityMult = 0.0;
-                }
-            } else if (m_brushProfile.strokeTaperEnabled && speed >= 0.3) {
-                // Desvio/gancho de levantamento da caneta detectado (pen-up hook off-axis).
-                // Projeta estritamente ao longo da tangente física do traço
-                const double taperDist = std::min(m_lastDab.radius * 1.5, 35.0);
-                const math::Point2D tangent = v * (1.0 / speed);
-                targetPt = stabPos + (tangent * taperDist);
-                targetPressure = 0.0;
-                targetRadiusMult = 0.1;
-                targetOpacityMult = 0.0;
-                shouldRenderCatchup = true;
-            }
-
-            if (shouldRenderCatchup) {
-                auto mapped = brush::DynamicMapper::map(m_brushProfile, targetPt, targetPressure, 0.0, 0.0);
-                mapped.radius *= targetRadiusMult;
-                mapped.opacity *= targetOpacityMult;
-                raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, m_brushProfile.blendMode, mapped.color);
-                math::Rect2D dirty{0, 0, 0, 0};
-                uint32_t dabsRendered = 0;
-                internal::StrokeOrchestrator::renderSegment(
-                    m_lastDab, currentDab, m_brushProfile, m_canvasTexture,
-                    m_activeEngine.get(), m_layerStack, m_selectionMask,
-                    m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-                    m_distanceCarryover, m_symmetryConfig, &m_strokeStartPoint, &dirty, &dabsRendered,
-                    &stagesCatchup
-                );
-                if (dirty.width > 0 && dirty.height > 0) {
-                    totalCatchupDirty = (totalCatchupDirty.width > 0) ? totalCatchupDirty.united(dirty) : dirty;
-                }
-                m_lastDab = currentDab;
-            }
-                    }
-    }
-
-    auto now = std::chrono::high_resolution_clock::now();
-    double t = std::chrono::duration<double>(now.time_since_epoch()).count();
-    endStroke({stroke::PointerEventType::Release, m_stabilizer.getStabilizedPosition(), 0.0, t});
-    m_hasLastRawPoint = false;
-    m_pendingFirstSegment = false;
-
-    if (totalCatchupDirty.width > 0 && totalCatchupDirty.height > 0) {
-        return { totalCatchupDirty.x, totalCatchupDirty.y, totalCatchupDirty.width, totalCatchupDirty.height };
-    }
-    return { 0.0, 0.0, 0.0, 0.0 };
+    internal::RawStrokeContext ctx{
+        m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, m_firstSample,
+        m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
+        m_distanceCarryover, m_lastDab, m_velocityTracker, m_stabilizer,
+        m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
+        m_selectionMask, m_undoManager, m_compositor, m_outputBuffer,
+        m_symmetryConfig, m_telemetryManager
+    };
+    return internal::StrokeOrchestrator::endStrokeRaw(ctx, [this](const stroke::PointerEvent& ev) {
+        this->endStroke(ev);
+    });
 }
 
 void PaintEngineFacade::renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab) {
@@ -586,26 +356,13 @@ telemetry::RealTimeStrokeMetrics PaintEngineFacade::getTelemetrySnapshot() const
 bool PaintEngineFacade::floodFill(
     int seedX, int seedY, const raster::ColorRGBA& fillColor,
     int tolerance, bool contiguous, int expandPx, int gapClosingPx,
-    bool antiAliasing, bool /*sampleAllLayers*/
+    bool antiAliasing, bool sampleAllLayers
 ) {
-    document::Layer* activeLayer = m_layerStack.getActiveLayer();
-    if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) return false;
-
-    // Clipping Mask é 100% não-destrutivo: o preenchimento atua no espaço da camada e o recorte é visual
-    const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &m_selectionMask };
-
-    m_undoManager.beginStep("Bucket Fill");
-    math::Rect2D affectedBounds{0, 0, 0, 0};
-    bool ok = raster::FloodFill::execute(
-        m_outputBuffer, seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing,
-        activeLayer->getTileGrid(), m_undoManager, m_layerStack.getActiveIndex(), pCtx, affectedBounds
+    return internal::FloodFillOrchestrator::floodFill(
+        m_outputBuffer, m_layerStack, m_undoManager, m_compositor,
+        m_selectionMask, m_canvasTexture.backgroundColor,
+        seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing, sampleAllLayers
     );
-
-    if (ok) {
-        m_undoManager.commitStep(m_layerStack);
-        m_compositor.compositeRegion(m_layerStack.getAllLayersForComposition(), affectedBounds, m_outputBuffer, m_canvasTexture.backgroundColor);
-    }
-    return ok;
 }
 
 // ─── MÉTODOS DE SELEÇÃO & CONTORNOS ────────────────────────────────────────
@@ -621,18 +378,12 @@ bool PaintEngineFacade::selectEllipse(int cx, int cy, int rx, int ry, int mode, 
 bool PaintEngineFacade::selectPolygon(const std::vector<int>& flatPoints, int mode, bool antiAliasing, int featherPx) {
     return internal::SelectionOrchestrator::selectPolygon(flatPoints, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
 }
-void PaintEngineFacade::clearSelection() noexcept { m_selectionMask.clear(); }
-void PaintEngineFacade::invertSelection() noexcept { m_selectionMask.invert(); }
-void PaintEngineFacade::selectAll() noexcept { m_selectionMask.selectAll(); }
-bool PaintEngineFacade::hasSelection() const noexcept { return m_selectionMask.hasSelection(); }
 bool PaintEngineFacade::deleteSelectionOnActiveLayer() {
     return internal::SelectionOrchestrator::deleteSelectionOnActiveLayer(m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
 bool PaintEngineFacade::fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor) {
     return internal::SelectionOrchestrator::fillSelectionOnActiveLayer(fillColor, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
-uint8_t* PaintEngineFacade::getSelectionMaskData() noexcept { return m_selectionMask.getData(); }
-size_t PaintEngineFacade::getSelectionMaskSize() const noexcept { return m_selectionMask.getSizeInBytes(); }
 std::vector<int> PaintEngineFacade::getSelectionBounds() const {
     auto b = m_selectionMask.getBounds();
     return { static_cast<int>(b.x), static_cast<int>(b.y), static_cast<int>(b.width), static_cast<int>(b.height) };
@@ -679,9 +430,6 @@ bool PaintEngineFacade::pasteRgbaBufferOnActiveLayer(int x, int y, int width, in
 
 // ─── PRESETS E TEXTURAS PROCEDURAIS ────────────────────────────────────────
 
-void PaintEngineFacade::setShapePreset(int id) { m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(id)); }
-void PaintEngineFacade::setBrushHeightPreset(int id) { m_brushProfile.brushHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(id)); }
-void PaintEngineFacade::setCanvasHeightPreset(int id) { m_canvasTexture.canvasHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(id)); }
 void PaintEngineFacade::loadShapeTextureFromBuffer(int w, int h, const uint8_t* buf) {
     if (buf && w > 0 && h > 0) m_brushProfile.shapeTexture = std::make_shared<texture::Texture2D>(w, h, std::vector<uint8_t>(buf, buf + static_cast<size_t>(w * h)));
 }
@@ -691,7 +439,6 @@ void PaintEngineFacade::loadBrushHeightTextureFromBuffer(int w, int h, const uin
 void PaintEngineFacade::loadCanvasHeightTextureFromBuffer(int w, int h, const uint8_t* buf) {
     if (buf && w > 0 && h > 0) m_canvasTexture.canvasHeightTexture = std::make_shared<texture::Texture2D>(w, h, std::vector<uint8_t>(buf, buf + static_cast<size_t>(w * h)));
 }
-void PaintEngineFacade::setColorProfile(int profileId) noexcept { m_colorProfileId = profileId; }
 void PaintEngineFacade::applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept {
     raster::ColorProfileManager::applyColorProfile(targetBuffer, numPixels, m_colorProfileId);
 }
@@ -722,19 +469,12 @@ bool PaintEngineFacade::redo() {
     }
     return ok;
 }
-void PaintEngineFacade::setSymmetryConfig(int mode, double cx, double cy, double angleRad, int segments, bool stopAtCenter) {
-    m_symmetryConfig = { static_cast<math::SymmetryMode>(mode), cx, cy, angleRad, segments, stopAtCenter };
-}
-void PaintEngineFacade::clearSymmetry() { m_symmetryConfig.mode = math::SymmetryMode::None; }
 void PaintEngineFacade::setGuideConfig(
     int type, double p0x, double p0y, double p1x, double p1y, double p2x, double p2y, double p3x, double p3y,
     double vpAx, double vpAy, double vpBx, double vpBy, double vpCx, double vpCy, double cx, double cy,
     double fov, double pitch, double yaw, double snapRadius
 ) {
     m_guideConfig = { static_cast<math::GuideType>(type), {p0x, p0y}, {p1x, p1y}, {p2x, p2y}, {p3x, p3y}, {vpAx, vpAy}, {vpBx, vpBy}, {vpCx, vpCy}, cx, cy, fov, pitch, yaw, snapRadius };
-}
-void PaintEngineFacade::clearGuide() {
-    m_guideConfig.type = math::GuideType::None;
 }
 
 std::vector<double> PaintEngineFacade::snapPoint(double rawX, double rawY, double lastX, double lastY, bool hasLast) const {

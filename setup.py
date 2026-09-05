@@ -19,6 +19,7 @@ cpp_sources = [
     "engine/core/document/Compositor.cpp",
     "engine/core/document/blending/FilterApplier.cpp",
     "engine/core/document/LayerStack.cpp",
+    "engine/core/document/LayerMerger.cpp",
     "engine/core/document/FilterLayer.cpp",
     "engine/core/texture/Texture2D.cpp",
     "engine/core/texture/ProceduralTextures.cpp",
@@ -35,7 +36,13 @@ cpp_sources = [
     "engine/boundary/public-api/internal/SelectionOrchestrator.cpp",
     "engine/boundary/public-api/internal/TransformOrchestrator.cpp",
     "engine/boundary/public-api/internal/BufferPasteOrchestrator.cpp",
+    "engine/boundary/public-api/internal/FloodFillOrchestrator.cpp",
     "engine/boundary/public-api/PaintEngineFacade.cpp",
+    "bridge/core/bindings/bind_math_brush.cpp",
+    "bridge/core/bindings/bind_canvas.cpp",
+    "bridge/core/bindings/bind_layers.cpp",
+    "bridge/core/bindings/bind_stroke.cpp",
+    "bridge/core/bindings/bind_tools.cpp",
     "bridge/core/bindings/engine_bindings.cpp",
 ]
 

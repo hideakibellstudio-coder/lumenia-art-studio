@@ -157,20 +157,67 @@ Caso surja uma falha visual, artefato perceptivo ou comportamento inesperado dur
 
 ---
 
-## 📐 4. TABELA DE REGRAS E LIMITES ARCcC
+## 🧠 4. A REGRA DA COESÃO DE DOMÍNIO: POR QUE < 500 LOC NÃO É SUFICIENTE
 
-| Elemento | Limite / Regra | Ação em Caso de Violação |
-|---|:---:|---|
-| **Tamanho Máximo de Arquivo** | **< 500 Linhas** (C++ e Python) | Decompor imediatamente em sub-módulos ou orquestradores especializados. |
-| **Taxa de Aprovação de Testes** | **100%** (Zero tolerância a quebras) | Bloquear o avanço até a regressão ser totalmente solucionada. |
-| **Arquivos Órfãos / Código Morto** | **0** | Deletar headers não utilizados e unificar interfaces redundantes. |
-| **Alocações no Loop Crítico** | **Zero Alocação Dinâmica** | Utilizar memória pré-alocada, stack, LUTs ou pools de buffers. |
-| **Compatibilidade de Fallback** | **100% Graceful Degradation** | Se hardware avançado (AVX2, OpenGL) não estiver presente, chavear para caminho escalar/CPU sem falhar. |
-| **Commits Git** | **Granulares por Fase** | Nunca misturar mudanças de fases diferentes no mesmo commit. |
+O teto de **$< 500\text{ LOC}$ (Regra 4)** é uma barreira mecânica fundamental contra classes monolíticas de milhares de linhas. No entanto, ela é uma métrica **quantitativa**, e não **qualitativa**. 
+
+Um arquivo pode ter 250 ou 450 linhas e ainda assim ser uma **"God Class compactada"** ou um **"Canivete Suíço em miniatura"**, onde 4 ou 5 domínios técnicos completamente distintos dividem o mesmo espaço de memória, as mesmas variáveis de instância e o mesmo ciclo de vida. 
+
+> [!CAUTION]
+> **A Causa Oculta das Regressões**: A maioria dos bugs inseridos durante refatorações não nasce da quantidade de linhas, mas sim do **acúmulo de responsabilidades concorrentes** em um mesmo arquivo. Ao ajustar a lógica de um domínio $A$, quebram-se silenciosamente os invariantes ou o estado compartilhado do domínio $B$.
 
 ---
 
-## 🛠️ 5. TEMPLATES REUTILIZÁVEIS
+### Os 4 Sintomas do Acúmulo de Papéis Distintos:
+
+1. **Acoplamento de Invariantes Incompatíveis**:
+   - *Caso Real Lumenia*: Em `BlendEquations.hpp`, a mesma equação era usada para compor camadas independentes (que exige espaço linear sRGB) e acumular carimbos de um único traço de pincel (onde a curva sRGB de 8 bits gerava um degrau artificial de $R=13 \rightarrow 0$ no miolo).
+2. **Estado Compartilhado e Efeitos Colaterais Temporais**:
+   - Flags e variáveis mutáveis (`m_isDrawing`, `_cursor_in_viewport`, `m_lastDab`) manipuladas por múltiplos fluxos. A mutação de estado por uma ferramenta contamina a execução da próxima.
+3. **Raio de Destruição Expandido (*Blast Radius*)**:
+   - Quando um arquivo concentra múltiplos papéis (ex: `PaintEngineFacade` gerenciando 9 domínios ou `render_widget.py` orquestrando 7 ferramentas e o contexto OpenGL), qualquer alteração pontual força recompilações massivas e expõe o sistema a regressões em áreas não relacionadas.
+4. **Névoa Cognitiva (*Context Overload*)**:
+   - O desenvolvedor ou agente de IA precisa manter múltiplos modelos mentais concorrentes para editar um único arquivo, aumentando exponencialmente a chance de suposições errôneas.
+
+---
+
+### As 3 Regras Qualitativas ARCcC (Nível 2 de Maturidade):
+
+#### 🎯 Regra Q1: O Teste do "E" (*Single Responsibility Audit*)
+Se para explicar a função de uma classe ou arquivo você precisar utilizar a conjunção **"E"**, a classe viola o princípio de responsabilidade única e **deve ser decomposta**, mesmo que tenha menos de 200 linhas:
+- ❌ *Incorreto*: "O `TileGrid` armazena a matriz de tiles **E** rastreia regiões sujas para a GPU **E** faz coleta de lixo de blocos vazios."
+- ✅ *Correto*:
+  - `TileStorage`: Apenas aloca e indexa os ponteiros de memória $(x, y)$.
+  - `TileDirtyTracker`: Apenas registra o conjunto de coordenadas modificadas.
+  - `TileMemoryPruner`: Apenas varre e recicla blocos transparentes.
+
+#### 📦 Regra Q2: Separação Estrita de Estado e Algoritmo (*Data vs. Logic*)
+Estruturas de dados básicas (matrizes de bytes, buffers, descritores de geometria) **não devem conter lógica de apresentação, orquestração de GPU ou persistência em disco**. Lógicas avançadas devem atuar sobre as estruturas como serviços desacoplados ou observadores.
+
+#### ⏱️ Regra Q3: Isolamento por Causa e Frequência de Mudança (*Change Reason Isolation*)
+Componentes que mudam por motivos e frequências distintas nunca devem residir no mesmo módulo:
+- Cálculos matemáticos puros e determinísticos (ex: projeção de matrizes de perspectiva 3D ou interpolação de curvas Bézier) **quase nunca mudam**.
+- Estilos visuais, espessuras, cores de linhas de interface e comportamento de menus **mudam frequentemente** com base no feedback de design.
+- *Eles devem viver em arquivos estritamente separados*.
+
+---
+
+## 📐 5. TABELA DE REGRAS E LIMITES ARCcC (QUANTITATIVAS & QUALITATIVAS)
+
+| Elemento | Limite / Regra | Tipo | Ação em Caso de Violação |
+|---|:---:|:---:|---|
+| **Tamanho Máximo de Arquivo** | **< 500 Linhas** (C++ e Python) | Quantitativo | Decompor imediatamente em sub-módulos ou orquestradores. |
+| **Pureza de Responsabilidade** | **1 Único Domínio** (Teste do "E") | Qualitativo | Extrair os papéis secundários para classes/módulos especializados. |
+| **Separação Dados / Apresentação** | **Zero lógica de UI em Core** | Arquitetural | Isolar modelos de dados de rotinas de pintura e shaders. |
+| **Taxa de Aprovação de Testes** | **100%** (Zero regressões) | Rigor | Bloquear o avanço até a regressão ser solucionada na causa-raiz. |
+| **Arquivos Órfãos / Código Morto** | **0** | Higiene | Deletar headers não utilizados e unificar interfaces redundantes. |
+| **Alocações no Loop Crítico** | **Zero Alocação Dinâmica** | Performance | Utilizar memória pré-alocada, stack, LUTs ou pools de buffers. |
+| **Compatibilidade de Fallback** | **100% Graceful Degradation** | Robustez | Chavear para caminho escalar/CPU seguro se hardware não suportar. |
+| **Commits Git** | **Granulares por Fase / Feature** | Governança | Nunca misturar mudanças de contextos distintos no mesmo commit. |
+
+---
+
+## 🛠️ 6. TEMPLATES REUTILIZÁVEIS
 
 ### Template para Nomenclatura de Arquivos de Teste de Fase
 ```text

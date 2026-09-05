@@ -1,110 +1,36 @@
-"""Renderer for Symmetry, Perspective (1P, 2P, 3P, Curvilinear 6P) and Rulers.
+"""Geometry Overlay Renderer Facade.
 
-Complete mathematical alignment with 3D camera rotation and soft transparent guide hint.
+Unifies symmetry, perspective, and ruler rendering through domain-specific sub-renderers.
+Maintains 100% backwards compatibility while complying with ARCcC v2 (< 85 LOC).
 """
 
-import math
-from PySide6 import QtCore, QtGui
-
-
-def rotate_3d_backward(x, y, z, yaw_rad, pitch_rad):
-    cos_h, sin_h = math.cos(yaw_rad), math.sin(yaw_rad)
-    cos_v, sin_v = math.cos(pitch_rad), math.sin(pitch_rad)
-    x_unp = x
-    y_unp = y * cos_v + z * sin_v
-    z_unp = -y * sin_v + z * cos_v
-    x_unrot = x_unp * cos_h + z_unp * sin_h
-    y_unrot = y_unp
-    z_unrot = -x_unp * sin_h + z_unp * cos_h
-    return x_unrot, y_unrot, z_unrot
-
-
-def create_curve_from_normal(a, b, c, R, cx, cy, family):
-    norm = math.sqrt(a * a + b * b + c * c)
-    if norm > 1e-6:
-        a, b, c = a / norm, b / norm, c / norm
-    else:
-        return None
-
-    if abs(c) < 1e-6:
-        denom = math.sqrt(a * a + b * b)
-        if denom < 1e-6:
-            return None
-        dx, dy = b / denom, a / denom
-        return {
-            "type": "line",
-            "family": family,
-            "p1": QtCore.QPointF(cx - dx * 100000.0, cy - dy * 100000.0),
-            "p2": QtCore.QPointF(cx + dx * 100000.0, cy + dy * 100000.0),
-            "dir": QtCore.QPointF(dx, dy)
-        }
-    else:
-        cx_c, cy_c, radius = -R * a / c, R * b / c, R / abs(c)
-        return {
-            "type": "circle",
-            "family": family,
-            "center": QtCore.QPointF(cx + cx_c, cy + cy_c),
-            "radius": radius
-        }
+from PySide6 import QtGui
+from ..math.camera_3d_projector import (
+    rotate_3d_backward,
+    rotate_3d_forward,
+    create_curve_from_normal,
+    p3d_to_2d_fisheye
+)
+from .symmetry_overlay_renderer import SymmetryOverlayRenderer
+from .perspective_grid_renderer import PerspectiveGridRenderer
+from .ruler_grid_renderer import RulerGridRenderer
 
 
 class GeometryOverlayRenderer:
-    """Renders symmetry axes, rulers, 6P perspective grids, 3D features and letterbox."""
+    """Facade for symmetry axes, rulers, 6P perspective grids, and 3D features."""
 
     @staticmethod
     def render_symmetry(painter: QtGui.QPainter, sym: dict, zoom: float):
-        mode = sym.get("mode", "none")
-        if mode == "none": return
-
-        cx, cy = sym.get("cx", 400.0), sym.get("cy", 300.0)
-        angle_rad = math.radians(sym.get("angle", 90.0))
-        if mode == "mirror_v":
-            angle_rad = math.pi / 2.0
-        elif mode == "mirror_h":
-            angle_rad = 0.0
-        elif mode == "double_mirror" and sym.get("angle", 90.0) == 0.0:
-            angle_rad = math.pi / 2.0
-        segments = max(2, sym.get("segments", 6))
-
-        painter.save()
-        painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        zoom_factor = max(0.01, zoom)
-        line_w = 1.5 / zoom_factor
-
-        pen_line = QtGui.QPen(QtGui.QColor(168, 85, 247, 210), line_w)
-        pen_line.setStyle(QtCore.Qt.SolidLine if mode in ("kaleidoscope", "double_mirror") else QtCore.Qt.DashLine)
-        painter.setPen(pen_line)
-
-        r = 8000.0
-        cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
-
-        if mode in ("mirror", "mirror_v", "mirror_h"):
-            painter.drawLine(QtCore.QPointF(cx - r * cos_a, cy - r * sin_a), QtCore.QPointF(cx + r * cos_a, cy + r * sin_a))
-        elif mode == "double_mirror":
-            painter.drawLine(QtCore.QPointF(cx - r * cos_a, cy - r * sin_a), QtCore.QPointF(cx + r * cos_a, cy + r * sin_a))
-            painter.drawLine(QtCore.QPointF(cx + r * sin_a, cy - r * cos_a), QtCore.QPointF(cx - r * sin_a, cy + r * sin_a))
-        elif mode in ("radial", "kaleidoscope"):
-            step = (2.0 * math.pi) / segments
-            for i in range(segments):
-                a = angle_rad + i * step
-                painter.drawLine(QtCore.QPointF(cx, cy), QtCore.QPointF(cx + r * math.cos(a), cy + r * math.sin(a)))
-
-        handle_r = 6.0 / zoom_factor
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 240), line_w))
-        painter.setBrush(QtGui.QColor(168, 85, 247, 220))
-        painter.drawEllipse(QtCore.QPointF(cx, cy), handle_r, handle_r)
-
-        hx, hy = cx + (80.0 / zoom_factor) * cos_a, cy + (80.0 / zoom_factor) * sin_a
-        painter.setBrush(QtGui.QColor(236, 72, 153, 220))
-        painter.drawEllipse(QtCore.QPointF(hx, hy), handle_r * 0.9, handle_r * 0.9)
-        painter.drawLine(QtCore.QPointF(cx, cy), QtCore.QPointF(hx, hy))
-        painter.restore()
+        """Delegates symmetry axis rendering to SymmetryOverlayRenderer."""
+        SymmetryOverlayRenderer.render_symmetry(painter, sym, zoom)
 
     @staticmethod
     def render_guides(painter: QtGui.QPainter, ctrl_or_guide, zoom: float):
+        """Dispatches guide rendering to domain-specific specialized renderers."""
         guide = ctrl_or_guide.guide_state if hasattr(ctrl_or_guide, "guide_state") else ctrl_or_guide
         gtype = guide.get("type", "none")
-        if gtype == "none": return
+        if gtype == "none":
+            return
 
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
@@ -112,501 +38,38 @@ class GeometryOverlayRenderer:
         line_w = 1.2 / zoom_factor
         handle_r = 5.0 / zoom_factor
 
-        pen_guide = QtGui.QPen(QtGui.QColor(59, 130, 246, 200), line_w, QtCore.Qt.DashLine)
-        painter.setPen(pen_guide)
-
         if gtype == "straight":
-            p0, p1 = guide.get("p0", QtCore.QPointF(0, 300)), guide.get("p1", QtCore.QPointF(800, 300))
-            dx, dy = p1.x() - p0.x(), p1.y() - p0.y()
-            length = math.hypot(dx, dy) or 1.0
-            ux, uy = dx / length, dy / length
-            painter.drawLine(QtCore.QPointF(p0.x() - 8000.0 * ux, p0.y() - 8000.0 * uy), QtCore.QPointF(p1.x() + 8000.0 * ux, p1.y() + 8000.0 * uy))
-            painter.setBrush(QtGui.QColor(59, 130, 246, 220))
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), line_w))
-            painter.drawEllipse(p0, handle_r, handle_r)
-            painter.drawEllipse(p1, handle_r, handle_r)
-
-            if hasattr(ctrl_or_guide, "hover_point") and ctrl_or_guide.hover_point is not None:
-                hpt = ctrl_or_guide.hover_point
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 180), line_w * 1.3, QtCore.Qt.DashLine))
-                painter.drawLine(QtCore.QPointF(hpt.x() - 4000.0 * ux, hpt.y() - 4000.0 * uy), QtCore.QPointF(hpt.x() + 4000.0 * ux, hpt.y() + 4000.0 * uy))
-                painter.setBrush(QtCore.Qt.NoBrush)
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
-                painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
-                if getattr(ctrl_or_guide, "is_stroking", False) and getattr(ctrl_or_guide, "snap_start_pt", None) is not None:
-                    dist = math.hypot(hpt.x() - ctrl_or_guide.snap_start_pt.x(), hpt.y() - ctrl_or_guide.snap_start_pt.y())
-                    painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                    painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
-                    painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
-
+            RulerGridRenderer.render_straight_ruler(painter, guide, line_w, handle_r, ctrl_or_guide)
         elif gtype == "curve_ruler":
-            p0, p1, p2, p3 = guide.get("p0", QtCore.QPointF(100, 300)), guide.get("p1", QtCore.QPointF(250, 150)), guide.get("p2", QtCore.QPointF(550, 150)), guide.get("p3", QtCore.QPointF(700, 300))
-            path = QtGui.QPainterPath()
-            path.moveTo(p0)
-            path.cubicTo(p1, p2, p3)
-            painter.drawPath(path)
-            painter.setPen(QtGui.QPen(QtGui.QColor(59, 130, 246, 120), line_w * 0.8, QtCore.Qt.DotLine))
-            painter.drawLine(p0, p1)
-            painter.drawLine(p3, p2)
-            painter.setBrush(QtGui.QColor(59, 130, 246, 220))
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), line_w))
-            for pt in (p0, p1, p2, p3): painter.drawEllipse(pt, handle_r, handle_r)
-
-            if hasattr(ctrl_or_guide, "hover_point") and ctrl_or_guide.hover_point is not None:
-                hpt = ctrl_or_guide.hover_point
-                painter.setBrush(QtCore.Qt.NoBrush)
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
-                painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
-
+            RulerGridRenderer.render_curve_ruler(painter, guide, line_w, handle_r, ctrl_or_guide)
         elif gtype in ("one_point", "two_point", "three_point"):
-            GeometryOverlayRenderer._render_perspective(painter, gtype, guide, line_w, handle_r, ctrl_or_guide)
-
+            PerspectiveGridRenderer.render_perspective(painter, gtype, guide, line_w, handle_r, ctrl_or_guide)
         elif gtype == "isometric":
-            GeometryOverlayRenderer._render_isometric(painter, line_w)
-
+            PerspectiveGridRenderer.render_isometric(painter, line_w)
         elif gtype == "curvilinear":
-            GeometryOverlayRenderer._render_curvilinear(painter, guide, line_w, handle_r, zoom_factor)
+            PerspectiveGridRenderer.render_curvilinear(painter, guide, line_w, handle_r, zoom_factor)
             if hasattr(ctrl_or_guide, "dynamic_hover_curves") and ctrl_or_guide.dynamic_hover_curves and guide.get("show_hint", True):
-                GeometryOverlayRenderer._render_curvilinear_hover(painter, ctrl_or_guide, line_w, handle_r)
+                PerspectiveGridRenderer.render_curvilinear_hover(painter, ctrl_or_guide, line_w, handle_r)
 
         painter.restore()
 
+    # Backwards compatibility delegators for tests and existing callers
+    @classmethod
+    def _get_cached_curvilinear_data(cls, guide: dict) -> dict:
+        return PerspectiveGridRenderer.get_cached_curvilinear_data(guide)
+
     @staticmethod
     def _render_perspective(painter: QtGui.QPainter, gtype: str, guide: dict, line_w: float, handle_r: float, ctrl=None):
-        vps = []
-        if gtype in ("one_point", "two_point", "three_point"): vps.append(guide.get("vpA", QtCore.QPointF(400, 300)))
-        if gtype in ("two_point", "three_point"): vps.append(guide.get("vpB", QtCore.QPointF(-600, 300)))
-        if gtype == "three_point": vps.append(guide.get("vpC", QtCore.QPointF(400, -1200)))
-
-        if len(vps) >= 2:
-            painter.setPen(QtGui.QPen(QtGui.QColor(234, 88, 12, 180), line_w * 1.5))
-            painter.drawLine(QtCore.QPointF(-8000, vps[0].y()), QtCore.QPointF(8000, vps[0].y()))
-
-        for vp in vps:
-            painter.setBrush(QtGui.QColor(234, 88, 12, 220))
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), line_w))
-            painter.drawEllipse(vp, handle_r * 1.2, handle_r * 1.2)
-            painter.setPen(QtGui.QPen(QtGui.QColor(234, 88, 12, 90), line_w, QtCore.Qt.DashLine))
-            for deg in range(0, 360, 20):
-                rad = math.radians(deg)
-                painter.drawLine(vp, QtCore.QPointF(vp.x() + 4000.0 * math.cos(rad), vp.y() + 4000.0 * math.sin(rad)))
-
-        if ctrl and hasattr(ctrl, "hover_point") and ctrl.hover_point is not None:
-            hpt = ctrl.hover_point
-            pen_active = QtGui.QPen(QtGui.QColor(255, 125, 45, 210), line_w * 1.5, QtCore.Qt.DashLine)
-            painter.setPen(pen_active)
-            for vp in vps:
-                dx, dy = hpt.x() - vp.x(), hpt.y() - vp.y()
-                l = math.hypot(dx, dy)
-                if l > 1e-4:
-                    ux, uy = dx / l, dy / l
-                    painter.drawLine(vp, QtCore.QPointF(hpt.x() + ux * 4000.0, hpt.y() + uy * 4000.0))
-            painter.setBrush(QtCore.Qt.NoBrush)
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
-            painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
-            if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
-                dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
-                painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
-                painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
-
+        PerspectiveGridRenderer.render_perspective(painter, gtype, guide, line_w, handle_r, ctrl)
 
     @staticmethod
     def _render_isometric(painter: QtGui.QPainter, line_w: float):
-        painter.setPen(QtGui.QPen(QtGui.QColor(59, 130, 246, 75), line_w, QtCore.Qt.DashLine))
-        spacing = 80.0
-        for i in range(-50, 50):
-            y_base = i * spacing
-            painter.drawLine(QtCore.QPointF(-4000, y_base - 4000 * math.tan(math.pi / 6)), QtCore.QPointF(4000, y_base + 4000 * math.tan(math.pi / 6)))
-            painter.drawLine(QtCore.QPointF(-4000, y_base + 4000 * math.tan(math.pi / 6)), QtCore.QPointF(4000, y_base - 4000 * math.tan(math.pi / 6)))
-            painter.drawLine(QtCore.QPointF(i * spacing, -4000), QtCore.QPointF(i * spacing, 4000))
-
-    _curv_cache = {}
-
-    @classmethod
-    def _get_cached_curvilinear_data(cls, guide: dict) -> dict:
-        cx, cy = float(guide.get("cx", 400.0)), float(guide.get("cy", 300.0))
-        fov = float(guide.get("fov", 130.0))
-        base_r = float(guide.get("base_radius", 400.0))
-        density = float(guide.get("density", 30.0))
-        yaw = round(float(guide.get("yaw", 0.0)), 2)
-        pitch = round(float(guide.get("pitch", 0.0)), 2)
-        
-        cache_key = (
-            cx, cy, fov, base_r, density, yaw, pitch,
-            bool(guide.get("show_v", True)),
-            bool(guide.get("show_h", True)),
-            bool(guide.get("show_d", True)),
-            bool(guide.get("show_ground", False)),
-            bool(guide.get("show_ceiling", False)),
-            bool(guide.get("show_ground_verticals", False)),
-            bool(guide.get("show_ceiling_verticals", False)),
-            bool(guide.get("show_straight_verticals", False)),
-            bool(guide.get("show_cube", False)),
-            bool(guide.get("show_vps", False)),
-            bool(guide.get("show_letterbox", False)),
-            str(guide.get("aspect_ratio", "16:9"))
-        )
-
-        if cache_key in cls._curv_cache:
-            return cls._curv_cache[cache_key]
-
-        fov_rad = math.radians(fov)
-        tan_f = math.tan(fov_rad / 4.0)
-        R = base_r / tan_f if tan_f > 1e-5 else 1e5
-        density_rad = math.radians(density)
-        yaw_rad, pitch_rad = math.radians(yaw), math.radians(pitch)
-
-        def p3d_to_2d(X, Y, Z):
-            xc, yc, zc = rotate_3d_backward(X, Y, Z, yaw_rad, pitch_rad)
-            length = math.sqrt(xc * xc + yc * yc + zc * zc) or 1.0
-            ux, uy, uz = xc / length, yc / length, zc / length
-            if uz >= 0.999:
-                return None
-            return QtCore.QPointF(cx + (ux / (1.0 - uz)) * R, cy - (uy / (1.0 - uz)) * R)
-
-        data = {
-            "cx": cx, "cy": cy, "R": R,
-            "yaw_rad": yaw_rad, "pitch_rad": pitch_rad,
-            "v_curves": [], "h_curves": [], "d_curves": [],
-            "ground_path": QtGui.QPainterPath(),
-            "ceiling_path": QtGui.QPainterPath(),
-            "gv_path": QtGui.QPainterPath(),
-            "cv_path": QtGui.QPainterPath(),
-            "cube_path": QtGui.QPainterPath(),
-            "vps": [],
-            "letterbox_rect": None
-        }
-
-        # 1. Ground Grid (Y = -1.0)
-        if guide.get("show_ground", False):
-            # Parallel to Z (converging to F and B)
-            for x_val in range(-10, 11, 2):
-                first = True
-                for step in range(31):
-                    z = -15.0 + step * (30.0 / 30.0)
-                    pt = p3d_to_2d(float(x_val), -1.0, z)
-                    if pt:
-                        if first:
-                            data["ground_path"].moveTo(pt)
-                            first = False
-                        else:
-                            data["ground_path"].lineTo(pt)
-            # Parallel to X (converging to L and R)
-            for z_val in range(-10, 11, 2):
-                first = True
-                for step in range(31):
-                    x = -15.0 + step * (30.0 / 30.0)
-                    pt = p3d_to_2d(x, -1.0, float(z_val))
-                    if pt:
-                        if first:
-                            data["ground_path"].moveTo(pt)
-                            first = False
-                        else:
-                            data["ground_path"].lineTo(pt)
-
-        # 2. Ground Verticals
-        if guide.get("show_ground_verticals", False):
-            straight_v = guide.get("show_straight_verticals", False)
-            for x_val in range(-6, 7, 2):
-                for z_val in range(-6, 7, 2):
-                    pt_base = p3d_to_2d(float(x_val), -1.0, float(z_val))
-                    if pt_base:
-                        if straight_v:
-                            pt_top = p3d_to_2d(float(x_val), 1.5, float(z_val))
-                            if pt_top:
-                                data["gv_path"].moveTo(pt_base)
-                                data["gv_path"].lineTo(pt_top)
-                        else:
-                            data["gv_path"].moveTo(pt_base)
-                            for i in range(1, 16):
-                                y = -1.0 + i * (2.5 / 15.0)
-                                pt = p3d_to_2d(float(x_val), y, float(z_val))
-                                if pt:
-                                    data["gv_path"].lineTo(pt)
-
-        # 3. Ceiling Grid (Y = +1.0)
-        if guide.get("show_ceiling", False):
-            for x_val in range(-10, 11, 2):
-                first = True
-                for step in range(31):
-                    z = -15.0 + step * (30.0 / 30.0)
-                    pt = p3d_to_2d(float(x_val), 1.0, z)
-                    if pt:
-                        if first:
-                            data["ceiling_path"].moveTo(pt)
-                            first = False
-                        else:
-                            data["ceiling_path"].lineTo(pt)
-            for z_val in range(-10, 11, 2):
-                first = True
-                for step in range(31):
-                    x = -15.0 + step * (30.0 / 30.0)
-                    pt = p3d_to_2d(x, 1.0, float(z_val))
-                    if pt:
-                        if first:
-                            data["ceiling_path"].moveTo(pt)
-                            first = False
-                        else:
-                            data["ceiling_path"].lineTo(pt)
-
-        # 4. Ceiling Verticals
-        if guide.get("show_ceiling_verticals", False):
-            straight_v = guide.get("show_straight_verticals", False)
-            for x_val in range(-6, 7, 2):
-                for z_val in range(-6, 7, 2):
-                    pt_base = p3d_to_2d(float(x_val), 1.0, float(z_val))
-                    if pt_base:
-                        if straight_v:
-                            pt_top = p3d_to_2d(float(x_val), -1.5, float(z_val))
-                            if pt_top:
-                                data["cv_path"].moveTo(pt_base)
-                                data["cv_path"].lineTo(pt_top)
-                        else:
-                            data["cv_path"].moveTo(pt_base)
-                            for i in range(1, 16):
-                                y = 1.0 - i * (2.5 / 15.0)
-                                pt = p3d_to_2d(float(x_val), y, float(z_val))
-                                if pt:
-                                    data["cv_path"].lineTo(pt)
-
-        # 5. 3D Perspective Cube
-        if guide.get("show_cube", False):
-            xm, xp, ym, yp, zm, zp = -0.75, 0.75, -1.0, 0.5, -3.75, -2.25
-            edges = [
-                ((xm, ym, zm), (xp, ym, zm)), ((xm, yp, zm), (xp, yp, zm)),
-                ((xm, ym, zp), (xp, ym, zp)), ((xm, yp, zp), (xp, yp, zp)),
-                ((xm, ym, zm), (xm, yp, zm)), ((xp, ym, zm), (xp, yp, zm)),
-                ((xm, ym, zp), (xp, ym, zp)), ((xp, yp, zp), (xp, yp, zp)),
-                ((xm, ym, zm), (xm, ym, zp)), ((xp, ym, zm), (xp, yp, zp)),
-                ((xm, yp, zm), (xm, yp, zp)), ((xp, yp, zm), (xp, yp, zp))
-            ]
-            for p1, p2 in edges:
-                first = True
-                for step in range(11):
-                    t = step / 10.0
-                    pt = p3d_to_2d(p1[0] + t * (p2[0] - p1[0]), p1[1] + t * (p2[1] - p1[1]), p1[2] + t * (p2[2] - p1[2]))
-                    if pt:
-                        if first:
-                            data["cube_path"].moveTo(pt)
-                            first = False
-                        else:
-                            data["cube_path"].lineTo(pt)
-
-        # 6. Principal Grid Curves (V, H, D)
-        steps = int(math.pi / density_rad) + 1
-        if guide.get("show_v", True):
-            for i in range(steps):
-                phi = i * density_rad
-                a, b, c = rotate_3d_backward(math.cos(phi), 0.0, math.sin(phi), yaw_rad, pitch_rad)
-                curv = create_curve_from_normal(a, b, c, R, cx, cy, "v")
-                if curv:
-                    data["v_curves"].append(curv)
-
-        if guide.get("show_h", True):
-            for i in range(steps):
-                theta = -math.pi / 2.0 + i * density_rad
-                a, b, c = rotate_3d_backward(0.0, -math.sin(theta), math.cos(theta), yaw_rad, pitch_rad)
-                curv = create_curve_from_normal(a, b, c, R, cx, cy, "h")
-                if curv:
-                    data["h_curves"].append(curv)
-
-        if guide.get("show_d", True):
-            for i in range(steps):
-                psi = i * density_rad
-                a, b, c = rotate_3d_backward(-math.sin(psi), math.cos(psi), 0.0, yaw_rad, pitch_rad)
-                curv = create_curve_from_normal(a, b, c, R, cx, cy, "d")
-                if curv:
-                    data["d_curves"].append(curv)
-
-        # 7. 6 Vanishing Points (Z, N, L, R, F, B)
-        if guide.get("show_vps", False):
-            vps_def = [
-                ("Z", (0, 1, 0), QtGui.QColor(90, 140, 255)),
-                ("N", (0, -1, 0), QtGui.QColor(90, 140, 255)),
-                ("L", (-1, 0, 0), QtGui.QColor(255, 90, 130)),
-                ("R", (1, 0, 0), QtGui.QColor(255, 90, 130)),
-                ("F", (0, 0, -1), QtGui.QColor(90, 210, 130)),
-                ("B", (0, 0, 1), QtGui.QColor(180, 180, 180))
-            ]
-            for name, (dx, dy, dz), col in vps_def:
-                pt = p3d_to_2d(float(dx), float(dy), float(dz))
-                if pt:
-                    data["vps"].append((name, pt, col))
-
-        # 8. Viewport Letterbox Overlay
-        if guide.get("show_letterbox", False):
-            ratio = 2.35 if guide.get("aspect_ratio") == "2.35:1" else (16.0 / 9.0)
-            box_w = min(1920.0, R * 1.8)
-            box_h = box_w / ratio
-            data["letterbox_rect"] = QtCore.QRectF(cx - box_w / 2.0, cy - box_h / 2.0, box_w, box_h)
-
-        if len(cls._curv_cache) > 8:
-            cls._curv_cache.clear()
-        cls._curv_cache[cache_key] = data
-        return data
+        PerspectiveGridRenderer.render_isometric(painter, line_w)
 
     @classmethod
     def _render_curvilinear(cls, painter: QtGui.QPainter, guide: dict, line_w: float, handle_r: float, zoom_factor: float):
-        data = cls._get_cached_curvilinear_data(guide)
-        cx, cy, R = data["cx"], data["cy"], data["R"]
-        yaw_rad = data["yaw_rad"]
-
-        has_ring = guide.get("show_ring", True)
-        if has_ring:
-            painter.setPen(QtGui.QPen(QtGui.QColor(168, 85, 247, 220), line_w * 1.5))
-            painter.setBrush(QtCore.Qt.NoBrush)
-            painter.drawEllipse(QtCore.QPointF(cx, cy), R, R)
-            clip = QtGui.QPainterPath()
-            clip.addEllipse(QtCore.QPointF(cx, cy), R, R)
-            painter.save()
-            painter.setClipPath(clip)
-
-        # 1. Ground Grid
-        if guide.get("show_ground", False) and not data["ground_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(100, 200, 150, 70), line_w, QtCore.Qt.SolidLine))
-            painter.drawPath(data["ground_path"])
-
-        # 2. Ground Verticals
-        if guide.get("show_ground_verticals", False) and not data["gv_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(100, 150, 255, 60), line_w, QtCore.Qt.DashLine))
-            painter.drawPath(data["gv_path"])
-
-        # 3. Ceiling Grid
-        if guide.get("show_ceiling", False) and not data["ceiling_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(200, 150, 100, 70), line_w, QtCore.Qt.SolidLine))
-            painter.drawPath(data["ceiling_path"])
-
-        # 4. Ceiling Verticals
-        if guide.get("show_ceiling_verticals", False) and not data["cv_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(200, 100, 100, 60), line_w, QtCore.Qt.DashLine))
-            painter.drawPath(data["cv_path"])
-
-        # 5. 3D Perspective Cube
-        if guide.get("show_cube", False) and not data["cube_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(150, 100, 255, 180), line_w * 1.4))
-            painter.drawPath(data["cube_path"])
-
-        # 6. Principal Grid Curves (V, H, D)
-        if guide.get("show_v", True) and data["v_curves"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(90, 140, 255, 110), line_w, QtCore.Qt.DashLine))
-            for curv in data["v_curves"]:
-                if curv["type"] == "line":
-                    painter.drawLine(curv["p1"], curv["p2"])
-                else:
-                    painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
-
-        if guide.get("show_h", True) and data["h_curves"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 90, 130, 110), line_w, QtCore.Qt.DashLine))
-            for curv in data["h_curves"]:
-                if curv["type"] == "line":
-                    painter.drawLine(curv["p1"], curv["p2"])
-                else:
-                    painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
-
-        if guide.get("show_d", True) and data["d_curves"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(90, 210, 130, 110), line_w, QtCore.Qt.DashLine))
-            for curv in data["d_curves"]:
-                if curv["type"] == "line":
-                    painter.drawLine(curv["p1"], curv["p2"])
-                else:
-                    painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
-
-        # 7. 6 Vanishing Points
-        if guide.get("show_vps", False) and data["vps"]:
-            font = QtGui.QFont("Segoe UI", max(6, int(8 / max(0.01, line_w))), QtGui.QFont.Bold)
-            painter.setFont(font)
-            for name, pt, col in data["vps"]:
-                painter.setBrush(col)
-                painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), line_w))
-                painter.drawEllipse(pt, handle_r * 0.8, handle_r * 0.8)
-                painter.setPen(QtGui.QPen(col))
-                painter.drawText(int(pt.x() + 6), int(pt.y() + 4), name)
-
-        if has_ring:
-            painter.restore()
-
-        # 8. Viewport Letterbox Overlay
-        if guide.get("show_letterbox", False) and data["letterbox_rect"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 120), line_w * 1.5))
-            painter.setBrush(QtCore.Qt.NoBrush)
-            painter.drawRect(data["letterbox_rect"])
-
-        # 9. Central Pivot & Interactive Rotation Arm (80px)
-        cos_y, sin_y = math.cos(yaw_rad), math.sin(yaw_rad)
-        arm_len = 80.0 / zoom_factor
-        hx, hy = cx + arm_len * cos_y, cy + arm_len * sin_y
-        painter.setPen(QtGui.QPen(QtGui.QColor(150, 100, 255, 140), line_w * 1.5))
-        painter.drawLine(QtCore.QPointF(cx, cy), QtCore.QPointF(hx, hy))
-
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 180), line_w))
-        painter.setBrush(QtGui.QColor(100, 200, 255, 240))
-        painter.drawEllipse(QtCore.QPointF(hx, hy), handle_r * 1.1, handle_r * 1.1)
-
-        painter.setBrush(QtGui.QColor(255, 255, 255, 240))
-        painter.drawEllipse(QtCore.QPointF(cx, cy), handle_r * 1.2, handle_r * 1.2)
+        PerspectiveGridRenderer.render_curvilinear(painter, guide, line_w, handle_r, zoom_factor)
 
     @staticmethod
     def _render_curvilinear_hover(painter: QtGui.QPainter, ctrl, line_w: float, handle_r: float):
-        cx, cy = ctrl.guide_state.get("cx", 400.0), ctrl.guide_state.get("cy", 300.0)
-        fov_rad = math.radians(ctrl.guide_state.get("fov", 130.0))
-        tan_f = math.tan(fov_rad / 4.0)
-        base_r = ctrl.guide_state.get("base_radius", 400.0)
-        R = base_r / tan_f if tan_f > 1e-5 else 1e9
-
-        if ctrl.guide_state.get("show_ring", True):
-            clip = QtGui.QPainterPath()
-            clip.addEllipse(QtCore.QPointF(cx, cy), R, R)
-            painter.save()
-            painter.setClipPath(clip)
-
-        curves_to_draw = ctrl.dynamic_hover_curves
-        mode = ctrl.guide_state.get("snap_mode", "auto")
-        if not ctrl.is_stroking and mode in ("v", "h", "d"):
-            curves_to_draw = [c for c in curves_to_draw if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
-
-        painter.setBrush(QtCore.Qt.NoBrush)
-
-        for c in curves_to_draw:
-            fam = c.get("family", "")
-            if fam.endswith("_v") or fam == "v":
-                c_col = QtGui.QColor(56, 189, 248, 120)
-            elif fam.endswith("_x") or fam == "h":
-                c_col = QtGui.QColor(248, 113, 113, 120)
-            elif fam.endswith("_z") or fam == "d":
-                c_col = QtGui.QColor(74, 222, 128, 120)
-            else:
-                c_col = QtGui.QColor(255, 125, 45, 100)
-
-            pen_hint = QtGui.QPen(c_col, line_w * 1.3, QtCore.Qt.DashLine)
-            painter.setPen(pen_hint)
-
-            if c["type"] == "line":
-                painter.drawLine(c["p1"], c["p2"])
-            elif c["type"] == "polyline":
-                pts = c.get("points", [])
-                if len(pts) >= 2:
-                    path = QtGui.QPainterPath()
-                    path.moveTo(pts[0])
-                    for p in pts[1:]: path.lineTo(p)
-                    painter.drawPath(path)
-            else:
-                painter.drawEllipse(c["center"], c["radius"], c["radius"])
-
-        # Hollow target cursor circle with distance badge
-
-        if ctrl.hover_point is not None:
-            hpt = ctrl.hover_point
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
-            painter.setBrush(QtCore.Qt.NoBrush)
-            painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
-            if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
-                dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
-                painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
-                painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
-
-        if ctrl.guide_state.get("show_ring", True):
-            painter.restore()
-
-
+        PerspectiveGridRenderer.render_curvilinear_hover(painter, ctrl, line_w, handle_r)

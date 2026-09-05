@@ -138,6 +138,19 @@ class AladynBackend(
                 return QImage(memview, w, h, w * 4, QImage.Format_RGBA8888)
         return None
 
+    def get_qimage_lod(self, zoom: float) -> tuple[Optional[QImage], float]:
+        """Retorna QImage pré-filtrada por Box Filter correspondente ao nível LOD ideal para o zoom."""
+        if not self._facade:
+            return None, 1.0
+        if hasattr(self._facade, "get_best_lod_level") and hasattr(self._facade, "get_display_pixel_buffer_lod"):
+            level = self._facade.get_best_lod_level(zoom)
+            if level > 0:
+                res = self._facade.get_display_pixel_buffer_lod(level)
+                if res is not None:
+                    memview, lod_w, lod_h, scale = res
+                    return QImage(memview, lod_w, lod_h, lod_w * 4, QImage.Format_RGBA8888), scale
+        return self.get_qimage(), 1.0
+
     def get_dirty_tile_indices(self) -> list[tuple[int, int]]:
         if self._facade and hasattr(self._facade, "get_dirty_tile_indices"):
             return self._facade.get_dirty_tile_indices()

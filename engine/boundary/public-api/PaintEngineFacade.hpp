@@ -23,6 +23,7 @@
 #include "../../core/telemetry/EngineTelemetry.hpp"
 #include "internal/StrokeOrchestrator.hpp"
 #include "internal/MemoryOrchestrator.hpp"
+#include "../../core/canvas/MipmapPyramid.hpp"
 #include <vector>
 #include <memory>
 
@@ -226,6 +227,26 @@ public:
             layer->getTileGrid().clearDirtyFlags();
         }
     }
+    // ─── VIEWPORT MIPMAPPING & LOD ANTI-ALIASING ──────────────────────────────
+    [[nodiscard]] uint8_t* getDisplayPixelBufferLOD(int level, int& outW, int& outH) noexcept {
+        uint8_t* baseData = getDisplayRawPixelData();
+        (void)baseData;
+        if (const auto* layer = m_layerStack.getActiveLayer()) {
+            if (!layer->getTileGrid().getDirtyTileIndices().empty()) {
+                m_mipmapPyramid.markDirty();
+            }
+        }
+        return m_mipmapPyramid.getLODData(level, m_outputBuffer, outW, outH);
+    }
+    [[nodiscard]] static int getBestLODLevel(double zoom) noexcept {
+        return canvas::MipmapPyramid::getBestLODLevel(zoom);
+    }
+    [[nodiscard]] static double getLODScale(int level) noexcept {
+        return canvas::MipmapPyramid::getLODScale(level);
+    }
+    void markLODDirty() noexcept {
+        m_mipmapPyramid.markDirty();
+    }
 
 private:
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
@@ -249,6 +270,7 @@ private:
     document::Compositor m_compositor;
     canvas::PixelBuffer  m_outputBuffer;
     mutable canvas::PixelBuffer m_displayBuffer;
+    canvas::MipmapPyramid m_mipmapPyramid;
     raster::SelectionMask m_selectionMask;
     raster::TransformEngine m_transformEngine;
     canvas::TileUndoManager m_undoManager;

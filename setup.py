@@ -19,6 +19,7 @@ cpp_sources = [
     "engine/core/canvas/TileGrid.cpp",
     "engine/core/canvas/TileUndoManager.cpp",
     "engine/core/canvas/ScratchDiskManager.cpp",
+    "engine/core/canvas/MipmapPyramid.cpp",
     "engine/core/compression/Lz4Codec.cpp",
     "engine/core/document/Compositor.cpp",
     "engine/core/document/blending/FilterApplier.cpp",

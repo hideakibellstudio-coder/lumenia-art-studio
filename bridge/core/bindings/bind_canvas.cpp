@@ -76,7 +76,26 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         .def("get_scratch_disk_usage_mb", &boundary::PaintEngineFacade::getScratchDiskUsageMB)
         // ─── FASE 5: VIEWPORT & DIRTY TILE STREAMING ─────────────────
         .def("get_dirty_tile_indices", &boundary::PaintEngineFacade::getDirtyTileIndices)
-        .def("clear_dirty_tiles", &boundary::PaintEngineFacade::clearDirtyTiles);
+        .def("clear_dirty_tiles", &boundary::PaintEngineFacade::clearDirtyTiles)
+        // ─── VIEWPORT MIPMAPPING & LOD ANTI-ALIASING ──────────────────
+        .def("get_display_pixel_buffer_lod", [](boundary::PaintEngineFacade& self, int level) -> py::object {
+            int outW = 0, outH = 0;
+            uint8_t* ptr = self.getDisplayPixelBufferLOD(level, outW, outH);
+            if (!ptr || outW <= 0 || outH <= 0) return py::none();
+            size_t bytes = static_cast<size_t>(outW * outH * 4);
+            py::memoryview mv = py::memoryview::from_memory(ptr, bytes, true);
+            double scale = boundary::PaintEngineFacade::getLODScale(level);
+            return py::make_tuple(mv, outW, outH, scale);
+        })
+        .def("get_best_lod_level", [](boundary::PaintEngineFacade&, double zoom) {
+            return boundary::PaintEngineFacade::getBestLODLevel(zoom);
+        })
+        .def_static("calculate_best_lod_level", &boundary::PaintEngineFacade::getBestLODLevel)
+        .def("get_lod_scale", [](boundary::PaintEngineFacade&, int level) {
+            return boundary::PaintEngineFacade::getLODScale(level);
+        })
+        .def_static("calculate_lod_scale", &boundary::PaintEngineFacade::getLODScale)
+        .def("mark_lod_dirty", &boundary::PaintEngineFacade::markLODDirty);
 }
 
 } // namespace aladyn::bridge

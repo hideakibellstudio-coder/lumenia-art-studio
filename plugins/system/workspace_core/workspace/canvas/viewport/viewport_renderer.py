@@ -62,11 +62,25 @@ class ViewportRenderer:
                 if not dirty_canvas.isEmpty():
                     painter.fillRect(dirty_canvas, widget.paper_color if widget.paper_visible else widget._checker_brush)
 
-                    if backend and hasattr(backend, "get_qimage"):
-                        qimg = backend.get_qimage()
+                    if backend:
+                        qimg, lod_scale = (
+                            backend.get_qimage_lod(widget.zoom)
+                            if hasattr(backend, "get_qimage_lod")
+                            else (backend.get_qimage() if hasattr(backend, "get_qimage") else (None, 1.0))
+                        )
                         if qimg and not qimg.isNull():
                             t_blit_0 = time.perf_counter()
-                            painter.drawImage(dirty_canvas, qimg, dirty_canvas)
+                            if abs(lod_scale - 1.0) < 1e-4:
+                                painter.drawImage(dirty_canvas, qimg, dirty_canvas)
+                            else:
+                                src_x = int(dirty_canvas.x() * lod_scale)
+                                src_y = int(dirty_canvas.y() * lod_scale)
+                                src_w = max(1, int(dirty_canvas.width() * lod_scale))
+                                src_h = max(1, int(dirty_canvas.height() * lod_scale))
+                                lod_src = QtCore.QRect(src_x, src_y, src_w, src_h).intersected(
+                                    QtCore.QRect(0, 0, qimg.width(), qimg.height())
+                                )
+                                painter.drawImage(dirty_canvas, qimg, lod_src)
                             widget._last_qt_draw_image_ms = (time.perf_counter() - t_blit_0) * 1000.0
 
                     for fl in getattr(widget, "_flood_layers", []):

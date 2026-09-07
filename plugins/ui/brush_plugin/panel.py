@@ -1,26 +1,34 @@
 """
 BrushSettingsPanel — Painel Isolado de Configurações de Pincéis & Ferramentas
 =============================================================================
-Painel individual contendo os controles de seleção de presets (QComboBox),
-botão de engrenagem (⚙), preview do traço e parâmetros rápidos, envolvido na moldura padronizada PanelCardBox
-com suporte 100% dinâmico a temas (claro/escuro).
+Painel individual contendo seleção de presets, preview do traço, parâmetros rápidos
+e opções de ferramentas contextuais, envolvido na moldura padronizada PanelCardBox.
+
+Modularizado sob ARCcC v2 (< 300 LOC).
 """
 
 from __future__ import annotations
 
-import math
+from typing import Dict, Optional
 from PySide6 import QtCore, QtGui, QtWidgets
+
 from ui.core.icons import get_icon
+from ui.core.theme.manager import ThemeManager
+from ui.core.widgets.card_box import PanelCardBox
+from ui.core.widgets.tool_options_widgets import (
+    EyedropOptionsWidget,
+    BucketOptionsWidget,
+    WandOptionsWidget,
+    TransformOptionsWidget,
+    SelectionOptionsWidget,
+    ShapesOptionsWidget,
+)
 
 from .stroke_preview import StrokePreview
 from .compact_slider import CompactSlider
 from .advanced_panel import AdvancedPanel
-
-from ui.core.widgets.card_box import PanelCardBox
-from ui.core.theme.manager import ThemeManager
 from .brush_dropdown import BrushDropdown
-from ui.core.tools import TOOL_META
-
+from .components import ToolSelectionColumn, QuickSlidersSection
 
 class BrushSettingsPanel(QtWidgets.QWidget):
     """Painel isolado contendo as Configurações do Pincel e Ferramentas."""
@@ -38,18 +46,17 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     invertHeightChanged       = QtCore.Signal(bool)
     loadShapeRequested        = QtCore.Signal()
     loadHeightmapRequested    = QtCore.Signal()
-    toolActivated             = QtCore.Signal(str) # ID da ferramenta selecionada
-    toolOptionsChanged        = QtCore.Signal(str, dict) # tool_id, settings
+    toolActivated             = QtCore.Signal(str)
+    toolOptionsChanged        = QtCore.Signal(str, dict)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("BrushSettingsPanel")
 
-        self._adv_panel = None
-        self._quick_sliders = []
-        self._tool_buttons = {}
+        self._adv_panel: Optional[AdvancedPanel] = None
 
         self.setup_ui()
+
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
@@ -57,43 +64,75 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self._apply_theme_style()
         QtCore.QTimer.singleShot(0, self.sync_initial_state)
 
+    # ── Retrocompatibilidade de Propriedades de Sliders e Colunas ─────────
+    @property
+    def qs_size(self) -> CompactSlider:
+        return self.sliders_section.size_slider
+
+    @property
+    def qs_opacity(self) -> CompactSlider:
+        return self.sliders_section.opacity_slider
+
+    @property
+    def size_slider(self) -> CompactSlider:
+        return self.sliders_section.size_slider
+
+    @property
+    def opacity_slider(self) -> CompactSlider:
+        return self.sliders_section.opacity_slider
+
+    @property
+    def contrast_slider(self) -> CompactSlider:
+        return self.sliders_section.contrast_slider
+
+    @property
+    def pressure_slider(self) -> CompactSlider:
+        return self.sliders_section.pressure_slider
+
+    @property
+    def curve_slider(self) -> CompactSlider:
+        return self.sliders_section.curve_slider
+
+    @property
+    def stabilizer_slider(self) -> CompactSlider:
+        return self.sliders_section.stabilizer_slider
+
+    @property
+    def spacing_slider(self) -> CompactSlider:
+        return self.sliders_section.spacing_slider
+
+    @property
+    def min_density_slider(self) -> CompactSlider:
+        return self.sliders_section.min_density_slider
+
+    @property
+    def lbl_quick(self) -> QtWidgets.QLabel:
+        return self.sliders_section.lbl_quick
+
+    @property
+    def _quick_sliders(self):
+        return self.sliders_section.all_sliders
+
+    @property
+    def _tool_buttons(self) -> Dict[str, QtWidgets.QToolButton]:
+        return self.tool_column.tool_buttons
+
+    @property
+    def tool_col_box(self) -> ToolSelectionColumn:
+        return self.tool_column
+
     def sync_initial_state(self) -> None:
         if hasattr(self, "preset_combo") and self.preset_combo:
             self.preset_combo.sync_to_tool("brush")
 
-    def retranslate_ui(self):
+    def retranslate_ui(self) -> None:
         from ui.core.i18n import tr
-        from ui.core.tools import get_tool_name
         if hasattr(self, "btn_adv"):
             self.btn_adv.setToolTip(tr("brush.advanced_settings", "Configurações Avançadas do Pincel"))
-        if hasattr(self, "lbl_quick"):
-            self.lbl_quick.setText(tr("brush.quick_params", "PARÂMETROS RÁPIDOS"))
-        if hasattr(self, "size_slider"):
-            self.size_slider.setPrefix(tr("brush.size_short", "Tam:"))
-        if hasattr(self, "opacity_slider"):
-            self.opacity_slider.setPrefix(tr("brush.opacity_short", "Opac:"))
-        if hasattr(self, "contrast_slider"):
-            self.contrast_slider.setPrefix(tr("brush.hardness_short", "Dur:"))
-        if hasattr(self, "pressure_slider"):
-            self.pressure_slider.setPrefix(tr("brush.pressure_short", "Press:"))
-        if hasattr(self, "curve_slider"):
-            self.curve_slider.setPrefix(tr("brush.curve_short", "Curv:"))
-        if hasattr(self, "stabilizer_slider"):
-            self.stabilizer_slider.setPrefix(tr("brush.stabilizer_short", "Stab:"))
-        if hasattr(self, "spacing_slider"):
-            self.spacing_slider.setPrefix(tr("brush.spacing_short", "Espac:"))
-        if hasattr(self, "min_density_slider"):
-            self.min_density_slider.setPrefix(tr("brush.density_short", "Dens:"))
-        for tid, btn in getattr(self, "_tool_buttons", {}).items():
-            btn.setToolTip(get_tool_name(tid))
-
-    @property
-    def qs_size(self):
-        return self.size_slider
-
-    @property
-    def qs_opacity(self):
-        return self.opacity_slider
+        if hasattr(self, "tool_column"):
+            self.tool_column.retranslate_ui()
+        if hasattr(self, "sliders_section"):
+            self.sliders_section.retranslate_ui()
 
     def setup_ui(self) -> None:
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -101,28 +140,24 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         main_layout.setContentsMargins(4, 4, 4, 4)
         main_layout.setSpacing(0)
 
-        # Content Widget
         content_widget = QtWidgets.QWidget()
         content_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         settings_layout = QtWidgets.QHBoxLayout(content_widget)
         settings_layout.setContentsMargins(0, 0, 0, 0)
         settings_layout.setSpacing(4)
 
-        # Tool Grid Column (Coluna Vertical com Ferramentas)
-        settings_layout.addWidget(self._make_tool_column())
+        # Coluna vertical de ferramentas modularizada
+        self.tool_column = ToolSelectionColumn(self)
+        self.tool_column.toolActivated.connect(self._on_tool)
+        settings_layout.addWidget(self.tool_column)
 
-        # Vertical Divider
+        # Divisor vertical
         self.vline = QtWidgets.QFrame()
         self.vline.setFrameShape(QtWidgets.QFrame.VLine)
         self.vline.setObjectName("DockVLine")
         settings_layout.addWidget(self.vline)
 
-        from ui.core.widgets.tool_options_widgets import (
-            EyedropOptionsWidget, BucketOptionsWidget, WandOptionsWidget,
-            TransformOptionsWidget, SelectionOptionsWidget, ShapesOptionsWidget
-        )
-
-        # Quick Sliders & Preview Column (Stacked por Ferramenta)
+        # Painel central de propriedades empilhadas por ferramenta
         props_col = QtWidgets.QWidget()
         props_col.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         col_layout = QtWidgets.QVBoxLayout(props_col)
@@ -138,7 +173,6 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         props_layout.setContentsMargins(0, 0, 0, 0)
         props_layout.setSpacing(5)
 
-        # ── Linha Superior: BrushDropdown Estilo Legado + Botão Engrenagem (⚙) ──
         row1 = QtWidgets.QHBoxLayout()
         row1.setContentsMargins(0, 0, 0, 0)
         row1.setSpacing(4)
@@ -161,51 +195,23 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         row1.addWidget(self.btn_adv)
         props_layout.addLayout(row1)
 
-        # Stroke Preview Widget
         self.stroke_preview = StrokePreview(self)
         self.stroke_preview.setFixedHeight(48)
         self.stroke_preview.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         props_layout.addWidget(self.stroke_preview)
 
-        # Quick Sliders Section Label
-        self.lbl_quick = QtWidgets.QLabel("PARÂMETROS RÁPIDOS")
-        self.lbl_quick.setObjectName("BSectionLabel")
-        props_layout.addWidget(self.lbl_quick)
+        # Seção modularizada de sliders rápidos e pináveis
+        self.sliders_section = QuickSlidersSection(self)
+        self.sliders_section.sizeChanged.connect(self._on_size_changed)
+        self.sliders_section.opacityChanged.connect(self._on_opacity_changed)
+        self.sliders_section.contrastChanged.connect(self._on_contrast_changed)
+        self.sliders_section.pressureChanged.connect(self.pressureChanged.emit)
+        self.sliders_section.pressureCurvePowerChanged.connect(self.pressureCurvePowerChanged.emit)
+        self.sliders_section.stabilizerWeightChanged.connect(self._on_stabilizer_changed)
+        self.sliders_section.spacingChanged.connect(self._on_spacing_changed)
+        self.sliders_section.minDensityValueChanged.connect(self.minDensityValueChanged.emit)
+        props_layout.addWidget(self.sliders_section)
 
-        # Sliders: Tamanho (1..500) e Opacidade (0..100%)
-        self.size_slider = CompactSlider("Tam:", 1, 500, "px", self)
-        self.size_slider.setValue(60)
-        self.size_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.size_slider.valueChanged.connect(self._on_size_changed)
-        props_layout.addWidget(self.size_slider)
-        self._quick_sliders.append(self.size_slider)
-
-        self.opacity_slider = CompactSlider("Opac:", 0, 100, "%", self)
-        self.opacity_slider.setValue(100)
-        self.opacity_slider.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.opacity_slider.valueChanged.connect(self._on_opacity_changed)
-        props_layout.addWidget(self.opacity_slider)
-        self._quick_sliders.append(self.opacity_slider)
-
-        # Sliders Pináveis Adicionais (Iniciam ocultos por padrão)
-        pinned_defs = [
-            ("contrast", "Dur:", 1, 30, "", 10, self._on_contrast_changed),
-            ("pressure", "Press:", 1, 100, "%", 50, lambda v: self.pressureChanged.emit(v / 100.0)),
-            ("curve", "Curv:", 1, 40, "", 10, lambda v: self.pressureCurvePowerChanged.emit(v / 10.0)),
-            ("stabilizer", "Stab:", 0, 98, "%", 35, self._on_stabilizer_changed),
-            ("spacing", "Espac:", 1, 100, "%", 10, self._on_spacing_changed),
-            ("min_density", "Dens:", 0, 100, "%", 0, lambda v: self.minDensityValueChanged.emit(v / 100.0)),
-        ]
-        for name, lbl, mi, ma, sfx, val, cb in pinned_defs:
-            s = CompactSlider(lbl, mi, ma, sfx, self)
-            s.setValue(val)
-            s.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-            s.valueChanged.connect(cb)
-            s.setVisible(False)
-            props_layout.addWidget(s)
-            self._quick_sliders.append(s)
-            setattr(self, f"{name}_slider", s)
-        props_layout.addStretch()
         self.stacked_tool_props.addWidget(self.brush_props_widget)
 
         # ── 2. Páginas de Opções de Ferramentas Específicas ─────────────────
@@ -233,7 +239,6 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         col_layout.addWidget(self.stacked_tool_props)
         settings_layout.addWidget(props_col, 1)
 
-        # Card Box Wrapper (Envolve e preenche 100% da altura da gaveta)
         card_box = PanelCardBox("", content_widget, self)
         card_box.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout.addWidget(card_box, 1)
@@ -241,7 +246,6 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     def _apply_theme_style(self, *args) -> None:
         theme = ThemeManager.instance()
         border = theme.get_color("border")
-        text_sec = theme.get_color("text_sec")
         text_primary = theme.get_color("text_main")
         accent = theme.get_color("accent")
 
@@ -259,97 +263,15 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             }}
         """)
 
-        self.lbl_quick.setText("PARÂMETROS RÁPIDOS")
-        self.lbl_quick.setStyleSheet(f"""
-            QLabel {{
-                color: {text_sec};
-                font-size: 9px;
-                font-weight: bold;
-                margin-top: 2px;
-                margin-bottom: 2px;
-            }}
-        """)
-
         self.vline.setStyleSheet(f"background-color: {border}; max-width: 1px;")
-
-        col_box_style = f"""
-            QFrame#ToolColBox {{
-                background-color: rgba(0, 0, 0, 0.22);
-                border: 1px solid {border};
-                border-radius: 10px;
-            }}
-        """
-        if hasattr(self, "tool_col_box"):
-            self.tool_col_box.setStyleSheet(col_box_style)
-
-        bg_hover = theme.get_color("accent_muted")
-        tool_style = f"""
-            QToolButton {{
-                background-color: transparent;
-                border: 1px solid transparent;
-                border-radius: 6px;
-            }}
-            QToolButton:hover {{
-                background-color: {bg_hover};
-                border: 1px solid {border};
-            }}
-            QToolButton:checked {{
-                background-color: {accent};
-                border: 1px solid {border};
-            }}
-        """
-        for tid, btn in self._tool_buttons.items():
-            btn.setStyleSheet(tool_style)
-            is_active = btn.isChecked()
-            btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="#ffffff" if is_active else "text_main"))
-
-    def _make_tool_column(self) -> QtWidgets.QWidget:
-        self.tool_col_box = QtWidgets.QFrame()
-        self.tool_col_box.setObjectName("ToolColBox")
-        self.tool_col_box.setFixedWidth(34)
-        self.tool_col_box.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
-
-        layout = QtWidgets.QVBoxLayout(self.tool_col_box)
-        layout.setContentsMargins(2, 3, 2, 3)
-        layout.setSpacing(2)
-        layout.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
-
-        self._tool_buttons = {}
-        self._tool_bg = QtWidgets.QButtonGroup(self)
-        self._tool_bg.setExclusive(True)
-
-        from ui.core.tools import DEFAULT_TOOLS
-
-        for tid in DEFAULT_TOOLS:
-            meta = TOOL_META.get(tid, {"name": tid, "icon": tid})
-            btn = QtWidgets.QToolButton(self.tool_col_box)
-            btn.setCheckable(True)
-            btn.setFixedSize(28, 28)
-            btn.setIconSize(QtCore.QSize(15, 15))
-            btn.setToolTip(meta["name"])
-            is_active = (tid == "brush")
-            btn.setIcon(get_icon(meta["icon"], color="#ffffff" if is_active else "text_main"))
-            btn.setCursor(QtCore.Qt.PointingHandCursor)
-            btn.clicked.connect(lambda _, t=tid: self._on_tool(t))
-
-            if tid == "brush":
-                btn.setChecked(True)
-
-            self._tool_bg.addButton(btn)
-            self._tool_buttons[tid] = btn
-            layout.addWidget(btn)
-
-        layout.addStretch()
-        return self.tool_col_box
+        if hasattr(self, "tool_column"):
+            self.tool_column.apply_theme_style(theme)
+        if hasattr(self, "sliders_section"):
+            self.sliders_section.apply_theme_style(theme)
 
     def set_tool_active(self, tool_name: str) -> None:
-        """Sincroniza visualmente a ferramenta ativa no painel e no dropdown de presets sem reemitir sinal em loop."""
-        for tid, btn in self._tool_buttons.items():
-            btn.blockSignals(True)
-            is_active = (tid == tool_name) or (tid == "shapes" and (tool_name.startswith("shape_") or tool_name == "shapes"))
-            btn.setChecked(is_active)
-            btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="#ffffff" if is_active else "text_main"))
-            btn.blockSignals(False)
+        if hasattr(self, "tool_column"):
+            self.tool_column.set_tool_active(tool_name)
 
         if hasattr(self, "preset_combo") and self.preset_combo:
             self.preset_combo.sync_to_tool(tool_name)
@@ -385,7 +307,6 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         if tool_id == "shapes" and hasattr(self, "shapes_options_widget"):
             self.shapes_options_widget._emit_changes()
 
-
     def set_color(self, color: QtGui.QColor) -> None:
         if hasattr(self, "color_wheel") and self.color_wheel:
             self.color_wheel.set_color(color)
@@ -406,82 +327,52 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self.stroke_preview.update_brush_state(size=val)
 
     def _on_opacity_changed(self, val: float) -> None:
-        self.opacityChanged.emit(val / 100.0)
+        self.opacityChanged.emit(val)
         if self._adv_panel and hasattr(self._adv_panel, "slider_opacity"):
             self._adv_panel.slider_opacity.blockSignals(True)
-            self._adv_panel.slider_opacity.setValue(int(val))
+            self._adv_panel.slider_opacity.setValue(int(val * 100))
             self._adv_panel.slider_opacity.blockSignals(False)
         if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_brush_state(opacity=val / 100.0)
+            self.stroke_preview.update_brush_state(opacity=val)
 
     def _on_stabilizer_changed(self, val: float) -> None:
-        weight = val / 100.0
-        self.stabilizerWeightChanged.emit(weight)
+        self.stabilizerWeightChanged.emit(val)
         if self._adv_panel and hasattr(self._adv_panel, "slider_stabilizer"):
             self._adv_panel.slider_stabilizer.blockSignals(True)
-            self._adv_panel.slider_stabilizer.setValue(int(val))
+            self._adv_panel.slider_stabilizer.setValue(int(val * 100))
             self._adv_panel.slider_stabilizer.blockSignals(False)
 
     def _on_spacing_changed(self, val: float) -> None:
-        factor = val / 100.0
-        self.spacingChanged.emit(factor)
+        self.spacingChanged.emit(val)
         if self._adv_panel and hasattr(self._adv_panel, "slider_spacing"):
             self._adv_panel.slider_spacing.blockSignals(True)
-            self._adv_panel.slider_spacing.setValue(int(val))
+            self._adv_panel.slider_spacing.setValue(int(val * 100))
             self._adv_panel.slider_spacing.blockSignals(False)
         if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_brush_state(spacing=factor)
+            self.stroke_preview.update_brush_state(spacing=val)
 
     def _on_contrast_changed(self, val: float) -> None:
-        c_val = val / 10.0
-        self.contrastChanged.emit(c_val)
+        self.contrastChanged.emit(val)
         if self._adv_panel and hasattr(self._adv_panel, "slider_contrast"):
             self._adv_panel.slider_contrast.blockSignals(True)
-            self._adv_panel.slider_contrast.setValue(int(val * 10))
+            self._adv_panel.slider_contrast.setValue(int(val * 100))
             self._adv_panel.slider_contrast.blockSignals(False)
 
     def _on_preset_changed(self, name: str, data: dict) -> None:
+        self.sliders_section.sync_from_preset(data)
         if "brush_size" in data:
-            self.size_slider.blockSignals(True)
-            self.size_slider.setValue(int(data["brush_size"]))
-            self.size_slider.blockSignals(False)
             self.sizeChanged.emit(float(data["brush_size"]))
-
         if "opacity" in data:
-            self.opacity_slider.blockSignals(True)
-            self.opacity_slider.setValue(int(data["opacity"] * 100))
-            self.opacity_slider.blockSignals(False)
             self.opacityChanged.emit(float(data["opacity"]))
-
         if "stabilizer_weight" in data or "stabilizer" in data:
             sw = float(data.get("stabilizer_weight", data.get("stabilizer", 0.35)))
-            stab_val = int(round(sw * 100))
-            if hasattr(self, "stabilizer_slider"):
-                self.stabilizer_slider.blockSignals(True)
-                self.stabilizer_slider.setValue(stab_val)
-                self.stabilizer_slider.blockSignals(False)
             self.stabilizerWeightChanged.emit(sw)
-
         if "spacing_factor" in data:
-            sp = float(data["spacing_factor"])
-            if hasattr(self, "spacing_slider"):
-                self.spacing_slider.blockSignals(True)
-                self.spacing_slider.setValue(int(round(sp * 100)))
-                self.spacing_slider.blockSignals(False)
-            self.spacingChanged.emit(sp)
-
+            self.spacingChanged.emit(float(data["spacing_factor"]))
         if "brush_grain_contrast" in data:
-            c_val = float(data["brush_grain_contrast"])
-            if hasattr(self, "contrast_slider"):
-                self.contrast_slider.blockSignals(True)
-                self.contrast_slider.setValue(int(round(c_val * 10)))
-                self.contrast_slider.blockSignals(False)
-            self.contrastChanged.emit(c_val)
-        elif "hardness" in data and hasattr(self, "contrast_slider"):
-            hd_val = float(data["hardness"])
-            self.contrast_slider.blockSignals(True)
-            self.contrast_slider.setValue(int(round(hd_val * 10)))
-            self.contrast_slider.blockSignals(False)
+            self.contrastChanged.emit(float(data["brush_grain_contrast"]))
+        elif "hardness" in data:
+            self.contrastChanged.emit(float(data["hardness"]))
 
         if self._adv_panel:
             self._adv_panel.sync_from_engine_profile()
@@ -521,49 +412,28 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self._adv_panel.show_near(self.btn_adv)
 
     def _sync_size_from_adv(self, val: float) -> None:
-        self.size_slider.blockSignals(True)
-        self.size_slider.setValue(int(val))
-        self.size_slider.blockSignals(False)
+        self.sliders_section.sync_size(val)
         self.sizeChanged.emit(val)
         if hasattr(self, "stroke_preview"):
             self.stroke_preview.update_preview()
 
     def _sync_opacity_from_adv(self, val: float) -> None:
-        self.opacity_slider.blockSignals(True)
-        self.opacity_slider.setValue(int(val * 100))
-        self.opacity_slider.blockSignals(False)
+        self.sliders_section.sync_opacity(val)
         self.opacityChanged.emit(val)
         if hasattr(self, "stroke_preview"):
             self.stroke_preview.update_preview()
 
     def _sync_stabilizer_from_adv(self, val: float) -> None:
-        self.stabilizer_slider.blockSignals(True)
-        self.stabilizer_slider.setValue(int(val * 100))
-        self.stabilizer_slider.blockSignals(False)
+        self.sliders_section.sync_stabilizer(val)
         self.stabilizerWeightChanged.emit(val)
 
     def _sync_spacing_from_adv(self, val: float) -> None:
-        self.spacing_slider.blockSignals(True)
-        self.spacing_slider.setValue(int(val * 100))
-        self.spacing_slider.blockSignals(False)
+        self.sliders_section.sync_spacing(val)
         self.spacingChanged.emit(val)
 
     def _sync_contrast_from_adv(self, val: float) -> None:
-        self.contrast_slider.blockSignals(True)
-        self.contrast_slider.setValue(int(val * 100))
-        self.contrast_slider.blockSignals(False)
+        self.sliders_section.sync_contrast(val)
         self.contrastChanged.emit(val)
 
     def _on_pin_toggled(self, param_name: str, is_pinned: bool) -> None:
-        slider_map = {
-            "size": self.size_slider,
-            "opacity": self.opacity_slider,
-            "contrast": self.contrast_slider,
-            "pressure": self.pressure_slider,
-            "pressure_curve": self.curve_slider,
-            "stabilizer": self.stabilizer_slider,
-            "spacing": self.spacing_slider,
-            "min_density": self.min_density_slider,
-        }
-        if param_name in slider_map:
-            slider_map[param_name].setVisible(is_pinned)
+        self.sliders_section.set_pinned_visible(param_name, is_pinned)

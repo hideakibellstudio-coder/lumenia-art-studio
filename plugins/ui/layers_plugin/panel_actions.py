@@ -223,3 +223,41 @@ def duplicate_layer(panel):
                 panel._show_status(f"Camada '{layer.name}' duplicada com sucesso.")
         finally:
             panel._updating_selection = False
+
+
+def handle_delegate_action(panel, action_type: str, uid: int):
+    """Executa ações originadas no item delegate (visibilidade, cadeado, alpha, clip, collapse)."""
+    layer = panel.layer_manager.get_layer_by_uid(uid)
+    if not layer:
+        return
+
+    idx = panel.model._find_index_by_uid(uid)
+    if not idx.isValid():
+        return
+
+    from .model import ROLE_VISIBLE, ROLE_LOCKED, ROLE_ALPHA_LOCK, ROLE_CLIPPING_MASK, ROLE_COLLAPSED
+
+    if action_type == "toggle_visibility":
+        new_vis = not layer.visible
+        panel.model.setData(idx, new_vis, ROLE_VISIBLE)
+        panel._sync_to_native_engine("visibility", uid, new_vis)
+    elif action_type == "toggle_lock":
+        new_lock = not layer.locked
+        panel.model.setData(idx, new_lock, ROLE_LOCKED)
+        panel._sync_to_native_engine("lock", uid, new_lock)
+    elif action_type == "toggle_alpha":
+        new_val = not layer.alpha_locked
+        panel.model.setData(idx, new_val, ROLE_ALPHA_LOCK)
+        panel._sync_to_native_engine("alpha_lock", uid, new_val)
+        panel._show_status(f"Alpha Lock em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
+    elif action_type == "toggle_clipping_mask":
+        new_val = not layer.clipping_mask
+        panel.model.setData(idx, new_val, ROLE_CLIPPING_MASK)
+        panel._sync_to_native_engine("clipping_mask", uid, new_val)
+        panel._show_status(f"Clipping Mask em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
+    elif action_type == "toggle_collapse":
+        is_expanded = panel.view.isExpanded(idx)
+        panel.view.setExpanded(idx, not is_expanded)
+        panel.model.setData(idx, is_expanded, ROLE_COLLAPSED)
+    elif action_type == "edit_filter":
+        panel.open_edit_filter_popup(uid)

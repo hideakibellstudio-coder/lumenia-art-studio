@@ -339,38 +339,8 @@ class LayersPanel(QWidget):
             self._sync_to_native_engine("blend", blend)
 
     def _on_delegate_action(self, action_type, uid):
-        layer = self.layer_manager.get_layer_by_uid(uid)
-        if not layer: 
-            return
-
-        idx = self.model._find_index_by_uid(uid)
-        if not idx.isValid():
-            return
-
-        if action_type == "toggle_visibility":
-            new_vis = not layer.visible
-            self.model.setData(idx, new_vis, ROLE_VISIBLE)
-            self._sync_to_native_engine("visibility", uid, new_vis)
-        elif action_type == "toggle_lock":
-            new_lock = not layer.locked
-            self.model.setData(idx, new_lock, ROLE_LOCKED)
-            self._sync_to_native_engine("lock", uid, new_lock)
-        elif action_type == "toggle_alpha":
-            new_val = not layer.alpha_locked
-            self.model.setData(idx, new_val, ROLE_ALPHA_LOCK)
-            self._sync_to_native_engine("alpha_lock", uid, new_val)
-            self._show_status(f"Alpha Lock em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
-        elif action_type == "toggle_clipping_mask":
-            new_val = not layer.clipping_mask
-            self.model.setData(idx, new_val, ROLE_CLIPPING_MASK)
-            self._sync_to_native_engine("clipping_mask", uid, new_val)
-            self._show_status(f"Clipping Mask em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
-        elif action_type == "toggle_collapse":
-            is_expanded = self.view.isExpanded(idx)
-            self.view.setExpanded(idx, not is_expanded)
-            self.model.setData(idx, is_expanded, ROLE_COLLAPSED)
-        elif action_type == "edit_filter":
-            self.open_edit_filter_popup(uid)
+        from .panel_actions import handle_delegate_action
+        handle_delegate_action(self, action_type, uid)
 
     def _on_view_selection_changed(self, selected=None, deselected=None):
         if self._updating_selection or getattr(self.model, '_is_modifying_structure', False): 

@@ -1,0 +1,37 @@
+"""Presets subpackage for BrushPlugin.
+
+Decoupled under ARCcC v2.
+"""
+
+from .basic_presets import BRUSH_CATEGORY, ERASER_CATEGORY
+from .sketch_ink_presets import PENCIL_CATEGORY, INKER_CATEGORY
+from .effect_presets import MARKER_CATEGORY, BLUR_CATEGORY, SMUDGE_CATEGORY
+from .paint_presets import WATERCOLOR_CATEGORY, OIL_CATEGORY
+from .i18n_keys import PRESET_I18N_KEYS, CATEGORY_I18N_KEYS
+
+ALL_CATEGORIES = [
+    BRUSH_CATEGORY,
+    PENCIL_CATEGORY,
+    INKER_CATEGORY,
+    ERASER_CATEGORY,
+    MARKER_CATEGORY,
+    BLUR_CATEGORY,
+    SMUDGE_CATEGORY,
+    WATERCOLOR_CATEGORY,
+    OIL_CATEGORY,
+]
+
+__all__ = [
+    "BRUSH_CATEGORY",
+    "PENCIL_CATEGORY",
+    "INKER_CATEGORY",
+    "ERASER_CATEGORY",
+    "MARKER_CATEGORY",
+    "BLUR_CATEGORY",
+    "SMUDGE_CATEGORY",
+    "WATERCOLOR_CATEGORY",
+    "OIL_CATEGORY",
+    "ALL_CATEGORIES",
+    "PRESET_I18N_KEYS",
+    "CATEGORY_I18N_KEYS",
+]

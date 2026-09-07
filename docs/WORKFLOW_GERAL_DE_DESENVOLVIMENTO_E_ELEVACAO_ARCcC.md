@@ -202,13 +202,110 @@ Componentes que mudam por motivos e frequências distintas nunca devem residir n
 
 ---
 
-## 📐 5. TABELA DE REGRAS E LIMITES ARCcC (QUANTITATIVAS & QUALITATIVAS)
+## 🔄 5. O PROTOCOLO DE AUDITORIA CONTÍNUA E SANEAMENTO ARCcC (VIGILÂNCIA ARQUITETURAL RECORRENTE)
+### *Como combater a degradação entrópica e garantir a qualidade e pureza permanente da arquitetura*
+
+A adesão aos princípios da metodologia **ARCcC** não se encerra quando uma refatoração pontual é concluída. Em um software comercial vivo, o código sofre **degradação entrópica natural** à medida que novas features, ferramentas, atalhos, opções de barra e correções pontuais são adicionados ao longo do tempo.
+
+Arquivos que outrora eram coesos passam a incorporar pequenas rotinas de suporte: diálogos do sistema operacional, timers auxiliares, cálculos geométricos locais, persistência de preferências de UI ou orquestrações de múltiplos subsistemas. Mesmo que esses arquivos respeitem numericamente o teto de 500 linhas de código (LOC), eles se transformam em **"God Classes compactadas"** — e tornam-se a principal fonte de regressões e "bugs fantasmas" em ciclos futuros.
+
+> [!IMPORTANT]
+> **Diretriz de Engenharia Permanente**: O Saneamento ARCcC **não é uma intervenção emergencial única**, mas um **rito de engenharia contínuo e obrigatório**. Assim como a suíte de testes automatizados roda a cada ciclo, a auditoria de coesão e o censo de LOC devem ser executados regularmente para manter a integridade arquitetural no padrão do estado da arte.
+
+---
+
+### 5.1 Os Três Gatilhos do Rito de Saneamento
+
+Todo engenheiro ou agente que atue no ecossistema Lumenia deve acionar o protocolo de saneamento diante de qualquer um dos três gatilhos:
+
+1. **Gatilho 1 (Preventivo - Censo Quantitativo de Linhas)**:
+   - **Faixa Segura ($< 300\text{ LOC}$)**: Módulo focado, manutenção e revisão triviais.
+   - **Zona de Alerta Amarela ($300 - 450\text{ LOC}$)**: O arquivo atingiu massa crítica. Nenhuma nova funcionalidade pode ser adicionada sem avaliar a extração preventiva de submódulos.
+   - **Zona Crítica Vermelha ($\ge 450\text{ LOC}$)**: Decomposição **obrigatória imediata**. O arquivo está proibido de receber novas linhas de lógica até ser fracionado em componentes atômicos.
+
+2. **Gatilho 2 (Qualitativo - O Teste do "E" em Tarefas de Manutenção)**:
+   - Ao abrir qualquer arquivo para implementar uma alteração (por menor que seja), deve-se formular a pergunta: *"Este arquivo desempenha mais de um domínio ou responsabilidade?"*.
+   - Se a resposta contiver a conjunção "E" (ex: "o arquivo sincroniza eventos de pincel **E** abre diálogos do OS para carregar texturas em disco", como em `workspace_brush_adapter.py`), a separação é compulsória antes ou durante a tarefa.
+
+3. **Gatilho 3 (Periódico - Varredura de Fim de Ciclo/Camada)**:
+   - Ao final de cada ciclo de desenvolvimento ou marco de entrega de uma Camada arquitetural, executa-se a varredura global automatizada em todos os diretórios do subsistema.
+
+---
+
+### 5.2 O Roteiro Operacional em 5 Etapas (Validado nas Camadas 1 e 3)
+
+O processo de saneamento recorrente segue um fluxo cirúrgico padronizado em 5 etapas:
+
+```mermaid
+flowchart LR
+    A["Etapa 1: Censo Automatizado de LOC"] --> B["Etapa 2: Triagem de Domínios Híbridos"]
+    B --> C["Etapa 3: Decomposição em Módulos Atômicos"]
+    C --> D["Etapa 4: Preservação de API via Facade"]
+    D --> E["Etapa 5: Blindagem de Testes & Multi-Sync"]
+```
+
+#### Etapa 1: Censo Automatizado de LOC
+Executar o script auditor de contagem de linhas no diretório-alvo para mapear o ranking decrescente de tamanho e detectar antecipadamente anomalias:
+```bash
+# Script de varredura rápida (PowerShell / Bash):
+python -c "import pathlib; p = pathlib.Path('plugins/system/workspace_core'); files = [(f, len(f.read_text(encoding='utf-8', errors='ignore').splitlines())) for f in p.rglob('*.py') if '__pycache__' not in str(f)]; files.sort(key=lambda x: x[1], reverse=True); [print(f'{c:4d} LOC : {f}') for f, c in files if c > 250]"
+```
+
+#### Etapa 2: Triagem de Domínios Híbridos (Mapeamento dos 5 Hibridismos Clássicos)
+Identificar e classificar os hibridismos acumulados no arquivo. Os 5 padrões clássicos identificados no projeto são:
+- **Hibridismo A (Matemática Pura vs. Apresentação Gráfica)**:
+  - *Sintoma*: Cálculos analíticos (projeções 3D, transformações esféricas, matrizes) dentro de widgets ou classes de pintura.
+  - *Solução*: Isolar a matemática em funções e classes puras sem dependência de Qt/UI (ex: `camera_3d_projector.py`, `curvilinear_mesh_builder.py`).
+- **Hibridismo B (Diálogos de Sistema / I/O de Disco vs. Adaptadores de Eventos)**:
+  - *Sintoma*: Chamadas a `QFileDialog`, `QMessageBox` ou leitura de disco dentro de classes de despacho de sinais em tempo real.
+  - *Solução*: Extrair a responsabilidade de I/O para um módulo auxiliar dedicado (ex: `brush_texture_io.py`).
+- **Hibridismo C (Mixins Monolíticos Multiferramenta)**:
+  - *Sintoma*: Uma única classe mixin com dezenas de métodos gerenciando 4 a 6 ferramentas distintas (ex: varinha, texto, balde, transformações).
+  - *Solução*: Fatiar o mixin em mixins coesos por família de ferramentas (ex: `selection_toolbar_handlers.py`, `shape_text_toolbar_handlers.py`, `brush_fill_toolbar_handlers.py`).
+- **Hibridismo D (Animação / Persistência / Geometria vs. Apresentação)**:
+  - *Sintoma*: Um widget ou dock gerenciando simultaneamente layouts, animações cúbicas temporizadas, serialização de JSON e renderização de controles.
+  - *Solução*: Extrair calculadoras analíticas (`dock_geometry_calculator.py`), armazenadores de estado (`dock_state_store.py`) e animadores (`dock_animator.py`).
+- **Hibridismo E (Gerenciador de Ciclo de Vida de Ferramentas vs. Viewport de Canvas)**:
+  - *Sintoma*: O widget de renderização instanciando, inicializando e alternando diretamente controladores de ferramentas e pipelines de traço.
+  - *Solução*: Delegar para um orquestrador desacoplado (`tool_manager.py`, `canvas_stroke_pipeline.py`).
+
+#### Etapa 3: Decomposição em Módulos Atômicos
+- Criar submódulos dedicados em subpastas de domínio (ex: `math/`, `renderers/`, `handlers/`, `dock/`, `tools/`).
+- Cada novo módulo deve ter escopo extremamente delimitado, com meta preferencial $< 250\text{ LOC}$.
+- Proibir a replicação de dependências desnecessárias (manter o número de imports no mínimo estrito).
+
+#### Etapa 4: Preservação de API Pública via Facade (Zero Breaking Changes)
+- O arquivo original **nunca deve ser deletado sumariamente** se ele fizer parte do contrato público com outras camadas.
+- Ele deve ser transformado em uma **Facade transparente** ou classe composta enxuta (como `geometry_overlay_renderer.py` reduzido para 75 LOC ou `toolbar_handlers.py` para 21 LOC).
+- Todos os métodos públicos, sinais Qt, propriedades e slots continuam existindo no mesmo local, apenas delegando a chamada para os novos componentes especializados.
+- Resultado: **zero impacto e zero quebra para o restante do ecossistema**.
+
+#### Etapa 5: Blindagem de Testes com Sincronização Bidirecional & Paridade Multi-Workspace
+1. **Criação de Testes Unitários de Domínio**:
+   - Cada novo submódulo ganha uma bateria de testes unitários dedicada em `tests/test_[dominio]_[fase].py`.
+   - Testar o comportamento nominal, casos de borda e tratamento gracioso de cancelamento/nulos.
+2. **Validação de Sincronização Bidirecional**:
+   - Em componentes interativos (ex: sliders horizontais e verticais, caches de parâmetros), garantir que a atualização programática ou via interface reflita perfeitamente no modelo interno e no widget espelho.
+3. **Execução da Suíte Global de Regressão**:
+   - Rodar `python -m unittest discover tests`.
+   - **Critério inegociável**: 100% de testes verdes (0 falhas, 0 erros).
+4. **Sincronização Imediata com Repositórios Espelho**:
+   - Replicar código fonte, testes e scripts para todos os workspaces vinculados (ex: `+ LUMENIA` e `ALADYN + UI LUMENIA`).
+   - Validar execução dos testes no repositório espelho.
+5. **Commit Atômico e Granular**:
+   - Registrar no git commits semânticos por fase (`refactor(...)`), registrando claramente no log a redução de LOC e os novos submódulos introduzidos.
+
+---
+
+## 📐 6. TABELA DE REGRAS E LIMITES ARCcC (QUANTITATIVAS & QUALITATIVAS)
 
 | Elemento | Limite / Regra | Tipo | Ação em Caso de Violação |
 |---|:---:|:---:|---|
 | **Tamanho Máximo de Arquivo** | **< 500 Linhas** (C++ e Python) | Quantitativo | Decompor imediatamente em sub-módulos ou orquestradores. |
+| **Zona de Alerta Preventiva** | **300 a 450 Linhas** | Preventivo | Planejar extração de submódulos antes de novas features. |
 | **Pureza de Responsabilidade** | **1 Único Domínio** (Teste do "E") | Qualitativo | Extrair os papéis secundários para classes/módulos especializados. |
 | **Separação Dados / Apresentação** | **Zero lógica de UI em Core** | Arquitetural | Isolar modelos de dados de rotinas de pintura e shaders. |
+| **Preservação de Contratos** | **100% Retrocompatível** | Arquitetural | Manter Facades e delegar chamadas sem quebrar clientes. |
 | **Taxa de Aprovação de Testes** | **100%** (Zero regressões) | Rigor | Bloquear o avanço até a regressão ser solucionada na causa-raiz. |
 | **Arquivos Órfãos / Código Morto** | **0** | Higiene | Deletar headers não utilizados e unificar interfaces redundantes. |
 | **Alocações no Loop Crítico** | **Zero Alocação Dinâmica** | Performance | Utilizar memória pré-alocada, stack, LUTs ou pools de buffers. |
@@ -217,28 +314,31 @@ Componentes que mudam por motivos e frequências distintas nunca devem residir n
 
 ---
 
-## 🛠️ 6. TEMPLATES REUTILIZÁVEIS
+## 🛠️ 7. TEMPLATES REUTILIZÁVEIS
 
 ### Template para Nomenclatura de Arquivos de Teste de Fase
 ```text
-tests/test_lowlevel_phase[N]_[tema_da_fase].py
+tests/test_[dominio]_decomposition_phase[N].py
 ```
 
 ### Template para Mensagem de Commit de Fase
 ```text
-feat([subsistema]): Fase [N] - [Nome da Fase] ([Principais Técnicas Empregadas])
+refactor([camada]): Fase [N] - [Nome da Fase] ([Principais Técnicas Empregadas])
 
-- [Item 1 implementado]
-- [Item 2 implementado]
+- [Item 1 decomposto / extraído]
+- [Item 2 preservado como Facade]
 - Suíte de testes: X/X aprovados. Regressão global: 100% aprovada.
-- Conformidade ARCcC: Todos os arquivos < 500 LOC.
+- Conformidade ARCcC: Todos os arquivos < 500 LOC (maior arquivo com Y LOC).
 ```
 
 ### Template de Checklist de Definição de Pronto (Definition of Done)
 - [ ] Especificação técnica e matemática validada contra líderes de mercado.
-- [ ] Nenhum arquivo no subsistema ultrapassa 500 linhas.
+- [ ] Censo de LOC executado: Zero arquivos $\ge 500\text{ LOC}$; arquivos mantidos preferencialmente $< 300\text{ LOC}$.
+- [ ] Teste do "E" aplicado: Zero arquivos com domínios híbridos concorrentes.
+- [ ] Preservação integral de contratos públicos através de Facades limpas.
 - [ ] Código compilado limpo sem erros ou advertências graves.
-- [ ] Testes de estresse e borda criados e 100% aprovados.
-- [ ] Suíte global de regressão 100% verde.
-- [ ] Código sincronizado em todos os workspaces do projeto.
-- [ ] Commit atômico registrado no controle de versão.
+- [ ] Testes unitários do submódulo criados e 100% aprovados.
+- [ ] Suíte global de regressão 100% verde (0 falhas, 0 erros).
+- [ ] Sincronização multi-workspace validada com execução de testes no espelho.
+- [ ] Commit atômico e semântico registrado no controle de versão de ambos os ambientes.
+

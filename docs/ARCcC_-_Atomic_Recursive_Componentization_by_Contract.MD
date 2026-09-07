@@ -17,6 +17,7 @@
 9. [Guia de Transição para ARCcC](#9-guia-de-transição-para-arccc)
 14. [Diretrizes Obrigatórias para Geração de Código por IA](#14-diretrizes-obrigatórias-para-geração-de-código-por-ia)
 15. [Arquitetura Multi-Linguagem: Pilares e Ponte](#15-arquitetura-multi-linguagem-pilares-e-ponte)
+16. [Ciclo de Vigilância Contínua e Higiene Arquitetural Periódica](#16-ciclo-de-vigilância-contínua-e-higiene-arquitetural-periódica)
 
 ---
 
@@ -945,12 +946,48 @@ A regra permanece a mesma independentemente do número de pilares: **cada pilar 
 
 ---
 
+## 16. Ciclo de Vigilância Contínua e Higiene Arquitetural Periódica
+
+### 16.1 O Princípio da Anti-Entropia em Arquiteturas Vivas
+
+A experiência prática em sistemas de grande porte demonstra que **nenhuma arquitetura permanece limpa passivamente**. À medida que novas funcionalidades, ferramentas, atalhos, painéis e tratamentos de casos de borda são incorporados nas rotinas diárias de desenvolvimento, o código sofre uma **força entrópica constante**:
+
+1. **Inchaço Lento e Silencioso**: Arquivos começam com 100 LOC e, ao longo de várias tarefas pontuais, recebem 20 linhas aqui, 30 ali, até ultrapassarem a zona de conforto e atingirem 400-500 LOC.
+2. **Acúmulo de Responsabilidades Híbridas ("God Classes Compactadas")**: Mesmo mantendo-se sob o teto estrito de 500 LOC, arquivos passam a desempenhar 3 ou mais papéis distintos (ex: apresentação + I/O de disco + persistência + cálculo matemático).
+3. **Fragilidade Colateral e Regressões Ocultas**: A tentativa de alterar uma funcionalidade pontual passa a afetar inadvertidamente fluxos secundários que compartilham o mesmo arquivo ou estado mutável.
+
+> **Regra Mandatória de Anti-Entropia:** A decomposição e a higiene de código no ARCcC **não são um evento com data de término**, mas uma **rotina contínua de engenharia e governança de software**.
+
+### 16.2 Gatilhos e Zonas de Alerta para Refatoração Preventiva
+
+A metodologia estabelece três zonas formais de densidade de código:
+
+| Faixa de Linhas (LOC) | Classificação | Ação Requerida |
+|---|---|---|
+| **$0 - 299\text{ LOC}$** | **Zona Verde (Segura)** | Manutenção e extensão permitidas livremente, desde que respeitada a pureza de domínio. |
+| **$300 - 449\text{ LOC}$** | **Zona Amarela (Alerta)** | **Massa Crítica.** Nenhuma feature expressiva deve ser adicionada sem antes planejar a extração preventiva de submódulos. |
+| **$\ge 450\text{ LOC}$** | **Zona Vermelha (Bloqueio)** | **Refatoração Compulsória Imediata.** O arquivo está congelado para novas funcionalidades até ser fatiado em componentes atômicos. |
+
+Além da métrica de LOC, o **Teste do "E" (Single Responsibility Audit)** é soberano: se um arquivo de 150 linhas desempenha duas responsabilidades técnicas distintas (ex: lógica de negócio pura E diálogo de interface do sistema operacional), a separação é obrigatória.
+
+### 16.3 Integração com o Workflow de Desenvolvimento da Organização
+
+Para guiar a execução prática passo a passo desse ciclo de vigilância, o ARCcC trabalha em simbiose com o manual operacional de engenharia:
+
+👉 **Consulte o documento canônico**: [`Lumenia/docs/WORKFLOW_GERAL_DE_DESENVOLVIMENTO_E_ELEVACAO_ARCcC.md`](./WORKFLOW_GERAL_DE_DESENVOLVIMENTO_E_ELEVACAO_ARCcC.md), especialmente:
+- **Seção 4**: *A Regra da Coesão de Domínio e os 4 Sintomas de Acúmulo de Papéis*.
+- **Seção 5**: *O Protocolo de Auditoria Contínua e Saneamento ARCcC (Roteiro Operacional em 5 Etapas)*.
+- **Seção 6 & 7**: *Tabela de Regras Quantitativas/Qualitativas e Checklist de Definição de Pronto (DoD)*.
+
+---
+
 *"A simplicidade é a sofisticação máxima."* - Leonardo da Vinci
 
 *"Software is not about code, it's about organization."* - Uncle Bob Martin
 
 ---
 
-**Versão do Documento:** 1.0.0  
-**Data:** 2026-06-28  
+**Versão do Documento:** 1.1.0  
+**Data da Revisão:** 2026-09-07  
 **Classificação:** Público - Universal  
+

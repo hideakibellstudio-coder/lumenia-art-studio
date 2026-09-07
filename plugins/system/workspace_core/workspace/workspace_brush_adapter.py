@@ -201,49 +201,8 @@ class WorkspaceBrushMixin:
             self.canvas_widget.update()
 
     def _load_custom_texture(self, is_shape: bool) -> None:
-        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Selecionar Imagem de Textura",
-            "",
-            "Imagens (*.png *.jpg *.jpeg *.bmp *.tga)",
-        )
-        if not file_path:
-            return
-
-        image = QtGui.QImage(file_path)
-        if image.isNull():
-            QtWidgets.QMessageBox.warning(
-                self, "Erro", "Não foi possível carregar a imagem selecionada."
-            )
-            return
-
-        image    = image.convertToFormat(QtGui.QImage.Format_RGBA8888)
-        width    = image.width()
-        height   = image.height()
-        ptr      = image.constBits()
-        px_bytes = ptr.tobytes()
-
-        renderer = self.canvas_widget.renderer
-        if renderer:
-            if is_shape:
-                renderer.set_shape_texture(px_bytes, width, height)
-            else:
-                renderer.set_heightmap_texture(px_bytes, width, height)
-
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if backend:
-            if is_shape and hasattr(backend, "set_shape_texture"):
-                backend.set_shape_texture(px_bytes, width, height)
-            elif not is_shape and hasattr(backend, "set_heightmap_texture"):
-                backend.set_heightmap_texture(px_bytes, width, height)
-                if hasattr(backend, "set_brush_grain_enabled"):
-                    backend.set_brush_grain_enabled(True)
-
-        if self._brush_dock:
-            self._brush_dock.update_thumbnail(is_shape, file_path)
-
-        self.canvas_widget.update()
+        from .brush_texture_io import BrushTextureIO
+        BrushTextureIO.load_and_apply_to_workspace(self, is_shape)
 
     def _on_stroke_finished_sync_previews(self) -> None:
         if not hasattr(self, "_preview_sync_timer"):

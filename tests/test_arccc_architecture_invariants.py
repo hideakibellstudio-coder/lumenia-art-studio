@@ -7,6 +7,7 @@ Testa e bloqueia de forma estática (via AST e inspeção estrutural) qualquer v
 2. Imports diretos de C++ (aladyn_engine_native) fora de ui/engine_backends/.
 3. Acessos a atributos privados de ponteiros/facades nativas (_facade, _native) fora de ui/engine_backends/.
 4. Cobertura de métodos canônicos do contrato universal EngineBackend no AladynBackend.
+5. Teto estrito de 500 LOC em todos os módulos Python de plugins/, ui/ e tests/.
 """
 
 import ast
@@ -23,6 +24,7 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         cls.root = PROJECT_ROOT
         cls.plugins_dir = os.path.join(cls.root, 'plugins')
         cls.ui_dir = os.path.join(cls.root, 'ui')
+        cls.tests_dir = os.path.join(cls.root, 'tests')
 
     def _get_py_files(self, base_dir: str) -> List[str]:
         py_files = []
@@ -154,6 +156,23 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
             + "\n".join(f"  - {m}" for m in missing)
         )
         self.assertEqual(len(missing), 0, msg)
+
+    def test_05_strict_loc_ceiling_compliance(self):
+        """[ARCcC Regra 5] Teto estrito de 500 LOC em todos os módulos Python de plugins/, ui/ e tests/."""
+        violations: List[Tuple[str, int]] = []
+        target_dirs = [self.plugins_dir, self.ui_dir, self.tests_dir]
+        for tdir in target_dirs:
+            for fpath in self._get_py_files(tdir):
+                rel = os.path.relpath(fpath, self.root)
+                with open(fpath, 'r', encoding='utf-8', errors='ignore') as fl:
+                    loc = sum(1 for _ in fl)
+                if loc >= 500:
+                    violations.append((rel, loc))
+
+        msg = f"Encontrados {len(violations)} arquivo(s) violando o teto estrito de 500 LOC:\n" + "\n".join(
+            f"  - {v[0]}: {v[1]} LOC (limite maximo estrito: 499 LOC)" for v in sorted(violations, key=lambda x: x[1], reverse=True)
+        )
+        self.assertEqual(len(violations), 0, msg)
 
 
 if __name__ == '__main__':

@@ -19,6 +19,8 @@ from ui.core.icons import get_icon
 class TestRunnerThread(QtCore.QThread):
     """Thread assíncrona para executar a suíte de testes sem travar a interface."""
 
+    __test__ = False
+
     log_received = QtCore.Signal(str)
     tests_finished = QtCore.Signal(int)  # exit_code
 
@@ -64,6 +66,8 @@ class TestRunnerThread(QtCore.QThread):
 
 class TestReportDialog(BaseFramelessDialog):
     """Diálogo executivo com relatório dos testes, métricas e console de execução."""
+
+    __test__ = False
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(

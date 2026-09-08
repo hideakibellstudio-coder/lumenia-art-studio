@@ -1,9 +1,42 @@
-"""Components for RenderSettingsDialog (ProofingPreviewBar, ProfileCard)."""
+"""
+Components for RenderSettingsDialog (ProofingPreviewBar, ProfileCard, EnginePipelineGroup).
+===========================================================================================
+Contém os componentes de prova de impressão espectral, cartões de perfis de cor,
+painel de configurações do motor de renderização e persistência de preferências de cor.
+"""
 
+from __future__ import annotations
+
+from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
+from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 
+
+# ── CARREGAMENTO / PERSISTÊNCIA ──────────────────────────────────────────────
+
+def load_render_settings() -> dict:
+    """Carrega as configurações salvas de renderização e perfil de cor do ConfigManager (JSON)."""
+    from ui.core.config import ConfigManager
+    sec = ConfigManager.instance().get_section("render")
+    return {
+        "profile_id": int(sec.get("profile_id", 0)) if isinstance(sec.get("profile_id"), (int, float)) else 0,
+        "low_latency": bool(sec.get("low_latency", True)),
+        "linear_gamma": bool(sec.get("linear_gamma", False)),
+        "deep_color": bool(sec.get("deep_color", True)),
+        "undo_limit_mb": int(sec.get("undo_limit_mb", 256)),
+        "undo_max_steps": int(sec.get("undo_max_steps", 50)),
+    }
+
+
+def save_render_settings(cfg_dict: dict) -> None:
+    """Salva as configurações de renderização e perfil de cor no ConfigManager (JSON)."""
+    from ui.core.config import ConfigManager
+    ConfigManager.instance().set_section("render", cfg_dict)
+
+
+# ── COMPONENTES VISUAIS ──────────────────────────────────────────────────────
 
 class ProofingPreviewBar(QtWidgets.QWidget):
     """Renderiza uma barra de degradê espectral comparativa simulando o perfil ativo em tempo real."""
@@ -162,3 +195,95 @@ class ProfileCard(QtWidgets.QFrame):
         """)
         if hasattr(self, "cat_label"):
             self.cat_label.setStyleSheet(f"color: {text_sec}; font-size: 11px;")
+
+
+class EnginePipelineGroup(QtWidgets.QGroupBox):
+    """Grupo de controles do pipeline de renderização e motor físico."""
+
+    settingsChanged = QtCore.Signal(dict)
+
+    def __init__(self, saved_cfg: dict, parent=None):
+        super().__init__("Pipeline de Renderização & Motor Físico", parent)
+        self._saved_cfg = saved_cfg
+        self._build_ui()
+
+    def _build_ui(self):
+        engine_layout = QtWidgets.QVBoxLayout(self)
+        engine_layout.setContentsMargins(14, 14, 14, 14)
+        engine_layout.setSpacing(10)
+
+        # 1. Baixa Latência
+        row_lat = QtWidgets.QHBoxLayout()
+        self.lbl_lat = QtWidgets.QLabel("Modo de Baixa Latência (Ultra-Low Latency)")
+        self.lbl_lat.setToolTip("Bypass na fila de sincronização para resposta em < 4ms")
+        self.switch_lat = ToggleSwitch()
+        self.switch_lat.setChecked(self._saved_cfg.get("low_latency", True))
+        self.switch_lat.toggled.connect(self._on_setting_changed)
+        row_lat.addWidget(self.lbl_lat)
+        row_lat.addStretch()
+        row_lat.addWidget(self.switch_lat)
+        engine_layout.addLayout(row_lat)
+
+        # 2. Correção Gama
+        row_gam = QtWidgets.QHBoxLayout()
+        self.lbl_gam = QtWidgets.QLabel("Correção Gama Linear (sRGB Physical Blending)")
+        self.lbl_gam.setToolTip("Composição física no espaço linear eliminando bordas escuras")
+        self.switch_gam = ToggleSwitch()
+        self.switch_gam.setChecked(self._saved_cfg.get("linear_gamma", False))
+        self.switch_gam.toggled.connect(self._on_setting_changed)
+        row_gam.addWidget(self.lbl_gam)
+        row_gam.addStretch()
+        row_gam.addWidget(self.switch_gam)
+        engine_layout.addLayout(row_gam)
+
+        # 3. Deep Color
+        row_deep = QtWidgets.QHBoxLayout()
+        self.lbl_deep = QtWidgets.QLabel("Deep Color 64-bit (Half-Float RGBA16F Precision)")
+        self.lbl_deep.setToolTip("Elimina 100% de banding em gradientes suaves e aquarelas")
+        self.switch_deep = ToggleSwitch()
+        self.switch_deep.setChecked(self._saved_cfg.get("deep_color", True))
+        self.switch_deep.toggled.connect(self._on_setting_changed)
+        row_deep.addWidget(self.lbl_deep)
+        row_deep.addStretch()
+        row_deep.addWidget(self.switch_deep)
+        engine_layout.addLayout(row_deep)
+
+        # 4. Histórico Undo / Redo
+        row_undo = QtWidgets.QHBoxLayout()
+        self.lbl_undo = QtWidgets.QLabel("Memória do Histórico (Undo / Redo)")
+        self.lbl_undo.setToolTip("Limite dinâmico de memória RAM alocada para snapshots de tiles desfazer/refazer")
+        self.combo_undo = QtWidgets.QComboBox()
+        undo_opts = [
+            (128, "128 MB"), (256, "256 MB (Padrão)"), (512, "512 MB"),
+            (1024, "1024 MB (1 GB)"), (2048, "2048 MB (2 GB)"), (4096, "4096 MB (4 GB)"),
+        ]
+        for mb, lbl in undo_opts:
+            self.combo_undo.addItem(lbl, mb)
+        cur_mb = self._saved_cfg.get("undo_limit_mb", 256)
+        idx = self.combo_undo.findData(cur_mb)
+        if idx >= 0:
+            self.combo_undo.setCurrentIndex(idx)
+        self.combo_undo.currentIndexChanged.connect(self._on_setting_changed)
+        row_undo.addWidget(self.lbl_undo)
+        row_undo.addStretch()
+        row_undo.addWidget(self.combo_undo)
+        engine_layout.addLayout(row_undo)
+
+    def _on_setting_changed(self, *args):
+        mb = int(self.combo_undo.currentData() or 256) if hasattr(self, "combo_undo") else 256
+        data = {
+            "low_latency": self.switch_lat.isChecked(),
+            "linear_gamma": self.switch_gam.isChecked(),
+            "deep_color": self.switch_deep.isChecked(),
+            "undo_limit_mb": mb,
+        }
+        self.settingsChanged.emit(data)
+
+    def get_settings(self) -> dict:
+        mb = int(self.combo_undo.currentData() or 256) if hasattr(self, "combo_undo") else 256
+        return {
+            "low_latency": self.switch_lat.isChecked(),
+            "linear_gamma": self.switch_gam.isChecked(),
+            "deep_color": self.switch_deep.isChecked(),
+            "undo_limit_mb": mb,
+        }

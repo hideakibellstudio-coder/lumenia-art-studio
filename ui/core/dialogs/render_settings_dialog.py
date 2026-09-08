@@ -17,28 +17,22 @@ from ui.core.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from .render_settings_components import ProofingPreviewBar, ProfileCard
+from .render_settings_components import (
+    ProofingPreviewBar,
+    ProfileCard,
+    EnginePipelineGroup,
+    load_render_settings,
+    save_render_settings,
+)
 
-
-
-def load_render_settings() -> dict:
-    """Carrega as configurações salvas de renderização e perfil de cor do ConfigManager (JSON)."""
-    from ui.core.config import ConfigManager
-    sec = ConfigManager.instance().get_section("render")
-    return {
-        "profile_id": int(sec.get("profile_id", 0)) if isinstance(sec.get("profile_id"), (int, float)) else 0,
-        "low_latency": bool(sec.get("low_latency", True)),
-        "linear_gamma": bool(sec.get("linear_gamma", False)),
-        "deep_color": bool(sec.get("deep_color", True)),
-        "undo_limit_mb": int(sec.get("undo_limit_mb", 256)),
-        "undo_max_steps": int(sec.get("undo_max_steps", 50)),
-    }
-
-
-def save_render_settings(cfg_dict: dict) -> None:
-    """Salva as configurações de renderização e perfil de cor no ConfigManager (JSON)."""
-    from ui.core.config import ConfigManager
-    ConfigManager.instance().set_section("render", cfg_dict)
+__all__ = [
+    "RenderSettingsDialog",
+    "ProofingPreviewBar",
+    "ProfileCard",
+    "EnginePipelineGroup",
+    "load_render_settings",
+    "save_render_settings",
+]
 
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
@@ -190,63 +184,13 @@ class RenderSettingsDialog(BaseFramelessDialog):
         right_layout.addWidget(self.preview_bar)
 
         # Grupo de Configurações Avançadas do Motor
-        engine_group = QtWidgets.QGroupBox("Pipeline de Renderização & Motor Físico")
-        engine_layout = QtWidgets.QVBoxLayout(engine_group)
-        engine_layout.setContentsMargins(14, 14, 14, 14)
-        engine_layout.setSpacing(10)
-
-        # 1. Baixa Latência
-        row_lat = QtWidgets.QHBoxLayout()
-        lbl_lat_title = QtWidgets.QLabel("Modo de Baixa Latência (Ultra-Low Latency)")
-        lbl_lat_title.setToolTip("Bypass na fila de sincronização para resposta em < 4ms")
-        self.switch_lat = ToggleSwitch()
-        self.switch_lat.setChecked(self._saved_cfg.get("low_latency", True))
-        self.switch_lat.toggled.connect(self._save_switch_settings)
-        row_lat.addWidget(lbl_lat_title)
-        row_lat.addStretch()
-        row_lat.addWidget(self.switch_lat)
-        engine_layout.addLayout(row_lat)
-
-        # 2. Correção Gama
-        row_gam = QtWidgets.QHBoxLayout()
-        lbl_gam_title = QtWidgets.QLabel("Correção Gama Linear (sRGB Physical Blending)")
-        lbl_gam_title.setToolTip("Composição física no espaço linear eliminando bordas escuras")
-        self.switch_gam = ToggleSwitch()
-        self.switch_gam.setChecked(self._saved_cfg.get("linear_gamma", False))
-        self.switch_gam.toggled.connect(self._save_switch_settings)
-        row_gam.addWidget(lbl_gam_title)
-        row_gam.addStretch()
-        row_gam.addWidget(self.switch_gam)
-        engine_layout.addLayout(row_gam)
-
-        # 3. Deep Color
-        row_deep = QtWidgets.QHBoxLayout()
-        lbl_deep_title = QtWidgets.QLabel("Deep Color 64-bit (Half-Float RGBA16F Precision)")
-        lbl_deep_title.setToolTip("Elimina 100% de banding em gradientes suaves e aquarelas")
-        self.switch_deep = ToggleSwitch()
-        self.switch_deep.setChecked(self._saved_cfg.get("deep_color", True))
-        self.switch_deep.toggled.connect(self._save_switch_settings)
-        row_deep.addWidget(lbl_deep_title)
-        row_deep.addStretch()
-        row_deep.addWidget(self.switch_deep)
-        engine_layout.addLayout(row_deep)
-
-        # 4. Histórico de Desfazer / Refazer (Undo/Redo)
-        row_undo = QtWidgets.QHBoxLayout()
-        lbl_undo = QtWidgets.QLabel("Memória do Histórico (Undo / Redo)")
-        lbl_undo.setToolTip("Limite dinâmico de memória RAM alocada para snapshots de tiles desfazer/refazer")
-        self.combo_undo = QtWidgets.QComboBox()
-        undo_opts = [(128, "128 MB"), (256, "256 MB (Padrão)"), (512, "512 MB"), (1024, "1024 MB (1 GB)"), (2048, "2048 MB (2 GB)"), (4096, "4096 MB (4 GB)")]
-        for mb, lbl in undo_opts:
-            self.combo_undo.addItem(lbl, mb)
-        cur_mb = self._saved_cfg.get("undo_limit_mb", 256)
-        idx = self.combo_undo.findData(cur_mb)
-        if idx >= 0: self.combo_undo.setCurrentIndex(idx)
-        self.combo_undo.currentIndexChanged.connect(self._save_switch_settings)
-        row_undo.addWidget(lbl_undo); row_undo.addStretch(); row_undo.addWidget(self.combo_undo)
-        engine_layout.addLayout(row_undo)
-
-        right_layout.addWidget(engine_group)
+        self.engine_group = EnginePipelineGroup(self._saved_cfg, self)
+        self.switch_lat = self.engine_group.switch_lat
+        self.switch_gam = self.engine_group.switch_gam
+        self.switch_deep = self.engine_group.switch_deep
+        self.combo_undo = self.engine_group.combo_undo
+        self.engine_group.settingsChanged.connect(self._save_switch_settings)
+        right_layout.addWidget(self.engine_group)
         right_layout.addStretch()
 
         # Botões de Ação na base

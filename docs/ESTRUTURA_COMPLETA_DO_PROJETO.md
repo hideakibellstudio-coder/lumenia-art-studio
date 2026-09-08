@@ -274,40 +274,44 @@ Compilado em módulo binário C++17 com extensões SIMD (`/arch:AVX2`, `/openmp`
 
 ## 7. Camada 6: Suíte de Testes Automatizados (`tests/`)
 
-Composta por 23 suítes que validam o comportamento estrutural e numérico do sistema:
+Composta por 41 suítes sob governança estrita ARCcC v2 (< 500 LOC, alvo < 300 LOC) que validam o comportamento estrutural e numérico do sistema:
 
-1. **Invariantes Arquiteturais**:
-   * `test_arccc_architecture_invariants.py`: Garante que nenhum arquivo de UI ou plugins acesse atributos privados do motor nativo ou quebre os limites de camada.
-2. **Motor C++ de Baixo Nível**:
+1. **Invariantes Arquiteturais & Governança de Código**:
+   * `test_arccc_architecture_invariants.py`: Garante que nenhum arquivo de UI ou plugins acesse atributos privados do motor nativo, quebre os limites de camada ou viole o teto estrito de 500 LOC em plugins, ui e tests.
+2. **Motor C++ de Baixo Nível & Estresse Numérico**:
    * `test_lowlevel_brush_raster.py`: Valida precisão de pixel, raio dinâmico e resposta a curvas de pressão.
    * `test_lowlevel_undo_tile_stress.py`: Estresse de blocos, consumo de RAM, integridade de desfazer/refazer.
    * `test_lowlevel_telemetry_diagnostics.py`: Validação de temporizadores em nanossegundos e detecção de sobrecarga.
    * `test_lowlevel_blend_modes.py`: Teste numérico dos 27 modos de mesclagem.
    * `test_lowlevel_color_profiles.py`: Conversão matemática entre espaços de cor.
    * `test_lowlevel_selection_transform.py`: Amostragem afim e operações booleanas de seleção.
-3. **Pilha de Camadas & Grupos**:
+   * `test_lowlevel_phase3_giant_brushes_simd.py`, `test_lowlevel_phase4_memory_scalability.py`.
+3. **Pilha de Camadas, Grupos & Decomposição Estrutural**:
    * `test_phase1_layers.py`: Criação, remoção, duplicação, Alpha Lock e Clipping Mask.
    * `test_phase2_groups.py`: Grupos, hierarquia aninhada, modo Pass-Through e visibilidade/opacidade recursivas.
+   * `test_geometry_decomposition_phase1.py`, `test_advanced_geometry_dialog_phase3.py`.
 4. **Ciclo de Vida MDI & Memória**:
    * `test_mdi_multidoc_lifecycle.py`: Isolamento de instâncias de documento e liberação de memória em abas.
-5. **Interface, Telas & Menus**:
+5. **Interface, Telas, Menus & Internacionalização**:
    * `test_menu_bar_complete_wiring.py`: Acionamento dos 10 submenus e vinculação com atalhos.
    * `test_new_document_dialog.py`: Validação de presets e parâmetros de criação de documento.
    * `test_theme_system.py`: Compilação de temas e reatividade QSS.
    * `test_i18n_system.py` & `test_i18n_localization.py`: Tradução dinâmica em tempo de execução.
-   * `test_dialogs_theme_and_docs.py`, `test_dialogs_i18n.py`, `test_config_manager.py`, `test_geometry_symmetry.py`, `test_5_observations_audit.py`, `test_audit_8_items.py`.
+   * `test_dialogs_i18n.py`: Re-tradução de todos os diálogos de preferências de sistema (Docks, Toolbar Flutuante, Tema, Render, Cursores, Atalhos, Telemetria e Janelas MDI).
+   * `test_toolbars_geometry_i18n.py`: Re-tradução de opções contextuais da barra secundária, botões de forma/transformação e painel/diálogo de geometria assistida.
+   * `test_dialogs_theme_and_docs.py`, `test_config_manager.py`, `test_geometry_symmetry.py`, `test_5_observations_audit.py`, `test_audit_8_items.py`.
 
 ---
 
-## 8. Estatísticas e Resumo Numérico da Base de Código
+## 8. Estatísticas e Resumo Numérico da Base de Código (6 Camadas ARCcC)
 
-| Grande Área | Número de Módulos / Arquivos | Linguagens Principais |
-| :--- | :--- | :--- |
-| **Motor Nativo C++ (`engine/` + `bridge/`)** | 68 arquivos | C++17, PyBind11, Intrinsics AVX2/SSE2 |
-| **Backend & Mixins (`ui/engine_backends/`)** | 12 arquivos | Python 3 |
-| **Workspace Core & Viewport (`plugins/system/workspace_core/`)** | 44 arquivos | Python 3, PySide6 / Qt6 |
-| **Plugins de UI (`plugins/ui/`)** | 35 arquivos | Python 3, PySide6 / Qt6 |
-| **Shell, UI Core & Telas (`ui/core/` + `ui/boundary/`)** | 80 arquivos | Python 3, PySide6 / Qt6, JSON, QSS |
-| **Suíte de Testes Automatizados (`tests/`)** | 23 arquivos | Python 3, unittest |
-| **Assets (Ícones, Locales, Temas)** | 160+ arquivos | SVG, JSON, QSS |
-| **Total Global de Código do Projeto** | **~262 módulos** | **C++17 + Python 3 / PySide6** |
+| Grande Área / Camada | Número de Módulos / Arquivos | Linhas de Código (LOC) | Conformidade ARCcC v2 (< 500 LOC) |
+| :--- | :---: | :---: | :---: |
+| **Camada 1: Motor Nativo C++ (`engine/` + `bridge/`)** | 68 arquivos | ~11.800 LOC | 🟢 100% em Conformidade (Ponte Modular) |
+| **Camada 2: Backend & Adaptadores (`ui/engine_backends/`)** | 12 arquivos | ~2.900 LOC | 🟢 100% em Conformidade (Universal Backend) |
+| **Camada 3: Workspace Core & Viewport (`plugins/system/`)** | 55 arquivos | ~7.200 LOC | 🟢 100% em Conformidade (Desacoplamento MDI) |
+| **Camada 4: Plugins de UI Especializados (`plugins/ui/`)** | 38 arquivos | ~5.800 LOC | 🟢 100% em Conformidade (Isolamento Caixa-Preta) |
+| **Camada 5: Shell, UI Core & Diálogos (`ui/core/` + `ui/boundary/`)** | 141 arquivos | ~20.134 LOC | 🟢 100% em Conformidade (Zero Violações) |
+| **Camada 6: Suíte de Testes Automatizados (`tests/`)** | 41 arquivos | ~5.552 LOC | 🟢 100% em Conformidade (Zero Violações) |
+| **Assets do Sistema (Ícones SVG, Dicionários i18n, Temas QSS)** | 160+ arquivos | — | 🟢 Recursos Dinâmicos |
+| **TOTAL GLOBAL DO PROJETO** | **~355 módulos** | **~53.386 LOC** | 🟢 **100% EM CONFORMIDADE (ZERO VIOLAÇÕES)** |

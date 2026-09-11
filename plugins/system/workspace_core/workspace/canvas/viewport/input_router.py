@@ -283,6 +283,7 @@ class CanvasInputRouter:
         w = self.widget
         modifiers = event.modifiers()
         from ui.core.engine.registry import EngineRegistry
+        from ui.core.shortcut_bindings import ShortcutBindings
         backend = EngineRegistry.instance().get_backend()
 
         if w.transform_ctrl.active:
@@ -305,29 +306,28 @@ class CanvasInputRouter:
                 w.update()
                 return True
 
-        if modifiers & QtCore.Qt.ControlModifier:
-            if event.key() == QtCore.Qt.Key_T:
-                w.start_transform_mode()
+        if ShortcutBindings.matches("tool_transform", event):
+            w.start_transform_mode()
+            return True
+        if ShortcutBindings.matches("select_deselect", event):
+            if backend and hasattr(backend, "clear_selection"):
+                backend.clear_selection()
+                w.selection_ctrl.selection_timer.stop()
+                w.update()
                 return True
-            elif event.key() == QtCore.Qt.Key_D:
-                if backend and hasattr(backend, "clear_selection"):
-                    backend.clear_selection()
-                    w.selection_ctrl.selection_timer.stop()
-                    w.update()
-                    return True
-            elif event.key() == QtCore.Qt.Key_I and (modifiers & QtCore.Qt.ShiftModifier):
-                if backend and hasattr(backend, "invert_selection"):
-                    backend.invert_selection()
-                    if backend.has_selection():
-                        w.selection_ctrl.selection_timer.start()
-                    w.update()
-                    return True
-            elif event.key() == QtCore.Qt.Key_A:
-                if backend and hasattr(backend, "select_all"):
-                    backend.select_all()
+        if ShortcutBindings.matches("select_invert", event):
+            if backend and hasattr(backend, "invert_selection"):
+                backend.invert_selection()
+                if backend.has_selection():
                     w.selection_ctrl.selection_timer.start()
-                    w.update()
-                    return True
+                w.update()
+                return True
+        if ShortcutBindings.matches("select_all", event):
+            if backend and hasattr(backend, "select_all"):
+                backend.select_all()
+                w.selection_ctrl.selection_timer.start()
+                w.update()
+                return True
 
         if event.key() in (QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace):
             if backend and hasattr(backend, "has_selection") and backend.has_selection():

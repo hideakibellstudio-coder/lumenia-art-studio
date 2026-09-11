@@ -7,6 +7,8 @@
 #include <vector>
 #include <fstream>
 #include <mutex>
+#include <optional>
+#include <unordered_map>
 
 namespace aladyn::engine::canvas {
 
@@ -20,7 +22,7 @@ namespace aladyn::engine::canvas {
 class ScratchDiskManager {
 public:
     explicit ScratchDiskManager(bool enabled = true);
-    ~ScratchDiskManager();
+    virtual ~ScratchDiskManager();
 
     // Desabilita cópia/movimentação acidental que invalidaria o arquivo
     ScratchDiskManager(const ScratchDiskManager&) = delete;
@@ -30,14 +32,14 @@ public:
     void setEnabled(bool enabled) noexcept;
 
     /// Grava um bloco de bytes no arquivo scratch e retorna seu offset
-    uint64_t writeBlock(const uint8_t* data, size_t size);
-    uint64_t writeBlock(const std::vector<uint8_t>& data) {
+    virtual std::optional<uint64_t> writeBlock(const uint8_t* data, size_t size);
+    std::optional<uint64_t> writeBlock(const std::vector<uint8_t>& data) {
         return writeBlock(data.data(), data.size());
     }
 
     /// Lê um bloco de bytes previamente gravado a partir do offset
     bool readBlock(uint64_t offset, size_t size, uint8_t* outData);
-    bool readBlock(uint64_t offset, size_t size, std::vector<uint8_t>& outData);
+    virtual bool readBlock(uint64_t offset, size_t size, std::vector<uint8_t>& outData);
 
     /// Métricas de auditoria
     [[nodiscard]] uint64_t getTotalBytesPaged() const noexcept { return m_totalBytesPaged; }
@@ -57,6 +59,8 @@ private:
     uint64_t m_currentWriteOffset{0};
     uint64_t m_totalBytesPaged{0};
     size_t m_pagedBlocksCount{0};
+    struct Record { size_t size; uint64_t checksum; };
+    std::unordered_map<uint64_t, Record> m_records;
 };
 
 } // namespace aladyn::engine::canvas

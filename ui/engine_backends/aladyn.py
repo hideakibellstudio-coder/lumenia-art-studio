@@ -35,6 +35,8 @@ from .aladyn_layer_mixin import AladynLayerMixin
 from .aladyn_brush_mixin import AladynBrushMixin
 from .aladyn_stroke_mixin import AladynStrokeMixin
 from .aladyn_color_mixin import AladynColorMixin
+from .aladyn_resources_mixin import AladynResourcesMixin
+from .aladyn_capabilities_mixin import AladynCapabilitiesMixin
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,8 @@ class AladynBackend(
     AladynBrushMixin,
     AladynStrokeMixin,
     AladynColorMixin,
+    AladynResourcesMixin,
+    AladynCapabilitiesMixin,
     EngineBackend,
 ):
     """Backend nativo que encapsula e orquestra a PaintEngineFacade do ALADYN ENGINE."""
@@ -63,6 +67,24 @@ class AladynBackend(
         self._action_stack: list[tuple[str, int]] = []
         self._redo_stack: list[tuple[str, int]] = []
         self._is_filling: bool = False
+        self._view_state: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.0)
+        # Estado canônico das opções que afetam o pipeline nativo. Mantê-lo
+        # no backend permite reaplicar o mesmo perfil ao trocar de documento.
+        self._render_options: dict[str, bool] = {
+            "low_latency": True,
+            "linear_gamma": False,
+            "deep_color": False,
+        }
+        try:
+            from ui.core.config.manager import ConfigManager
+            saved_render = ConfigManager.instance().get_section("render")
+            self._undo_memory_limit_mb = max(1, int(saved_render.get("undo_limit_mb", 512)))
+            self._undo_max_steps = max(1, int(saved_render.get("undo_max_steps", 50)))
+            for key in self._render_options:
+                if key in saved_render:
+                    self._render_options[key] = bool(saved_render[key])
+        except Exception:
+            logger.debug("[AladynBackend] Configuração de renderização indisponível; usando padrões.", exc_info=True)
         self.__init_mdi__()
 
         try:
@@ -82,6 +104,32 @@ class AladynBackend(
     @property
     def available(self) -> bool:
         return self._native is not None
+
+    def set_render_options(self, low_latency: bool, linear_gamma: bool, deep_color: bool) -> None:
+        self._render_options = {
+            "low_latency": bool(low_latency),
+            "linear_gamma": bool(linear_gamma),
+            "deep_color": bool(deep_color),
+        }
+        if self._facade and hasattr(self._facade, "set_render_options"):
+            self._facade.set_render_options(**self._render_options)
+        elif self._facade:
+            # Compatibilidade com extensões nativas antigas durante uma
+            # atualização incremental do aplicativo.
+            for key, value in self._render_options.items():
+                setter = getattr(self._facade, f"set_{key}", None)
+                if setter:
+                    setter(value)
+
+    def get_render_options(self) -> dict[str, bool]:
+        if self._facade:
+            getters = {
+                key: getattr(self._facade, f"get_{key}", None)
+                for key in self._render_options
+            }
+            if all(getters.values()):
+                return {key: bool(getter()) for key, getter in getters.items()}
+        return dict(self._render_options)
 
     def init_renderer(self, hwnd: int, width: int, height: int, canvas_w: int, canvas_h: int) -> None:
         if self._native is None:
@@ -105,29 +153,34 @@ class AladynBackend(
             self._facade.resize_canvas(self._width, self._height)
 
     def render(self, pan_x: float, pan_y: float, zoom: float, rotation_rad: float) -> None:
-        # A renderização do ALADYN ENGINE ocorre diretamente via buffer de pixels RGBA em get_pixel_buffer()
-        pass
+        self._view_state = (float(pan_x), float(pan_y), max(1e-6, float(zoom)), float(rotation_rad))
+        # The native facade owns the raster; touching the display accessor here
+        # makes the contract explicit and refreshes the generation-backed view.
+        if self._facade and hasattr(self._facade, "refresh_display"):
+            self._facade.refresh_display()
+        elif self._facade and hasattr(self._facade, "get_display_pixel_buffer"):
+            self._facade.get_display_pixel_buffer()
 
     # ── Viewport / Câmera ────────────────────────────────────────────────
 
     def update_view(self, zoom: float, pan_x: float, pan_y: float, rotation: float) -> None:
-        pass
+        self.render(pan_x, pan_y, zoom, rotation)
 
     def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> PointerEvent:
         return PointerEvent(x=screen_x, y=screen_y, pressure=pressure, timestamp=timestamp)
 
     # ── Buffer de Pixels & QImage ────────────────────────────────────────
 
-    def get_pixel_buffer(self) -> Any:
+    def get_pixel_buffer(self) -> Optional[bytes]:
         if self._facade:
-            return self._facade.get_pixel_buffer()
+            return bytes(self._facade.get_pixel_buffer())
         return None
 
-    def get_display_pixel_buffer(self) -> Any:
+    def get_display_pixel_buffer(self) -> Optional[bytes]:
         if self._facade:
             if hasattr(self._facade, "get_display_pixel_buffer"):
-                return self._facade.get_display_pixel_buffer()
-            return self._facade.get_pixel_buffer()
+                return bytes(self._facade.get_display_pixel_buffer())
+            return bytes(self._facade.get_pixel_buffer())
         return None
 
     def get_qimage(self) -> Optional[QImage]:
@@ -135,8 +188,56 @@ class AladynBackend(
             memview = self.get_display_pixel_buffer()
             if memview:
                 w, h = self._facade.get_width(), self._facade.get_height()
-                return QImage(memview, w, h, w * 4, QImage.Format_RGBA8888)
+                # Detach from the native buffer; the facade may reuse it on the
+                # next render and QImage must remain valid for its full lifetime.
+                return QImage(memview, w, h, w * 4, QImage.Format_RGBA8888).copy()
         return None
+
+    def get_layer_pixel_buffer(self, layer_index: int) -> Optional[bytes]:
+        if self._facade and hasattr(self._facade, "get_layer_pixel_buffer"):
+            raw = self._facade.get_layer_pixel_buffer(int(layer_index))
+            return bytes(raw) if raw else None
+        return None
+
+    def get_document_generation(self) -> int:
+        if self._facade and hasattr(self._facade, "get_document_generation"):
+            return int(self._facade.get_document_generation())
+        return 0
+
+    def get_layer_name(self, index: int) -> str:
+        if self._facade and hasattr(self._facade, "get_layer_name"):
+            return str(self._facade.get_layer_name(int(index)))
+        return ""
+
+    def begin_layer_transaction(self) -> bool:
+        return bool(self._facade and self._facade.begin_layer_transaction())
+
+    def apply_prepared_geometry(self, prepared_uid: str) -> bool:
+        prepared = self._doc_facades.get(prepared_uid)
+        if not self._facade or prepared is None:
+            return False
+        result = self._facade.apply_prepared_geometry(prepared)
+        self._width, self._height = self._facade.get_width(), self._facade.get_height()
+        return bool(result)
+
+    def commit_layer_transaction(self) -> int:
+        return int(self._facade.commit_layer_transaction()) if self._facade else 0
+
+    def cancel_layer_transaction(self) -> bool:
+        if not self._facade:
+            return False
+        result = self._facade.cancel_layer_transaction()
+        self._width, self._height = self._facade.get_width(), self._facade.get_height()
+        return bool(result)
+
+    def get_undo_step_id(self) -> int:
+        return int(self._facade.get_undo_step_id()) if self._facade else 0
+
+    def get_redo_step_id(self) -> int:
+        return int(self._facade.get_redo_step_id()) if self._facade else 0
+
+    def get_history_step_ids(self) -> list[int]:
+        return list(self._facade.get_history_step_ids()) if self._facade else []
 
     def get_qimage_lod(self, zoom: float) -> tuple[Optional[QImage], float]:
         """Retorna QImage pré-filtrada por Box Filter correspondente ao nível LOD ideal para o zoom."""
@@ -148,7 +249,7 @@ class AladynBackend(
                 res = self._facade.get_display_pixel_buffer_lod(level)
                 if res is not None:
                     memview, lod_w, lod_h, scale = res
-                    return QImage(memview, lod_w, lod_h, lod_w * 4, QImage.Format_RGBA8888), scale
+                    return QImage(memview, lod_w, lod_h, lod_w * 4, QImage.Format_RGBA8888).copy(), scale
         return self.get_qimage(), 1.0
 
     def get_dirty_tile_indices(self) -> list[tuple[int, int]]:
@@ -161,4 +262,5 @@ class AladynBackend(
             self._facade.clear_dirty_tiles()
 
     def dispatch(self, command: Any) -> None:
-        pass
+        from .aladyn_dispatch import dispatch
+        dispatch(self, command)

@@ -14,7 +14,9 @@ public:
         int& activeIndex,
         int width,
         int height,
-        int index
+        int index,
+        bool linearGamma = true,
+        bool deepColor = false
     );
 
     static bool mergeLayerDown(
@@ -22,7 +24,9 @@ public:
         int& activeIndex,
         int width,
         int height,
-        int index
+        int index,
+        bool linearGamma = true,
+        bool deepColor = false
     );
 };
 

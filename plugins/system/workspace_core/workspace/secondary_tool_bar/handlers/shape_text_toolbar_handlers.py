@@ -6,6 +6,7 @@ Strictly decoupled in compliance with ARCcC v2 (< 180 LOC).
 from PySide6 import QtGui, QtWidgets
 from ui.core.icons import get_icon
 from ui.core.i18n import tr
+from ui.core.tool_settings import normalize_tool_settings
 
 
 class ShapeTextToolbarHandlersMixin:
@@ -123,7 +124,7 @@ class ShapeTextToolbarHandlersMixin:
         draw_mode = draw_modes[idx_mode] if 0 <= idx_mode < len(draw_modes) else "both"
         fill_opac = (self.slider_shape_fill_opac_h.value() / 100.0)
 
-        settings = {
+        settings = normalize_tool_settings("shapes", {
             "shape_type": shape_type,
             "draw_mode": draw_mode,
             "stroke_width": self.slider_shape_stroke_h.value(),
@@ -133,7 +134,7 @@ class ShapeTextToolbarHandlersMixin:
             "corner_radius": self.slider_shape_extra_h.value() if shape_type == "shape_rect" else 0,
             "polygon_sides": self.slider_shape_extra_h.value() if shape_type == "shape_polygon" else 5,
             "star_points": self.slider_shape_extra_h.value() if shape_type == "shape_star" else 5,
-        }
+        })
         self._settings_cache["shapes"] = settings
         self.settingsChanged.emit("shapes", settings)
 
@@ -221,15 +222,15 @@ class ShapeTextToolbarHandlersMixin:
         elif self.btn_text_align_r_h.isChecked():
             align = "right"
 
-        settings = {
+        settings = normalize_tool_settings("text", {
             "font_family": self.cbo_text_font_h.currentFont().family(),
             "font_size": self.spin_text_size_h.value(),
             "bold": self.btn_text_bold_h.isChecked(),
             "italic": self.btn_text_italic_h.isChecked(),
             "underline": self.btn_text_underline_h.isChecked(),
             "align": align,
-            "color": self._text_color
-        }
+            "color": self._text_color,
+        })
         self._settings_cache["text"] = settings
         self.settingsChanged.emit("text", settings)
 

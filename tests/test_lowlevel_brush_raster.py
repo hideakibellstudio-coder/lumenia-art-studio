@@ -244,6 +244,62 @@ class TestLowLevelBrushRaster(unittest.TestCase):
         self.assertEqual(backend.get_active_engine_type(), 1, "Engine type deve ser 1 (Pencil)")
         self.assertAlmostEqual(prof_dict.get("pencil_graphite_hardness", 0.0), 0.1)
 
+    # ── 9. Catálogo inteiro: preset -> perfil nativo ───────────────────────
+    def test_09_every_curated_preset_reaches_the_native_profile(self):
+        """Cada receita selecionável troca o mini-motor e altera o perfil ativo."""
+        from plugins.ui.brush_plugin.presets_data import BRUSH_CATEGORIES
+        from ui.engine_backends.aladyn import AladynBackend
+
+        backend = AladynBackend()
+        backend.set_active_document_context("test_doc_all_presets", 128, 128)
+        profile_keys = {
+            "brush_size", "opacity", "hardness", "spacing_factor", "min_size_percent",
+            "min_opacity_percent", "tip_aspect", "tip_angle", "follow_stroke",
+            "pencil_graphite_hardness", "pencil_tilt_shading", "inker_flow_rate",
+            "inker_taper_smoothing", "marker_solvent_wetness", "marker_edge_darkening",
+            "blur_radius", "blur_strength", "smudge_color_pickup", "smudge_mix_ratio",
+            "smudge_stretch", "watercolor_water_level", "watercolor_pigment_bleed",
+            "watercolor_fringe_intensity", "watercolor_granulation", "oil_impasto_depth",
+            "oil_bristle_grooves", "oil_viscosity", "oil_specular_brilliance",
+        }
+        try:
+            for category in BRUSH_CATEGORIES:
+                for preset in category["presets"]:
+                    recipe = {**preset, "engine_type": category["engine_type"]}
+                    backend.apply_brush_preset_dict(recipe)
+                    applied = backend.get_brush_profile_dict()
+
+                    self.assertEqual(backend.get_active_engine_type(), category["engine_type"], preset["label"])
+                    for key in profile_keys.intersection(recipe):
+                        expected, actual = recipe[key], applied[key]
+                        if isinstance(expected, bool):
+                            self.assertIs(actual, expected, f"{preset['label']}: {key}")
+                        else:
+                            self.assertAlmostEqual(float(actual), float(expected), places=5, msg=f"{preset['label']}: {key}")
+
+        finally:
+            backend.close_document_context("test_doc_all_presets")
+
+    # ── 10. Curva de pressão: UI -> ponte -> LUT nativa ────────────────────
+    def test_10_pressure_curve_power_changes_native_lut(self):
+        """O controle de potência deixa de ser persistência sem efeito no motor."""
+        from ui.engine_backends.aladyn import AladynBackend
+
+        backend = AladynBackend()
+        backend.set_active_document_context("test_doc_pressure_curve", 64, 64)
+        try:
+            curve = backend._facade.get_brush_profile().pressure_size_curve
+            before = list(curve.get_lut())
+            backend.set_pressure_curve_power(2.0)
+            after = list(curve.get_lut())
+
+            self.assertNotEqual(before, after)
+            self.assertAlmostEqual(after[128], (128 / 255.0) ** 2, delta=0.02)
+            with self.assertRaises(ValueError):
+                backend.set_pressure_curve_power(0.0)
+        finally:
+            backend.close_document_context("test_doc_pressure_curve")
+
 
 if __name__ == "__main__":
     unittest.main()

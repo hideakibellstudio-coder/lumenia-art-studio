@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QRect
 from .panel_rename_popup import LayerRenamePopup
 from .panel_sync import refresh_layer_thumbnail
+from ui.core.document.history import layer_transaction, LayerTransactionCancelled
 
 
 def add_filter_layer(panel, filter_type=None):
@@ -38,13 +39,11 @@ def add_filter_layer(panel, filter_type=None):
         _repaint()
 
     def on_preview_cancelled():
-        if panel._preview_filter_idx >= 0:
-            from ui.core.engine.registry import EngineRegistry
-            backend = EngineRegistry.instance().get_backend()
-            if backend:
-                backend.remove_layer(panel._preview_filter_idx)
-            panel._preview_filter_idx = -1
-            _repaint()
+        # A camada de preview pertence à transação nativa aberta pelo painel.
+        # Não a remova aqui: o cancelamento da transação restaura o snapshot
+        # completo, inclusive pixels e histórico.
+        panel._filter_transaction_cancelled = True
+        _repaint()
 
     def on_filter_created(name, type_id, params):
         if panel._preview_filter_idx >= 0:
@@ -58,9 +57,14 @@ def add_filter_layer(panel, filter_type=None):
     dialog.preview_changed.connect(on_preview_changed)
     dialog.preview_cancelled.connect(on_preview_cancelled)
     dialog.filter_created.connect(on_filter_created)
+    panel._filter_transaction_cancelled = False
     dialog.exec()
+    if panel._filter_transaction_cancelled:
+        panel._preview_filter_idx = -1
+        raise LayerTransactionCancelled()
 
 
+@layer_transaction
 def create_filter_layer(panel, name: str, type_id: int, params: list):
     """Instancia a camada de ajuste no backend nativo e no LayerManager."""
     panel._updating_selection = True
@@ -128,7 +132,9 @@ def open_edit_filter_popup(panel, uid: int = None):
                 top_w.canvas_widget.update()
 
     popup.params_changed.connect(on_params_changed)
-    popup.exec()
+    result = popup.exec()
+    if result != popup.Accepted:
+        raise LayerTransactionCancelled()
 
 
 def open_rename_popup(panel, uid: int, rect: QRect):
@@ -147,9 +153,10 @@ def open_rename_popup(panel, uid: int, rect: QRect):
 
     popup = LayerRenamePopup(layer.name, target_rect, panel)
 
-    def on_name_changed(new_name):
+    @layer_transaction
+    def rename_transaction(panel, new_name):
         if panel.layer_manager.rename_layer(uid, new_name):
-            c_idx = panel.layer_manager.get_c_index_for_layer(uid)
+            c_idx = panel.layer_manager.layers.index(panel.layer_manager.get_layer_by_uid(uid))
             if c_idx >= 0:
                 from ui.core.engine.registry import EngineRegistry
                 backend = EngineRegistry.instance().get_backend()
@@ -157,7 +164,7 @@ def open_rename_popup(panel, uid: int, rect: QRect):
                     backend.set_layer_name(c_idx, new_name)
             panel.model.layoutChanged.emit()
 
-    popup.name_changed.connect(on_name_changed)
+    popup.name_changed.connect(lambda name: rename_transaction(panel, name))
     popup.show()
     popup.input_edit.setFocus()
 

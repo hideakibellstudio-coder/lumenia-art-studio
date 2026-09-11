@@ -51,6 +51,38 @@ class WgpuRustBackend(EngineBackend):
     def available(self) -> bool:
         return self._engine is not None
 
+    def get_capabilities(self) -> dict[str, object]:
+        """Declara somente o subconjunto que o backend legado realmente executa."""
+        renderer = self._renderer is not None
+        return {
+            "native_engine": self.available,
+            "render": renderer,
+            "stroke": renderer,
+            "brush_controls": renderer,
+            "raster_document": False,
+            "multi_document": False,
+            "layers": False,
+            "groups": False,
+            "filters": False,
+            "selection": False,
+            "transform": False,
+            "guides": False,
+            "canvas_texture": renderer,
+            "history": False,
+            "scratch_history": False,
+            "lod": False,
+            "telemetry": False,
+            "low_latency": False,
+            "linear_gamma": False,
+            "deep_color": False,
+            "color_profiles": False,
+            "color_profile_preview": False,
+            "embedded_icc_profiles": False,
+            "rgba16_document": False,
+            "export_image": False,
+            "document_pixel_format": "indisponível",
+        }
+
     # ── Ciclo de vida ────────────────────────────────────────────────────
 
     def init_renderer(self, hwnd: int, width: int, height: int, canvas_w: int, canvas_h: int) -> None:

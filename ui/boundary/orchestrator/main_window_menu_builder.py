@@ -14,7 +14,7 @@ def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
     win.menu_bar.newDocumentRequested.connect(win.open_new_document_dialog)
     win.menu_bar.openDocumentRequested.connect(win.open_image_file)
     win.menu_bar.saveDocumentRequested.connect(win.save_active_document)
-    win.menu_bar.saveAsDocumentRequested.connect(win.export_image)
+    win.menu_bar.saveAsDocumentRequested.connect(win.save_active_document_as)
     win.menu_bar.exportImageRequested.connect(win.export_image)
     win.menu_bar.closeDocumentRequested.connect(win.close_active_document)
     win.menu_bar.clearCanvasRequested.connect(win.clear_screen)

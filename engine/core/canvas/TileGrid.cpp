@@ -1,5 +1,7 @@
 #include "TileGrid.hpp"
 #include <cmath>
+#include <algorithm>
+#include <cstring>
 
 namespace aladyn::engine::canvas {
 
@@ -37,6 +39,58 @@ void TileGrid::clearAll(raster::ColorRGBA color) {
     for (auto& [idx, tile] : m_tiles) {
         tile->getBuffer().fill(color);
         tile->setDirty(true);
+    }
+}
+
+void TileGrid::resizePreserve(int width, int height, int offsetX, int offsetY) {
+    width = std::max(1, width);
+    height = std::max(1, height);
+    if (width == m_width && height == m_height && offsetX == 0 && offsetY == 0) {
+        return;
+    }
+
+    // Move a grade antiga para preservar todos os tiles sem perder metadados da
+    // camada. A operação ocorre fora do caminho de pintura e pode ser mais lenta.
+    TileGrid old = std::move(*this);
+    m_width = width;
+    m_height = height;
+    m_tilesX = static_cast<int>(std::ceil(static_cast<double>(width) / Tile::TILE_SIZE));
+    m_tilesY = static_cast<int>(std::ceil(static_cast<double>(height) / Tile::TILE_SIZE));
+    m_tiles.clear();
+
+    for (const auto& [idx, sourceTile] : old.m_tiles) {
+        if (!sourceTile) continue;
+        const PixelBuffer& src = sourceTile->getBuffer();
+        const int srcBaseX = sourceTile->getPixelX() + offsetX;
+        const int srcBaseY = sourceTile->getPixelY() + offsetY;
+
+        const int minX = std::max(0, srcBaseX);
+        const int minY = std::max(0, srcBaseY);
+        const int maxX = std::min(width, srcBaseX + Tile::TILE_SIZE);
+        const int maxY = std::min(height, srcBaseY + Tile::TILE_SIZE);
+        if (minX >= maxX || minY >= maxY) continue;
+
+        const auto* srcData = reinterpret_cast<const uint8_t*>(src.getData());
+        for (int y = minY; y < maxY; ++y) {
+            const int localY = y - srcBaseY;
+            for (int x = minX; x < maxX; ++x) {
+                const int localX = x - srcBaseX;
+                const size_t srcOffset = static_cast<size_t>(localY * Tile::TILE_SIZE + localX) * 4u;
+                // Não aloca tiles para pixels transparentes durante expansão.
+                if (srcData[srcOffset + 3] == 0 && srcData[srcOffset] == 0 &&
+                    srcData[srcOffset + 1] == 0 && srcData[srcOffset + 2] == 0) {
+                    continue;
+                }
+                Tile* destinationTile = getOrCreateTile(x / Tile::TILE_SIZE, y / Tile::TILE_SIZE);
+                if (!destinationTile) continue;
+                auto* dstData = reinterpret_cast<uint8_t*>(destinationTile->getBuffer().getData());
+                const int dstLocalX = x % Tile::TILE_SIZE;
+                const int dstLocalY = y % Tile::TILE_SIZE;
+                const size_t dstOffset = static_cast<size_t>(dstLocalY * Tile::TILE_SIZE + dstLocalX) * 4u;
+                std::memcpy(dstData + dstOffset, srcData + srcOffset, 4u);
+                destinationTile->setDirty(true);
+            }
+        }
     }
 }
 

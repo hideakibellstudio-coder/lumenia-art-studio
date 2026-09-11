@@ -55,7 +55,7 @@ class LayerMenu(QtWidgets.QMenu):
 
         # 2. Mesclagem
         self.act_merge = QtGui.QAction(get_icon("merge"), "", self)
-        self.act_merge.setShortcut("Ctrl+E")
+        self.act_merge.setShortcut("Ctrl+Shift+E")
         self.act_merge.triggered.connect(self.mergeDownRequested.emit)
         self.addAction(self.act_merge)
 

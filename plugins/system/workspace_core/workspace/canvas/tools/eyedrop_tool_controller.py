@@ -1,6 +1,7 @@
 """Eyedropper Tool and Color Sampling Controller."""
 
 from PySide6 import QtCore, QtGui
+from ui.core.tool_settings import default_tool_settings
 
 class EyedropToolController:
     """Controlador de amostragem de cor e HUD de lupa do Conta-Gotas."""
@@ -11,17 +12,32 @@ class EyedropToolController:
         self.pos: QtCore.QPointF = QtCore.QPointF()
         self.old_color: QtGui.QColor = QtGui.QColor(0, 0, 0)
         self.current_color: QtGui.QColor = QtGui.QColor(0, 0, 0)
-        self.settings: dict = {
-            "sample_size": "1x1 Ponto Único",
-            "sample_radius": 0,
-            "sample_all": True,
-            "show_loupe": True,
-        }
+        self.settings = default_tool_settings("eyedrop")
 
     def do_sample(self, screen_x: float, screen_y: float) -> QtGui.QColor:
         world_evt = self.widget.to_canvas(screen_x, screen_y, 1.0, 0.0)
         wx = int(max(0, min(self.widget.canvas_w - 1, world_evt.x)))
         wy = int(max(0, min(self.widget.canvas_h - 1, world_evt.y)))
+
+        # Delegate sampling to the backend when available so the “all layers”
+        # option has real semantics and matches the native compositor.
+        backend = getattr(self.widget, "backend", None)
+        if backend is not None:
+            radius = int(self.settings.get("sample_radius", 0))
+            try:
+                if self.settings.get("sample_all", True):
+                    rgba = backend.pick_color_merged(wx, wy, radius)
+                else:
+                    layer_index = int(backend.get_active_layer_index())
+                    rgba = backend.pick_color_layer(layer_index, wx, wy, radius)
+                if rgba and len(rgba) >= 4:
+                    col = QtGui.QColor(*[int(max(0, min(255, c))) for c in rgba[:4]])
+                    self.current_color = col
+                    self.widget.colorPicked.emit(col)
+                    return col
+            except (AttributeError, TypeError, ValueError, RuntimeError):
+                # Keep the QImage fallback for alternate backends.
+                pass
 
         composite = self.widget.get_canvas_image()
         if not composite or composite.isNull():

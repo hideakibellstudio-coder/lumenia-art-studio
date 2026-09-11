@@ -1,4 +1,5 @@
 #include "BindingsCommon.hpp"
+#include "BufferContract.hpp"
 
 namespace aladyn::bridge {
 
@@ -62,21 +63,24 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         .def("set_canvas_height_preset", &boundary::PaintEngineFacade::setCanvasHeightPreset)
         .def("load_shape_texture", [](boundary::PaintEngineFacade& self, int w, int h, py::bytes data) {
             std::string s = data;
+            validateRasterInput(s, w, h, 1);
             self.loadShapeTextureFromBuffer(w, h, reinterpret_cast<const uint8_t*>(s.data()));
         })
         .def("load_brush_height_texture", [](boundary::PaintEngineFacade& self, int w, int h, py::bytes data) {
             std::string s = data;
+            validateRasterInput(s, w, h, 1);
             self.loadBrushHeightTextureFromBuffer(w, h, reinterpret_cast<const uint8_t*>(s.data()));
         })
         .def("load_canvas_height_texture", [](boundary::PaintEngineFacade& self, int w, int h, py::bytes data) {
             std::string s = data;
+            validateRasterInput(s, w, h, 1);
             self.loadCanvasHeightTextureFromBuffer(w, h, reinterpret_cast<const uint8_t*>(s.data()));
         })
         // Preview buffers
         .def("get_shape_preview_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             const auto tex = self.getBrushProfile().shapeTexture;
             if (!tex) return py::none();
-            return py::memoryview::from_memory(tex->getData(), (size_t)(tex->getWidth() * tex->getHeight()), true);
+            return pixelSnapshot(tex->getData(), checkedRasterBytes(tex->getWidth(), tex->getHeight(), 1));
         })
         .def("get_shape_preview_dimensions", [](boundary::PaintEngineFacade& self) {
             const auto tex = self.getBrushProfile().shapeTexture;
@@ -85,7 +89,7 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         .def("get_brush_height_preview_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             const auto tex = self.getBrushProfile().brushHeightTexture;
             if (!tex) return py::none();
-            return py::memoryview::from_memory(tex->getData(), (size_t)(tex->getWidth() * tex->getHeight()), true);
+            return pixelSnapshot(tex->getData(), checkedRasterBytes(tex->getWidth(), tex->getHeight(), 1));
         })
         .def("get_brush_height_preview_dimensions", [](boundary::PaintEngineFacade& self) {
             const auto tex = self.getBrushProfile().brushHeightTexture;
@@ -94,7 +98,7 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         .def("get_canvas_height_preview_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             const auto tex = self.getCanvasTexture().canvasHeightTexture;
             if (!tex) return py::none();
-            return py::memoryview::from_memory(tex->getData(), (size_t)(tex->getWidth() * tex->getHeight()), true);
+            return pixelSnapshot(tex->getData(), checkedRasterBytes(tex->getWidth(), tex->getHeight(), 1));
         })
         .def("get_canvas_height_preview_dimensions", [](boundary::PaintEngineFacade& self) {
             const auto tex = self.getCanvasTexture().canvasHeightTexture;
@@ -103,13 +107,13 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         // Acesso ao estado
         .def("get_brush_profile",  [](boundary::PaintEngineFacade& self) -> brush::BrushProfile& {
             return self.getBrushProfile();
-        }, py::return_value_policy::reference)
+        }, py::return_value_policy::reference_internal)
         .def("get_canvas_texture", [](boundary::PaintEngineFacade& self) -> canvas::CanvasTexture& {
             return self.getCanvasTexture();
-        }, py::return_value_policy::reference)
+        }, py::return_value_policy::reference_internal)
         .def("get_stabilizer", [](boundary::PaintEngineFacade& self) -> stroke::DynamicStabilizer& {
             return self.getStabilizer();
-        }, py::return_value_policy::reference)
+        }, py::return_value_policy::reference_internal)
         // ─── TELEMETRIA E DIAGNÓSTICO EM TEMPO REAL ──────────────────────────
         .def("set_telemetry_enabled", &boundary::PaintEngineFacade::setTelemetryEnabled)
         .def("is_telemetry_enabled", &boundary::PaintEngineFacade::isTelemetryEnabled)

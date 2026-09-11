@@ -27,6 +27,9 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def(py::init<math::CurvePreset>())
         .def("set_control_points", &math::BezierCurve::setControlPoints)
         .def("set_preset", &math::BezierCurve::setPreset)
+        .def("set_power", &math::BezierCurve::setPower)
+        .def("get_lut", &math::BezierCurve::getLut)
+        .def("set_lut", &math::BezierCurve::setLut)
         .def("invert", &math::BezierCurve::invert)
         .def("sample", &math::BezierCurve::sample);
 
@@ -275,7 +278,8 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readwrite("canvas_grain_scale",      &canvas::CanvasTexture::canvasGrainScale)
         .def_readwrite("canvas_grain_contrast",   &canvas::CanvasTexture::canvasGrainContrast)
         .def_readwrite("canvas_grain_invert",     &canvas::CanvasTexture::canvasGrainInvert)
-        .def_readwrite("canvas_texture_curve",    &canvas::CanvasTexture::canvasTextureCurve);
+        .def_readwrite("canvas_texture_curve",    &canvas::CanvasTexture::canvasTextureCurve)
+        .def("invalidate_lut", &canvas::CanvasTexture::invalidateLUT);
 
     // ─── TELEMETRY DATA ───────────────────────────────────────────────────────
     py::class_<boundary::TelemetryData>(m, "TelemetryData")

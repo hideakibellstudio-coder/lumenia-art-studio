@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69", "wheel", "pybind11>=2.12"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lumenia-art-studio"
+version = "0.2.0"
+description = "Lumenia Art Studio com Aladyn Engine nativo"
+authors = [{name = "Aladyn Team"}]
+requires-python = ">=3.11"
+dependencies = [
+  "PySide6>=6.6",
+  "numpy>=1.26",
+  "Pillow>=10.0",
+  "pybind11>=2.12",
+]
+
+# The native extension is declared by setup.py; avoid accidental inclusion of
+# workspace directories (assets, logs, scratch) in wheel builds.
+[tool.setuptools]
+packages = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

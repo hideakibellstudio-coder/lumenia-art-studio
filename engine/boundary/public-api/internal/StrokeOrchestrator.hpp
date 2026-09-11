@@ -56,6 +56,7 @@ struct RawStrokeContext {
     canvas::PixelBuffer& outputBuffer;
     const math::SymmetryConfig& symmetryConfig;
     telemetry::EngineTelemetryManager& telemetryManager;
+    bool lowLatency{false};
 };
 
 class StrokeOrchestrator {

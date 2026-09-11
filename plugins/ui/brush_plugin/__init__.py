@@ -52,10 +52,6 @@ class BrushPlugin(BasePlugin):
             icon_path="brush",
         )
 
-        ws.workspace_container._brush_dock = self._panel
-        if hasattr(ws.workspace_container, "connect_brush_dock"):
-            ws.workspace_container.connect_brush_dock(self._panel)
-
         logger.info("[BrushPlugin] Pincéis & Ferramentas registrado na doca esquerda abaixo de Cores.")
 
     def deactivate(self) -> None:

@@ -13,6 +13,7 @@ class AladynSelectionMixin:
         sample_all_layers: bool = True
     ) -> bool:
         if self._facade and hasattr(self._facade, "magic_wand_select"):
+            self._mark_document_dirty("selection")
             return self._facade.magic_wand_select(
                 int(seed_x), int(seed_y), int(tolerance), bool(contiguous),
                 int(expand_px), bool(anti_aliasing), int(mode), bool(sample_all_layers)
@@ -21,29 +22,36 @@ class AladynSelectionMixin:
 
     def select_rect(self, x: int, y: int, w: int, h: int, mode: int = 0, feather_px: int = 0, corner_radius_px: int = 0) -> bool:
         if self._facade and hasattr(self._facade, "select_rect"):
+            self._mark_document_dirty("selection")
             return self._facade.select_rect(int(x), int(y), int(w), int(h), int(mode), int(feather_px), int(corner_radius_px))
         return False
 
     def select_ellipse(self, cx: int, cy: int, rx: int, ry: int, mode: int = 0, anti_aliasing: bool = True, feather_px: int = 0) -> bool:
         if self._facade and hasattr(self._facade, "select_ellipse"):
+            self._mark_document_dirty("selection")
             return self._facade.select_ellipse(int(cx), int(cy), int(rx), int(ry), int(mode), bool(anti_aliasing), int(feather_px))
         return False
 
     def select_polygon(self, flat_points: list[int], mode: int = 0, anti_aliasing: bool = True, feather_px: int = 0) -> bool:
         if self._facade and hasattr(self._facade, "select_polygon"):
+            self._mark_document_dirty("selection")
             return self._facade.select_polygon([int(p) for p in flat_points], int(mode), bool(anti_aliasing), int(feather_px))
         return False
 
     def clear_selection(self) -> None:
         if self._facade and hasattr(self._facade, "clear_selection"):
+            if self._facade.has_selection():
+                self._mark_document_dirty("selection")
             self._facade.clear_selection()
 
     def invert_selection(self) -> None:
         if self._facade and hasattr(self._facade, "invert_selection"):
+            self._mark_document_dirty("selection")
             self._facade.invert_selection()
 
     def select_all(self) -> None:
         if self._facade and hasattr(self._facade, "select_all"):
+            self._mark_document_dirty("selection")
             self._facade.select_all()
 
     def has_selection(self) -> bool:
@@ -84,5 +92,14 @@ class AladynSelectionMixin:
             memview = self._facade.get_selection_mask_buffer()
             if memview:
                 w, h = self._facade.get_width(), self._facade.get_height()
-                return QImage(memview, w, h, w, QImage.Format_Grayscale8)
+                return QImage(memview, w, h, w, QImage.Format_Grayscale8).copy()
         return None
+
+    def get_selection_mask_buffer(self) -> Optional[bytes]:
+        if self._facade:
+            raw = self._facade.get_selection_mask_buffer()
+            return bytes(raw) if raw is not None else None
+        return None
+
+    def set_selection_mask_buffer(self, pixels: bytes) -> bool:
+        return bool(self._facade and self._facade.set_selection_mask_buffer(bytes(pixels)))

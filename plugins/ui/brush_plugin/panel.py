@@ -224,12 +224,15 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self.stacked_tool_props.addWidget(self.bucket_options_widget)
 
         self.wand_options_widget = WandOptionsWidget(self)
+        self.wand_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("wand", s))
         self.stacked_tool_props.addWidget(self.wand_options_widget)
 
         self.transform_options_widget = TransformOptionsWidget(self)
+        self.transform_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("transform", s))
         self.stacked_tool_props.addWidget(self.transform_options_widget)
 
         self.selection_options_widget = SelectionOptionsWidget(self)
+        self.selection_options_widget.settingsChanged.connect(self._on_selection_options_changed)
         self.stacked_tool_props.addWidget(self.selection_options_widget)
 
         self.shapes_options_widget = ShapesOptionsWidget(self)
@@ -270,6 +273,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self.sliders_section.apply_theme_style(theme)
 
     def set_tool_active(self, tool_name: str) -> None:
+        self._active_tool_id = tool_name
         if hasattr(self, "tool_column"):
             self.tool_column.set_tool_active(tool_name)
 
@@ -300,6 +304,12 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             }
             target = tool_to_widget.get(tool_name, self.brush_props_widget)
             self.stacked_tool_props.setCurrentWidget(target)
+
+    def _on_selection_options_changed(self, settings: dict) -> None:
+        tool = getattr(self, "_active_tool_id", "rect_select")
+        if tool not in ("rect_select", "ellipse_select", "lasso"):
+            tool = "rect_select"
+        self.toolOptionsChanged.emit(tool, settings)
 
     def _on_tool(self, tool_id: str) -> None:
         self.set_tool_active(tool_id)

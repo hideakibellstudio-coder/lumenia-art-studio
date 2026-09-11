@@ -75,7 +75,7 @@ class ViewMenu(QtWidgets.QMenu):
 
         self.action_rulers = QtGui.QAction(get_icon("ruler"), "", self)
         self.action_rulers.setCheckable(True)
-        self.action_rulers.setShortcut("Ctrl+R")
+        self.action_rulers.setShortcut("Ctrl+Shift+R")
         self.action_rulers.triggered.connect(self.toggleRulersRequested.emit)
         self.addAction(self.action_rulers)
 

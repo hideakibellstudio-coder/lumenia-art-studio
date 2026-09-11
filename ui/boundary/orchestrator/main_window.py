@@ -1,24 +1,24 @@
 """MainWindow — Shell principal do Lumenia Brush Engine 2.0 (ARCcC Shell Layer)."""
 
-import os
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from ui.core import ThemeManager
 from ui.core.components import MenuBar, ToolSidebar, StatusBar, ThemeDialog
+from ui.core.runtime_paths import resource_path
 from .main_window_menu_actions import MainWindowMenuActionsMixin
+from .main_window_recovery import MainWindowRecoveryMixin
 
 
-class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
+class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRecoveryMixin):
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Lumenia Brush Engine 2.0")
 
         # ── Ícone Oficial da Aplicação ────────────────────────────────────
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QtGui.QIcon(icon_path))
+        icon_path = resource_path("assets", "images", "icon_lumenia.png")
+        if icon_path.is_file():
+            self.setWindowIcon(QtGui.QIcon(str(icon_path)))
 
         # ── Tema ──────────────────────────────────────────────────────────
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
@@ -52,11 +52,20 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
 
         # ── Componentes nativos da QMainWindow ────────────────────────────
         self._setup_components()
+        from ui.core.config.manager import ConfigManager
+        config = ConfigManager.instance()
+        config.persistenceFailed.connect(self._on_config_save_failed)
+        if config.last_error:
+            self._on_config_save_failed(config.last_error)
+        self.setup_recovery()
 
         # ── Primeiro show: centraliza canvas após layout realizado ─────────
         self._first_show = True
 
     # ── Eventos do ciclo de vida ──────────────────────────────────────────
+
+    def _on_config_save_failed(self, message: str) -> None:
+        self.status_bar.showMessage(f"Não foi possível salvar as preferências: {message}", 10000)
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
@@ -65,6 +74,20 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
             QtCore.QTimer.singleShot(0, self.reset_view)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        # Nunca encerra a janela enquanto existir um documento sujo sem uma
+        # decisão explícita do usuário.
+        for doc in list(self.dm.documents()):
+            if doc.is_dirty:
+                self.close_document_with_confirmation(doc.uid)
+                if self.dm.get_document(doc.uid) is not None:
+                    event.ignore()
+                    return
+        for doc in list(self.dm.documents()):
+            if self.dm.get_document(doc.uid) is not None:
+                self.dm.close_document(doc.uid)
+        event.accept()
+        self.recovery_timer.stop()
+        self.recovery.close()
         super().closeEvent(event)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
@@ -85,10 +108,14 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
         from .main_window_menu_builder import setup_menu_and_shortcuts
         setup_menu_and_shortcuts(self)
 
-        # Atalho Global F12 de Telemetria com prioridade máxima de aplicação
-        self._shortcut_f12_global = QtGui.QShortcut(QtGui.QKeySequence("F12"), self)
-        self._shortcut_f12_global.setContext(QtCore.Qt.ApplicationShortcut)
-        self._shortcut_f12_global.activated.connect(self.open_telemetry_grid_window)
+        from ui.core.shortcut_registry import ShortcutRegistry
+        from ui.core.config.manager import ConfigManager
+        self.shortcut_registry = ShortcutRegistry(self)
+        try:
+            self.shortcut_registry.apply(ConfigManager.instance().get_section("shortcuts"))
+        except ValueError as exc:
+            self.shortcut_registry.apply({})
+            self.status_bar.showMessage(str(exc), 10000)
 
         # ── Wiring: documento ativo → status bar ─────────────────────────
         self.dm.activeDocumentChanged.connect(self._on_active_document_status)
@@ -325,10 +352,16 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
         dialog = CloseDocumentDialog(doc.name, self)
         if dialog.exec() == QtWidgets.QDialog.Accepted:
             if dialog.result_code == CloseDocumentDialog.SAVE:
-                self.status_bar.showMessage(
-                    f"Documento '{doc.name}' salvo com sucesso!", 3000
-                )
-                self.dm.close_document(uid)
+                if self.dm.active_document() is doc:
+                    saved = self.save_active_document()
+                else:
+                    current = self.dm.active_document()
+                    self.dm.set_active_document(uid)
+                    saved = self.save_active_document()
+                    if current:
+                        self.dm.set_active_document(current.uid)
+                if saved:
+                    self.dm.close_document(uid)
             elif dialog.result_code == CloseDocumentDialog.DISCARD:
                 self.dm.close_document(uid)
 

@@ -5,10 +5,10 @@
   <br>
   <strong>Estúdio Desktop de Arte e Pintura Digital de Alta Performance</strong>
   <br>
-  <em>Desenvolvido com ALADYN C++17 Native Engine & PySide6</em>
+  <em>Desenvolvido com ALADYN C++20 Native Engine & PySide6</em>
   <br><br>
   <img src="https://img.shields.io/badge/Versão-v0.2.0%20Alpha-9333ea?style=for-the-badge" alt="Versão Alpha">
-  <img src="https://img.shields.io/badge/C%2B%2B-C%2B%2B17%20SIMD-blue?style=for-the-badge" alt="C++17 SIMD">
+  <img src="https://img.shields.io/badge/C%2B%2B-C%2B%2B20%20SIMD-blue?style=for-the-badge" alt="C++20 SIMD">
   <img src="https://img.shields.io/badge/GUI-PySide6%206.11-success?style=for-the-badge" alt="PySide6">
   <img src="https://img.shields.io/badge/Portátil-100%25%20Standalone-orange?style=for-the-badge" alt="Portátil">
 </div>
@@ -19,7 +19,7 @@
 
 O **Lumenia** é um software desktop para ilustração, arte conceitual, lineart e pintura digital focado em **resposta imediata de caneta, leveza extrema e inicialização ultrarrápida (< 1 segundo)**.
 
-Construído para superar as frustrações comuns de softwares de arte pesados (que sofrem com input lag e alto consumo de memória), o Lumenia combina um **motor C++17 acelerado por SIMD** (`aladyn_engine_native`) com uma interface moderna, elegante e modular baseada em **PySide6 (Qt6)** sob a arquitetura **BCE (Boundary-Control-Entity)**.
+O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_native`) e interface modular baseada em **PySide6 (Qt6)** sob a arquitetura ARCcC. Consulte [BUILD.md](BUILD.md) para compilar o artefato x64 compatível e executar a validação.
 
 ---
 
@@ -107,19 +107,22 @@ Lumenia/
 
 1. Instale as dependências:
    ```bash
-   pip install -r ui/requirements.txt
+   pip install -r requirements-dev.lock
    ```
 2. Inicie o aplicativo:
    ```bash
-   python ui/main.py
+   python main.py
    ```
 
 ### Opção B: Versão Portátil Autônoma (Sem Instalação)
 
-Acesse a pasta `Lumenia_Alpha_Portable/Lumenia/` e execute diretamente o executável:
-```text
-Lumenia.exe
+Gere o bundle com Nuitka a partir do motor nativo compilado:
+```bash
+python scripts/build_portable.py
 ```
+O resultado validado fica em `build/portable/Lumenia.dist/Lumenia.exe`, junto
+de um manifesto SHA-256 dos arquivos distribuídos. Consulte [BUILD.md](BUILD.md)
+para gerar o instalador Inno Setup e para os requisitos de assinatura de release.
 
 ---
 

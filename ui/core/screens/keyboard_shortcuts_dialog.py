@@ -10,53 +10,7 @@ from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
 from ui.core.i18n import tr
 
-DEFAULT_SHORTCUTS = [
-    # Categoria: Ferramentas
-    {"id": "tool_brush", "category": "Ferramentas", "name": "Ferramenta Pincel", "default": "B", "icon": "brush"},
-    {"id": "tool_eraser", "category": "Ferramentas", "name": "Ferramenta Borracha", "default": "E", "icon": "eraser"},
-    {"id": "tool_shapes", "category": "Ferramentas", "name": "Ferramenta Formas Geométricas", "default": "U", "icon": "shapes"},
-    {"id": "tool_text", "category": "Ferramentas", "name": "Ferramenta de Texto", "default": "T", "icon": "text"},
-    {"id": "tool_eyedropper", "category": "Ferramentas", "name": "Conta-Gotas", "default": "I", "icon": "eyedropper"},
-    {"id": "tool_fill", "category": "Ferramentas", "name": "Balde de Tinta (Preenchimento)", "default": "G", "icon": "bucket"},
-    {"id": "tool_wand", "category": "Ferramentas", "name": "Varinha Mágica", "default": "W", "icon": "wand"},
-    {"id": "tool_transform", "category": "Ferramentas", "name": "Transformação Livre", "default": "Ctrl+T", "icon": "transform"},
-
-    # Categoria: Arquivo
-    {"id": "file_new", "category": "Arquivo", "name": "Novo Documento", "default": "Ctrl+N", "icon": "plus"},
-    {"id": "file_open", "category": "Arquivo", "name": "Abrir Imagem / Documento", "default": "Ctrl+O", "icon": "folder"},
-    {"id": "file_save", "category": "Arquivo", "name": "Salvar", "default": "Ctrl+S", "icon": "save"},
-    {"id": "file_save_as", "category": "Arquivo", "name": "Salvar Como...", "default": "Ctrl+Shift+S", "icon": "save"},
-    {"id": "file_export", "category": "Arquivo", "name": "Exportar Imagem...", "default": "Ctrl+E", "icon": "export"},
-    {"id": "file_close", "category": "Arquivo", "name": "Fechar Aba Atual", "default": "Ctrl+W", "icon": "close"},
-    {"id": "file_exit", "category": "Arquivo", "name": "Sair do Lumenia", "default": "Ctrl+Q", "icon": "close"},
-
-    # Categoria: Edição
-    {"id": "edit_undo", "category": "Edição", "name": "Desfazer (Undo)", "default": "Ctrl+Z", "icon": "undo"},
-    {"id": "edit_redo", "category": "Edição", "name": "Refazer (Redo)", "default": "Ctrl+Y", "icon": "redo"},
-    {"id": "edit_cut", "category": "Edição", "name": "Recortar", "default": "Ctrl+X", "icon": "cut"},
-    {"id": "edit_copy", "category": "Edição", "name": "Copiar", "default": "Ctrl+C", "icon": "copy"},
-    {"id": "edit_paste", "category": "Edição", "name": "Colar", "default": "Ctrl+V", "icon": "paste"},
-    {"id": "edit_clear_layer", "category": "Edição", "name": "Limpar Conteúdo da Camada", "default": "Del", "icon": "clean_layer"},
-
-    # Categoria: Camadas
-    {"id": "layer_new", "category": "Camadas", "name": "Nova Camada", "default": "Ctrl+Shift+N", "icon": "plus"},
-    {"id": "layer_group", "category": "Camadas", "name": "Novo Grupo", "default": "Ctrl+G", "icon": "folder"},
-    {"id": "layer_duplicate", "category": "Camadas", "name": "Duplicar Camada / Grupo", "default": "Ctrl+J", "icon": "duplicate"},
-    {"id": "layer_delete", "category": "Camadas", "name": "Excluir Camada Ativa", "default": "Shift+Del", "icon": "trash"},
-    {"id": "layer_merge", "category": "Camadas", "name": "Mesclar Camada para Baixo", "default": "Ctrl+E", "icon": "layer_flatten"},
-
-    # Categoria: Exibir
-    {"id": "view_zoom_in", "category": "Exibir", "name": "Aproximar Zoom (Zoom In)", "default": "Ctrl+=", "icon": "zoom_in"},
-    {"id": "view_zoom_out", "category": "Exibir", "name": "Afastar Zoom (Zoom Out)", "default": "Ctrl+-", "icon": "zoom_out"},
-    {"id": "view_zoom_100", "category": "Exibir", "name": "Resetar Zoom para 100%", "default": "Ctrl+0", "icon": "reset"},
-    {"id": "view_reset_rot", "category": "Exibir", "name": "Resetar Rotação da Câmera", "default": "Ctrl+R", "icon": "reset"},
-    {"id": "view_grid", "category": "Exibir", "name": "Alternar Grade Guia", "default": "Ctrl+'", "icon": "grid"},
-
-    # Categoria: Seleção
-    {"id": "select_all", "category": "Seleção", "name": "Selecionar Tudo", "default": "Ctrl+A", "icon": "select"},
-    {"id": "select_deselect", "category": "Seleção", "name": "Desmarcar Seleção", "default": "Ctrl+D", "icon": "deselect"},
-    {"id": "select_invert", "category": "Seleção", "name": "Inverter Seleção", "default": "Ctrl+Shift+I", "icon": "transform"},
-]
+from ui.core.shortcut_catalog import DEFAULT_SHORTCUTS
 
 
 class KeySequenceRecorder(QtWidgets.QLineEdit):
@@ -339,7 +293,20 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
 
     def _on_save_and_apply(self):
         from ui.core.config import ConfigManager
-        ConfigManager.instance().set_section("shortcuts", self._shortcuts_map)
+        registry = getattr(self.parentWidget(), "shortcut_registry", None)
+        if registry:
+            try:
+                registry.validate(self._shortcuts_map)
+            except ValueError as exc:
+                QtWidgets.QMessageBox.warning(self, "Conflito de atalhos", str(exc))
+                return
+        config = ConfigManager.instance()
+        previous = config.get_section("shortcuts")
+        config.set_section("shortcuts", self._shortcuts_map, auto_save=False)
+        if not config.save():
+            config.set_section("shortcuts", previous, auto_save=False)
+            QtWidgets.QMessageBox.warning(self, "Falha ao salvar", config.last_error or "Erro de persistência")
+            return
         self.shortcutsApplied.emit(self._shortcuts_map)
         self.accept()
 
@@ -403,4 +370,3 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
                 QPushButton:hover {{ background-color: {accent_hover}; }}
             """)
         self._populate_table()
-

@@ -10,6 +10,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.i18n import tr
+from ui.core.runtime_paths import resource_path
 
 
 class AboutDialog(BaseFramelessDialog):
@@ -19,9 +20,7 @@ class AboutDialog(BaseFramelessDialog):
         super().__init__(title=tr("dialogs.about_title", "Sobre o Lumenia"), icon_name="info", parent=parent, modal=True)
         self.resize(520, 500)
 
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
-        self.icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
+        self.icon_path = str(resource_path("assets", "images", "icon_lumenia.png"))
 
         self._build_ui()
         self._apply_theme()

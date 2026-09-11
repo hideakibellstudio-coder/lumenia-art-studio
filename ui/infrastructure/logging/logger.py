@@ -14,6 +14,7 @@ import functools
 import logging
 from logging.handlers import RotatingFileHandler
 from PySide6 import QtCore, QtWidgets
+from ui.core.runtime_paths import writable_data_dir
 
 
 # ── ANSI COLORS PARA TERMINAL ───────────────────────────────────────────────
@@ -172,11 +173,10 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
 
     # 2. Rotating File Handler
     try:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        logs_dir = os.path.join(project_root, "logs")
-        os.makedirs(logs_dir, exist_ok=True)
+        logs_dir = writable_data_dir() / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
 
-        log_file_path = os.path.join(logs_dir, "lumenia_latest.log")
+        log_file_path = str(logs_dir / "lumenia_latest.log")
         file_handler = RotatingFileHandler(
             log_file_path, maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
         )

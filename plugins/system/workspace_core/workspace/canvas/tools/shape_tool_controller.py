@@ -3,23 +3,14 @@
 import math
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
+from ui.core.tool_settings import default_tool_settings
 
 class ShapeToolController:
     """Controlador de desenho e rasterização de formas vetoriais no ALADYN ENGINE."""
 
     def __init__(self, widget):
         self.widget = widget
-        self.settings: dict = {
-            "shape_type": "shape_line",
-            "draw_mode": "both",
-            "stroke_width": 4,
-            "stroke_color": QtGui.QColor(0, 0, 0, 255),
-            "fill_color": QtGui.QColor(0, 0, 0, 255),
-            "corner_radius": 0,
-            "polygon_sides": 5,
-            "star_points": 5,
-            "star_inner_ratio": 0.5,
-        }
+        self.settings = default_tool_settings("shapes")
         self.drag_active: bool = False
         self.drag_start: QtCore.QPointF = QtCore.QPointF(0, 0)
         self.drag_current: QtCore.QPointF = QtCore.QPointF(0, 0)

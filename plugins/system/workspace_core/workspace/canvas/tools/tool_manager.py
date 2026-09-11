@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from PySide6 import QtGui
 
 from ui.core.engine.registry import EngineRegistry
+from ui.core.tool_settings import normalize_tool_settings
 
 from .selection_tool_controller import SelectionToolController
 from .shape_tool_controller import ShapeToolController
@@ -55,7 +56,7 @@ class ToolManager:
 
     # ── Shape Tool Commands ──
     def set_shape_settings(self, settings: dict) -> None:
-        self.shape_ctrl.settings.update(settings)
+        self.shape_ctrl.settings = normalize_tool_settings("shapes", settings, self.shape_ctrl.settings)
         if self.widget.active_tool == "shapes" or self.widget.active_tool.startswith("shape_"):
             self.widget.active_tool = "shapes"
         self.widget.update()
@@ -98,7 +99,7 @@ class ToolManager:
             ok = b.fill_area(
                 seed_x=int(evt.x),
                 seed_y=int(evt.y),
-                fill_color=getattr(self.widget, "brush_color", QtGui.QColor(0, 0, 0, 255)),
+                fill_color=getattr(self.widget, "_active_draw_color", QtGui.QColor(0, 0, 0, 255)),
                 tolerance=self.widget._bucket_settings.get("tolerance", 20),
                 contiguous=self.widget._bucket_settings.get("contiguous", True),
                 expand_px=self.widget._bucket_settings.get("expand_px", 1),

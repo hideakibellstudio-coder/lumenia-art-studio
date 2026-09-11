@@ -159,7 +159,7 @@ class LayerTreeView(QTreeView):
             self.moveUpRequested.emit()
         elif mods & Qt.ControlModifier and key == Qt.Key_BracketLeft:
             self.moveDownRequested.emit()
-        elif mods & Qt.ControlModifier and key == Qt.Key_E:
+        elif mods & Qt.ControlModifier and mods & Qt.ShiftModifier and key == Qt.Key_E:
             self.mergeDownRequested.emit()
         else:
             super().keyPressEvent(event)

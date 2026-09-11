@@ -80,6 +80,12 @@ class DiagnosticsDialog(BaseFramelessDialog):
         prof_id = getattr(backend, "get_color_profile", lambda: 0)()
         prof_name = getattr(backend, "get_color_profile_name", lambda p: "sRGB")(prof_id)
         self._add_item("Espaço de Cor & Pipeline", f"{prof_name} (ID: {prof_id})")
+        capabilities = backend.get_capabilities() if backend else {}
+        self._add_item("Formato de Pixel do Documento", str(capabilities.get("document_pixel_format", "indisponível")))
+        precision = "Composição de precisão estendida disponível" if capabilities.get("deep_color", False) else "RGBA8"
+        self._add_item("Precisão de Composição", precision)
+        icc = "Suportado" if capabilities.get("embedded_icc_profiles", False) else "Não disponível neste backend"
+        self._add_item("Perfis ICC incorporados", icc)
 
         # 4. Memória Estimada do Canvas
         ram_mb = (w * h * 4 * 4) / (1024 * 1024)  # ~4 buffers RGBA

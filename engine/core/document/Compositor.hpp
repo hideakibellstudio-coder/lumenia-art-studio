@@ -16,7 +16,15 @@ public:
     Compositor(int width, int height);
 
     static raster::ColorRGBA blendPixel(raster::ColorRGBA src, double layerOpacity, raster::ColorRGBA dst, LayerBlendMode mode);
+    static raster::ColorRGBA blendPixel(raster::ColorRGBA src, double layerOpacity, raster::ColorRGBA dst, LayerBlendMode mode, bool linearGamma, bool deepColor);
     static void applyFilterToBuffer(const FilterLayer& filter, canvas::PixelBuffer& buffer, int minX = 0, int maxX = -1, int minY = 0, int maxY = -1);
+
+    // Opções do pipeline são propriedades do compositor, e não apenas
+    // preferências da interface. A composição seguinte já usa os valores.
+    void setLinearGamma(bool enabled) noexcept { m_linearGamma = enabled; }
+    [[nodiscard]] bool isLinearGamma() const noexcept { return m_linearGamma; }
+    void setDeepColor(bool enabled) noexcept { m_deepColor = enabled; }
+    [[nodiscard]] bool isDeepColor() const noexcept { return m_deepColor; }
 
     void composite(const std::vector<const Layer*>& layers, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
     void composite(const std::vector<std::unique_ptr<Layer>>& layers, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
@@ -42,6 +50,11 @@ public:
 private:
     int m_width{0};
     int m_height{0};
+    // Mantém o comportamento histórico (mistura linear) para facades
+    // construídas diretamente; a camada de configuração aplica o perfil
+    // escolhido pelo usuário assim que cria o contexto do documento.
+    bool m_linearGamma{true};
+    bool m_deepColor{false};
 };
 
 } // namespace aladyn::engine::document

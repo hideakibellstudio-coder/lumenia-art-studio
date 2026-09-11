@@ -1,4 +1,5 @@
 #include "BindingsCommon.hpp"
+#include "BufferContract.hpp"
 
 namespace aladyn::bridge {
 
@@ -20,6 +21,7 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
         .def("can_undo", &boundary::PaintEngineFacade::canUndo)
         .def("can_redo", &boundary::PaintEngineFacade::canRedo)
         .def("get_undo_count", &boundary::PaintEngineFacade::getUndoCount)
+        .def("get_history_error", &boundary::PaintEngineFacade::getHistoryError)
         .def("get_redo_count", &boundary::PaintEngineFacade::getRedoCount)
         .def("set_undo_memory_limit_mb", &boundary::PaintEngineFacade::setUndoMemoryLimitMB)
         .def("get_undo_memory_limit_mb", &boundary::PaintEngineFacade::getUndoMemoryLimitMB)
@@ -48,10 +50,14 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
         .def("fill_selection_on_active_layer", &boundary::PaintEngineFacade::fillSelectionOnActiveLayer, py::arg("fill_color"))
         .def("get_selection_mask_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             if (!self.hasSelection()) return py::none();
-            return py::memoryview::from_memory(
-                self.getSelectionMaskData(), self.getSelectionMaskSize(), true);
+            return pixelSnapshot(self.getSelectionMaskData(), self.getSelectionMaskSize());
         })
         .def("get_selection_bounds", &boundary::PaintEngineFacade::getSelectionBounds)
+        .def("set_selection_mask_buffer", [](boundary::PaintEngineFacade& self, py::bytes buffer) {
+            std::string data = buffer;
+            validateRasterInput(data, self.getWidth(), self.getHeight(), 1);
+            return self.setSelectionMaskBuffer(std::vector<uint8_t>(data.begin(), data.end()));
+        })
         .def("get_selection_contour_segments", &boundary::PaintEngineFacade::getSelectionContourSegments)
         .def("get_selection_contour_loops", &boundary::PaintEngineFacade::getSelectionContourLoops)
         // Transform Tool bindings
@@ -72,7 +78,7 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
             if (!ptr) return py::none();
             auto sz = self.getTransformSourceBufferSize();
             if (sz[0] <= 0 || sz[1] <= 0) return py::none();
-            return py::memoryview::from_memory(ptr, static_cast<size_t>(sz[0] * sz[1] * 4), true);
+            return pixelSnapshot(ptr, checkedRasterBytes(sz[0], sz[1], 4));
         })
         // Métodos de Simetria & Guias
         .def("set_symmetry_config", &boundary::PaintEngineFacade::setSymmetryConfig,

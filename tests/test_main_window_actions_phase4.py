@@ -19,14 +19,21 @@ def qapp():
     return app
 
 
-class DummyHost(MainWindowMenuActionsMixin):
+class DummyHost(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
     """Host falso simulando a MainWindow para testar o mixin desacoplado."""
 
     def __init__(self):
+        super().__init__()
+        from ui.core.components.menu_bar import MenuBar
+        from ui.core.shortcut_registry import ShortcutRegistry
         self.status_bar = QtWidgets.QStatusBar()
         self.workspace = None
-        self.shortcut_undo = QtGui.QAction("Undo")
-        self.shortcut_tool_b = QtGui.QAction("Brush")
+        self.menu_bar = MenuBar(self)
+        self.shortcut_undo = self.menu_bar.edit_menu.act_undo
+        self.shortcut_tool_b = QtGui.QAction("Brush", self)
+        for suffix in ("e", "u", "t"):
+            setattr(self, f"shortcut_tool_{suffix}", QtGui.QShortcut(self))
+        self.shortcut_registry = ShortcutRegistry(self)
 
 
 def test_main_window_dialog_actions_mixin_contract():

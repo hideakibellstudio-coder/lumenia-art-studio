@@ -73,15 +73,14 @@ class AladynTransformMixin:
             if memview:
                 sz = self._facade.get_transform_source_buffer_size()
                 if sz[0] > 0 and sz[1] > 0:
-                    return QImage(memview, sz[0], sz[1], sz[0] * 4, QImage.Format_RGBA8888)
+                    return QImage(memview, sz[0], sz[1], sz[0] * 4, QImage.Format_RGBA8888).copy()
         return None
 
     def paste_rgba_buffer_on_active_layer(
         self, x: int, y: int, width: int, height: int, data: bytes, blend_mode: int = 0, opacity: float = 1.0
     ) -> bool:
         if self._facade and hasattr(self._facade, "paste_rgba_buffer_on_active_layer"):
-            self._facade.paste_rgba_buffer_on_active_layer(
+            return bool(self._facade.paste_rgba_buffer_on_active_layer(
                 int(x), int(y), int(width), int(height), data, int(blend_mode), float(opacity)
-            )
-            return True
+            ))
         return False

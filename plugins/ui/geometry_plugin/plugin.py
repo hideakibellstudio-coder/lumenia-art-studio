@@ -49,6 +49,7 @@ class GeometryPlugin(BasePlugin):
         logger.info("[GeometryPlugin] Painel de Guias & Simetria ativado com sucesso.")
 
     def deactivate(self) -> None:
-        if self._panel is not None:
-            self._panel.deleteLater()
-            self._panel = None
+        ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
+        if ws and self._panel:
+            ws.remove_panel("geometry")
+        self._panel = None

@@ -20,12 +20,21 @@ def load_render_settings() -> dict:
     """Carrega as configurações salvas de renderização e perfil de cor do ConfigManager (JSON)."""
     from ui.core.config import ConfigManager
     sec = ConfigManager.instance().get_section("render")
+    raw_profile = sec.get("profile_id", 0)
+    aliases = {"srgb": 0, "display_p3": 1, "p3": 1, "adobe_rgb": 2, "rec2020": 3}
+    if isinstance(raw_profile, str):
+        profile_id = aliases.get(raw_profile.strip().lower(), 0)
+    else:
+        try:
+            profile_id = int(raw_profile)
+        except (TypeError, ValueError):
+            profile_id = 0
     return {
-        "profile_id": int(sec.get("profile_id", 0)) if isinstance(sec.get("profile_id"), (int, float)) else 0,
+        "profile_id": profile_id,
         "low_latency": bool(sec.get("low_latency", True)),
         "linear_gamma": bool(sec.get("linear_gamma", False)),
-        "deep_color": bool(sec.get("deep_color", True)),
-        "undo_limit_mb": int(sec.get("undo_limit_mb", 256)),
+        "deep_color": bool(sec.get("deep_color", False)),
+        "undo_limit_mb": int(sec.get("undo_limit_mb", 512)),
         "undo_max_steps": int(sec.get("undo_max_steps", 50)),
     }
 
@@ -51,8 +60,6 @@ class ProofingPreviewBar(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, event):
-        from ui.core.engine.color_profile import ColorProfileEngine
-
         p = QtGui.QPainter(self)
         p.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -81,7 +88,12 @@ class ProofingPreviewBar(QtWidgets.QWidget):
         img_painter.end()
 
         if self._profile_id != 0:
-            img = ColorProfileEngine.transform_qimage(img, self._profile_id)
+            from ui.core.engine.registry import EngineRegistry
+            backend = EngineRegistry.instance().get_backend()
+            transform = getattr(backend, "transform_rgba_for_profile", None) if backend else None
+            if transform:
+                raw = transform(bytes(img.bits()), self._profile_id)
+                img = QtGui.QImage(raw, w, h, w * 4, QtGui.QImage.Format_RGBA8888).copy()
 
         p.drawImage(0, 0, img)
         p.setClipping(False)
@@ -202,9 +214,10 @@ class EnginePipelineGroup(QtWidgets.QGroupBox):
 
     settingsChanged = QtCore.Signal(dict)
 
-    def __init__(self, saved_cfg: dict, parent=None):
+    def __init__(self, saved_cfg: dict, capabilities: Optional[dict] = None, parent=None):
         super().__init__("Pipeline de Renderização & Motor Físico", parent)
         self._saved_cfg = saved_cfg
+        self._capabilities = dict(capabilities or {})
         self._build_ui()
 
     def _build_ui(self):
@@ -238,10 +251,10 @@ class EnginePipelineGroup(QtWidgets.QGroupBox):
 
         # 3. Deep Color
         row_deep = QtWidgets.QHBoxLayout()
-        self.lbl_deep = QtWidgets.QLabel("Deep Color 64-bit (Half-Float RGBA16F Precision)")
-        self.lbl_deep.setToolTip("Elimina 100% de banding em gradientes suaves e aquarelas")
+        self.lbl_deep = QtWidgets.QLabel("Deep Color (composição de precisão estendida)")
+        self.lbl_deep.setToolTip("Calcula cada composição em precisão estendida antes da quantização final de 8 bits")
         self.switch_deep = ToggleSwitch()
-        self.switch_deep.setChecked(self._saved_cfg.get("deep_color", True))
+        self.switch_deep.setChecked(self._saved_cfg.get("deep_color", False))
         self.switch_deep.toggled.connect(self._on_setting_changed)
         row_deep.addWidget(self.lbl_deep)
         row_deep.addStretch()
@@ -268,6 +281,24 @@ class EnginePipelineGroup(QtWidgets.QGroupBox):
         row_undo.addStretch()
         row_undo.addWidget(self.combo_undo)
         engine_layout.addLayout(row_undo)
+
+        self._apply_capabilities()
+
+    def _apply_capabilities(self) -> None:
+        controls = (
+            ("low_latency", self.lbl_lat, self.switch_lat),
+            ("linear_gamma", self.lbl_gam, self.switch_gam),
+            ("deep_color", self.lbl_deep, self.switch_deep),
+            ("history", self.lbl_undo, self.combo_undo),
+        )
+        for capability, label, control in controls:
+            supported = bool(self._capabilities.get(capability, False))
+            label.setEnabled(supported)
+            control.setEnabled(supported)
+            if not supported:
+                message = "Indisponível no backend ativo."
+                label.setToolTip(message)
+                control.setToolTip(message)
 
     def _on_setting_changed(self, *args):
         mb = int(self.combo_undo.currentData() or 256) if hasattr(self, "combo_undo") else 256

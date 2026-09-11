@@ -8,6 +8,7 @@ composição na camada ativa via backend nativo C++ e renderização do texto em
 from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 from PySide6 import QtCore, QtGui
+from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
 
 if TYPE_CHECKING:
     from ..render_widget import RenderWidget
@@ -20,19 +21,11 @@ class TextToolController:
 
     def __init__(self, widget: RenderWidget) -> None:
         self.widget = widget
-        self.settings: dict = {
-            "font_family": "Segoe UI",
-            "font_size": 36,
-            "bold": False,
-            "italic": False,
-            "underline": False,
-            "align": "left",
-            "color": QtGui.QColor(0, 0, 0, 255),
-        }
+        self.settings = default_tool_settings("text")
         self.active_editor: Optional[TextOverlayEditor] = None
 
     def set_settings(self, new_settings: dict) -> None:
-        self.settings.update(new_settings)
+        self.settings = normalize_tool_settings("text", new_settings, self.settings)
         if self.active_editor:
             self.active_editor.apply_typography(self.settings)
 

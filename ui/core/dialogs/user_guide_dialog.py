@@ -12,6 +12,7 @@ from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.theme.manager import ThemeManager
 from ui.core.i18n import I18nManager, tr
 from ui.core.icons import get_icon
+from ui.core.runtime_paths import resource_path
 
 
 class UserGuideDialog(BaseFramelessDialog):
@@ -92,8 +93,7 @@ class UserGuideDialog(BaseFramelessDialog):
 
     def _get_docs_dir(self) -> Path:
         """Localiza o diretório de documentação de forma determinística."""
-        base_dir = Path(__file__).resolve().parent.parent.parent.parent
-        return base_dir / "assets" / "docs"
+        return resource_path("assets", "docs")
 
     def _load_guide(self, locale_code: str) -> None:
         """Carrega e renderiza o arquivo markdown correspondente ao idioma."""

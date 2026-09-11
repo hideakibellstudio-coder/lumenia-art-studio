@@ -3,6 +3,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.i18n import tr, I18nManager
+from ui.core.tool_settings import normalize_tool_settings
 from .base import ToolHeaderLabel, ModernOptionCheckBox
 
 
@@ -114,12 +115,12 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
         sample_map = {0: "1x1 Ponto Único", 1: "3x3 Média", 2: "5x5 Média", 3: "11x11 Média"}
         radius_map = {0: 0, 1: 1, 2: 2, 3: 5}
         idx = self.combo_sample.currentIndex()
-        settings = {
+        settings = normalize_tool_settings("eyedrop", {
             "sample_size": sample_map.get(idx, "1x1 Ponto Único"),
             "sample_radius": radius_map.get(idx, 0),
             "sample_all": self.chk_sample_all.isChecked(),
             "show_loupe": self.chk_show_loupe.isChecked(),
-        }
+        })
         self.settingsChanged.emit(settings)
 
     def _apply_theme(self, *_):

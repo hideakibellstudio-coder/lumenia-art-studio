@@ -15,15 +15,15 @@ logger = logging.getLogger(__name__)
 class AladynBrushMixin:
     """Mixin responsável pelo perfil, presets e parâmetros de pincéis no AladynBackend."""
 
-    def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False) -> None:
+    def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False, *, reset_texture: bool = True) -> None:
         if self._facade and hasattr(self._facade, "get_canvas_texture"):
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_enabled = bool(enabled)
-            if hasattr(self._facade, "set_canvas_height_preset"):
+            if reset_texture and hasattr(self._facade, "set_canvas_height_preset"):
                 self._facade.set_canvas_height_preset(int(preset_id))
             if hasattr(color, "red") and hasattr(self._facade, "set_background_color"):
-                self._facade.set_background_color(color.red(), color.green(), color.blue(), 255 if visible else 0)
+                self._facade.set_background_color(color.red(), color.green(), color.blue(), color.alpha() if visible else 0)
 
     def set_canvas_grain_enabled(self, enabled: bool) -> None:
         if self._facade and hasattr(self._facade, "get_canvas_texture"):
@@ -40,6 +40,7 @@ class AladynBrushMixin:
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_contrast = float(contrast)
+                c_tex.invalidate_lut()
 
     def set_canvas_grain_scale(self, scale: float) -> None:
         if self._facade and hasattr(self._facade, "get_canvas_texture"):
@@ -52,6 +53,7 @@ class AladynBrushMixin:
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_invert = bool(invert)
+                c_tex.invalidate_lut()
 
     def set_brush_param(self, group: str, param: str, value: Any) -> None:
         if not self._facade:
@@ -209,6 +211,10 @@ class AladynBrushMixin:
             self.set_stabilizer_weight(float(data["stabilizer"]))
 
         key_mappings = {
+            "min_size_percent": ("root", "min_size_percent"),
+            "min_opacity_percent": ("root", "min_opacity_percent"),
+            "pressure_size_enabled": ("root", "pressure_size_enabled"),
+            "pressure_flow_enabled": ("root", "pressure_flow_enabled"),
             "tip_aspect": ("tip", "aspect_ratio"),
             "tip_angle": ("tip", "angle"),
             "follow_stroke": ("tip", "follow_stroke"),
@@ -389,7 +395,13 @@ class AladynBrushMixin:
             self._facade.get_brush_profile().brush_grain_invert = bool(invert)
 
     def set_pressure_curve_power(self, power: float) -> None:
-        pass
+        import math
+        power = float(power)
+        if not math.isfinite(power) or power <= 0:
+            raise ValueError("pressure power must be finite and positive")
+        if self._facade:
+            profile = self._facade.get_brush_profile()
+            profile.pressure_size_curve.set_power(power)
 
     def set_curve_control_points(self, curve_type: str, points: list[tuple[float, float]], enabled: bool) -> None:
         if not self._facade:
@@ -438,8 +450,10 @@ class AladynBrushMixin:
 
     def set_shape_texture(self, pixels: bytes, width: int, height: int) -> None:
         if self._facade:
-            self._facade.load_shape_texture(width, height, pixels)
+            from .aladyn_buffers import texture_intensity
+            self._facade.load_shape_texture(width, height, texture_intensity(pixels, width, height))
 
     def set_heightmap_texture(self, pixels: bytes, width: int, height: int) -> None:
         if self._facade:
-            self._facade.load_brush_height_texture(width, height, pixels)
+            from .aladyn_buffers import texture_intensity
+            self._facade.load_brush_height_texture(width, height, texture_intensity(pixels, width, height))

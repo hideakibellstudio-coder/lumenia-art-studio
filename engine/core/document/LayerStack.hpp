@@ -23,6 +23,10 @@ namespace aladyn::engine::document {
 class LayerStack {
 public:
     LayerStack(int width, int height);
+    LayerStack(const LayerStack& other);
+    void restore(const LayerStack& other);
+    void swap(LayerStack& other) noexcept;
+    [[nodiscard]] size_t snapshotBytes() const noexcept;
 
     void resize(int width, int height);
     void clearAllDrawingLayers();
@@ -39,8 +43,8 @@ public:
     bool reorderLayer(int fromIndex, int toIndex);
     bool reorderLayers(const std::vector<int>& newOrder);
     bool setLayerParents(const std::vector<int>& parentIndices);
-    bool flattenGroup(int index);
-    bool mergeLayerDown(int index);
+    bool flattenGroup(int index, bool linearGamma = true, bool deepColor = false);
+    bool mergeLayerDown(int index, bool linearGamma = true, bool deepColor = false);
 
     [[nodiscard]] int getActiveIndex() const noexcept { return m_activeIndex; }
     [[nodiscard]] size_t getDrawingLayerCount() const noexcept { return m_drawingLayers.size(); }

@@ -49,6 +49,46 @@ inline uint8_t linearToSRGB(float l) noexcept {
     return getLinearLutTables().Linear_to_sRGB[idx];
 }
 
+// Caminho de precisão estendida usado pelo flag Deep Color. Diferente da
+// tabela de 12 bits utilizada no caminho rápido, calcula a transferência
+// completa em ponto flutuante antes da única quantização para RGBA8.
+inline uint8_t linearToSRGBPrecise(double l) noexcept {
+    const double clamped = std::clamp(l, 0.0, 1.0);
+    const double s = (clamped <= 0.0031308)
+        ? clamped * 12.92
+        : 1.055 * std::pow(clamped, 1.0 / 2.4) - 0.055;
+    return static_cast<uint8_t>(std::clamp(std::lround(s * 255.0), 0l, 255l));
+}
+
+inline raster::ColorRGBA blendLinearNormalHighPrecision(
+    raster::ColorRGBA src,
+    double srcA,
+    raster::ColorRGBA dst
+) noexcept {
+    if (srcA <= 0.0) return dst;
+    if (dst.a == 0) {
+        return raster::ColorRGBA{
+            src.r, src.g, src.b,
+            static_cast<uint8_t>(std::clamp(std::lround(srcA * 255.0), 0l, 255l))
+        };
+    }
+    const double dstA = static_cast<double>(dst.a) / 255.0;
+    const double outA = srcA + dstA * (1.0 - srcA);
+    if (outA <= 0.0) return raster::ColorRGBA{0, 0, 0, 0};
+    const auto toLinear = [](uint8_t c) noexcept -> double {
+        const double s = static_cast<double>(c) / 255.0;
+        return (s <= 0.04045) ? s / 12.92 : std::pow((s + 0.055) / 1.055, 2.4);
+    };
+    const double srcFactor = srcA / outA;
+    const double dstFactor = dstA * (1.0 - srcA) / outA;
+    return raster::ColorRGBA{
+        linearToSRGBPrecise(toLinear(src.r) * srcFactor + toLinear(dst.r) * dstFactor),
+        linearToSRGBPrecise(toLinear(src.g) * srcFactor + toLinear(dst.g) * dstFactor),
+        linearToSRGBPrecise(toLinear(src.b) * srcFactor + toLinear(dst.b) * dstFactor),
+        static_cast<uint8_t>(std::clamp(std::lround(outA * 255.0), 0l, 255l))
+    };
+}
+
 inline raster::ColorRGBA blendLinearNormal(
     raster::ColorRGBA src,
     float srcA,

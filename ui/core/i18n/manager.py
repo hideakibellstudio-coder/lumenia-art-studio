@@ -14,6 +14,7 @@ import json
 import logging
 from typing import Any, Dict, Optional
 from PySide6 import QtCore
+from ui.core.runtime_paths import resource_path
 
 logger = logging.getLogger(__name__)
 
@@ -95,13 +96,8 @@ class I18nManager(QtCore.QObject):
         self.set_locale(chosen_locale, is_auto=self._is_auto, emit_signal=False)
 
     def _resolve_locales_directory(self) -> str:
-        """Localiza deterministamente a pasta 'assets/locales' a partir da raiz do projeto."""
-        # ui/core/i18n -> ui/core -> ui -> Lumenia/
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-        locales_dir = os.path.join(project_root, "assets", "locales")
-        os.makedirs(locales_dir, exist_ok=True)
-        return locales_dir
+        """Find read-only locales in either the checkout or the portable bundle."""
+        return str(resource_path("assets", "locales"))
 
     def _load_locale_file(self, locale_code: str) -> Dict[str, Any]:
         """Carrega e decodifica o arquivo JSON de um idioma com codificação UTF-8."""

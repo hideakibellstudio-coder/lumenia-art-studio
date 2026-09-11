@@ -16,7 +16,18 @@ raster::ColorRGBA Compositor::blendPixel(
     raster::ColorRGBA dst,
     LayerBlendMode mode
 ) {
-    return blending::blendPixel(src, layerOpacity, dst, mode);
+    return blending::blendPixel(src, layerOpacity, dst, mode, true, false);
+}
+
+raster::ColorRGBA Compositor::blendPixel(
+    raster::ColorRGBA src,
+    double layerOpacity,
+    raster::ColorRGBA dst,
+    LayerBlendMode mode,
+    bool linearGamma,
+    bool deepColor
+) {
+    return blending::blendPixel(src, layerOpacity, dst, mode, linearGamma, deepColor);
 }
 
 void Compositor::applyFilterToBuffer(
@@ -177,7 +188,7 @@ void Compositor::compositeRegion(
                             curOpacity *= baseA;
                         }
 
-                        dstRow[globalX] = blending::blendPixel(src, curOpacity, dstRow[globalX], blendMode);
+                        dstRow[globalX] = blending::blendPixel(src, curOpacity, dstRow[globalX], blendMode, m_linearGamma, m_deepColor);
                     }
                 }
             }
@@ -291,7 +302,7 @@ void Compositor::compositeRegionWithScratch(
                             curOpacity *= baseA;
                         }
 
-                        dstRow[globalX] = blending::blendPixel(src, curOpacity, dstRow[globalX], mode);
+                        dstRow[globalX] = blending::blendPixel(src, curOpacity, dstRow[globalX], mode, m_linearGamma, m_deepColor);
                     }
                 }
             }

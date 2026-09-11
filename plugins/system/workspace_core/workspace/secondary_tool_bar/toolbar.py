@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Optional, Dict
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.icons import get_icon
+from ui.core.tool_settings import default_tool_settings
 
 from .dynamic_stacked_widget import DynamicStackedWidget
 from .toolbar_handlers import SecondaryToolbarHandlersMixin
@@ -39,23 +40,11 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
         self._text_color: QtGui.QColor = QtGui.QColor(0, 0, 0, 255)
 
         self._settings_cache: Dict[str, dict] = {
-            "eyedrop": {"sample_size": "1x1 Ponto Único", "sample_radius": 0, "sample_all": True, "show_loupe": True},
-            "bucket": {"tolerance": 20, "expansion": 1, "contiguous": True, "sample_all": True},
-            "wand": {"tolerance": 20, "contiguous": True, "sample_all": True, "mode": 0},
-            "rect_select": {"feather": 0, "anti_alias": True, "mode": 0},
-            "ellipse_select": {"feather": 0, "anti_alias": True, "mode": 0},
-            "lasso": {"feather": 0, "anti_alias": True, "mode": 0},
-            "transform": {"interp_mode": 2, "lock_aspect": False},
-            "smudge": {"smudge_stretch": 80, "color_pickup": 70, "mix_ratio": 50},
-            "shapes": {
-                "shape_type": "shape_line", "draw_mode": "both", "stroke_width": 4,
-                "stroke_color": self._shape_stroke_color, "fill_color": self._shape_fill_color,
-                "fill_opacity": 1.0, "corner_radius": 0, "polygon_sides": 5, "star_points": 5,
-            },
-            "text": {
-                "font_family": "Segoe UI", "font_size": 36, "bold": False, "italic": False,
-                "underline": False, "align": "left", "color": self._text_color
-            }
+            **{tool: default_tool_settings(tool) for tool in (
+                "eyedrop", "bucket", "wand", "rect_select", "ellipse_select", "lasso", "transform", "smudge"
+            )},
+            "shapes": default_tool_settings("shapes"),
+            "text": default_tool_settings("text"),
         }
 
         self._build_ui()

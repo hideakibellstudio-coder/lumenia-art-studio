@@ -133,7 +133,8 @@ class PaperLayerWidget(QWidget):
         self.vis_btn.setIcon(icon)
         self.vis_btn.setIconSize(QSize(16, 16))
 
-    def set_paper_state(self, color=None, visible=None, preset_id=None, enabled=None):
+    def set_paper_state(self, color=None, visible=None, preset_id=None, enabled=None,
+                        scale=None, contrast=None, invert=None, sync=True):
         if color is not None:
             self.color = color
             self.color_btn.color = color
@@ -146,7 +147,14 @@ class PaperLayerWidget(QWidget):
         if enabled is not None:
             self.enabled = enabled
             self.tex_btn.set_has_texture(self.enabled and self.preset_id > 0)
-        self._sync_state()
+        if scale is not None:
+            self.scale = scale
+        if contrast is not None:
+            self.depth = contrast
+        if invert is not None:
+            self.invert = invert
+        if sync:
+            self._sync_state()
 
     def _show_texture_popup(self):
         popup = TexturePopup(
@@ -196,7 +204,7 @@ class PaperLayerWidget(QWidget):
     def _on_preset_changed(self, pid: int):
         self.preset_id = pid
         self.tex_btn.set_has_texture(self.enabled and pid > 0)
-        self._sync_state()
+        self._sync_state(reset_texture=True)
 
     def _on_depth_changed(self, val):
         self.depth = val
@@ -220,12 +228,12 @@ class PaperLayerWidget(QWidget):
         self._update_vis_icon()
         self._sync_state()
 
-    def _sync_state(self):
+    def _sync_state(self, *, reset_texture=False):
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend:
-            effective_preset = self.preset_id if self.enabled else 0
-            backend.set_canvas_paper_state(self.color, self.visible, effective_preset, self.enabled)
+            backend.set_canvas_paper_state(self.color, self.visible, self.preset_id, self.enabled,
+                                           reset_texture=reset_texture)
             backend.set_canvas_grain_scale(float(self.scale))
             backend.set_canvas_grain_contrast(float(self.depth))
             backend.set_canvas_grain_invert(bool(self.invert))
@@ -235,6 +243,13 @@ class PaperLayerWidget(QWidget):
         active_doc = DocumentManager.instance().active_document()
         if active_doc:
             active_doc.paper_color = self.color
+            active_doc.paper_visible = self.visible
+            active_doc.paper_texture_id = self.preset_id
+            active_doc.paper_texture_enabled = self.enabled
+            active_doc.paper_scale = self.scale
+            active_doc.paper_contrast = self.depth
+            active_doc.paper_invert = self.invert
+            active_doc.mark_dirty("paper")
 
         # Procura globalmente o CanvasWidget em todas as janelas ativas
         for top_w in QApplication.topLevelWidgets():

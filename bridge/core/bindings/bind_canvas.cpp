@@ -1,4 +1,6 @@
 #include "BindingsCommon.hpp"
+#include "BufferContract.hpp"
+#include "../../../engine/core/color/ColorProfile.hpp"
 
 namespace aladyn::bridge {
 
@@ -10,15 +12,73 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         .def("clear_canvas",  &boundary::PaintEngineFacade::clearCanvas)
         .def("get_width",     &boundary::PaintEngineFacade::getWidth)
         .def("get_height",    &boundary::PaintEngineFacade::getHeight)
+        .def("get_document_generation", &boundary::PaintEngineFacade::getDocumentGeneration)
+        .def("get_canvas_height_texture", [](boundary::PaintEngineFacade& self) -> py::object {
+            const auto& texture = self.getCanvasTexture().canvasHeightTexture;
+            if (!texture) return py::none();
+            const int w = texture->getWidth(), h = texture->getHeight();
+            return py::make_tuple(w, h, pixelSnapshot(texture->getData(), checkedRasterBytes(w, h, 1)));
+        })
         .def("set_color_profile", &boundary::PaintEngineFacade::setColorProfile)
         .def("get_color_profile", &boundary::PaintEngineFacade::getColorProfile)
+        .def("get_available_color_profiles", [](boundary::PaintEngineFacade&) {
+            py::list result;
+            for (const auto& profile : color::ColorProfileManager::getAvailableProfiles()) {
+                py::dict item;
+                item["id"] = static_cast<int>(profile.type);
+                item["name"] = profile.name;
+                item["category"] = profile.category;
+                item["description"] = profile.description;
+                item["gamut"] = profile.gamut;
+                item["whitepoint"] = profile.whitepoint;
+                item["transfer"] = profile.transfer;
+                result.append(std::move(item));
+            }
+            return result;
+        })
+        .def("transform_rgba_for_profile", [](boundary::PaintEngineFacade&, py::bytes buffer, int profileId) {
+            if (!color::ColorProfileManager::isProfileValid(profileId)) {
+                throw py::value_error("Unknown color profile");
+            }
+            std::string source = buffer;
+            if (source.size() % 4 != 0) {
+                throw py::value_error("RGBA input length must be a multiple of four");
+            }
+            const size_t pixels = source.size() / 4;
+            if (pixels > static_cast<size_t>(std::numeric_limits<int>::max())) {
+                throw py::value_error("RGBA input is too large");
+            }
+            std::string transformed = source;
+            color::ColorProfileManager::transformBuffer(
+                reinterpret_cast<const uint8_t*>(source.data()),
+                reinterpret_cast<uint8_t*>(transformed.data()),
+                static_cast<int>(pixels),
+                static_cast<color::ColorProfileType>(profileId)
+            );
+            return py::bytes(transformed);
+        }, py::arg("buffer"), py::arg("profile_id"))
+        .def("set_low_latency", &boundary::PaintEngineFacade::setLowLatency)
+        .def("get_low_latency", &boundary::PaintEngineFacade::getLowLatency)
+        .def("set_linear_gamma", &boundary::PaintEngineFacade::setLinearGamma)
+        .def("get_linear_gamma", &boundary::PaintEngineFacade::getLinearGamma)
+        .def("set_deep_color", &boundary::PaintEngineFacade::setDeepColor)
+        .def("get_deep_color", &boundary::PaintEngineFacade::getDeepColor)
+        .def("set_render_options", &boundary::PaintEngineFacade::setRenderOptions,
+             py::arg("low_latency"), py::arg("linear_gamma"), py::arg("deep_color"))
         .def("get_pixel_buffer", [](boundary::PaintEngineFacade& self) {
-            return py::memoryview::from_memory(
-                self.getRawPixelData(), self.getPixelDataSize(), true);
+            return pixelSnapshot(self.getRawPixelData(), self.getPixelDataSize());
+        })
+        .def("refresh_display", [](boundary::PaintEngineFacade& self) {
+            // Refresh composition without allocating a discarded Python snapshot.
+            [[maybe_unused]] const auto* display = self.getDisplayRawPixelData();
         })
         .def("get_display_pixel_buffer", [](boundary::PaintEngineFacade& self) {
-            return py::memoryview::from_memory(
-                self.getDisplayRawPixelData(), self.getDisplayPixelDataSize(), true);
+            return pixelSnapshot(self.getDisplayRawPixelData(), self.getDisplayPixelDataSize());
+        })
+        .def("get_layer_pixel_buffer", [](boundary::PaintEngineFacade& self, int layerIdx) -> py::object {
+            auto data = self.getLayerPixelBuffer(layerIdx);
+            if (data.empty()) return py::none();
+            return py::bytes(reinterpret_cast<const char*>(data.data()), data.size());
         })
         // Miniatura de camada: lê os tiles do TileGrid e escalona para thumbW×thumbH (RGBA)
         .def("get_layer_thumbnail_buffer", [](boundary::PaintEngineFacade& self, int layerIdx, int thumbW, int thumbH) -> py::object {
@@ -31,7 +91,7 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
             if (srcW <= 0 || srcH <= 0 || thumbW <= 0 || thumbH <= 0) return py::none();
 
             // Buffer de saída RGBA (thumbW × thumbH)
-            std::vector<uint8_t> out(static_cast<size_t>(thumbW * thumbH * 4), 0);
+            std::vector<uint8_t> out(checkedRasterBytes(thumbW, thumbH, 4), 0);
 
             float scaleX = static_cast<float>(srcW) / thumbW;
             float scaleY = static_cast<float>(srcH) / thumbH;
@@ -63,6 +123,10 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         })
         .def("paste_rgba_buffer_on_active_layer", [](boundary::PaintEngineFacade& self, int x, int y, int w, int h, py::bytes buffer, int blendMode, double opacity) {
             std::string s = buffer;
+            validateRasterInput(s, w, h, 4);
+            if (x > std::numeric_limits<int>::max() - w || y > std::numeric_limits<int>::max() - h) {
+                throw py::value_error("Paste bounds overflow raster coordinates");
+            }
             return self.pasteRgbaBufferOnActiveLayer(x, y, w, h, reinterpret_cast<const uint8_t*>(s.data()), blendMode, opacity);
         }, py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"), py::arg("buffer"), py::arg("blend_mode_id") = 0, py::arg("opacity") = 1.0)
         // ─── FASE 4: MEMÓRIA & SCRATCH DISK ─────────────────────────
@@ -82,10 +146,9 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
             int outW = 0, outH = 0;
             uint8_t* ptr = self.getDisplayPixelBufferLOD(level, outW, outH);
             if (!ptr || outW <= 0 || outH <= 0) return py::none();
-            size_t bytes = static_cast<size_t>(outW * outH * 4);
-            py::memoryview mv = py::memoryview::from_memory(ptr, bytes, true);
+            auto snapshot = pixelSnapshot(ptr, checkedRasterBytes(outW, outH, 4));
             double scale = boundary::PaintEngineFacade::getLODScale(level);
-            return py::make_tuple(mv, outW, outH, scale);
+            return py::make_tuple(snapshot, outW, outH, scale);
         })
         .def("get_best_lod_level", [](boundary::PaintEngineFacade&, double zoom) {
             return boundary::PaintEngineFacade::getBestLODLevel(zoom);

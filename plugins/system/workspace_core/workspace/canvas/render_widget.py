@@ -25,6 +25,7 @@ _BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 from ui.infrastructure.bridge_client import BridgeClient
 from ui.infrastructure.bridge_client.dispatcher import EngineDispatcher
 from ui.core.engine.backend import PointerEvent
+from ui.core.tool_settings import default_tool_settings
 
 from .viewport.camera_controller import CameraController
 from .viewport.input_router import CanvasInputRouter
@@ -78,7 +79,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self.paper_visible, self.paper_color = True, QtGui.QColor(255, 255, 255)
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
         self._last_rendered_cursor_rect = QtCore.QRect()
-        self._bucket_settings = {"tolerance": 20, "expand_px": 1, "gap_closing_px": 0, "contiguous": True, "aa": True, "sample_all": True}
+        self._bucket_settings = default_tool_settings("bucket")
         self._flood_layers, self._flood_redo_stack = [], []
 
         from ui.core.i18n import I18nManager

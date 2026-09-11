@@ -49,6 +49,9 @@ class DocumentManager(QtCore.QObject):
         # Garante exatamente uma camada padrão inicial (Camada 1)
         if len(doc.layer_manager.layers) == 0:
             doc.layer_manager.add_layer("Camada 1")
+        # A camada criada pelo bootstrap faz parte do estado inicial, não de uma
+        # alteração do usuário.
+        doc.mark_saved()
         
         self._documents[uid] = doc
         self.documentAdded.emit(doc)
@@ -66,6 +69,10 @@ class DocumentManager(QtCore.QObject):
 
     def active_document(self) -> Document:
         return self._active_document
+
+    def documents(self) -> list[Document]:
+        """Retorna uma cópia ordenada dos documentos abertos."""
+        return list(self._documents.values())
 
     def set_active_document(self, uid: str):
         if uid in self._documents and (self._active_document is None or self._active_document.uid != uid):

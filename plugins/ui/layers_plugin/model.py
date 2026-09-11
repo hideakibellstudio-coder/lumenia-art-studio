@@ -21,6 +21,8 @@ ROLE_EFFECTIVE_OPACITY = Qt.UserRole + 12
 ROLE_COLLAPSED = Qt.UserRole + 13
 ROLE_IS_FILTER  = Qt.UserRole + 14
 
+from ui.core.document.history import layer_transaction
+
 class LayerModel(QAbstractItemModel):
     def __init__(self, layer_manager):
         super().__init__()
@@ -191,7 +193,11 @@ class LayerModel(QAbstractItemModel):
         layer = index.internalPointer()
         
         if role == Qt.EditRole:
-            layer.name = value
+            # Renomeação é uma operação de domínio e deve passar pelo
+            # LayersPanel/open_rename_popup, que abre uma transação conjunta
+            # com o motor. O modelo não pode alterar a fonte de verdade
+            # diretamente via edição Qt.
+            return False
         elif role == ROLE_VISIBLE:
             layer.visible = value
         elif role == ROLE_LOCKED:
@@ -226,7 +232,7 @@ class LayerModel(QAbstractItemModel):
                 self._notify_descendants_changed(child_idx)
 
     def flags(self, index):
-        base_flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
+        base_flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled
         if not index.isValid():
             return Qt.ItemIsDropEnabled
         
@@ -248,6 +254,7 @@ class LayerModel(QAbstractItemModel):
         mime_data.setData('application/x-lumenia-layer-uid', ",".join(uids).encode())
         return mime_data
 
+    @layer_transaction
     def dropMimeData(self, data, action, row, column, parent):
         if action == Qt.IgnoreAction:
             return True

@@ -8,15 +8,31 @@ from PySide6 import QtCore, QtGui, QtWidgets
 class WorkspaceDocSyncMixin:
     """Mixin para sincronização de câmera, viewport, documentos ativos e navigator."""
 
-    def connect_properties_dock(self, dock: Any) -> None:
+    def _on_document_geometry_changed(self, width, height):
+        self.canvas_w, self.canvas_h = width, height
+        self.canvas_widget.canvas_w, self.canvas_widget.canvas_h = width, height
+        if self._properties_dock:
+            self._properties_dock.navigator.set_canvas_size(width, height)
+        if getattr(self, "_navigator_panel", None):
+            self._navigator_panel.set_canvas_size(width, height)
+        self._sync_navigator_to_canvas()
+        self.canvas_widget.update()
+
+    def connect_properties_dock(self, dock: Any, panel_id: str = "properties") -> None:
         """
         Conecta os sinais do navigator (PropertiesDock) à câmera do canvas.
         Deve ser chamado pelo plugin de UI após add_panel().
         """
         self._properties_dock = dock
-        dock.navigator.camera_changed_by_user.connect(self._set_camera_from_navigator)
-        dock.navigator.request_global_fit_view.connect(self.reset_view)
-        self.canvas_widget.cameraChanged.connect(self._on_canvas_camera_changed)
+        self._bind_panel_signal(panel_id, dock.navigator.camera_changed_by_user, self._set_camera_from_navigator)
+        self._bind_panel_signal(panel_id, dock.navigator.request_global_fit_view, self.reset_view)
+        self._bind_panel_signal(panel_id, self.canvas_widget.cameraChanged, self._on_canvas_camera_changed)
+
+    def disconnect_properties_dock(self, dock: Any, panel_id: str = "properties") -> None:
+        """Desfaz a sincronização de câmera antes de destruir o PropertiesDock."""
+        self._disconnect_panel_signals(panel_id)
+        if self._properties_dock is dock:
+            self._properties_dock = None
 
     def _sync_navigator_to_canvas(self) -> None:
         """Lê o estado atual da câmera do canvas e empurra para o navigator."""
@@ -51,6 +67,9 @@ class WorkspaceDocSyncMixin:
         view_w: float, view_h: float,
     ) -> None:
         """Mapeia parâmetros de câmera para coordenadas normalizadas do navigator."""
+        document = self._dm.active_document()
+        if document is not None:
+            document.zoom, document.pan_x, document.pan_y, document.rotation = zoom, pan_x, pan_y, rotation
         cw_w = float(getattr(self.canvas_widget, "canvas_w", self.canvas_w))
         cw_h = float(getattr(self.canvas_widget, "canvas_h", self.canvas_h))
         norm_x  = 0.5 - pan_x / (zoom * cw_w)
@@ -67,7 +86,10 @@ class WorkspaceDocSyncMixin:
                 zoom, norm_x, norm_y, rotation, False, False, ratio_w, ratio_h
             )
 
-    def _on_active_document_changed(self, doc) -> None:
+    def refresh_document_state(self, doc):
+        self._on_active_document_changed(doc, capture_previous=False)
+
+    def _on_active_document_changed(self, doc, *, capture_previous=True) -> None:
         """
         Chamado pelo DocumentManager quando o documento ativo muda.
         Salva o estado do doc anterior e restaura o contexto C++, câmera, papel e guias do novo doc.
@@ -75,11 +97,18 @@ class WorkspaceDocSyncMixin:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
 
+        previous = getattr(self, "_geometry_document", None)
+        if previous is not None:
+            previous.geometry_changed.disconnect(self._on_document_geometry_changed)
+        self._geometry_document = doc
+        if doc is not None:
+            doc.geometry_changed.connect(self._on_document_geometry_changed)
+
         # Cancela qualquer transformação ativa em andamento antes de trocar
         if hasattr(self.canvas_widget, "transform_ctrl") and self.canvas_widget.transform_ctrl.active:
             self.canvas_widget.transform_ctrl.cancel()
 
-        if self._last_active_doc_uid:
+        if capture_previous and self._last_active_doc_uid:
             last_doc = self._dm.get_document(self._last_active_doc_uid)
             if last_doc:
                 last_doc.zoom        = self.canvas_widget.zoom
@@ -114,6 +143,9 @@ class WorkspaceDocSyncMixin:
         # Sincroniza o contexto C++ do motor nativo para a facade deste documento
         if backend and hasattr(backend, "set_active_document_context"):
             backend.set_active_document_context(doc.uid, doc.width, doc.height)
+            backend.set_canvas_paper_state(doc.paper_color, doc.paper_visible,
+                                           doc.paper_texture_id, doc.paper_texture_enabled,
+                                           reset_texture=False)
 
         self.canvas_w = doc.width
         self.canvas_h = doc.height
@@ -128,13 +160,7 @@ class WorkspaceDocSyncMixin:
         self.canvas_widget._flood_redo_stack = list(getattr(doc, "flood_redo_stack", []))
 
         if hasattr(self.canvas_widget, "geometry_ctrl"):
-            if hasattr(doc, "guide_state") and doc.guide_state:
-                self.canvas_widget.geometry_ctrl.guide_state.update(doc.guide_state)
-                self.canvas_widget.geometry_ctrl.sym_state.update(getattr(doc, "sym_state", {}))
-                self.canvas_widget.geometry_ctrl.sync_guides_to_engine()
-                self.canvas_widget.geometry_ctrl.sync_symmetry_to_engine()
-            else:
-                self.canvas_widget.geometry_ctrl.center_on_document(doc.width, doc.height)
+            self.canvas_widget.geometry_ctrl.load_document_state(doc)
 
         self.viewport_container.sync_active_tab(doc.uid)
 
@@ -178,7 +204,9 @@ class WorkspaceDocSyncMixin:
                 p_vis = getattr(doc, "paper_visible", True)
                 p_tex = getattr(doc, "paper_texture_id", 0)
                 p_ena = getattr(doc, "paper_texture_enabled", False)
-                pw.set_paper_state(color=p_col, visible=p_vis, preset_id=p_tex, enabled=p_ena)
+                pw.set_paper_state(color=p_col, visible=p_vis, preset_id=p_tex, enabled=p_ena,
+                                   scale=doc.paper_scale, contrast=doc.paper_contrast,
+                                   invert=doc.paper_invert, sync=False)
         if hasattr(self, "_navigator_panel") and self._navigator_panel:
             self._navigator_panel.set_canvas_size(doc.width, doc.height)
             self._navigator_panel.set_has_document(True)

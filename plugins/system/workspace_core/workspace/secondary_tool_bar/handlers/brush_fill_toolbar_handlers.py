@@ -3,6 +3,8 @@
 Strictly decoupled in compliance with ARCcC v2 (< 160 LOC).
 """
 
+from ui.core.tool_settings import normalize_tool_settings
+
 
 class BrushFillToolbarHandlersMixin:
     """Handlers for smudge parameters, eyedrop sampling, bucket fill, and free transform."""
@@ -45,22 +47,19 @@ class BrushFillToolbarHandlersMixin:
         self._emit_smudge_settings()
 
     def _emit_smudge_settings(self):
-        settings = {
+        settings = normalize_tool_settings("smudge", {
             "smudge_stretch": self.slider_smudge_stretch_h.value() / 100.0,
             "color_pickup": self.slider_smudge_pickup_h.value() / 100.0,
             "mix_ratio": self.slider_smudge_mix_h.value() / 100.0,
-        }
+        })
         self._settings_cache["smudge"] = settings
         self.settingsChanged.emit("smudge", settings)
 
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "get_brush_profile"):
-            prof = backend.get_brush_profile()
-            if hasattr(prof, "smudge_params"):
-                prof.smudge_params.smudge_stretch = settings["smudge_stretch"]
-                prof.smudge_params.color_pickup = settings["color_pickup"]
-                prof.smudge_params.mix_ratio = settings["mix_ratio"]
+        if backend:
+            for parameter, value in settings.items():
+                backend.set_brush_param("smudge", parameter, value)
 
     def _on_smudge_preset_changed(self, idx: int, src: str):
         target = self.cbo_smudge_preset_v if src == "h" else self.cbo_smudge_preset_h
@@ -93,12 +92,12 @@ class BrushFillToolbarHandlersMixin:
     def _emit_eyedrop_settings(self):
         radius_map = {0: 0, 1: 1, 2: 2, 3: 5}
         idx = self.cbo_sample_h.currentIndex()
-        settings = {
+        settings = normalize_tool_settings("eyedrop", {
             "sample_size": self.cbo_sample_h.currentText(),
             "sample_radius": radius_map.get(idx, 0),
             "sample_all": self.btn_eye_merged_h.isChecked(),
             "show_loupe": True,
-        }
+        })
         self._settings_cache["eyedrop"] = settings
         self.settingsChanged.emit("eyedrop", settings)
 
@@ -143,12 +142,12 @@ class BrushFillToolbarHandlersMixin:
         self._emit_bucket_settings()
 
     def _emit_bucket_settings(self):
-        settings = {
+        settings = normalize_tool_settings("bucket", {
             "tolerance": self.slider_bkt_tol_h.value(),
-            "expansion": self.slider_bkt_exp_h.value(),
+            "expand_px": self.slider_bkt_exp_h.value(),
             "contiguous": self.btn_bkt_contig_h.isChecked(),
             "sample_all": self.btn_bkt_merged_h.isChecked(),
-        }
+        })
         self._settings_cache["bucket"] = settings
         self.settingsChanged.emit("bucket", settings)
 
@@ -168,10 +167,10 @@ class BrushFillToolbarHandlersMixin:
         self._emit_transform_settings()
 
     def _emit_transform_settings(self):
-        settings = {
+        settings = normalize_tool_settings("transform", {
             "interp_mode": self.cbo_trans_interp_h.currentIndex(),
             "lock_aspect": self.btn_trans_aspect_h.isChecked(),
-        }
+        })
         self._settings_cache["transform"] = settings
         self.settingsChanged.emit("transform", settings)
 

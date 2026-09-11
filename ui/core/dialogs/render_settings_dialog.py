@@ -53,6 +53,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self._selected_profile: dict = {}
         self._active_profile_id: int = 0
         self._saved_cfg: dict = load_render_settings()
+        self._capabilities: Dict[str, Any] = {}
 
         self._load_data()
         self._setup_ui()
@@ -64,22 +65,35 @@ class RenderSettingsDialog(BaseFramelessDialog):
 
     def _load_data(self):
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "get_available_color_profiles"):
+        if backend:
+            self._capabilities = backend.get_capabilities()
+        if backend and self._capabilities.get("color_profiles", False):
             self._all_profiles = backend.get_available_color_profiles()
-        else:
-            from ui.engine_backends.aladyn import AladynBackend
-            self._all_profiles = AladynBackend().get_available_color_profiles()
 
         # Prioriza o perfil ativo salvo no backend ou nas preferências persistentes
-        if backend and hasattr(backend, "get_color_profile"):
+        if backend and self._capabilities.get("color_profiles", False):
             backend_pid = backend.get_color_profile()
             self._active_profile_id = backend_pid if backend_pid != 0 else self._saved_cfg.get("profile_id", 0)
         else:
-            self._active_profile_id = self._saved_cfg.get("profile_id", 0)
+            self._active_profile_id = 0
+
+        profile_ids = {profile.get("id") for profile in self._all_profiles}
+        if self._active_profile_id not in profile_ids:
+            self._active_profile_id = 0
 
         # Sincroniza o backend se necessário
-        if backend and hasattr(backend, "set_color_profile"):
+        if backend and self._capabilities.get("color_profiles", False):
             backend.set_color_profile(self._active_profile_id)
+        if backend and self._capabilities.get("history", False):
+            backend.set_undo_memory_limit_mb(int(self._saved_cfg.get("undo_limit_mb", 512)))
+        if backend and self._capabilities.get("history", False):
+            backend.set_undo_max_steps(int(self._saved_cfg.get("undo_max_steps", 50)))
+        if backend and any(self._capabilities.get(key, False) for key in ("low_latency", "linear_gamma", "deep_color")):
+            backend.set_render_options(
+                bool(self._saved_cfg.get("low_latency", True)),
+                bool(self._saved_cfg.get("linear_gamma", False)),
+                bool(self._saved_cfg.get("deep_color", False)),
+            )
 
         # Seleção inicial = perfil ativo
         for p in self._all_profiles:
@@ -184,7 +198,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         right_layout.addWidget(self.preview_bar)
 
         # Grupo de Configurações Avançadas do Motor
-        self.engine_group = EnginePipelineGroup(self._saved_cfg, self)
+        self.engine_group = EnginePipelineGroup(self._saved_cfg, self._capabilities, self)
         self.switch_lat = self.engine_group.switch_lat
         self.switch_gam = self.engine_group.switch_gam
         self.switch_deep = self.engine_group.switch_deep
@@ -258,8 +272,13 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self._saved_cfg = cfg
         save_render_settings(cfg)
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_undo_memory_limit_mb"):
+        capabilities = backend.get_capabilities() if backend else {}
+        if backend and capabilities.get("history", False):
             backend.set_undo_memory_limit_mb(mb)
+        if backend and capabilities.get("history", False):
+            backend.set_undo_max_steps(int(cfg["undo_max_steps"]))
+        if backend and any(capabilities.get(key, False) for key in ("low_latency", "linear_gamma", "deep_color")):
+            backend.set_render_options(cfg["low_latency"], cfg["linear_gamma"], cfg["deep_color"])
 
     def _build_cards(self):
         for card in self._cards:
@@ -320,7 +339,10 @@ class RenderSettingsDialog(BaseFramelessDialog):
 
         self.preview_bar.set_profile(pid)
 
-        if pid == self._active_profile_id:
+        if not self._capabilities.get("color_profiles", False) or not self._selected_profile:
+            self.btn_apply.setText("Perfil indisponível")
+            self.btn_apply.setEnabled(False)
+        elif pid == self._active_profile_id:
             self.btn_apply.setText("Modo de Cor Ativo")
             self.btn_apply.setEnabled(False)
         else:
@@ -336,13 +358,22 @@ class RenderSettingsDialog(BaseFramelessDialog):
             "low_latency": self.switch_lat.isChecked(),
             "linear_gamma": self.switch_gam.isChecked(),
             "deep_color": self.switch_deep.isChecked(),
+            "undo_limit_mb": int(self._saved_cfg.get("undo_limit_mb", 512)),
+            "undo_max_steps": int(self._saved_cfg.get("undo_max_steps", 50)),
         }
         self._saved_cfg = cfg
         save_render_settings(cfg)
 
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_color_profile"):
+        capabilities = backend.get_capabilities() if backend else {}
+        if backend and capabilities.get("color_profiles", False):
             backend.set_color_profile(pid)
+        if backend and capabilities.get("history", False):
+            backend.set_undo_memory_limit_mb(int(self._saved_cfg.get("undo_limit_mb", 512)))
+        if backend and capabilities.get("history", False):
+            backend.set_undo_max_steps(int(self._saved_cfg.get("undo_max_steps", 50)))
+        if backend and any(capabilities.get(key, False) for key in ("low_latency", "linear_gamma", "deep_color")):
+            backend.set_render_options(cfg["low_latency"], cfg["linear_gamma"], cfg["deep_color"])
 
         for card in self._cards:
             card.set_active_state(card.profile_data.get("id") == pid)

@@ -1,0 +1,50 @@
+{
+  "stats": {
+    "ui": {
+      "files": 141,
+      "lines": 20138
+    },
+    "plugins": {
+      "files": 126,
+      "lines": 19109
+    },
+    "engine": {
+      "files": 105,
+      "lines": 13480
+    },
+    "bridge": {
+      "files": 7,
+      "lines": 707
+    },
+    "tests": {
+      "files": 41,
+      "lines": 5552
+    }
+  },
+  "pytest_function_tests": [
+    [
+      "tests\\test_advanced_geometry_dialog_phase3.py",
+      4
+    ],
+    [
+      "tests\\test_brush_panel_decomposition_phase2.py",
+      3
+    ],
+    [
+      "tests\\test_floating_toolbar_decomposition_phase2.py",
+      3
+    ],
+    [
+      "tests\\test_layers_plugin_decomposition_phase4.py",
+      3
+    ],
+    [
+      "tests\\test_main_window_actions_phase4.py",
+      2
+    ],
+    [
+      "tests\\test_telemetry_grid_decomposition_phase1.py",
+      4
+    ]
+  ]
+}

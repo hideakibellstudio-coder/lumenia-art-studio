@@ -30,11 +30,32 @@ from .canvas.render_widget import CanvasWidget
 from .workspace_layout_manager import WorkspaceLayoutMixin
 from .workspace_document_sync import WorkspaceDocSyncMixin
 from .workspace_brush_adapter import WorkspaceBrushMixin
+from .panel_bindings import WorkspacePanelBindingsMixin
 
 logger = logging.getLogger("Workspace.Container")
 
+_HISTORY_ERROR_MESSAGES = {
+    "scratch_read_failed": "scratch disk do histórico indisponível",
+    "scratch_write_failed": "scratch disk do histórico não aceitou a gravação",
+    "history_corrupt_snapshot": "snapshot do histórico corrompido",
+    "history_invalid_snapshot": "snapshot do histórico inválido",
+    "history_busy": "histórico ocupado por outra operação",
+    "history_restore_failed": "falha ao restaurar o snapshot",
+}
 
-class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSyncMixin, WorkspaceBrushMixin):
+
+def _history_failure_message(action: str, error: str) -> str:
+    detail = _HISTORY_ERROR_MESSAGES.get(error, error)
+    return f"Falha ao {action}: {detail}. Documento preservado."
+
+
+class WorkspaceContainer(
+    QtWidgets.QWidget,
+    WorkspaceLayoutMixin,
+    WorkspacePanelBindingsMixin,
+    WorkspaceDocSyncMixin,
+    WorkspaceBrushMixin,
+):
     """
     Widget central do Lumenia.
 
@@ -77,6 +98,10 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
         # Referências opcionais aos painéis (injetadas via connect_brush_dock / connect_properties_dock)
         self._brush_dock:      "BrushDock | None"      = None
         self._properties_dock: "PropertiesDock | None" = None
+        self._navigator_panel = None
+        self._layers_panel = None
+        self._color_panel = None
+        self._initialize_panel_bindings()
 
         # ── Layout Principal Vertical ─────────────────────────────────────
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -243,41 +268,68 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
         Registra e monta um painel na doca dinâmica especificada (left ou right).
         Delegado ao AdvancedDockSystem da doca correspondente.
         """
-        # Wiring automático baseado nas capacidades do widget
-        if hasattr(widget, "preset_combo") or hasattr(widget, "size_slider") or widget.__class__.__name__ in ("BrushDock", "BrushSettingsPanel"):
-            if self._brush_dock is None:
-                self.connect_brush_dock(widget)
-        elif hasattr(widget, "layers") and hasattr(widget, "navigator"):
-            if self._properties_dock is None:
-                self.connect_properties_dock(widget)
-        elif hasattr(widget, "camera_changed_by_user"):
+        previous_widget = self._panel_widgets.get(panel_id)
+        if previous_widget is widget:
+            return
+        if previous_widget is not None:
+            self.remove_panel(panel_id)
+        self._register_panel_widget(panel_id, widget)
+
+        # IDs pertencem ao contrato WorkspaceService; não inferimos mais por
+        # atributos ocasionais de widgets de terceiros.
+        if panel_id == "brush_settings":
+            self.connect_brush_dock(widget, panel_id)
+        elif panel_id == "properties":
+            self.connect_properties_dock(widget, panel_id)
+        elif panel_id == "navigator":
             self._navigator_panel = widget
-            widget.camera_changed_by_user.connect(self._set_camera_from_navigator)
-            if hasattr(widget, "request_global_fit_view"):
-                widget.request_global_fit_view.connect(self.reset_view)
-            self.canvas_widget.cameraChanged.connect(self._on_canvas_camera_changed)
+            self._bind_panel_signal(panel_id, widget.camera_changed_by_user, self._set_camera_from_navigator)
+            self._bind_panel_signal(panel_id, widget.request_global_fit_view, self.reset_view)
+            self._bind_panel_signal(panel_id, self.canvas_widget.cameraChanged, self._on_canvas_camera_changed)
             if self.active_document:
                 widget.set_has_document(True)
                 self._sync_navigator_to_canvas()
-        elif hasattr(widget, "set_layer_manager"):
+        elif panel_id == "layers":
             self._layers_panel = widget
             if self.active_document:
                 widget.set_layer_manager(self.active_document.layer_manager)
-        elif hasattr(widget, "color_wheel") or hasattr(widget, "set_color"):
+        elif panel_id == "color_wheel":
             self._color_panel = widget
-            if hasattr(widget, "colorChanged"):
-                widget.colorChanged.connect(self._on_brush_color)
-            if self.active_document and hasattr(widget, "set_color"):
+            self._bind_panel_signal(panel_id, widget.colorChanged, self._on_brush_color)
+            if self.active_document:
                 widget.set_color(getattr(self, "_saved_color", QtGui.QColor(0, 0, 0)))
 
         dock_system = self.left_dock if area == "left" else self.right_dock
-        dock_system.add_panel(panel_id, title, widget, icon_path)
+        try:
+            dock_system.add_panel(panel_id, title, widget, icon_path)
+        except Exception:
+            self._release_panel_binding(panel_id)
+            raise
 
 
     def remove_panel(self, panel_id: str) -> None:
         """Remove o painel registrado de ambas as docas."""
+        self._release_panel_binding(panel_id)
         self.left_dock.remove_panel(panel_id)
         self.right_dock.remove_panel(panel_id)
+
+    def _release_panel_binding(self, panel_id: str) -> None:
+        """Desconecta slots e elimina referências somente do painel removido."""
+        widget = self._panel_widgets.get(panel_id)
+        if widget is self._brush_dock:
+            self.disconnect_brush_dock(widget, panel_id)
+        elif widget is self._properties_dock:
+            self.disconnect_properties_dock(widget, panel_id)
+        else:
+            self._disconnect_panel_signals(panel_id)
+
+        self._take_panel_widget(panel_id)
+        if widget is self._layers_panel:
+            self._layers_panel = None
+        if widget is self._navigator_panel:
+            self._navigator_panel = None
+        if widget is self._color_panel:
+            self._color_panel = None
 
 
     # ── Propriedades de acesso público ────────────────────────────────────
@@ -320,13 +372,16 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "undo"):
-            ok = backend.undo()
+            from ui.core.document.manager import DocumentManager
+            document = DocumentManager.instance().active_document()
+            ok = document.history.undo(backend) if document else backend.undo()
             if ok:
                 cw.update()
                 self._on_status_notification("Desfazer executado com sucesso.")
                 self._on_stroke_finished_sync_previews()
             else:
-                self._on_status_notification("Nada a desfazer.")
+                error = backend.get_history_error()
+                self._on_status_notification(_history_failure_message("desfazer", error) if error else "Nada a desfazer.")
 
     def redo(self) -> None:
         """Executa a operação de refazer."""
@@ -342,13 +397,16 @@ class WorkspaceContainer(QtWidgets.QWidget, WorkspaceLayoutMixin, WorkspaceDocSy
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "redo"):
-            ok = backend.redo()
+            from ui.core.document.manager import DocumentManager
+            document = DocumentManager.instance().active_document()
+            ok = document.history.redo(backend) if document else backend.redo()
             if ok:
                 cw.update()
                 self._on_status_notification("Refazer executado com sucesso.")
                 self._on_stroke_finished_sync_previews()
             else:
-                self._on_status_notification("Nada a refazer.")
+                error = backend.get_history_error()
+                self._on_status_notification(_history_failure_message("refazer", error) if error else "Nada a refazer.")
 
     # ── Handlers de câmera ────────────────────────────────────────────────
 

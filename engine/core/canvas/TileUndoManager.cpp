@@ -4,10 +4,17 @@
 
 namespace aladyn::engine::canvas {
 
-TileUndoManager::TileUndoManager(size_t maxSteps, size_t maxMemoryMB, bool scratchDiskEnabled)
+TileUndoManager::TileUndoManager(size_t maxSteps, size_t maxMemoryMB, bool scratchDiskEnabled,
+                                 std::unique_ptr<ScratchDiskManager> storage)
     : m_maxSteps(maxSteps),
       m_maxMemoryBytes(maxMemoryMB * 1024 * 1024),
-      m_scratchDisk(std::make_unique<ScratchDiskManager>(scratchDiskEnabled)) {}
+      m_scratchDisk(storage ? std::move(storage) : std::make_unique<ScratchDiskManager>(scratchDiskEnabled)) {}
+
+void TileUndoManager::recalculateMemory() noexcept {
+    m_currentMemoryBytes = 0;
+    for (const auto& step : m_undoStack) m_currentMemoryBytes += calculateStepBytes(step);
+    for (const auto& step : m_redoStack) m_currentMemoryBytes += calculateStepBytes(step);
+}
 
 void TileUndoManager::setScratchDiskEnabled(bool enabled) {
     if (m_scratchDisk) {
@@ -32,8 +39,10 @@ uint64_t TileUndoManager::getScratchDiskBytes() const noexcept {
 }
 
 void TileUndoManager::beginStep(const std::string& description) {
+    if (recordingStructure()) return;
     m_currentStep = UndoStep();
     m_currentStep.description = description;
+    m_currentStep.id = m_nextId++;
     m_recordedTiles.clear();
     m_isRecording = true;
 }
@@ -59,6 +68,10 @@ void TileUndoManager::recordTileBefore(int layerIndex, int tileX, int tileY, con
 
 size_t TileUndoManager::calculateStepBytes(const UndoStep& step) noexcept {
     size_t total = sizeof(UndoStep);
+    if (step.selectionBefore) total += step.selectionBefore->getSizeInBytes();
+    if (step.selectionAfter) total += step.selectionAfter->getSizeInBytes();
+    if (step.structureBefore) total += step.structureBefore->snapshotBytes();
+    if (step.structureAfter) total += step.structureAfter->snapshotBytes();
     for (const auto& snap : step.snapshots) {
         total += sizeof(TileSnapshot);
         if (!snap.isPagedToDisk) {
@@ -116,9 +129,9 @@ void TileUndoManager::commitStep(document::LayerStack& stack) {
     m_currentStep.snapshots = std::move(keptSnapshots);
 
     if (!m_currentStep.snapshots.empty()) {
-        const size_t stepBytes = calculateStepBytes(m_currentStep);
-        m_currentMemoryBytes += stepBytes;
         m_undoStack.push_back(std::move(m_currentStep));
+        m_redoStack.clear();
+        recalculateMemory();
 
         // Controle de Teto de RAM: primeiro pagina em disco (Scratch Disk) se habilitado
         while (m_currentMemoryBytes > m_maxMemoryBytes && m_undoStack.size() > 1) {
@@ -137,7 +150,6 @@ void TileUndoManager::commitStep(document::LayerStack& stack) {
             m_undoStack.pop_front();
         }
 
-        m_redoStack.clear();
     }
 }
 
@@ -146,24 +158,35 @@ bool TileUndoManager::pageOldestStepToDisk() {
 
     // Encontra o passo mais antigo não paginado
     for (auto& step : m_undoStack) {
-        if (!step.isPagedToDisk) {
+        if (!step.isPagedToDisk && !step.structureBefore) {
+            std::vector<std::pair<uint64_t, uint64_t>> offsets;
+            offsets.reserve(step.snapshots.size());
+            for (const auto& snap : step.snapshots) {
+                const auto before = m_scratchDisk->writeBlock(snap.beforeData);
+                const auto after = before ? m_scratchDisk->writeBlock(snap.afterData) : std::nullopt;
+                if (!before || !after) {
+                    m_lastError = "scratch_write_failed";
+                    return false; // No RAM buffer or offset has changed yet.
+                }
+                offsets.emplace_back(*before, *after);
+            }
             size_t bytesFreed = 0;
+            size_t index = 0;
             for (auto& snap : step.snapshots) {
                 if (!snap.isPagedToDisk) {
-                    snap.diskOffsetBefore = m_scratchDisk->writeBlock(snap.beforeData);
+                    snap.diskOffsetBefore = offsets[index].first;
                     snap.pagedBeforeSize = snap.beforeData.size();
                     bytesFreed += snap.beforeData.capacity();
-                    snap.beforeData.clear();
-                    snap.beforeData.shrink_to_fit();
+                    std::vector<uint8_t>().swap(snap.beforeData);
 
-                    snap.diskOffsetAfter = m_scratchDisk->writeBlock(snap.afterData);
+                    snap.diskOffsetAfter = offsets[index].second;
                     snap.pagedAfterSize = snap.afterData.size();
                     bytesFreed += snap.afterData.capacity();
-                    snap.afterData.clear();
-                    snap.afterData.shrink_to_fit();
+                    std::vector<uint8_t>().swap(snap.afterData);
 
                     snap.isPagedToDisk = true;
                 }
+                ++index;
             }
             step.isPagedToDisk = true;
             m_currentMemoryBytes = (m_currentMemoryBytes > bytesFreed) ? (m_currentMemoryBytes - bytesFreed) : 0;
@@ -173,21 +196,6 @@ bool TileUndoManager::pageOldestStepToDisk() {
     return false;
 }
 
-bool TileUndoManager::restoreStepFromDisk(UndoStep& step) {
-    if (!step.isPagedToDisk || !m_scratchDisk) return false;
-
-    for (auto& snap : step.snapshots) {
-        if (snap.isPagedToDisk) {
-            bool ok1 = m_scratchDisk->readBlock(snap.diskOffsetBefore, snap.pagedBeforeSize, snap.beforeData);
-            bool ok2 = m_scratchDisk->readBlock(snap.diskOffsetAfter, snap.pagedAfterSize, snap.afterData);
-            if (!ok1 || !ok2) return false;
-            snap.isPagedToDisk = false;
-        }
-    }
-    step.isPagedToDisk = false;
-    return true;
-}
-
 void TileUndoManager::cancelStep() noexcept {
     m_isRecording = false;
     m_currentStep.snapshots.clear();
@@ -195,89 +203,62 @@ void TileUndoManager::cancelStep() noexcept {
     m_recordedTiles.clear();
 }
 
-bool TileUndoManager::undo(document::LayerStack& stack) {
-    if (m_undoStack.empty()) return false;
-
-    UndoStep step = std::move(m_undoStack.back());
-    m_undoStack.pop_back();
-
-    if (step.isPagedToDisk) {
-        restoreStepFromDisk(step);
-    }
-
-    std::vector<uint8_t> decompressedBuffer;
-
-    for (const auto& snap : step.snapshots) {
-        document::Layer* layer = stack.getDrawingLayer(snap.layerIndex);
-
-        if (layer) {
-            Tile* tile = layer->getTileGrid().getOrCreateTile(snap.tileX, snap.tileY);
-            if (!tile) continue;
-
-            if (snap.isCompressed) {
-                decompressedBuffer.resize(snap.uncompressedBeforeBytes);
-                if (compression::Lz4Codec::decompress(snap.beforeData, decompressedBuffer)) {
-                    if (decompressedBuffer.size() == tile->getBuffer().getSizeInBytes()) {
-                        std::memcpy(tile->getBuffer().getData(), decompressedBuffer.data(), decompressedBuffer.size());
-                        tile->setDirty(true);
-                    }
-                }
-            } else if (snap.beforeData.size() == tile->getBuffer().getSizeInBytes()) {
-                std::memcpy(tile->getBuffer().getData(), snap.beforeData.data(), snap.beforeData.size());
-                tile->setDirty(true);
-            }
-        }
-    }
-
-    m_redoStack.push_back(std::move(step));
-    return true;
+bool TileUndoManager::undo(document::LayerStack& stack, raster::SelectionMask& selection) {
+    return moveStep(stack, selection, false);
 }
 
-bool TileUndoManager::redo(document::LayerStack& stack) {
-    if (m_redoStack.empty()) return false;
-
-    UndoStep step = std::move(m_redoStack.back());
-    m_redoStack.pop_back();
-
-    if (step.isPagedToDisk) {
-        restoreStepFromDisk(step);
-    }
-
-    std::vector<uint8_t> decompressedBuffer;
-
-    for (const auto& snap : step.snapshots) {
-        document::Layer* layer = stack.getDrawingLayer(snap.layerIndex);
-
-        if (layer) {
-            Tile* tile = layer->getTileGrid().getOrCreateTile(snap.tileX, snap.tileY);
-            if (!tile) continue;
-
-            if (snap.isCompressed) {
-                decompressedBuffer.resize(snap.uncompressedAfterBytes);
-                if (compression::Lz4Codec::decompress(snap.afterData, decompressedBuffer)) {
-                    if (decompressedBuffer.size() == tile->getBuffer().getSizeInBytes()) {
-                        std::memcpy(tile->getBuffer().getData(), decompressedBuffer.data(), decompressedBuffer.size());
-                        tile->setDirty(true);
-                    }
-                }
-            } else if (snap.afterData.size() == tile->getBuffer().getSizeInBytes()) {
-                std::memcpy(tile->getBuffer().getData(), snap.afterData.data(), snap.afterData.size());
-                tile->setDirty(true);
-            }
-        }
-    }
-
-    m_undoStack.push_back(std::move(step));
-    return true;
+bool TileUndoManager::redo(document::LayerStack& stack, raster::SelectionMask& selection) {
+    return moveStep(stack, selection, true);
 }
 
 void TileUndoManager::clear() noexcept {
+    if (recordingStructure()) return;
     m_undoStack.clear();
     m_redoStack.clear();
     m_currentMemoryBytes = 0;
     if (m_scratchDisk) {
         m_scratchDisk->purge();
     }
+}
+
+bool TileUndoManager::beginStructure(const document::LayerStack& stack, const raster::SelectionMask& selection) {
+    if (recordingStructure() || m_isRecording) return false;
+    auto mask = std::make_shared<raster::SelectionMask>(selection);
+    m_structureBefore = std::make_shared<document::LayerStack>(stack);
+    m_selectionBefore = std::move(mask);
+    return true;
+}
+
+uint64_t TileUndoManager::commitStructure(const document::LayerStack& stack, const raster::SelectionMask& selection) {
+    if (!recordingStructure()) return 0;
+    UndoStep step;
+    step.id = m_nextId++;
+    step.selectionBefore = m_selectionBefore;
+    step.selectionAfter = std::make_shared<raster::SelectionMask>(selection);
+    step.structureBefore = m_structureBefore;
+    step.structureAfter = std::make_shared<document::LayerStack>(stack);
+    const auto id = step.id;
+    m_undoStack.push_back(std::move(step));
+    m_structureBefore.reset();
+    m_selectionBefore.reset();
+    m_redoStack.clear();
+    m_currentMemoryBytes = 0;
+    for (const auto& entry : m_undoStack) m_currentMemoryBytes += calculateStepBytes(entry);
+    while (m_undoStack.size() > 1 && (m_undoStack.size() > m_maxSteps || m_currentMemoryBytes > m_maxMemoryBytes)) {
+        m_currentMemoryBytes -= calculateStepBytes(m_undoStack.front());
+        m_undoStack.pop_front();
+    }
+    return id;
+}
+
+bool TileUndoManager::cancelStructure(document::LayerStack& stack, raster::SelectionMask& selection) {
+    if (!recordingStructure()) return false;
+    auto mask = *m_selectionBefore;
+    stack.restore(*m_structureBefore);
+    selection = std::move(mask);
+    m_structureBefore.reset();
+    m_selectionBefore.reset();
+    return true;
 }
 
 } // namespace aladyn::engine::canvas

@@ -58,14 +58,14 @@ public:
         return ok;
     }
 
-    static bool flattenGroup(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, int index) {
-        bool ok = stack.flattenGroup(index);
+    static bool flattenGroup(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, int index, bool linearGamma = true, bool deepColor = false) {
+        bool ok = stack.flattenGroup(index, linearGamma, deepColor);
         if (ok) comp.composite(stack.getAllLayersForComposition(), out, bg);
         return ok;
     }
 
-    static bool mergeLayerDown(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, int index) {
-        bool ok = stack.mergeLayerDown(index);
+    static bool mergeLayerDown(document::LayerStack& stack, document::Compositor& comp, canvas::PixelBuffer& out, const raster::ColorRGBA& bg, int index, bool linearGamma = true, bool deepColor = false) {
+        bool ok = stack.mergeLayerDown(index, linearGamma, deepColor);
         if (ok) comp.composite(stack.getAllLayersForComposition(), out, bg);
         return ok;
     }

@@ -45,6 +45,15 @@ class BasePlugin(ABC):
         """Liberação final de recursos alocados pelo plugin."""
         pass
 
+    def dispose(self) -> None:
+        """Última limpeza, sempre chamada após ``shutdown`` pelo gerenciador.
+
+        Plugins que mantêm referências Qt, arquivos temporários ou conexões fora
+        do serviço principal podem sobrescrever este gancho sem precisar tratar
+        os caminhos de falha de ativação separadamente.
+        """
+        pass
+
     def get_icon(self) -> QIcon:
         return QIcon()
 

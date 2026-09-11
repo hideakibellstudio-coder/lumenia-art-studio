@@ -3,31 +3,16 @@
 from typing import Optional, List
 from PySide6 import QtCore, QtWidgets, QtGui
 from ui.core.engine.registry import EngineRegistry
+from ui.core.tool_settings import default_tool_settings
 
 class SelectionToolController:
     """Controlador de ferramentas de seleção e confinamento da máscara nativa C++."""
 
     def __init__(self, widget):
         self.widget = widget
-        self.wand_settings: dict = {
-            "tolerance": 20,
-            "expand_px": 0,
-            "contiguous": True,
-            "aa": True,
-            "sample_all": True,
-            "mode": 0,
-        }
-        self.geom_select_settings: dict = {
-            "feather_px": 0,
-            "aa": True,
-            "mode": 0,
-        }
-        self.lasso_settings: dict = {
-            "lasso_type": "freehand",
-            "feather_px": 0,
-            "aa": True,
-            "mode": 0,
-        }
+        self.wand_settings = default_tool_settings("wand")
+        self.geom_select_settings = default_tool_settings("rect_select")
+        self.lasso_settings = default_tool_settings("lasso")
         self.drag_active: bool = False
         self.drag_start: QtCore.QPointF = QtCore.QPointF(0, 0)
         self.drag_current: QtCore.QPointF = QtCore.QPointF(0, 0)

@@ -3,6 +3,8 @@
 #include <chrono>
 #include <cstdio>
 #include <random>
+#include <cstring>
+#include <limits>
 
 #ifdef _WIN32
 #include <process.h>
@@ -13,6 +15,14 @@
 #endif
 
 namespace aladyn::engine::canvas {
+
+namespace {
+uint64_t checksum(const uint8_t* data, size_t size) {
+    uint64_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < size; ++i) hash = (hash ^ data[i]) * 1099511628211ULL;
+    return hash;
+}
+}
 
 ScratchDiskManager::ScratchDiskManager(bool enabled)
     : m_enabled(enabled) {
@@ -28,15 +38,7 @@ ScratchDiskManager::~ScratchDiskManager() {
 void ScratchDiskManager::setEnabled(bool enabled) noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_enabled = enabled;
-    if (!m_enabled) {
-        if (m_file.is_open()) {
-            m_file.close();
-        }
-        if (!m_filePath.empty()) {
-            std::remove(m_filePath.c_str());
-            m_filePath.clear();
-        }
-    }
+    // Disable future paging, but retain records still referenced by undo/redo.
 }
 
 bool ScratchDiskManager::ensureFileOpen() {
@@ -48,7 +50,7 @@ bool ScratchDiskManager::ensureFileOpen() {
         const auto pid = GETPID();
         const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
         
-        static std::mt19937_64 rng(static_cast<uint64_t>(now));
+        thread_local std::mt19937_64 rng(static_cast<uint64_t>(now));
         const uint64_t rnd = rng();
 
         char filename[128];
@@ -75,22 +77,28 @@ bool ScratchDiskManager::ensureFileOpen() {
     }
 }
 
-uint64_t ScratchDiskManager::writeBlock(const uint8_t* data, size_t size) {
-    if (!m_enabled || !data || size == 0) return 0;
+std::optional<uint64_t> ScratchDiskManager::writeBlock(const uint8_t* data, size_t size) {
+    if (!data || size == 0) return std::nullopt;
 
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (!ensureFileOpen()) return 0;
+    if (!m_enabled || !ensureFileOpen()) return std::nullopt;
+    const auto limit = static_cast<uint64_t>(std::numeric_limits<std::streamoff>::max());
+    if (size > limit || m_currentWriteOffset > limit - size) return std::nullopt;
+    std::error_code ec;
+    if (!std::filesystem::exists(m_filePath, ec)) return std::nullopt;
 
+    m_file.clear();
     m_file.seekp(static_cast<std::streamoff>(m_currentWriteOffset));
     m_file.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size));
     m_file.flush();
 
     if (!m_file.good()) {
         m_file.clear();
-        return 0;
+        return std::nullopt;
     }
 
     const uint64_t writtenOffset = m_currentWriteOffset;
+    m_records.emplace(writtenOffset, Record{size, checksum(data, size)});
     m_currentWriteOffset += size;
     m_totalBytesPaged += size;
     ++m_pagedBlocksCount;
@@ -99,26 +107,46 @@ uint64_t ScratchDiskManager::writeBlock(const uint8_t* data, size_t size) {
 }
 
 bool ScratchDiskManager::readBlock(uint64_t offset, size_t size, uint8_t* outData) {
-    if (!m_enabled || !outData || size == 0) return false;
+    if (!outData) return false;
+    std::vector<uint8_t> verified;
+    if (!readBlock(offset, size, verified)) return false;
+    std::memcpy(outData, verified.data(), size);
+    return true;
+}
 
+bool ScratchDiskManager::readBlock(uint64_t offset, size_t size, std::vector<uint8_t>& outData) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (!ensureFileOpen()) return false;
+    const auto record = m_records.find(offset);
+    std::error_code ec;
+    if (record == m_records.end() || size != record->second.size ||
+        !m_file.is_open() || !std::filesystem::exists(m_filePath, ec)) return false;
 
+    // Reject truncated/corrupt records before touching the caller buffer.
+    // The stream's eofbit alone is insufficient because a short read can
+    // otherwise be reported as success when EOF is reached exactly.
+    m_file.clear();
+    m_file.seekg(0, std::ios::end);
+    const auto fileSize = m_file.tellg();
+    if (fileSize < 0 || offset > static_cast<uint64_t>(fileSize) ||
+        size > static_cast<uint64_t>(fileSize) - offset) {
+        m_file.clear();
+        return false;
+    }
+
+    m_file.clear();
     m_file.seekg(static_cast<std::streamoff>(offset));
-    m_file.read(reinterpret_cast<char*>(outData), static_cast<std::streamsize>(size));
+    std::vector<uint8_t> verified(size);
+    m_file.read(reinterpret_cast<char*>(verified.data()), static_cast<std::streamsize>(size));
 
-    if (!m_file.good() && !m_file.eof()) {
+    if (m_file.gcount() != static_cast<std::streamsize>(size)) {
         m_file.clear();
         return false;
     }
 
     m_file.clear(); // Limpa eofbit se atingido
+    if (checksum(verified.data(), verified.size()) != record->second.checksum) return false;
+    outData.swap(verified);
     return true;
-}
-
-bool ScratchDiskManager::readBlock(uint64_t offset, size_t size, std::vector<uint8_t>& outData) {
-    outData.resize(size);
-    return readBlock(offset, size, outData.data());
 }
 
 void ScratchDiskManager::purge() {
@@ -133,6 +161,7 @@ void ScratchDiskManager::purge() {
     m_currentWriteOffset = 0;
     m_totalBytesPaged = 0;
     m_pagedBlocksCount = 0;
+    m_records.clear();
 }
 
 } // namespace aladyn::engine::canvas

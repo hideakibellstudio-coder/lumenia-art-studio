@@ -1,248 +1,88 @@
-﻿# BUILD — ALADYN ENGINE + LUMENIA UI
+# Build do Lumenia e do Aladyn Engine
 
-Documento oficial de compilação e deploy do motor nativo C++ e da interface Lumenia.
-
----
-
-## Visão Geral da Arquitetura
-
-```
-ALADYN + UI LUMENIA/
-├── ALADYN ENGINE/          ← Motor C++17 + bindings PyBind11
-│   ├── engine/             ← Código-fonte C++ puro (sem dependências Python)
-│   ├── bridge/             ← Bindings PyBind11 (engine_bindings.cpp)
-│   ├── setup.py            ← Script de compilação do .pyd
-│   └── aladyn_engine_native.cp314-win_amd64.pyd   ← Saída do build (gerada)
-│
-└── Lumenia/                ← Interface Python/PySide6
-    ├── aladyn_engine_native.cp314-win_amd64.pyd   ← ✅ ÚNICO local canônico de deploy
-    ├── ui/
-    │   ├── main.py         ← Ponto de entrada da aplicação
-    │   └── engine_backends/
-    │       └── aladyn.py   ← Adaptador Python → C++
-    └── plugins/
-```
-
-> ⚠️ IMPORTANTE: O `.pyd` compilado deve existir em **apenas um lugar**: `Lumenia/`.
-> Nunca copie o `.pyd` para subpastas como `Lumenia/ui/`. Ver seção **Anti-patterns**.
-
----
+O repositório compila a extensão `aladyn_engine_native` com C++20/PyBind11 para
+Windows x64. O binário é gerado na raiz do repositório e nunca deve ser copiado
+manualmente para `ui/` ou para um plugin.
 
 ## Pré-requisitos
 
-| Ferramenta     | Versão mínima | Notas                                                    |
-|----------------|---------------|----------------------------------------------------------|
-| Python         | 3.14.x 64-bit | Deve ser o mesmo Python que executa a Lumenia            |
-| Visual Studio  | 2022 Community| Workload "Desenvolvimento para Desktop com C++"          |
-| pybind11       | qualquer      | `pip install pybind11`                                   |
-| setuptools     | qualquer      | `pip install setuptools`                                 |
-
-Verificar pré-requisitos:
+- Python 3.11+ de 64 bits. O CI usa Python 3.12; a versão usada para compilar
+  precisa ser a mesma que carregará o `.pyd`.
+- Visual Studio 2022 com **Desktop development with C++** e Windows SDK.
+- Acesso às dependências de desenvolvimento com hashes declaradas em
+  `requirements-dev.lock`.
 
 ```powershell
-python --version          # Python 3.14.x esperado
-pip show pybind11         # deve retornar Version: x.x.x
-cl /?                     # deve existir (MSVC) — rode dentro do Developer PowerShell
+python -m pip install -r requirements-dev.lock
 ```
 
----
+## Compilação reproduzível no checkout
 
-## Compilando o Motor C++
-
-### 1. Abrir o terminal correto
-
-Use o **"Developer PowerShell for VS 2022"** (ou "x64 Native Tools Command Prompt for VS 2022").
-Isso garante que `cl.exe` e `link.exe` estejam no PATH.
-
-### 2. Navegar até a pasta do engine
+O comando abaixo localiza `vswhere`/`vcvarsall` quando necessário, configura o
+MSVC x64 e compila todos os fontes declarados em `setup.py`.
 
 ```powershell
-cd "z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\ALADYN ENGINE"
+python scripts/build_native.py --simd scalar --force
 ```
 
-### 3. Compilar
+`scalar` é o artefato base compatível com processadores Windows x64 sem AVX2.
+Em uma frota controlada que exija AVX2, gere e distribua um artefato separado:
 
 ```powershell
-python setup.py build_ext --inplace
+python scripts/build_native.py --simd avx2 --force
 ```
 
-O que esse comando faz:
-- Compila todos os `.cpp` listados em `setup.py` com `/O2 /std:c++17`
-- Linka contra `python314.lib` (via PyBind11)
-- Gera `aladyn_engine_native.cp314-win_amd64.pyd` dentro de `ALADYN ENGINE/`
+Uma variante AVX2 não deve substituir o artefato base sem uma política de
+detecção e seleção no instalador.
 
-Saída esperada ao final:
-```
-Finished generating code
-copying build\lib.win-amd64-cpython-314\aladyn_engine_native.cp314-win_amd64.pyd ->
-```
+Ao terminar, o script grava `build/native-build.json` com a versão do Python,
+ABI, versão das ferramentas MSVC, variante SIMD e SHA-256 do `.pyd`. Esse
+registro permite comparar o binário executado pelo CI ou por uma validação
+manual com a configuração que o produziu.
 
-> 💡 DICA: O build incremental só recompila os `.cpp` alterados.
-> Recompilação completa: ~60s. Incremental: ~10-15s.
-
----
-
-## Deploy do Binário para a Lumenia
-
-Após compilar, copie o `.pyd` para `Lumenia/`:
+## Validação
 
 ```powershell
-# Estando na pasta ALADYN ENGINE:
-Copy-Item -Path "aladyn_engine_native.cp314-win_amd64.pyd" `
-          -Destination "..\Lumenia\aladyn_engine_native.cp314-win_amd64.pyd" `
-          -Force
-```
-
-### Build + Deploy em um único comando
-
-```powershell
-python setup.py build_ext --inplace; `
-Copy-Item "aladyn_engine_native.cp314-win_amd64.pyd" "..\Lumenia\" -Force; `
-Write-Host "✅ Build e deploy concluídos."
-```
-
----
-
-## Executando a Lumenia UI
-
-```powershell
-cd "z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\ui"
+python tests/run_all_tests.py
+python benchmarks/run_engine_benchmarks.py --output build/benchmarks/engine.json
 python main.py
 ```
 
-Com logs de debug:
+O benchmark grava JSON com ambiente, p50/p95 de criação da fachada, traço e
+`refresh_display`, além dos bytes de pixels. Ele é uma base de comparação entre
+máquinas e commits; não é um gate com valores fixos porque hardware e carga do
+sistema alteram a medida.
+
+## CI
+
+`.github/workflows/ci.yml` instala as dependências, configura MSVC x64, executa
+o mesmo `scripts/build_native.py --simd scalar --force`, mede o motor e então
+chama a suíte executiva. A matriz roda em Python 3.11, 3.12 e 3.13; cada job
+publica seu JSON de benchmark. Isso garante que os testes usem a extensão
+gerada no próprio job.
+
+## Pacote portátil e instalador
+
+O pacote distribuível inclui a extensão nativa recém-compilada, todos os módulos
+`ui` e `plugins`, temas, assets e documentos. Ao final, é criado um
+`release-manifest.json` com SHA-256 de cada arquivo.
 
 ```powershell
-python main.py --debug
+python scripts/build_portable.py --dry-run
+python scripts/build_portable.py
 ```
 
-### Como o `main.py` resolve o `.pyd`
-
-O `main.py` adiciona `Lumenia/` ao `sys.path`:
-
-```python
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, parent_dir)  # → aponta para Lumenia/
-```
-
-Quando `aladyn.py` executa `import aladyn_engine_native`, o Python encontra
-o `.pyd` em `Lumenia/` e carrega. Sem gambiarras, sem `importlib`.
-
----
-
-## Estrutura de Sources C++
-
-```
-engine/
-├── boundary/public-api/
-│   └── PaintEngineFacade.cpp   ← API pública — ponto de entrada para Python
-├── core/
-│   ├── canvas/
-│   │   ├── TileGrid.cpp        ← Grade de tiles RGBA; copyFrom() para duplicação
-│   │   └── SpatialCuller.cpp   ← Culling de tiles fora da viewport
-│   ├── document/
-│   │   ├── LayerStack.cpp      ← Pilha de camadas; addLayer/addGroup/duplicate
-│   │   └── Compositor.cpp      ← Composição de camadas → buffer de saída RGBA
-│   ├── engines/
-│   │   └── *Engine.cpp         ← PencilEngine, InkerEngine, BrushEngine, etc.
-│   ├── raster/
-│   │   ├── DabRenderer.cpp     ← Renderiza dabs nos tiles
-│   │   └── DabInterpolator.cpp ← Interpola dabs entre pontos do traço
-│   └── stroke/
-│       ├── VelocityTracker.cpp
-│       └── DynamicStabilizer.cpp
-└── bridge/core/bindings/
-    └── engine_bindings.cpp     ← PyBind11: expõe PaintEngineFacade ao Python
-```
-
-Quando um novo arquivo `.cpp` é criado, ele **deve ser listado** em `setup.py`
-dentro de `cpp_sources` para ser incluído na compilação.
-
----
-
-## Adicionando um Novo Arquivo C++ ao Build
-
-1. Criar o arquivo `.cpp` em `engine/` ou `bridge/`
-2. Abrir `ALADYN ENGINE/setup.py`
-3. Adicionar o caminho relativo em `cpp_sources`:
-
-```python
-cpp_sources = [
-    ...
-    "engine/core/meu_modulo/MeuArquivo.cpp",   # ← adicionar aqui
-    ...
-]
-```
-
-4. Recompilar e fazer deploy (ver seção acima).
-
----
-
-## Expondo uma Nova Função ao Python
-
-Toda nova função da `PaintEngineFacade` precisa ser registrada em `engine_bindings.cpp`:
-
-```cpp
-// engine_bindings.cpp — dentro do bloco py::class_<boundary::PaintEngineFacade>(...)
-.def("nome_python", &boundary::PaintEngineFacade::NomeCpp)
-```
-
-Recompile e faça o deploy após qualquer mudança em `engine_bindings.cpp`.
-
----
-
-## Verificando o Build
+O resultado fica em `build/portable/Lumenia.dist`. Com Inno Setup instalado, o
+instalador é gerado sem caminhos absolutos antigos:
 
 ```powershell
-python -c "
-import sys
-sys.path.insert(0, r'z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia')
-import aladyn_engine_native as m
-f = m.PaintEngineFacade(100, 100)
-print('OK — metodos:', [x for x in dir(f) if not x.startswith('_')])
-"
+ISCC.exe scripts/lumenia_installer.iss
 ```
 
----
+O `.iss` aceita `SourceDir` e `OutputDir` como definições do Inno para outros
+diretórios de build. Assinatura não é simulada: ela deve ser feita no job de
+release com certificado confiável e credenciais protegidas.
 
-## Anti-patterns — O que NÃO fazer
-
-### ❌ Não copie o `.pyd` para `Lumenia/ui/` ou qualquer subpasta
-
-O `sys.path` da Lumenia aponta para `Lumenia/` como raiz. Cópias em subpastas
-geram colisão de versões e bugs silenciosos onde o Python carrega o binário errado,
-enquanto testes unitários carregam o correto — resultando em comportamentos
-impossíveis de reproduzir e difíceis de diagnosticar.
-
-### ❌ Não edite o `.pyd` compilado diretamente
-
-Ele é um binário gerado. Qualquer mudança no C++ exige recompilação via `setup.py`.
-
-### ❌ Não misture versões de Python
-
-O `.pyd` é compilado para `cp314` (CPython 3.14). Rodar a Lumenia com Python 3.12
-ou 3.13 causará:
-
-```
-ModuleNotFoundError
-# ou
-ImportError: dynamic module does not define init function (PyInit_aladyn_engine_native)
-```
-
-### ❌ Não adicione `Lumenia/ui/` ao `sys.path` manualmente
-
-O `main.py` adiciona apenas `Lumenia/` (pasta pai de `ui/`). Isso é suficiente
-para resolver `import ui.*` e `import aladyn_engine_native`. Adicionar `ui/`
-ao path interfere na resolução dos módulos.
-
----
-
-## Checklist de Build Completo
-
-- [ ] Abrir **Developer PowerShell for VS 2022**
-- [ ] `cd` para `ALADYN ENGINE/`
-- [ ] `python setup.py build_ext --inplace` — aguardar sem erros
-- [ ] `Copy-Item "aladyn_engine_native.cp314-win_amd64.pyd" "..\Lumenia\" -Force`
-- [ ] Confirmar que **não existe** `.pyd` em `Lumenia/ui/`
-- [ ] Executar `python main.py` de `Lumenia/ui/`
-- [ ] Confirmar no log: `[AladynBackend] Módulo nativo aladyn_engine_native carregado com sucesso`
+Ainda não existe instalador assinado, assinatura de artefatos nem seleção
+automática entre variantes SIMD. Essas etapas pertencem ao job de release, não
+a uma cópia local de `.pyd`.

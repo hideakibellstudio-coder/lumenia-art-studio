@@ -9,7 +9,7 @@
 #include "../../core/engines/WatercolorEngine.hpp"
 #include "../../core/engines/OilImpastoEngine.hpp"
 #include "../../core/raster/FloodFill.hpp"
-#include "../../core/raster/ColorProfileManager.hpp"
+#include "../../core/color/ColorProfile.hpp"
 #include "internal/StrokeOrchestrator.hpp"
 #include "internal/SelectionOrchestrator.hpp"
 #include "internal/TransformOrchestrator.hpp"
@@ -29,6 +29,8 @@ PaintEngineFacade::PaintEngineFacade(int width, int height)
       m_outputBuffer(width, height, {255, 255, 255, 255}),
       m_displayBuffer(width, height, {255, 255, 255, 255}),
       m_selectionMask(width, height) {
+
+    // Keep the display/mipmap buffers coherent from the first frame.
 
 #ifdef _WIN32
     _putenv("OMP_WAIT_POLICY=PASSIVE");
@@ -85,15 +87,21 @@ void PaintEngineFacade::setEngineType(int engineTypeId) {
 // ─── GERENCIAMENTO DE CAMADAS ─────────────────────────────────────────────
 
 int PaintEngineFacade::addLayer(const std::string& name, int insertIndex) {
-    return internal::LayerStackOrchestrator::addLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, insertIndex);
+    const int result = internal::LayerStackOrchestrator::addLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, insertIndex);
+    if (result >= 0) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 int PaintEngineFacade::addGroup(const std::string& name, int insertIndex) {
-    return internal::LayerStackOrchestrator::addGroup(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, insertIndex);
+    const int result = internal::LayerStackOrchestrator::addGroup(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, insertIndex);
+    if (result >= 0) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 int PaintEngineFacade::addFilterLayer(const std::string& name, int filterTypeId, int insertIndex) {
-    return internal::LayerStackOrchestrator::addFilterLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, filterTypeId, insertIndex);
+    const int result = internal::LayerStackOrchestrator::addFilterLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, name, filterTypeId, insertIndex);
+    if (result >= 0) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 void PaintEngineFacade::setFilterParams(int index, const std::vector<float>& params) {
@@ -101,6 +109,7 @@ void PaintEngineFacade::setFilterParams(int index, const std::vector<float>& par
     if (auto* fl = dynamic_cast<document::FilterLayer*>(l)) {
         for (size_t i = 0; i < params.size(); ++i) fl->setParam(i, params[i]);
         m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+        touchDocument();
     }
 }
 
@@ -122,89 +131,115 @@ int PaintEngineFacade::getFilterType(int index) const {
 
 bool PaintEngineFacade::setGroupPassThrough(int index, bool passThrough) {
     bool ok = m_layerStack.setGroupPassThrough(index, passThrough);
-    if (ok) m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (ok) { m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor); touchDocument(); }
     return ok;
 }
 
 bool PaintEngineFacade::removeLayer(int index) {
-    return internal::LayerStackOrchestrator::removeLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
+    const bool result = internal::LayerStackOrchestrator::removeLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
+    if (result) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 int PaintEngineFacade::duplicateLayer(int index) {
-    return internal::LayerStackOrchestrator::duplicateLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
+    const int result = internal::LayerStackOrchestrator::duplicateLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
+    if (result >= 0) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 bool PaintEngineFacade::reorderLayer(int fromIndex, int toIndex) {
-    return internal::LayerStackOrchestrator::reorderLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, fromIndex, toIndex);
+    const bool result = internal::LayerStackOrchestrator::reorderLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, fromIndex, toIndex);
+    if (result) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 bool PaintEngineFacade::reorderLayers(const std::vector<int>& newOrder) {
-    return internal::LayerStackOrchestrator::reorderLayers(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, newOrder);
+    const bool result = internal::LayerStackOrchestrator::reorderLayers(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, newOrder);
+    if (result) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 bool PaintEngineFacade::setLayerParents(const std::vector<int>& parentIndices) {
-    return internal::LayerStackOrchestrator::setLayerParents(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, parentIndices);
+    const bool result = internal::LayerStackOrchestrator::setLayerParents(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, parentIndices);
+    if (result) touchDocument();
+    return result;
 }
 
 
 void PaintEngineFacade::setLayerOpacity(int index, double opacity) {
     internal::LayerStackOrchestrator::setLayerOpacity(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, opacity);
+    touchDocument();
 }
 
 void PaintEngineFacade::setLayerBlendMode(int index, int blendModeId) {
     internal::LayerStackOrchestrator::setLayerBlendMode(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, blendModeId);
+    touchDocument();
 }
 
 void PaintEngineFacade::setLayerVisibility(int index, bool visible) {
     internal::LayerStackOrchestrator::setLayerVisibility(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, visible);
+    touchDocument();
 }
 
 void PaintEngineFacade::setLayerLock(int index, bool locked) {
-    if (auto* l = m_layerStack.getDrawingLayer(index)) l->setLocked(locked);
+    if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setLocked(locked); touchDocument(); }
 }
 
 void PaintEngineFacade::setLayerAlphaLock(int index, bool locked) {
-    if (auto* l = m_layerStack.getDrawingLayer(index)) l->setAlphaLocked(locked);
+    if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setAlphaLocked(locked); touchDocument(); }
 }
 
 
 void PaintEngineFacade::setLayerClippingMask(int index, bool clipped) {
     internal::LayerStackOrchestrator::setLayerClippingMask(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, clipped);
+    touchDocument();
 }
 
 
 bool PaintEngineFacade::flattenGroup(int index) {
-    return internal::LayerStackOrchestrator::flattenGroup(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
+    const bool result = internal::LayerStackOrchestrator::flattenGroup(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, m_linearGamma, m_deepColor);
+    if (result) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 bool PaintEngineFacade::mergeLayerDown(int index) {
-    return internal::LayerStackOrchestrator::mergeLayerDown(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
+    const bool result = internal::LayerStackOrchestrator::mergeLayerDown(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index, m_linearGamma, m_deepColor);
+    if (result) { m_undoManager.clear(); touchDocument(); }
+    return result;
 }
 
 void PaintEngineFacade::clearLayer(int index) {
     internal::LayerStackOrchestrator::clearLayer(m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, index);
+    touchDocument();
 }
 
 void PaintEngineFacade::setBackgroundVisibility(bool visible) {
     m_layerStack.getBackgroundLayer().setVisible(visible);
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    touchDocument();
 }
 
 
 void PaintEngineFacade::setBackgroundColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     m_canvasTexture.backgroundColor = {r, g, b, a};
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    touchDocument();
 }
 
 void PaintEngineFacade::resizeCanvas(int width, int height) {
     m_width = width;
     m_height = height;
     m_layerStack.resize(width, height);
+    // Snapshots antigos têm dimensões incompatíveis com a nova grade.
+    m_undoManager.clear();
     m_compositor = document::Compositor(width, height);
+    m_compositor.setLinearGamma(m_linearGamma);
+    m_compositor.setDeepColor(m_deepColor);
     m_outputBuffer.resize(width, height, m_canvasTexture.backgroundColor);
     m_displayBuffer.resize(width, height, m_canvasTexture.backgroundColor);
     m_selectionMask.resize(width, height);
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    touchDocument();
 }
 
 void PaintEngineFacade::clearCanvas() {
@@ -212,6 +247,7 @@ void PaintEngineFacade::clearCanvas() {
     if (active && !active->isLocked() && !active->isGroup() && !active->isFilter()) {
         active->getTileGrid().clearTiles();
         m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+        touchDocument();
     }
 }
 
@@ -242,7 +278,7 @@ TelemetryData PaintEngineFacade::updateStroke(const stroke::PointerEvent& event)
     m_lastRawPressure = event.pressure;
     const double currentVelocity = m_velocityTracker.update(event.position, event.timestamp);
     const double normVel = m_velocityTracker.getNormalizedVelocity(1500.0);
-    math::Point2D pos = m_stabilizer.update(event.position, normVel);
+    const math::Point2D pos = m_lowLatency ? event.position : m_stabilizer.update(event.position, normVel);
 
     double strokeAngle = 0.0;
     const double dx = pos.x - m_lastDab.position.x;
@@ -278,6 +314,7 @@ void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
     }
     if (m_activeEngine) m_activeEngine->onEndStroke();
     m_undoManager.commitStep(m_layerStack);
+    touchDocument();
     m_isDrawing = false;
     m_distanceCarryover = 0.0;
 
@@ -323,7 +360,7 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
         m_distanceCarryover, m_lastDab, m_velocityTracker, m_stabilizer,
         m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
         m_selectionMask, m_undoManager, m_compositor, m_outputBuffer,
-        m_symmetryConfig, m_telemetryManager
+        m_symmetryConfig, m_telemetryManager, m_lowLatency
     };
     return internal::StrokeOrchestrator::updateStrokeRaw(ctx, x, y, pressure, timestamp, tiltX, tiltY, twist);
 }
@@ -335,7 +372,7 @@ std::vector<double> PaintEngineFacade::endStrokeRaw() {
         m_distanceCarryover, m_lastDab, m_velocityTracker, m_stabilizer,
         m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
         m_selectionMask, m_undoManager, m_compositor, m_outputBuffer,
-        m_symmetryConfig, m_telemetryManager
+        m_symmetryConfig, m_telemetryManager, m_lowLatency
     };
     return internal::StrokeOrchestrator::endStrokeRaw(ctx, [this](const stroke::PointerEvent& ev) {
         this->endStroke(ev);
@@ -370,11 +407,13 @@ bool PaintEngineFacade::floodFill(
     int tolerance, bool contiguous, int expandPx, int gapClosingPx,
     bool antiAliasing, bool sampleAllLayers
 ) {
-    return internal::FloodFillOrchestrator::floodFill(
+    const bool result = internal::FloodFillOrchestrator::floodFill(
         m_outputBuffer, m_layerStack, m_undoManager, m_compositor,
         m_selectionMask, m_canvasTexture.backgroundColor,
         seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing, sampleAllLayers
     );
+    if (result) touchDocument();
+    return result;
 }
 
 // ─── MÉTODOS DE SELEÇÃO & CONTORNOS ────────────────────────────────────────
@@ -391,10 +430,14 @@ bool PaintEngineFacade::selectPolygon(const std::vector<int>& flatPoints, int mo
     return internal::SelectionOrchestrator::selectPolygon(flatPoints, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
 }
 bool PaintEngineFacade::deleteSelectionOnActiveLayer() {
-    return internal::SelectionOrchestrator::deleteSelectionOnActiveLayer(m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = internal::SelectionOrchestrator::deleteSelectionOnActiveLayer(m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (result) touchDocument();
+    return result;
 }
 bool PaintEngineFacade::fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor) {
-    return internal::SelectionOrchestrator::fillSelectionOnActiveLayer(fillColor, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = internal::SelectionOrchestrator::fillSelectionOnActiveLayer(fillColor, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (result) touchDocument();
+    return result;
 }
 std::vector<int> PaintEngineFacade::getSelectionBounds() const {
     auto b = m_selectionMask.getBounds();
@@ -417,16 +460,22 @@ std::vector<double> PaintEngineFacade::getTransformPivot() const {
     return { s.pivotX, s.pivotY };
 }
 bool PaintEngineFacade::commitTransform(double dx, double dy, double scaleX, double scaleY, double rotationDeg, double pivotX, double pivotY, bool flipH, bool flipV, int interpMode) {
-    return internal::TransformOrchestrator::commitTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, dx, dy, scaleX, scaleY, rotationDeg, pivotX, pivotY, flipH, flipV, interpMode, m_width, m_height);
+    const bool result = internal::TransformOrchestrator::commitTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, dx, dy, scaleX, scaleY, rotationDeg, pivotX, pivotY, flipH, flipV, interpMode, m_width, m_height);
+    if (result) touchDocument();
+    return result;
 }
 bool PaintEngineFacade::cancelTransform() {
     return internal::TransformOrchestrator::cancelTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, m_width, m_height);
 }
 bool PaintEngineFacade::flipActiveLayer(bool horizontal) {
-    return internal::TransformOrchestrator::flipActiveLayer(horizontal, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = internal::TransformOrchestrator::flipActiveLayer(horizontal, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (result) touchDocument();
+    return result;
 }
 bool PaintEngineFacade::rotateActiveLayer90(bool clockwise) {
-    return internal::TransformOrchestrator::rotateActiveLayer90(clockwise, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = internal::TransformOrchestrator::rotateActiveLayer90(clockwise, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (result) touchDocument();
+    return result;
 }
 uint8_t* PaintEngineFacade::getTransformSourceBufferData() noexcept {
     const auto* buf = m_transformEngine.getSourceBuffer();
@@ -437,7 +486,9 @@ std::vector<int> PaintEngineFacade::getTransformSourceBufferSize() const {
     return buf ? std::vector<int>{ buf->getWidth(), buf->getHeight() } : std::vector<int>{ 0, 0 };
 }
 bool PaintEngineFacade::pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId, double opacity) {
-    return internal::BufferPasteOrchestrator::paste(x, y, width, height, buffer, blendModeId, opacity, m_width, m_height, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = internal::BufferPasteOrchestrator::paste(x, y, width, height, buffer, blendModeId, opacity, m_width, m_height, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    if (result) touchDocument();
+    return result;
 }
 
 // ─── PRESETS E TEXTURAS PROCEDURAIS ────────────────────────────────────────
@@ -451,8 +502,41 @@ void PaintEngineFacade::loadBrushHeightTextureFromBuffer(int w, int h, const uin
 void PaintEngineFacade::loadCanvasHeightTextureFromBuffer(int w, int h, const uint8_t* buf) {
     if (buf && w > 0 && h > 0) m_canvasTexture.canvasHeightTexture = std::make_shared<texture::Texture2D>(w, h, std::vector<uint8_t>(buf, buf + static_cast<size_t>(w * h)));
 }
+
+void PaintEngineFacade::setLowLatency(bool enabled) noexcept {
+    m_lowLatency = enabled;
+}
+
+void PaintEngineFacade::setLinearGamma(bool enabled) {
+    setRenderOptions(m_lowLatency, enabled, m_deepColor);
+}
+
+void PaintEngineFacade::setDeepColor(bool enabled) {
+    setRenderOptions(m_lowLatency, m_linearGamma, enabled);
+}
+
+void PaintEngineFacade::setRenderOptions(bool lowLatency, bool linearGamma, bool deepColor) {
+    const bool compositionChanged = (m_linearGamma != linearGamma) || (m_deepColor != deepColor);
+    m_lowLatency = lowLatency;
+    m_linearGamma = linearGamma;
+    m_deepColor = deepColor;
+    m_compositor.setLinearGamma(linearGamma);
+    m_compositor.setDeepColor(deepColor);
+    if (compositionChanged) {
+        m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+        touchDocument();
+        m_mipmapPyramid.markDirty();
+    }
+}
+
 void PaintEngineFacade::applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept {
-    raster::ColorProfileManager::applyColorProfile(targetBuffer, numPixels, m_colorProfileId);
+    if (!targetBuffer || numPixels == 0 || numPixels > static_cast<size_t>(std::numeric_limits<int>::max())) return;
+    color::ColorProfileManager::transformBuffer(
+        targetBuffer,
+        targetBuffer,
+        static_cast<int>(numPixels),
+        static_cast<color::ColorProfileType>(m_colorProfileId)
+    );
 }
 uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
     if (m_colorProfileId == 0) return m_outputBuffer.getData();
@@ -461,9 +545,46 @@ uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
     applyActiveColorProfile(m_displayBuffer.getData(), totalBytes / 4);
     return m_displayBuffer.getData();
 }
+bool PaintEngineFacade::cancelLayerTransaction() {
+    if (!m_undoManager.cancelStructure(m_layerStack, m_selectionMask)) return false;
+    syncHistoryGeometry();
+    m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    touchDocument();
+    return true;
+}
+void PaintEngineFacade::syncHistoryGeometry() {
+    const int width = m_layerStack.getWidth(), height = m_layerStack.getHeight();
+    if (width == m_width && height == m_height) return;
+    canvas::PixelBuffer output(width, height, m_canvasTexture.backgroundColor);
+    canvas::PixelBuffer display(width, height, m_canvasTexture.backgroundColor);
+    document::Compositor compositor(width, height);
+    compositor.setLinearGamma(m_linearGamma);
+    compositor.setDeepColor(m_deepColor);
+    m_outputBuffer = std::move(output);
+    m_displayBuffer = std::move(display);
+    m_compositor = std::move(compositor);
+    m_width = width;
+    m_height = height;
+    m_mipmapPyramid.markDirty();
+}
+
+bool PaintEngineFacade::applyPreparedGeometry(const PaintEngineFacade& prepared) {
+    if (&prepared == this || !m_undoManager.recordingStructure()) return false;
+    // Keep this facade (brush state, guide state and all earlier history).
+    // Only adopt the validated replacement layer stack and selection.
+    auto selection = prepared.m_selectionMask;
+    m_layerStack.restore(prepared.m_layerStack);
+    m_selectionMask = std::move(selection);
+    syncHistoryGeometry();
+    m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    touchDocument();
+    return true;
+}
 bool PaintEngineFacade::undo() {
-    bool ok = m_undoManager.undo(m_layerStack);
+    bool ok = m_undoManager.undo(m_layerStack, m_selectionMask);
     if (ok) {
+        syncHistoryGeometry();
+        touchDocument();
         if (auto* layer = m_layerStack.getActiveLayer()) {
             layer->getTileGrid().pruneEmptyTiles();
         }
@@ -472,8 +593,10 @@ bool PaintEngineFacade::undo() {
     return ok;
 }
 bool PaintEngineFacade::redo() {
-    bool ok = m_undoManager.redo(m_layerStack);
+    bool ok = m_undoManager.redo(m_layerStack, m_selectionMask);
     if (ok) {
+        syncHistoryGeometry();
+        touchDocument();
         if (auto* layer = m_layerStack.getActiveLayer()) {
             layer->getTileGrid().pruneEmptyTiles();
         }
@@ -481,6 +604,37 @@ bool PaintEngineFacade::redo() {
     }
     return ok;
 }
+
+std::vector<uint8_t> PaintEngineFacade::getLayerPixelBuffer(int layerIndex) const {
+    const auto* layer = m_layerStack.getDrawingLayer(layerIndex);
+    if (!layer || layer->isGroup() || layer->isFilter()) return {};
+
+    std::vector<uint8_t> out(static_cast<size_t>(m_width) * static_cast<size_t>(m_height) * 4u, 0u);
+    const auto& grid = layer->getTileGrid();
+    grid.forEachTile([&](const canvas::TileIndex&, const canvas::Tile& tile) {
+        const auto& src = tile.getBuffer();
+        const int baseX = tile.getPixelX();
+        const int baseY = tile.getPixelY();
+        const int minX = std::max(0, baseX);
+        const int minY = std::max(0, baseY);
+        const int maxX = std::min(m_width, baseX + canvas::Tile::TILE_SIZE);
+        const int maxY = std::min(m_height, baseY + canvas::Tile::TILE_SIZE);
+        if (minX >= maxX || minY >= maxY) return;
+
+        const auto* srcData = reinterpret_cast<const uint8_t*>(src.getData());
+        for (int y = minY; y < maxY; ++y) {
+            const int localY = y - baseY;
+            for (int x = minX; x < maxX; ++x) {
+                const int localX = x - baseX;
+                const size_t srcOffset = static_cast<size_t>(localY * canvas::Tile::TILE_SIZE + localX) * 4u;
+                const size_t dstOffset = static_cast<size_t>(y * m_width + x) * 4u;
+                std::memcpy(out.data() + dstOffset, srcData + srcOffset, 4u);
+            }
+        }
+    });
+    return out;
+}
+
 void PaintEngineFacade::setGuideConfig(
     int type, double p0x, double p0y, double p1x, double p1y, double p2x, double p2y, double p3x, double p3y,
     double vpAx, double vpAy, double vpBx, double vpBy, double vpCx, double vpCy, double cx, double cy,

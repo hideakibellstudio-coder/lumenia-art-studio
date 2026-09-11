@@ -57,11 +57,6 @@ class ColorPlugin(BasePlugin):
             icon_path="palette",
         )
 
-        ws.workspace_container._color_panel = self._panel
-        if hasattr(ws.workspace_container, "_on_brush_color"):
-            self._panel.colorChanged.connect(ws.workspace_container._on_brush_color)
-
-
         logger.info("[ColorPlugin] Roda de Cores registrada no topo da doca esquerda.")
 
     def deactivate(self) -> None:

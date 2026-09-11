@@ -10,11 +10,11 @@ Mixin especializado no acionamento de diálogos modais e não-modais da aplicaç
 
 from __future__ import annotations
 
-import os
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.dialogs.diagnostics_dialog import DiagnosticsDialog
+from ui.core.runtime_paths import resource_path
 from ui.core.screens.filters.filter_adjustment_dialog import FilterAdjustmentDialog
 
 
@@ -49,31 +49,8 @@ class MainWindowDialogActionsMixin:
         dialog.exec()
 
     def _on_shortcuts_applied(self, shortcuts_map: dict) -> None:
-        if not shortcuts_map:
-            return
-
-        shortcut_targets = {
-            "tool_brush": "shortcut_tool_b",
-            "tool_eraser": "shortcut_tool_e",
-            "tool_shapes": "shortcut_tool_u",
-            "tool_text": "shortcut_tool_t",
-            "edit_undo": "shortcut_undo",
-            "edit_redo": "shortcut_redo_y",
-        }
-
-        for item_id, attr_name in shortcut_targets.items():
-            if item_id in shortcuts_map and hasattr(self, attr_name):
-                shortcut_obj = getattr(self, attr_name)
-                seq = shortcuts_map[item_id]
-                if not seq:
-                    continue
-                if isinstance(shortcut_obj, QtGui.QShortcut):
-                    shortcut_obj.setKey(QtGui.QKeySequence(seq))
-                elif isinstance(shortcut_obj, QtGui.QAction):
-                    shortcut_obj.setShortcut(QtGui.QKeySequence(seq))
-
-        if hasattr(self, "status_bar") and self.status_bar:
-            self.status_bar.showMessage("Atalhos de teclado atualizados e aplicados.", 3000)
+        self.shortcut_registry.apply(shortcuts_map)
+        self.status_bar.showMessage("Atalhos de teclado atualizados e aplicados.", 3000)
 
     def open_cursor_settings_dialog(self) -> None:
         from ui.core.screens.cursor_settings_dialog import CursorSettingsDialog
@@ -94,10 +71,9 @@ class MainWindowDialogActionsMixin:
     def open_feedback_form(self) -> None:
         from ui.core.i18n import I18nManager
         current_locale = I18nManager.instance().get_current_locale()
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        feedback_path = os.path.join(project_root, "Enviar_Feedback.html")
-        if os.path.exists(feedback_path):
-            url = QtCore.QUrl.fromLocalFile(feedback_path)
+        feedback_path = resource_path("Enviar_Feedback.html")
+        if feedback_path.is_file():
+            url = QtCore.QUrl.fromLocalFile(str(feedback_path))
             url.setQuery(f"lang={current_locale}")
             QtGui.QDesktopServices.openUrl(url)
         else:

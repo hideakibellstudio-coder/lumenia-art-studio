@@ -72,7 +72,7 @@ class FileMenu(QtWidgets.QMenu):
 
         self.action_exit = QtGui.QAction("", self)
         self.action_exit.setShortcut("Ctrl+Q")
-        self.action_exit.triggered.connect(QtWidgets.QApplication.quit)
+        self.action_exit.triggered.connect(QtWidgets.QApplication.closeAllWindows)
         self.addAction(self.action_exit)
 
     def retranslate_ui(self):

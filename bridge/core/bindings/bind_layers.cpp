@@ -22,6 +22,14 @@ void bind_layers(py::module_& /*m*/, FacadeClass& facade) {
         .def("reorder_layers",          &boundary::PaintEngineFacade::reorderLayers)
         .def("set_layer_parents",       &boundary::PaintEngineFacade::setLayerParents)
         .def("set_layer_name",          &boundary::PaintEngineFacade::setLayerName)
+        .def("get_layer_name",          &boundary::PaintEngineFacade::getLayerName)
+        .def("begin_layer_transaction", &boundary::PaintEngineFacade::beginLayerTransaction)
+        .def("apply_prepared_geometry", &boundary::PaintEngineFacade::applyPreparedGeometry)
+        .def("commit_layer_transaction", &boundary::PaintEngineFacade::commitLayerTransaction)
+        .def("cancel_layer_transaction", &boundary::PaintEngineFacade::cancelLayerTransaction)
+        .def("get_undo_step_id", &boundary::PaintEngineFacade::getUndoStepId)
+        .def("get_redo_step_id", &boundary::PaintEngineFacade::getRedoStepId)
+        .def("get_history_step_ids", &boundary::PaintEngineFacade::getHistoryStepIds)
         .def("set_layer_opacity",       &boundary::PaintEngineFacade::setLayerOpacity)
         .def("set_layer_blend_mode",    &boundary::PaintEngineFacade::setLayerBlendMode)
         .def("set_layer_visibility",    &boundary::PaintEngineFacade::setLayerVisibility)
@@ -50,6 +58,13 @@ void bind_layers(py::module_& /*m*/, FacadeClass& facade) {
                 d["blend_mode"] = static_cast<int>(l->getBlendMode());
                 d["is_group"] = l->isGroup();
                 d["is_filter"] = l->isFilter();
+                int parentIndex = -1;
+                if (const auto* parent = l->getParent()) {
+                    for (int i = 0; i < static_cast<int>(self.getLayerStack().getDrawingLayerCount()); ++i) {
+                        if (self.getLayerStack().getDrawingLayer(i) == parent) { parentIndex = i; break; }
+                    }
+                }
+                d["parent_index"] = parentIndex;
             }
             return d;
         });

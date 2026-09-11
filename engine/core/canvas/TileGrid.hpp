@@ -29,6 +29,9 @@ public:
     Tile* getOrCreateTile(int tileX, int tileY);
 
     void clearAll(raster::ColorRGBA color = {0, 0, 0, 0});
+    // Redimensiona preservando os pixels existentes no offset informado.
+    // Usado por canvas resize/crop; nunca recria a camada silenciosamente.
+    void resizePreserve(int width, int height, int offsetX = 0, int offsetY = 0);
     // Remove todos os tiles alocados (limpa o scratch sem tocar no layout)
     void clearTiles();
     // Remove tiles 100% transparentes (liberação de RAM pós-borracha)

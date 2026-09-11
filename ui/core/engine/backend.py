@@ -47,6 +47,41 @@ class EngineBackend(ABC):
         """True se o binário/recursos do motor puderem ser carregados."""
         return True
 
+    def get_capabilities(self) -> Dict[str, Any]:
+        """Recursos efetivos do backend, sem inferência pela presença da UI."""
+        return {
+            "native_engine": False,
+            "render": False,
+            "stroke": False,
+            "brush_controls": False,
+            "raster_document": False,
+            "multi_document": False,
+            "layers": False,
+            "groups": False,
+            "filters": False,
+            "selection": False,
+            "transform": False,
+            "guides": False,
+            "canvas_texture": False,
+            "history": False,
+            "scratch_history": False,
+            "lod": False,
+            "telemetry": False,
+            "low_latency": False,
+            "linear_gamma": False,
+            "deep_color": False,
+            "color_profiles": False,
+            "color_profile_preview": False,
+            "embedded_icc_profiles": False,
+            "rgba16_document": False,
+            "export_image": False,
+            "document_pixel_format": "indisponível",
+        }
+
+    def supports_capability(self, capability: str) -> bool:
+        """Consulta segura para widgets que precisam ocultar um controle indisponível."""
+        return bool(self.get_capabilities().get(str(capability), False))
+
     @abstractmethod
     def init_renderer(self, hwnd: int, width: int, height: int, canvas_w: int, canvas_h: int) -> None:
         """Cria a superfície de renderização a partir do HWND nativo da janela."""
@@ -72,8 +107,27 @@ class EngineBackend(ABC):
         """Limpa o canvas do documento ativo."""
 
     def get_qimage(self) -> Any:
-        """Retorna o QImage do buffer de pixels do documento ativo para o viewport."""
+        """Snapshot para viewport, válido após mutações e fechamento do documento."""
         return None
+
+    def get_pixel_buffer(self) -> Optional[bytes]:
+        """Snapshot RGBA imutável e independente do armazenamento do motor."""
+        return None
+
+    def get_display_pixel_buffer(self) -> Optional[bytes]:
+        """Snapshot RGBA de exibição, válido após render/resize/fechamento."""
+        return None
+
+    def get_layer_pixel_buffer(self, layer_index: int) -> Optional[bytes]:
+        """Retorna um snapshot RGBA independente para persistência."""
+        return None
+
+    def get_document_generation(self) -> int:
+        return 0
+
+    def get_history_error(self) -> str:
+        """Código de falha do último undo/redo; vazio quando não houve erro."""
+        return ""
 
     # ── Traço (Stroke) & Fast-Path ────────────────────────────────────────
 
@@ -125,8 +179,10 @@ class EngineBackend(ABC):
 
     # ── Texturas de Pincel (Shape / Grão) ─────────────────────────────────
 
-    def set_shape_texture(self, pixels: bytes, width: int, height: int) -> None: ...
-    def set_heightmap_texture(self, pixels: bytes, width: int, height: int) -> None: ...
+    def set_shape_texture(self, pixels: bytes, width: int, height: int) -> None:
+        """Recebe RGBA compacto; a ponte converte para intensidade × alfa."""
+    def set_heightmap_texture(self, pixels: bytes, width: int, height: int) -> None:
+        """Recebe RGBA compacto; a ponte converte para intensidade × alfa."""
     def set_shape_preset(self, preset_id: int) -> None: ...
     def set_brush_height_preset(self, preset_id: int) -> None: ...
     def set_brush_grain_enabled(self, enabled: bool) -> None: ...
@@ -136,7 +192,7 @@ class EngineBackend(ABC):
 
     # ── Papel & Textura do Canvas ─────────────────────────────────────────
 
-    def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False) -> None: ...
+    def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False, *, reset_texture: bool = True) -> None: ...
     def set_canvas_height_preset(self, preset_id: int) -> None: ...
     def set_canvas_grain_enabled(self, enabled: bool) -> None: ...
     def set_canvas_grain_contrast(self, contrast: float) -> None: ...
@@ -165,6 +221,8 @@ class EngineBackend(ABC):
     def reorder_layers(self, new_order: List[int]) -> bool: return False
     def set_layer_parents(self, parent_indices: List[int]) -> bool: return False
     def set_layer_name(self, index: int, name: str) -> None: ...
+    def get_layer_name(self, index: int) -> str: return ""
+    def get_layer_info(self, index: int) -> Dict[str, Any]: return {}
     def set_layer_opacity(self, index: int, opacity: float) -> None: ...
     def set_layer_blend_mode(self, index: int, blend_mode_id: int) -> None: ...
     def set_layer_visibility(self, index: int, visible: bool) -> None: ...
@@ -192,6 +250,10 @@ class EngineBackend(ABC):
     def invert_selection(self) -> None: ...
     def select_all(self) -> None: ...
     def has_selection(self) -> bool: return False
+    def get_selection_mask_buffer(self) -> Optional[bytes]: return None
+    def set_selection_mask_buffer(self, pixels: bytes) -> bool: return False
+    def get_canvas_resource(self) -> Optional[Dict[str, Any]]: return None
+    def set_canvas_resource(self, state: Dict[str, Any]) -> bool: return False
     def delete_selection_on_active_layer(self) -> bool: return False
     def fill_selection_on_active_layer(self, color: Any) -> bool: return False
     def get_selection_bounds(self) -> List[int]: return [0, 0, 0, 0]
@@ -231,12 +293,43 @@ class EngineBackend(ABC):
     def get_color_profile(self) -> int: return 0
     def get_color_profile_name(self, profile_id: int) -> str: return "Padrão (sRGB)"
     def get_available_color_profiles(self) -> List[Dict[str, Any]]: return []
+    def transform_rgba_for_profile(self, pixels: bytes, profile_id: int) -> bytes:
+        """Transforma uma prévia RGBA pelo mesmo pipeline que alimenta a exibição."""
+        return bytes(pixels)
     def pick_color_merged(self, x: int, y: int, sample_radius: int = 0) -> Tuple[int, int, int, int]: return (0, 0, 0, 0)
     def pick_color_layer(self, layer_index: int, x: int, y: int, sample_radius: int = 0) -> Tuple[int, int, int, int]: return (0, 0, 0, 0)
+
+    # ── Pipeline de Renderização ─────────────────────────────────────────
+
+    def set_render_options(self, low_latency: bool, linear_gamma: bool, deep_color: bool) -> None:
+        """Aplica opções de latência, espaço de mistura e precisão no motor."""
+        pass
+
+    def get_active_document_context(self) -> Any:
+        return None
+
+    def replace_document_context(self, uid: str, prepared_uid: str) -> bool:
+        """Commit a fully prepared context without exposing partial document state."""
+        return False
+
+    def get_render_options(self) -> Dict[str, bool]:
+        """Retorna o estado efetivo das opções do pipeline."""
+        return {"low_latency": True, "linear_gamma": False, "deep_color": False}
+
+    def export_image(self, path: str) -> bool:
+        """Exporta a composição exibida pelo backend para um arquivo de imagem."""
+        return False
 
     # ── Histórico (Undo / Redo) ───────────────────────────────────────────
 
     def undo(self) -> bool: return False
+    def begin_layer_transaction(self) -> bool: return False
+    def apply_prepared_geometry(self, prepared_uid: str) -> bool: return False
+    def commit_layer_transaction(self) -> int: return 0
+    def cancel_layer_transaction(self) -> bool: return False
+    def get_undo_step_id(self) -> int: return 0
+    def get_redo_step_id(self) -> int: return 0
+    def get_history_step_ids(self) -> list[int]: return []
     def redo(self) -> bool: return False
     def get_undo_count(self) -> int: return 0
     def get_redo_count(self) -> int: return 0

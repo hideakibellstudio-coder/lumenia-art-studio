@@ -34,6 +34,8 @@ from .panel_sync import sync_to_native_engine, refresh_layer_thumbnail
 logger = logging.getLogger(__name__)
 
 
+from ui.core.document.history import layer_transaction
+
 class LayersPanel(QWidget):
     """Widget principal do Painel de Camadas."""
 
@@ -157,6 +159,9 @@ class LayersPanel(QWidget):
         self._apply_theme("")
 
     def _on_order_changed(self):
+        if self.layer_manager.backend_projection_restoring:
+            self._synced_uids = [layer.uid for layer in self.layer_manager.layers]
+            return
         if not self._updating_selection:
             self._sync_to_native_engine("reorder_all")
 
@@ -198,6 +203,7 @@ class LayersPanel(QWidget):
             self._ensure_top_selection()
 
     # --- Ações do Grid ---
+    @layer_transaction
     def grid_clear(self): 
         active = self.layer_manager.get_active_layer()
         if not active:
@@ -213,6 +219,7 @@ class LayersPanel(QWidget):
     def duplicate_selection(self):
         self.duplicate_layer()
 
+    @layer_transaction
     def delete_selection(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
@@ -228,6 +235,7 @@ class LayersPanel(QWidget):
             finally:
                 self._updating_selection = False
     
+    @layer_transaction
     def grid_toggle_lock(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
@@ -236,6 +244,7 @@ class LayersPanel(QWidget):
             self.model.setData(idx, new_lock, ROLE_LOCKED)
             self._sync_to_native_engine("lock", layer.uid, new_lock)
 
+    @layer_transaction
     def grid_toggle_alpha(self):
         layer = self.layer_manager.get_active_layer()
         if layer:
@@ -250,6 +259,7 @@ class LayersPanel(QWidget):
         if layer:
             self._on_context_toggle_clipping(layer.uid)
 
+    @layer_transaction
     def _on_context_toggle_clipping(self, uid: int):
         layer = self.layer_manager.get_layer_by_uid(uid)
         if layer:
@@ -262,6 +272,7 @@ class LayersPanel(QWidget):
     def _sync_to_native_engine(self, action: str, *args):
         sync_to_native_engine(self, action, *args)
 
+    @layer_transaction
     def add_layer(self, name=None):
         self._updating_selection = True
         try:
@@ -275,6 +286,7 @@ class LayersPanel(QWidget):
         finally:
             self._updating_selection = False
 
+    @layer_transaction
     def add_group(self, name=None):
         self._updating_selection = True
         try:
@@ -289,10 +301,12 @@ class LayersPanel(QWidget):
         finally:
             self._updating_selection = False
 
+    @layer_transaction
     def add_filter_layer(self, filter_type=None):
         from .panel_actions import add_filter_layer
         add_filter_layer(self, filter_type)
 
+    @layer_transaction
     def open_edit_filter_popup(self, uid: int = None):
         from .panel_actions import open_edit_filter_popup
         open_edit_filter_popup(self, uid)
@@ -301,18 +315,22 @@ class LayersPanel(QWidget):
         from .panel_actions import open_rename_popup
         open_rename_popup(self, uid, rect)
 
+    @layer_transaction
     def move_up(self):
         from .panel_actions import move_layer_up
         move_layer_up(self)
 
+    @layer_transaction
     def move_down(self):
         from .panel_actions import move_layer_down
         move_layer_down(self)
 
+    @layer_transaction
     def merge_down(self):
         from .panel_actions import merge_layer_down
         merge_layer_down(self)
 
+    @layer_transaction
     def duplicate_layer(self):
         from .panel_actions import duplicate_layer
         duplicate_layer(self)
@@ -324,6 +342,7 @@ class LayersPanel(QWidget):
         else:
             logger.info(f"[Layers] {message}")
 
+    @layer_transaction
     def _on_ui_opacity_changed(self, value):
         layer = self.layer_manager.get_active_layer()
         if layer and not self._updating_selection:
@@ -331,6 +350,7 @@ class LayersPanel(QWidget):
             self.model.setData(idx, value / 100.0, ROLE_OPACITY)
             self._sync_to_native_engine("opacity", value / 100.0)
 
+    @layer_transaction
     def _on_ui_blend_changed(self, blend):
         layer = self.layer_manager.get_active_layer()
         if layer and not self._updating_selection:
@@ -338,6 +358,7 @@ class LayersPanel(QWidget):
             self.model.setData(idx, blend, ROLE_BLEND)
             self._sync_to_native_engine("blend", blend)
 
+    @layer_transaction
     def _on_delegate_action(self, action_type, uid):
         from .panel_actions import handle_delegate_action
         handle_delegate_action(self, action_type, uid)

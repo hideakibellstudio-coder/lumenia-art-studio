@@ -52,15 +52,6 @@ class NavigatorPlugin(BasePlugin):
             icon_path="compass",
         )
 
-        ws.workspace_container._navigator_panel = self._panel
-        active_doc = getattr(ws.workspace_container, "active_document", None)
-        if callable(active_doc):
-            active_doc = active_doc()
-        if active_doc:
-            self._panel.set_has_document(True)
-            if hasattr(ws.workspace_container, "_sync_navigator_to_canvas"):
-                ws.workspace_container._sync_navigator_to_canvas()
-
         logger.info("[NavigatorPlugin] Navegador registrado no topo da doca direita.")
 
 

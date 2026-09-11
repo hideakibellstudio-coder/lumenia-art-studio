@@ -5,14 +5,18 @@
 
 #define MyAppName "Lumenia"
 #define MyAppFullName "Lumenia — Digital Art & Paint Studio"
-#define MyAppVersion "0.2.0-Alpha"
+#define MyAppVersion "0.2.0"
 #define MyAppPublisher "Lumenia Team"
 #define MyAppURL "https://lumeniateam.itch.io/lumenia"
 #define MyAppExeName "Lumenia.exe"
-#define SourceDir "z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia_Alpha_Portable\Lumenia"
-#define OutputDir "z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia_Alpha_Portable"
-#define IconPath "z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\assets\images\icon_lumenia.ico"
-#define LicensePath "z:\DESENVOLVIMENTO\+ESTUDO ATUAL\ALADYN + UI LUMENIA\Lumenia\TERMS_AND_LICENSE.txt"
+#ifndef SourceDir
+  #define SourceDir AddBackslash(SourcePath) + "..\build\portable\Lumenia.dist"
+#endif
+#ifndef OutputDir
+  #define OutputDir AddBackslash(SourcePath) + "..\build\installer"
+#endif
+#define IconPath AddBackslash(SourcePath) + "..\assets\images\icon_lumenia.ico"
+#define LicensePath AddBackslash(SourcePath) + "..\TERMS_AND_LICENSE.txt"
 
 [Setup]
 AppId={{D37E8492-4C10-4A9B-B41E-9C8022E5F701}
@@ -27,7 +31,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile={#LicensePath}
 OutputDir={#OutputDir}
-OutputBaseFilename=Lumenia_Setup_v0.2.0_Alpha
+OutputBaseFilename=Lumenia_Setup_v{#MyAppVersion}
 SetupIconFile={#IconPath}
 Compression=lzma2/ultra64
 SolidCompression=yes

@@ -6,7 +6,6 @@ Isola a amostragem de cores por Eyedropper (mesclado ou por camada) e os perfis 
 
 from __future__ import annotations
 import logging
-from ui.core.engine.color_profiles_catalog import get_default_color_profiles
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +24,14 @@ class AladynColorMixin:
         return (0, 0, 0, 0)
 
     def set_color_profile(self, profile_id: int) -> None:
-        self._color_profile_id = int(profile_id)
+        profile_id = int(profile_id)
+        available_ids = {int(profile["id"]) for profile in self.get_available_color_profiles()}
+        if profile_id not in available_ids:
+            raise ValueError("perfil de cor desconhecido")
+        self._color_profile_id = profile_id
         if self._facade and hasattr(self._facade, "set_color_profile"):
+            if self.get_color_profile() != int(profile_id):
+                self._mark_document_dirty("color_profile")
             self._facade.set_color_profile(int(profile_id))
 
     def get_color_profile(self) -> int:
@@ -42,6 +47,19 @@ class AladynColorMixin:
         return "Padrão (sRGB)"
 
     def get_available_color_profiles(self) -> list[dict]:
+        if self._facade and hasattr(self._facade, "get_available_color_profiles"):
+            return [dict(profile) for profile in self._facade.get_available_color_profiles()]
         if self._native and hasattr(self._native, "get_available_color_profiles"):
             return self._native.get_available_color_profiles()
-        return get_default_color_profiles()
+        return []
+
+    def transform_rgba_for_profile(self, pixels: bytes, profile_id: int) -> bytes:
+        """Aplica o transformador canônico do motor a uma prévia RGBA."""
+        raw = bytes(pixels)
+        if len(raw) % 4:
+            raise ValueError("pixels RGBA devem ter grupos de quatro bytes")
+        if self._facade and hasattr(self._facade, "transform_rgba_for_profile"):
+            return bytes(self._facade.transform_rgba_for_profile(raw, int(profile_id)))
+        if int(profile_id) != 0:
+            raise RuntimeError("transformação de perfil indisponível sem o motor Aladyn")
+        return raw

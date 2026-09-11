@@ -52,13 +52,6 @@ class LayersPlugin(BasePlugin):
             icon_path="layers",
         )
 
-        ws.workspace_container._layers_panel = self._panel
-        active_doc = getattr(ws.workspace_container, "active_document", None)
-        if callable(active_doc):
-            active_doc = active_doc()
-        if active_doc and hasattr(self._panel, "set_layer_manager"):
-            self._panel.set_layer_manager(active_doc.layer_manager)
-
         logger.info("[LayersPlugin] Gerenciador de Camadas registrado na doca direita abaixo do Navegador.")
 
 

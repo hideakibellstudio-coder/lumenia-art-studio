@@ -5,6 +5,7 @@ from .base import ToolHeaderLabel
 from ui.core.widgets.shape_dropdown import ShapeDropdown, get_shape_label
 from plugins.ui.brush_plugin.compact_slider import CompactSlider
 from ui.core.i18n import tr, I18nManager
+from ui.core.tool_settings import normalize_tool_settings
 
 
 class ShapesOptionsWidget(QtWidgets.QWidget):
@@ -218,14 +219,14 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         sw = self.spin_width.value()
         fill_opac = (self.slider_fill_opac.value() / 100.0) if hasattr(self, "slider_fill_opac") else 1.0
 
-        cfg = {
+        cfg = normalize_tool_settings("shapes", {
             "shape_type": st,
             "draw_mode": dm,
             "stroke_width": sw,
             "stroke_color": self._stroke_color,
             "fill_color": self._fill_color,
             "fill_opacity": fill_opac,
-        }
+        })
         if st == "shape_rect":
             cfg["corner_radius"] = self.spin_extra.value()
         elif st == "shape_polygon":

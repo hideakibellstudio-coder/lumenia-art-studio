@@ -5,6 +5,59 @@
 
 namespace aladyn::engine::document {
 
+static std::unique_ptr<Layer> cloneLayer(const Layer& source, int w, int h) {
+    std::unique_ptr<Layer> result;
+    if (const auto* filter = dynamic_cast<const FilterLayer*>(&source)) {
+        auto copy = std::make_unique<FilterLayer>(source.getName(), filter->getFilterType(), w, h);
+        copy->setParams(filter->getParams());
+        result = std::move(copy);
+    } else {
+        result = std::make_unique<Layer>(source.getName(), source.getType(), w, h, source.isBackground());
+    }
+    result->setOpacity(source.getOpacity());
+    result->setVisible(source.isVisible());
+    result->setLocked(source.isLocked());
+    result->setAlphaLocked(source.isAlphaLocked());
+    result->setClippingMask(source.isClippingMask());
+    result->setBlendMode(source.getBlendMode());
+    result->setEffectiveOpacity(source.getEffectiveOpacity());
+    result->getTileGrid().copyFrom(source.getTileGrid());
+    return result;
+}
+
+LayerStack::LayerStack(const LayerStack& other)
+    : m_width(other.m_width), m_height(other.m_height), m_activeIndex(other.m_activeIndex),
+      m_backgroundLayer(cloneLayer(*other.m_backgroundLayer, m_width, m_height)) {
+    for (const auto& layer : other.m_drawingLayers)
+        m_drawingLayers.push_back(cloneLayer(*layer, m_width, m_height));
+    for (size_t i = 0; i < m_drawingLayers.size(); ++i) {
+        const auto* parent = other.m_drawingLayers[i]->getParent();
+        for (size_t j = 0; parent && j < m_drawingLayers.size(); ++j)
+            if (parent == other.m_drawingLayers[j].get())
+                m_drawingLayers[i]->setParent(m_drawingLayers[j].get());
+    }
+}
+
+void LayerStack::restore(const LayerStack& other) {
+    LayerStack prepared(other); // Allocate everything before changing the live stack.
+    swap(prepared);
+}
+
+void LayerStack::swap(LayerStack& prepared) noexcept {
+    std::swap(m_width, prepared.m_width);
+    std::swap(m_height, prepared.m_height);
+    std::swap(m_activeIndex, prepared.m_activeIndex);
+    m_backgroundLayer.swap(prepared.m_backgroundLayer);
+    m_drawingLayers.swap(prepared.m_drawingLayers);
+}
+
+size_t LayerStack::snapshotBytes() const noexcept {
+    size_t bytes = sizeof(LayerStack) + m_backgroundLayer->getMemoryFootprintBytes();
+    for (const auto& layer : m_drawingLayers)
+        bytes += sizeof(Layer) + layer->getName().capacity() + layer->getMemoryFootprintBytes();
+    return bytes;
+}
+
 LayerStack::LayerStack(int width, int height)
     : m_width(width), m_height(height) {
     // 1. Background Layer (Layer 0) — Preenchida com papel branco por padrão
@@ -16,27 +69,20 @@ LayerStack::LayerStack(int width, int height)
 }
 
 void LayerStack::resize(int width, int height) {
+    width = std::max(1, width);
+    height = std::max(1, height);
+    if (width == m_width && height == m_height) return;
+
+    // Preserva conteúdo e metadados; antes esta rotina recriava cada Layer e
+    // apagava todos os pixels, filtros, locks e relações de grupo.
+    if (m_backgroundLayer) {
+        m_backgroundLayer->getTileGrid().resizePreserve(width, height);
+    }
+    for (auto& layer : m_drawingLayers) {
+        if (layer) layer->getTileGrid().resizePreserve(width, height);
+    }
     m_width = width;
     m_height = height;
-
-    if (m_backgroundLayer) {
-        auto oldBg = std::move(m_backgroundLayer);
-        m_backgroundLayer = std::make_unique<Layer>("Background", width, height, true);
-        m_backgroundLayer->getTileGrid().clearAll({255, 255, 255, 255});
-    }
-
-    for (size_t i = 0; i < m_drawingLayers.size(); ++i) {
-        std::string name = m_drawingLayers[i]->getName();
-        double opacity = m_drawingLayers[i]->getOpacity();
-        bool visible = m_drawingLayers[i]->isVisible();
-        LayerBlendMode mode = m_drawingLayers[i]->getBlendMode();
-
-        auto newLayer = std::make_unique<Layer>(name, width, height, false);
-        newLayer->setOpacity(opacity);
-        newLayer->setVisible(visible);
-        newLayer->setBlendMode(mode);
-        m_drawingLayers[i] = std::move(newLayer);
-    }
 }
 
 void LayerStack::clearAllDrawingLayers() {
@@ -123,12 +169,20 @@ bool LayerStack::removeLayer(int index) {
     if (index < 0 || index >= static_cast<int>(m_drawingLayers.size())) return false;
     if (m_drawingLayers.size() <= 1) return false; // Não permite deletar a única camada de desenho
 
-    m_drawingLayers.erase(m_drawingLayers.begin() + index);
+    const Layer* active = getActiveLayer();
+    std::vector<const Layer*> removed{m_drawingLayers[index].get()};
+    for (size_t i = 0; i < removed.size(); ++i)
+        for (const auto& layer : m_drawingLayers)
+            if (layer->getParent() == removed[i] && std::find(removed.begin(), removed.end(), layer.get()) == removed.end())
+                removed.push_back(layer.get());
+    if (removed.size() == m_drawingLayers.size()) return false;
+    std::erase_if(m_drawingLayers, [&](const auto& layer) {
+        return std::find(removed.begin(), removed.end(), layer.get()) != removed.end();
+    });
+    m_activeIndex = std::min(index, static_cast<int>(m_drawingLayers.size()) - 1);
+    for (size_t i = 0; i < m_drawingLayers.size(); ++i)
+        if (m_drawingLayers[i].get() == active) m_activeIndex = static_cast<int>(i);
 
-    // Ajusta o índice ativo
-    if (m_activeIndex >= static_cast<int>(m_drawingLayers.size())) {
-        m_activeIndex = static_cast<int>(m_drawingLayers.size()) - 1;
-    }
     return true;
 }
 
@@ -139,15 +193,9 @@ int LayerStack::duplicateLayer(int index) {
     if (!src) return -1;
 
     std::string dupName = src->getName() + " Copiar";
-    // Preserva o LayerNodeType original (DrawingLayer ou Group)
-    auto dup = std::make_unique<Layer>(dupName, src->getType(), m_width, m_height, src->isBackground());
-    dup->setOpacity(src->getOpacity());
-    dup->setVisible(src->isVisible());
-    dup->setLocked(src->isLocked());
-    dup->setAlphaLocked(src->isAlphaLocked());
-    dup->setClippingMask(src->isClippingMask());
-    dup->setBlendMode(src->getBlendMode());
-    dup->getTileGrid().copyFrom(src->getTileGrid());
+    auto dup = cloneLayer(*src, m_width, m_height);
+    dup->setName(dupName);
+    dup->setParent(src->getParent());
 
     int insertIdx = index + 1;
     m_drawingLayers.insert(m_drawingLayers.begin() + insertIdx, std::move(dup));
@@ -178,6 +226,13 @@ bool LayerStack::reorderLayer(int fromIndex, int toIndex) {
 
 bool LayerStack::reorderLayers(const std::vector<int>& newOrder) {
     if (newOrder.size() != m_drawingLayers.size()) return false;
+    if (m_activeIndex < 0 || m_activeIndex >= static_cast<int>(m_drawingLayers.size())) return false;
+    std::vector<bool> seen(m_drawingLayers.size(), false);
+    for (int idx : newOrder) {
+        if (idx < 0 || idx >= static_cast<int>(seen.size()) || seen[idx]) return false;
+        seen[idx] = true;
+    }
+    const Layer* activePtr = m_drawingLayers[m_activeIndex].get();
     std::vector<std::unique_ptr<Layer>> reordered;
     reordered.reserve(m_drawingLayers.size());
 
@@ -188,6 +243,12 @@ bool LayerStack::reorderLayers(const std::vector<int>& newOrder) {
     }
 
     m_drawingLayers = std::move(reordered);
+    for (size_t i = 0; i < m_drawingLayers.size(); ++i) {
+        if (m_drawingLayers[i].get() == activePtr) {
+            m_activeIndex = static_cast<int>(i);
+            break;
+        }
+    }
     return true;
 }
 
@@ -206,29 +267,28 @@ static bool wouldCreateCycle(const LayerNode* child, const LayerNode* newParent)
 
 bool LayerStack::setLayerParents(const std::vector<int>& parentIndices) {
     if (parentIndices.size() != m_drawingLayers.size()) return false;
-    for (size_t i = 0; i < m_drawingLayers.size(); ++i) {
-        if (!m_drawingLayers[i]) continue;
-        int parentIdx = parentIndices[i];
-        if (parentIdx >= 0 && parentIdx < static_cast<int>(m_drawingLayers.size()) && parentIdx != static_cast<int>(i)) {
-            LayerNode* newParent = m_drawingLayers[parentIdx].get();
-            if (!wouldCreateCycle(m_drawingLayers[i].get(), newParent)) {
-                m_drawingLayers[i]->setParent(newParent);
-            } else {
-                m_drawingLayers[i]->setParent(nullptr); // Previne ciclo de nós
-            }
-        } else {
-            m_drawingLayers[i]->setParent(nullptr);
+    for (size_t i = 0; i < parentIndices.size(); ++i) {
+        int p = parentIndices[i];
+        size_t depth = 0;
+        while (p != -1) {
+            if (p < 0 || p >= static_cast<int>(parentIndices.size()) ||
+                p == static_cast<int>(i) || !m_drawingLayers[p]->isGroup() ||
+                ++depth > parentIndices.size()) return false;
+            p = parentIndices[p];
         }
     }
+    for (size_t i = 0; i < parentIndices.size(); ++i)
+        m_drawingLayers[i]->setParent(parentIndices[i] < 0 ? nullptr : m_drawingLayers[parentIndices[i]].get());
+
     return true;
 }
 
-bool LayerStack::flattenGroup(int index) {
-    return LayerMerger::flattenGroup(m_drawingLayers, m_activeIndex, m_width, m_height, index);
+bool LayerStack::flattenGroup(int index, bool linearGamma, bool deepColor) {
+    return LayerMerger::flattenGroup(m_drawingLayers, m_activeIndex, m_width, m_height, index, linearGamma, deepColor);
 }
 
-bool LayerStack::mergeLayerDown(int index) {
-    return LayerMerger::mergeLayerDown(m_drawingLayers, m_activeIndex, m_width, m_height, index);
+bool LayerStack::mergeLayerDown(int index, bool linearGamma, bool deepColor) {
+    return LayerMerger::mergeLayerDown(m_drawingLayers, m_activeIndex, m_width, m_height, index, linearGamma, deepColor);
 }
 
 Layer* LayerStack::getActiveLayer() noexcept {

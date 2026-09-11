@@ -21,6 +21,7 @@ from .help_menu import HelpMenu
 from .theme_menu import ThemeMenu
 from .plugins_menu import PluginsMenu
 from ui.core.icons import get_icon
+from ui.core.runtime_paths import resource_path
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -130,12 +131,9 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def setup_menus(self):
         # 0. [Logo Oficial / Branding Action]
-        import os
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
-        icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
-        if os.path.exists(icon_path):
-            act_brand = QtGui.QAction(QtGui.QIcon(icon_path), "", self)
+        icon_path = resource_path("assets", "images", "icon_lumenia.png")
+        if icon_path.is_file():
+            act_brand = QtGui.QAction(QtGui.QIcon(str(icon_path)), "", self)
             act_brand.setToolTip("Lumenia 2.0 • Clique para Sobre o Software")
             act_brand.triggered.connect(self.aboutRequested.emit)
             self.addAction(act_brand)

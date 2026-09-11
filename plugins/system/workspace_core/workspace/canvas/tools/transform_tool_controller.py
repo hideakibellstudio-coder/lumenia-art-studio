@@ -4,6 +4,7 @@ import math
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
+from ui.core.tool_settings import default_tool_settings
 
 class TransformToolController:
     """Controlador de Transformação Livre (Bounding Box, Escala, Rotação e Translação)."""
@@ -21,8 +22,9 @@ class TransformToolController:
         self.rotation: float = 0.0
         self.flip_h: bool = False
         self.flip_v: bool = False
-        self.interp_mode: int = 2
-        self.lock_aspect: bool = False
+        settings = default_tool_settings("transform")
+        self.interp_mode = settings["interp_mode"]
+        self.lock_aspect = settings["lock_aspect"]
         self.handle_dragged: Optional[str] = None
         self.mouse_press_pos: Optional[QtCore.QPointF] = None
         self.press_params: dict = {}

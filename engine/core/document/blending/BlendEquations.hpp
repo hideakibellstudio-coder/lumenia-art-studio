@@ -57,13 +57,15 @@ inline raster::ColorRGBA blendPixel(
     raster::ColorRGBA src,
     double layerOpacity,
     raster::ColorRGBA dst,
-    LayerBlendMode mode
+    LayerBlendMode mode,
+    bool linearGamma = true,
+    bool deepColor = false
 ) noexcept {
     if (src.a == 0) return dst;
 
-    if (mode == LayerBlendMode::Normal && layerOpacity == 1.0) {
+    if (mode == LayerBlendMode::Normal && layerOpacity == 1.0 && !deepColor) {
         if (src.a == 255) return src;
-        if (dst.a == 255) {
+        if (dst.a == 255 && !linearGamma) {
             const uint32_t sA = src.a;
             const uint32_t invA = 255 - sA;
             return raster::ColorRGBA{
@@ -85,10 +87,35 @@ inline raster::ColorRGBA blendPixel(
     }
 
     if (mode == LayerBlendMode::Normal) {
-        if (dst.a == 255) {
-            return color::blendLinearNormalOpaque(src, static_cast<float>(srcA), dst);
+        if (linearGamma) {
+            if (deepColor) {
+                return color::blendLinearNormalHighPrecision(src, srcA, dst);
+            }
+            if (dst.a == 255) {
+                return color::blendLinearNormalOpaque(src, static_cast<float>(srcA), dst);
+            }
+            return color::blendLinearNormal(src, static_cast<float>(srcA), dst);
         }
-        return color::blendLinearNormal(src, static_cast<float>(srcA), dst);
+
+        // Mistura sRGB direta (compatível com pipelines que mantêm a gama
+        // codificada). Em modo Deep Color o cálculo continua em double e a
+        // quantização final usa arredondamento, evitando a perda sistemática
+        // causada por truncar cada composição intermediária.
+        const double dstA = static_cast<double>(dst.a) / 255.0;
+        const double outA = srcA + dstA * (1.0 - srcA);
+        if (outA <= 0.0) return raster::ColorRGBA{0, 0, 0, 0};
+        const double factorSrc = srcA / outA;
+        const double factorDst = dstA * (1.0 - srcA) / outA;
+        const auto quantize = [deepColor](double value) noexcept -> uint8_t {
+            const double scaled = std::clamp(value * 255.0, 0.0, 255.0);
+            return static_cast<uint8_t>(deepColor ? std::lround(scaled) : scaled);
+        };
+        return raster::ColorRGBA{
+            quantize((static_cast<double>(src.r) / 255.0) * factorSrc + (static_cast<double>(dst.r) / 255.0) * factorDst),
+            quantize((static_cast<double>(src.g) / 255.0) * factorSrc + (static_cast<double>(dst.g) / 255.0) * factorDst),
+            quantize((static_cast<double>(src.b) / 255.0) * factorSrc + (static_cast<double>(dst.b) / 255.0) * factorDst),
+            quantize(outA)
+        };
     }
 
     const double dstA = static_cast<double>(dst.a) / 255.0;
@@ -167,11 +194,12 @@ inline raster::ColorRGBA blendPixel(
     const double outG = (blendG * srcA + dG * dstA * (1.0 - srcA)) / outA;
     const double outB = (blendB * srcA + dB * dstA * (1.0 - srcA)) / outA;
 
+    const auto quantize = [deepColor](double value) noexcept -> uint8_t {
+        const double scaled = std::clamp(value * 255.0, 0.0, 255.0);
+        return static_cast<uint8_t>(deepColor ? std::lround(scaled) : scaled);
+    };
     return raster::ColorRGBA{
-        static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
-        static_cast<uint8_t>(std::clamp(outG * 255.0, 0.0, 255.0)),
-        static_cast<uint8_t>(std::clamp(outB * 255.0, 0.0, 255.0)),
-        static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
+        quantize(outR), quantize(outG), quantize(outB), quantize(outA)
     };
 }
 

@@ -3,6 +3,8 @@
 Strictly decoupled in compliance with ARCcC v2 (< 140 LOC).
 """
 
+from ui.core.tool_settings import normalize_tool_settings
+
 
 class SelectionToolbarHandlersMixin:
     """Handlers for magic wand, rect/ellipse selection, and lasso options."""
@@ -42,12 +44,12 @@ class SelectionToolbarHandlersMixin:
         self._emit_wand_settings()
 
     def _emit_wand_settings(self):
-        settings = {
+        settings = normalize_tool_settings("wand", {
             "tolerance": self.slider_wand_tol_h.value(),
             "contiguous": self.btn_wand_contig_h.isChecked(),
             "sample_all": self.btn_wand_merged_h.isChecked(),
             "mode": self.cbo_wand_mode_h.currentIndex(),
-        }
+        })
         self._settings_cache["wand"] = settings
         self.settingsChanged.emit("wand", settings)
 
@@ -79,12 +81,12 @@ class SelectionToolbarHandlersMixin:
         self._emit_geom_settings()
 
     def _emit_geom_settings(self):
-        settings = {
-            "feather": self.slider_geom_feather_h.value(),
-            "anti_alias": self.btn_geom_aa_h.isChecked(),
-            "mode": self.cbo_geom_mode_h.currentIndex(),
-        }
         tool = "ellipse_select" if getattr(self, "_active_tool_id", "") == "ellipse_select" else "rect_select"
+        settings = normalize_tool_settings(tool, {
+            "feather_px": self.slider_geom_feather_h.value(),
+            "aa": self.btn_geom_aa_h.isChecked(),
+            "mode": self.cbo_geom_mode_h.currentIndex(),
+        })
         self._settings_cache[tool] = settings
         self.settingsChanged.emit(tool, settings)
 
@@ -116,11 +118,11 @@ class SelectionToolbarHandlersMixin:
         self._emit_lasso_settings()
 
     def _emit_lasso_settings(self):
-        settings = {
-            "feather": self.slider_lasso_feather_h.value(),
-            "anti_alias": self.btn_lasso_aa_h.isChecked(),
+        settings = normalize_tool_settings("lasso", {
+            "feather_px": self.slider_lasso_feather_h.value(),
+            "aa": self.btn_lasso_aa_h.isChecked(),
             "mode": self.cbo_lasso_mode_h.currentIndex(),
-        }
+        })
         self._settings_cache["lasso"] = settings
         self.settingsChanged.emit("lasso", settings)
 

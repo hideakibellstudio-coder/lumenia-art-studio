@@ -2,6 +2,7 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.i18n import tr, I18nManager
+from ui.core.tool_settings import normalize_tool_settings
 from .base import ToolHeaderLabel, ModernOptionCheckBox
 
 
@@ -96,12 +97,12 @@ class BucketOptionsWidget(QtWidgets.QWidget):
             self.chk_sample_all.setToolTip(tr("tools.sample_all_tooltip", "Detecta limites considerando todas as camadas visíveis"))
 
     def _emit_changes(self):
-        settings = {
+        settings = normalize_tool_settings("bucket", {
             "tolerance": self.slider_tol.value(),
-            "expansion": self.slider_exp.value(),
+            "expand_px": self.slider_exp.value(),
             "contiguous": self.chk_contiguous.isChecked(),
             "sample_all": self.chk_sample_all.isChecked(),
-        }
+        })
         self.settingsChanged.emit(settings)
 
 
@@ -186,10 +187,10 @@ class WandOptionsWidget(QtWidgets.QWidget):
             self.chk_sample_all.setText(tr("tools.sample_all_layers", "Todas as Camadas"))
 
     def _emit_changes(self):
-        settings = {
+        settings = normalize_tool_settings("wand", {
             "tolerance": self.slider_tol.value(),
             "contiguous": self.chk_contiguous.isChecked(),
             "sample_all": self.chk_sample_all.isChecked(),
             "mode": self.combo_mode.currentIndex(),
-        }
+        })
         self.settingsChanged.emit(settings)

@@ -11,6 +11,8 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <atomic>
+#include "../raster/SelectionMask.hpp"
 
 namespace aladyn::engine::canvas {
 
@@ -54,6 +56,11 @@ struct TileSnapshot {
 };
 
 struct UndoStep {
+    uint64_t id{0};
+    std::shared_ptr<document::LayerStack> structureBefore;
+    std::shared_ptr<document::LayerStack> structureAfter;
+    std::shared_ptr<raster::SelectionMask> selectionBefore;
+    std::shared_ptr<raster::SelectionMask> selectionAfter;
     std::string description;
     std::vector<TileSnapshot> snapshots;
     bool isPagedToDisk{false};
@@ -61,16 +68,29 @@ struct UndoStep {
 
 class TileUndoManager {
 public:
-    explicit TileUndoManager(size_t maxSteps = 50, size_t maxMemoryMB = 256, bool scratchDiskEnabled = true);
+    explicit TileUndoManager(size_t maxSteps = 50, size_t maxMemoryMB = 256, bool scratchDiskEnabled = true,
+                             std::unique_ptr<ScratchDiskManager> storage = nullptr);
     ~TileUndoManager() = default;
 
     void beginStep(const std::string& description = "Stroke");
     void recordTileBefore(int layerIndex, int tileX, int tileY, const uint8_t* data, size_t sizeInBytes);
     void commitStep(document::LayerStack& stack);
     void cancelStep() noexcept;
+    bool beginStructure(const document::LayerStack& stack, const raster::SelectionMask& selection);
+    uint64_t commitStructure(const document::LayerStack& stack, const raster::SelectionMask& selection);
+    bool cancelStructure(document::LayerStack& stack, raster::SelectionMask& selection);
+    bool recordingStructure() const noexcept { return bool(m_structureBefore); }
+    uint64_t undoId() const noexcept { return m_undoStack.empty() ? 0 : m_undoStack.back().id; }
+    uint64_t redoId() const noexcept { return m_redoStack.empty() ? 0 : m_redoStack.back().id; }
+    std::vector<uint64_t> historyIds() const {
+        std::vector<uint64_t> ids;
+        for (const auto& step : m_undoStack) ids.push_back(step.id);
+        for (const auto& step : m_redoStack) ids.push_back(step.id);
+        return ids;
+    }
 
-    bool undo(document::LayerStack& stack);
-    bool redo(document::LayerStack& stack);
+    bool undo(document::LayerStack& stack, raster::SelectionMask& selection);
+    bool redo(document::LayerStack& stack, raster::SelectionMask& selection);
 
     void clear() noexcept;
 
@@ -90,11 +110,17 @@ public:
     [[nodiscard]] bool isScratchDiskEnabled() const noexcept;
     [[nodiscard]] size_t getPagedStepsCount() const noexcept;
     [[nodiscard]] uint64_t getScratchDiskBytes() const noexcept;
+    [[nodiscard]] const std::string& getLastError() const noexcept { return m_lastError; }
 
 private:
+    inline static std::atomic<uint64_t> m_nextId{1};
+    std::shared_ptr<document::LayerStack> m_structureBefore;
+    std::shared_ptr<raster::SelectionMask> m_selectionBefore;
     static size_t calculateStepBytes(const UndoStep& step) noexcept;
     bool pageOldestStepToDisk();
-    bool restoreStepFromDisk(UndoStep& step);
+    bool moveStep(document::LayerStack& stack, raster::SelectionMask& selection, bool redo);
+    void recalculateMemory() noexcept;
+    std::string m_lastError;
 
     size_t m_maxSteps{50};
     size_t m_maxMemoryBytes{256 * 1024 * 1024}; // 256 MB de teto padrão

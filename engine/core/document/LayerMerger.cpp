@@ -1,6 +1,7 @@
 #include "LayerMerger.hpp"
 #include "FilterLayer.hpp"
 #include "Compositor.hpp"
+#include "blending/BlendEquations.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -11,7 +12,9 @@ bool LayerMerger::flattenGroup(
     int& activeIndex,
     int width,
     int height,
-    int index
+    int index,
+    bool linearGamma,
+    bool deepColor
 ) {
     const int count = static_cast<int>(drawingLayers.size());
     if (index < 0 || index >= count) return false;
@@ -40,6 +43,7 @@ bool LayerMerger::flattenGroup(
     auto flattened = std::make_unique<Layer>(groupName, width, height, false);
     flattened->setOpacity(groupOpacity);
     flattened->setVisible(groupVis);
+    flattened->setParent(const_cast<LayerNode*>(groupParent));
     flattened->setBlendMode(groupBlend == LayerBlendMode::PassThrough ? LayerBlendMode::Normal : groupBlend);
 
     for (int dIdx : descendantIndices) {
@@ -75,32 +79,9 @@ bool LayerMerger::flattenGroup(
                         raster::ColorRGBA src = sBuf.getPixel(px, py);
                         if (src.a == 0) continue;
 
-                        const double srcA = (static_cast<double>(src.a) / 255.0) * relOpacity;
-                        if (srcA <= 0.0) continue;
-
                         raster::ColorRGBA dst = dBuf.getPixel(px, py);
-                        const double dstA = static_cast<double>(dst.a) / 255.0;
-                        const double outA = srcA + dstA * (1.0 - srcA);
-                        if (outA <= 0.0) continue;
-
-                        const double srcR = static_cast<double>(src.r);
-                        const double srcG = static_cast<double>(src.g);
-                        const double srcB = static_cast<double>(src.b);
-
-                        const double dstR = static_cast<double>(dst.r);
-                        const double dstG = static_cast<double>(dst.g);
-                        const double dstB = static_cast<double>(dst.b);
-
-                        const double outR = (srcR * srcA + dstR * dstA * (1.0 - srcA)) / outA;
-                        const double outG = (srcG * srcA + dstG * dstA * (1.0 - srcA)) / outA;
-                        const double outB = (srcB * srcA + dstB * dstA * (1.0 - srcA)) / outA;
-
-                        dBuf.setPixel(px, py, {
-                            static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
-                            static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
-                            static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
-                            static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
-                        });
+                        dBuf.setPixel(px, py, blending::blendPixel(
+                            src, relOpacity, dst, LayerBlendMode::Normal, linearGamma, deepColor));
                     }
                 }
             }
@@ -137,18 +118,16 @@ bool LayerMerger::mergeLayerDown(
     int& activeIndex,
     int width,
     int height,
-    int index
+    int index,
+    bool linearGamma,
+    bool deepColor
 ) {
     const int count = static_cast<int>(drawingLayers.size());
     if (index <= 0 || index >= count) return false;
 
-    if (drawingLayers[index] && drawingLayers[index]->isGroup()) {
-        flattenGroup(drawingLayers, activeIndex, width, height, index);
-    }
-    if (index - 1 >= 0 && index - 1 < static_cast<int>(drawingLayers.size()) &&
-        drawingLayers[index - 1] && drawingLayers[index - 1]->isGroup()) {
-        flattenGroup(drawingLayers, activeIndex, width, height, index - 1);
-    }
+    // Group flattening can remove the upper index as a descendant. Require
+    // callers to flatten explicitly before resolving the next merge indices.
+    if (drawingLayers[index]->isGroup() || drawingLayers[index - 1]->isGroup()) return false;
 
     Layer* upperLayer = drawingLayers[index].get();
     Layer* lowerLayer = drawingLayers[index - 1].get();
@@ -201,7 +180,7 @@ bool LayerMerger::mergeLayerDown(
                     // Não mescla fora da silhueta da camada base
                     if (upperIsClipping && dst.a == 0) continue;
 
-                    raster::ColorRGBA blended = Compositor::blendPixel(src, upperOpacity, dst, upperBlend);
+                    raster::ColorRGBA blended = blending::blendPixel(src, upperOpacity, dst, upperBlend, linearGamma, deepColor);
                     lBuf.setPixel(px, py, blended);
                 }
             }

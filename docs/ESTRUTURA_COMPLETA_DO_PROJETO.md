@@ -84,7 +84,11 @@ Compilado em módulo binário C++17 com extensões SIMD (`/arch:AVX2`, `/openmp`
 * `FloodFill.hpp / .cpp`: Balde de tinta nativo com algoritmo de crescimento por expansão e fechamento de gaps (*gap-closing*).
 * `SelectionEngine.hpp / .cpp` & `SelectionMask.hpp`: Estrutura de seleção em escala de cinza de 8 bits (1 byte/pixel) e detecção de bordas.
 * `TransformEngine.hpp / .cpp` & `transform/TransformSamplers.hpp`: Filtros de interpolação analítica (Nearest Neighbor, Bilinear Suave e Bicúbico).
-* `ColorProfileManager.hpp`, `PixelContext.hpp`, `Dab.hpp`.
+* `PixelContext.hpp`, `Dab.hpp`.
+
+### E. Cor e prova de gamut (`engine/core/color/`)
+* `ColorProfile.hpp / .cpp`: Fonte única dos IDs, metadados e transformações
+  usadas pela fachada, pela ponte e pela prévia da interface.
 
 ### C. Gerenciamento de Memória do Canvas (`engine/core/canvas/`)
 * `TileGrid.hpp / .cpp`: Grade esparsa de blocos de memória (*tiles*) de 128×128 pixels. Aloca apenas as regiões tocadas pelo pincel.
@@ -241,9 +245,9 @@ Compilado em módulo binário C++17 com extensões SIMD (`/arch:AVX2`, `/openmp`
 
 * **`ui/core/engine/` (Infraestrutura do Motor)**:
   * `registry.py`: Singleton `EngineRegistry` para injeção de dependência do backend ativo.
-  * `backend.py`: Contrato abstrato `IEngineBackend`.
+  * `backend.py`: Contrato abstrato `EngineBackend`, incluindo capacidades
+    efetivas, controles de pipeline e exportação canônica.
   * `telemetry_tracker.py`: Rastreador de telemetria com classificação de gargalos do pipeline.
-  * `color_profile.py` & `color_profiles_catalog.py`: Catálogo de perfis ICC/RGB.
   * `flood_fill.py`, `commands.py`, `errors.py`.
 
 * **`ui/core/theme/` (Sistema Visual Dinâmico)**:

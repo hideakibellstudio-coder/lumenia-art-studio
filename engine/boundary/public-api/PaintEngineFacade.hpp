@@ -17,6 +17,7 @@
 #include "../../core/texture/ProceduralTextures.hpp"
 #include "../../core/engines/IBrushEngine.hpp"
 #include "../../core/raster/SelectionMask.hpp"
+#include "../../core/color/ColorProfile.hpp"
 #include "../../core/raster/TransformEngine.hpp"
 #include "../../core/math/SymmetryEngine.hpp"
 #include "../../core/math/GuideSnapEngine.hpp"
@@ -62,7 +63,8 @@ public:
     bool reorderLayer(int fromIndex, int toIndex);
     bool reorderLayers(const std::vector<int>& newOrder);
     bool setLayerParents(const std::vector<int>& parentIndices);
-    void setLayerName(int index, const std::string& name) { if (auto* l = m_layerStack.getDrawingLayer(index)) l->setName(name); }
+    void setLayerName(int index, const std::string& name) { if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setName(name); touchDocument(); } }
+    [[nodiscard]] std::string getLayerName(int index) const { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->getName() : std::string{}; }
     void setLayerOpacity(int index, double opacity);
     void setLayerBlendMode(int index, int blendModeId);
     void setLayerVisibility(int index, bool visible);
@@ -79,10 +81,18 @@ public:
     void setBackgroundColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
 
     bool undo();
+    bool beginLayerTransaction() { return !m_isDrawing && !isTransformActive() && m_undoManager.beginStructure(m_layerStack, m_selectionMask); }
+    uint64_t commitLayerTransaction() { return m_undoManager.commitStructure(m_layerStack, m_selectionMask); }
+    bool cancelLayerTransaction();
+    bool applyPreparedGeometry(const PaintEngineFacade& prepared);
+    uint64_t getUndoStepId() const noexcept { return m_undoManager.undoId(); }
+    uint64_t getRedoStepId() const noexcept { return m_undoManager.redoId(); }
+    std::vector<uint64_t> getHistoryStepIds() const { return m_undoManager.historyIds(); }
     bool redo();
     [[nodiscard]] bool canUndo() const noexcept { return m_undoManager.canUndo(); }
     [[nodiscard]] bool canRedo() const noexcept { return m_undoManager.canRedo(); }
     [[nodiscard]] size_t getUndoCount() const noexcept { return m_undoManager.getUndoCount(); }
+    [[nodiscard]] const std::string& getHistoryError() const noexcept { return m_undoManager.getLastError(); }
     [[nodiscard]] size_t getRedoCount() const noexcept { return m_undoManager.getRedoCount(); }
     void setUndoMemoryLimitMB(size_t mb) noexcept { m_undoManager.setMaxMemoryMB(mb); }
     [[nodiscard]] size_t getUndoMemoryLimitMB() const noexcept { return m_undoManager.getMaxMemoryMB(); }
@@ -122,6 +132,11 @@ public:
     bool fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor);
     [[nodiscard]] uint8_t* getSelectionMaskData() noexcept { return m_selectionMask.getData(); }
     [[nodiscard]] size_t getSelectionMaskSize() const noexcept { return m_selectionMask.getSizeInBytes(); }
+    bool setSelectionMaskBuffer(const std::vector<uint8_t>& pixels) {
+        if (pixels.size() != m_selectionMask.getSizeInBytes()) return false;
+        m_selectionMask.combine(pixels, raster::SelectionMode::New);
+        return true;
+    }
     [[nodiscard]] std::vector<int> getSelectionBounds() const;
     [[nodiscard]] std::vector<int> getSelectionContourSegments() const;
     [[nodiscard]] std::vector<std::vector<int>> getSelectionContourLoops() const;
@@ -171,7 +186,20 @@ public:
     void loadBrushHeightTextureFromBuffer(int width, int height, const uint8_t* buffer);
     void loadCanvasHeightTextureFromBuffer(int width, int height, const uint8_t* buffer);
 
-    void setColorProfile(int profileId) noexcept { m_colorProfileId = profileId; }
+    // Opções efetivas do pipeline nativo. Elas controlam o traço e a
+    // composição; não são apenas valores de preferência da UI.
+    void setLowLatency(bool enabled) noexcept;
+    [[nodiscard]] bool getLowLatency() const noexcept { return m_lowLatency; }
+    void setLinearGamma(bool enabled);
+    [[nodiscard]] bool getLinearGamma() const noexcept { return m_linearGamma; }
+    void setDeepColor(bool enabled);
+    [[nodiscard]] bool getDeepColor() const noexcept { return m_deepColor; }
+    void setRenderOptions(bool lowLatency, bool linearGamma, bool deepColor);
+
+    void setColorProfile(int profileId) noexcept {
+        if (!color::ColorProfileManager::isProfileValid(profileId)) return;
+        if (m_colorProfileId != profileId) { m_colorProfileId = profileId; touchDocument(); }
+    }
     [[nodiscard]] int getColorProfile() const noexcept { return m_colorProfileId; }
     void applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept;
 
@@ -189,6 +217,7 @@ public:
 
     [[nodiscard]] int getWidth() const noexcept { return m_width; }
     [[nodiscard]] int getHeight() const noexcept { return m_height; }
+    [[nodiscard]] uint64_t getDocumentGeneration() const noexcept { return m_documentGeneration; }
 
     [[nodiscard]] uint8_t* getRawPixelData() noexcept { return m_outputBuffer.getData(); }
     [[nodiscard]] const uint8_t* getRawPixelData() const noexcept { return m_outputBuffer.getData(); }
@@ -196,6 +225,7 @@ public:
 
     [[nodiscard]] uint8_t* getDisplayRawPixelData() noexcept;
     [[nodiscard]] size_t getDisplayPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
+    [[nodiscard]] std::vector<uint8_t> getLayerPixelBuffer(int layerIndex) const;
 
     // ─── TELEMETRIA E DIAGNÓSTICO EM TEMPO REAL ──────────────────────────
     void setTelemetryEnabled(bool enabled) noexcept { m_telemetryManager.setEnabled(enabled); }
@@ -236,7 +266,12 @@ public:
                 m_mipmapPyramid.markDirty();
             }
         }
-        return m_mipmapPyramid.getLODData(level, m_outputBuffer, outW, outH);
+        // Build from the same buffer returned to the display.  With the
+        // default sRGB profile getDisplayRawPixelData() aliases outputBuffer;
+        // using the untouched display scratch buffer would otherwise yield a
+        // stale white pyramid.
+        const auto& displayBase = (m_colorProfileId == 0) ? m_outputBuffer : m_displayBuffer;
+        return m_mipmapPyramid.getLODData(level, displayBase, outW, outH);
     }
     [[nodiscard]] static int getBestLODLevel(double zoom) noexcept {
         return canvas::MipmapPyramid::getBestLODLevel(zoom);
@@ -249,6 +284,8 @@ public:
     }
 
 private:
+    void syncHistoryGeometry();
+    void touchDocument() noexcept { ++m_documentGeneration; m_mipmapPyramid.markDirty(); }
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
     void initEngine(brush::EngineType type);
 
@@ -256,6 +293,10 @@ private:
     int m_height;
     bool m_isDrawing{false};
     int m_colorProfileId{0};
+    bool m_lowLatency{false};
+    bool m_linearGamma{true};
+    bool m_deepColor{false};
+    uint64_t m_documentGeneration{0};
 
     stroke::VelocityTracker   m_velocityTracker;
     stroke::DynamicStabilizer m_stabilizer;

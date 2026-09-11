@@ -8,11 +8,11 @@ configuração global de ícones e transição para MainWindow.
 from __future__ import annotations
 
 import sys
-import os
 import logging
 from PySide6 import QtWidgets, QtGui, QtCore
 from ui.core.logger import setup_senior_logging, get_logger
 from ui.core.components.splash_screen import LumeniaSplashScreen
+from ui.core.runtime_paths import resource_path
 from ui.boundary.orchestrator.main_window import MainWindow
 
 
@@ -38,10 +38,9 @@ def launch(args: list[str] | None = None) -> int:
     app.setStyleSheet(ThemeManager.instance().get_stylesheet())
 
     # 3. Ícone Oficial do Programa
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
-    if os.path.exists(icon_path):
-        app_icon = QtGui.QIcon(icon_path)
+    icon_path = resource_path("assets", "images", "icon_lumenia.png")
+    if icon_path.is_file():
+        app_icon = QtGui.QIcon(str(icon_path))
         app.setWindowIcon(app_icon)
 
     # 4. Splash Screen Progressivo

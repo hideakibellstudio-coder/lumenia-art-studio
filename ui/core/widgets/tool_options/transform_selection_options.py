@@ -2,6 +2,7 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.i18n import tr, I18nManager
+from ui.core.tool_settings import normalize_tool_settings
 from .base import ToolHeaderLabel, ModernOptionCheckBox
 
 
@@ -36,12 +37,14 @@ class TransformOptionsWidget(QtWidgets.QWidget):
             tr("tools.transform_distort", "Distorcer")
         ])
         self.combo_mode.setFixedHeight(22)
+        self.combo_mode.currentIndexChanged.connect(self._emit_changes)
         row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)
 
         self.chk_bicubic = ModernOptionCheckBox(tr("tools.bicubic_interp", "Interpolação Bicúbica"))
         self.chk_bicubic.setChecked(True)
+        self.chk_bicubic.toggled.connect(self._emit_changes)
         layout.addWidget(self.chk_bicubic)
 
         layout.addStretch()
@@ -51,6 +54,13 @@ class TransformOptionsWidget(QtWidgets.QWidget):
             self.lbl_m.setText(f"{tr('tools.selection_mode', 'Modo')}:")
         if hasattr(self, "chk_bicubic"):
             self.chk_bicubic.setText(tr("tools.bicubic_interp", "Interpolação Bicúbica"))
+
+    def _emit_changes(self):
+        settings = normalize_tool_settings("transform", {
+            "interp_mode": 2 if self.chk_bicubic.isChecked() else 1,
+            "lock_aspect": self.combo_mode.currentIndex() == 1,
+        })
+        self.settingsChanged.emit(settings)
 
 
 class SelectionOptionsWidget(QtWidgets.QWidget):
@@ -85,12 +95,14 @@ class SelectionOptionsWidget(QtWidgets.QWidget):
             tr("tools.mode_intersect", "Interseção")
         ])
         self.combo_mode.setFixedHeight(22)
+        self.combo_mode.currentIndexChanged.connect(self._emit_changes)
         row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)
 
         self.chk_aa = ModernOptionCheckBox(tr("tools.anti_alias", "Anti-Aliasing"))
         self.chk_aa.setChecked(True)
+        self.chk_aa.toggled.connect(self._emit_changes)
         layout.addWidget(self.chk_aa)
 
         layout.addStretch()
@@ -100,3 +112,10 @@ class SelectionOptionsWidget(QtWidgets.QWidget):
             self.lbl_m.setText(f"{tr('tools.selection_mode', 'Modo')}:")
         if hasattr(self, "chk_aa"):
             self.chk_aa.setText(tr("tools.anti_alias", "Anti-Aliasing"))
+
+    def _emit_changes(self):
+        settings = {
+            "aa": self.chk_aa.isChecked(),
+            "mode": self.combo_mode.currentIndex(),
+        }
+        self.settingsChanged.emit(settings)

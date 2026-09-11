@@ -76,46 +76,37 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
             };
         }
 
-        case ColorProfileType::Generic_CMYK:
-            return simulateCmyk(r, g, b, src.a, 0.18, 3.0, 0.98, 0.95);
+        case ColorProfileType::Adobe_RGB: {
+            const double ar = std::clamp(r * 0.98, 0.0, 1.0);
+            const double ag = std::clamp(g * 1.12, 0.0, 1.0);
+            const double ab = std::clamp(b * (g > 0.3 ? 1.08 : 1.0), 0.0, 1.0);
+            return raster::ColorRGBA{
+                static_cast<uint8_t>(ar * 255.0), static_cast<uint8_t>(ag * 255.0),
+                static_cast<uint8_t>(ab * 255.0), src.a};
+        }
 
-        case ColorProfileType::US_SWOP_Web_Coated_v2:
+        case ColorProfileType::Rec2020:
+            return raster::ColorRGBA{
+                static_cast<uint8_t>(std::clamp(std::pow(r, 0.9) * 1.05 * 255.0, 0.0, 255.0)),
+                static_cast<uint8_t>(std::clamp(std::pow(g, 0.9) * 1.08 * 255.0, 0.0, 255.0)),
+                static_cast<uint8_t>(std::clamp(std::pow(b, 0.9) * 1.05 * 255.0, 0.0, 255.0)), src.a};
+
+        case ColorProfileType::SWOP_Coated:
             return simulateCmyk(r, g, b, src.a, 0.18, 3.0, 0.98, 0.96);
 
-        case ColorProfileType::US_SWOP_Web_Coated_G3:
-            return simulateCmyk(r, g, b, src.a, 0.20, 2.9, 0.96, 0.94);
-
-        case ColorProfileType::US_SWOP_Web_Coated_G5:
-            return simulateCmyk(r, g, b, src.a, 0.22, 2.8, 0.94, 0.92);
-
-        case ColorProfileType::US_GRACOL_Coated_2006:
-            return simulateCmyk(r, g, b, src.a, 0.16, 3.2, 0.99, 0.98);
-
-        case ColorProfileType::US_SWOP_Web_Uncoated_v2:
-            return simulateCmyk(r, g, b, src.a, 0.26, 2.6, 0.90, 0.88);
-
-        case ColorProfileType::Europe_FOGRA39_Coated:
+        case ColorProfileType::FOGRA39_Coated:
             return simulateCmyk(r, g, b, src.a, 0.15, 3.3, 0.99, 0.97);
 
-        case ColorProfileType::Euroscale_Coated_v2:
-            return simulateCmyk(r, g, b, src.a, 0.17, 3.1, 0.98, 0.96);
+        case ColorProfileType::GRACOL_Coated_2006:
+            return simulateCmyk(r, g, b, src.a, 0.16, 3.2, 0.99, 0.98);
 
-        case ColorProfileType::Euroscale_Uncoated_v2:
-            return simulateCmyk(r, g, b, src.a, 0.24, 2.7, 0.91, 0.89);
-
-        case ColorProfileType::Japan_Coated_2011:
+        case ColorProfileType::Japan_Coated_2001:
             return simulateCmyk(r, g, b, src.a, 0.14, 3.4, 1.00, 0.99);
 
-        case ColorProfileType::Generic_Grayscale: {
+        case ColorProfileType::Acromatopsia: {
             const double lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
             const uint8_t lumByte = static_cast<uint8_t>(std::clamp(lum * 255.0, 0.0, 255.0));
             return raster::ColorRGBA{lumByte, lumByte, lumByte, src.a};
-        }
-
-        case ColorProfileType::Line_Art_HighContrast: {
-            const double lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            const uint8_t binByte = (lum >= 0.5) ? 255 : 0;
-            return raster::ColorRGBA{binByte, binByte, binByte, src.a};
         }
 
         case ColorProfileType::ColorBlindness_Protanopia: {
@@ -157,6 +148,23 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
             };
         }
 
+        case ColorProfileType::Linear_sRGB:
+            return raster::ColorRGBA{
+                static_cast<uint8_t>(std::clamp(std::pow(r, 2.2) * 255.0, 0.0, 255.0)),
+                static_cast<uint8_t>(std::clamp(std::pow(g, 2.2) * 255.0, 0.0, 255.0)),
+                static_cast<uint8_t>(std::clamp(std::pow(b, 2.2) * 255.0, 0.0, 255.0)), src.a};
+
+        case ColorProfileType::ACEScg: {
+            const auto tone = [](double value) {
+                constexpr double a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+                return std::clamp((value * (a * value + b)) / (value * (c * value + d) + e), 0.0, 1.0);
+            };
+            return raster::ColorRGBA{
+                static_cast<uint8_t>(tone(r * 1.2) * 255.0),
+                static_cast<uint8_t>(tone(g * 1.2) * 255.0),
+                static_cast<uint8_t>(tone(b * 1.2) * 255.0), src.a};
+        }
+
         default:
             return src;
     }
@@ -192,21 +200,18 @@ std::string ColorProfileManager::getProfileName(ColorProfileType profile) {
     switch (profile) {
         case ColorProfileType::Default_sRGB:             return "Padrão (sRGB)";
         case ColorProfileType::Display_P3:               return "Display P3 (Wide-Gamut)";
-        case ColorProfileType::Generic_CMYK:             return "Generic CMYK";
-        case ColorProfileType::US_SWOP_Web_Coated_v2:    return "SWOP Web Coated v2";
-        case ColorProfileType::US_SWOP_Web_Coated_G3:    return "SWOP Web Coated, Grade 3";
-        case ColorProfileType::US_SWOP_Web_Coated_G5:    return "SWOP Web Coated, Grade 5";
-        case ColorProfileType::US_GRACOL_Coated_2006:    return "GRACoL Coated 2006";
-        case ColorProfileType::US_SWOP_Web_Uncoated_v2:  return "SWOP Web Uncoated v2";
-        case ColorProfileType::Europe_FOGRA39_Coated:    return "FOGRA39 Coated";
-        case ColorProfileType::Euroscale_Coated_v2:      return "Euroscale Coated v2";
-        case ColorProfileType::Euroscale_Uncoated_v2:    return "Euroscale Uncoated v2";
-        case ColorProfileType::Japan_Coated_2011:        return "Japan Coated 2011";
-        case ColorProfileType::Generic_Grayscale:        return "Escala de Cinza";
-        case ColorProfileType::Line_Art_HighContrast:    return "Line Art (Alto Contraste)";
+        case ColorProfileType::Adobe_RGB:                return "Adobe RGB (1998)";
+        case ColorProfileType::Rec2020:                  return "Rec. 2020 (UHD TV)";
+        case ColorProfileType::SWOP_Coated:              return "U.S. Web Coated (SWOP) v2";
+        case ColorProfileType::FOGRA39_Coated:           return "ISO Coated v2 (FOGRA39)";
+        case ColorProfileType::GRACOL_Coated_2006:       return "GRACoL 2006";
+        case ColorProfileType::Japan_Coated_2001:        return "Japan Color 2001 Coated";
         case ColorProfileType::ColorBlindness_Protanopia:   return "Protanopia (Sem Vermelho)";
         case ColorProfileType::ColorBlindness_Deuteranopia: return "Deuteranopia (Sem Verde)";
         case ColorProfileType::ColorBlindness_Tritanopia:   return "Tritanopia (Sem Azul)";
+        case ColorProfileType::Acromatopsia:              return "Acromatopsia (Monocromático)";
+        case ColorProfileType::Linear_sRGB:               return "Linear sRGB (Physical Blending)";
+        case ColorProfileType::ACEScg:                    return "ACEScg (Academy Color Encoding)";
         default: return "Desconhecido";
     }
 }
@@ -214,55 +219,32 @@ std::string ColorProfileManager::getProfileName(ColorProfileType profile) {
 std::vector<ColorProfileInfo> ColorProfileManager::getAvailableProfiles() {
     return {
         // Digital (RGB)
-        {ColorProfileType::Default_sRGB, "Padrão (sRGB)", "Digital (RGB)", "Espaço de cor padrão universal para telas e web"},
-        {ColorProfileType::Display_P3, "Display P3 (Wide-Gamut)", "Digital (RGB)", "Espaço de cor expandido para telas modernas"},
+        {ColorProfileType::Default_sRGB, "Padrão (sRGB)", "Digital (RGB)", "Espaço de cor padrão universal para telas e web", "sRGB IEC61966-2.1", "D65 (6500K)", "sRGB"},
+        {ColorProfileType::Display_P3, "Display P3 (Wide-Gamut)", "Digital (RGB)", "Espaço de cor expandido para telas modernas", "DCI-P3 D65", "D65 (6500K)", "sRGB Transfer"},
+        {ColorProfileType::Adobe_RGB, "Adobe RGB (1998)", "Digital (RGB)", "Gamut ampliado para fotografia e pré-impressão", "Adobe RGB 1998", "D65 (6500K)", "Gamma 2.2"},
+        {ColorProfileType::Rec2020, "Rec. 2020 (UHD TV)", "Digital (RGB)", "Gamut ultra-amplo para vídeo UHD", "BT.2020", "D65 (6500K)", "ITU-R BT.2020"},
 
         // Impressão (CMYK)
-        {ColorProfileType::Generic_CMYK, "Generic CMYK", "Impressão (CMYK)", "Simulação CMYK genérica"},
-        {ColorProfileType::US_SWOP_Web_Coated_v2, "SWOP Web Coated v2", "Impressão (CMYK)", "Padrão americano para papel brilhante/revestido"},
-        {ColorProfileType::US_SWOP_Web_Coated_G3, "SWOP Web Coated, Grade 3", "Impressão (CMYK)", "Padrão americano grau 3"},
-        {ColorProfileType::US_SWOP_Web_Coated_G5, "SWOP Web Coated, Grade 5", "Impressão (CMYK)", "Padrão americano grau 5"},
-        {ColorProfileType::US_SWOP_Web_Uncoated_v2, "SWOP Web Uncoated v2", "Impressão (CMYK)", "Padrão americano para papel fosco/não revestido"},
-        {ColorProfileType::US_GRACOL_Coated_2006, "GRACoL Coated 2006", "Impressão (CMYK)", "Padrão comercial de alta definição G7"},
-        {ColorProfileType::Europe_FOGRA39_Coated, "FOGRA39 Coated", "Impressão (CMYK)", "Padrão Europeu ISO 12647-2 para papéis revestidos"},
-        {ColorProfileType::Euroscale_Coated_v2, "Euroscale Coated v2", "Impressão (CMYK)", "Padrão Euroscale para papéis revestidos"},
-        {ColorProfileType::Euroscale_Uncoated_v2, "Euroscale Uncoated v2", "Impressão (CMYK)", "Padrão Euroscale para papéis foscos"},
-        {ColorProfileType::Japan_Coated_2011, "Japan Coated 2011", "Impressão (CMYK)", "Padrão japonês para papéis de alta alvura"},
-
-        // Escala de Cinza
-        {ColorProfileType::Generic_Grayscale, "Escala de Cinza", "Escala de Cinza", "Prova tonal de valores de luz e sombra"},
-        {ColorProfileType::Line_Art_HighContrast, "Line Art (Alto Contraste)", "Escala de Cinza", "Prova binária para arte-final e nanquim puro"},
+        {ColorProfileType::SWOP_Coated, "U.S. Web Coated (SWOP) v2", "Impressão (CMYK)", "Padrão americano para papel couché", "SWOP v2 (CMYK)", "D50 (5000K)", "Press Tone Value"},
+        {ColorProfileType::FOGRA39_Coated, "ISO Coated v2 (FOGRA39)", "Impressão (CMYK)", "Referência europeia ISO 12647-2", "FOGRA39 (CMYK)", "D50 (5000K)", "ISO 12647-2"},
+        {ColorProfileType::GRACOL_Coated_2006, "GRACoL 2006", "Impressão (CMYK)", "Especificação comercial G7", "GRACoL 2006", "D50 (5000K)", "G7 Curves"},
+        {ColorProfileType::Japan_Coated_2001, "Japan Color 2001 Coated", "Impressão (CMYK)", "Padrão japonês para papel revestido", "Japan Color 2001", "D50 (5000K)", "Japan Print Std"},
 
         // Acessibilidade / Daltonismo
-        {ColorProfileType::ColorBlindness_Protanopia, "Protanopia (Sem Vermelho)", "Acessibilidade", "Simulação de daltonismo para receptores L"},
-        {ColorProfileType::ColorBlindness_Deuteranopia, "Deuteranopia (Sem Verde)", "Acessibilidade", "Simulação de daltonismo para receptores M"},
-        {ColorProfileType::ColorBlindness_Tritanopia, "Tritanopia (Sem Azul)", "Acessibilidade", "Simulação de daltonismo para receptores S"}
+        {ColorProfileType::ColorBlindness_Protanopia, "Protanopia (Sem Vermelho)", "Acessibilidade", "Simulação de daltonismo para receptores L", "Simulação Protanopia", "D65", "Linear Match"},
+        {ColorProfileType::ColorBlindness_Deuteranopia, "Deuteranopia (Sem Verde)", "Acessibilidade", "Simulação de daltonismo para receptores M", "Simulação Deuteranopia", "D65", "Linear Match"},
+        {ColorProfileType::ColorBlindness_Tritanopia, "Tritanopia (Sem Azul)", "Acessibilidade", "Simulação de daltonismo para receptores S", "Simulação Tritanopia", "D65", "Linear Match"},
+        {ColorProfileType::Acromatopsia, "Acromatopsia (Monocromático)", "Acessibilidade", "Prova de luminância Rec.709", "Luminância Pura (Y)", "D65", "Luminance Rec.709"},
+
+        // Motor físico
+        {ColorProfileType::Linear_sRGB, "Linear sRGB (Physical Blending)", "Motor Físico", "Mistura fotométrica linear", "sRGB Primaries", "D65 (6500K)", "1.0 (Linear)"},
+        {ColorProfileType::ACEScg, "ACEScg (Academy Color Encoding)", "Motor Físico", "Codificação linear para VFX", "AP1 Primaries", "D60 (ACES)", "1.0 (Linear Float)"}
     };
 }
 
 bool ColorProfileManager::isProfileValid(int profileId) {
-    switch (static_cast<ColorProfileType>(profileId)) {
-        case ColorProfileType::Default_sRGB:
-        case ColorProfileType::Display_P3:
-        case ColorProfileType::Generic_CMYK:
-        case ColorProfileType::US_SWOP_Web_Coated_v2:
-        case ColorProfileType::US_SWOP_Web_Coated_G3:
-        case ColorProfileType::US_SWOP_Web_Coated_G5:
-        case ColorProfileType::US_GRACOL_Coated_2006:
-        case ColorProfileType::US_SWOP_Web_Uncoated_v2:
-        case ColorProfileType::Europe_FOGRA39_Coated:
-        case ColorProfileType::Euroscale_Coated_v2:
-        case ColorProfileType::Euroscale_Uncoated_v2:
-        case ColorProfileType::Japan_Coated_2011:
-        case ColorProfileType::Generic_Grayscale:
-        case ColorProfileType::Line_Art_HighContrast:
-        case ColorProfileType::ColorBlindness_Protanopia:
-        case ColorProfileType::ColorBlindness_Deuteranopia:
-        case ColorProfileType::ColorBlindness_Tritanopia:
-            return true;
-        default:
-            return false;
-    }
+    return profileId >= static_cast<int>(ColorProfileType::Default_sRGB)
+        && profileId <= static_cast<int>(ColorProfileType::ACEScg);
 }
 
 } // namespace aladyn::engine::color

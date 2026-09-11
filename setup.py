@@ -1,5 +1,20 @@
+import os
+
 from setuptools import setup
 from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+
+SIMD_MODE = os.environ.get("LUMENIA_SIMD", "scalar").strip().lower()
+if SIMD_MODE not in {"scalar", "avx2"}:
+    raise RuntimeError("LUMENIA_SIMD deve ser 'scalar' ou 'avx2'")
+
+compile_args = ["/EHsc", "/bigobj", "/std:c++20", "/openmp", "/O2"]
+# Um módulo CPython compilado globalmente para AVX2 pode falhar ao carregar em
+# máquinas x64 sem essa extensão. O caminho base é escalar/SSE2 do x64; builds
+# de laboratório podem pedir AVX2 explicitamente e devem ser distribuídos como
+# artefatos separados.
+if SIMD_MODE == "avx2":
+    compile_args.append("/arch:AVX2")
 
 cpp_sources = [
     "engine/core/math/BezierCurve.cpp",
@@ -18,6 +33,7 @@ cpp_sources = [
     "engine/core/canvas/Tile.cpp",
     "engine/core/canvas/TileGrid.cpp",
     "engine/core/canvas/TileUndoManager.cpp",
+    "engine/core/canvas/TileHistoryRestore.cpp",
     "engine/core/canvas/ScratchDiskManager.cpp",
     "engine/core/canvas/MipmapPyramid.cpp",
     "engine/core/compression/Lz4Codec.cpp",
@@ -55,8 +71,8 @@ ext_modules = [
     Pybind11Extension(
         "aladyn_engine_native",
         cpp_sources,
-        cxx_std=17,
-        extra_compile_args=["/EHsc", "/bigobj", "/std:c++17", "/openmp", "/arch:AVX2", "/O2"],
+        cxx_std=20,
+        extra_compile_args=compile_args,
     ),
 ]
 

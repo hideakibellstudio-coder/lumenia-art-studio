@@ -98,6 +98,11 @@ class AladynLayerMixin:
         if self._facade and hasattr(self._facade, "set_layer_name"):
             self._facade.set_layer_name(index, name)
 
+    def get_layer_info(self, index: int) -> dict:
+        if self._facade and hasattr(self._facade, "get_layer_info"):
+            return dict(self._facade.get_layer_info(int(index)))
+        return {}
+
     def is_group(self, index: int) -> bool:
         if self._facade and hasattr(self._facade, "is_group"):
             return self._facade.is_group(index)
@@ -178,12 +183,21 @@ class AladynLayerMixin:
 
     def undo(self) -> bool:
         if self._facade and hasattr(self._facade, "undo"):
-            return self._facade.undo()
+            result = self._facade.undo()
+            self._width, self._height = self._facade.get_width(), self._facade.get_height()
+            return result
         return False
+
+    def get_history_error(self) -> str:
+        if self._facade and hasattr(self._facade, "get_history_error"):
+            return str(self._facade.get_history_error() or "")
+        return ""
 
     def redo(self) -> bool:
         if self._facade and hasattr(self._facade, "redo"):
-            return self._facade.redo()
+            result = self._facade.redo()
+            self._width, self._height = self._facade.get_width(), self._facade.get_height()
+            return result
         return False
 
     def set_undo_memory_limit_mb(self, mb: int) -> None:

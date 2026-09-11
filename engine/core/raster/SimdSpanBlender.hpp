@@ -8,7 +8,7 @@
 #include <cstring>
 #include <algorithm>
 
-#if defined(__AVX2__) || defined(_M_AMD64) || defined(_M_X64)
+#if defined(__AVX2__)
 #include <immintrin.h>
 #endif
 

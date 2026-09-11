@@ -1,6 +1,7 @@
 #include "BezierCurve.hpp"
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 namespace aladyn::engine::math {
 
@@ -49,6 +50,18 @@ void BezierCurve::invert() {
         pt.y = 1.0 - pt.y;
     }
     rebuildLut();
+}
+
+void BezierCurve::setPower(double power) {
+    if (!std::isfinite(power) || power <= 0.0) {
+        throw std::invalid_argument("pressure power must be finite and positive");
+    }
+    for (size_t i = 0; i < LUT_SIZE; ++i) {
+        const double x = static_cast<double>(i) / (LUT_SIZE - 1);
+        m_lut[i] = std::pow(x, power);
+    }
+    m_controlPoints = {Point2D{0.0, 0.0}, Point2D{1.0 / 3.0, std::pow(1.0 / 3.0, power)},
+                      Point2D{2.0 / 3.0, std::pow(2.0 / 3.0, power)}, Point2D{1.0, 1.0}};
 }
 
 void BezierCurve::rebuildLut() {

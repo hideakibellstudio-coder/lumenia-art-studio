@@ -8,6 +8,7 @@ dos módulos do sistema sendo carregados.
 
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.core.runtime_paths import resource_path
 
 
 class LumeniaSplashScreen(QtWidgets.QWidget):
@@ -23,9 +24,7 @@ class LumeniaSplashScreen(QtWidgets.QWidget):
         self.setFixedSize(540, 360)
 
         # Caminho do ícone oficial
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-        self.icon_path = os.path.join(project_root, "assets", "images", "icon_lumenia.png")
+        self.icon_path = str(resource_path("assets", "images", "icon_lumenia.png"))
 
         self._build_ui()
         self._center_on_screen()

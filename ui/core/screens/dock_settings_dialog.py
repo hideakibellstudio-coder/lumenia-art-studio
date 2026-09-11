@@ -263,8 +263,10 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
     def _load_settings(self) -> None:
         cfg = load_dock_settings()
         self.chk_collapse.setChecked(cfg["auto_collapse"])
-        self.cbo_speed.setCurrentText(cfg["speed"])
-        self.cbo_delay.setCurrentText(cfg["hover_delay"])
+        speed_index = self.cbo_speed.findData(cfg["speed"])
+        self.cbo_speed.setCurrentIndex(speed_index if speed_index >= 0 else 1)
+        delay_index = self.cbo_delay.findData(cfg["hover_delay"])
+        self.cbo_delay.setCurrentIndex(delay_index if delay_index >= 0 else 2)
         self._update_controls_state()
         self._populate_panel_lists()
 
@@ -293,8 +295,8 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
     def _collect_config(self) -> dict:
         return {
             "auto_collapse": self.chk_collapse.isChecked(),
-            "speed":         self.cbo_speed.currentText(),
-            "hover_delay":   self.cbo_delay.currentText(),
+            "speed":         self.cbo_speed.currentData() or self.cbo_speed.currentText(),
+            "hover_delay":   self.cbo_delay.currentData() or self.cbo_delay.currentText(),
         }
 
     def _collect_order(self) -> dict:

@@ -72,6 +72,50 @@ class TestLowLevelColorProfiles(unittest.TestCase):
         # Logo, R diminui ou G aumenta
         self.assertNotEqual(tuple(px_srgb), tuple(px_prot), "A prova de Protanopia DEVE transformar os valores RGB de exibição")
 
+    def test_04_wide_gamut_profiles_are_effective_and_invalid_ids_are_rejected(self):
+        red_buf = bytes([120, 80, 40, 255] * (20 * 20))
+        self.facade.paste_rgba_buffer_on_active_layer(10, 10, 20, 20, red_buf, 0, 1.0)
+        self.facade.set_color_profile(0)
+        srgb = bytes(self.facade.get_display_pixel_buffer())
+
+        for profile_id in (2, 3):
+            self.facade.set_color_profile(profile_id)
+            transformed = bytes(self.facade.get_display_pixel_buffer())
+            self.assertNotEqual(transformed, srgb, f"perfil {profile_id} não pode ser no-op")
+
+        self.facade.set_color_profile(999)
+        self.assertIn(self.facade.get_color_profile(), (2, 3))
+
+    def test_05_lod_uses_the_same_active_profile_as_full_display(self):
+        red_buf = bytes([255, 0, 0, 255] * (self.w * self.h))
+        self.facade.paste_rgba_buffer_on_active_layer(0, 0, self.w, self.h, red_buf, 0, 1.0)
+        self.facade.set_color_profile(8)
+        full = np.frombuffer(self.facade.get_display_pixel_buffer(), dtype=np.uint8).reshape((self.h, self.w, 4))
+        lod, lod_w, lod_h, _ = self.facade.get_display_pixel_buffer_lod(1)
+        lod_arr = np.frombuffer(lod, dtype=np.uint8).reshape((lod_h, lod_w, 4))
+        self.assertEqual(tuple(full[10, 10]), tuple(lod_arr[5, 5]))
+
+    def test_06_catalog_and_preview_transform_use_the_native_source_of_truth(self):
+        profiles = self.facade.get_available_color_profiles()
+        self.assertEqual([profile["id"] for profile in profiles], list(range(14)))
+        for profile in profiles:
+            self.assertTrue(profile["gamut"])
+            self.assertTrue(profile["whitepoint"])
+            self.assertTrue(profile["transfer"])
+
+        source = bytes([120, 80, 40, 255] * (self.w * self.h))
+        self.facade.paste_rgba_buffer_on_active_layer(0, 0, self.w, self.h, source, 0, 1.0)
+        for profile_id in (0, 1, 2, 3, 4, 8, 11, 12, 13):
+            self.facade.set_color_profile(profile_id)
+            display = bytes(self.facade.get_display_pixel_buffer())
+            preview = bytes(self.facade.transform_rgba_for_profile(source, profile_id))
+            self.assertEqual(preview, display, f"perfil {profile_id} divergiu entre prévia e display")
+
+        with self.assertRaises(ValueError):
+            self.facade.transform_rgba_for_profile(b"\x00\x00\x00", 0)
+        with self.assertRaises(ValueError):
+            self.facade.transform_rgba_for_profile(b"\x00\x00\x00\xff", 99)
+
 
 if __name__ == "__main__":
     unittest.main()

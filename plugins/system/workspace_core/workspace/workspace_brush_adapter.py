@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.core.tool_settings import normalize_tool_settings
 
 logger = logging.getLogger("Workspace.BrushAdapter")
 
@@ -10,44 +11,57 @@ logger = logging.getLogger("Workspace.BrushAdapter")
 class WorkspaceBrushMixin:
     """Mixin para controle de ferramentas, cores e parâmetros de traço/brush."""
 
-    def connect_brush_dock(self, dock: Any) -> None:
+    def connect_brush_dock(self, dock: Any, panel_id: str = "brush_settings") -> None:
         """
         Conecta os sinais do BrushSettingsPanel ao renderer do canvas.
         Deve ser chamado pelo plugin de UI após add_panel().
         """
         self._brush_dock = dock
+        if getattr(dock, "_lumenia_brush_connected", False):
+            return
+        dock._lumenia_brush_connected = True
 
         if hasattr(dock, "colorChanged"):
-            dock.colorChanged.connect(self._on_brush_color)
+            self._bind_panel_signal(panel_id, dock.colorChanged, self._on_brush_color)
         if hasattr(dock, "sizeChanged"):
-            dock.sizeChanged.connect(self._on_brush_size)
+            self._bind_panel_signal(panel_id, dock.sizeChanged, self._on_brush_size)
         if hasattr(dock, "opacityChanged"):
-            dock.opacityChanged.connect(self._on_brush_opacity)
+            self._bind_panel_signal(panel_id, dock.opacityChanged, self._on_brush_opacity)
         if hasattr(dock, "pressureChanged"):
-            dock.pressureChanged.connect(self._on_brush_pressure)
+            self._bind_panel_signal(panel_id, dock.pressureChanged, self._on_brush_pressure)
         if hasattr(dock, "pressureCurvePowerChanged"):
-            dock.pressureCurvePowerChanged.connect(self._on_brush_pressure_curve)
+            self._bind_panel_signal(panel_id, dock.pressureCurvePowerChanged, self._on_brush_pressure_curve)
         if hasattr(dock, "stabilizerWeightChanged"):
-            dock.stabilizerWeightChanged.connect(self._on_brush_stabilizer)
+            self._bind_panel_signal(panel_id, dock.stabilizerWeightChanged, self._on_brush_stabilizer)
         if hasattr(dock, "spacingChanged"):
-            dock.spacingChanged.connect(self._on_brush_spacing)
+            self._bind_panel_signal(panel_id, dock.spacingChanged, self._on_brush_spacing)
         if hasattr(dock, "minDensityActiveChanged"):
-            dock.minDensityActiveChanged.connect(self._on_min_density_active)
+            self._bind_panel_signal(panel_id, dock.minDensityActiveChanged, self._on_min_density_active)
         if hasattr(dock, "minDensityValueChanged"):
-            dock.minDensityValueChanged.connect(self._on_min_density_value)
+            self._bind_panel_signal(panel_id, dock.minDensityValueChanged, self._on_min_density_value)
         if hasattr(dock, "contrastChanged"):
-            dock.contrastChanged.connect(self._on_brush_contrast)
+            self._bind_panel_signal(panel_id, dock.contrastChanged, self._on_brush_contrast)
         if hasattr(dock, "invertHeightChanged"):
-            dock.invertHeightChanged.connect(self._on_brush_invert)
+            self._bind_panel_signal(panel_id, dock.invertHeightChanged, self._on_brush_invert)
         if hasattr(dock, "loadShapeRequested"):
-            dock.loadShapeRequested.connect(lambda: self._load_custom_texture(is_shape=True))
+            self._bind_panel_signal(panel_id, dock.loadShapeRequested, lambda: self._load_custom_texture(is_shape=True))
         if hasattr(dock, "loadHeightmapRequested"):
-            dock.loadHeightmapRequested.connect(lambda: self._load_custom_texture(is_shape=False))
+            self._bind_panel_signal(panel_id, dock.loadHeightmapRequested, lambda: self._load_custom_texture(is_shape=False))
 
         if hasattr(dock, "toolActivated"):
-            dock.toolActivated.connect(self.select_tool, QtCore.Qt.UniqueConnection)
+            self._bind_panel_signal(panel_id, dock.toolActivated, self.select_tool, unique=True)
         if hasattr(dock, "toolOptionsChanged"):
-            dock.toolOptionsChanged.connect(self._on_tool_settings_changed)
+            self._bind_panel_signal(panel_id, dock.toolOptionsChanged, self._on_tool_settings_changed)
+
+    def disconnect_brush_dock(self, dock: Any, panel_id: str = "brush_settings") -> None:
+        """Desfaz todas as conexões criadas para um BrushSettingsPanel."""
+        self._disconnect_panel_signals(panel_id)
+        try:
+            dock._lumenia_brush_connected = False
+        except RuntimeError:
+            pass
+        if self._brush_dock is dock:
+            self._brush_dock = None
 
     def _apply_brush_color(self, color: QtGui.QColor) -> None:
         self.canvas_widget._active_draw_color = color
@@ -298,32 +312,46 @@ class WorkspaceBrushMixin:
 
     def _on_tool_settings_changed(self, tool_id: str, settings: dict) -> None:
         if tool_id == "eyedrop":
-            self.canvas_widget._eyedrop_settings.update(settings)
+            target = self.canvas_widget._eyedrop_settings
+            target.update(normalize_tool_settings(tool_id, settings, target))
         elif tool_id == "bucket":
-            self.canvas_widget._bucket_settings.update(settings)
+            target = self.canvas_widget._bucket_settings
+            target.update(normalize_tool_settings(tool_id, settings, target))
         elif tool_id == "wand":
-            self.canvas_widget._wand_settings.update(settings)
+            target = self.canvas_widget._wand_settings
+            target.update(normalize_tool_settings(tool_id, settings, target))
         elif tool_id in ("rect_select", "ellipse_select"):
-            if not hasattr(self.canvas_widget, "_geom_select_settings"):
-                self.canvas_widget._geom_select_settings = {}
-            self.canvas_widget._geom_select_settings.update(settings)
+            target = self.canvas_widget._geom_select_settings
+            target.update(normalize_tool_settings(tool_id, settings, target))
         elif tool_id == "lasso":
-            if not hasattr(self.canvas_widget, "_lasso_settings"):
-                self.canvas_widget._lasso_settings = {}
-            self.canvas_widget._lasso_settings.update(settings)
+            target = self.canvas_widget._lasso_settings
+            target.update(normalize_tool_settings(tool_id, settings, target))
         elif tool_id.startswith("shape") or tool_id == "shapes":
-            self.canvas_widget.set_shape_settings(settings)
+            target = self.canvas_widget._shape_settings
+            normalized = normalize_tool_settings("shapes", settings, target)
+            self.canvas_widget.set_shape_settings(normalized)
             if hasattr(self, "left_dock") and hasattr(self.left_dock, "brush_panel"):
                 bp = self.left_dock.brush_panel
-                if hasattr(bp, "shapes_options_widget") and "shape_type" in settings:
-                    bp.shapes_options_widget.shape_dropdown.set_shape(settings["shape_type"])
+                if hasattr(bp, "shapes_options_widget") and "shape_type" in normalized:
+                    bp.shapes_options_widget.shape_dropdown.set_shape(normalized["shape_type"])
             if hasattr(self, "secondary_toolbar") and self.secondary_toolbar:
-                if "shape_type" in settings:
-                    self.secondary_toolbar.shape_dropdown_h.set_shape(settings["shape_type"])
-                    self.secondary_toolbar.shape_dropdown_v.set_shape(settings["shape_type"])
+                if "shape_type" in normalized:
+                    self.secondary_toolbar.shape_dropdown_h.set_shape(normalized["shape_type"])
+                    self.secondary_toolbar.shape_dropdown_v.set_shape(normalized["shape_type"])
+        elif tool_id == "text":
+            target = self.canvas_widget._text_settings
+            self.canvas_widget.set_text_settings(normalize_tool_settings("text", settings, target))
         elif tool_id == "transform":
-            self.canvas_widget._transform_interp_mode = settings.get("interp_mode", 2)
-            self.canvas_widget._transform_lock_aspect = settings.get("lock_aspect", False)
+            normalized = normalize_tool_settings(
+                tool_id,
+                settings,
+                {
+                    "interp_mode": self.canvas_widget.transform_ctrl.interp_mode,
+                    "lock_aspect": self.canvas_widget.transform_ctrl.lock_aspect,
+                },
+            )
+            self.canvas_widget.transform_ctrl.interp_mode = normalized["interp_mode"]
+            self.canvas_widget.transform_ctrl.lock_aspect = normalized["lock_aspect"]
 
     def sync_all_properties(self) -> None:
         if not self._brush_dock:

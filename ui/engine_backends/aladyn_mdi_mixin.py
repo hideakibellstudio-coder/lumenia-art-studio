@@ -14,6 +14,26 @@ class AladynMdiMixin:
         self._doc_facades: dict[str, Any] = {}
         self._active_doc_uid: str | None = None
 
+    def get_active_document_context(self):
+        return self._active_doc_uid
+
+    def _mark_document_dirty(self, reason):
+        from ui.core.document.manager import DocumentManager
+        document = DocumentManager.instance().get_document(self._active_doc_uid)
+        if document is not None:
+            document.mark_dirty(reason)
+
+    def replace_document_context(self, uid: str, prepared_uid: str) -> bool:
+        if uid == prepared_uid or uid not in self._doc_facades or prepared_uid not in self._doc_facades:
+            return False
+        prepared = self._doc_facades[prepared_uid]
+        self._doc_facades[uid] = prepared
+        del self._doc_facades[prepared_uid]
+        self._active_doc_uid = uid
+        self._facade = prepared
+        self._width, self._height = prepared.get_width(), prepared.get_height()
+        return True
+
     def set_active_document_context(self, uid: str, width: int, height: int) -> None:
         """
         Alterna o contexto ativo de execução C++ para o documento especificado em tempo O(1).
@@ -35,6 +55,14 @@ class AladynMdiMixin:
                     facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
                 if hasattr(self, "_undo_max_steps") and hasattr(facade, "set_undo_max_steps"):
                     facade.set_undo_max_steps(self._undo_max_steps)
+                if hasattr(self, "_render_options"):
+                    if hasattr(facade, "set_render_options"):
+                        facade.set_render_options(**self._render_options)
+                    else:
+                        for key, value in self._render_options.items():
+                            setter = getattr(facade, f"set_{key}", None)
+                            if setter:
+                                setter(value)
                 if hasattr(facade, "get_canvas_texture"):
                     c_tex = facade.get_canvas_texture()
                     if c_tex:
@@ -49,6 +77,8 @@ class AladynMdiMixin:
         self._facade = self._doc_facades[uid]
         self._width = self._facade.get_width()
         self._height = self._facade.get_height()
+        if hasattr(self, "_render_options") and hasattr(self._facade, "set_render_options"):
+            self._facade.set_render_options(**self._render_options)
         if hasattr(self, "_last_brush_preset") and self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)
 

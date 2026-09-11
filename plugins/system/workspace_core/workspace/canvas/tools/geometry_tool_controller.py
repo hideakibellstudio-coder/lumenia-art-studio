@@ -7,6 +7,7 @@ Strictly decoupled in compliance with ARCcC v2 (< 250 LOC).
 """
 
 import math
+import copy
 from PySide6 import QtCore
 from ui.core.engine.registry import EngineRegistry
 from ..math.camera_3d_projector import (
@@ -77,6 +78,31 @@ class GeometryToolController:
         })
         self.sync_symmetry_to_engine()
         self.sync_guides_to_engine()
+
+    def load_document_state(self, document):
+        # Reset defaults first so omitted fields never leak from another tab.
+        defaults = type(self)(self.widget)
+        self.guide_state = defaults.guide_state
+        self.sym_state = defaults.sym_state
+        self._custom_sym_center = False
+        self._loading_document = True
+        try:
+            self.center_on_document(document.width, document.height)
+            self.guide_state.update(copy.deepcopy(document.guide_state))
+            self.sym_state.update(copy.deepcopy(document.sym_state))
+            self.sync_guides_to_engine()
+            self.sync_symmetry_to_engine()
+        finally:
+            self._loading_document = False
+
+    def _store_document_state(self, key, state):
+        if getattr(self, "_loading_document", False):
+            return
+        from ui.core.document.manager import DocumentManager
+        document = DocumentManager.instance().active_document()
+        if document is not None and getattr(document, key) != state:
+            setattr(document, key, copy.deepcopy(state))
+            document.mark_dirty(key)
 
     def handle_hover(self, doc_pt: QtCore.QPointF):
         self.hover_point = doc_pt
@@ -268,6 +294,7 @@ class GeometryToolController:
         return create_curve_from_normal(a, b, c, R, cx, cy, family)
 
     def sync_symmetry_to_engine(self):
+        self._store_document_state("sym_state", self.sym_state)
         b = EngineRegistry.instance().get_backend()
         if b and hasattr(b, "set_symmetry_config"):
             m_map = {"none": 0, "mirror": 1, "mirror_v": 1, "mirror_h": 1, "double_mirror": 2, "radial": 3, "kaleidoscope": 4}
@@ -278,6 +305,7 @@ class GeometryToolController:
             )
 
     def sync_guides_to_engine(self):
+        self._store_document_state("guide_state", self.guide_state)
         b = EngineRegistry.instance().get_backend()
         if b and hasattr(b, "set_guide_config"):
             gmap = {"none": 0, "straight": 1, "curve_ruler": 2, "curvilinear": 3, "one_point": 4, "two_point": 5, "three_point": 6, "isometric": 7}

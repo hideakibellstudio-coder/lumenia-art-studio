@@ -8,9 +8,12 @@ from ui.core.dialogs.canvas_size_dialog import CanvasSizeDialog
 from ui.core.dialogs.modify_selection_dialog import ModifySelectionDialog
 from ui.core.dialogs.layer_properties_dialog import LayerPropertiesDialog
 from .main_window_dialog_actions import MainWindowDialogActionsMixin
+from .main_window_document_actions import MainWindowDocumentActionsMixin
 
 
-class MainWindowMenuActionsMixin(MainWindowDialogActionsMixin):
+from ui.core.document.history import layer_transaction
+
+class MainWindowMenuActionsMixin(MainWindowDocumentActionsMixin, MainWindowDialogActionsMixin):
     """Mixin com todos os manipuladores de ações da MenuBar do Lumenia."""
 
     # ── 1. Área de Transferência (Clipboard) ──────────────────────────────
@@ -96,116 +99,201 @@ class MainWindowMenuActionsMixin(MainWindowDialogActionsMixin):
 
     # ── 3. Camadas ────────────────────────────────────────────────────────
 
-    def create_new_layer(self) -> None:
+    def _active_layer_context(self):
         doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            idx = doc.layer_manager.add_layer("Nova Camada")
-            if self.workspace:
-                self.workspace.canvas_widget.update()
+        if not doc or not hasattr(doc, "layer_manager"):
+            return None, None, None, -1
+        lm = doc.layer_manager
+        layer = lm.get_active_layer()
+        idx = lm.active_index
+        backend = EngineRegistry.instance().get_backend()
+        return doc, lm, backend, idx
+
+    @staticmethod
+    def _backend_ready(backend) -> bool:
+        return bool(backend and getattr(backend, "available", False))
+
+    def _refresh_canvas(self) -> None:
+        if self.workspace:
+            self.workspace.canvas_widget.update()
+
+    @layer_transaction
+    def create_new_layer(self) -> None:
+        doc, lm, backend, idx = self._active_layer_context()
+        if not lm:
+            return
+        insert_index = idx + 1 if idx >= 0 else -1
+        if self._backend_ready(backend):
+            native_idx = backend.add_layer("Nova Camada", insert_index)
+            if native_idx < 0:
+                self.status_bar.showMessage("Não foi possível criar a camada no motor.", 2500)
+                return
+        uid = lm.add_layer("Nova Camada")
+        if uid:
+            if self._backend_ready(backend):
+                backend.select_layer(lm.active_index)
+            self._refresh_canvas()
             self.status_bar.showMessage("Nova camada criada.", 2000)
 
+    @layer_transaction
     def create_new_group(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            idx = doc.layer_manager.add_group("Novo Grupo")
-            if self.workspace:
-                self.workspace.canvas_widget.update()
+        doc, lm, backend, idx = self._active_layer_context()
+        if not lm:
+            return
+        insert_index = idx + 1 if idx >= 0 else -1
+        if self._backend_ready(backend):
+            native_idx = backend.add_group("Novo Grupo", insert_index)
+            if native_idx < 0:
+                self.status_bar.showMessage("Não foi possível criar o grupo no motor.", 2500)
+                return
+        uid = lm.add_group("Novo Grupo")
+        if uid:
+            if self._backend_ready(backend):
+                backend.select_layer(lm.active_index)
+            self._refresh_canvas()
             self.status_bar.showMessage("Novo grupo de camadas criado.", 2000)
 
+    @layer_transaction
     def duplicate_active_layer(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                lm.duplicate_layer(act_idx)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.status_bar.showMessage("Camada duplicada.", 2000)
+        doc, lm, backend, act_idx = self._active_layer_context()
+        if not lm or act_idx < 0:
+            return
+        if self._backend_ready(backend) and backend.duplicate_layer(act_idx) < 0:
+            self.status_bar.showMessage("Não foi possível duplicar a camada no motor.", 2500)
+            return
+        active = lm.get_active_layer()
+        if active and lm.duplicate_layer(active.uid):
+            if self._backend_ready(backend):
+                backend.select_layer(lm.active_index)
+            self._refresh_canvas()
+            self.status_bar.showMessage("Camada duplicada.", 2000)
 
+    @layer_transaction
     def delete_active_layer(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                lm.remove_layer(act_idx)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.status_bar.showMessage("Camada removida.", 2000)
+        doc, lm, backend, act_idx = self._active_layer_context()
+        if not lm or act_idx < 0:
+            return
+        active = lm.get_active_layer()
+        if not active:
+            return
+        if self._backend_ready(backend) and not backend.remove_layer(act_idx):
+            self.status_bar.showMessage("Não foi possível remover a camada no motor.", 2500)
+            return
+        if lm.remove_layer(active.uid):
+            if self._backend_ready(backend):
+                backend.select_layer(lm.active_index)
+            self._refresh_canvas()
+            self.status_bar.showMessage("Camada removida.", 2000)
 
+    @layer_transaction
     def merge_layer_down(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx > 0:
-                lm.merge_down(act_idx)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.status_bar.showMessage("Camada mesclada para baixo.", 2000)
+        doc, lm, backend, act_idx = self._active_layer_context()
+        if not lm or act_idx <= 0:
+            return
+        active = lm.get_active_layer()
+        if not active:
+            return
+        if self._backend_ready(backend) and not backend.merge_layer_down(act_idx):
+            self.status_bar.showMessage("Não foi possível mesclar a camada no motor.", 2500)
+            return
+        if lm.merge_down(active.uid):
+            if self._backend_ready(backend):
+                backend.select_layer(lm.active_index)
+            self._refresh_canvas()
+            self.status_bar.showMessage("Camada mesclada para baixo.", 2000)
 
+    @layer_transaction
     def toggle_active_layer_clipping(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                curr = getattr(lm.layers[act_idx], "is_clipping_mask", False)
-                lm.set_clipping_mask(act_idx, not curr)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                state_str = "ativada" if not curr else "desativada"
-                self.status_bar.showMessage(f"Máscara de corte {state_str}.", 2000)
+        doc, lm, backend, act_idx = self._active_layer_context()
+        if not lm or act_idx < 0:
+            return
+        layer = lm.get_layer_at_index(act_idx)
+        curr = bool(getattr(layer, "clipping_mask", False))
+        value = not curr
+        if self._backend_ready(backend):
+            backend.set_layer_clipping_mask(act_idx, value)
+        lm.set_clipping_mask(act_idx, value)
+        self._refresh_canvas()
+        state_str = "ativada" if value else "desativada"
+        self.status_bar.showMessage(f"Máscara de corte {state_str}.", 2000)
 
+    @layer_transaction
     def toggle_active_layer_alpha_lock(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                curr = getattr(lm.layers[act_idx], "is_alpha_locked", False)
-                lm.set_alpha_lock(act_idx, not curr)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                state_str = "ativado" if not curr else "desativado"
-                self.status_bar.showMessage(f"Bloqueio Alpha {state_str}.", 2000)
+        doc, lm, backend, act_idx = self._active_layer_context()
+        if not lm or act_idx < 0:
+            return
+        layer = lm.get_layer_at_index(act_idx)
+        curr = bool(getattr(layer, "alpha_locked", False))
+        value = not curr
+        if self._backend_ready(backend):
+            backend.set_layer_alpha_lock(act_idx, value)
+        lm.set_alpha_lock(act_idx, value)
+        self._refresh_canvas()
+        state_str = "ativado" if value else "desativado"
+        self.status_bar.showMessage(f"Bloqueio Alpha {state_str}.", 2000)
 
+    @layer_transaction
     def toggle_active_layer_visibility(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                curr = getattr(lm.layers[act_idx], "visible", True)
-                lm.set_layer_visibility(act_idx, not curr)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                state_str = "oculta" if curr else "visível"
-                self.status_bar.showMessage(f"Camada {state_str}.", 2000)
+        doc, lm, backend, act_idx = self._active_layer_context()
+        if not lm or act_idx < 0:
+            return
+        layer = lm.get_layer_at_index(act_idx)
+        curr = bool(getattr(layer, "visible", True))
+        value = not curr
+        if self._backend_ready(backend):
+            backend.set_layer_visibility(act_idx, value)
+        lm.set_layer_visibility(act_idx, value)
+        self._refresh_canvas()
+        state_str = "visível" if value else "oculta"
+        self.status_bar.showMessage(f"Camada {state_str}.", 2000)
 
+    @layer_transaction
     def flatten_active_group(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            act_idx = lm.active_index
-            if act_idx >= 0:
-                lm.flatten_group(act_idx)
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.status_bar.showMessage("Grupo achatado com sucesso.", 2000)
+        doc, lm, backend, act_idx = self._active_layer_context()
+        if not lm or act_idx < 0:
+            return
+        layer = lm.get_layer_at_index(act_idx)
+        if not layer or not layer.is_group:
+            return
+        if self._backend_ready(backend) and not backend.flatten_group(act_idx):
+            self.status_bar.showMessage("Não foi possível achatar o grupo no motor.", 2500)
+            return
+        if not lm.flatten_group(act_idx):
+            raise RuntimeError("Falha ao atualizar o modelo ao achatar grupo.")
+        self._refresh_canvas()
+        self.status_bar.showMessage("Grupo achatado com sucesso.", 2000)
 
+    @layer_transaction
     def flatten_entire_image(self) -> None:
-        doc = self.dm.active_document()
-        if doc and hasattr(doc, "layer_manager"):
-            lm = doc.layer_manager
-            while len(lm.layers) > 1:
-                lm.merge_down(len(lm.layers) - 1)
-            if self.workspace:
-                self.workspace.canvas_widget.update()
-            self.status_bar.showMessage("Imagem achatada completamente.", 2000)
+        doc, lm, backend, _ = self._active_layer_context()
+        if not lm:
+            return
+        guard = 0
+        while any(layer.is_group for layer in lm.layers):
+            guard += 1
+            if guard > len(lm.layers) + 1:
+                raise RuntimeError("Achatar grupos não apresentou progresso.")
+            idx = next(i for i, layer in enumerate(lm.layers) if layer.is_group)
+            if self._backend_ready(backend) and not backend.flatten_group(idx):
+                raise RuntimeError("Falha ao achatar grupo.")
+            if not lm.flatten_group(idx):
+                raise RuntimeError("Falha ao atualizar o modelo ao achatar grupo.")
+        while len(lm.layers) > 1:
+            top = lm.layers[-1]
+            idx = len(lm.layers) - 1
+            if self._backend_ready(backend) and not backend.merge_layer_down(idx):
+                self.status_bar.showMessage("Não foi possível achatar a imagem no motor.", 2500)
+                return
+            before_count = len(lm.layers)
+            if not lm.merge_down(top.uid) or len(lm.layers) >= before_count:
+                self.status_bar.showMessage("A operação de achatar não avançou.", 2500)
+                return
+        self._refresh_canvas()
+        self.status_bar.showMessage("Imagem achatada completamente.", 2000)
 
+    @layer_transaction
     def open_layer_properties_dialog(self) -> None:
+        backend = EngineRegistry.instance().get_backend()
         doc = self.dm.active_document()
         if not doc or not hasattr(doc, "layer_manager"):
             return
@@ -219,8 +307,8 @@ class MainWindowMenuActionsMixin(MainWindowDialogActionsMixin):
             opacity=getattr(layer, "opacity", 1.0),
             blend_mode=getattr(layer, "blend_mode", 0),
             is_visible=getattr(layer, "visible", True),
-            is_alpha_locked=getattr(layer, "is_alpha_locked", False),
-            is_clipping=getattr(layer, "is_clipping_mask", False),
+            is_alpha_locked=getattr(layer, "alpha_locked", False),
+            is_clipping=getattr(layer, "clipping_mask", False),
             parent=self
         )
         if dialog.exec() == QtWidgets.QDialog.Accepted:
@@ -231,52 +319,30 @@ class MainWindowMenuActionsMixin(MainWindowDialogActionsMixin):
             lm.set_layer_visibility(act_idx, res["is_visible"])
             lm.set_alpha_lock(act_idx, res["is_alpha_locked"])
             lm.set_clipping_mask(act_idx, res["is_clipping"])
-            if self.workspace:
-                self.workspace.canvas_widget.update()
+            if self._backend_ready(backend):
+                backend.set_layer_name(act_idx, res["name"])
+                backend.set_layer_opacity(act_idx, res["opacity"])
+                backend.set_layer_blend_mode(act_idx, res["blend_mode"])
+                backend.set_layer_visibility(act_idx, res["is_visible"])
+                backend.set_layer_alpha_lock(act_idx, res["is_alpha_locked"])
+                backend.set_layer_clipping_mask(act_idx, res["is_clipping"])
+            self._refresh_canvas()
             self.status_bar.showMessage("Propriedades da camada atualizadas.", 2000)
 
     # ── 4. Imagem, Arquivo & Canvas ───────────────────────────────────────
-
-    def open_image_file(self) -> None:
-        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Abrir Imagem", "", "Imagens (*.png *.jpg *.jpeg *.bmp *.webp)"
-        )
-        if filename:
-            qimg = QtGui.QImage(filename)
-            if not qimg.isNull():
-                name = os.path.splitext(os.path.basename(filename))[0]
-                w, h = qimg.width(), qimg.height()
-                doc = self.dm.new_document(width=w, height=h, name=name)
-
-                qimg_rgba = qimg.convertToFormat(QtGui.QImage.Format_RGBA8888)
-                raw_bytes = bytes(qimg_rgba.constBits()[:w * h * 4])
-                backend = EngineRegistry.instance().get_backend()
-                if backend and getattr(backend, "available", False):
-                    backend.paste_rgba_buffer_on_active_layer(0, 0, w, h, raw_bytes)
-
-                if self.workspace:
-                    self.workspace.canvas_widget.update()
-                self.reset_view()
-                self.status_bar.showMessage(f"Imagem '{name}' ({w}x{h}) aberta com sucesso!", 3000)
-
-    def save_active_document(self) -> None:
-        doc = self.dm.active_document()
-        if doc:
-            self.status_bar.showMessage(f"Documento '{doc.name}' salvo.", 2000)
-        else:
-            self.status_bar.showMessage("Nenhum documento ativo para salvar.", 2000)
-
     def export_image(self) -> None:
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Exportar Imagem", "", "Imagem PNG (*.png);;Imagem JPEG (*.jpg *.jpeg)"
         )
         if filename:
             backend = EngineRegistry.instance().get_backend()
-            if backend and hasattr(backend, "get_qimage"):
-                qimg = backend.get_qimage()
-                if qimg and not qimg.isNull():
-                    qimg.save(filename)
+            if backend and backend.supports_capability("export_image"):
+                if backend.export_image(filename):
                     self.status_bar.showMessage(f"Imagem exportada com sucesso para '{filename}'", 4000)
+                else:
+                    self.status_bar.showMessage("Falha ao exportar a imagem.", 5000)
+            else:
+                self.status_bar.showMessage("O backend ativo não suporta exportação de imagem.", 5000)
 
     def reset_rotation(self) -> None:
         if self.workspace and hasattr(self.workspace, "canvas_widget"):
@@ -309,7 +375,19 @@ class MainWindowMenuActionsMixin(MainWindowDialogActionsMixin):
         if dialog.exec() == QtWidgets.QDialog.Accepted:
             res = dialog.get_results()
             nw, nh = res["width"], res["height"]
-            if backend and hasattr(backend, "resize"):
+            doc = self.dm.active_document()
+            if doc and self._backend_ready(backend):
+                from ui.core.document.geometry import change_geometry
+                try:
+                    change_geometry(
+                        doc, backend, nw, nh,
+                        anchor=res.get("anchor", (1, 1)),
+                        resample=res.get("resample_mode") if is_image_resize else None,
+                    )
+                except Exception as exc:
+                    self.status_bar.showMessage(f"Falha ao redimensionar: {exc}", 5000)
+                    return
+            elif backend and hasattr(backend, "resize"):
                 backend.resize(nw, nh)
             if self.workspace:
                 self.workspace.canvas_w = nw
@@ -325,7 +403,15 @@ class MainWindowMenuActionsMixin(MainWindowDialogActionsMixin):
             if hasattr(backend, "get_selection_bounds"):
                 b = backend.get_selection_bounds()
                 if len(b) >= 4 and b[2] > 0 and b[3] > 0:
-                    backend.resize(b[2], b[3])
+                    doc = self.dm.active_document()
+                    if not doc or not self._backend_ready(backend):
+                        return
+                    from ui.core.document.geometry import change_geometry
+                    try:
+                        change_geometry(doc, backend, b[2], b[3], crop=(b[0], b[1]))
+                    except Exception as exc:
+                        self.status_bar.showMessage(f"Falha ao recortar: {exc}", 5000)
+                        return
                     backend.clear_selection()
                     if self.workspace:
                         self.workspace.canvas_w = b[2]

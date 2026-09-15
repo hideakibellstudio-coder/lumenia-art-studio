@@ -73,6 +73,34 @@ class AladynMdiMixin:
                 logger.error(f"[AladynBackend] Falha ao alocar PaintEngineFacade para doc '{uid}': {e}")
                 return
 
+        # Sincroniza o cache de pincel com o estado REAL do facade que esta
+        # saindo, ANTES de trocar.
+        #
+        # `_last_brush_preset` so era atualizado por `apply_brush_preset_dict`.
+        # Os controles da UI (slider de estabilizador, opacidade, espacamento,
+        # dureza...) gravam DIRETO no facade via seus setters e nunca tocavam o
+        # cache. Resultado medido: mover o slider para 95% funcionava, e a
+        # reaplicacao logo abaixo devolvia o valor do preset (40%) na primeira
+        # re-ativacao de contexto — inclusive do MESMO documento.
+        #
+        # Sao ~46 propriedades reaplicadas aqui, entao o defeito nunca foi so do
+        # estabilizador: opacidade e espacamento sofriam o mesmo, e espacamento
+        # errado num pincel grande multiplica o numero de carimbos.
+        #
+        # O merge (cache primeiro, estado vivo por cima) e necessario e nao
+        # cosmetico: `get_brush_profile_dict` produz 42 das ~46 chaves, mas nao
+        # produz `engine_type`, `shape_preset` nem `brush_height_preset`. Um
+        # `replace` as perderia; o merge preserva o que o getter nao sabe ler.
+        if getattr(self, "_facade", None) is not None:
+            try:
+                estado_vivo = self.get_brush_profile_dict()
+                if estado_vivo:
+                    atualizado = dict(getattr(self, "_last_brush_preset", None) or {})
+                    atualizado.update(estado_vivo)
+                    self._last_brush_preset = atualizado
+            except Exception as exc:
+                logger.warning(f"[AladynBackend] Nao foi possivel sincronizar o pincel: {exc}")
+
         self._active_doc_uid = uid
         self._facade = self._doc_facades[uid]
         self._width = self._facade.get_width()

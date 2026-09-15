@@ -63,6 +63,11 @@ public:
     bool reorderLayer(int fromIndex, int toIndex);
     bool reorderLayers(const std::vector<int>& newOrder);
     bool setLayerParents(const std::vector<int>& parentIndices);
+    bool setLayerDocumentUid(int index, uint64_t uid) {
+        if (uid == 0) return false;
+        if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setDocumentUid(uid); return true; }
+        return false;
+    }
     void setLayerName(int index, const std::string& name) { if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setName(name); touchDocument(); } }
     [[nodiscard]] std::string getLayerName(int index) const { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->getName() : std::string{}; }
     void setLayerOpacity(int index, double opacity);

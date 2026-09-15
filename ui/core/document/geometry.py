@@ -28,26 +28,29 @@ def change_geometry(document, backend, width, height, *, anchor=(1, 1), crop=Non
         path = DocumentSerializer.save(document, backend, Path(directory) / "before.lmn")
         manifest, payloads = DocumentSerializer.read(path)
     original_size = (document.width, document.height)
+    def transform(image, interpolation):
+        if crop is not None:
+            return image.crop((x, y, x + width, y + height))
+        if resample is not None:
+            return image.resize((width, height), interpolation)
+        row, col = anchor
+        dx = (width - document.width) * col // 2
+        dy = (height - document.height) * row // 2
+        transformed = Image.new(image.mode, (width, height))
+        transformed.paste(image, (dx, dy))
+        return transformed
+
     for name, pixels in payloads.items():
         if not name.startswith("layers/"):
             continue
         image = Image.frombytes("RGBA", original_size, pixels)
-        if crop is not None:
-            transformed = image.crop((x, y, x + width, y + height))
-        elif resample is not None:
-            mode = (Image.Resampling.BILINEAR, Image.Resampling.BICUBIC, Image.Resampling.NEAREST)[resample]
-            transformed = image.resize((width, height), mode)
-        else:
-            row, col = anchor
-            dx = (width - document.width) * col // 2
-            dy = (height - document.height) * row // 2
-            transformed = Image.new("RGBA", (width, height))
-            transformed.paste(image, (dx, dy))
-        payloads[name] = transformed.tobytes()
+        mode = (Image.Resampling.BILINEAR, Image.Resampling.BICUBIC, Image.Resampling.NEAREST)[resample or 0]
+        payloads[name] = transform(image, mode).tobytes()
     manifest.update(width=width, height=height)
-    # Geometry currently clears the active selection; its previous value is
-    # retained in native history and restored by undo.
-    manifest["selection_payload"] = None
+    selection_name = manifest.get("selection_payload")
+    if selection_name:
+        selection = Image.frombytes("L", original_size, payloads[selection_name])
+        payloads[selection_name] = transform(selection, Image.Resampling.NEAREST).tobytes()
     prepared_uid = "geometry_" + uuid.uuid4().hex
     shadow = Document(prepared_uid, document.name, width, height)
     shadow.paper_color = document.paper_color

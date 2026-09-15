@@ -8,6 +8,7 @@ ativação/desativação sem afetar plugins ativos durante escaneamento e desins
 from __future__ import annotations
 
 import inspect
+import importlib
 import importlib.util
 import json
 import logging
@@ -17,13 +18,17 @@ import sys
 import tempfile
 import uuid
 import zipfile
+from pathlib import Path
 
 from ui.core.logger import get_logger
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.context import PluginContext
+from ui.core.plugins.discovery import discover_compiled_plugins, register_module_plugins
 from ui.core.plugins.lifecycle import PluginLifecycle
 from ui.core.plugins.package_manifest import validate_package_manifest
 from ui.core.plugins.registry import ServiceRegistry
+from ui.core.config.storage import read_object, save_with_backup
+from ui.core.runtime_paths import is_packaged, writable_data_dir
 
 logger = get_logger("PluginManager")
 
@@ -38,15 +43,22 @@ class PluginManager:
         return cls._instance
 
     def __init__(self, plugins_dir: str | None = None) -> None:
+        self._builtin_plugin_modules: tuple[str, ...] = ()
+        self._builtin_plugin_classes: set[str] = set()
         if plugins_dir is None:
-            candidate_dirs = [
-                os.path.join(os.path.dirname(sys.executable), "plugins"),
-                os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-                    "plugins",
-                ),
-            ]
-            self.plugins_dir = next((d for d in candidate_dirs if os.path.isdir(d)), candidate_dirs[0])
+            if is_packaged():
+                self.plugins_dir = str(writable_data_dir() / "plugins")
+                from plugins.builtin_registry import BUILTIN_PLUGIN_MODULES
+                self._builtin_plugin_modules = BUILTIN_PLUGIN_MODULES
+            else:
+                candidate_dirs = [
+                    os.path.join(os.path.dirname(sys.executable), "plugins"),
+                    os.path.join(
+                        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                        "plugins",
+                    ),
+                ]
+                self.plugins_dir = next((d for d in candidate_dirs if os.path.isdir(d)), candidate_dirs[0])
         else:
             self.plugins_dir = plugins_dir
 
@@ -65,7 +77,8 @@ class PluginManager:
         )
         self.context._service_registry = ServiceRegistry.instance()
 
-        self.config_path = os.path.join(self.plugins_dir, "plugins_config.json")
+        config_root = writable_data_dir() if is_packaged() and plugins_dir is None else Path(self.plugins_dir)
+        self.config_path = (os.environ.get("LUMENIA_PLUGINS_CONFIG_PATH") if plugins_dir is None else None) or str(config_root / "plugins_config.json")
         self.discovered_plugins = {}  # class_name -> plugin_class
         self.active_instances = {}    # class_name -> plugin_instance
         self.enabled_plugins_config = {}  # class_name -> bool
@@ -79,26 +92,39 @@ class PluginManager:
 
 
     def load_config(self) -> None:
-        if os.path.exists(self.config_path):
+        for candidate in (self.config_path, self.config_path + ".bak"):
+            if not os.path.exists(candidate):
+                continue
             try:
-                with open(self.config_path, "r", encoding="utf-8") as f:
-                    self.enabled_plugins_config = json.load(f)
+                loaded = read_object(candidate)
+                if any(not isinstance(name, str) or type(enabled) is not bool
+                       for name, enabled in loaded.items()):
+                    raise ValueError("plugins_config.json contém valores inválidos")
+                self.enabled_plugins_config = dict(loaded)
+                return
             except Exception as e:
                 logger.error(f"Erro ao carregar plugins_config.json: {e}")
-                self.enabled_plugins_config = {}
-        else:
-            self.enabled_plugins_config = {}
+        self.enabled_plugins_config = {name: True for name in (
+            "WorkspaceCore", "BrushPlugin", "ColorPlugin", "GeometryPlugin",
+            "LayersPlugin", "NavigatorPlugin", "TelemetryPlugin",
+        )}
 
-    def save_config(self) -> None:
+    def save_config(self) -> bool:
         try:
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                json.dump(self.enabled_plugins_config, f, indent=4)
+            save_with_backup(self.config_path, self.enabled_plugins_config)
+            return True
         except Exception as e:
             logger.error(f"Erro ao salvar plugins_config.json: {e}")
+            return False
 
     def rescan_plugins(self) -> None:
         """Varre a pasta de plugins e atualiza discovered_plugins sem desativar os ativos."""
         self.discovered_plugins.clear()
+        self._builtin_plugin_classes.clear()
+        discover_compiled_plugins(
+            self._builtin_plugin_modules, self.discovered_plugins, logger
+        )
+        self._builtin_plugin_classes.update(self.discovered_plugins)
         candidates: list[tuple[str, str]] = []
 
         for item in os.listdir(self.plugins_dir):
@@ -160,16 +186,9 @@ class PluginManager:
                         spec.loader.exec_module(module)
 
                 if module:
-                    for attr_name in dir(module):
-                        attr = getattr(module, attr_name)
-                        if (
-                            isinstance(attr, type)
-                            and issubclass(attr, BasePlugin)
-                            and attr is not BasePlugin
-                        ):
-                            attr._plugin_dir = plugin_dir
-                            self.discovered_plugins[attr_name] = attr
-                            logger.info(f"Plugin descoberto: {attr_name} (em {file_path})")
+                    register_module_plugins(
+                        self.discovered_plugins, module, plugin_dir, file_path, logger
+                    )
             except Exception as e:
                 logger.error(f"Erro ao carregar o plugin '{module_name}': {e}")
 
@@ -290,191 +309,24 @@ class PluginManager:
             except Exception:
                 return False
         return False
-
     def load_plugin_from_source(self, zip_path: str) -> bool | None:
-        if not zipfile.is_zipfile(zip_path):
-            return None
-
-        staging = None
-        target_dir = None
-        promoted = False
-        try:
-            with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                root = os.path.abspath(self.plugins_dir)
-                if len(zip_ref.infolist()) > 10000:
-                    raise ValueError("Pacote com entradas demais")
-                staging = tempfile.mkdtemp(prefix=".plugin-staging-", dir=root)
-                total_size = 0
-                seen_paths = set()
-                for member in zip_ref.infolist():
-                    if (member.external_attr >> 16) & 0o170000 == 0o120000:
-                        raise ValueError(f"Symlink não permitido no pacote: {member.filename}")
-                    normalized_member = member.filename.replace("\\", "/").rstrip("/")
-                    if normalized_member and normalized_member in seen_paths:
-                        raise ValueError(f"Entrada duplicada no pacote: {member.filename}")
-                    seen_paths.add(normalized_member)
-                    # Reject absolute paths and traversal before touching disk.
-                    target = os.path.abspath(os.path.join(root, member.filename))
-                    if os.path.commonpath((root, target)) != root:
-                        raise ValueError(f"Caminho inseguro no pacote: {member.filename}")
-                    if member.filename.replace("\\", "/").startswith("/"):
-                        raise ValueError(f"Caminho absoluto no pacote: {member.filename}")
-                    total_size += member.file_size
-                    if total_size > 512 * 1024 * 1024:
-                        raise ValueError("Pacote excede 512 MiB")
-                    staged_target = os.path.abspath(os.path.join(staging, member.filename))
-                    if os.path.commonpath((staging, staged_target)) != staging:
-                        raise ValueError(f"Caminho inseguro no staging: {member.filename}")
-                    if member.is_dir():
-                        os.makedirs(staged_target, exist_ok=True)
-                    else:
-                        os.makedirs(os.path.dirname(staged_target), exist_ok=True)
-                        with zip_ref.open(member, "r") as src, open(staged_target, "wb") as dst:
-                            shutil.copyfileobj(src, dst)
-                manifest_path = os.path.join(staging, "manifest.json")
-                source_dir = staging
-                if not os.path.exists(manifest_path):
-                    package_dirs = [
-                        name for name in os.listdir(staging)
-                        if os.path.isdir(os.path.join(staging, name))
-                    ]
-                    if len(package_dirs) == 1:
-                        source_dir = os.path.join(staging, package_dirs[0])
-                        manifest_path = os.path.join(source_dir, "manifest.json")
-                if not os.path.exists(manifest_path):
-                    raise ValueError("Pacote sem manifest.json")
-                with open(manifest_path, encoding="utf-8") as stream:
-                    manifest = validate_package_manifest(json.load(stream), source_dir)
-                if source_dir != staging and os.path.basename(source_dir) != manifest.plugin_id:
-                    raise ValueError("diretório do pacote deve corresponder ao id do manifesto")
-
-                target_dir = os.path.join(root, manifest.plugin_id)
-                if os.path.exists(target_dir):
-                    raise ValueError(f"Plugin já instalado: {manifest.plugin_id}")
-                os.replace(source_dir, target_dir)
-                promoted = True
-            self.rescan_plugins()
-            if not self._package_was_discovered(target_dir, manifest):
-                raise RuntimeError("pacote promovido não expõe o contrato BasePlugin declarado")
-            return True
-        except Exception as e:
-            if promoted and target_dir and os.path.isdir(target_dir):
-                self._quarantine_package(target_dir)
-                self.rescan_plugins()
-            logger.error(f"Erro ao extrair plugin .zip: {e}")
-            return None
-        finally:
-            if staging and os.path.isdir(staging):
-                shutil.rmtree(staging, ignore_errors=True)
+        from ui.core.plugins.package_installer import install_plugin_package
+        return install_plugin_package(self, zip_path, logger)
 
     def _package_was_discovered(self, target_dir: str, manifest) -> bool:
-        """Confirma classe carregável e equivalência com o manifesto promovido."""
-        target = os.path.normcase(os.path.abspath(target_dir))
-        for plugin_class in self.discovered_plugins.values():
-            plugin_dir = getattr(plugin_class, "_plugin_dir", "")
-            try:
-                if os.path.normcase(os.path.abspath(plugin_dir)) != target:
-                    continue
-                metadata = plugin_class().get_metadata()
-                if metadata.id != manifest.plugin_id:
-                    continue
-                if tuple(metadata.dependencies) != manifest.dependencies:
-                    logger.error("Dependências do manifesto e do plugin não coincidem.")
-                    return False
-                return True
-            except (TypeError, OSError, ValueError) as error:
-                logger.error(f"Não foi possível validar plugin promovido: {error}")
-                continue
-        return False
+        from ui.core.plugins.package_installer import package_was_discovered
+        return package_was_discovered(self, target_dir, manifest, logger)
 
     def _quarantine_package(self, target_dir: str) -> None:
-        """Retira uma promoção inválida da árvore que pode ser descoberta."""
-        quarantine_root = os.path.join(self.plugins_dir, ".plugin-quarantine")
-        os.makedirs(quarantine_root, exist_ok=True)
-        base_name = os.path.basename(target_dir)
-        destination = os.path.join(quarantine_root, f"{base_name}-{uuid.uuid4().hex}")
-        try:
-            os.replace(target_dir, destination)
-            logger.warning(f"Pacote de plugin movido para quarentena: {destination}")
-        except OSError as error:
-            logger.error(f"Não foi possível colocar pacote inválido em quarentena: {error}")
+        from ui.core.plugins.package_installer import quarantine_package
+        quarantine_package(self.plugins_dir, target_dir, logger)
 
     def _purge_module_from_sys(self, cls) -> None:
-        """Expurga as referências do módulo compilado na memória do sys.modules."""
-        try:
-            mod_name = cls.__module__
-            for key in list(sys.modules.keys()):
-                if key == mod_name or key.endswith(f".{mod_name}") or mod_name.endswith(f".{key}"):
-                    sys.modules.pop(key, None)
-                    logger.debug(f"Módulo expurgado da memória sys.modules: {key}")
-        except Exception as e:
-            logger.warning(f"Erro ao expurgar módulo da memória: {e}")
+        from ui.core.plugins.package_installer import purge_module_from_sys
+        purge_module_from_sys(cls, logger)
 
     def uninstall_plugin(self, name: str) -> bool:
         """Exclui/desinstala um plugin customizado do disco e da memória."""
-        if self.is_system_plugin(name):
-            logger.warning(f"Tentativa de desinstalar plugin de sistema '{name}' foi bloqueada.")
-            return False
-
-        if name in self.active_instances:
-            self.disable_plugin(name)
-
-        cls = self.discovered_plugins.get(name)
-        if not cls:
-            logger.error(f"Não foi possível encontrar a classe do plugin '{name}' para desinstalação.")
-            return False
-
-        try:
-            # 1. Obtém a pasta física do plugin (vínculo direto _plugin_dir da classe/instância)
-            plugin_dir = getattr(cls, "_plugin_dir", None)
-            if not plugin_dir:
-                try:
-                    file_path = inspect.getfile(cls)
-                    if file_path:
-                        plugin_dir = os.path.dirname(file_path)
-                except Exception:
-                    pass
-
-            logger.info(f"Desinstalando plugin '{name}' | Pasta identificada: {plugin_dir}")
-
-            # 2. Purga referências em memória sys.modules
-            self._purge_module_from_sys(cls)
-
-            # 3. Força a coleta de lixo para liberar arquivos travados no Windows
-            import gc
-            gc.collect()
-
-            # 4. Remove o diretório físico do disco
-            if plugin_dir and os.path.exists(plugin_dir):
-                norm_plugin_dir = os.path.normcase(os.path.abspath(plugin_dir))
-                norm_root = os.path.normcase(os.path.abspath(self.plugins_dir))
-
-                try:
-                    inside_root = os.path.commonpath((norm_root, norm_plugin_dir)) == norm_root
-                except ValueError:
-                    inside_root = False
-                if inside_root and norm_plugin_dir != norm_root:
-                    def _on_rm_error(func, path, exc_info):
-                        import stat
-                        try:
-                            os.chmod(path, stat.S_IWRITE)
-                            func(path)
-                        except Exception:
-                            pass
-
-                    shutil.rmtree(plugin_dir, onerror=_on_rm_error)
-                    logger.info(f"🗑 Diretório do plugin '{name}' excluído com sucesso do disco: {plugin_dir}")
-
-            # 5. Limpa referências internas
-            self.discovered_plugins.pop(name, None)
-            self.active_instances.pop(name, None)
-            self.enabled_plugins_config.pop(name, None)
-            self.save_config()
-
-            # 6. Atualiza o escaneamento do disco
-            self.rescan_plugins()
-            return True
-        except Exception as e:
-            logger.error(f"Erro ao desinstalar plugin {name}: {e}")
-            return False
+        from ui.core.plugins.package_installer import uninstall_plugin_package
+        return uninstall_plugin_package(self, name, logger)
 

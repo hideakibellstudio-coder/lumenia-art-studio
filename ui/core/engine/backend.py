@@ -11,6 +11,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
+from ui.core.engine.telemetry_dto import TelemetrySnapshot
 
 
 @dataclass(frozen=True)
@@ -285,7 +286,7 @@ class EngineBackend(ABC):
 
     def set_telemetry_enabled(self, enabled: bool) -> None: ...
     def is_telemetry_enabled(self) -> bool: return False
-    def get_telemetry_snapshot(self) -> Dict[str, Any]: return {}
+    def get_telemetry_snapshot(self) -> TelemetrySnapshot: return TelemetrySnapshot()
 
     # ── Perfis de Cor & Amostragem ────────────────────────────────────────
 

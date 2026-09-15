@@ -23,7 +23,9 @@ from .render_settings_components import (
     EnginePipelineGroup,
     load_render_settings,
     save_render_settings,
+    apply_render_dialog_styles,
 )
+from .render_color_management_components import ColorManagementGroup
 
 __all__ = [
     "RenderSettingsDialog",
@@ -205,6 +207,12 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self.combo_undo = self.engine_group.combo_undo
         self.engine_group.settingsChanged.connect(self._save_switch_settings)
         right_layout.addWidget(self.engine_group)
+
+        # Grupo de Gestão Profissional de Cor (LittleCMS & Prova)
+        self.color_group = ColorManagementGroup(self._saved_cfg, self)
+        self.color_group.profileImported.connect(self._on_custom_profile_imported)
+        self.color_group.softProofChanged.connect(self._on_soft_proof_changed)
+        right_layout.addWidget(self.color_group)
         right_layout.addStretch()
 
         # Botões de Ação na base
@@ -349,6 +357,22 @@ class RenderSettingsDialog(BaseFramelessDialog):
             self.btn_apply.setText("Aplicar como Modo Ativo")
             self.btn_apply.setEnabled(True)
 
+    def _on_custom_profile_imported(self, new_id: int) -> None:
+        backend = EngineRegistry.instance().get_backend()
+        if backend and self._capabilities.get("color_profiles", False):
+            self._all_profiles = backend.get_available_color_profiles()
+            self._build_cards()
+            for p in self._all_profiles:
+                if p.get("id") == new_id:
+                    self._select_profile(p)
+                    break
+
+    def _on_soft_proof_changed(self, proof_config: dict) -> None:
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "set_soft_proofing"):
+            backend.set_soft_proofing(proof_config)
+            self.preview_bar.update()
+
     def _on_apply_profile(self):
         pid = self._selected_profile.get("id", 0)
         self._active_profile_id = pid
@@ -361,6 +385,8 @@ class RenderSettingsDialog(BaseFramelessDialog):
             "undo_limit_mb": int(self._saved_cfg.get("undo_limit_mb", 512)),
             "undo_max_steps": int(self._saved_cfg.get("undo_max_steps", 50)),
         }
+        if hasattr(self, "color_group"):
+            cfg.update(self.color_group.get_state())
         self._saved_cfg = cfg
         save_render_settings(cfg)
 
@@ -382,96 +408,4 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self.profileChanged.emit(pid)
 
     def _apply_theme(self, *args):
-        tm = ThemeManager.instance()
-        bg_app = tm.get_color("bg_main")
-        bg_panel = tm.get_color("bg_panel")
-        bg_card = tm.get_color("bg_card")
-        border = tm.get_color("border")
-        border_muted = tm.get_color("border_muted")
-        text_main = tm.get_color("text_main")
-        text_sec = tm.get_color("text_sec")
-        accent = tm.get_color("accent")
-        accent_hover = tm.get_color("accent_hover")
-
-        if hasattr(self, "root_container") and self.root_container:
-            self.root_container.setStyleSheet(f"""
-                QWidget#DialogRootContainer {{
-                    background-color: {bg_app};
-                    border: 1px solid {border};
-                    border-radius: 10px;
-                }}
-                QFrame#DialogHeaderSep {{
-                    background-color: {border};
-                    border: none;
-                }}
-            """)
-
-        self.setStyleSheet(f"""
-            QGroupBox {{
-                font-size: 11px;
-                font-weight: bold;
-                color: {text_sec};
-                border: 1px solid {border};
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 14px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 4px;
-            }}
-            QLineEdit, QComboBox {{
-                background-color: {bg_card};
-                color: {text_main};
-                border: 1px solid {border};
-                border-radius: 6px;
-                padding: 6px 10px;
-                font-size: 12px;
-            }}
-            QComboBox QAbstractItemView {{
-                background-color: {bg_card};
-                color: {text_main};
-                selection-background-color: {accent};
-                selection-color: #ffffff;
-                border: 1px solid {border};
-            }}
-            QPushButton {{
-                background-color: {bg_card};
-                color: {text_main};
-                border: 1px solid {border};
-                border-radius: 6px;
-                padding: 6px 16px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {accent};
-                color: #ffffff;
-            }}
-            QPushButton:disabled {{
-                background-color: {bg_panel};
-                color: {text_sec};
-                border-color: {border_muted};
-            }}
-        """)
-        if hasattr(self, "lbl_insp_icon") and self.lbl_insp_icon:
-            self.lbl_insp_icon.setStyleSheet(f"border: 1px solid {border}; background: {bg_card}; border-radius: 8px;")
-
-        self.btn_apply.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {accent};
-                color: #ffffff;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-                padding: 6px 16px;
-            }}
-            QPushButton:hover {{
-                background-color: {accent_hover};
-            }}
-            QPushButton:disabled {{
-                background-color: {bg_panel};
-                color: {text_sec};
-                border: 1px solid {border_muted};
-            }}
-        """)
+        apply_render_dialog_styles(self)

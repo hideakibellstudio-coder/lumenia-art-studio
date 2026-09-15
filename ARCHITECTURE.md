@@ -6,7 +6,7 @@ Este documento descreve a arquitetura de software, os padrões de engenharia, os
 
 ## 1. Visão Geral da Arquitetura do Sistema
 
-O Lumenia adota uma separação estrita em camadas baseada no padrão **Boundary-Control-Entity (BCE)**, integrando um frontend em **Python/PySide6 (Qt6)** a um motor de processamento nativo em **C++17 acelerado por SIMD** (`aladyn_engine_native`).
+O Lumenia adota uma separação estrita em camadas baseada no padrão **Boundary-Control-Entity (BCE)**, integrando um frontend em **Python/PySide6 (Qt6)** a um motor de processamento nativo em **C++20 acelerado por SIMD** (`aladyn_engine_native`).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -26,7 +26,7 @@ O Lumenia adota uma separação estrita em camadas baseada no padrão **Boundary
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ Dados / Matrizes NumPy / C-Buffer
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│                   ALADYN NATIVE ENGINE (C++17 / SIMD)                  │
+│                   ALADYN NATIVE ENGINE (C++20 / SIMD)                  │
 │  - Catmull-Rom Inking Spline Interpolator (Zero Input Lag)             │
 │  - Bicubic Resampling Kernel (Matriz de Convolução com Pivô Móvel)    │
 │  - SIMD Alpha Blending & Stamp Dabbing (Premultiplied Alpha)           │
@@ -36,7 +36,7 @@ O Lumenia adota uma separação estrita em camadas baseada no padrão **Boundary
 
 ---
 
-## 2. O Motor Nativo C++17 (ALADYN Native Engine)
+## 2. O Motor Nativo C++20 (ALADYN Native Engine)
 
 O motor nativo reside no módulo binário `aladyn_engine_native.pyd` e na sua camada de interface Python (`ui/engine_backends/aladyn.py`).
 

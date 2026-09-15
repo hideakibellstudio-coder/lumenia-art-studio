@@ -31,6 +31,11 @@ def load_render_settings() -> dict:
             profile_id = 0
     return {
         "profile_id": profile_id,
+        "rendering_intent": int(sec.get("rendering_intent", 1)),
+        "bpc": bool(sec.get("bpc", True)),
+        "soft_proof_enabled": bool(sec.get("soft_proof_enabled", False)),
+        "proof_profile_id": int(sec.get("proof_profile_id", 5)),
+        "gamut_warning": bool(sec.get("gamut_warning", False)),
         "low_latency": bool(sec.get("low_latency", True)),
         "linear_gamma": bool(sec.get("linear_gamma", False)),
         "deep_color": bool(sec.get("deep_color", False)),
@@ -87,13 +92,17 @@ class ProofingPreviewBar(QtWidgets.QWidget):
         img_painter.fillRect(0, 0, w, h, QtGui.QBrush(grad))
         img_painter.end()
 
-        if self._profile_id != 0:
-            from ui.core.engine.registry import EngineRegistry
-            backend = EngineRegistry.instance().get_backend()
-            transform = getattr(backend, "transform_rgba_for_profile", None) if backend else None
-            if transform:
-                raw = transform(bytes(img.bits()), self._profile_id)
-                img = QtGui.QImage(raw, w, h, w * 4, QtGui.QImage.Format_RGBA8888).copy()
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        transform = getattr(backend, "transform_rgba_for_profile", None) if backend else None
+        sp_active = False
+        if backend and hasattr(backend, "get_soft_proofing"):
+            sp = backend.get_soft_proofing()
+            sp_active = bool(sp and getattr(sp, "enabled", False))
+
+        if (self._profile_id != 0 or sp_active) and transform:
+            raw = transform(bytes(img.bits()), self._profile_id)
+            img = QtGui.QImage(raw, w, h, w * 4, QtGui.QImage.Format_RGBA8888).copy()
 
         p.drawImage(0, 0, img)
         p.setClipping(False)
@@ -318,3 +327,101 @@ class EnginePipelineGroup(QtWidgets.QGroupBox):
             "deep_color": self.switch_deep.isChecked(),
             "undo_limit_mb": mb,
         }
+
+
+def apply_render_dialog_styles(dialog: QtWidgets.QDialog) -> None:
+    """Aplica a estilização completa de tema e contraste para o RenderSettingsDialog."""
+    tm = ThemeManager.instance()
+    bg_app = tm.get_color("bg_main")
+    bg_panel = tm.get_color("bg_panel")
+    bg_card = tm.get_color("bg_card")
+    border = tm.get_color("border")
+    border_muted = tm.get_color("border_muted")
+    text_main = tm.get_color("text_main")
+    text_sec = tm.get_color("text_sec")
+    accent = tm.get_color("accent")
+    accent_hover = tm.get_color("accent_hover")
+
+    if hasattr(dialog, "root_container") and dialog.root_container:
+        dialog.root_container.setStyleSheet(f"""
+            QWidget#DialogRootContainer {{
+                background-color: {bg_app};
+                border: 1px solid {border};
+                border-radius: 10px;
+            }}
+            QFrame#DialogHeaderSep {{
+                background-color: {border};
+                border: none;
+            }}
+        """)
+
+    dialog.setStyleSheet(f"""
+        QGroupBox {{
+            font-size: 11px;
+            font-weight: bold;
+            color: {text_sec};
+            border: 1px solid {border};
+            border-radius: 8px;
+            margin-top: 12px;
+            padding-top: 14px;
+        }}
+        QGroupBox::title {{
+            subcontrol-origin: margin;
+            left: 10px;
+            padding: 0 4px;
+        }}
+        QLineEdit, QComboBox {{
+            background-color: {bg_card};
+            color: {text_main};
+            border: 1px solid {border};
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+        }}
+        QComboBox QAbstractItemView {{
+            background-color: {bg_card};
+            color: {text_main};
+            selection-background-color: {accent};
+            selection-color: #ffffff;
+            border: 1px solid {border};
+        }}
+        QPushButton {{
+            background-color: {bg_card};
+            color: {text_main};
+            border: 1px solid {border};
+            border-radius: 6px;
+            padding: 6px 16px;
+            font-weight: bold;
+        }}
+        QPushButton:hover {{
+            background-color: {accent};
+            color: #ffffff;
+        }}
+        QPushButton:disabled {{
+            background-color: {bg_panel};
+            color: {text_sec};
+            border-color: {border_muted};
+        }}
+    """)
+    if hasattr(dialog, "lbl_insp_icon") and dialog.lbl_insp_icon:
+        dialog.lbl_insp_icon.setStyleSheet(f"border: 1px solid {border}; background: {bg_card}; border-radius: 8px;")
+
+    if hasattr(dialog, "btn_apply") and dialog.btn_apply:
+        dialog.btn_apply.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {accent};
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                padding: 6px 16px;
+            }}
+            QPushButton:hover {{
+                background-color: {accent_hover};
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_panel};
+                color: {text_sec};
+                border: 1px solid {border_muted};
+            }}
+        """)

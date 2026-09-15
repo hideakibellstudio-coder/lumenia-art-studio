@@ -1,6 +1,8 @@
 """Capacidades efetivas publicadas pelo backend nativo Aladyn."""
 
 from __future__ import annotations
+import os
+from pathlib import Path
 
 
 class AladynCapabilitiesMixin:
@@ -42,11 +44,36 @@ class AladynCapabilitiesMixin:
             "rgba16_document": False,
             "export_image": native,
             "document_pixel_format": "RGBA8",
+            "soft_proofing": True,
+            "custom_color_profiles": True,
         }
 
     def supports_capability(self, capability: str) -> bool:
         return bool(self.get_capabilities().get(str(capability), False))
 
-    def export_image(self, path: str) -> bool:
+    def export_image(self, path: str | os.PathLike[str], embed_icc: bool = True) -> bool:
+        """Exporta a composição ativa incorporando metadados ICC quando suportado."""
+        target_path = Path(path)
+        ext = target_path.suffix.lower()
+
+        # Exportação enriquecida com perfil ICC para PNG, JPEG, TIFF e WebP
+        if embed_icc and ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp"}:
+            get_icc = getattr(self, "get_active_profile_icc_bytes", None)
+            icc_bytes = get_icc() if callable(get_icc) else None
+            if icc_bytes:
+                image = self.get_qimage()
+                if image and not image.isNull():
+                    try:
+                        from PIL import Image
+                        w, h = image.width(), image.height()
+                        img = Image.frombuffer("RGBA", (w, h), bytes(image.bits()), "raw", "RGBA", 0, 1)
+                        if ext in {".jpg", ".jpeg"}:
+                            img = img.convert("RGB")
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+                        img.save(str(target_path), icc_profile=icc_bytes)
+                        return True
+                    except Exception:
+                        pass  # Em caso de qualquer anomalia no Pillow, utiliza fallback QImage abaixo
+
         image = self.get_qimage()
-        return bool(image and not image.isNull() and image.save(str(path)))
+        return bool(image and not image.isNull() and image.save(str(target_path)))

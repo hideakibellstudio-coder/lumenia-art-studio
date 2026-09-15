@@ -65,6 +65,11 @@ class AladynLayerMixin:
             return self._facade.set_layer_parents(parent_indices)
         return False
 
+    def set_layer_document_uid(self, index: int, uid: int) -> bool:
+        if self._facade and hasattr(self._facade, "set_layer_document_uid"):
+            return bool(self._facade.set_layer_document_uid(int(index), int(uid)))
+        return False
+
     def add_group(self, name: str = "Novo Grupo", insert_index: int = -1) -> int:
         if self._facade and hasattr(self._facade, "add_group"):
             return self._facade.addGroup(name, int(insert_index)) if hasattr(self._facade, "addGroup") else self._facade.add_group(name, int(insert_index))

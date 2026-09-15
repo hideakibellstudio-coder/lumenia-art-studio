@@ -60,16 +60,16 @@ def test_geometry_between_pixel_steps_roundtrips(session, size, options):
     assert pixels(backend) == painted
 
 
-def test_crop_selection_is_restored_by_undo(session):
+def test_crop_selection_moves_with_geometry_and_roundtrips(session):
     doc, backend = session
     backend.select_rect(2, 1, 4, 3)
     before = backend.get_selection_bounds()
     change_geometry(doc, backend, 4, 3, crop=(2, 1))
-    assert not backend.has_selection()
+    assert backend.get_selection_bounds() == (0, 0, 4, 3)
     assert doc.history.undo(backend)
     assert backend.get_selection_bounds() == before
     assert doc.history.redo(backend)
-    assert not backend.has_selection()
+    assert backend.get_selection_bounds() == (0, 0, 4, 3)
 
 
 def test_apply_failure_keeps_original_context_and_history(session, monkeypatch):

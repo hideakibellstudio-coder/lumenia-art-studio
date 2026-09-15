@@ -14,7 +14,7 @@ class CanvasSizeDialog(BaseFramelessDialog):
         self.is_image_resize = is_image_resize
         self.orig_w = max(1, current_w)
         self.orig_h = max(1, current_h)
-        self.aspect_ratio = self.orig_w / self.orig_h
+        self._aspect_ratio = self.orig_w / self.orig_h
 
         title = tr("menu.image.image_size", "Redimensionar Imagem") if is_image_resize else tr("menu.image.canvas_size", "Tamanho do Canvas")
         icon_name = "image" if is_image_resize else "ruler"
@@ -175,13 +175,13 @@ class CanvasSizeDialog(BaseFramelessDialog):
     def _on_width_changed(self, new_w: int):
         if self.ratio_check.isChecked():
             self.height_spin.blockSignals(True)
-            self.height_spin.setValue(max(1, int(round(new_w / self.aspect_ratio))))
+            self.height_spin.setValue(max(1, int(round(new_w / self._aspect_ratio))))
             self.height_spin.blockSignals(False)
 
     def _on_height_changed(self, new_h: int):
         if self.ratio_check.isChecked():
             self.width_spin.blockSignals(True)
-            self.width_spin.setValue(max(1, int(round(new_h * self.aspect_ratio))))
+            self.width_spin.setValue(max(1, int(round(new_h * self._aspect_ratio))))
             self.width_spin.blockSignals(False)
 
     def get_results(self) -> dict:

@@ -52,6 +52,7 @@ def restore_document(document, backend, manifest, payloads):
     if not backend.set_layer_parents(parents):
         raise DocumentFormatError("falha ao restaurar hierarquia")
     document.layer_manager.replace_layers(records)
+    document.history.bind_projection_identities(backend)
     active = manifest.get("active_uid") or records[0]["uid"]
     document.layer_manager.set_active_layer(active)
     backend.select_layer(indices[active])
@@ -79,10 +80,19 @@ def restore_document(document, backend, manifest, payloads):
             raise DocumentFormatError("falha ao restaurar seleção")
         if (backend.get_selection_mask_buffer() or bytes(document.width * document.height)) != expected:
             raise DocumentFormatError("máscara restaurada difere do arquivo")
+    icc_payload = manifest.get("color_profile_payload")
+    if icc_payload and icc_payload in payloads:
+        raw_icc = payloads[icc_payload]
+        prof_name = manifest.get("color_profile_name")
+        document.color_profile_icc_bytes = raw_icc
+        document.color_profile_name = prof_name
+        if hasattr(backend, "register_custom_color_profile"):
+            backend.register_custom_color_profile(raw_icc, name=prof_name)
     profile = manifest.get("color_profile_id", 0)
     backend.set_color_profile(profile)
     if backend.get_color_profile() != profile:
         raise DocumentFormatError("perfil de cor não foi restaurado")
+    document.color_profile_id = profile
     document.guide_state = decode_guides(manifest.get("guide_state", {}))
     document.sym_state = dict(manifest.get("sym_state", {}))
     document.format_version = CURRENT_VERSION

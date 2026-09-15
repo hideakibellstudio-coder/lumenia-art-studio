@@ -1,10 +1,17 @@
 """Helper module to construct MenuBar and Keyboard Shortcuts for MainWindow."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.components import MenuBar, ToolSidebar, StatusBar
 
+if TYPE_CHECKING:  # apenas para tipagem: evita ciclo de import em runtime
+    from .main_window import MainWindow
 
-def setup_menu_and_shortcuts(win: QtWidgets.QMainWindow) -> None:
+
+def setup_menu_and_shortcuts(win: MainWindow) -> None:
     """Configura o MenuBar, ToolSidebar, StatusBar e atalhos de teclado globais."""
     # ── Menu Bar ──────────────────────────────────────────────────────
     win.menu_bar = MenuBar(win)

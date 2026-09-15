@@ -13,6 +13,9 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PARENT_BUILD = ROOT.parent / "build"
+# Se existir uma pasta 'build' externa ou se estivermos na raiz do repositório limpo, usa out-of-tree
+DEFAULT_BUILD_DIR = PARENT_BUILD if (PARENT_BUILD.exists() or ROOT.parent.name.endswith("CLEAN")) else (ROOT / "build")
 
 
 def _load_msvc_environment() -> None:
@@ -62,31 +65,42 @@ def artifact_metadata(simd: str) -> dict[str, str]:
     }
 
 
-def write_build_metadata(simd: str) -> Path:
-    output = ROOT / "build" / "native-build.json"
+def write_build_metadata(simd: str, build_dir: Path = DEFAULT_BUILD_DIR) -> Path:
+    output = build_dir / "native-build.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(artifact_metadata(simd), indent=2) + "\n", encoding="utf-8")
     return output
 
 
-def build(simd: str, force: bool) -> None:
+def build(simd: str, force: bool, build_dir: Path = DEFAULT_BUILD_DIR) -> None:
     _load_msvc_environment()
     environment = os.environ.copy()
     environment["LUMENIA_SIMD"] = simd
-    command = [sys.executable, "setup.py", "build_ext", "--inplace"]
+    
+    # Redireciona a compilação de temporários para a pasta build externa
+    temp_dir = build_dir / "temp_native"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    command = [
+        sys.executable,
+        "setup.py",
+        "build_ext",
+        "--inplace",
+        f"--build-temp={temp_dir}",
+    ]
     if force:
         command.append("--force")
     subprocess.run(command, cwd=ROOT, env=environment, check=True)
-    metadata_path = write_build_metadata(simd)
-    print(f"Metadados do artefato: {metadata_path.relative_to(ROOT)}")
+    metadata_path = write_build_metadata(simd, build_dir)
+    print(f"Metadados do artefato: {metadata_path}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compila aladyn_engine_native para Windows x64.")
     parser.add_argument("--simd", choices=("scalar", "avx2"), default="scalar")
     parser.add_argument("--force", action="store_true", help="recompila todos os objetos")
+    parser.add_argument("--build-dir", type=Path, default=DEFAULT_BUILD_DIR, help="diretório para artefatos e metadados de build")
     args = parser.parse_args()
-    build(args.simd, args.force)
+    build(args.simd, args.force, args.build_dir)
     return 0
 
 

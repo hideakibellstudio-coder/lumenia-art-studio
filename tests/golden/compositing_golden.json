@@ -1,0 +1,10 @@
+{
+  "base": "62f8bc298005d592345938b9abea7bce",
+  "filter_brightness_contrast": "1c918aed1d7d7486ff6ab2a0ea1c068d",
+  "filter_color_balance": "d13fc6ed77c9275b5bf3bcc2ef0c03fb",
+  "filter_gaussian_blur": "b1961525aa1f63d3e494e9131b32eb1e",
+  "filter_hue_sat": "b09ff578425d858679133e6cab22f885",
+  "filter_invert_threshold": "67b65143827a911df4e3186a3d628237",
+  "filter_pixelate": "b1fad3516f4695c5a5353bd57ea77a22",
+  "filter_sharpen_vignette": "2b45963360b511be62bd4d4b20f3db7c"
+}

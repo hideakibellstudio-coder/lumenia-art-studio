@@ -35,6 +35,7 @@ def _v0_to_v1(manifest):
 
 def _v1_to_v2(manifest):
     manifest.setdefault("color_profile_id", 0)
+    manifest.setdefault("color_profile_payload", None)
     manifest.setdefault("selection_payload", None)
     manifest.setdefault("canvas_resource", None)
     # Old files could omit empty raster payloads. Preserve that legacy meaning
@@ -68,8 +69,17 @@ def _number(value):
 
 def validate_auxiliary(manifest):
     profile = manifest.get("color_profile_id", 0)
-    if type(profile) is not int or not 0 <= profile <= 13:
+    if type(profile) is not int or type(profile) is bool:
         raise DocumentFormatError("perfil de cor não suportado")
+    if 0 <= profile <= 13:
+        pass
+    elif profile >= 100 and manifest.get("color_profile_payload") == "profiles/document.icc":
+        pass
+    else:
+        raise DocumentFormatError("perfil de cor não suportado")
+    icc_payload = manifest.get("color_profile_payload")
+    if icc_payload is not None and icc_payload != "profiles/document.icc":
+        raise DocumentFormatError("payload de perfil de cor inválido")
     for key in ("guide_state", "sym_state"):
         state = manifest.get(key, {})
         if not isinstance(state, dict):

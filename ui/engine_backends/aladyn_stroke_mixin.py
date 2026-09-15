@@ -10,6 +10,7 @@ from __future__ import annotations
 import time
 import logging
 from typing import Any
+from ui.core.engine.telemetry_dto import TelemetrySnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -162,10 +163,11 @@ class AladynStrokeMixin:
             return self._facade.is_detailed_logging_enabled()
         return False
 
-    def get_telemetry_snapshot(self) -> Any:
+    def get_telemetry_snapshot(self) -> TelemetrySnapshot:
         if self._facade and hasattr(self._facade, "get_telemetry_snapshot"):
-            return self._facade.get_telemetry_snapshot()
-        return None
+            native_snap = self._facade.get_telemetry_snapshot()
+            return TelemetrySnapshot.from_native(native_snap)
+        return TelemetrySnapshot()
 
     def reset_telemetry(self) -> None:
         if self._facade and hasattr(self._facade, "reset_telemetry"):

@@ -108,9 +108,19 @@ class DocumentSerializer:
             "guide_state": encode_guides(getattr(document, "guide_state", {}) or {}),
             "sym_state": dict(getattr(document, "sym_state", {}) or {}),
             "color_profile_id": getattr(backend, "get_color_profile", lambda: 0)(),
+            "color_profile_payload": None,
             "selection_payload": None,
             "canvas_resource": None,
         }
+        active_prof = manifest["color_profile_id"]
+        custom_icc = getattr(document, "color_profile_icc_bytes", None)
+        if not custom_icc and hasattr(backend, "get_active_profile_icc_bytes") and active_prof >= 100:
+            custom_icc = backend.get_active_profile_icc_bytes()
+        if custom_icc and active_prof >= 100:
+            manifest["color_profile_payload"] = "profiles/document.icc"
+            payloads["profiles/document.icc"] = bytes(custom_icc)
+            if getattr(document, "color_profile_name", None):
+                manifest["color_profile_name"] = str(document.color_profile_name)
         if getattr(backend, "has_selection", lambda: False)():
             raw = backend.get_selection_mask_buffer()
             if raw is None or len(raw) != document.width * document.height:
@@ -237,6 +247,19 @@ class DocumentSerializer:
                     except KeyError as exc:
                         raise DocumentFormatError(f"recurso ausente: {name}") from exc
                     referenced_payloads.add(name)
+                icc_payload = manifest.get("color_profile_payload")
+                if icc_payload is not None:
+                    if icc_payload != "profiles/document.icc":
+                        raise DocumentFormatError("payload de perfil de cor fora do namespace permitido")
+                    try:
+                        size = archive.getinfo(icc_payload).file_size
+                        total_size += size
+                        if size <= 0 or total_size > cls.MAX_PAYLOAD_BYTES or size > 50 * 1024 * 1024:
+                            raise DocumentFormatError("tamanho de perfil ICC inválido ou acima do limite")
+                        payloads[icc_payload] = archive.read(icc_payload)
+                    except KeyError as exc:
+                        raise DocumentFormatError(f"recurso ausente: {icc_payload}") from exc
+                    referenced_payloads.add(icc_payload)
                 allowed_names = {"manifest.json"} | referenced_payloads
                 unexpected = set(names) - allowed_names
                 if unexpected:

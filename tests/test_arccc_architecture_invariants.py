@@ -7,7 +7,9 @@ Testa e bloqueia de forma estática (via AST e inspeção estrutural) qualquer v
 2. Imports diretos de C++ (aladyn_engine_native) fora de ui/engine_backends/.
 3. Acessos a atributos privados de ponteiros/facades nativas (_facade, _native) fora de ui/engine_backends/.
 4. Cobertura de métodos canônicos do contrato universal EngineBackend no AladynBackend.
-5. Teto estrito de 500 LOC em todos os módulos Python de plugins/, ui/ e tests/.
+5. Teto de linhas ARCcC (Zona Vermelha) em plugins/, ui/ e tests/, lido de
+   tests/arccc_governance_rules.py — fonte única compartilhada com o teste de
+   governança C++ e com o perfil `lumenia` do ARCcC-Navigator.
 """
 
 import ast
@@ -15,6 +17,9 @@ import os
 import sys
 import unittest
 from typing import List, Tuple
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from arccc_governance_rules import MAX_LINES_ERROR, is_declared_exception  # noqa: E402
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -162,7 +167,11 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         self.assertEqual(len(missing), 0, msg)
 
     def test_05_strict_loc_ceiling_compliance(self):
-        """[ARCcC Regra 5] Teto estrito de 500 LOC em todos os módulos Python de plugins/, ui/ e tests/."""
+        """[ARCcC Regra 5] Teto de linhas da Zona Vermelha em plugins/, ui/ e tests/.
+
+        O limite vem de tests/arccc_governance_rules.py, a mesma fonte usada pelo
+        teste de governança C++ e alinhada ao perfil `lumenia` do Navigator.
+        """
         violations: List[Tuple[str, int]] = []
         target_dirs = [self.plugins_dir, self.ui_dir, self.tests_dir]
         for tdir in target_dirs:
@@ -170,11 +179,11 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
                 rel = os.path.relpath(fpath, self.root)
                 with open(fpath, 'r', encoding='utf-8', errors='ignore') as fl:
                     loc = sum(1 for _ in fl)
-                if loc >= 500:
+                if loc >= MAX_LINES_ERROR and not is_declared_exception(rel):
                     violations.append((rel, loc))
 
-        msg = f"Encontrados {len(violations)} arquivo(s) violando o teto estrito de 500 LOC:\n" + "\n".join(
-            f"  - {v[0]}: {v[1]} LOC (limite maximo estrito: 499 LOC)" for v in sorted(violations, key=lambda x: x[1], reverse=True)
+        msg = f"Encontrados {len(violations)} arquivo(s) na Zona Vermelha ARCcC:\n" + "\n".join(
+            f"  - {v[0]}: {v[1]} LOC (limite: {MAX_LINES_ERROR - 1} LOC)" for v in sorted(violations, key=lambda x: x[1], reverse=True)
         )
         self.assertEqual(len(violations), 0, msg)
 

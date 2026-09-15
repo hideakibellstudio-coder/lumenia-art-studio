@@ -244,6 +244,21 @@ def test_direct_model_mutation_is_detected_before_next_transaction(session):
         document.history.assert_projection(backend)
 
 
+def test_direct_model_reorder_cannot_swap_native_pixel_identity(session):
+    document, backend = session
+    manager = document.layer_manager
+    with document.history.transaction(backend):
+        backend.add_layer("blue", -1)
+        manager.add_layer("blue")
+    backend.select_layer(0)
+    paint(backend, [255, 0, 0, 255])
+    backend.select_layer(1)
+    paint(backend, [0, 0, 255, 255])
+    assert manager.move_layer_up(manager.layers[0].uid)
+    with pytest.raises(RuntimeError, match="projeção"):
+        document.history.assert_projection(backend)
+
+
 def test_uid_api_rejects_index_bool_and_invalid_parent_graph(session):
     document, backend = session
     manager = document.layer_manager

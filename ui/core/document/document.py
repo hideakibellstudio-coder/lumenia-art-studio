@@ -62,6 +62,12 @@ class Document(QtCore.QObject):
         self.flood_layers: list = []
         self.flood_redo_stack: list = []
 
+        # Perfil de cor e Prova de Impressão (F-006)
+        self.color_profile_id: int = 0
+        self.color_profile_icc_bytes: bytes | None = None
+        self.color_profile_name: str | None = None
+        self.soft_proof_state: dict = {}
+
         # Qualquer mutação de camada invalida o estado salvo do documento.
         self.layer_manager.content_changed.connect(self._on_content_changed)
         self.layer_manager.layer_property_changed.connect(lambda _uid: self.mark_dirty("layer_property"))

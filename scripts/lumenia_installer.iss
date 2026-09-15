@@ -1,6 +1,6 @@
 ; ==============================================================================
 ;  LUMENIA ART STUDIO — INNO SETUP SCRIPT
-;  Gera o instalador oficial Lumenia_Setup_v0.2.0_Alpha.exe
+;  Gera o instalador oficial Lumenia_Setup_v0.2.0.exe
 ; ==============================================================================
 
 #define MyAppName "Lumenia"
@@ -9,12 +9,26 @@
 #define MyAppPublisher "Lumenia Team"
 #define MyAppURL "https://lumeniateam.itch.io/lumenia"
 #define MyAppExeName "Lumenia.exe"
+
 #ifndef SourceDir
-  #define SourceDir AddBackslash(SourcePath) + "..\build\portable\Lumenia.dist"
+  ; Prioriza a distribuição out-of-tree (../build/portable ou ../dist/portable) se existir
+  #if DirExists(AddBackslash(SourcePath) + "..\..\build\portable\Lumenia.dist")
+    #define SourceDir AddBackslash(SourcePath) + "..\..\build\portable\Lumenia.dist"
+  #elif DirExists(AddBackslash(SourcePath) + "..\..\dist\portable\Lumenia.dist")
+    #define SourceDir AddBackslash(SourcePath) + "..\..\dist\portable\Lumenia.dist"
+  #else
+    #define SourceDir AddBackslash(SourcePath) + "..\build\portable\Lumenia.dist"
+  #endif
 #endif
+
 #ifndef OutputDir
-  #define OutputDir AddBackslash(SourcePath) + "..\build\installer"
+  #if DirExists(AddBackslash(SourcePath) + "..\..\dist")
+    #define OutputDir AddBackslash(SourcePath) + "..\..\dist"
+  #else
+    #define OutputDir AddBackslash(SourcePath) + "..\dist"
+  #endif
 #endif
+
 #define IconPath AddBackslash(SourcePath) + "..\assets\images\icon_lumenia.ico"
 #define LicensePath AddBackslash(SourcePath) + "..\TERMS_AND_LICENSE.txt"
 

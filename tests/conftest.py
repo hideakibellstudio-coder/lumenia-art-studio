@@ -7,6 +7,8 @@ from pathlib import Path
 
 _profile = tempfile.TemporaryDirectory(prefix="lumenia-test-profile-")
 _previous = os.environ.get("LUMENIA_CONFIG_PATH")
+_previous_plugins = os.environ.get("LUMENIA_PLUGINS_CONFIG_PATH")
+os.environ["LUMENIA_PLUGINS_CONFIG_PATH"] = str(Path(_profile.name) / "plugins_config.json")
 os.environ["LUMENIA_CONFIG_PATH"] = str(Path(_profile.name) / "config.json")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.setdefault("OMP_NUM_THREADS", "2")
@@ -32,3 +34,7 @@ def pytest_unconfigure(config):
     else:
         os.environ["LUMENIA_CONFIG_PATH"] = _previous
     _profile.cleanup()
+    if _previous_plugins is None:
+        os.environ.pop("LUMENIA_PLUGINS_CONFIG_PATH", None)
+    else:
+        os.environ["LUMENIA_PLUGINS_CONFIG_PATH"] = _previous_plugins

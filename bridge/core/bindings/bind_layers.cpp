@@ -21,6 +21,7 @@ void bind_layers(py::module_& /*m*/, FacadeClass& facade) {
         .def("reorder_layer",           &boundary::PaintEngineFacade::reorderLayer)
         .def("reorder_layers",          &boundary::PaintEngineFacade::reorderLayers)
         .def("set_layer_parents",       &boundary::PaintEngineFacade::setLayerParents)
+        .def("set_layer_document_uid",  &boundary::PaintEngineFacade::setLayerDocumentUid)
         .def("set_layer_name",          &boundary::PaintEngineFacade::setLayerName)
         .def("get_layer_name",          &boundary::PaintEngineFacade::getLayerName)
         .def("begin_layer_transaction", &boundary::PaintEngineFacade::beginLayerTransaction)
@@ -50,6 +51,7 @@ void bind_layers(py::module_& /*m*/, FacadeClass& facade) {
             py::dict d;
             if (const auto* l = self.getLayerStack().getDrawingLayer(index)) {
                 d["name"] = l->getName();
+                d["document_uid"] = l->getDocumentUid();
                 d["opacity"] = l->getOpacity();
                 d["visible"] = l->isVisible();
                 d["locked"] = l->isLocked();

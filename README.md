@@ -10,24 +10,24 @@
   <img src="https://img.shields.io/badge/Versão-v0.2.0%20Alpha-9333ea?style=for-the-badge" alt="Versão Alpha">
   <img src="https://img.shields.io/badge/C%2B%2B-C%2B%2B20%20SIMD-blue?style=for-the-badge" alt="C++20 SIMD">
   <img src="https://img.shields.io/badge/GUI-PySide6%206.11-success?style=for-the-badge" alt="PySide6">
-  <img src="https://img.shields.io/badge/Portátil-100%25%20Standalone-orange?style=for-the-badge" alt="Portátil">
+  <img src="https://img.shields.io/badge/Portátil-Pipeline%20de%20verificação-orange?style=for-the-badge" alt="Portátil">
 </div>
 
 ---
 
 ## 📖 Visão Geral
 
-O **Lumenia** é um software desktop para ilustração, arte conceitual, lineart e pintura digital focado em **resposta imediata de caneta, leveza extrema e inicialização ultrarrápida (< 1 segundo)**.
+O **Lumenia** é um software desktop para ilustração, arte conceitual, lineart e pintura digital, construído para priorizar resposta de caneta e um motor nativo eficiente. Metas de latência, inicialização e compatibilidade de hardware exigem homologação em cada ambiente de release.
 
 O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_native`) e interface modular baseada em **PySide6 (Qt6)** sob a arquitetura ARCcC. Consulte [BUILD.md](BUILD.md) para compilar o artefato x64 compatível e executar a validação.
 
 ---
 
-## ⚡ Recursos e Capacidades Atuais (100% Funcionais)
+## ⚡ Recursos e Capacidades Implementadas
 
 ### 🖋️ 1. Motor de Pincéis ALADYN (Catmull-Rom Spline)
-*   **Inker Spline Contínuo:** Interpolação matemática Catmull-Rom nativa em C++ que elimina tremores e instabilidades de mão sem introduzir nenhum atraso perceptível de caneta (*zero input lag*).
-*   **Dinâmica de Pressão Real:** Resposta com curvas de pressão de alta fidelidade para mesas digitalizadoras **Wacom, Huion, XP-Pen e Gaomon**.
+*   **Inker Spline Contínuo:** Interpolação matemática Catmull-Rom nativa em C++ para estabilização de traços.
+*   **Dinâmica de Pressão:** Curvas de pressão configuráveis processadas pelo motor; a compatibilidade com mesas digitalizadoras requer homologação de hardware.
 *   **Mídias Naturais:** Modos de Pincel de Tinta (Inker), Lápis de Esboço, Marcador com transparência, Aquarela com difusão e Óleo Impasto com relevo 3D processado em tempo real.
 *   **Borracha Inteligente:** Apagamento suave e preservação perfeita de canais alfa.
 
@@ -50,7 +50,7 @@ O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_n
 *   **Camada 0 (Cor de Papel):** Fundo base infinito customizável (branco, off-white, tom médio ou transparente).
 
 ### 🎨 5. Gerenciamento de Cores & Precisão Cromática
-*   **Espaços de Cor:** Suporte a **sRGB**, **Display P3** (ampla gama) e **Soft-Proofing CMYK** para simulação de impressão.
+*   **Perfis de Cor:** Catálogo nativo de transformações para sRGB, Display P3 e simulações CMYK. Perfis ICC arbitrários e fluxo RGBA16/float permanecem no roadmap.
 *   **Simulador de Daltonismo:** Prova em tempo real para Protanopia, Deuteranopia e Tritanopia.
 *   **Conta-Gotas com HUD Loupe 4x:** Lupa circular dinâmica com leitura matricial de pixels e captura precisa.
 *   **Temas Visuais:** *Lumenia Purple* oficial, *Obsidian Dark*, *OLED High Contrast* e temas customizáveis.
@@ -86,7 +86,9 @@ Lumenia/
 ├── plugins/                 # Extensões e Módulos Desacoplados
 │   ├── system/              # Plugins vitais do sistema (workspace_core)
 │   ├── ui/                  # Plugins de interface (brush, color, layers, navigator)
-│   └── plugins_config.json  # Configuração persistida de plugins
+│
+├── data/                    # Dados graváveis ao executar o pacote portátil
+│   └── plugins_config.json  # Preferências de plugins, com backup
 │
 ├── docs/                    # Documentação Técnica Completa
 │   ├── ARCHITECTURE.md      # Arquitetura detalhada do sistema
@@ -94,7 +96,7 @@ Lumenia/
 │   ├── CANVAS_E_TRANSFORMACOES.md # Algoritmos de desenho e transformações
 │   └── GUIA_COMPILACAO_E_PORTABILIDADE.md # Compilação e PyInstaller
 │
-└── aladyn_engine_native.pyd # Binário C++17 compilado (Windows x64)
+└── aladyn_engine_native.pyd # Binário C++20 compilado (Windows x64)
 ```
 
 ---
@@ -103,7 +105,7 @@ Lumenia/
 
 ### Opção A: Executar em Modo de Desenvolvimento (Python)
 
-**Pré-requisitos:** Python 3.10+ (Recomendado Python 3.12 ou 3.14).
+**Pré-requisitos:** Python 3.11+ (recomendado Python 3.14).
 
 1. Instale as dependências:
    ```bash
@@ -120,8 +122,9 @@ Gere o bundle com Nuitka a partir do motor nativo compilado:
 ```bash
 python scripts/build_portable.py
 ```
-O resultado validado fica em `build/portable/Lumenia.dist/Lumenia.exe`, junto
-de um manifesto SHA-256 dos arquivos distribuídos. Consulte [BUILD.md](BUILD.md)
+O processo produz `build/portable/Lumenia.dist/Lumenia.exe` e um manifesto
+SHA-256 dos arquivos distribuídos. Antes de publicar, execute a validação do
+aplicativo e do instalador no ambiente de destino. Consulte [BUILD.md](BUILD.md)
 para gerar o instalador Inno Setup e para os requisitos de assinatura de release.
 
 ---

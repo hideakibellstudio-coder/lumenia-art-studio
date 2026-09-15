@@ -1,6 +1,7 @@
 import json
 import zipfile
 
+import ui.core.plugins.manager as plugin_manager_module
 from ui.core.plugins.manager import PluginManager
 
 
@@ -129,3 +130,45 @@ def test_plugin_install_quarantines_metadata_that_diverges_from_manifest(tmp_pat
     assert manager.load_plugin_from_source(str(package)) is None
     assert not (tmp_path / "plugins" / "sample").exists()
     assert any((tmp_path / "plugins" / ".plugin-quarantine").iterdir())
+
+
+def test_plugin_configuration_uses_atomic_backup_and_recovery(tmp_path):
+    manager = PluginManager(str(tmp_path / "plugins"))
+    manager.enabled_plugins_config = {"SamplePlugin": True}
+    assert manager.save_config()
+    manager.enabled_plugins_config = {"SamplePlugin": False}
+    assert manager.save_config()
+    assert (tmp_path / "plugins" / "plugins_config.json.bak").exists()
+    (tmp_path / "plugins" / "plugins_config.json").write_text("broken", encoding="utf-8")
+    recovered = PluginManager(str(tmp_path / "plugins"))
+    assert recovered.enabled_plugins_config == {"SamplePlugin": True}
+
+
+def test_packaged_plugin_catalog_is_discovered_without_source_scanning(tmp_path, monkeypatch):
+    monkeypatch.delenv("LUMENIA_PLUGINS_CONFIG_PATH", raising=False)
+    data_dir = tmp_path / "portable-data"
+    monkeypatch.setattr(plugin_manager_module, "is_packaged", lambda: True)
+    monkeypatch.setattr(plugin_manager_module, "writable_data_dir", lambda: data_dir)
+
+    manager = PluginManager()
+    assert manager.enabled_plugins_config.get("BrushPlugin") is True
+    manager.enabled_plugins_config["BrushPlugin"] = False
+    assert manager.save_config()
+    manager.load_config()
+    assert manager.enabled_plugins_config["BrushPlugin"] is False
+    manager.rescan_plugins()
+
+    assert manager.plugins_dir == str(data_dir / "plugins")
+    assert manager.config_path == str(data_dir / "plugins_config.json")
+    assert {
+        "BrushPlugin",
+        "ColorPlugin",
+        "GeometryPlugin",
+        "LayersPlugin",
+        "NavigatorPlugin",
+        "RainbowDynamics",
+        "TelemetryPlugin",
+        "WorkspaceCore",
+    } <= manager.discovered_plugins.keys()
+    assert "BrushPlugin" in manager._builtin_plugin_classes
+    assert manager.uninstall_plugin("BrushPlugin") is False

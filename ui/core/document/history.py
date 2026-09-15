@@ -31,6 +31,11 @@ class DocumentHistory:
     def _model_projection_signature(self):
         manager = self.document.layer_manager
         manager.validate_integrity()
+        return tuple((layer.uid, bool(layer.is_group), bool(layer.is_filter), layer.parent_uid or 0)
+                     for layer in manager.layers)
+
+    def _bootstrap_projection_signature(self):
+        manager = self.document.layer_manager
         indices = {layer.uid: index for index, layer in enumerate(manager.layers)}
         return tuple((bool(layer.is_group), bool(layer.is_filter), indices.get(layer.parent_uid, -1))
                      for layer in manager.layers)
@@ -38,19 +43,38 @@ class DocumentHistory:
     def _native_projection_signature(self, backend):
         if not hasattr(backend, "get_layer_info"):
             return None
+        infos = [backend.get_layer_info(index) for index in range(backend.get_drawing_layer_count())]
+        if any(not isinstance(info, dict) for info in infos):
+            return None
+        uids = [info.get("document_uid") for info in infos]
+        if all(uid in (None, 0) for uid in uids):
+            return tuple((bool(info.get("is_group", False)), bool(info.get("is_filter", False)),
+                          int(info.get("parent_index", -1))) for info in infos)
         result = []
-        for index in range(backend.get_drawing_layer_count()):
-            info = backend.get_layer_info(index)
-            if not isinstance(info, dict):
+        for info in infos:
+            parent_index = int(info.get("parent_index", -1))
+            parent_uid = 0 if parent_index < 0 else uids[parent_index]
+            if type(info.get("document_uid")) is not int or type(parent_uid) is not int:
                 return None
-            result.append((bool(info.get("is_group", False)), bool(info.get("is_filter", False)),
-                           int(info.get("parent_index", -1))))
+            result.append((info["document_uid"], bool(info.get("is_group", False)),
+                           bool(info.get("is_filter", False)), parent_uid))
         return tuple(result)
 
     def assert_projection(self, backend):
         native = self._native_projection_signature(backend)
         if native is not None and native != self._model_projection_signature():
+            if native == self._bootstrap_projection_signature():
+                return
             raise RuntimeError("projeção de camadas divergente entre Document e motor")
+
+    def bind_projection_identities(self, backend):
+        """Bind immutable document UIDs to the aligned native layer stack."""
+        manager = self.document.layer_manager
+        if backend.get_drawing_layer_count() != len(manager.layers):
+            raise RuntimeError("não é possível vincular identidades em pilhas divergentes")
+        for index, layer in enumerate(manager.layers):
+            if not backend.set_layer_document_uid(index, layer.uid):
+                raise RuntimeError("não foi possível vincular a identidade da camada nativa")
 
     @contextmanager
     def transaction(self, backend):
@@ -88,6 +112,7 @@ class DocumentHistory:
             parents = [indices.get(layer.parent_uid, -1) for layer in layers]
             if not backend.set_layer_parents(parents):
                 raise RuntimeError("Não foi possível confirmar a hierarquia.")
+            self.bind_projection_identities(backend)
             self.assert_projection(backend)
             backend.select_layer(manager.active_index)
             step = backend.commit_layer_transaction()

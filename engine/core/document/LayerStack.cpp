@@ -15,6 +15,7 @@ static std::unique_ptr<Layer> cloneLayer(const Layer& source, int w, int h) {
         result = std::make_unique<Layer>(source.getName(), source.getType(), w, h, source.isBackground());
     }
     result->setOpacity(source.getOpacity());
+    result->setDocumentUid(source.getDocumentUid());
     result->setVisible(source.isVisible());
     result->setLocked(source.isLocked());
     result->setAlphaLocked(source.isAlphaLocked());

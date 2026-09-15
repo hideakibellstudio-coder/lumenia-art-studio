@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <cstdint>
 
 namespace aladyn::engine::document {
 
@@ -43,6 +44,11 @@ public:
     [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
     void setName(const std::string& name) { m_name = name; }
 
+    // Identity assigned by the document boundary. It is independent from the
+    // display name and vector position, both of which can change legitimately.
+    [[nodiscard]] uint64_t getDocumentUid() const noexcept { return m_documentUid; }
+    void setDocumentUid(uint64_t uid) noexcept { m_documentUid = uid; }
+
     [[nodiscard]] double getOpacity() const noexcept { return m_opacity; }
     void setOpacity(double opacity) noexcept { m_opacity = opacity; }
 
@@ -61,6 +67,7 @@ public:
 
 protected:
     std::string m_name;
+    uint64_t m_documentUid{0};
     LayerNodeType m_type;
     double m_opacity{1.0};
     bool m_visible{true};

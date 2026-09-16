@@ -111,7 +111,7 @@ class AladynBackend(
             "linear_gamma": bool(linear_gamma),
             "deep_color": bool(deep_color),
         }
-        if self._facade and hasattr(self._facade, "set_render_options"):
+        if self._facade:
             self._facade.set_render_options(**self._render_options)
         elif self._facade:
             # Compatibilidade com extensões nativas antigas durante uma
@@ -156,9 +156,9 @@ class AladynBackend(
         self._view_state = (float(pan_x), float(pan_y), max(1e-6, float(zoom)), float(rotation_rad))
         # The native facade owns the raster; touching the display accessor here
         # makes the contract explicit and refreshes the generation-backed view.
-        if self._facade and hasattr(self._facade, "refresh_display"):
+        if self._facade:
             self._facade.refresh_display()
-        elif self._facade and hasattr(self._facade, "get_display_pixel_buffer"):
+        elif self._facade:
             self._facade.get_display_pixel_buffer()
 
     # ── Viewport / Câmera ────────────────────────────────────────────────
@@ -194,18 +194,18 @@ class AladynBackend(
         return None
 
     def get_layer_pixel_buffer(self, layer_index: int) -> Optional[bytes]:
-        if self._facade and hasattr(self._facade, "get_layer_pixel_buffer"):
+        if self._facade:
             raw = self._facade.get_layer_pixel_buffer(int(layer_index))
             return bytes(raw) if raw else None
         return None
 
     def get_document_generation(self) -> int:
-        if self._facade and hasattr(self._facade, "get_document_generation"):
+        if self._facade:
             return int(self._facade.get_document_generation())
         return 0
 
     def get_layer_name(self, index: int) -> str:
-        if self._facade and hasattr(self._facade, "get_layer_name"):
+        if self._facade:
             return str(self._facade.get_layer_name(int(index)))
         return ""
 
@@ -243,7 +243,7 @@ class AladynBackend(
         """Retorna QImage pré-filtrada por Box Filter correspondente ao nível LOD ideal para o zoom."""
         if not self._facade:
             return None, 1.0
-        if hasattr(self._facade, "get_best_lod_level") and hasattr(self._facade, "get_display_pixel_buffer_lod"):
+        if hasattr(self._facade, "get_best_lod_level"):
             level = self._facade.get_best_lod_level(zoom)
             if level > 0:
                 res = self._facade.get_display_pixel_buffer_lod(level)
@@ -253,12 +253,12 @@ class AladynBackend(
         return self.get_qimage(), 1.0
 
     def get_dirty_tile_indices(self) -> list[tuple[int, int]]:
-        if self._facade and hasattr(self._facade, "get_dirty_tile_indices"):
+        if self._facade:
             return self._facade.get_dirty_tile_indices()
         return []
 
     def clear_dirty_tiles(self) -> None:
-        if self._facade and hasattr(self._facade, "clear_dirty_tiles"):
+        if self._facade:
             self._facade.clear_dirty_tiles()
 
     def dispatch(self, command: Any) -> None:

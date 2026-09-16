@@ -32,6 +32,12 @@ class PluginContext:
         """Retorna o EngineDispatcher unificado para envio assíncrono de eventos de traço."""
         return self._dispatcher
 
+    @property
+    def backend(self):
+        """Retorna o backend de motor ativo via EngineRegistry."""
+        from ui.core.engine.registry import EngineRegistry
+        return EngineRegistry.instance().get_backend()
+
     # ── Referências de UI e serviços de workspace ──────────────────────────
 
     @property

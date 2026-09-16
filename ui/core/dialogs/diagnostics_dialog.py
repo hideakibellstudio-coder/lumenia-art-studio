@@ -65,9 +65,12 @@ class DiagnosticsDialog(BaseFramelessDialog):
         self.tree.clear()
         backend = EngineRegistry.instance().get_backend()
         
-        # 1. Motor Nativo C++
+        # 1. Motor Gráfico
         has_native = getattr(backend, "available", False)
-        status_native = "Ativo (C++ PyBind11 SIMD / Catmull-Rom)" if has_native else "Emulação Python"
+        capabilities = backend.get_capabilities() if backend else {}
+        is_native = bool(capabilities.get("native_engine", has_native))
+        backend_name = getattr(backend, "name", "nativo").capitalize()
+        status_native = f"Ativo ({backend_name})" if is_native else "Emulação Python"
         self._add_item("Motor Gráfico", status_native)
 
         # 2. Resolução do Canvas

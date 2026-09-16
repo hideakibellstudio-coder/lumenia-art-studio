@@ -28,6 +28,11 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         from ui.core.document.manager import DocumentManager
         self.dm = DocumentManager.instance()
 
+        # ── Engine Backends (Orquestrador) ────────────────────────────────
+        from ui.engine_backends import create_backends
+        from ui.core.engine.registry import EngineRegistry
+        EngineRegistry.instance().setup(create_backends())
+
         # ── Plugin Manager — injeta self ANTES de discover_plugins() ──────
         # O WorkspaceCore system plugin usa context.main_window para chamar
         # self.setCentralWidget(workspace_container) durante seu activate().

@@ -109,7 +109,7 @@ class AladynStrokeMixin:
         anti_aliasing: bool = True,
         sample_all_layers: bool = True,
     ) -> bool:
-        if self._facade and self._native and hasattr(self._facade, "flood_fill"):
+        if self._facade and self._native:
             if hasattr(fill_color, "red"):
                 c = self._native.ColorRGBA(fill_color.red(), fill_color.green(), fill_color.blue(), fill_color.alpha())
             elif isinstance(fill_color, (tuple, list)) and len(fill_color) >= 3:
@@ -146,29 +146,29 @@ class AladynStrokeMixin:
         )
 
     def set_telemetry_enabled(self, enabled: bool) -> None:
-        if self._facade and hasattr(self._facade, "set_telemetry_enabled"):
+        if self._facade:
             self._facade.set_telemetry_enabled(enabled)
 
     def is_telemetry_enabled(self) -> bool:
-        if self._facade and hasattr(self._facade, "is_telemetry_enabled"):
+        if self._facade:
             return self._facade.is_telemetry_enabled()
         return False
 
     def set_detailed_logging_enabled(self, detailed: bool) -> None:
-        if self._facade and hasattr(self._facade, "set_detailed_logging_enabled"):
+        if self._facade:
             self._facade.set_detailed_logging_enabled(detailed)
 
     def is_detailed_logging_enabled(self) -> bool:
-        if self._facade and hasattr(self._facade, "is_detailed_logging_enabled"):
+        if self._facade:
             return self._facade.is_detailed_logging_enabled()
         return False
 
     def get_telemetry_snapshot(self) -> TelemetrySnapshot:
-        if self._facade and hasattr(self._facade, "get_telemetry_snapshot"):
+        if self._facade:
             native_snap = self._facade.get_telemetry_snapshot()
             return TelemetrySnapshot.from_native(native_snap)
         return TelemetrySnapshot()
 
     def reset_telemetry(self) -> None:
-        if self._facade and hasattr(self._facade, "reset_telemetry"):
+        if self._facade:
             self._facade.reset_telemetry()

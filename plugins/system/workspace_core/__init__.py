@@ -91,12 +91,6 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
         mw.setCentralWidget(self._container)
         logger.info("[WorkspaceCore] WorkspaceContainer injetado como widget central.")
 
-        # Pluga os backends de motor disponíveis (casca pura se nenhum existir).
-        # Cada backend implementa ui.core.engine.backend.EngineBackend.
-        from ui.engine_backends import create_backends
-        from ui.core.engine.registry import EngineRegistry
-        EngineRegistry.instance().setup(create_backends())
-
         # Inicializa o motor (ou segue em modo casca, canvas vazio, se não houver backend)
         self._container.initialize_engine()
         logger.info("[WorkspaceCore] Motor inicializado (ou casca pura).")

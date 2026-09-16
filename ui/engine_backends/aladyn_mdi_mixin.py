@@ -51,19 +51,19 @@ class AladynMdiMixin:
         if uid not in self._doc_facades:
             try:
                 facade = self._native.PaintEngineFacade(w, h)
-                if hasattr(self, "_undo_memory_limit_mb") and hasattr(facade, "set_undo_memory_limit_mb"):
+                if hasattr(self, "_undo_memory_limit_mb"):
                     facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
-                if hasattr(self, "_undo_max_steps") and hasattr(facade, "set_undo_max_steps"):
+                if hasattr(self, "_undo_max_steps"):
                     facade.set_undo_max_steps(self._undo_max_steps)
                 if hasattr(self, "_render_options"):
-                    if hasattr(facade, "set_render_options"):
+                    if facade:
                         facade.set_render_options(**self._render_options)
                     else:
                         for key, value in self._render_options.items():
                             setter = getattr(facade, f"set_{key}", None)
                             if setter:
                                 setter(value)
-                if hasattr(facade, "get_canvas_texture"):
+                if facade:
                     c_tex = facade.get_canvas_texture()
                     if c_tex:
                         c_tex.canvas_grain_enabled = False
@@ -105,7 +105,7 @@ class AladynMdiMixin:
         self._facade = self._doc_facades[uid]
         self._width = self._facade.get_width()
         self._height = self._facade.get_height()
-        if hasattr(self, "_render_options") and hasattr(self._facade, "set_render_options"):
+        if hasattr(self, "_render_options"):
             self._facade.set_render_options(**self._render_options)
         if hasattr(self, "_last_brush_preset") and self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)

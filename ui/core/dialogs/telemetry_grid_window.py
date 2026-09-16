@@ -75,6 +75,16 @@ class TelemetryGridWindow(BaseFramelessDialog):
             "raw_pressure": 0.0, "dynamic_pressure": 0.0, "velocity": 0.0, "stabilizer_lag": 0.0,
         }
 
+    @property
+    def current_state_key(self) -> str:
+        """Identificador textual canônico do estado do pipeline."""
+        return self._current_state_key
+
+    @property
+    def current_state_str(self) -> str:
+        """Descrição formatada do estado do pipeline."""
+        return self._current_state_str
+
     def _ensure_telemetry_enabled(self) -> None:
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "set_telemetry_enabled"):

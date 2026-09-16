@@ -65,23 +65,39 @@ class TestLowLevelRenderOptions(unittest.TestCase):
         self.assertNotEqual(regular, deep)
 
     def test_low_latency_bypasses_stabilizer_but_keeps_telemetry(self):
-        lag_by_mode = {}
+        # Quando estabilização <= 0.5%, o atalho de baixa latência desvia o estabilizador (lag < 0.01)
+        lag_by_mode_sem_suavizacao = {}
         for low_latency in (False, True):
             facade = aen.PaintEngineFacade(100, 100)
             facade.set_background_visibility(False)
             facade.add_layer("stroke")
             facade.select_layer(0)
-            facade.get_stabilizer().set_stabilization_percentage(80.0)
+            facade.get_stabilizer().set_stabilization_percentage(0.0)
             facade.set_telemetry_enabled(True)
             facade.set_low_latency(low_latency)
             facade.begin_stroke_raw(10.0, 50.0, 1.0, 1.0)
             facade.update_stroke_raw(20.0, 50.0, 1.0, 1.01)
             facade.update_stroke_raw(80.0, 50.0, 1.0, 1.02)
-            lag_by_mode[low_latency] = facade.get_telemetry_snapshot().stabilizer_lag_px
+            lag_by_mode_sem_suavizacao[low_latency] = facade.get_telemetry_snapshot().stabilizer_lag_px
             facade.end_stroke_raw()
 
-        self.assertGreater(lag_by_mode[False], 1.0)
-        self.assertLess(lag_by_mode[True], 0.01)
+        self.assertLess(lag_by_mode_sem_suavizacao[True], 0.01)
+
+        # Quando estabilização > 0.5%, a baixa latência respeita a suavização pedida pelo artista
+        facade_com_suavizacao = aen.PaintEngineFacade(100, 100)
+        facade_com_suavizacao.set_background_visibility(False)
+        facade_com_suavizacao.add_layer("stroke")
+        facade_com_suavizacao.select_layer(0)
+        facade_com_suavizacao.get_stabilizer().set_stabilization_percentage(80.0)
+        facade_com_suavizacao.set_telemetry_enabled(True)
+        facade_com_suavizacao.set_low_latency(True)
+        facade_com_suavizacao.begin_stroke_raw(10.0, 50.0, 1.0, 1.0)
+        facade_com_suavizacao.update_stroke_raw(20.0, 50.0, 1.0, 1.01)
+        facade_com_suavizacao.update_stroke_raw(80.0, 50.0, 1.0, 1.02)
+        lag_com_suavizacao = facade_com_suavizacao.get_telemetry_snapshot().stabilizer_lag_px
+        facade_com_suavizacao.end_stroke_raw()
+
+        self.assertGreater(lag_com_suavizacao, 1.0)
 
 
 if __name__ == "__main__":

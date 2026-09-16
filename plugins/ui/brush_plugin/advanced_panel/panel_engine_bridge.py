@@ -70,7 +70,10 @@ class PanelEngineBridgeMixin:
     def _on_jit_pos(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
-        if b: b.set_brush_param("tip", "jitter_position", float(v))
+        # O slider é 0–100 %; BrushTip.jitterPosition é 0.0–1.0 (multiplicado
+        # por 2×raio no motor). Escrever o valor cru dispersava os dabs por
+        # cem vezes o raio.
+        if b: b.set_brush_param("tip", "jitter_position", float(v / 100.0))
 
     def _on_b_grain_contrast(self, v):
         from ui.core.engine.registry import EngineRegistry
@@ -160,13 +163,14 @@ class PanelEngineBridgeMixin:
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
         if b:
-            b.set_brush_param("dynamics", "jitter_size", float(v / 100.0))
+            b.set_brush_param("tip", "jitter_size", float(v / 100.0))
 
     def _on_jit_angle(self, v):
         from ui.core.engine.registry import EngineRegistry
         b = EngineRegistry.instance().get_backend()
         if b:
-            b.set_brush_param("dynamics", "jitter_angle", float(v))
+            # Slider 0–100 %; BrushTip.jitterAngle é 0.0–1.0 (× 180° no motor).
+            b.set_brush_param("tip", "jitter_angle", float(v / 100.0))
 
     def _on_tab(self, idx):
         self.stack.setCurrentIndex(idx)

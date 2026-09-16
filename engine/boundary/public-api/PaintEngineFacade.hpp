@@ -22,13 +22,15 @@
 #include "../../core/math/SymmetryEngine.hpp"
 #include "../../core/math/GuideSnapEngine.hpp"
 #include "../../core/telemetry/EngineTelemetry.hpp"
-#include "internal/StrokeOrchestrator.hpp"
-#include "internal/MemoryOrchestrator.hpp"
 #include "../../core/canvas/MipmapPyramid.hpp"
 #include <vector>
 #include <memory>
 
 namespace aladyn::engine::boundary {
+
+namespace internal {
+    struct TouchdownSample;
+}
 
 struct TelemetryData {
     double pressure{0.0};
@@ -39,6 +41,7 @@ struct TelemetryData {
 class PaintEngineFacade {
 public:
     PaintEngineFacade(int width, int height);
+    ~PaintEngineFacade();
 
     void resizeCanvas(int width, int height);
     void clearCanvas();
@@ -166,7 +169,6 @@ public:
         m_symmetryConfig = { static_cast<math::SymmetryMode>(mode), cx, cy, angleRad, segments, stopAtCenter };
     }
     void clearSymmetry() { m_symmetryConfig.mode = math::SymmetryMode::None; }
-    [[nodiscard]] const math::SymmetryConfig& getSymmetryConfig() const noexcept { return m_symmetryConfig; }
 
     void setGuideConfig(int type, double p0x, double p0y, double p1x, double p1y,
                         double p2x, double p2y, double p3x, double p3y,
@@ -174,12 +176,10 @@ public:
                         double vpCx, double vpCy, double cx, double cy,
                         double fov, double pitch, double yaw, double snapRadius);
     void clearGuide() { m_guideConfig.type = math::GuideType::None; }
-    [[nodiscard]] const math::GuideConfig& getGuideConfig() const noexcept { return m_guideConfig; }
     [[nodiscard]] std::vector<double> snapPoint(double rawX, double rawY, double lastX = 0.0, double lastY = 0.0, bool hasLast = false) const;
 
     // ── Métodos de Colagem de Buffers e Formas Primitivas ───────────────────
     [[nodiscard]] std::vector<int> getTransformSourceBufferSize() const;
-    [[nodiscard]] raster::TransformEngine& getTransformEngine() noexcept { return m_transformEngine; }
 
     bool pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId = 0, double opacity = 1.0);
 
@@ -206,7 +206,8 @@ public:
         if (m_colorProfileId != profileId) { m_colorProfileId = profileId; touchDocument(); }
     }
     [[nodiscard]] int getColorProfile() const noexcept { return m_colorProfileId; }
-    void applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept;
+    [[nodiscard]] std::string transformRgbaForProfile(const std::string& buffer, int profileId) const;
+    [[nodiscard]] std::vector<uint8_t> getLayerThumbnailBuffer(int layerIdx, int thumbW, int thumbH) const;
 
     [[nodiscard]] brush::BrushProfile& getBrushProfile() noexcept { return m_brushProfile; }
     [[nodiscard]] const brush::BrushProfile& getBrushProfile() const noexcept { return m_brushProfile; }
@@ -240,10 +241,10 @@ public:
     [[nodiscard]] telemetry::RealTimeStrokeMetrics getTelemetrySnapshot() const;
     void resetTelemetry() noexcept { m_telemetryManager.reset(); }
     // ─── FASE 4: ESCALABILIDADE DE MEMÓRIA & SCRATCH DISK ─────────────────────
-    size_t compressInactiveLayers() { return internal::MemoryOrchestrator::compressInactiveLayers(m_layerStack); }
-    size_t decompressAllLayers() { return internal::MemoryOrchestrator::decompressAllLayers(m_layerStack); }
-    [[nodiscard]] double getTotalTileMemoryMB() const { return internal::MemoryOrchestrator::getTotalTileMemoryMB(m_layerStack); }
-    [[nodiscard]] size_t getCowSharedTilesCount() const { return internal::MemoryOrchestrator::getCowSharedTilesCount(m_layerStack); }
+    size_t compressInactiveLayers();
+    size_t decompressAllLayers();
+    [[nodiscard]] double getTotalTileMemoryMB() const;
+    [[nodiscard]] size_t getCowSharedTilesCount() const;
     void setScratchDiskEnabled(bool enabled) { m_undoManager.setScratchDiskEnabled(enabled); }
     [[nodiscard]] bool isScratchDiskEnabled() const noexcept { return m_undoManager.isScratchDiskEnabled(); }
     [[nodiscard]] size_t getUndoPagedStepsCount() const noexcept { return m_undoManager.getPagedStepsCount(); }
@@ -293,6 +294,7 @@ private:
     void touchDocument() noexcept { ++m_documentGeneration; m_mipmapPyramid.markDirty(); }
     void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
     void initEngine(brush::EngineType type);
+    void applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept;
 
     int m_width;
     int m_height;
@@ -330,8 +332,8 @@ private:
     double               m_distanceCarryover{0.0};
     uint32_t             m_segmentsRenderedInStroke{0};
 
-    bool                             m_pendingFirstSegment{false};
-    internal::TouchdownSample        m_firstSample{};
+    bool                                         m_pendingFirstSegment{false};
+    std::unique_ptr<internal::TouchdownSample>   m_firstSample;
 
     telemetry::EngineTelemetryManager m_telemetryManager;
 };

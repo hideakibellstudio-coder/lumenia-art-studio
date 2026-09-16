@@ -55,11 +55,11 @@ class BrushTextureIO:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend:
-            if is_shape and hasattr(backend, "set_shape_texture"):
+            if is_shape:
                 backend.set_shape_texture(px_bytes, width, height)
-            elif not is_shape and hasattr(backend, "set_heightmap_texture"):
+            elif not is_shape:
                 backend.set_heightmap_texture(px_bytes, width, height)
-                if hasattr(backend, "set_brush_grain_enabled"):
+                if True:
                     backend.set_brush_grain_enabled(True)
 
         brush_dock = getattr(workspace, "_brush_dock", None)

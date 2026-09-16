@@ -67,7 +67,7 @@ class MainWindowImageActionsMixin:
                 except Exception as exc:
                     self.status_bar.showMessage(f"Falha ao redimensionar: {exc}", 5000)
                     return
-            elif backend and hasattr(backend, "resize"):
+            elif backend:
                 backend.resize(nw, nh)
             if self.workspace:
                 self.workspace.canvas_w = nw
@@ -79,8 +79,8 @@ class MainWindowImageActionsMixin:
 
     def crop_to_selection(self) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "has_selection") and backend.has_selection():
-            if hasattr(backend, "get_selection_bounds"):
+        if backend and backend.has_selection():
+            if True:
                 b = backend.get_selection_bounds()
                 if len(b) >= 4 and b[2] > 0 and b[3] > 0:
                     doc = self.dm.active_document()

@@ -4,6 +4,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .local_layer import LocalLayer
+from .layer_backend_sync import (
+    sync_backend_add,
+    sync_backend_remove,
+    sync_backend_duplicate,
+    sync_backend_reorder,
+    sync_backend_merge_down,
+    sync_backend_property,
+    sync_backend_select,
+    sync_backend_parents,
+    validate_layer_tree,
+    perform_reorder_and_reparent,
+)
 
 __all__ = ["LocalLayer", "LocalLayerManager"]
 
@@ -17,13 +29,23 @@ class LocalLayerManager(QtCore.QObject):
     thumbnail_updated = QtCore.Signal(int)
     content_changed = QtCore.Signal(str)
 
-    def __init__(self):
+    def __init__(self, backend=None):
         super().__init__()
         self.layers = []
         self._active_uid = None
         self._next_uid = 1
         self._history_guard = False
         self.backend_projection_restoring = False
+        self._backend = backend
+        self.document = None
+
+    @property
+    def backend(self):
+        return self._backend
+
+    @backend.setter
+    def backend(self, value):
+        self._backend = value
 
     def _snapshot(self):
         return {
@@ -60,6 +82,7 @@ class LocalLayerManager(QtCore.QObject):
             raise ValueError("camada ativa inexistente")
         if uid != self._active_uid:
             self._active_uid = uid
+            sync_backend_select(self, self.active_index)
             self.active_layer_changed.emit(uid)
 
     def get_layer_by_uid(self, uid):
@@ -83,32 +106,18 @@ class LocalLayerManager(QtCore.QObject):
         return self.get_layer_by_uid(target) if type(target) is int else None
 
     def validate_integrity(self) -> None:
-        """Validate stable IDs and the parent graph before native projection."""
-        uids = [layer.uid for layer in self.layers]
-        if any(type(uid) is not int or uid <= 0 for uid in uids) or len(uids) != len(set(uids)):
-            raise ValueError("UIDs de camadas devem ser inteiros positivos e únicos")
-        nodes = {layer.uid: layer for layer in self.layers}
-        for layer in self.layers:
-            seen = {layer.uid}
-            parent = layer.parent_uid
-            while parent is not None:
-                if type(parent) is not int or parent in seen or parent not in nodes or not nodes[parent].is_group:
-                    raise ValueError("hierarquia de camadas inválida")
-                seen.add(parent)
-                parent = nodes[parent].parent_uid
-        if self._active_uid is not None and self._active_uid not in nodes:
-            raise ValueError("camada ativa inexistente")
+        """Valida UIDs estáveis e o grafo hierárquico antes da projeção nativa."""
+        validate_layer_tree(self.layers, self._active_uid)
 
     def add_layer(self, name=None) -> int:
         uid = self._next_uid
         self._next_uid += 1
-        
+
         if not name:
             name = f"Camada {uid}"
-            
+
         layer = LocalLayer(uid, name)
-        
-        # Insere acima da camada ativa, se houver
+
         active = self.get_active_layer()
         if active:
             idx = self.layers.index(active) + 1
@@ -118,9 +127,11 @@ class LocalLayerManager(QtCore.QObject):
                 layer.parent_uid = active.parent_uid
             self.layers.insert(idx, layer)
         else:
+            idx = len(self.layers)
             self.layers.append(layer)
-            
+
         self.set_active_layer(uid)
+        sync_backend_add(self, layer, idx, is_group=False)
         self.layer_added.emit(layer)
         self.order_changed.emit()
         self.content_changed.emit("add_layer")
@@ -129,12 +140,12 @@ class LocalLayerManager(QtCore.QObject):
     def add_group(self, name="Novo Grupo") -> int:
         uid = self._next_uid
         self._next_uid += 1
-        
+
         if not name:
             name = f"Grupo {uid}"
-            
+
         group = LocalLayer(uid, name, is_group=True)
-        
+
         active = self.get_active_layer()
         if active:
             idx = self.layers.index(active) + 1
@@ -144,9 +155,11 @@ class LocalLayerManager(QtCore.QObject):
                 group.parent_uid = active.parent_uid
             self.layers.insert(idx, group)
         else:
+            idx = len(self.layers)
             self.layers.append(group)
-            
+
         self.set_active_layer(uid)
+        sync_backend_add(self, group, idx, is_group=True)
         self.layer_added.emit(group)
         self.order_changed.emit()
         self.content_changed.emit("add_group")
@@ -163,11 +176,10 @@ class LocalLayerManager(QtCore.QObject):
         layer = self._resolve_uid(target)
         if not layer:
             return False
-            
-        # Não deleta se for a única restante
+
         if len(self.layers) <= 1:
             return False
-            
+
         removed = {layer.uid}
         while True:
             descendants = {item.uid for item in self.layers if item.parent_uid in removed}
@@ -179,6 +191,7 @@ class LocalLayerManager(QtCore.QObject):
         self.order_about_to_change.emit()
         idx = self.layers.index(layer)
         self.layers = [item for item in self.layers if item.uid not in removed]
+        sync_backend_remove(self, idx)
         if self._active_uid in removed:
             self.set_active_layer(self.layers[min(idx, len(self.layers) - 1)].uid)
 
@@ -191,10 +204,10 @@ class LocalLayerManager(QtCore.QObject):
         layer = self._resolve_uid(target)
         if not layer or layer.is_group:
             return 0
-            
+
         new_uid = self._next_uid
         self._next_uid += 1
-        
+
         new_layer = LocalLayer(new_uid, f"{layer.name} Copiar", is_filter=layer.is_filter)
         new_layer.parent_uid = layer.parent_uid
         new_layer.visible = layer.visible
@@ -203,11 +216,12 @@ class LocalLayerManager(QtCore.QObject):
         new_layer.blend_mode = layer.blend_mode
         new_layer.alpha_locked = layer.alpha_locked
         new_layer.clipping_mask = layer.clipping_mask
-        
+
         idx = self.layers.index(layer) + 1
         self.layers.insert(idx, new_layer)
-        
+
         self.set_active_layer(new_uid)
+        sync_backend_duplicate(self, idx - 1)
         self.layer_added.emit(new_layer)
         self.content_changed.emit("duplicate_layer")
         return new_uid
@@ -216,13 +230,14 @@ class LocalLayerManager(QtCore.QObject):
         layer = self.get_layer_by_uid(uid)
         if not layer:
             return False
-            
+
         idx = self.layers.index(layer)
         if idx >= len(self.layers) - 1:
             return False
-            
+
         self.order_about_to_change.emit()
         self.layers[idx], self.layers[idx + 1] = self.layers[idx + 1], self.layers[idx]
+        sync_backend_reorder(self, idx, idx + 1)
         self.order_changed.emit()
         self.set_active_layer(uid)
         self.content_changed.emit("move_layer")
@@ -232,13 +247,14 @@ class LocalLayerManager(QtCore.QObject):
         layer = self.get_layer_by_uid(uid)
         if not layer:
             return False
-            
+
         idx = self.layers.index(layer)
         if idx <= 0:
             return False
-            
+
         self.order_about_to_change.emit()
         self.layers[idx], self.layers[idx - 1] = self.layers[idx - 1], self.layers[idx]
+        sync_backend_reorder(self, idx, idx - 1)
         self.order_changed.emit()
         self._validate_clipping_masks()
         self.set_active_layer(uid)
@@ -249,17 +265,18 @@ class LocalLayerManager(QtCore.QObject):
         layer = self._resolve_uid(target)
         if not layer or layer.is_group:
             return False
-            
+
         idx = self.layers.index(layer)
         if idx <= 0:
             return False
-            
+
         target_layer = self.layers[idx - 1]
         if target_layer.is_group:
             return False
-            
+
         self.order_about_to_change.emit()
         self.layers.remove(layer)
+        sync_backend_merge_down(self, idx)
         self.set_active_layer(target_layer.uid)
         self.order_changed.emit()
         self._validate_clipping_masks()
@@ -276,8 +293,9 @@ class LocalLayerManager(QtCore.QObject):
         layer = self.get_layer_at_index(idx)
         if layer:
             if self.layers.index(layer) == 0 and enabled:
-                enabled = False  # A camada na base nunca pode ser máscara de recorte
+                enabled = False
             layer.clipping_mask = bool(enabled)
+            sync_backend_property(self, idx, "clipping_mask", layer.clipping_mask)
             self.layer_property_changed.emit(layer.uid)
             self.content_changed.emit("clipping_mask")
 
@@ -285,13 +303,23 @@ class LocalLayerManager(QtCore.QObject):
         layer = self.get_layer_at_index(idx)
         if layer:
             layer.alpha_locked = bool(enabled)
+            sync_backend_property(self, idx, "alpha_locked", layer.alpha_locked)
             self.layer_property_changed.emit(layer.uid)
             self.content_changed.emit("alpha_lock")
+
+    def set_layer_lock(self, idx: int, locked: bool) -> None:
+        layer = self.get_layer_at_index(idx)
+        if layer:
+            layer.locked = bool(locked)
+            sync_backend_property(self, idx, "locked", layer.locked)
+            self.layer_property_changed.emit(layer.uid)
+            self.content_changed.emit("lock")
 
     def set_layer_visibility(self, idx: int, visible: bool) -> None:
         layer = self.get_layer_at_index(idx)
         if layer:
             layer.visible = bool(visible)
+            sync_backend_property(self, idx, "visibility", layer.visible)
             self.layer_property_changed.emit(layer.uid)
             self.content_changed.emit("visibility")
 
@@ -303,6 +331,8 @@ class LocalLayerManager(QtCore.QObject):
         if layer.name == name:
             return True
         layer.name = name
+        idx = self.layers.index(layer)
+        sync_backend_property(self, idx, "name", name)
         self.layer_property_changed.emit(layer.uid)
         self.content_changed.emit("rename_layer")
         return True
@@ -316,6 +346,7 @@ class LocalLayerManager(QtCore.QObject):
         if not layer:
             return False
         layer.opacity = max(0.0, min(1.0, float(opacity)))
+        sync_backend_property(self, idx, "opacity", layer.opacity)
         self.layer_property_changed.emit(layer.uid)
         self.content_changed.emit("opacity")
         return True
@@ -325,6 +356,7 @@ class LocalLayerManager(QtCore.QObject):
         if not layer:
             return False
         layer.blend_mode = blend_mode
+        sync_backend_property(self, idx, "blend_mode", blend_mode)
         self.layer_property_changed.emit(layer.uid)
         self.content_changed.emit("blend_mode")
         return True
@@ -333,25 +365,24 @@ class LocalLayerManager(QtCore.QObject):
         group = self.get_layer_at_index(idx)
         if not group or not group.is_group:
             return False
-        if group and group.is_group:
-            descendants = {group.uid}
-            while True:
-                children = {layer.uid for layer in self.layers if layer.parent_uid in descendants}
-                if children <= descendants:
-                    break
-                descendants |= children
-            self.order_about_to_change.emit()
-            group.is_group = False
-            if group.blend_mode in ("Atravessar", "PassThrough", "Pass-Through", 7):
-                group.blend_mode = "Normal"
-            self.layers = [layer for layer in self.layers if layer.uid == group.uid or layer.uid not in descendants]
-            if self._active_uid in descendants:
-                self.set_active_layer(group.uid)
-            self.order_changed.emit()
-            self.content_changed.emit("flatten_group")
-            self.validate_integrity()
-            return True
-        return False
+        descendants = {group.uid}
+        while True:
+            children = {layer.uid for layer in self.layers if layer.parent_uid in descendants}
+            if children <= descendants:
+                break
+            descendants |= children
+        self.order_about_to_change.emit()
+        group.is_group = False
+        if group.blend_mode in ("Atravessar", "PassThrough", "Pass-Through", 7):
+            group.blend_mode = "Normal"
+        self.layers = [layer for layer in self.layers if layer.uid == group.uid or layer.uid not in descendants]
+        if self._active_uid in descendants:
+            self.set_active_layer(group.uid)
+        sync_backend_parents(self)
+        self.order_changed.emit()
+        self.content_changed.emit("flatten_group")
+        self.validate_integrity()
+        return True
 
     def flatten_image(self) -> bool:
         if len(self.layers) > 1:
@@ -360,6 +391,7 @@ class LocalLayerManager(QtCore.QObject):
             base.parent_uid = None
             self.layers = [base]
             self.set_active_layer(base.uid)
+            sync_backend_parents(self)
             self.order_changed.emit()
             self.content_changed.emit("flatten_image")
             self.validate_integrity()
@@ -367,31 +399,10 @@ class LocalLayerManager(QtCore.QObject):
         return False
 
     def reorder_and_reparent(self, new_order_uids, parent_map):
-        order = [str(uid) for uid in new_order_uids]
-        nodes = {str(layer.uid): layer for layer in self.layers}
-        if len(order) != len(nodes) or set(order) != set(nodes):
-            raise ValueError("A ordem deve conter cada camada exatamente uma vez.")
-        parents = {uid: str(parent_map[uid]) if parent_map.get(uid) is not None else None for uid in order}
-        for uid in order:
-            seen = {uid}
-            parent = parents[uid]
-            while parent is not None:
-                if parent in seen or parent not in nodes or not nodes[parent].is_group:
-                    raise ValueError("Hierarquia de camadas inválida.")
-                seen.add(parent)
-                parent = parents[parent]
         self.order_about_to_change.emit()
-        
-        id_to_layer = {str(l.uid): l for l in self.layers}
-        new_list = []
-        for uid_str in order:
-            if uid_str in id_to_layer:
-                l = id_to_layer[uid_str]
-                p_uid = parent_map.get(uid_str)
-                l.parent_uid = int(p_uid) if p_uid is not None else None
-                new_list.append(l)
-                
-        self.layers = new_list
+        self.layers = perform_reorder_and_reparent(self.layers, new_order_uids, parent_map)
+        sync_backend_parents(self)
+        sync_backend_select(self, self.active_index)
         self.order_changed.emit()
         self.validate_integrity()
 

@@ -43,7 +43,7 @@ class WorkspaceActionsMixin:
 
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "undo"):
+        if backend:
             from ui.core.document.manager import DocumentManager
             document = DocumentManager.instance().active_document()
             ok = document.history.undo(backend) if document else backend.undo()
@@ -68,7 +68,7 @@ class WorkspaceActionsMixin:
 
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "redo"):
+        if backend:
             from ui.core.document.manager import DocumentManager
             document = DocumentManager.instance().active_document()
             ok = document.history.redo(backend) if document else backend.redo()
@@ -119,7 +119,7 @@ class WorkspaceActionsMixin:
         """Desmarca/limpa a seleção ativa do documento."""
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "clear_selection"):
+        if backend:
             backend.clear_selection()
         if hasattr(self.canvas_widget, "_selection_timer"):
             self.canvas_widget._selection_timer.stop()

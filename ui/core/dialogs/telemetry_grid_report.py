@@ -142,7 +142,7 @@ class TelemetryReportGenerator:
         state_history = getattr(window, "_state_history", [])
         state_counts = getattr(window, "_state_counts", {})
         stay_on_top = getattr(window, "_stay_on_top", False)
-        current_state_key = getattr(window, "_current_state_key", "PIPELINE_EQUILIBRADO")
+        current_state_key = getattr(window, "current_state_key", "PIPELINE_EQUILIBRADO")
         bottleneck_text = window.lbl_bottleneck.text() if hasattr(window, "lbl_bottleneck") else ""
 
         lines = [

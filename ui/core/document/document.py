@@ -30,6 +30,7 @@ class Document(QtCore.QObject):
 
         # Gerenciador de camadas local do documento
         self.layer_manager = LocalLayerManager()
+        self.layer_manager.document = self
         from .history import DocumentHistory
         self.history = DocumentHistory(self)
 

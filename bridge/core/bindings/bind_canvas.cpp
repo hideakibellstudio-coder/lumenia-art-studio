@@ -36,26 +36,12 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
             }
             return result;
         })
-        .def("transform_rgba_for_profile", [](boundary::PaintEngineFacade&, py::bytes buffer, int profileId) {
-            if (!color::ColorProfileManager::isProfileValid(profileId)) {
-                throw py::value_error("Unknown color profile");
+        .def("transform_rgba_for_profile", [](boundary::PaintEngineFacade& self, py::bytes buffer, int profileId) {
+            try {
+                return py::bytes(self.transformRgbaForProfile(buffer, profileId));
+            } catch (const std::invalid_argument& e) {
+                throw py::value_error(e.what());
             }
-            std::string source = buffer;
-            if (source.size() % 4 != 0) {
-                throw py::value_error("RGBA input length must be a multiple of four");
-            }
-            const size_t pixels = source.size() / 4;
-            if (pixels > static_cast<size_t>(std::numeric_limits<int>::max())) {
-                throw py::value_error("RGBA input is too large");
-            }
-            std::string transformed = source;
-            color::ColorProfileManager::transformBuffer(
-                reinterpret_cast<const uint8_t*>(source.data()),
-                reinterpret_cast<uint8_t*>(transformed.data()),
-                static_cast<int>(pixels),
-                static_cast<color::ColorProfileType>(profileId)
-            );
-            return py::bytes(transformed);
         }, py::arg("buffer"), py::arg("profile_id"))
         .def("set_low_latency", &boundary::PaintEngineFacade::setLowLatency)
         .def("get_low_latency", &boundary::PaintEngineFacade::getLowLatency)
@@ -80,45 +66,9 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
             if (data.empty()) return py::none();
             return py::bytes(reinterpret_cast<const char*>(data.data()), data.size());
         })
-        // Miniatura de camada: lê os tiles do TileGrid e escalona para thumbW×thumbH (RGBA)
         .def("get_layer_thumbnail_buffer", [](boundary::PaintEngineFacade& self, int layerIdx, int thumbW, int thumbH) -> py::object {
-            const auto* layer = self.getLayerStack().getDrawingLayer(layerIdx);
-            if (!layer) return py::none();
-
-            const auto& grid = layer->getTileGrid();
-            int srcW = grid.getWidth();
-            int srcH = grid.getHeight();
-            if (srcW <= 0 || srcH <= 0 || thumbW <= 0 || thumbH <= 0) return py::none();
-
-            // Buffer de saída RGBA (thumbW × thumbH)
-            std::vector<uint8_t> out(checkedRasterBytes(thumbW, thumbH, 4), 0);
-
-            float scaleX = static_cast<float>(srcW) / thumbW;
-            float scaleY = static_cast<float>(srcH) / thumbH;
-
-            for (int dy = 0; dy < thumbH; ++dy) {
-                int sy = static_cast<int>(dy * scaleY);
-                if (sy >= srcH) sy = srcH - 1;
-                for (int dx = 0; dx < thumbW; ++dx) {
-                    int sx = static_cast<int>(dx * scaleX);
-                    if (sx >= srcW) sx = srcW - 1;
-
-                    // Localiza o tile correspondente ao pixel (sx, sy)
-                    int tileX = sx / canvas::Tile::TILE_SIZE;
-                    int tileY = sy / canvas::Tile::TILE_SIZE;
-                    int localX = sx % canvas::Tile::TILE_SIZE;
-                    int localY = sy % canvas::Tile::TILE_SIZE;
-
-                    const auto* tile = const_cast<canvas::TileGrid&>(grid).getTile(tileX, tileY);
-                    raster::ColorRGBA px = tile ? tile->getBuffer().getPixel(localX, localY) : raster::ColorRGBA{0,0,0,0};
-
-                    size_t outIdx = static_cast<size_t>((dy * thumbW + dx) * 4);
-                    out[outIdx + 0] = px.r;
-                    out[outIdx + 1] = px.g;
-                    out[outIdx + 2] = px.b;
-                    out[outIdx + 3] = px.a;
-                }
-            }
+            auto out = self.getLayerThumbnailBuffer(layerIdx, thumbW, thumbH);
+            if (out.empty()) return py::none();
             return py::bytes(reinterpret_cast<const char*>(out.data()), out.size());
         })
         .def("paste_rgba_buffer_on_active_layer", [](boundary::PaintEngineFacade& self, int x, int y, int w, int h, py::bytes buffer, int blendMode, double opacity) {

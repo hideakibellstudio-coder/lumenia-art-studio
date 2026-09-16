@@ -288,7 +288,7 @@ class AdvancedPanel(QtWidgets.QDialog, PanelEngineBridgeMixin):
             if hasattr(self, "sl_jit_angle"):
                 self.sl_jit_angle.setValue(int(prof.get("jitter_angle", 0.0) * 100))
             if hasattr(self, "sl_jit_pos"):
-                self.sl_jit_pos.setValue(int(prof.get("jitter_position", 0.0)))
+                self.sl_jit_pos.setValue(int(prof.get("jitter_position", 0.0) * 100))
             if hasattr(self, "chk_b_grain"):
                 self.chk_b_grain.setChecked(bool(prof.get("brush_grain_enabled", False)))
             if hasattr(self, "sl_b_scale"):

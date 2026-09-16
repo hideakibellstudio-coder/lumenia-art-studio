@@ -28,12 +28,12 @@ class AladynColorMixin:
             self._color_profile_id = 0
 
     def pick_color_merged(self, x: int, y: int, sample_radius: int = 0) -> tuple:
-        if self._facade and hasattr(self._facade, "pick_color_merged"):
+        if self._facade:
             return self._facade.pick_color_merged(int(x), int(y), int(sample_radius))
         return (0, 0, 0, 0)
 
     def pick_color_layer(self, layer_index: int, x: int, y: int, sample_radius: int = 0) -> tuple:
-        if self._facade and hasattr(self._facade, "pick_color_layer"):
+        if self._facade:
             return self._facade.pick_color_layer(int(layer_index), int(x), int(y), int(sample_radius))
         return (0, 0, 0, 0)
 
@@ -45,7 +45,7 @@ class AladynColorMixin:
             raise ValueError("perfil de cor desconhecido")
         old_profile_id = self.get_color_profile()
         self._color_profile_id = profile_id
-        if self._facade and hasattr(self._facade, "set_color_profile"):
+        if self._facade:
             # Para perfis nativos (0-13), sincroniza com a facade C++
             if profile_id <= 13:
                 if old_profile_id != int(profile_id):
@@ -74,7 +74,7 @@ class AladynColorMixin:
         profiles = catalog.get_all_profiles()
         if profiles:
             return profiles
-        if self._facade and hasattr(self._facade, "get_available_color_profiles"):
+        if self._facade:
             return [dict(p) for p in self._facade.get_available_color_profiles()]
         return []
 
@@ -139,7 +139,7 @@ class AladynColorMixin:
             return self._transform_custom_profile(raw, profile_id)
 
         # 3. Perfis nativos (0-13): rota acelerada C++
-        if self._facade and hasattr(self._facade, "transform_rgba_for_profile"):
+        if self._facade:
             return bytes(self._facade.transform_rgba_for_profile(raw, int(profile_id)))
 
         if int(profile_id) != 0:
@@ -180,7 +180,7 @@ class AladynColorMixin:
 
         if not proof_prof:
             # Sem perfil de prova disponível, usa o transformador nativo padrão
-            if self._facade and hasattr(self._facade, "transform_rgba_for_profile"):
+            if self._facade:
                 return bytes(self._facade.transform_rgba_for_profile(raw, int(profile_id)))
             return raw
 

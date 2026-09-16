@@ -123,6 +123,10 @@ class EngineBackend(ABC):
         """Retorna um snapshot RGBA independente para persistência."""
         return None
 
+    def get_qimage_lod(self, zoom: float) -> Tuple[Optional[Any], float]: return (None, 1.0)
+    def get_dirty_tile_indices(self) -> List[Tuple[int, int]]: return []
+    def clear_dirty_tiles(self) -> None: ...
+
     def get_document_generation(self) -> int:
         return 0
 
@@ -215,6 +219,11 @@ class EngineBackend(ABC):
     def add_layer(self, name: str = "", insert_index: int = -1) -> int: return 0
     def add_group(self, name: str = "Novo Grupo", insert_index: int = -1) -> int: return 0
     def add_filter_layer(self, name: str, filter_type_id: int, insert_index: int = -1) -> int: return 0
+    def set_filter_params(self, index: int, params: List[float]) -> None: ...
+    def get_filter_params(self, index: int) -> List[float]: return []
+    def get_filter_type(self, index: int) -> int: return 0
+    def is_filter_layer(self, index: int) -> bool: return False
+    def set_layer_document_uid(self, index: int, uid: int) -> bool: return False
     def remove_layer(self, index: int) -> bool: return False
     def duplicate_layer(self, index: int) -> int: return -1
     def select_layer(self, index: int) -> bool: return False
@@ -256,9 +265,11 @@ class EngineBackend(ABC):
     def get_canvas_resource(self) -> Optional[Dict[str, Any]]: return None
     def set_canvas_resource(self, state: Dict[str, Any]) -> bool: return False
     def delete_selection_on_active_layer(self) -> bool: return False
-    def fill_selection_on_active_layer(self, color: Any) -> bool: return False
+    def fill_selection_on_active_layer(self, fill_color: Any) -> bool: return False
     def get_selection_bounds(self) -> List[int]: return [0, 0, 0, 0]
     def get_selection_contour_loops(self) -> List[List[int]]: return []
+    def get_selection_contour_segments(self) -> List[int]: return []
+    def get_selection_mask_qimage(self) -> Optional[Any]: return None
 
     def begin_transform(self) -> bool: return False
     def is_transform_active(self) -> bool: return False
@@ -268,11 +279,16 @@ class EngineBackend(ABC):
     def cancel_transform(self) -> bool: return False
     def flip_active_layer(self, horizontal: bool) -> bool: return False
     def rotate_active_layer_90(self, clockwise: bool) -> bool: return False
+    def get_transform_source_qimage(self) -> Optional[Any]: return None
 
     # ── Preenchimento (Flood Fill) & Colagem de Buffers ───────────────────
 
     def flood_fill(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, gap_closing_px: int = 0, anti_aliasing: bool = True, sample_all_layers: bool = True) -> bool: return False
-    def paste_rgba_buffer_on_active_layer(self, x: int, y: int, width: int, height: int, pixels: bytes, blend_mode_id: int = 0, opacity: float = 1.0) -> bool: return False
+    def fill_area(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, gap_closing_px: int = 0, anti_aliasing: bool = True, sample_all_layers: bool = True, *, aa: Optional[bool] = None, sample_all: Optional[bool] = None) -> bool:
+        if aa is not None: anti_aliasing = aa
+        if sample_all is not None: sample_all_layers = sample_all
+        return self.flood_fill(seed_x, seed_y, fill_color, tolerance, contiguous, expand_px, gap_closing_px, anti_aliasing, sample_all_layers)
+    def paste_rgba_buffer_on_active_layer(self, x: int, y: int, width: int, height: int, buffer: bytes, blend_mode_id: int = 0, opacity: float = 1.0) -> bool: return False
 
     # ── Simetria & Guias/Réguas ───────────────────────────────────────────
 
@@ -286,6 +302,9 @@ class EngineBackend(ABC):
 
     def set_telemetry_enabled(self, enabled: bool) -> None: ...
     def is_telemetry_enabled(self) -> bool: return False
+    def set_detailed_logging_enabled(self, detailed: bool) -> None: ...
+    def is_detailed_logging_enabled(self) -> bool: return False
+    def reset_telemetry(self) -> None: ...
     def get_telemetry_snapshot(self) -> TelemetrySnapshot: return TelemetrySnapshot()
 
     # ── Perfis de Cor & Amostragem ────────────────────────────────────────
@@ -294,10 +313,16 @@ class EngineBackend(ABC):
     def get_color_profile(self) -> int: return 0
     def get_color_profile_name(self, profile_id: int) -> str: return "Padrão (sRGB)"
     def get_available_color_profiles(self) -> List[Dict[str, Any]]: return []
+    def register_custom_color_profile(self, source: Any, name: Optional[str] = None, profile_id: Optional[int] = None) -> int: return 0
+    def set_soft_proofing(self, config: Any) -> None: ...
+    def get_soft_proofing(self) -> Any: return None
+    def get_active_profile_icc_bytes(self) -> Optional[bytes]: return None
     def transform_rgba_for_profile(self, pixels: bytes, profile_id: int) -> bytes:
         """Transforma uma prévia RGBA pelo mesmo pipeline que alimenta a exibição."""
         return bytes(pixels)
+    # TODO: Fase 3 — Amostragem acelerada nativa no motor
     def pick_color_merged(self, x: int, y: int, sample_radius: int = 0) -> Tuple[int, int, int, int]: return (0, 0, 0, 0)
+    # TODO: Fase 3 — Amostragem de camada acelerada nativa no motor
     def pick_color_layer(self, layer_index: int, x: int, y: int, sample_radius: int = 0) -> Tuple[int, int, int, int]: return (0, 0, 0, 0)
 
     # ── Pipeline de Renderização ─────────────────────────────────────────
@@ -337,7 +362,9 @@ class EngineBackend(ABC):
     def can_undo(self) -> bool: return False
     def can_redo(self) -> bool: return False
     def set_undo_memory_limit_mb(self, mb: int) -> None: ...
+    def get_undo_memory_limit_mb(self) -> int: return 512
     def set_undo_max_steps(self, steps: int) -> None: ...
+    def get_undo_max_steps(self) -> int: return 50
 
     # ── Viewport / Câmera ────────────────────────────────────────────────
 

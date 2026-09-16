@@ -39,7 +39,7 @@ class TelemetryPanel(QtWidgets.QWidget):
 
         if self._is_capturing:
             backend = EngineRegistry.instance().get_backend()
-            if backend and hasattr(backend, "set_telemetry_enabled"):
+            if backend:
                 backend.set_telemetry_enabled(True)
             self._timer.start()
 
@@ -237,14 +237,14 @@ class TelemetryPanel(QtWidgets.QWidget):
         backend = EngineRegistry.instance().get_backend()
 
         if self._is_capturing:
-            if backend and hasattr(backend, "set_telemetry_enabled"):
+            if backend:
                 backend.set_telemetry_enabled(True)
             self.retranslate_ui()
             tm = ThemeManager.instance()
             self.lbl_status.setStyleSheet(f"color: {tm.get_color('success')}; font-weight: bold; font-size: 10px;")
             self._timer.start()
         else:
-            if backend and hasattr(backend, "set_telemetry_enabled"):
+            if backend:
                 backend.set_telemetry_enabled(False)
             self._timer.stop()
             self.retranslate_ui()
@@ -277,7 +277,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         blit_us = blit_ms * 1000.0
 
         # Snapshot completo da estrutura do C++
-        if hasattr(backend, "get_telemetry_snapshot"):
+        if backend:
             snap = backend.get_telemetry_snapshot()
             if snap:
                 press_pct = int(snap.raw_pressure * 100)
@@ -341,8 +341,8 @@ class TelemetryPanel(QtWidgets.QWidget):
 
         from ui.core.engine.telemetry_tracker import TelemetryTracker
         tracker = TelemetryTracker.instance()
-        state_key = tracker._current_state_key
-        state_str = tracker._current_state_str
+        state_key = tracker.current_state_key
+        state_str = tracker.current_state_str
 
         if state_key == "GARGALO_BLIT":
             self.lbl_bottleneck.setText("⚠️ GARGALO: BLIT QT LENTO (>16ms)")

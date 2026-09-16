@@ -67,6 +67,16 @@ class TelemetryTracker:
             cause="Inicialização do Sistema de Telemetria",
         )
 
+    @property
+    def current_state_key(self) -> str:
+        """Identificador canônico do estado de performance do pipeline."""
+        return self._current_state_key
+
+    @property
+    def current_state_str(self) -> str:
+        """String legível com status e badge do estado de performance."""
+        return self._current_state_str
+
     def reset(self) -> None:
         """Limpa contadores, picos e reinicia o histórico de transições."""
         self._peaks = {

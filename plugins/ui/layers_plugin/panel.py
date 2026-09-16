@@ -149,6 +149,7 @@ class LayersPanel(QWidget):
         self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
         self.layer_manager.order_changed.connect(self._on_order_changed)
         self.layer_manager.layer_added.connect(self._on_layer_added)
+        self.layer_manager.thumbnail_updated.connect(self._on_thumbnail_updated)
         
         self._sync_header_controls()
         self._ensure_top_selection()
@@ -175,6 +176,7 @@ class LayersPanel(QWidget):
                 self.layer_manager.layer_property_changed.disconnect(self._sync_header_controls)
                 self.layer_manager.order_changed.disconnect(self._on_order_changed)
                 self.layer_manager.layer_added.disconnect(self._on_layer_added)
+                self.layer_manager.thumbnail_updated.disconnect(self._on_thumbnail_updated)
             except Exception as e:
                 logger.debug(f"LayersPanel: Disconnection failed: {e}")
 
@@ -198,6 +200,7 @@ class LayersPanel(QWidget):
             self.layer_manager.layer_property_changed.connect(self._sync_header_controls)
             self.layer_manager.order_changed.connect(self._on_order_changed)
             self.layer_manager.layer_added.connect(self._on_layer_added)
+            self.layer_manager.thumbnail_updated.connect(self._on_thumbnail_updated)
             
             self._sync_header_controls()
             self._ensure_top_selection()
@@ -429,6 +432,11 @@ class LayersPanel(QWidget):
             self._select_uid_in_view(active.uid)
         else:
             self._ensure_top_selection()
+
+    def _on_thumbnail_updated(self, uid: int):
+        """Fetch real pixel thumbnail from C++ backend and refresh the layer item."""
+        refresh_layer_thumbnail(self, uid)
+
     def _apply_theme(self, _=""):
         from .panel_theme import apply_layers_panel_theme
         apply_layers_panel_theme(self)

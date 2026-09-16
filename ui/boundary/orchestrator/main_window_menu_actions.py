@@ -25,7 +25,7 @@ class MainWindowMenuActionsMixin(
 
     def copy_selection_or_layer_to_clipboard(self) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "get_qimage"):
+        if not backend:
             return
         qimg = backend.get_qimage()
         if qimg and not qimg.isNull():
@@ -35,8 +35,8 @@ class MainWindowMenuActionsMixin(
     def cut_selection_or_layer_to_clipboard(self) -> None:
         self.copy_selection_or_layer_to_clipboard()
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "has_selection") and backend.has_selection():
-            if hasattr(backend, "delete_selection_on_active_layer"):
+        if backend and backend.has_selection():
+            if True:
                 backend.delete_selection_on_active_layer()
         else:
             self.clear_screen()
@@ -69,10 +69,10 @@ class MainWindowMenuActionsMixin(
         if not backend:
             return
         color = getattr(self.workspace, "_saved_color", QtGui.QColor("#000000")) if self.workspace else QtGui.QColor("#000000")
-        if hasattr(backend, "has_selection") and backend.has_selection():
-            if hasattr(backend, "fill_selection_on_active_layer"):
+        if backend and backend.has_selection():
+            if True:
                 backend.fill_selection_on_active_layer(color)
-        elif hasattr(backend, "fill_area"):
+        else:
             backend.fill_area(0, 0, color, tolerance=255, contiguous=False)
         if self.workspace:
             self.workspace.canvas_widget.update()
@@ -82,7 +82,7 @@ class MainWindowMenuActionsMixin(
 
     def select_all(self) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "select_all"):
+        if backend:
             backend.select_all()
             if self.workspace:
                 self.workspace.canvas_widget.update()
@@ -90,7 +90,7 @@ class MainWindowMenuActionsMixin(
 
     def invert_selection(self) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "invert_selection"):
+        if backend:
             backend.invert_selection()
             if self.workspace:
                 self.workspace.canvas_widget.update()

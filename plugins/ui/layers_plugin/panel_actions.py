@@ -23,7 +23,7 @@ def add_filter_layer(panel, filter_type=None):
     def on_preview_changed(name, type_id, params):
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "add_filter_layer"):
+        if not backend:
             return
 
         if panel._preview_filter_idx < 0:
@@ -123,8 +123,7 @@ def open_edit_filter_popup(panel, uid: int = None):
     popup = FilterEditPopup(c_idx, layer.name, type_id, params, panel)
 
     def on_params_changed(target_c_idx, new_params):
-        if hasattr(backend, "set_filter_params"):
-            backend.set_filter_params(target_c_idx, new_params)
+        backend.set_filter_params(target_c_idx, new_params)
         for top_w in QApplication.topLevelWidgets():
             if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
                 top_w.workspace.canvas_widget.update()
@@ -160,7 +159,7 @@ def open_rename_popup(panel, uid: int, rect: QRect):
             if c_idx >= 0:
                 from ui.core.engine.registry import EngineRegistry
                 backend = EngineRegistry.instance().get_backend()
-                if backend and hasattr(backend, "set_layer_name"):
+                if backend:
                     backend.set_layer_name(c_idx, new_name)
             panel.model.layoutChanged.emit()
 

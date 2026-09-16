@@ -136,7 +136,7 @@ class BrushDropdown(QtWidgets.QToolButton):
         if not backend:
             return
 
-        if hasattr(backend, "apply_brush_preset_dict"):
+        if backend:
             backend.apply_brush_preset_dict(data)
 
     def _apply_style(self, *args) -> None:

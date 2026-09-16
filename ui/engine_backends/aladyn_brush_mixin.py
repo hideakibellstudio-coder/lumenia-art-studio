@@ -16,81 +16,67 @@ class AladynBrushMixin:
     """Mixin responsável pelo perfil, presets e parâmetros de pincéis no AladynBackend."""
 
     def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False, *, reset_texture: bool = True) -> None:
-        if self._facade and hasattr(self._facade, "get_canvas_texture"):
+        if self._facade:
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_enabled = bool(enabled)
-            if reset_texture and hasattr(self._facade, "set_canvas_height_preset"):
+            if reset_texture:
                 self._facade.set_canvas_height_preset(int(preset_id))
-            if hasattr(color, "red") and hasattr(self._facade, "set_background_color"):
+            if hasattr(color, "red"):
                 self._facade.set_background_color(color.red(), color.green(), color.blue(), color.alpha() if visible else 0)
 
     def set_canvas_grain_enabled(self, enabled: bool) -> None:
-        if self._facade and hasattr(self._facade, "get_canvas_texture"):
+        if self._facade:
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_enabled = bool(enabled)
 
     def set_canvas_height_preset(self, preset_id: int) -> None:
-        if self._facade and hasattr(self._facade, "set_canvas_height_preset"):
+        if self._facade:
             self._facade.set_canvas_height_preset(int(preset_id))
 
     def set_canvas_grain_contrast(self, contrast: float) -> None:
-        if self._facade and hasattr(self._facade, "get_canvas_texture"):
+        if self._facade:
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_contrast = float(contrast)
                 c_tex.invalidate_lut()
 
     def set_canvas_grain_scale(self, scale: float) -> None:
-        if self._facade and hasattr(self._facade, "get_canvas_texture"):
+        if self._facade:
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_scale = float(scale)
 
     def set_canvas_grain_invert(self, invert: bool) -> None:
-        if self._facade and hasattr(self._facade, "get_canvas_texture"):
+        if self._facade:
             c_tex = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_invert = bool(invert)
                 c_tex.invalidate_lut()
 
     def set_brush_param(self, group: str, param: str, value: Any) -> None:
+        """Escreve um campo do BrushProfile resolvido pela tabela de parâmetros.
+
+        Lança KeyError quando o par (grupo, parâmetro) não é declarado em
+        `brush_param_table.TABELA`. A versão anterior descartava em silêncio —
+        era uma cadeia de `if hasattr(...)` sem `else` — e foi assim que dois
+        sliders de jitter passaram meses escrevendo num grupo 'dynamics' que
+        nunca existiu no módulo nativo, sem um único erro visível.
+
+        A resolução acontece ANTES da checagem do facade, de propósito: um par
+        inválido é erro de programação e deve falhar mesmo sem documento aberto.
+        """
+        from .brush_param_table import alvo_nativo, resolver
+
+        linha = resolver(group, param)
         if not self._facade:
             return
         prof = self._facade.get_brush_profile()
         if not prof:
             return
-        if group == "root" or not group:
-            if hasattr(prof, param):
-                setattr(prof, param, value)
-        elif group == "tip" and hasattr(prof, "tip"):
-            if hasattr(prof.tip, param):
-                setattr(prof.tip, param, value)
-        elif group == "dynamics" and hasattr(prof, "dynamics"):
-            if hasattr(prof.dynamics, param):
-                setattr(prof.dynamics, param, value)
-        elif group == "pencil" and hasattr(prof, "pencil_params"):
-            if hasattr(prof.pencil_params, param):
-                setattr(prof.pencil_params, param, value)
-        elif group == "inker" and hasattr(prof, "inker_params"):
-            if hasattr(prof.inker_params, param):
-                setattr(prof.inker_params, param, value)
-        elif group == "marker" and hasattr(prof, "marker_params"):
-            if hasattr(prof.marker_params, param):
-                setattr(prof.marker_params, param, value)
-        elif group == "blur" and hasattr(prof, "blur_params"):
-            if hasattr(prof.blur_params, param):
-                setattr(prof.blur_params, param, value)
-        elif group == "smudge" and hasattr(prof, "smudge_params"):
-            if hasattr(prof.smudge_params, param):
-                setattr(prof.smudge_params, param, value)
-        elif group == "watercolor" and hasattr(prof, "watercolor_params"):
-            if hasattr(prof.watercolor_params, param):
-                setattr(prof.watercolor_params, param, value)
-        elif group == "oil" and hasattr(prof, "oil_params"):
-            if hasattr(prof.oil_params, param):
-                setattr(prof.oil_params, param, value)
+        destino = alvo_nativo(prof, linha.grupo)
+        setattr(destino, linha.atributo, linha.para_motor(value, self._native))
 
     def get_brush_profile_dict(self) -> dict:
         from .aladyn_brush_profiles import get_brush_profile_dict
@@ -136,35 +122,35 @@ class AladynBrushMixin:
             return None
 
     def get_shape_preview_buffer(self) -> Optional[bytes]:
-        if self._facade and hasattr(self._facade, "get_shape_preview_buffer"):
+        if self._facade:
             raw = self._facade.get_shape_preview_buffer()
             return bytes(raw) if raw else None
         return None
 
     def get_shape_preview_dimensions(self) -> tuple[int, int]:
-        if self._facade and hasattr(self._facade, "get_shape_preview_dimensions"):
+        if self._facade:
             return self._facade.get_shape_preview_dimensions()
         return (0, 0)
 
     def get_brush_height_preview_buffer(self) -> Optional[bytes]:
-        if self._facade and hasattr(self._facade, "get_brush_height_preview_buffer"):
+        if self._facade:
             raw = self._facade.get_brush_height_preview_buffer()
             return bytes(raw) if raw else None
         return None
 
     def get_brush_height_preview_dimensions(self) -> tuple[int, int]:
-        if self._facade and hasattr(self._facade, "get_brush_height_preview_dimensions"):
+        if self._facade:
             return self._facade.get_brush_height_preview_dimensions()
         return (0, 0)
 
     def get_canvas_height_preview_buffer(self) -> Optional[bytes]:
-        if self._facade and hasattr(self._facade, "get_canvas_height_preview_buffer"):
+        if self._facade:
             raw = self._facade.get_canvas_height_preview_buffer()
             return bytes(raw) if raw else None
         return None
 
     def get_canvas_height_preview_dimensions(self) -> tuple[int, int]:
-        if self._facade and hasattr(self._facade, "get_canvas_height_preview_dimensions"):
+        if self._facade:
             return self._facade.get_canvas_height_preview_dimensions()
         return (0, 0)
 
@@ -230,11 +216,11 @@ class AladynBrushMixin:
             self._facade.get_brush_profile().brush_grain_invert = bool(invert)
 
     def set_brush_height_preset(self, preset_id: int) -> None:
-        if self._facade and hasattr(self._facade, "set_brush_height_preset"):
+        if self._facade:
             self._facade.set_brush_height_preset(int(preset_id))
 
     def set_shape_preset(self, preset_id: int) -> None:
-        if self._facade and hasattr(self._facade, "set_shape_preset"):
+        if self._facade:
             self._facade.set_shape_preset(int(preset_id))
 
     def set_brush_pressure(self, pressure: float) -> None:

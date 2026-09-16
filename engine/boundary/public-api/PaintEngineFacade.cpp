@@ -16,6 +16,7 @@
 #include "internal/BufferPasteOrchestrator.hpp"
 #include "internal/LayerStackOrchestrator.hpp"
 #include "internal/FloodFillOrchestrator.hpp"
+#include "internal/MemoryOrchestrator.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -36,9 +37,12 @@ PaintEngineFacade::PaintEngineFacade(int width, int height)
     _putenv("OMP_WAIT_POLICY=PASSIVE");
 #endif
 
+    m_firstSample = std::make_unique<internal::TouchdownSample>();
     initEngine(brush::EngineType::Brush);
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
 }
+
+PaintEngineFacade::~PaintEngineFacade() = default;
 
 void PaintEngineFacade::initEngine(brush::EngineType type) {
     m_brushProfile.engineType = type;
@@ -278,7 +282,12 @@ TelemetryData PaintEngineFacade::updateStroke(const stroke::PointerEvent& event)
     m_lastRawPressure = event.pressure;
     const double currentVelocity = m_velocityTracker.update(event.position, event.timestamp);
     const double normVel = m_velocityTracker.getNormalizedVelocity(1500.0);
-    const math::Point2D pos = m_lowLatency ? event.position : m_stabilizer.update(event.position, normVel);
+    // Mesmo critério do StrokeOrchestrator: o atalho de baixa latência só vale
+    // quando não há estabilização pedida. `m_lowLatency` sozinho desviava o
+    // estabilizador, e como low_latency=True é o padrão do backend o slider de
+    // suavização não tinha efeito nenhum neste caminho também.
+    const bool atalho = m_lowLatency && m_stabilizer.getStabilizationPercentage() <= 0.5;
+    const math::Point2D pos = atalho ? event.position : m_stabilizer.update(event.position, normVel);
 
     double strokeAngle = 0.0;
     const double dx = pos.x - m_lastDab.position.x;
@@ -355,7 +364,7 @@ void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, doub
 std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure, double timestamp,
                                                        double tiltX, double tiltY, double twist) {
     internal::RawStrokeContext ctx{
-        m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, m_firstSample,
+        m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, *m_firstSample,
         m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
         m_distanceCarryover, m_lastDab, m_velocityTracker, m_stabilizer,
         m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
@@ -367,7 +376,7 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
 
 std::vector<double> PaintEngineFacade::endStrokeRaw() {
     internal::RawStrokeContext ctx{
-        m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, m_firstSample,
+        m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, *m_firstSample,
         m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
         m_distanceCarryover, m_lastDab, m_velocityTracker, m_stabilizer,
         m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
@@ -647,6 +656,83 @@ std::vector<double> PaintEngineFacade::snapPoint(double rawX, double rawY, doubl
     const math::Point2D last{ lastX, lastY };
     const math::Point2D snapped = math::GuideSnapEngine::snapPoint(m_guideConfig, {rawX, rawY}, hasLast ? &last : nullptr);
     return { snapped.x, snapped.y };
+}
+
+size_t PaintEngineFacade::compressInactiveLayers() {
+    return internal::MemoryOrchestrator::compressInactiveLayers(m_layerStack);
+}
+
+size_t PaintEngineFacade::decompressAllLayers() {
+    return internal::MemoryOrchestrator::decompressAllLayers(m_layerStack);
+}
+
+double PaintEngineFacade::getTotalTileMemoryMB() const {
+    return internal::MemoryOrchestrator::getTotalTileMemoryMB(m_layerStack);
+}
+
+size_t PaintEngineFacade::getCowSharedTilesCount() const {
+    return internal::MemoryOrchestrator::getCowSharedTilesCount(m_layerStack);
+}
+
+std::string PaintEngineFacade::transformRgbaForProfile(const std::string& buffer, int profileId) const {
+    if (!color::ColorProfileManager::isProfileValid(profileId)) {
+        throw std::invalid_argument("Unknown color profile");
+    }
+    if (buffer.size() % 4 != 0) {
+        throw std::invalid_argument("RGBA input length must be a multiple of four");
+    }
+    const size_t pixels = buffer.size() / 4;
+    if (pixels > static_cast<size_t>(std::numeric_limits<int>::max())) {
+        throw std::invalid_argument("RGBA input is too large");
+    }
+    std::string transformed = buffer;
+    color::ColorProfileManager::transformBuffer(
+        reinterpret_cast<const uint8_t*>(buffer.data()),
+        reinterpret_cast<uint8_t*>(transformed.data()),
+        static_cast<int>(pixels),
+        static_cast<color::ColorProfileType>(profileId)
+    );
+    return transformed;
+}
+
+std::vector<uint8_t> PaintEngineFacade::getLayerThumbnailBuffer(int layerIdx, int thumbW, int thumbH) const {
+    const auto* layer = m_layerStack.getDrawingLayer(layerIdx);
+    if (!layer) return {};
+
+    const auto& grid = layer->getTileGrid();
+    int srcW = grid.getWidth();
+    int srcH = grid.getHeight();
+    if (srcW <= 0 || srcH <= 0 || thumbW <= 0 || thumbH <= 0) return {};
+
+    const size_t expectedBytes = static_cast<size_t>(thumbW) * static_cast<size_t>(thumbH) * 4;
+    std::vector<uint8_t> out(expectedBytes, 0);
+
+    float scaleX = static_cast<float>(srcW) / thumbW;
+    float scaleY = static_cast<float>(srcH) / thumbH;
+
+    for (int dy = 0; dy < thumbH; ++dy) {
+        int sy = static_cast<int>(dy * scaleY);
+        if (sy >= srcH) sy = srcH - 1;
+        for (int dx = 0; dx < thumbW; ++dx) {
+            int sx = static_cast<int>(dx * scaleX);
+            if (sx >= srcW) sx = srcW - 1;
+
+            int tileX = sx / canvas::Tile::TILE_SIZE;
+            int tileY = sy / canvas::Tile::TILE_SIZE;
+            int localX = sx % canvas::Tile::TILE_SIZE;
+            int localY = sy % canvas::Tile::TILE_SIZE;
+
+            const auto* tile = const_cast<canvas::TileGrid&>(grid).getTile(tileX, tileY);
+            raster::ColorRGBA px = tile ? tile->getBuffer().getPixel(localX, localY) : raster::ColorRGBA{0, 0, 0, 0};
+
+            size_t outIdx = static_cast<size_t>((dy * thumbW + dx) * 4);
+            out[outIdx + 0] = px.r;
+            out[outIdx + 1] = px.g;
+            out[outIdx + 2] = px.b;
+            out[outIdx + 3] = px.a;
+        }
+    }
+    return out;
 }
 
 } // namespace aladyn::engine::boundary

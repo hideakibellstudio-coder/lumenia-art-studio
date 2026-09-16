@@ -10,6 +10,28 @@
 
 namespace aladyn::engine::boundary::internal {
 
+namespace {
+
+/// O atalho de baixa latência só vale quando não há estabilização pedida.
+///
+/// Antes, `ctx.lowLatency` sozinho desviava o estabilizador. Como
+/// `low_latency=True` é o padrão do AladynBackend, o slider de suavização da
+/// interface nascia inerte: o valor era gravado, persistido e lido de volta, e
+/// o motor o ignorava — sem nenhum aviso.
+///
+/// `DynamicStabilizer::update` já devolve o ponto bruto quando a estabilização
+/// é ~0, então nesse caso o atalho continua valendo e o comportamento não muda.
+/// Quando o artista pede suavização, ele passa a recebê-la nos dois modos.
+///
+/// O atalho também desliga o catch-up e o afunilamento do pen-up, e isso é
+/// deliberado: um traço estabilizado sem catch-up pára atrás de onde a caneta
+/// levantou — o "efeito elástico" que a suavização existe para evitar.
+[[nodiscard]] inline bool usarAtalhoDeLatencia(const RawStrokeContext& ctx) noexcept {
+    return ctx.lowLatency && ctx.stabilizer.getStabilizationPercentage() <= 0.5;
+}
+
+} // namespace
+
 void StrokeOrchestrator::renderSegment(
     const raster::Dab& startDab,
     const raster::Dab& endDab,
@@ -186,10 +208,11 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
 
     const double vel = ctx.velocityTracker.update({x, y}, t);
     const double normVel = ctx.velocityTracker.getNormalizedVelocity(1500.0);
-    // Em baixa latência o ponto bruto vai direto ao mapeamento e ao raster;
-    // o rastreador de velocidade continua ativo para manter a dinâmica do
+    // Pelo atalho o ponto bruto vai direto ao mapeamento e ao raster; o
+    // rastreador de velocidade continua ativo para manter a dinâmica do
     // pincel e a telemetria, mas o estabilizador deixa de inserir atraso.
-    const math::Point2D pos = ctx.lowLatency ? math::Point2D{x, y} : ctx.stabilizer.update({x, y}, normVel);
+    const bool atalho = usarAtalhoDeLatencia(ctx);
+    const math::Point2D pos = atalho ? math::Point2D{x, y} : ctx.stabilizer.update({x, y}, normVel);
 
     double altitude = 90.0;
     double azimuth = 0.0;
@@ -251,7 +274,7 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
                 const math::Point2D u12 = v12 * (1.0 / len12);
                 const math::Point2D alignedP0 = p1 - (u12 * len01);
                 ctx.strokeStartPoint = alignedP0;
-                if (!ctx.lowLatency) ctx.stabilizer.reanchorInitialPosition(alignedP0);
+                if (!atalho) ctx.stabilizer.reanchorInitialPosition(alignedP0);
 
                 auto mappedP0 = brush::DynamicMapper::map(ctx.brushProfile, alignedP0, ctx.lastDab.pressure, 0.0, 0.0);
                 ctx.lastDab = raster::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color, mappedP0.aspectRatio);
@@ -357,6 +380,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
 ) {
     math::Rect2D totalCatchupDirty{0, 0, 0, 0};
     telemetry::StageMetrics stagesCatchup{};
+    const bool atalho = usarAtalhoDeLatencia(ctx);
 
     if (ctx.isDrawing) {
         if (ctx.pendingFirstSegment) {
@@ -382,8 +406,8 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
         }
 
         if (ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
-            const math::Point2D stabPos = ctx.lowLatency ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
-            const math::Point2D v = ctx.lowLatency ? (ctx.lastRawPoint - ctx.lastDab.position) : ctx.stabilizer.getLastMovementDelta();
+            const math::Point2D stabPos = atalho ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
+            const math::Point2D v = atalho ? (ctx.lastRawPoint - ctx.lastDab.position) : ctx.stabilizer.getLastMovementDelta();
             const double speed = v.length();
             const math::Point2D toRaw = ctx.lastRawPoint - stabPos;
             const double distToRaw = toRaw.length();
@@ -400,7 +424,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
             double targetRadiusMult = 1.0;
             double targetOpacityMult = 1.0;
 
-            if (!ctx.lowLatency && isCollinear) {
+            if (!atalho && isCollinear) {
                 targetPt = ctx.lastRawPoint;
                 shouldRenderCatchup = (distToRaw > 1.0);
                 if (ctx.brushProfile.strokeTaperEnabled) {
@@ -408,7 +432,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
                     targetRadiusMult = 0.1;
                     targetOpacityMult = 0.0;
                 }
-            } else if (!ctx.lowLatency && ctx.brushProfile.strokeTaperEnabled && speed >= 0.3) {
+            } else if (!atalho && ctx.brushProfile.strokeTaperEnabled && speed >= 0.3) {
                 // Desvio/gancho de levantamento da caneta detectado (pen-up hook off-axis).
                 // Projeta estritamente ao longo da tangente física do traço
                 const double taperDist = std::min(ctx.lastDab.radius * 1.5, 35.0);
@@ -445,7 +469,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
     auto now = std::chrono::high_resolution_clock::now();
     double t = std::chrono::duration<double>(now.time_since_epoch()).count();
     if (endStrokeCallback) {
-        const math::Point2D releasePos = ctx.lowLatency ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
+        const math::Point2D releasePos = atalho ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
         endStrokeCallback({stroke::PointerEventType::Release, releasePos, 0.0, t});
     }
     ctx.hasLastRawPoint = false;

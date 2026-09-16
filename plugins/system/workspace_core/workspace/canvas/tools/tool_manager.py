@@ -95,7 +95,7 @@ class ToolManager:
         evt = self.widget.to_canvas(screen_x, screen_y, 1.0, 0.0)
         self.widget.strokeStarted.emit()
         b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "fill_area"):
+        if b:
             ok = b.fill_area(
                 seed_x=int(evt.x),
                 seed_y=int(evt.y),

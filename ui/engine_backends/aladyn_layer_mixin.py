@@ -56,75 +56,75 @@ class AladynLayerMixin:
         return False
 
     def reorder_layers(self, new_order: list[int]) -> bool:
-        if self._facade and hasattr(self._facade, "reorder_layers"):
+        if self._facade:
             return self._facade.reorder_layers(new_order)
         return False
 
     def set_layer_parents(self, parent_indices: list[int]) -> bool:
-        if self._facade and hasattr(self._facade, "set_layer_parents"):
+        if self._facade:
             return self._facade.set_layer_parents(parent_indices)
         return False
 
     def set_layer_document_uid(self, index: int, uid: int) -> bool:
-        if self._facade and hasattr(self._facade, "set_layer_document_uid"):
+        if self._facade:
             return bool(self._facade.set_layer_document_uid(int(index), int(uid)))
         return False
 
     def add_group(self, name: str = "Novo Grupo", insert_index: int = -1) -> int:
-        if self._facade and hasattr(self._facade, "add_group"):
-            return self._facade.addGroup(name, int(insert_index)) if hasattr(self._facade, "addGroup") else self._facade.add_group(name, int(insert_index))
+        if self._facade:
+            return self._facade.add_group(name, int(insert_index))
         return -1
 
     def add_filter_layer(self, name: str, filter_type_id: int, insert_index: int = -1) -> int:
-        if self._facade and hasattr(self._facade, "add_filter_layer"):
-            return self._facade.addFilterLayer(name, filter_type_id, int(insert_index)) if hasattr(self._facade, "addFilterLayer") else self._facade.add_filter_layer(name, filter_type_id, int(insert_index))
+        if self._facade:
+            return self._facade.add_filter_layer(name, filter_type_id, int(insert_index))
         return -1
 
     def set_filter_params(self, index: int, params: list[float]) -> None:
-        if self._facade and hasattr(self._facade, "set_filter_params"):
+        if self._facade:
             self._facade.set_filter_params(index, [float(x) for x in params])
 
     def get_filter_params(self, index: int) -> list[float]:
-        if self._facade and hasattr(self._facade, "get_filter_params"):
+        if self._facade:
             return list(self._facade.get_filter_params(index))
         return []
 
     def get_filter_type(self, index: int) -> int:
-        if self._facade and hasattr(self._facade, "get_filter_type"):
+        if self._facade:
             return self._facade.get_filter_type(index)
         return -1
 
     def is_filter_layer(self, index: int) -> bool:
-        if self._facade and hasattr(self._facade, "is_filter_layer"):
+        if self._facade:
             return self._facade.is_filter_layer(index)
         return False
 
     def set_layer_name(self, index: int, name: str) -> None:
-        if self._facade and hasattr(self._facade, "set_layer_name"):
+        if self._facade:
             self._facade.set_layer_name(index, name)
 
     def get_layer_info(self, index: int) -> dict:
-        if self._facade and hasattr(self._facade, "get_layer_info"):
+        if self._facade:
             return dict(self._facade.get_layer_info(int(index)))
         return {}
 
     def is_group(self, index: int) -> bool:
-        if self._facade and hasattr(self._facade, "is_group"):
+        if self._facade:
             return self._facade.is_group(index)
         return False
 
     def set_group_pass_through(self, index: int, pass_through: bool) -> bool:
-        if self._facade and hasattr(self._facade, "set_group_pass_through"):
+        if self._facade:
             return self._facade.set_group_pass_through(index, pass_through)
         return False
 
     def duplicate_layer(self, index: int) -> int:
-        if self._facade and hasattr(self._facade, "duplicate_layer"):
+        if self._facade:
             return self._facade.duplicate_layer(index)
         return -1
 
     def flatten_group(self, index: int) -> bool:
-        if self._facade and hasattr(self._facade, "flatten_group"):
+        if self._facade:
             return self._facade.flatten_group(index)
         return False
 
@@ -161,45 +161,45 @@ class AladynLayerMixin:
             self._facade.set_layer_lock(index, bool(locked))
 
     def is_layer_alpha_locked(self, index: int) -> bool:
-        if self._facade and hasattr(self._facade, "is_layer_alpha_locked"):
+        if self._facade:
             return self._facade.is_layer_alpha_locked(index)
         return False
 
     def is_layer_clipping_mask(self, index: int) -> bool:
-        if self._facade and hasattr(self._facade, "is_layer_clipping_mask"):
+        if self._facade:
             return self._facade.is_layer_clipping_mask(index)
         return False
 
     def get_active_layer_index(self) -> int:
-        if self._facade and hasattr(self._facade, "get_active_layer_index"):
+        if self._facade:
             return self._facade.get_active_layer_index()
         return 0
 
     def get_drawing_layer_count(self) -> int:
-        if self._facade and hasattr(self._facade, "get_drawing_layer_count"):
+        if self._facade:
             return self._facade.get_drawing_layer_count()
         return 1
 
     def get_layer_thumbnail_buffer(self, layer_index: int, thumb_w: int, thumb_h: int) -> Optional[bytes]:
-        if self._facade and hasattr(self._facade, "get_layer_thumbnail_buffer"):
+        if self._facade:
             raw = self._facade.get_layer_thumbnail_buffer(int(layer_index), int(thumb_w), int(thumb_h))
             return bytes(raw) if raw else None
         return None
 
     def undo(self) -> bool:
-        if self._facade and hasattr(self._facade, "undo"):
+        if self._facade:
             result = self._facade.undo()
             self._width, self._height = self._facade.get_width(), self._facade.get_height()
             return result
         return False
 
     def get_history_error(self) -> str:
-        if self._facade and hasattr(self._facade, "get_history_error"):
+        if self._facade:
             return str(self._facade.get_history_error() or "")
         return ""
 
     def redo(self) -> bool:
-        if self._facade and hasattr(self._facade, "redo"):
+        if self._facade:
             result = self._facade.redo()
             self._width, self._height = self._facade.get_width(), self._facade.get_height()
             return result
@@ -207,48 +207,48 @@ class AladynLayerMixin:
 
     def set_undo_memory_limit_mb(self, mb: int) -> None:
         self._undo_memory_limit_mb = int(mb)
-        if self._facade and hasattr(self._facade, "set_undo_memory_limit_mb"):
+        if self._facade:
             self._facade.set_undo_memory_limit_mb(int(mb))
         if hasattr(self, "_doc_facades"):
             for fac in self._doc_facades.values():
-                if hasattr(fac, "set_undo_memory_limit_mb"):
+                if fac:
                     fac.set_undo_memory_limit_mb(int(mb))
 
     def get_undo_memory_limit_mb(self) -> int:
-        if self._facade and hasattr(self._facade, "get_undo_memory_limit_mb"):
+        if self._facade:
             return self._facade.get_undo_memory_limit_mb()
         return getattr(self, "_undo_memory_limit_mb", 512)
 
     def set_undo_max_steps(self, steps: int) -> None:
         self._undo_max_steps = int(steps)
-        if self._facade and hasattr(self._facade, "set_undo_max_steps"):
+        if self._facade:
             self._facade.set_undo_max_steps(int(steps))
         if hasattr(self, "_doc_facades"):
             for fac in self._doc_facades.values():
-                if hasattr(fac, "set_undo_max_steps"):
+                if fac:
                     fac.set_undo_max_steps(int(steps))
 
     def get_undo_max_steps(self) -> int:
-        if self._facade and hasattr(self._facade, "get_undo_max_steps"):
+        if self._facade:
             return self._facade.get_undo_max_steps()
         return getattr(self, "_undo_max_steps", 50)
 
     def get_undo_count(self) -> int:
-        if self._facade and hasattr(self._facade, "get_undo_count"):
+        if self._facade:
             return self._facade.get_undo_count()
         return 0
 
     def get_redo_count(self) -> int:
-        if self._facade and hasattr(self._facade, "get_redo_count"):
+        if self._facade:
             return self._facade.get_redo_count()
         return 0
 
     def can_undo(self) -> bool:
-        if self._facade and hasattr(self._facade, "can_undo"):
+        if self._facade:
             return self._facade.can_undo()
         return self.get_undo_count() > 0
 
     def can_redo(self) -> bool:
-        if self._facade and hasattr(self._facade, "can_redo"):
+        if self._facade:
             return self._facade.can_redo()
         return self.get_redo_count() > 0

@@ -128,7 +128,7 @@ class WorkspaceBrushMixin:
     def _on_brush_pressure_curve(self, val: float) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_pressure_curve_power"):
+        if backend:
             backend.set_pressure_curve_power(val)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_pressure_curve_power(val)
@@ -137,7 +137,7 @@ class WorkspaceBrushMixin:
     def _on_brush_stabilizer(self, weight: float) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_stabilizer_weight"):
+        if backend:
             backend.set_stabilizer_weight(weight)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_stabilizer_weight(weight)
@@ -146,7 +146,7 @@ class WorkspaceBrushMixin:
     def _on_brush_spacing(self, factor: float) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_brush_spacing"):
+        if backend:
             backend.set_brush_spacing(factor)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_brush_spacing(factor)
@@ -158,7 +158,7 @@ class WorkspaceBrushMixin:
         cw = self.canvas_widget
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_brush_opacity"):
+        if backend:
             backend.set_brush_opacity(factor)
         if cw.renderer:
             cw.renderer.set_brush_opacity(factor)
@@ -178,7 +178,7 @@ class WorkspaceBrushMixin:
     def _on_min_density_active(self, active: bool) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_min_density_active"):
+        if backend:
             backend.set_min_density_active(active)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_min_density_active(active)
@@ -187,7 +187,7 @@ class WorkspaceBrushMixin:
     def _on_min_density_value(self, weight: float) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_min_density_value"):
+        if backend:
             backend.set_min_density_value(weight)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_min_density_value(weight)
@@ -196,7 +196,7 @@ class WorkspaceBrushMixin:
     def _on_brush_contrast(self, val: float) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_brush_contrast"):
+        if backend:
             backend.set_brush_contrast(val)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_brush_contrast(val)
@@ -208,7 +208,7 @@ class WorkspaceBrushMixin:
     def _on_brush_invert(self, invert: bool) -> None:
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_brush_invert_height"):
+        if backend:
             backend.set_brush_invert_height(invert)
         if self.canvas_widget.renderer:
             self.canvas_widget.renderer.set_brush_invert_height(invert)
@@ -227,14 +227,22 @@ class WorkspaceBrushMixin:
 
     def _do_sync_previews(self) -> None:
         try:
+            from ui.core.engine.registry import EngineRegistry
+            backend = EngineRegistry.instance().get_backend()
+            if not backend:
+                return
             if hasattr(self, "_navigator_panel") and self._navigator_panel:
-                from ui.core.engine.registry import EngineRegistry
-                backend = EngineRegistry.instance().get_backend()
-                if backend and hasattr(backend, "get_qimage"):
-                    qimg = backend.get_qimage()
-                    if qimg and not qimg.isNull():
-                        thumb = qimg.scaled(320, 240, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation)
-                        self._navigator_panel.set_artwork(thumb)
+                qimg = backend.get_qimage()
+                if qimg and not qimg.isNull():
+                    thumb = qimg.scaled(320, 240, QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation)
+                    self._navigator_panel.set_artwork(thumb)
+            # Emit thumbnail_updated for all layers so the layers panel
+            # can refresh real pixel thumbnails after strokes, undo/redo, etc.
+            from ui.core.document.manager import DocumentManager
+            doc = DocumentManager.instance().active_document()
+            if doc:
+                for layer in doc.layer_manager.layers:
+                    doc.layer_manager.thumbnail_updated.emit(layer.uid)
         except Exception as e:
             logger.debug(f"[WorkspaceContainer] Erro ao sincronizar previews: {e}")
 

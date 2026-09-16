@@ -33,7 +33,10 @@ def pytest_unconfigure(config):
         os.environ.pop("LUMENIA_CONFIG_PATH", None)
     else:
         os.environ["LUMENIA_CONFIG_PATH"] = _previous
-    _profile.cleanup()
+    try:
+        _profile.cleanup()
+    except Exception:
+        pass
     if _previous_plugins is None:
         os.environ.pop("LUMENIA_PLUGINS_CONFIG_PATH", None)
     else:

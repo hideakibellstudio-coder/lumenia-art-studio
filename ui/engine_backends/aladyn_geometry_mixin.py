@@ -12,14 +12,14 @@ class AladynGeometryMixin:
         self, mode: int, cx: float, cy: float, angle_rad: float, segments: int = 6, stop_at_center: bool = False
     ) -> None:
         """Configura a simetria ativa no motor nativo C++."""
-        if self._facade and hasattr(self._facade, "set_symmetry_config"):
+        if self._facade:
             self._facade.set_symmetry_config(
                 int(mode), float(cx), float(cy), float(angle_rad), int(segments), bool(stop_at_center)
             )
 
     def clear_symmetry(self) -> None:
         """Desativa a simetria ativa no motor C++."""
-        if self._facade and hasattr(self._facade, "clear_symmetry"):
+        if self._facade:
             self._facade.clear_symmetry()
 
     def set_guide_config(
@@ -30,7 +30,7 @@ class AladynGeometryMixin:
         fov: float = 130.0, pitch: float = 0.0, yaw: float = 0.0, snap_radius: float = 32.0,
     ) -> None:
         """Configura a régua / guia de perspectiva no motor nativo C++."""
-        if self._facade and hasattr(self._facade, "set_guide_config"):
+        if self._facade:
             self._facade.set_guide_config(
                 int(guide_type), float(p0x), float(p0y), float(p1x), float(p1y),
                 float(p2x), float(p2y), float(p3x), float(p3y),
@@ -41,7 +41,7 @@ class AladynGeometryMixin:
 
     def clear_guide(self) -> None:
         """Desativa as réguas ativas no motor C++."""
-        if self._facade and hasattr(self._facade, "clear_guide"):
+        if self._facade:
             self._facade.clear_guide()
 
     def snap_point(
@@ -53,7 +53,7 @@ class AladynGeometryMixin:
         has_last: bool = False,
     ) -> tuple[float, float]:
         """Calcula atração do cursor para réguas ativas via C++."""
-        if self._facade and hasattr(self._facade, "snap_point"):
+        if self._facade:
             res = self._facade.snap_point(float(raw_x), float(raw_y), float(last_x), float(last_y), bool(has_last))
             if res and len(res) >= 2:
                 return (float(res[0]), float(res[1]))

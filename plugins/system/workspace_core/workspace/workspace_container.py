@@ -88,6 +88,7 @@ class WorkspaceContainer(
         self._navigator_panel = None
         self._layers_panel = None
         self._color_panel = None
+        self._geometry_panel = None
         self._initialize_panel_bindings()
 
         # ── Layout Principal Vertical ─────────────────────────────────────
@@ -287,6 +288,10 @@ class WorkspaceContainer(
             self._bind_panel_signal(panel_id, widget.colorChanged, self._on_brush_color)
             if self.active_document:
                 widget.set_color(getattr(self, "_saved_color", QtGui.QColor(0, 0, 0)))
+        elif panel_id == "geometry":
+            self._geometry_panel = widget
+            if hasattr(widget, "set_render_widget"):
+                widget.set_render_widget(self.canvas_widget)
 
         dock_system = self.left_dock if area == "left" else self.right_dock
         try:
@@ -319,6 +324,8 @@ class WorkspaceContainer(
             self._navigator_panel = None
         if widget is self._color_panel:
             self._color_panel = None
+        if widget is self._geometry_panel:
+            self._geometry_panel = None
 
 
     # ── Propriedades de acesso público ────────────────────────────────────

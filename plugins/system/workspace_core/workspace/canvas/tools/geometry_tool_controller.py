@@ -8,6 +8,7 @@ Strictly decoupled in compliance with ARCcC v2 (< 250 LOC).
 
 import math
 import copy
+import os
 from PySide6 import QtCore
 from ui.core.engine.registry import EngineRegistry
 from ..math.camera_3d_projector import (
@@ -41,6 +42,29 @@ class GeometryToolController:
         self.locked_dir = None
         self.stroke_candidate_curves = []
         self.current_stroke_pts = []
+
+        # Fase C3.2 -- toggle temporario de comparacao nativo vs Python
+        # (default off; usado so para validacao manual de "feel" antes de
+        # flipar o padrao em producao -- ver Fase C3.3/C3.4). Estado nativo
+        # de perspectiva reaproveita locked_dir (mesmo shape); curvilinear
+        # nativo usa indice em vez de dict, por isso tem estado proprio.
+        self._snap_use_native_perspective = os.environ.get("LUMENIA_SNAP_NATIVE_PERSPECTIVE", "0") == "1"
+        self._snap_use_native_curvilinear = os.environ.get("LUMENIA_SNAP_NATIVE_CURVILINEAR", "0") == "1"
+        self._native_curv_locked_index = -1
+        self._native_stroke_candidates_flat = []
+
+        # Fase C3.5 (refinamento) -- referencia de direcao para RE-travar
+        # apos um break-away. Usar sempre o ponto de pressao original
+        # (snap_start_pt) deixa essa corda cada vez mais desatualizada num
+        # traco longo e rapido (pior com mouse, cujos eventos sao mais
+        # espacados/saltados que com stylus) -- e essa desatualizacao, nao a
+        # trava rigida em si, que fazia o re-lock continuar errando mesmo
+        # depois do fix de break-away. `anchor` acompanha o ultimo ponto
+        # travado com sucesso e vira a referencia para reavaliacoes; None
+        # ate a primeira trava, quando cai de volta no ponto de pressao
+        # (preserva o comportamento de trava inicial ja validado na C3.3).
+        self._native_curv_anchor = None
+        self._native_persp_anchor = None
 
         self.sym_state = {
             "mode": "none", "cx": 400.0, "cy": 300.0, "angle": 90.0,
@@ -201,12 +225,16 @@ class GeometryToolController:
         self.active_handle, self.curv_drag_rotate, self.is_stroking = None, False, False
         self.snap_start_pt, self.start_distance, self.locked_curve = None, (0.0, 0.0), None
         self.locked_dir, self.stroke_candidate_curves, self.current_stroke_pts = None, [], []
+        self._native_curv_locked_index, self._native_stroke_candidates_flat = -1, []
+        self._native_curv_anchor, self._native_persp_anchor = None, None
 
     def start_stroke_snap(self, start_pt: tuple[float, float]):
         self.is_stroking = True
         pt = QtCore.QPointF(start_pt[0], start_pt[1])
         self.snap_start_pt, self.locked_curve, self.locked_dir = pt, None, None
         self.hover_point, self.current_stroke_pts = pt, [pt]
+        self._native_curv_locked_index, self._native_stroke_candidates_flat = -1, []
+        self._native_curv_anchor, self._native_persp_anchor = None, None
         gtype = self.guide_state["type"]
 
         if gtype == "straight":
@@ -253,6 +281,10 @@ class GeometryToolController:
             return GeometrySnappingEngine.snap_bezier(raw_x, raw_y, self.guide_state)
 
         if gtype in ("one_point", "two_point", "three_point", "isometric"):
+            if self._snap_use_native_perspective:
+                native_res = self._compute_snap_perspective_native(raw_x, raw_y, zoom)
+                if native_res is not None:
+                    return native_res
             pt_res, locked = GeometrySnappingEngine.snap_ray_perspective(
                 raw_x, raw_y, zoom, self.guide_state, self.snap_start_pt, self.locked_dir
             )
@@ -261,6 +293,10 @@ class GeometryToolController:
             return pt_res
 
         if gtype == "curvilinear":
+            if self._snap_use_native_curvilinear:
+                native_res = self._compute_snap_curvilinear_native(raw_x, raw_y, zoom)
+                if native_res is not None:
+                    return native_res
             curves = self.stroke_candidate_curves if (self.is_stroking and self.stroke_candidate_curves) else (
                 self.dynamic_hover_curves or GeometrySnappingEngine.get_dynamic_curves_at_point(self.guide_state, self.snap_start_pt or QtCore.QPointF(raw_x, raw_y))
             )
@@ -273,6 +309,53 @@ class GeometryToolController:
             return pt_res
 
         return (raw_x, raw_y)
+
+    # Fase C3.2 -- caminhos nativos opcionais (toggle de comparacao). Ambos
+    # retornam None (fallback silencioso para Python) se o backend ativo nao
+    # suportar o metodo -- nunca quebram a UI se o nativo nao estiver
+    # disponivel (ex.: testes sem extensao compilada).
+
+    def _compute_snap_perspective_native(self, raw_x: float, raw_y: float, zoom: float):
+        b = EngineRegistry.instance().get_backend()
+        if not b or not hasattr(b, "snap_perspective"):
+            return None
+        # Fase C3.5 (refinamento) -- ver comentario no __init__. Enquanto a
+        # trava se mantem, o anchor permanece sobre a mesma reta (e' a
+        # projecao do frame anterior), entao usa-lo aqui nao muda o ponto
+        # projetado; o que muda e' so a reavaliacao apos um break-away, que
+        # passa a usar uma referencia recente em vez do ponto de pressao.
+        anchor = self._native_persp_anchor or self.snap_start_pt or QtCore.QPointF(raw_x, raw_y)
+        has_lock = self.locked_dir is not None
+        ldx, ldy = self.locked_dir if has_lock else (0.0, 0.0)
+        x, y, has_lock_out, ndx, ndy = b.snap_perspective(
+            raw_x, raw_y, anchor.x(), anchor.y(), has_lock, ldx, ldy, zoom
+        )
+        if has_lock_out:
+            self.locked_dir = (ndx, ndy)
+            self._native_persp_anchor = QtCore.QPointF(x, y)
+        return (x, y)
+
+    def _compute_snap_curvilinear_native(self, raw_x: float, raw_y: float, zoom: float):
+        b = EngineRegistry.instance().get_backend()
+        if not b or not hasattr(b, "snap_curvilinear") or not hasattr(b, "get_curvilinear_candidates"):
+            return None
+        press_start = self.snap_start_pt or QtCore.QPointF(raw_x, raw_y)
+        candidates = self._native_stroke_candidates_flat if (self.is_stroking and self._native_stroke_candidates_flat) else (
+            b.get_curvilinear_candidates(press_start.x(), press_start.y())
+        )
+        # Fase C3.5 (refinamento) -- ver comentario no __init__. A geracao de
+        # candidatas continua ancorada na pressao (define o conjunto de
+        # curvas do traco inteiro); so a referencia passada para pontuar
+        # direcao/re-travar usa o anchor recente.
+        anchor = self._native_curv_anchor or press_start
+        x, y, new_idx = b.snap_curvilinear(
+            raw_x, raw_y, anchor.x(), anchor.y(), candidates, self._native_curv_locked_index, self.is_stroking, zoom
+        )
+        if new_idx >= 0:
+            self._native_curv_locked_index = new_idx
+            self._native_stroke_candidates_flat = candidates
+            self._native_curv_anchor = QtCore.QPointF(x, y)
+        return (x, y)
 
     # Delegation aliases for backward compatibility and sub-systems
     def _get_dynamic_curves_at_point(self, click_pt: QtCore.QPointF) -> list:
@@ -318,4 +401,18 @@ class GeometryToolController:
                 self.guide_state.get("cx", 400.0), self.guide_state.get("cy", 300.0),
                 self.guide_state.get("fov", 130.0), self.guide_state.get("pitch", 0.0),
                 self.guide_state.get("yaw", 0.0), self.guide_state.get("snap_radius", 32.0)
+            )
+        if b and hasattr(b, "set_curvilinear_guide_config"):
+            # Completa os campos de GuideConfig usados só pelo Curvilinear
+            # (Fase C2b) — canal de dados adicional; a UI ainda calcula o
+            # snap em Python (GeometrySnappingEngine), isto só deixa o motor
+            # C++ pronto para ser chamado quando a delegação for ativada.
+            smap = {"auto": 0, "v": 1, "h": 2, "d": 3}
+            b.set_curvilinear_guide_config(
+                self.guide_state.get("base_radius", 400.0), self.guide_state.get("density", 30.0),
+                self.guide_state.get("show_v", True), self.guide_state.get("show_h", True), self.guide_state.get("show_d", True),
+                self.guide_state.get("show_ground", False), self.guide_state.get("show_ceiling", False),
+                self.guide_state.get("show_ground_verticals", False), self.guide_state.get("show_ceiling_verticals", False),
+                self.guide_state.get("show_straight_verticals", False),
+                smap.get(self.guide_state.get("snap_mode", "auto"), 0), self.guide_state.get("snap_sensitivity", 3.0)
             )

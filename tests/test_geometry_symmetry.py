@@ -255,6 +255,126 @@ class TestGeometrySymmetry(unittest.TestCase):
         self.assertFalse(d1["ground_path"].isEmpty())
         self.assertFalse(d1["ceiling_path"].isEmpty())
 
+    def test_10_curvilinear_native_snap_mode_filter(self):
+        """Regressao Fase C3.0 (nativo): snap_mode v/h/d deve travar na
+        familia correta -- espelha o teste equivalente em
+        test_geometry_decomposition_phase1.py para o motor Python. Familias
+        geradas sao sempre GroundV/GroundX/GroundZ; um filtro que so
+        reconhece GroundV faz H e D nunca travarem em nada."""
+        family_index = 1  # layout: [kind, family, p1x, p1y, p2x, p2y, dirx, diry, cx, cy, radius]
+        for snap_mode, expected_family in ((1, 0), (2, 1), (3, 2)):  # v->GroundV, h->GroundX, d->GroundZ
+            with self.subTest(snap_mode=snap_mode):
+                self.facade.set_curvilinear_guide_config(snap_mode=snap_mode)
+                candidates = self.facade.get_curvilinear_candidates(120.0, 80.0)
+                self.assertEqual(len(candidates) % 11, 0)
+                n = len(candidates) // 11
+                families = {int(candidates[i * 11 + family_index]) for i in range(n)}
+                self.assertIn(expected_family, families, f"fixture sanity: {families}")
+
+                result = self.facade.snap_curvilinear(
+                    120.0, 80.0, 120.0, 80.0, candidates, -1, True, 1.0
+                )
+                locked_index = int(result[2])
+                self.assertGreaterEqual(locked_index, 0, f"snap_mode={snap_mode} deveria travar numa curva")
+                locked_family = int(candidates[locked_index * 11 + family_index])
+                self.assertEqual(locked_family, expected_family)
+
+    def test_11_perspective_native_matches_python(self):
+        """Regressao Fase C3.1: snap_perspective nativo deve produzir o mesmo
+        resultado que snap_ray_perspective (Python), tipo a tipo, ja que e um
+        porte fiel do mesmo algoritmo (mesma pontuacao por produto escalar,
+        mesmo travamento de direcao no inicio do traco)."""
+        from plugins.system.workspace_core.workspace.canvas.tools.geometry_snapping_engine import (
+            GeometrySnappingEngine,
+        )
+        from PySide6 import QtCore as _QtCore
+
+        vpA, vpB, vpC = (100.0, 300.0), (700.0, 300.0), (400.0, 50.0)
+        type_map = {"one_point": 4, "two_point": 5, "three_point": 6, "isometric": 7}
+        start = (400.0, 400.0)
+        drag_points = [(430.0, 340.0), (470.0, 280.0)]  # 2 chamadas: destrava, depois trava
+
+        for gtype, type_id in type_map.items():
+            with self.subTest(gtype=gtype):
+                self.facade.set_guide_config(
+                    type=type_id,
+                    vp_ax=vpA[0], vp_ay=vpA[1], vp_bx=vpB[0], vp_by=vpB[1],
+                    vp_cx=vpC[0], vp_cy=vpC[1],
+                )
+                guide_state = {
+                    "type": gtype,
+                    "vpA": _QtCore.QPointF(*vpA),
+                    "vpB": _QtCore.QPointF(*vpB),
+                    "vpC": _QtCore.QPointF(*vpC),
+                }
+                start_pt = _QtCore.QPointF(*start)
+
+                py_locked = None
+                native_has_lock, native_ldx, native_ldy = False, 0.0, 0.0
+                for (rx, ry) in drag_points:
+                    py_res, py_locked = GeometrySnappingEngine.snap_ray_perspective(
+                        rx, ry, 1.0, guide_state, start_pt, py_locked
+                    )
+                    native_res = self.facade.snap_perspective(
+                        rx, ry, start[0], start[1], native_has_lock, native_ldx, native_ldy, 1.0
+                    )
+                    native_has_lock = bool(native_res[2])
+                    native_ldx, native_ldy = native_res[3], native_res[4]
+
+                    self.assertAlmostEqual(native_res[0], py_res[0], places=6, msg=f"{gtype}: x diverge")
+                    self.assertAlmostEqual(native_res[1], py_res[1], places=6, msg=f"{gtype}: y diverge")
+
+    def test_12_curvilinear_breakaway_releases_stale_lock(self):
+        """Regressao Fase C3.5: trava curvilinea deve soltar quando o cursor se
+        afasta alem de snap_radius, em vez de ficar presa para sempre na curva
+        travada (bug reportado: tracos rapidos "fogem" da guia e o traco fica
+        colado numa curva errada pelo resto do gesto)."""
+        # Layout: [kind, family, p1x,p1y, p2x,p2y, dirx,diry, cx,cy, radius]
+        curve_a = [0, 0, -1000.0, 0.0, 1000.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]  # linha horizontal y=0
+        curve_b = [0, 0, 500.0, -1000.0, 500.0, 1000.0, 0.0, 1.0, 0.0, 0.0, 0.0]  # linha vertical x=500
+        candidates = curve_a + curve_b
+
+        # snap_radius default (32.0): afastamento pequeno mantem a trava.
+        x, y, idx = self.facade.snap_curvilinear(500.0, 10.0, 0.0, 0.0, candidates, 0, True, 1.0)
+        self.assertEqual(idx, 0, "afastamento pequeno (10px < snap_radius) deveria manter a trava")
+        self.assertAlmostEqual(x, 500.0, delta=1e-6)
+        self.assertAlmostEqual(y, 0.0, delta=1e-6)
+
+        # Afastamento grande (500px >> snap_radius de 32px): deve soltar a
+        # curva A e reavaliar -- o cursor esta exatamente sobre a curva B e
+        # o gesto (a partir de start=0,0) aponta na direcao dela, entao deve
+        # travar em B, nao continuar projetando (errado) na curva A.
+        x2, y2, idx2 = self.facade.snap_curvilinear(500.0, 500.0, 0.0, 0.0, candidates, 0, True, 1.0)
+        self.assertEqual(idx2, 1, "deveria soltar a curva A e travar na curva B apos o afastamento")
+        self.assertAlmostEqual(x2, 500.0, delta=1e-6)
+        self.assertAlmostEqual(y2, 500.0, delta=1e-6)
+
+    def test_13_perspective_breakaway_releases_stale_lock(self):
+        """Regressao Fase C3.5: mesmo fix de C3.5, para snap_perspective."""
+        self.facade.set_guide_config(
+            type=5,  # TwoPoint
+            vp_ax=100.0, vp_ay=300.0, vp_bx=700.0, vp_by=300.0,
+        )
+        start = (400.0, 400.0)
+
+        # Travado (artificialmente) numa direcao vertical (0,1); afastamento
+        # pequeno mantem a trava.
+        x, y, has_lock, ldx, ldy = self.facade.snap_perspective(400.0, 410.0, start[0], start[1], True, 0.0, 1.0, 1.0)
+        self.assertTrue(has_lock)
+        self.assertAlmostEqual(x, 400.0, delta=1e-6)
+        self.assertAlmostEqual(y, 410.0, delta=1e-6)
+
+        # Cursor salta para exatamente vpB (700, 300) -- bem longe da reta
+        # vertical travada (300px de afastamento, >> snap_radius de 32px) e
+        # exatamente na direcao de vpB a partir de start. Deve soltar a trava
+        # vertical errada e travar na direcao de vpB.
+        x2, y2, has_lock2, ldx2, ldy2 = self.facade.snap_perspective(700.0, 300.0, start[0], start[1], True, 0.0, 1.0, 1.0)
+        self.assertTrue(has_lock2)
+        self.assertAlmostEqual(x2, 700.0, delta=1e-4)
+        self.assertAlmostEqual(y2, 300.0, delta=1e-4)
+        # Nao pode ter ficado na direcao vertical antiga.
+        self.assertFalse(abs(ldx2) < 1e-6 and abs(ldy2 - 1.0) < 1e-6)
+
 
 if __name__ == "__main__":
     unittest.main()

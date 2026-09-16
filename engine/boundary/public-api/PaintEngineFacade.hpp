@@ -21,6 +21,7 @@
 #include "../../core/raster/TransformEngine.hpp"
 #include "../../core/math/SymmetryEngine.hpp"
 #include "../../core/math/GuideSnapEngine.hpp"
+#include "../../core/math/CurvilinearSnapEngine.hpp"
 #include "../../core/telemetry/EngineTelemetry.hpp"
 #include "../../core/canvas/MipmapPyramid.hpp"
 #include <vector>
@@ -177,6 +178,46 @@ public:
                         double fov, double pitch, double yaw, double snapRadius);
     void clearGuide() { m_guideConfig.type = math::GuideType::None; }
     [[nodiscard]] std::vector<double> snapPoint(double rawX, double rawY, double lastX = 0.0, double lastY = 0.0, bool hasLast = false) const;
+
+    // ── Curvilinear (6P fisheye) — Fase C2b ──────────────────────────────
+    // Completa os campos de GuideConfig usados apenas por Curvilinear
+    // (os demais — cx/cy/fov/pitch/yaw/snapRadius — já chegam via setGuideConfig).
+    void setCurvilinearGuideConfig(double baseRadius, double density,
+                                    bool showV, bool showH, bool showD,
+                                    bool showGround, bool showCeiling,
+                                    bool showGroundVerticals, bool showCeilingVerticals,
+                                    bool showStraightVerticals,
+                                    int snapMode, double snapSensitivity);
+
+    // Candidatas curvilíneas (V/H/D) passando por (clickX,clickY), cada uma
+    // codificada em 11 doubles: [kind, family, p1x,p1y, p2x,p2y, dirx,diry, cx,cy,radius].
+    // Puro: não lê nem escreve estado de traço — quem chama decide quando gerar
+    // (tipicamente uma vez, no início do traço) e reaproveita o resultado.
+    [[nodiscard]] std::vector<double> getCurvilinearCandidates(double clickX, double clickY) const;
+
+    // Curva primária (grade) mais próxima de (x,y); vetor vazio se nada dentro de maxDist.
+    [[nodiscard]] std::vector<double> getNearestPrimaryGridCurve(double x, double y, double maxDist) const;
+
+    // Snap curvilíneo sem estado: candidates é a lista plana já congelada pelo
+    // chamador (mesma codificação de getCurvilinearCandidates); lockedIndex é
+    // a curva travada na chamada anterior (-1 = nenhuma). Retorna
+    // [snappedX, snappedY, newLockedIndex] — o índice deve ser persistido pelo
+    // chamador e devolvido na próxima chamada.
+    [[nodiscard]] std::vector<double> snapCurvilinear(
+        double rawX, double rawY, double startX, double startY,
+        const std::vector<double>& candidates, int lockedIndex, bool isStroking, double zoom
+    ) const;
+
+    // -- Perspectiva (1P/2P/3P/Isometric) -- Fase C3.1 -----------------------
+    // Sem estado, mesmo contrato de snapCurvilinear: hasLockedDir/lockedDirX/Y
+    // e a direcao travada na chamada anterior (hasLockedDir=false = nenhuma).
+    // Retorna [snappedX, snappedY, newHasLockedDir(0/1), newLockedDirX, newLockedDirY]
+    // -- os 3 ultimos devem ser persistidos pelo chamador e devolvidos na
+    // proxima chamada.
+    [[nodiscard]] std::vector<double> snapPerspective(
+        double rawX, double rawY, double startX, double startY,
+        bool hasLockedDir, double lockedDirX, double lockedDirY, double zoom
+    ) const;
 
     // ── Métodos de Colagem de Buffers e Formas Primitivas ───────────────────
     [[nodiscard]] std::vector<int> getTransformSourceBufferSize() const;

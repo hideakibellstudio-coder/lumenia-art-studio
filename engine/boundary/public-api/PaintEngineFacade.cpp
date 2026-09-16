@@ -658,6 +658,109 @@ std::vector<double> PaintEngineFacade::snapPoint(double rawX, double rawY, doubl
     return { snapped.x, snapped.y };
 }
 
+namespace {
+    // Codifica/decodifica uma CurvilinearCurve em 11 doubles para cruzar a
+    // fronteira PyBind11 sem registrar um tipo novo — mesma convenção já usada
+    // por outros métodos do facade que trocam buffers planos (ex.: getTransformSourceBufferSize).
+    // Layout: [kind, family, p1x,p1y, p2x,p2y, dirx,diry, centerx,centery, radius]
+    void encodeCurvilinearCurve(const math::CurvilinearCurve& c, std::vector<double>& out) {
+        out.push_back(static_cast<double>(c.kind));
+        out.push_back(static_cast<double>(c.family));
+        out.push_back(c.p1.x); out.push_back(c.p1.y);
+        out.push_back(c.p2.x); out.push_back(c.p2.y);
+        out.push_back(c.dir.x); out.push_back(c.dir.y);
+        out.push_back(c.center.x); out.push_back(c.center.y);
+        out.push_back(c.radius);
+    }
+
+    math::CurvilinearCurve decodeCurvilinearCurve(const std::vector<double>& flat, size_t index) {
+        math::CurvilinearCurve c;
+        const size_t o = index * 11;
+        c.kind = static_cast<math::CurveKind>(static_cast<int>(flat[o + 0]));
+        c.family = static_cast<math::CurveFamily>(static_cast<int>(flat[o + 1]));
+        c.p1 = math::Point2D{ flat[o + 2], flat[o + 3] };
+        c.p2 = math::Point2D{ flat[o + 4], flat[o + 5] };
+        c.dir = math::Point2D{ flat[o + 6], flat[o + 7] };
+        c.center = math::Point2D{ flat[o + 8], flat[o + 9] };
+        c.radius = flat[o + 10];
+        return c;
+    }
+}
+
+void PaintEngineFacade::setCurvilinearGuideConfig(
+    double baseRadius, double density,
+    bool showV, bool showH, bool showD,
+    bool showGround, bool showCeiling,
+    bool showGroundVerticals, bool showCeilingVerticals,
+    bool showStraightVerticals,
+    int snapMode, double snapSensitivity
+) {
+    m_guideConfig.baseRadius = baseRadius;
+    m_guideConfig.density = density;
+    m_guideConfig.showV = showV;
+    m_guideConfig.showH = showH;
+    m_guideConfig.showD = showD;
+    m_guideConfig.showGround = showGround;
+    m_guideConfig.showCeiling = showCeiling;
+    m_guideConfig.showGroundVerticals = showGroundVerticals;
+    m_guideConfig.showCeilingVerticals = showCeilingVerticals;
+    m_guideConfig.showStraightVerticals = showStraightVerticals;
+    m_guideConfig.snapMode = snapMode;
+    m_guideConfig.snapSensitivity = snapSensitivity;
+}
+
+std::vector<double> PaintEngineFacade::getCurvilinearCandidates(double clickX, double clickY) const {
+    const auto curves = math::CurvilinearSnapEngine::candidates(m_guideConfig, math::Point2D{ clickX, clickY });
+    std::vector<double> out;
+    out.reserve(curves.size() * 11);
+    for (const auto& c : curves) encodeCurvilinearCurve(c, out);
+    return out;
+}
+
+std::vector<double> PaintEngineFacade::getNearestPrimaryGridCurve(double x, double y, double maxDist) const {
+    math::CurvilinearCurve found;
+    if (!math::CurvilinearSnapEngine::nearestPrimaryGridCurve(m_guideConfig, math::Point2D{ x, y }, maxDist, found)) {
+        return {};
+    }
+    std::vector<double> flat;
+    encodeCurvilinearCurve(found, flat);
+    return flat;
+}
+
+std::vector<double> PaintEngineFacade::snapCurvilinear(
+    double rawX, double rawY, double startX, double startY,
+    const std::vector<double>& candidates, int lockedIndex, bool isStroking, double zoom
+) const {
+    if (candidates.size() % 11 != 0) {
+        throw std::invalid_argument("snapCurvilinear: candidates deve ter um multiplo de 11 doubles por curva");
+    }
+    const size_t n = candidates.size() / 11;
+    std::vector<math::CurvilinearCurve> curves;
+    curves.reserve(n);
+    for (size_t i = 0; i < n; ++i) curves.push_back(decodeCurvilinearCurve(candidates, i));
+
+    int outLocked = -1;
+    const math::Point2D snapped = math::CurvilinearSnapEngine::snap(
+        m_guideConfig, math::Point2D{ rawX, rawY }, math::Point2D{ startX, startY },
+        curves, lockedIndex, isStroking, zoom, outLocked
+    );
+    return { snapped.x, snapped.y, static_cast<double>(outLocked) };
+}
+
+std::vector<double> PaintEngineFacade::snapPerspective(
+    double rawX, double rawY, double startX, double startY,
+    bool hasLockedDir, double lockedDirX, double lockedDirY, double zoom
+) const {
+    const math::Point2D lockedDir{ lockedDirX, lockedDirY };
+    math::Point2D outLockedDir{ 0.0, 0.0 };
+    bool outHasLockedDir = false;
+    const math::Point2D snapped = math::GuideSnapEngine::snapPerspective(
+        m_guideConfig, math::Point2D{ rawX, rawY }, math::Point2D{ startX, startY },
+        hasLockedDir ? &lockedDir : nullptr, zoom, outLockedDir, outHasLockedDir
+    );
+    return { snapped.x, snapped.y, outHasLockedDir ? 1.0 : 0.0, outLockedDir.x, outLockedDir.y };
+}
+
 size_t PaintEngineFacade::compressInactiveLayers() {
     return internal::MemoryOrchestrator::compressInactiveLayers(m_layerStack);
 }

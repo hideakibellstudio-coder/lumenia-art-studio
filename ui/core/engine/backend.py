@@ -298,6 +298,21 @@ class EngineBackend(ABC):
     def clear_guide(self) -> None: ...
     def snap_point(self, raw_x: float, raw_y: float, last_x: float = 0.0, last_y: float = 0.0, has_last: bool = False) -> List[float]: return [raw_x, raw_y]
 
+    # ── Curvilinear (6P fisheye) — Fase C2b ─────────────────────────────
+    # API sem estado: quem chama (GeometryToolController) continua dono do
+    # ciclo de vida do traço (curva travada, ponto de início). Defaults
+    # seguros para backends sem suporte nativo (retornam "sem candidatas" /
+    # "sem trava"), mesma convenção de snap_point acima.
+    def set_curvilinear_guide_config(self, base_radius: float = 400.0, density: float = 30.0, show_v: bool = True, show_h: bool = True, show_d: bool = True, show_ground: bool = False, show_ceiling: bool = False, show_ground_verticals: bool = False, show_ceiling_verticals: bool = False, show_straight_verticals: bool = False, snap_mode: int = 0, snap_sensitivity: float = 3.0) -> None: ...
+    def get_curvilinear_candidates(self, click_x: float, click_y: float) -> List[float]: return []
+    def get_nearest_primary_grid_curve(self, x: float, y: float, max_dist: float = 24.0) -> List[float]: return []
+    def snap_curvilinear(self, raw_x: float, raw_y: float, start_x: float, start_y: float, candidates: List[float], locked_index: int = -1, is_stroking: bool = False, zoom: float = 1.0) -> List[float]: return [raw_x, raw_y, -1.0]
+
+    # ── Perspectiva (1P/2P/3P/Isometric) ─ Fase C3.1 ─────────────────────────
+    # Mesma convenção sem-estado do Curvilinear acima. Retorno de fallback:
+    # ponto inalterado, sem trava.
+    def snap_perspective(self, raw_x: float, raw_y: float, start_x: float, start_y: float, has_locked_dir: bool = False, locked_dir_x: float = 0.0, locked_dir_y: float = 0.0, zoom: float = 1.0) -> List[float]: return [raw_x, raw_y, 0.0, 0.0, 0.0]
+
     # ── Telemetria ────────────────────────────────────────────────────────
 
     def set_telemetry_enabled(self, enabled: bool) -> None: ...

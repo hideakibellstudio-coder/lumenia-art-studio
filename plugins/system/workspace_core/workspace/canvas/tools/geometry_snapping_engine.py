@@ -152,7 +152,11 @@ class GeometrySnappingEngine:
         curves = candidate_curves
         mode = guide_state.get("snap_mode", "auto")
         if mode in ("v", "h", "d"):
-            curves = [c for c in curves if c.get("family") == mode or c.get("family", "").endswith(f"_{mode}")]
+            # Familias reais sao sempre "ground_v"/"ground_x"/"ground_z" (ver
+            # get_dynamic_curves_at_point) -- nunca "*_h"/"*_d". O filtro por
+            # sufixo ingenuo nunca batia com H/D; mapeamento direto corrige.
+            family = {"v": "ground_v", "h": "ground_x", "d": "ground_z"}.get(mode)
+            curves = [c for c in curves if c.get("family") == family]
 
         if not curves:
             return ((raw_x, raw_y), None)

@@ -166,6 +166,30 @@ class PaintEngineFacade:
         last_x: float = 0.0, last_y: float = 0.0,
         has_last: bool = False
     ) -> List[float]: ...
+
+    # ── Curvilinear (6P fisheye) — Fase C2b ──────────────────────────────
+    def set_curvilinear_guide_config(
+        self, base_radius: float = 400.0, density: float = 30.0,
+        show_v: bool = True, show_h: bool = True, show_d: bool = True,
+        show_ground: bool = False, show_ceiling: bool = False,
+        show_ground_verticals: bool = False, show_ceiling_verticals: bool = False,
+        show_straight_verticals: bool = False,
+        snap_mode: int = 0, snap_sensitivity: float = 3.0
+    ) -> None: ...
+    def get_curvilinear_candidates(self, click_x: float, click_y: float) -> List[float]: ...
+    def get_nearest_primary_grid_curve(
+        self, x: float, y: float, max_dist: float = 24.0
+    ) -> List[float]: ...
+    def snap_curvilinear(
+        self, raw_x: float, raw_y: float, start_x: float, start_y: float,
+        candidates: List[float], locked_index: int = -1,
+        is_stroking: bool = False, zoom: float = 1.0
+    ) -> List[float]: ...
+    def snap_perspective(
+        self, raw_x: float, raw_y: float, start_x: float, start_y: float,
+        has_locked_dir: bool = False, locked_dir_x: float = 0.0, locked_dir_y: float = 0.0,
+        zoom: float = 1.0
+    ) -> List[float]: ...
     def set_shape_preset(self, preset_id: int) -> None: ...
     def set_brush_height_preset(self, preset_id: int) -> None: ...
     def set_canvas_height_preset(self, preset_id: int) -> None: ...

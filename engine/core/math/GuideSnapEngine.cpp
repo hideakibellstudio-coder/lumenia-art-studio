@@ -74,6 +74,11 @@ Point2D GuideSnapEngine::projectToBezier(const Point2D& p0, const Point2D& p1, c
 }
 
 Point2D GuideSnapEngine::snapPoint(const GuideConfig& config, const Point2D& rawPoint, const Point2D* lastPoint) noexcept {
+    // lastPoint nao e usado por Straight/CurveRuler (unicos tipos ainda
+    // tratados aqui apos a Fase C3.1) -- mantido no contrato publico por
+    // compatibilidade com o binding snap_point() ja exposto.
+    (void)lastPoint;
+
     if (config.type == GuideType::None) {
         return rawPoint;
     }
@@ -92,79 +97,112 @@ Point2D GuideSnapEngine::snapPoint(const GuideConfig& config, const Point2D& raw
         return (dx * dx + dy * dy <= maxRadius2) ? proj : rawPoint;
     }
 
-    if (config.type == GuideType::Isometric) {
-        if (!lastPoint) return rawPoint;
-        const Point2D lp = *lastPoint;
-        const Point2D cand1 = projectToLine(lp, Point2D{ lp.x + std::cos(PI / 6.0), lp.y + std::sin(PI / 6.0) }, rawPoint);
-        const Point2D cand2 = projectToLine(lp, Point2D{ lp.x, lp.y + 1.0 }, rawPoint);
-        const Point2D cand3 = projectToLine(lp, Point2D{ lp.x + std::cos(5.0 * PI / 6.0), lp.y + std::sin(5.0 * PI / 6.0) }, rawPoint);
-
-        double minD2 = (cand1.x - rawPoint.x)*(cand1.x - rawPoint.x) + (cand1.y - rawPoint.y)*(cand1.y - rawPoint.y);
-        Point2D best = cand1;
-
-        const double d2_2 = (cand2.x - rawPoint.x)*(cand2.x - rawPoint.x) + (cand2.y - rawPoint.y)*(cand2.y - rawPoint.y);
-        if (d2_2 < minD2) { minD2 = d2_2; best = cand2; }
-
-        const double d3_2 = (cand3.x - rawPoint.x)*(cand3.x - rawPoint.x) + (cand3.y - rawPoint.y)*(cand3.y - rawPoint.y);
-        if (d3_2 < minD2) { minD2 = d3_2; best = cand3; }
-
-        return (minD2 <= maxRadius2) ? best : rawPoint;
-    }
-
-    if (config.type == GuideType::OnePoint) {
-        const Point2D pRay = projectToLine(config.vpA, rawPoint, rawPoint);
-        const Point2D ray = projectToLine(config.vpA, (lastPoint ? *lastPoint : rawPoint), rawPoint);
-        const Point2D pH = lastPoint ? projectToLine(*lastPoint, Point2D{ lastPoint->x + 1.0, lastPoint->y }, rawPoint) : rawPoint;
-        const Point2D pV = lastPoint ? projectToLine(*lastPoint, Point2D{ lastPoint->x, lastPoint->y + 1.0 }, rawPoint) : rawPoint;
-
-        double minD2 = (ray.x - rawPoint.x)*(ray.x - rawPoint.x) + (ray.y - rawPoint.y)*(ray.y - rawPoint.y);
-        Point2D best = ray;
-
-        if (lastPoint) {
-            const double dH = (pH.x - rawPoint.x)*(pH.x - rawPoint.x) + (pH.y - rawPoint.y)*(pH.y - rawPoint.y);
-            if (dH < minD2) { minD2 = dH; best = pH; }
-            const double dV = (pV.x - rawPoint.x)*(pV.x - rawPoint.x) + (pV.y - rawPoint.y)*(pV.y - rawPoint.y);
-            if (dV < minD2) { minD2 = dV; best = pV; }
-        }
-        return (minD2 <= maxRadius2) ? best : rawPoint;
-    }
-
-    if (config.type == GuideType::TwoPoint) {
-        const Point2D rayA = projectToLine(config.vpA, (lastPoint ? *lastPoint : rawPoint), rawPoint);
-        const Point2D rayB = projectToLine(config.vpB, (lastPoint ? *lastPoint : rawPoint), rawPoint);
-        const Point2D pV = lastPoint ? projectToLine(*lastPoint, Point2D{ lastPoint->x, lastPoint->y + 1.0 }, rawPoint) : rawPoint;
-
-        double minD2 = (rayA.x - rawPoint.x)*(rayA.x - rawPoint.x) + (rayA.y - rawPoint.y)*(rayA.y - rawPoint.y);
-        Point2D best = rayA;
-
-        const double dB = (rayB.x - rawPoint.x)*(rayB.x - rawPoint.x) + (rayB.y - rawPoint.y)*(rayB.y - rawPoint.y);
-        if (dB < minD2) { minD2 = dB; best = rayB; }
-
-        if (lastPoint) {
-            const double dV = (pV.x - rawPoint.x)*(pV.x - rawPoint.x) + (pV.y - rawPoint.y)*(pV.y - rawPoint.y);
-            if (dV < minD2) { minD2 = dV; best = pV; }
-        }
-        return (minD2 <= maxRadius2) ? best : rawPoint;
-    }
-
-    if (config.type == GuideType::ThreePoint) {
-        const Point2D rayA = projectToLine(config.vpA, (lastPoint ? *lastPoint : rawPoint), rawPoint);
-        const Point2D rayB = projectToLine(config.vpB, (lastPoint ? *lastPoint : rawPoint), rawPoint);
-        const Point2D rayC = projectToLine(config.vpC, (lastPoint ? *lastPoint : rawPoint), rawPoint);
-
-        double minD2 = (rayA.x - rawPoint.x)*(rayA.x - rawPoint.x) + (rayA.y - rawPoint.y)*(rayA.y - rawPoint.y);
-        Point2D best = rayA;
-
-        const double dB = (rayB.x - rawPoint.x)*(rayB.x - rawPoint.x) + (rayB.y - rawPoint.y)*(rayB.y - rawPoint.y);
-        if (dB < minD2) { minD2 = dB; best = rayB; }
-
-        const double dC = (rayC.x - rawPoint.x)*(rayC.x - rawPoint.x) + (rayC.y - rawPoint.y)*(rayC.y - rawPoint.y);
-        if (dC < minD2) { minD2 = dC; best = rayC; }
-
-        return (minD2 <= maxRadius2) ? best : rawPoint;
-    }
+    // OnePoint/TwoPoint/ThreePoint/Isometric: ver snapPerspective() (Fase C3.1)
+    // -- a implementacao que existia aqui era codigo morto nunca chamado pela
+    // UI, com um algoritmo estruturalmente diferente do que geometry_snapping_engine.py
+    // realmente usa (reprojecao por lastPoint em vez de travar direcao no
+    // inicio do traco). Removida para nao deixar duas implementacoes
+    // divergentes do mesmo tipo de guia coexistindo no motor.
 
     return rawPoint;
+}
+
+// ---------------------------------------------------------------------------
+// Perspectiva (1P/2P/3P/Isometric) -- Fase C3.1
+//
+// Porte fiel de snap_ray_perspective (geometry_snapping_engine.py), o
+// algoritmo que a UI realmente usa hoje para essas 4 guias. Sem estado: quem
+// chama (GeometryToolController) informa a direcao travada, se houver, e
+// recebe de volta o que persistir para a proxima chamada -- mesmo contrato
+// ja usado por CurvilinearSnapEngine::snap().
+// ---------------------------------------------------------------------------
+
+Point2D GuideSnapEngine::snapPerspective(
+    const GuideConfig& config,
+    const Point2D& rawPoint,
+    const Point2D& strokeStart,
+    const Point2D* lockedDir,
+    double zoom,
+    Point2D& outLockedDir,
+    bool& outHasLockedDir
+) noexcept {
+    outHasLockedDir = false;
+
+    if (lockedDir != nullptr) {
+        const double t = (rawPoint.x - strokeStart.x) * lockedDir->x + (rawPoint.y - strokeStart.y) * lockedDir->y;
+        const Point2D projected{ strokeStart.x + t * lockedDir->x, strokeStart.y + t * lockedDir->y };
+        const double strayDx = rawPoint.x - projected.x;
+        const double strayDy = rawPoint.y - projected.y;
+        const double stray = std::sqrt(strayDx * strayDx + strayDy * strayDy);
+        // Trava magnetica, nao rigida -- mesmo fix e mesmo raciocinio do
+        // CurvilinearSnapEngine::snap() (Fase C3.5). Reusa config.snapRadius
+        // como tolerancia de afastamento antes de soltar a trava.
+        if (config.snapRadius <= 0.0 || stray <= config.snapRadius) {
+            outLockedDir = *lockedDir;
+            outHasLockedDir = true;
+            return projected;
+        }
+    }
+
+    const double dx = rawPoint.x - strokeStart.x;
+    const double dy = rawPoint.y - strokeStart.y;
+    const double dist = std::sqrt(dx * dx + dy * dy);
+    if (dist < (2.5 / std::max(0.01, zoom))) {
+        return strokeStart;
+    }
+
+    const double ux = dx / dist;
+    const double uy = dy / dist;
+
+    std::vector<Point2D> candidates;
+
+    if (config.type == GuideType::OnePoint) {
+        double lA = std::hypot(config.vpA.x - strokeStart.x, config.vpA.y - strokeStart.y);
+        if (lA == 0.0) lA = 1.0;
+        candidates.push_back(Point2D{ (config.vpA.x - strokeStart.x) / lA, (config.vpA.y - strokeStart.y) / lA });
+        candidates.push_back(Point2D{ 1.0, 0.0 });
+        candidates.push_back(Point2D{ 0.0, 1.0 });
+    } else if (config.type == GuideType::TwoPoint) {
+        double lA = std::hypot(config.vpA.x - strokeStart.x, config.vpA.y - strokeStart.y);
+        double lB = std::hypot(config.vpB.x - strokeStart.x, config.vpB.y - strokeStart.y);
+        if (lA == 0.0) lA = 1.0;
+        if (lB == 0.0) lB = 1.0;
+        candidates.push_back(Point2D{ (config.vpA.x - strokeStart.x) / lA, (config.vpA.y - strokeStart.y) / lA });
+        candidates.push_back(Point2D{ (config.vpB.x - strokeStart.x) / lB, (config.vpB.y - strokeStart.y) / lB });
+        const double hdx = config.vpB.x - config.vpA.x;
+        const double hdy = config.vpB.y - config.vpA.y;
+        double hlen = std::hypot(hdx, hdy);
+        if (hlen == 0.0) hlen = 1.0;
+        candidates.push_back(Point2D{ -hdy / hlen, hdx / hlen });
+    } else if (config.type == GuideType::ThreePoint) {
+        const Point2D* vps[3] = { &config.vpA, &config.vpB, &config.vpC };
+        for (const Point2D* vp : vps) {
+            double l = std::hypot(vp->x - strokeStart.x, vp->y - strokeStart.y);
+            if (l == 0.0) l = 1.0;
+            candidates.push_back(Point2D{ (vp->x - strokeStart.x) / l, (vp->y - strokeStart.y) / l });
+        }
+    } else if (config.type == GuideType::Isometric) {
+        const double cos30 = std::cos(PI / 6.0);
+        const double sin30 = std::sin(PI / 6.0);
+        candidates.push_back(Point2D{ 0.0, 1.0 });
+        candidates.push_back(Point2D{ cos30, sin30 });
+        candidates.push_back(Point2D{ -cos30, sin30 });
+    }
+
+    Point2D bestDir{ 1.0, 0.0 };
+    double maxDot = -1.0;
+    for (const auto& c : candidates) {
+        const double dot = std::abs(c.x * ux + c.y * uy);
+        if (dot > maxDot) {
+            maxDot = dot;
+            bestDir = c;
+        }
+    }
+
+    const double t = (rawPoint.x - strokeStart.x) * bestDir.x + (rawPoint.y - strokeStart.y) * bestDir.y;
+    outLockedDir = bestDir;
+    outHasLockedDir = true;
+    return Point2D{ strokeStart.x + t * bestDir.x, strokeStart.y + t * bestDir.y };
 }
 
 } // namespace aladyn::engine::math

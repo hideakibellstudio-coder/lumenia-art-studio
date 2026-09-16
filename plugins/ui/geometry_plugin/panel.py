@@ -16,6 +16,7 @@ class GeometryPanel(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.adv_dialog = None
+        self._render_widget = None
         self.state = {
             "ruler_idx": 0, "ruler_type": "none",
             "sym_idx": 0, "sym_type": "none",
@@ -200,14 +201,16 @@ class GeometryPanel(QtWidgets.QWidget):
             self.btn_center_pivot.setVisible(True)
             self.btn_reset_angle.setVisible(self.state["sym_type"] in ("mirror", "double_mirror", "radial", "kaleidoscope"))
 
+    def set_render_widget(self, render_widget):
+        """Recebe a referência do canvas diretamente do contrato de wiring
+        do WorkspaceContainer (ws.add_panel), no momento do registro do painel.
+        Substitui a antiga descoberta via findChild()+QTimer polling."""
+        self._render_widget = render_widget
+        self._sync_to_render_widget()
+
     def _get_render_widget(self):
-        top = self.window()
-        if top:
-            cw = top.findChild(QtWidgets.QWidget, "CanvasWidget")
-            if cw and hasattr(cw, "geometry_ctrl"):
-                return cw
-            if hasattr(top, "workspace") and hasattr(top.workspace, "canvas_widget"):
-                return top.workspace.canvas_widget
+        if self._render_widget is not None and hasattr(self._render_widget, "geometry_ctrl"):
+            return self._render_widget
         return None
 
     def _center_pivot_on_canvas(self):
@@ -228,8 +231,11 @@ class GeometryPanel(QtWidgets.QWidget):
     def _sync_to_render_widget(self):
         """Syncs panel state to the canvas geometry controller."""
         rw = self._get_render_widget()
-        if not rw or not hasattr(rw, "geometry_ctrl"):
-            QtCore.QTimer.singleShot(200, self._sync_to_render_widget)
+        if not rw:
+            # Painel ainda não recebeu o canvas via set_render_widget()
+            # (ex.: chamado antes do WorkspaceContainer.add_panel). Nada a
+            # sincronizar ainda; set_render_widget() fará a sincronização
+            # inicial assim que a referência chegar.
             return
 
         ctrl = rw.geometry_ctrl

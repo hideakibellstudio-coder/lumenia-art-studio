@@ -101,7 +101,28 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
         .def("snap_point", &boundary::PaintEngineFacade::snapPoint,
              py::arg("raw_x"), py::arg("raw_y"),
              py::arg("last_x") = 0.0, py::arg("last_y") = 0.0,
-             py::arg("has_last") = false);
+             py::arg("has_last") = false)
+        // Curvilinear (6P fisheye) — Fase C2b
+        .def("set_curvilinear_guide_config", &boundary::PaintEngineFacade::setCurvilinearGuideConfig,
+             py::arg("base_radius") = 400.0, py::arg("density") = 30.0,
+             py::arg("show_v") = true, py::arg("show_h") = true, py::arg("show_d") = true,
+             py::arg("show_ground") = false, py::arg("show_ceiling") = false,
+             py::arg("show_ground_verticals") = false, py::arg("show_ceiling_verticals") = false,
+             py::arg("show_straight_verticals") = false,
+             py::arg("snap_mode") = 0, py::arg("snap_sensitivity") = 3.0)
+        .def("get_curvilinear_candidates", &boundary::PaintEngineFacade::getCurvilinearCandidates,
+             py::arg("click_x"), py::arg("click_y"))
+        .def("get_nearest_primary_grid_curve", &boundary::PaintEngineFacade::getNearestPrimaryGridCurve,
+             py::arg("x"), py::arg("y"), py::arg("max_dist") = 24.0)
+        .def("snap_curvilinear", &boundary::PaintEngineFacade::snapCurvilinear,
+             py::arg("raw_x"), py::arg("raw_y"), py::arg("start_x"), py::arg("start_y"),
+             py::arg("candidates"), py::arg("locked_index") = -1,
+             py::arg("is_stroking") = false, py::arg("zoom") = 1.0)
+        // Perspectiva (1P/2P/3P/Isometric) -- Fase C3.1
+        .def("snap_perspective", &boundary::PaintEngineFacade::snapPerspective,
+             py::arg("raw_x"), py::arg("raw_y"), py::arg("start_x"), py::arg("start_y"),
+             py::arg("has_locked_dir") = false, py::arg("locked_dir_x") = 0.0, py::arg("locked_dir_y") = 0.0,
+             py::arg("zoom") = 1.0);
 }
 
 } // namespace aladyn::bridge

@@ -143,6 +143,34 @@ class TestGeometrySnappingEngine(unittest.TestCase):
         # Snapped x should be exactly aligned with start x=500
         self.assertAlmostEqual(pt_res[0], 500.0, delta=1.0)
 
+    def test_snap_curvilinear_mode_filter_locks_correct_family(self):
+        """Regressao Fase C3.0: snap_mode v/h/d deve travar na familia correta.
+
+        As familias geradas por create_curve_from_normal sao sempre
+        ground_v/ground_x/ground_z (ver get_dynamic_curves_at_point) -- nunca
+        "*_h"/"*_d". Um filtro por sufixo ingenuo faz H e D nunca acharem
+        curva nenhuma e o snap curvilineo ficar mudo nesses dois modos.
+        """
+        base_state = {
+            "cx": 0.0, "cy": 0.0, "fov": 130.0, "pitch": 0.0, "yaw": 0.0,
+            "base_radius": 400.0, "density": 30.0,
+            "show_v": True, "show_h": True, "show_d": True,
+            "show_ground": False, "show_ceiling": False,
+        }
+        click = QtCore.QPointF(120.0, 80.0)
+        for mode, expected_family in (("v", "ground_v"), ("h", "ground_x"), ("d", "ground_z")):
+            with self.subTest(mode=mode):
+                guide_state = dict(base_state, snap_mode=mode)
+                curves = GeometrySnappingEngine.get_dynamic_curves_at_point(guide_state, click)
+                families = {c["family"] for c in curves}
+                self.assertIn(expected_family, families, f"fixture sanity: {families}")
+
+                _, locked = GeometrySnappingEngine.snap_curvilinear(
+                    click.x(), click.y(), 1.0, guide_state, click, None, curves, True
+                )
+                self.assertIsNotNone(locked, f"snap_mode={mode!r} deveria travar numa curva")
+                self.assertEqual(locked["family"], expected_family)
+
 
 class TestGeometryDecomposedIntegration(unittest.TestCase):
     """Verifies end-to-end compatibility between controllers, facades, and renderers."""

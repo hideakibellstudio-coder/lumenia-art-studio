@@ -67,6 +67,11 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
             return py::bytes(reinterpret_cast<const char*>(data.data()), data.size());
         })
         .def("get_layer_thumbnail_buffer", [](boundary::PaintEngineFacade& self, int layerIdx, int thumbW, int thumbH) -> py::object {
+            // thumbW/thumbH nao eram validados antes de alocar — dimensoes
+            // absurdas (ex.: 2**30) causavam uma tentativa de alocacao de
+            // dezenas de GB em vez de um ValueError. Mesmo guard usado pelos
+            // outros acessores de buffer deste arquivo (checkedRasterBytes).
+            checkedRasterBytes(thumbW, thumbH, 4);
             auto out = self.getLayerThumbnailBuffer(layerIdx, thumbW, thumbH);
             if (out.empty()) return py::none();
             return py::bytes(reinterpret_cast<const char*>(out.data()), out.size());

@@ -59,10 +59,6 @@ class Document(QtCore.QObject):
         self.guide_state: dict = {}
         self.sym_state: dict = {}
 
-        # Camadas e histórico de preenchimento (Flood Fill) isolados
-        self.flood_layers: list = []
-        self.flood_redo_stack: list = []
-
         # Perfil de cor e Prova de Impressão (F-006)
         self.color_profile_id: int = 0
         self.color_profile_icc_bytes: bytes | None = None

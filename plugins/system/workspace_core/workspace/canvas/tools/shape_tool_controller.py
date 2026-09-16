@@ -1,9 +1,13 @@
 """Vector and Geometric Shape Tool Controller."""
 
+import logging
 import math
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings
+
+logger = logging.getLogger("Workspace.ShapeTool")
+
 
 class ShapeToolController:
     """Controlador de desenho e rasterização de formas vetoriais no ALADYN ENGINE."""
@@ -188,9 +192,10 @@ class ShapeToolController:
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "paste_rgba_buffer_on_active_layer") and getattr(backend, "available", False):
             backend.paste_rgba_buffer_on_active_layer(0, 0, self.widget.canvas_w, self.widget.canvas_h, px_bytes)
+            self.widget.update()
+            self.widget.strokeFinished.emit()
         else:
-            self.widget._flood_layers.append(shape_img)
-            self.widget._flood_redo_stack.clear()
-
-        self.widget.update()
-        self.widget.strokeFinished.emit()
+            logger.warning(
+                "Forma descartada: motor nativo indisponivel (paste_rgba_buffer_on_active_layer). "
+                "Nenhum pixel foi persistido no TileGrid; nada sera salvo no .lmn."
+            )

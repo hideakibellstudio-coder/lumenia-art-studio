@@ -118,8 +118,6 @@ class WorkspaceDocSyncMixin:
                 last_doc.saved_color = self._saved_color
                 last_doc.paper_color = getattr(self.canvas_widget, "paper_color", QtGui.QColor(255, 255, 255))
                 last_doc.paper_visible = getattr(self.canvas_widget, "paper_visible", True)
-                last_doc.flood_layers = list(getattr(self.canvas_widget, "_flood_layers", []))
-                last_doc.flood_redo_stack = list(getattr(self.canvas_widget, "_flood_redo_stack", []))
                 if hasattr(self.canvas_widget, "geometry_ctrl"):
                     last_doc.guide_state = dict(self.canvas_widget.geometry_ctrl.guide_state)
                     last_doc.sym_state = dict(self.canvas_widget.geometry_ctrl.sym_state)
@@ -156,8 +154,6 @@ class WorkspaceDocSyncMixin:
         # Restaura papel e preenchimentos deste documento
         self.canvas_widget.paper_color = getattr(doc, "paper_color", QtGui.QColor(255, 255, 255))
         self.canvas_widget.paper_visible = getattr(doc, "paper_visible", True)
-        self.canvas_widget._flood_layers = list(getattr(doc, "flood_layers", []))
-        self.canvas_widget._flood_redo_stack = list(getattr(doc, "flood_redo_stack", []))
 
         if hasattr(self.canvas_widget, "geometry_ctrl"):
             self.canvas_widget.geometry_ctrl.load_document_state(doc)

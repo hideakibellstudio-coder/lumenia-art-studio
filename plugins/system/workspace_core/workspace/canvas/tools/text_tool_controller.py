@@ -6,6 +6,7 @@ composição na camada ativa via backend nativo C++ e renderização do texto em
 """
 
 from __future__ import annotations
+import logging
 from typing import Optional, TYPE_CHECKING
 from PySide6 import QtCore, QtGui
 from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
     from ..render_widget import RenderWidget
 
 from ..text_overlay_editor import TextOverlayEditor
+
+logger = logging.getLogger("Workspace.TextTool")
 
 
 class TextToolController:
@@ -73,10 +76,12 @@ class TextToolController:
             b = EngineRegistry.instance().get_backend()
             if b and hasattr(b, "paste_rgba_buffer_on_active_layer") and getattr(b, "available", False):
                 b.paste_rgba_buffer_on_active_layer(0, 0, w, h, px_bytes)
+                self.widget.strokeFinished.emit()
             else:
-                self.widget._flood_layers.append(text_img)
-                self.widget._flood_redo_stack.clear()
-            self.widget.strokeFinished.emit()
+                logger.warning(
+                    "Texto descartado: motor nativo indisponivel (paste_rgba_buffer_on_active_layer). "
+                    "Nenhum pixel foi persistido no TileGrid; nada sera salvo no .lmn."
+                )
 
         ed.hide()
         ed.deleteLater()

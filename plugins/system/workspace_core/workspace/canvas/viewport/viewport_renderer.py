@@ -83,10 +83,6 @@ class ViewportRenderer:
                                 painter.drawImage(dirty_canvas, qimg, lod_src)
                             widget._last_qt_draw_image_ms = (time.perf_counter() - t_blit_0) * 1000.0
 
-                    for fl in getattr(widget, "_flood_layers", []):
-                        if fl and not fl.isNull():
-                            painter.drawImage(dirty_canvas, fl, dirty_canvas)
-
                 if backend and hasattr(backend, "has_selection") and backend.has_selection():
                     OverlayRenderer.render_selection_overlay(
                         painter, backend, widget.zoom,
@@ -151,8 +147,5 @@ class ViewportRenderer:
             qimg = backend.get_qimage()
             if qimg and not qimg.isNull():
                 p.drawImage(0, 0, qimg)
-        for fl in getattr(widget, "_flood_layers", []):
-            if fl and not fl.isNull():
-                p.drawImage(0, 0, fl)
         p.end()
         return composite

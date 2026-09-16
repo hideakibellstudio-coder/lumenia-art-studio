@@ -33,14 +33,6 @@ class WorkspaceActionsMixin:
     def undo(self) -> None:
         """Executa a operação de desfazer."""
         cw = self.canvas_widget
-        if hasattr(cw, "_flood_layers") and cw._flood_layers:
-            layer = cw._flood_layers.pop()
-            cw._flood_redo_stack.append(layer)
-            cw.update()
-            self._on_status_notification("Preenchimento desfeito.")
-            self._on_stroke_finished_sync_previews()
-            return
-
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend:
@@ -58,14 +50,6 @@ class WorkspaceActionsMixin:
     def redo(self) -> None:
         """Executa a operação de refazer."""
         cw = self.canvas_widget
-        if hasattr(cw, "_flood_redo_stack") and cw._flood_redo_stack:
-            layer = cw._flood_redo_stack.pop()
-            cw._flood_layers.append(layer)
-            cw.update()
-            self._on_status_notification("Preenchimento refeito.")
-            self._on_stroke_finished_sync_previews()
-            return
-
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
         if backend:

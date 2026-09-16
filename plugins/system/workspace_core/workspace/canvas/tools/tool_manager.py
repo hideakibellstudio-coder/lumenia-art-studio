@@ -115,7 +115,5 @@ class ToolManager:
         b = EngineRegistry.instance().get_backend()
         if b and hasattr(b, "clear_canvas"):
             b.clear_canvas()
-        self.widget._flood_layers.clear()
-        self.widget._flood_redo_stack.clear()
         self.shape_ctrl.drag_active = False
         self.widget.update()

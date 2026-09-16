@@ -80,7 +80,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
         self._last_rendered_cursor_rect = QtCore.QRect()
         self._bucket_settings = default_tool_settings("bucket")
-        self._flood_layers, self._flood_redo_stack = [], []
 
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(lambda *_: self.update())

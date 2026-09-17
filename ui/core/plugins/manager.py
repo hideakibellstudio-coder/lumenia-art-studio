@@ -69,11 +69,9 @@ class PluginManager:
             sys.path.insert(0, self.plugins_dir)
 
         from ui.infrastructure.bridge_client.client import BridgeClient
-        from ui.infrastructure.bridge_client.dispatcher import EngineDispatcher
 
         self.context = PluginContext(
             bridge_client=BridgeClient.instance(),
-            dispatcher=EngineDispatcher.instance(),
         )
         self.context._service_registry = ServiceRegistry.instance()
 

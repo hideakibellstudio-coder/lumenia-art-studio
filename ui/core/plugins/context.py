@@ -8,14 +8,12 @@ class PluginContext:
 
     Propriedades disponíveis:
         bridge_client    — BridgeClient singleton (operações síncronas no renderer)
-        dispatcher       — EngineDispatcher singleton (eventos de traço assíncronos)
         main_window      — QMainWindow principal (injetado via PluginManager.set_main_window)
         service_registry — ServiceRegistry singleton (registro/consulta de serviços entre plugins)
     """
 
-    def __init__(self, bridge_client, dispatcher):
+    def __init__(self, bridge_client):
         self._bridge_client    = bridge_client
-        self._dispatcher       = dispatcher
         self._main_window      = None  # Injetado por PluginManager.set_main_window()
         self._service_registry = None  # Injetado por PluginManager após criação do ServiceRegistry
         self._loggers          = {}
@@ -26,11 +24,6 @@ class PluginContext:
     def bridge_client(self):
         """Retorna o BridgeClient unificado para operações síncronas/diretas no renderizador."""
         return self._bridge_client
-
-    @property
-    def dispatcher(self):
-        """Retorna o EngineDispatcher unificado para envio assíncrono de eventos de traço."""
-        return self._dispatcher
 
     @property
     def backend(self):

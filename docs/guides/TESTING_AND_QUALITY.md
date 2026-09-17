@@ -1,6 +1,6 @@
 # 🧪 Suíte de Testes Automatizados e Qualidade
 
-O Lumenia possui uma malha rigorosa de testes automatizados com **531 testes unitários e de integração**, cobrindo todas as camadas críticas do sistema.
+O Lumenia possui uma malha rigorosa de testes automatizados com **647 testes unitários e de integração** (mais 10 subtests parametrizados), cobrindo todas as camadas críticas do sistema.
 
 ---
 
@@ -10,7 +10,7 @@ O Lumenia possui uma malha rigorosa de testes automatizados com **531 testes uni
 ```powershell
 python -m pytest
 ```
-Tempo médio de execução: ~4m05s para os 531 testes.
+Tempo médio de execução: ~3m30s para os 647 testes (209.45s no último run completo, com rebuild nativo).
 
 ### Execução de Suítes Segmentadas:
 

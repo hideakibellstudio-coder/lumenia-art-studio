@@ -117,11 +117,15 @@ prática neste projeto.
 4. **Enums Canônicos Tipados (Fim dos Números Mágicos)**: parâmetros que
    cruzam a fronteira UI → Python → C++ (modos de simetria, tipos de guia,
    modos de mesclagem de camadas, etc.) devem ser representados por classes
-   `Enum` únicas e canônicas em `ui/core/types/`, espelhando exatamente os
-   enums nativos (`enum math::SymmetryType`, `enum math::GuideType`, etc.) —
-   nunca strings soltas na UI mapeadas por dict ad-hoc (`m_map`, `gmap`) para
-   inteiros no meio do caminho. Achado pendente, ainda não corrigido (ver
-   `claude/verificacao-cruzada-planos-solidificacao.md` no Projects).
+   `Enum` únicas e canônicas, espelhando exatamente os enums nativos
+   (`enum math::SymmetryType`, `enum math::GuideType`, etc.) — nunca
+   strings soltas na UI mapeadas por dict ad-hoc (`m_map`, `gmap`) para
+   inteiros no meio do caminho. ✅ Corrigido na Fase C5 (2026-09-17):
+   `GuideType`/`SymmetryMode` em `ui/core/geometry/` e `LayerBlendMode`
+   em `ui/core/document/` (não `ui/core/types/` — local ajustado durante
+   a implementação). Ver `claude/verificacao-cruzada-planos-solidificacao.md`
+   no Projects para o diagnóstico completo e os dois bugs de comportamento
+   que essa consolidação corrigiu.
 5. **Regra da Linha Única de Salvamento**: qualquer pixel desenhado na tela
    DEVE passar pelo `TileGrid` do motor C++ para que sua persistência pelo
    `DocumentSerializer` seja garantida. Se não está no `TileGrid`, não existe

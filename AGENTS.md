@@ -82,6 +82,55 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 
 ---
 
+## 🌊 4.1 AS 5 LEIS DO LEITO DO RIO (GOVERNANÇA DE FLUXO)
+
+Registradas em 2026-09-17 a partir da "Análise Pós Solidificação" (2ª varredura
+total, `Planos/Analise Pos Solidificacao Sem navigator.MD`) — a metáfora que dá
+nome a esta seção: sem um leito bem definido, cada agente que passa pelo código
+escava seu próprio curso (um `_flood_layers` aqui, um `findChild` ali), e o rio
+transborda. Estas 5 leis complementam as 6 Leis da seção 4 (não substituem);
+onde se sobrepõem, é porque detalham um caso concreto de violação já visto na
+prática neste projeto.
+
+1. **Proibição de Estado e Buffers Efêmeros em Widgets**: é expressamente
+   proibido criar listas, dicionários de estado de réguas/guias ou buffers
+   `QImage`/`QPixmap` dentro de um `QWidget`. O widget é uma lente descartável
+   que apenas exibe o que `Document`/`LocalLayerManager` e `EngineBackend`
+   fornecem — nunca um dono de estado. (Detalha a Lei nº4/SSOT da seção 4; caso
+   real corrigido: `_flood_layers` no `CanvasWidget`, Fase C1.)
+2. **Proibição de Mocks e Algoritmos Matemáticos Duplicados**: se uma
+   funcionalidade já existe implementada em C++ (ex.: `snap_point`,
+   `flood_fill`, `transform`), é estritamente proibido reimplementar uma
+   versão alternativa em Python "para quebrar o galho". O agente DEVE ligar a
+   UI ao método nativo correspondente, ou, se o método nativo existente for
+   estruturalmente incompatível com o que a UI precisa (caso real: divergência
+   entre `snapPoint()` nativo e `snap_ray_perspective()` Python, Fase C2b),
+   expor um método nativo novo e correto — nunca duplicar a matemática em
+   Python como solução definitiva.
+3. **Desacoplamento via ServiceRegistry (Zero `findChild` entre Plugins)**:
+   nenhum painel pode navegar pela árvore de widgets com
+   `findChild`/`parent().parent()` para alcançar outro plugin ou o canvas.
+   Toda comunicação entre plugins DEVE usar o contrato formal do workspace
+   (`add_panel`/`set_render_widget`) ou sinais do `WorkspaceService`. (Caso
+   real corrigido: hack `findChild(QtWidgets.QWidget, "CanvasWidget")` +
+   `QTimer.singleShot` polling no `GeometryPanel`, Fase C2a.)
+4. **Enums Canônicos Tipados (Fim dos Números Mágicos)**: parâmetros que
+   cruzam a fronteira UI → Python → C++ (modos de simetria, tipos de guia,
+   modos de mesclagem de camadas, etc.) devem ser representados por classes
+   `Enum` únicas e canônicas em `ui/core/types/`, espelhando exatamente os
+   enums nativos (`enum math::SymmetryType`, `enum math::GuideType`, etc.) —
+   nunca strings soltas na UI mapeadas por dict ad-hoc (`m_map`, `gmap`) para
+   inteiros no meio do caminho. Achado pendente, ainda não corrigido (ver
+   `claude/verificacao-cruzada-planos-solidificacao.md` no Projects).
+5. **Regra da Linha Única de Salvamento**: qualquer pixel desenhado na tela
+   DEVE passar pelo `TileGrid` do motor C++ para que sua persistência pelo
+   `DocumentSerializer` seja garantida. Se não está no `TileGrid`, não existe
+   — não há caminho alternativo de composição/salvamento fora dele. (Mesmo
+   caso do item 1: `_flood_layers` nunca era serializado, perdendo dados
+   silenciosamente ao salvar/reabrir.)
+
+---
+
 ## 🔄 5. FLUXO DE TRABALHO PADRONIZADO PARA AGENTES (5 PASSOS)
 
 Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:

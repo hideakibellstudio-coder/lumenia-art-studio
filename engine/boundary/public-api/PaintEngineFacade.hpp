@@ -22,6 +22,9 @@
 #include "../../core/math/SymmetryEngine.hpp"
 #include "../../core/math/GuideSnapEngine.hpp"
 #include "../../core/math/CurvilinearSnapEngine.hpp"
+#include "../../core/math/SnapCandidate.hpp"
+#include "../../core/math/TrajectoryEstimator.hpp"
+#include "../../core/math/SnapLockStateMachine.hpp"
 #include "../../core/telemetry/EngineTelemetry.hpp"
 #include "../../core/canvas/MipmapPyramid.hpp"
 #include <vector>
@@ -217,6 +220,35 @@ public:
     [[nodiscard]] std::vector<double> snapPerspective(
         double rawX, double rawY, double startX, double startY,
         bool hasLockedDir, double lockedDirX, double lockedDirY, double zoom
+    ) const;
+
+    // -- Fase D0 (redesign do motor de snap) -----------------------------
+    // Componentes genericos e sem estado (SnapCandidate/TrajectoryEstimator/
+    // SnapLockStateMachine), ainda nao ligados a nenhum tipo de guia real --
+    // expostos aqui so para permitir cobertura de teste via pytest contra o
+    // facade, mesma convencao ja usada para snapCurvilinear/snapPerspective.
+    // Ver claude/proposta-redesign-motor-snap-guias.md no projeto.
+
+    // Estima direcao+confianca a partir de uma janela de pontos recentes
+    // (recentPoints, mais antigo primeiro): [x0,y0, x1,y1, ...]. Retorna
+    // [dirX, dirY, confidence].
+    // Instância (não static) só por consistência de chamada com o resto do
+    // facade (self.facade.metodo(...) em todo teste existente) -- não lê
+    // nenhum estado de m_guideConfig nem de nenhum outro membro.
+    [[nodiscard]] std::vector<double> estimateTrajectory(
+        const std::vector<double>& recentPoints, double zoom
+    ) const;
+
+    // Um passo da maquina de estados de trava. candidates: flat, 9 doubles
+    // por candidata [kind, family, p1x,p1y, dirx,diry, centerx,centery, radius].
+    // prevState: 0=Searching, 1=Tentative, 2=Committed. Retorna
+    // [x, y, newState, newCandidateIndex, newStreak].
+    [[nodiscard]] std::vector<double> stepSnapLock(
+        double rawX, double rawY,
+        double trajDirX, double trajDirY, double trajConfidence,
+        const std::vector<double>& candidates,
+        int prevState, int prevCandidateIndex, int prevStreak,
+        double attractionRadius, double breakawayRadius, int commitFrames, double scoreSharpness
     ) const;
 
     // ── Métodos de Colagem de Buffers e Formas Primitivas ───────────────────

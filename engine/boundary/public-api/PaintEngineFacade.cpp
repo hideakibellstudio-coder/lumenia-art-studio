@@ -761,6 +761,83 @@ std::vector<double> PaintEngineFacade::snapPerspective(
     return { snapped.x, snapped.y, outHasLockedDir ? 1.0 : 0.0, outLockedDir.x, outLockedDir.y };
 }
 
+namespace {
+    // Decodifica uma SnapCandidate a partir de 9 doubles -- mesma convencao
+    // de decodeCurvilinearCurve, so que mais enxuta porque SnapCandidate nao
+    // precisa de p2 (reta = ponto + direcao, nunca dois pontos). Layout:
+    // [kind, family, p1x,p1y, dirx,diry, centerx,centery, radius]
+    // Sem encode correspondente aqui de proposito: nada nesta fase (D0)
+    // ainda produz SnapCandidate a partir de nenhum tipo de guia real -- os
+    // testes montam candidatas diretamente em Python. O encode volta em
+    // D1-D3, quando os adaptadores de guia (Straight/CurveRuler/Curvilinear/
+    // Perspectiva) passarem a gerar SnapCandidate de verdade.
+    math::SnapCandidate decodeSnapCandidate(const std::vector<double>& flat, size_t index) {
+        math::SnapCandidate c;
+        const size_t o = index * 9;
+        c.kind = static_cast<math::CandidateKind>(static_cast<int>(flat[o + 0]));
+        c.family = static_cast<int>(flat[o + 1]);
+        c.p1 = math::Point2D{ flat[o + 2], flat[o + 3] };
+        c.dir = math::Point2D{ flat[o + 4], flat[o + 5] };
+        c.center = math::Point2D{ flat[o + 6], flat[o + 7] };
+        c.radius = flat[o + 8];
+        return c;
+    }
+}
+
+// -- Fase D0 (redesign do motor de snap) ------------------------------------
+// Ver claude/proposta-redesign-motor-snap-guias.md no projeto para o
+// diagnostico e desenho completos. Estaticos (sem `this`): os tres
+// componentes (SnapCandidate/TrajectoryEstimator/SnapLockStateMachine) sao
+// puros e sem estado -- nao dependem de m_guideConfig nem de nenhum outro
+// estado do facade, diferente de snapCurvilinear/snapPerspective, que
+// consultam m_guideConfig. Ainda nao ligados a nenhum tipo de guia real
+// (isso e' D1-D3); aqui so o suficiente pra testar os componentes isolados
+// via pytest contra o facade.
+
+std::vector<double> PaintEngineFacade::estimateTrajectory(const std::vector<double>& recentPoints, double zoom) const {
+    if (recentPoints.size() % 2 != 0) {
+        throw std::invalid_argument("estimateTrajectory: recentPoints deve ter um multiplo de 2 doubles por ponto");
+    }
+    std::vector<math::Point2D> points;
+    points.reserve(recentPoints.size() / 2);
+    for (size_t i = 0; i + 1 < recentPoints.size(); i += 2) {
+        points.emplace_back(recentPoints[i], recentPoints[i + 1]);
+    }
+    const math::TrajectoryEstimate est = math::TrajectoryEstimator::estimate(points, zoom);
+    return { est.direction.x, est.direction.y, est.confidence };
+}
+
+std::vector<double> PaintEngineFacade::stepSnapLock(
+    double rawX, double rawY,
+    double trajDirX, double trajDirY, double trajConfidence,
+    const std::vector<double>& candidates,
+    int prevState, int prevCandidateIndex, int prevStreak,
+    double attractionRadius, double breakawayRadius, int commitFrames, double scoreSharpness
+) const {
+    if (candidates.size() % 9 != 0) {
+        throw std::invalid_argument("stepSnapLock: candidates deve ter um multiplo de 9 doubles por candidata");
+    }
+    const size_t n = candidates.size() / 9;
+    std::vector<math::SnapCandidate> decoded;
+    decoded.reserve(n);
+    for (size_t i = 0; i < n; ++i) decoded.push_back(decodeSnapCandidate(candidates, i));
+
+    const math::TrajectoryEstimate trajectory{ math::Point2D{ trajDirX, trajDirY }, trajConfidence };
+    const math::SnapLockConfig config{ attractionRadius, breakawayRadius, commitFrames, scoreSharpness };
+
+    const math::SnapLockResult result = math::SnapLockStateMachine::step(
+        math::Point2D{ rawX, rawY }, trajectory, decoded,
+        static_cast<math::SnapLockState>(prevState), prevCandidateIndex, prevStreak, config
+    );
+
+    return {
+        result.point.x, result.point.y,
+        static_cast<double>(static_cast<int>(result.state)),
+        static_cast<double>(result.candidateIndex),
+        static_cast<double>(result.streak)
+    };
+}
+
 size_t PaintEngineFacade::compressInactiveLayers() {
     return internal::MemoryOrchestrator::compressInactiveLayers(m_layerStack);
 }

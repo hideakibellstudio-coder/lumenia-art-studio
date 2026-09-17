@@ -122,7 +122,21 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
         .def("snap_perspective", &boundary::PaintEngineFacade::snapPerspective,
              py::arg("raw_x"), py::arg("raw_y"), py::arg("start_x"), py::arg("start_y"),
              py::arg("has_locked_dir") = false, py::arg("locked_dir_x") = 0.0, py::arg("locked_dir_y") = 0.0,
-             py::arg("zoom") = 1.0);
+             py::arg("zoom") = 1.0)
+        // -- Fase D0 (redesign do motor de snap) -- ver
+        // claude/proposta-redesign-motor-snap-guias.md no projeto. Componentes
+        // genericos ainda nao ligados a nenhum tipo de guia real (D1-D3);
+        // expostos so para testar TrajectoryEstimator/SnapLockStateMachine
+        // isoladamente via pytest, mesma convencao de snap_curvilinear/snap_perspective.
+        .def("estimate_trajectory", &boundary::PaintEngineFacade::estimateTrajectory,
+             py::arg("recent_points"), py::arg("zoom") = 1.0)
+        .def("step_snap_lock", &boundary::PaintEngineFacade::stepSnapLock,
+             py::arg("raw_x"), py::arg("raw_y"),
+             py::arg("traj_dir_x"), py::arg("traj_dir_y"), py::arg("traj_confidence"),
+             py::arg("candidates"),
+             py::arg("prev_state") = 0, py::arg("prev_candidate_index") = -1, py::arg("prev_streak") = 0,
+             py::arg("attraction_radius") = 32.0, py::arg("breakaway_radius") = 32.0,
+             py::arg("commit_frames") = 3, py::arg("score_sharpness") = 2.0);
 }
 
 } // namespace aladyn::bridge

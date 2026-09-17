@@ -1,9 +1,11 @@
 from PySide6 import QtCore, QtGui
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 from .local_layer import LocalLayer
+from .layer_blend_mode import LayerBlendMode
 from .layer_backend_sync import (
     sync_backend_add,
     sync_backend_remove,
@@ -201,14 +203,14 @@ class LocalLayerManager(QtCore.QObject):
         return True
 
     def duplicate_layer(self, target) -> int:
-        layer = self._resolve_uid(target)
+        layer: Optional[LocalLayer] = self._resolve_uid(target)
         if not layer or layer.is_group:
             return 0
 
         new_uid = self._next_uid
         self._next_uid += 1
 
-        new_layer = LocalLayer(new_uid, f"{layer.name} Copiar", is_filter=layer.is_filter)
+        new_layer: LocalLayer = LocalLayer(new_uid, f"{layer.name} Copiar", is_filter=layer.is_filter)
         new_layer.parent_uid = layer.parent_uid
         new_layer.visible = layer.visible
         new_layer.locked = layer.locked
@@ -355,14 +357,15 @@ class LocalLayerManager(QtCore.QObject):
         layer = self.get_layer_at_index(idx)
         if not layer:
             return False
-        layer.blend_mode = blend_mode
-        sync_backend_property(self, idx, "blend_mode", blend_mode)
+        mode = LayerBlendMode.coerce(blend_mode)
+        layer.blend_mode = mode
+        sync_backend_property(self, idx, "blend_mode", mode)
         self.layer_property_changed.emit(layer.uid)
         self.content_changed.emit("blend_mode")
         return True
 
     def flatten_group(self, idx: int) -> bool:
-        group = self.get_layer_at_index(idx)
+        group: Optional[LocalLayer] = self.get_layer_at_index(idx)
         if not group or not group.is_group:
             return False
         descendants = {group.uid}
@@ -373,8 +376,8 @@ class LocalLayerManager(QtCore.QObject):
             descendants |= children
         self.order_about_to_change.emit()
         group.is_group = False
-        if group.blend_mode in ("Atravessar", "PassThrough", "Pass-Through", 7):
-            group.blend_mode = "Normal"
+        if LayerBlendMode.coerce(group.blend_mode) == LayerBlendMode.PASS_THROUGH:
+            group.blend_mode = LayerBlendMode.NORMAL
         self.layers = [layer for layer in self.layers if layer.uid == group.uid or layer.uid not in descendants]
         if self._active_uid in descendants:
             self.set_active_layer(group.uid)
@@ -423,7 +426,7 @@ class LocalLayerManager(QtCore.QObject):
             layer.visible = bool(record.get("visible", True))
             layer.locked = bool(record.get("locked", False))
             layer.opacity = max(0.0, min(1.0, float(record.get("opacity", 1.0))))
-            layer.blend_mode = record.get("blend_mode", "Atravessar" if layer.is_group else "Normal")
+            layer.blend_mode = LayerBlendMode.coerce(record.get("blend_mode", LayerBlendMode.PASS_THROUGH if layer.is_group else LayerBlendMode.NORMAL))
             layer.alpha_locked = bool(record.get("alpha_locked", False))
             layer.clipping_mask = bool(record.get("clipping_mask", False))
             new_layers.append(layer)

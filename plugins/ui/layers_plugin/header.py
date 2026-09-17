@@ -2,6 +2,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboB
 from PySide6.QtCore import Qt, Signal, QRect
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont
 
+from ui.core.document.layer_blend_mode import LayerBlendMode, DISPLAY_ORDER
+
 class LayersOpacitySliderWidget(QWidget):
     """
     Slider customizado para opacidade de camadas no estilo blend box.
@@ -128,20 +130,12 @@ class LayersHeader(QWidget):
 
         self.combo_blend = QComboBox()
         self.combo_blend.setObjectName("LayersBlendCombo")
+        # Fonte unica: LayerBlendMode.label (ui/core/document/layer_blend_mode.py).
+        # "Atravessar" (PassThrough) fica de fora da lista base -- e' inserida/
+        # removida dinamicamente por set_values() conforme a camada ativa e' ou
+        # nao um grupo, exatamente como este widget ja fazia antes.
         self._all_blend_modes = [
-            "Normal",
-            "Atravessar",
-            "Multiplicar",
-            "Divisão",
-            "Sobrepor",
-            "Escurecer",
-            "Clarear",
-            "Subexposição",
-            "Superexposição",
-            "Diferença",
-            "Exclusão",
-            "Adicionar",
-            "Borracha"
+            m.label for m in DISPLAY_ORDER if m != LayerBlendMode.PASS_THROUGH
         ]
         self.combo_blend.addItems(self._all_blend_modes)
         self.combo_blend.setToolTip(tr("layers.blend_mode", "Modo de Mesclagem da Camada"))
@@ -184,22 +178,20 @@ class LayersHeader(QWidget):
             val = int(opacity * 100 if isinstance(opacity, float) and opacity <= 1.0 else opacity)
             self.slider_op.setValue(val)
 
+            pass_through_label = LayerBlendMode.PASS_THROUGH.label
             if is_group:
-                if "Atravessar" not in [self.combo_blend.itemText(i) for i in range(self.combo_blend.count())]:
-                    self.combo_blend.insertItem(1, "Atravessar")
+                if pass_through_label not in [self.combo_blend.itemText(i) for i in range(self.combo_blend.count())]:
+                    self.combo_blend.insertItem(1, pass_through_label)
             else:
-                idx = self.combo_blend.findText("Atravessar")
+                idx = self.combo_blend.findText(pass_through_label)
                 if idx >= 0:
                     self.combo_blend.removeItem(idx)
 
-            legacy_map = {
-                "Multiplicação": "Multiplicar",
-                "Sobreposição": "Sobrepor",
-                "Subexposição (Dodge)": "Subexposição",
-                "Superexposição (Burn)": "Superexposição",
-                "Adicionar (Add)": "Adicionar",
-            }
-            clean_mode = legacy_map.get(blend_mode, blend_mode)
+            # LayerBlendMode.coerce() aceita o enum, um int, o rotulo atual ou
+            # qualquer variante legada de uma so vez -- ver
+            # ui.core.document.layer_blend_mode para a lista completa; substitui
+            # o legacy_map que so cobria 5 dessas variantes.
+            clean_mode = LayerBlendMode.coerce(blend_mode).label
             idx = self.combo_blend.findText(clean_mode)
             if idx >= 0:
                 self.combo_blend.setCurrentIndex(idx)

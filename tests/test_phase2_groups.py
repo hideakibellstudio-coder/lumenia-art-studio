@@ -20,6 +20,7 @@ app = QApplication.instance() or QApplication(sys.argv)
 
 from ui.boundary.orchestrator.main_window import MainWindow
 from ui.core.engine.registry import EngineRegistry
+from ui.core.document.layer_blend_mode import LayerBlendMode
 
 
 class TestPhase2Groups(unittest.TestCase):
@@ -62,7 +63,9 @@ class TestPhase2Groups(unittest.TestCase):
         self.panel.add_group("Grupo Padrão")
         group_layer = [l for l in self.panel.layer_manager.layers if l.name == "Grupo Padrão"][0]
         self.assertTrue(group_layer.is_group)
-        self.assertEqual(group_layer.blend_mode, "Atravessar")
+        # blend_mode agora e' o enum canonico LayerBlendMode, nao mais o
+        # rotulo cru "Atravessar" -- ver ui.core.document.layer_blend_mode.
+        self.assertEqual(group_layer.blend_mode, LayerBlendMode.PASS_THROUGH)
 
     def test_02_nested_subgroups_and_sublayers(self):
         """Valida aninhamento hierárquico de sub-camadas e sub-grupos dentro de grupos."""

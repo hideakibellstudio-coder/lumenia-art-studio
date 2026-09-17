@@ -104,14 +104,28 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .export_values();
 
     // ─── LAYER BLEND MODE (MODO DE MESCLAGEM DAS CAMADAS DO DOCUMENTO) ───────
+    // Os 13 valores completos de document::LayerBlendMode (LayerNode.hpp) --
+    // antes só os 7 primeiros (Normal..Erase) estavam expostos aqui, mesmo
+    // o motor (BlendEquations.hpp) e a UI (layers_plugin/header.py) já
+    // suportando os 13. ui/engine_backends/aladyn_layer_mixin.py não depende
+    // mais deste binding para converter (passa int puro para
+    // PaintEngineFacade::setLayerBlendMode), mas o binding devia documentar
+    // o contrato completo mesmo assim -- ver
+    // claude/verificacao-cruzada-planos-solidificacao.md (Fase C5).
     py::enum_<document::LayerBlendMode>(m, "LayerBlendMode")
-        .value("Normal",   document::LayerBlendMode::Normal)
-        .value("Multiply", document::LayerBlendMode::Multiply)
-        .value("Screen",   document::LayerBlendMode::Screen)
-        .value("Overlay",  document::LayerBlendMode::Overlay)
-        .value("Darken",   document::LayerBlendMode::Darken)
-        .value("Lighten",  document::LayerBlendMode::Lighten)
-        .value("Erase",    document::LayerBlendMode::Erase)
+        .value("Normal",      document::LayerBlendMode::Normal)
+        .value("Multiply",    document::LayerBlendMode::Multiply)
+        .value("Screen",      document::LayerBlendMode::Screen)
+        .value("Overlay",     document::LayerBlendMode::Overlay)
+        .value("Darken",      document::LayerBlendMode::Darken)
+        .value("Lighten",     document::LayerBlendMode::Lighten)
+        .value("Erase",       document::LayerBlendMode::Erase)
+        .value("PassThrough", document::LayerBlendMode::PassThrough)
+        .value("ColorDodge",  document::LayerBlendMode::ColorDodge)
+        .value("ColorBurn",   document::LayerBlendMode::ColorBurn)
+        .value("Difference",  document::LayerBlendMode::Difference)
+        .value("Exclusion",   document::LayerBlendMode::Exclusion)
+        .value("Add",         document::LayerBlendMode::Add)
         .export_values();
 
     // ─── SELECTION MODE ──────────────────────────────────────────────────────

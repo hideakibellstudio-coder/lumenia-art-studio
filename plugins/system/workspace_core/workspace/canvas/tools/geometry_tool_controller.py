@@ -396,10 +396,9 @@ class GeometryToolController:
         self._store_document_state("sym_state", self.sym_state)
         b = EngineRegistry.instance().get_backend()
         if b and hasattr(b, "set_symmetry_config"):
-            m_map = {"none": 0, "mirror": 1, "mirror_v": 1, "mirror_h": 1, "double_mirror": 2, "radial": 3, "kaleidoscope": 4}
             rad = math.pi / 2.0 if self.sym_state["mode"] == "mirror_v" else (0.0 if self.sym_state["mode"] == "mirror_h" else math.radians(self.sym_state["angle"]))
             b.set_symmetry_config(
-                m_map.get(self.sym_state["mode"], 0), self.sym_state["cx"], self.sym_state["cy"], rad,
+                int(SymmetryMode.from_key(self.sym_state["mode"])), self.sym_state["cx"], self.sym_state["cy"], rad,
                 self.sym_state.get("segments", 6), self.sym_state.get("stop_at_center", False)
             )
 
@@ -407,12 +406,11 @@ class GeometryToolController:
         self._store_document_state("guide_state", self.guide_state)
         b = EngineRegistry.instance().get_backend()
         if b and hasattr(b, "set_guide_config"):
-            gmap = {"none": 0, "straight": 1, "curve_ruler": 2, "curvilinear": 3, "one_point": 4, "two_point": 5, "three_point": 6, "isometric": 7}
             p0, p1 = self.guide_state.get("p0", QtCore.QPointF(0, 0)), self.guide_state.get("p1", QtCore.QPointF(100, 100))
             p2, p3 = self.guide_state.get("p2", QtCore.QPointF(200, 200)), self.guide_state.get("p3", QtCore.QPointF(300, 300))
             vpA, vpB, vpC = self.guide_state.get("vpA", QtCore.QPointF(400, 300)), self.guide_state.get("vpB", QtCore.QPointF(-1000, 300)), self.guide_state.get("vpC", QtCore.QPointF(400, -2000))
             b.set_guide_config(
-                gmap.get(self.guide_state["type"], 0), p0.x(), p0.y(), p1.x(), p1.y(), p2.x(), p2.y(), p3.x(), p3.y(),
+                int(GuideType.from_key(self.guide_state["type"])), p0.x(), p0.y(), p1.x(), p1.y(), p2.x(), p2.y(), p3.x(), p3.y(),
                 vpA.x(), vpA.y(), vpB.x(), vpB.y(), vpC.x(), vpC.y(),
                 self.guide_state.get("cx", 400.0), self.guide_state.get("cy", 300.0),
                 self.guide_state.get("fov", 130.0), self.guide_state.get("pitch", 0.0),

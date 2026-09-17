@@ -6,17 +6,37 @@ from ui.core.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.i18n import tr
 
+from ui.core.document.layer_blend_mode import LayerBlendMode
+
+
+# Chave de tradução por modo -- deriva de LayerBlendMode em vez de manter uma
+# tabela índice->rótulo própria. A tabela antiga tinha só 8 entradas em
+# ordem diferente da real (native LayerBlendMode): "Additive" caía no
+# índice 6 (onde o motor tem Erase) e "Erase" no índice 7 (onde o motor tem
+# PassThrough) -- selecionar qualquer um dos dois aplicava o modo errado.
+# PassThrough fica de fora: é um estado estrutural de grupo (ver
+# layer_manager.py::flatten_group), não uma escolha de mesclagem de camada
+# individual, e este diálogo edita uma camada, não um grupo.
+_BLEND_MODE_I18N = {
+    LayerBlendMode.NORMAL: ("blend_mode.normal", "Normal"),
+    LayerBlendMode.MULTIPLY: ("blend_mode.multiply", "Multiplicação (Multiply)"),
+    LayerBlendMode.SCREEN: ("blend_mode.screen", "Divisão / Tela (Screen)"),
+    LayerBlendMode.OVERLAY: ("blend_mode.overlay", "Sobreposição (Overlay)"),
+    LayerBlendMode.DARKEN: ("blend_mode.darken", "Escurecer (Darken)"),
+    LayerBlendMode.LIGHTEN: ("blend_mode.lighten", "Clarear (Lighten)"),
+    LayerBlendMode.COLOR_DODGE: ("blend_mode.color_dodge", "Subexposição (Color Dodge)"),
+    LayerBlendMode.COLOR_BURN: ("blend_mode.color_burn", "Superexposição (Color Burn)"),
+    LayerBlendMode.DIFFERENCE: ("blend_mode.difference", "Diferença (Difference)"),
+    LayerBlendMode.EXCLUSION: ("blend_mode.exclusion", "Exclusão (Exclusion)"),
+    LayerBlendMode.ADD: ("blend_mode.additive", "Adicionar / Luz Linear (Add)"),
+    LayerBlendMode.ERASE: ("blend_mode.erase", "Borracha / Limpar (Erase)"),
+}
+
 
 def get_blend_modes() -> list[tuple[int, str]]:
     return [
-        (0, tr("blend_mode.normal", "Normal")),
-        (1, tr("blend_mode.multiply", "Multiplicação (Multiply)")),
-        (2, tr("blend_mode.screen", "Divisão / Tela (Screen)")),
-        (3, tr("blend_mode.overlay", "Sobreposição (Overlay)")),
-        (4, tr("blend_mode.darken", "Escurecer (Darken)")),
-        (5, tr("blend_mode.lighten", "Clarear (Lighten)")),
-        (6, tr("blend_mode.additive", "Adicionar / Luz Linear (Additive)")),
-        (7, tr("blend_mode.erase", "Borracha / Limpar (Erase)")),
+        (int(mode), tr(key, default))
+        for mode, (key, default) in _BLEND_MODE_I18N.items()
     ]
 
 

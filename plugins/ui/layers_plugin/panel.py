@@ -35,6 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 from ui.core.document.history import layer_transaction
+from ui.core.document.local_layer import LocalLayer
+from ui.core.document.layer_blend_mode import LayerBlendMode
 
 class LayersPanel(QWidget):
     """Widget principal do Painel de Camadas."""
@@ -166,7 +168,7 @@ class LayersPanel(QWidget):
         if not self._updating_selection:
             self._sync_to_native_engine("reorder_all")
 
-    def _on_layer_added(self, layer):
+    def _on_layer_added(self, layer: LocalLayer):
         pass
 
     def set_layer_manager(self, manager):
@@ -355,11 +357,15 @@ class LayersPanel(QWidget):
 
     @layer_transaction
     def _on_ui_blend_changed(self, blend):
+        # Resolve o rotulo emitido pelo combo (header.py) para o enum
+        # canonico -- layer.blend_mode nunca guarda rotulo cru (ver
+        # ui.core.document.layer_blend_mode).
         layer = self.layer_manager.get_active_layer()
         if layer and not self._updating_selection:
+            mode = LayerBlendMode.from_label(blend)
             idx = self.model._find_index_by_uid(layer.uid)
-            self.model.setData(idx, blend, ROLE_BLEND)
-            self._sync_to_native_engine("blend", blend)
+            self.model.setData(idx, mode, ROLE_BLEND)
+            self._sync_to_native_engine("blend", int(mode))
 
     @layer_transaction
     def _on_delegate_action(self, action_type, uid):

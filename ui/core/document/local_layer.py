@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui
 
+from ui.core.document.layer_blend_mode import LayerBlendMode
+
 
 class LocalLayer:
     """Representação local de camada/grupo com miniatura procedural e propriedades."""
@@ -23,7 +25,7 @@ class LocalLayer:
         self.visible = True
         self.locked = False
         self.opacity = 1.0
-        self.blend_mode = "Atravessar" if is_group else "Normal"
+        self.blend_mode = LayerBlendMode.PASS_THROUGH if is_group else LayerBlendMode.NORMAL
         self.alpha_locked = False
         self.clipping_mask = False
         self.collapsed = False

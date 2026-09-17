@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
+from ui.core.document.layer_blend_mode import LayerBlendMode
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,23 +34,13 @@ class AladynLayerMixin:
             self._facade.set_layer_clipping_mask(index, clipped)
 
     def set_layer_blend_mode(self, index: int, mode_val: Any) -> None:
-        if self._facade and self._native:
-            if isinstance(mode_val, int):
-                bm_enum = self._native.LayerBlendMode(mode_val)
-            elif isinstance(mode_val, str):
-                blend_map = {
-                    "Normal": 0, "Multiply": 1, "Multiplicação": 1, "Screen": 2, "Divisão": 2,
-                    "Overlay": 3, "Sobreposição": 3, "Darken": 4, "Escurecer": 4, "Lighten": 5, "Clarear": 5,
-                    "Erase": 6, "Borracha": 6, "Pass-Through": 7, "Atravessar": 7, "PassThrough": 7,
-                    "ColorDodge": 8, "Color Dodge": 8, "Subexposição (Dodge)": 8, "Subexposição": 8,
-                    "ColorBurn": 9, "Color Burn": 9, "Superexposição (Burn)": 9, "Superexposição": 9,
-                    "Difference": 10, "Diferença": 10, "Exclusion": 11, "Exclusão": 11,
-                    "Add": 12, "Adicionar (Add)": 12, "Adicionar": 12
-                }
-                bm_enum = self._native.LayerBlendMode(blend_map.get(mode_val, 0))
-            else:
-                bm_enum = mode_val
-            self._facade.set_layer_blend_mode(index, bm_enum)
+        if self._facade:
+            # Passa int puro (contrato de `.pyi`: `blend_mode_id: int`), nunca
+            # constrói o enum nativo -- mais simples, e imune a um binding
+            # pybind11 parcial (bind_math_brush.cpp expõe os 13 valores hoje,
+            # mas já expôs só 7 antes da Fase C5). Ver
+            # ui.core.document.layer_blend_mode para o histórico completo.
+            self._facade.set_layer_blend_mode(index, int(LayerBlendMode.coerce(mode_val)))
 
     def reorder_layer(self, from_index: int, to_index: int) -> bool:
         if self._facade:

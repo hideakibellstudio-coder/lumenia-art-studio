@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-GUIDE_TYPES = [
-    "none",           # 0
-    "straight",       # 1
-    "curve_ruler",    # 2
-    "curvilinear",    # 3
-    "one_point",      # 4
-    "two_point",      # 5
-    "three_point",    # 6
-    "isometric",      # 7
-]
+from ui.core.geometry.guide_type import GUIDE_TYPE_ORDER
+
+# Fonte unica: ui.core.geometry.guide_type.GuideType (espelha o enum nativo
+# GuideType 1:1 -- ver esse modulo para o porque desta lista nao ser mais
+# escrita a mao aqui).
+GUIDE_TYPES = [t.key for t in GUIDE_TYPE_ORDER]
 
 GUIDE_NAMES = [
     "Nenhuma",
@@ -35,6 +31,10 @@ GUIDE_KEYS = [
     "geometry.isometric",
 ]
 
+# SymmetryMode nao tem uma chave de string por membro (mirror_v/mirror_h
+# colapsam para o mesmo SymmetryMode.MIRROR nativo -- ver
+# ui.core.geometry.symmetry_mode para o porque), entao esta lista continua
+# escrita a mao; SYM_NAMES/SYM_KEYS abaixo tem que casar item a item com ela.
 SYM_TYPES = [
     "none",           # 0
     "mirror",         # 1

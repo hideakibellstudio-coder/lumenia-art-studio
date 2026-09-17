@@ -5,6 +5,5 @@
   "NavigatorPlugin": true,
   "LayersPlugin": true,
   "GeometryPlugin": true,
-  "TelemetryPlugin": true,
-  "RainbowDynamics": false
+  "TelemetryPlugin": true
 }

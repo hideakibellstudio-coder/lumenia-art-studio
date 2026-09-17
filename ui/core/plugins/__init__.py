@@ -1,4 +1,4 @@
-from .base import BasePlugin, BrushDynamicsService
+from .base import BasePlugin
 from .registry import ServiceRegistry
 from .manager import PluginManager
 from .metadata import PluginMetadata, PluginType
@@ -10,7 +10,7 @@ from .contracts import (
 )
 
 __all__ = [
-    "BasePlugin", "BrushDynamicsService",
+    "BasePlugin",
     "ServiceRegistry", "PluginManager",
     "PluginMetadata", "PluginType", "PluginContext",
     "WorkspaceService",

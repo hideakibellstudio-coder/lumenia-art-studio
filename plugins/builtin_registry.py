@@ -6,7 +6,6 @@ listed here while user-installed plugins remain discoverable from disk.
 """
 
 BUILTIN_PLUGIN_MODULES = (
-    "plugins.rainbow_dynamics",
     "plugins.system.workspace_core",
     "plugins.ui.brush_plugin",
     "plugins.ui.color_plugin",

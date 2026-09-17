@@ -63,15 +63,3 @@ class BasePlugin(ABC):
 
     def open_settings_ui(self, parent_widget) -> None:
         pass
-
-
-# ── Service Interfaces ──────────────────────────────────────────────
-
-class BrushDynamicsService(ABC):
-    @abstractmethod
-    def process_stroke_point(self, x: float, y: float, pressure: float, timestamp: float) -> tuple[float, float, float]:
-        """
-        Recebe as coordenadas da tela e pressão brutas e retorna (x, y, pressão) modificados.
-        Permite que plugins criem dinâmicas de pressão customizadas, estabilizadores ou snaps.
-        """
-        pass

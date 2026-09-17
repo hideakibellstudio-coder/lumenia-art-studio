@@ -133,7 +133,7 @@ def test_plugin_install_quarantines_metadata_that_diverges_from_manifest(tmp_pat
 
 
 def test_plugin_configuration_uses_atomic_backup_and_recovery(tmp_path):
-    manager = PluginManager(str(tmp_path / "plugins"))
+    manager: PluginManager = PluginManager(str(tmp_path / "plugins"))
     manager.enabled_plugins_config = {"SamplePlugin": True}
     assert manager.save_config()
     manager.enabled_plugins_config = {"SamplePlugin": False}
@@ -166,7 +166,6 @@ def test_packaged_plugin_catalog_is_discovered_without_source_scanning(tmp_path,
         "GeometryPlugin",
         "LayersPlugin",
         "NavigatorPlugin",
-        "RainbowDynamics",
         "TelemetryPlugin",
         "WorkspaceCore",
     } <= manager.discovered_plugins.keys()

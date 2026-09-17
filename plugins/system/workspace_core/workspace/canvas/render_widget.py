@@ -23,7 +23,6 @@ _OPENGL_ENABLED = _HAS_OPENGL and os.environ.get("LUMENIA_DISABLE_OPENGL", "0") 
 _BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 
 from ui.infrastructure.bridge_client import BridgeClient
-from ui.infrastructure.bridge_client.dispatcher import EngineDispatcher
 from ui.core.engine.backend import PointerEvent
 from ui.core.tool_settings import default_tool_settings
 
@@ -64,7 +63,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self.setAttribute(QtCore.Qt.WA_StaticContents)
 
         self.bridge_client = BridgeClient.instance()
-        self.dispatcher = EngineDispatcher.instance()
 
         self.camera = CameraController(self)
         self.input_router = CanvasInputRouter(self)

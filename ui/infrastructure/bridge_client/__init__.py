@@ -5,7 +5,6 @@ Ponto oficial de saída do Pilar 1 (UI) em direção à Bridge / Motor Nativo C+
 """
 
 from .client import BridgeClient, BridgePointerEvent
-from .dispatcher import EngineDispatcher
 from ui.engine_backends.aladyn import AladynBackend
 
-__all__ = ["BridgeClient", "BridgePointerEvent", "EngineDispatcher", "AladynBackend"]
+__all__ = ["BridgeClient", "BridgePointerEvent", "AladynBackend"]

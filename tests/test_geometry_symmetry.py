@@ -281,9 +281,23 @@ class TestGeometrySymmetry(unittest.TestCase):
 
     def test_11_perspective_native_matches_python(self):
         """Regressao Fase C3.1: snap_perspective nativo deve produzir o mesmo
-        resultado que snap_ray_perspective (Python), tipo a tipo, ja que e um
-        porte fiel do mesmo algoritmo (mesma pontuacao por produto escalar,
-        mesmo travamento de direcao no inicio do traco)."""
+        resultado que snap_ray_perspective (Python) para a pontuacao por
+        produto escalar e o travamento de direcao no inicio do traco.
+
+        NAO cobre o comportamento apos a trava ter sido conquistada alem da
+        tolerancia magnetica: a Fase C3.5 deu ao motor nativo uma trava
+        magnetica (solta e repontua quando o afastamento excede
+        config.snapRadius -- GuideSnapEngine::snapPerspective), enquanto
+        snap_ray_perspective (Python) permanece com a trava rigida original
+        (projeta na direcao travada para sempre, sem nunca reavaliar). Essa
+        divergencia e intencional -- ver test_13_perspective_breakaway_releases_stale_lock,
+        que cobre exatamente o comportamento de soltura nativo. O segundo
+        ponto de arraste aqui fica deliberadamente dentro do raio magnetico
+        (snapRadius=32, default) da reta travada no frame 1 para os 4 tipos
+        de guia, para que este teste continue comparando so a parte do
+        algoritmo que de fato e' um porte fiel (selecao de candidata +
+        projecao), sem cruzar para o territorio onde os dois motores
+        divergem por design."""
         from plugins.system.workspace_core.workspace.canvas.tools.geometry_snapping_engine import (
             GeometrySnappingEngine,
         )
@@ -292,7 +306,7 @@ class TestGeometrySymmetry(unittest.TestCase):
         vpA, vpB, vpC = (100.0, 300.0), (700.0, 300.0), (400.0, 50.0)
         type_map = {"one_point": 4, "two_point": 5, "three_point": 6, "isometric": 7}
         start = (400.0, 400.0)
-        drag_points = [(430.0, 340.0), (470.0, 280.0)]  # 2 chamadas: destrava, depois trava
+        drag_points = [(430.0, 340.0), (400.0, 280.0)]  # 2 chamadas: destrava, depois trava (2o ponto dentro do raio magnetico de 32px)
 
         for gtype, type_id in type_map.items():
             with self.subTest(gtype=gtype):

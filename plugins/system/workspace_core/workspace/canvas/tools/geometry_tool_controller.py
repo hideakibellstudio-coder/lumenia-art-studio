@@ -18,6 +18,22 @@ from ..math.camera_3d_projector import (
     closest_point_on_curve
 )
 from .geometry_snapping_engine import GeometrySnappingEngine
+from ui.core.geometry.guide_type import GuideType
+from ui.core.geometry.symmetry_mode import SymmetryMode
+
+
+def _first_not_none(*values):
+    """Retorna o primeiro valor nao-None. NAO usar `a or b` para isso quando
+    os valores podem ser QPointF: PySide6 trata QPointF(0.0, 0.0) como
+    "falsy" (mesma semantica de Qt QPointF::isNull()), entao `QPointF(0,0)
+    or fallback` descarta silenciosamente um ponto de pressao/anchor valido
+    exatamente na origem -- bug real encontrado na Fase C3.5 (refinamento)
+    quando um teste sintetico usou (0,0) como ponto de pressao e o
+    fallback errado passou a ser usado (ver test_geometry_c35_native_anchor.py)."""
+    for v in values:
+        if v is not None:
+            return v
+    return None
 
 
 class GeometryToolController:
@@ -298,7 +314,7 @@ class GeometryToolController:
                 if native_res is not None:
                     return native_res
             curves = self.stroke_candidate_curves if (self.is_stroking and self.stroke_candidate_curves) else (
-                self.dynamic_hover_curves or GeometrySnappingEngine.get_dynamic_curves_at_point(self.guide_state, self.snap_start_pt or QtCore.QPointF(raw_x, raw_y))
+                self.dynamic_hover_curves or GeometrySnappingEngine.get_dynamic_curves_at_point(self.guide_state, _first_not_none(self.snap_start_pt, QtCore.QPointF(raw_x, raw_y)))
             )
             pt_res, locked = GeometrySnappingEngine.snap_curvilinear(
                 raw_x, raw_y, zoom, self.guide_state, self.snap_start_pt, self.locked_curve, curves, self.is_stroking
@@ -324,7 +340,7 @@ class GeometryToolController:
         # projecao do frame anterior), entao usa-lo aqui nao muda o ponto
         # projetado; o que muda e' so a reavaliacao apos um break-away, que
         # passa a usar uma referencia recente em vez do ponto de pressao.
-        anchor = self._native_persp_anchor or self.snap_start_pt or QtCore.QPointF(raw_x, raw_y)
+        anchor = _first_not_none(self._native_persp_anchor, self.snap_start_pt, QtCore.QPointF(raw_x, raw_y))
         has_lock = self.locked_dir is not None
         ldx, ldy = self.locked_dir if has_lock else (0.0, 0.0)
         x, y, has_lock_out, ndx, ndy = b.snap_perspective(
@@ -339,7 +355,7 @@ class GeometryToolController:
         b = EngineRegistry.instance().get_backend()
         if not b or not hasattr(b, "snap_curvilinear") or not hasattr(b, "get_curvilinear_candidates"):
             return None
-        press_start = self.snap_start_pt or QtCore.QPointF(raw_x, raw_y)
+        press_start = _first_not_none(self.snap_start_pt, QtCore.QPointF(raw_x, raw_y))
         candidates = self._native_stroke_candidates_flat if (self.is_stroking and self._native_stroke_candidates_flat) else (
             b.get_curvilinear_candidates(press_start.x(), press_start.y())
         )
@@ -347,7 +363,7 @@ class GeometryToolController:
         # candidatas continua ancorada na pressao (define o conjunto de
         # curvas do traco inteiro); so a referencia passada para pontuar
         # direcao/re-travar usa o anchor recente.
-        anchor = self._native_curv_anchor or press_start
+        anchor = _first_not_none(self._native_curv_anchor, press_start)
         x, y, new_idx = b.snap_curvilinear(
             raw_x, raw_y, anchor.x(), anchor.y(), candidates, self._native_curv_locked_index, self.is_stroking, zoom
         )

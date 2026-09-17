@@ -18,6 +18,7 @@ from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.engine.registry import EngineRegistry
 from ui.core.widgets.pipeline_bar import PipelineBar
 from ui.core.widgets.metric_card import GridMetricCard
+from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from ui.core.dialogs.telemetry_grid_report import (
     TelemetryStateHistoryDialog,
     TelemetryReportGenerator,
@@ -266,7 +267,7 @@ class TelemetryGridWindow(BaseFramelessDialog):
 
         if not hasattr(backend, "get_telemetry_snapshot"):
             return
-        snap = backend.get_telemetry_snapshot()
+        snap: TelemetrySnapshot = backend.get_telemetry_snapshot()
         if not snap:
             return
 

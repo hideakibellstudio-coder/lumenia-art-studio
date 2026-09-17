@@ -19,6 +19,7 @@ from ui.core.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
 from ui.core.widgets.pipeline_bar import PipelineBar
+from ui.core.engine.telemetry_dto import TelemetrySnapshot
 
 
 class TelemetryPanel(QtWidgets.QWidget):
@@ -278,7 +279,7 @@ class TelemetryPanel(QtWidgets.QWidget):
 
         # Snapshot completo da estrutura do C++
         if backend:
-            snap = backend.get_telemetry_snapshot()
+            snap: TelemetrySnapshot = backend.get_telemetry_snapshot()
             if snap:
                 press_pct = int(snap.raw_pressure * 100)
                 self.bar_pressure.setValue(min(100, max(0, press_pct)))

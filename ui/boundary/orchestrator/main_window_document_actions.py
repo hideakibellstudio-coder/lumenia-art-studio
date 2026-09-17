@@ -9,6 +9,7 @@ from PySide6 import QtGui, QtWidgets
 from ui.core.document.serializer import DocumentFormatError, DocumentSerializer
 from ui.core.engine.registry import EngineRegistry
 from ui.core.document.restore import restore_document
+from ui.core.document.document import Document
 
 
 class MainWindowDocumentActionsMixin:
@@ -59,7 +60,7 @@ class MainWindowDocumentActionsMixin:
         previous = self.dm.active_document()
         paper = manifest.get("paper", {})
         color = paper.get("color", [255, 255, 255, 255])
-        doc = self.dm.new_document(
+        doc: Document = self.dm.new_document(
             width=int(manifest.get("width", 1)),
             height=int(manifest.get("height", 1)),
             name=str(manifest.get("name", os.path.basename(filename))),

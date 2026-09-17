@@ -7,6 +7,7 @@ view metadata with the native step ID; it never guesses identity from names.
 from contextlib import contextmanager
 from copy import deepcopy
 from functools import wraps
+from .local_layer import LocalLayer
 
 
 class LayerTransactionCancelled(Exception):
@@ -98,6 +99,7 @@ class DocumentHistory:
             layers = manager.layers
             if backend.get_drawing_layer_count() != len(layers):
                 raise RuntimeError("Operação cancelada: camadas divergentes entre documento e motor.")
+            layer: LocalLayer
             for index, layer in enumerate(layers):
                 if backend.is_group(index) != layer.is_group or backend.is_filter_layer(index) != layer.is_filter:
                     raise RuntimeError("Operação cancelada: tipo de camada divergente.")

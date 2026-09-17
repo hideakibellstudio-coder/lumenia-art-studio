@@ -4,7 +4,9 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QRect
 from .panel_rename_popup import LayerRenamePopup
 from .panel_sync import refresh_layer_thumbnail
+from typing import Optional
 from ui.core.document.history import layer_transaction, LayerTransactionCancelled
+from ui.core.document.local_layer import LocalLayer
 
 
 def add_filter_layer(panel, filter_type=None):
@@ -97,7 +99,7 @@ def open_edit_filter_popup(panel, uid: int = None):
             return
         uid = active.uid
 
-    layer = panel.layer_manager.get_layer_by_uid(uid)
+    layer: Optional[LocalLayer] = panel.layer_manager.get_layer_by_uid(uid)
     if not layer:
         return
 

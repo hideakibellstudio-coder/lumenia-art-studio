@@ -213,14 +213,14 @@ def test_bucket_and_eyedrop_controls_reach_the_backend_with_canonical_values():
 def test_selection_and_transform_controllers_forward_the_normalized_options():
     backend = _BackendSpy()
     registry, previous = _with_backend(backend)
-    canvas = QtWidgets.QWidget()
+    canvas: QtWidgets.QWidget = QtWidgets.QWidget()
     canvas.canvas_w, canvas.canvas_h = 100, 100
     canvas.active_tool = "rect_select"
     canvas.to_canvas = lambda *_: SimpleNamespace(x=25, y=30)
     canvas.update = lambda: None
     canvas.strokeFinished = _Signal()
     try:
-        selection = SelectionToolController(canvas)
+        selection: SelectionToolController = SelectionToolController(canvas)
         selection.wand_settings = normalize_tool_settings("wand", {"tolerance": 55, "mode": 2})
         selection.do_magic_wand_select(0, 0)
         assert backend.calls[-1] == ("wand", {
@@ -235,7 +235,7 @@ def test_selection_and_transform_controllers_forward_the_normalized_options():
         kind, (_, rect) = backend.calls[-1]
         assert kind == "rect" and rect["feather_px"] == 7
 
-        transform = TransformToolController(canvas)
+        transform: TransformToolController = TransformToolController(canvas)
         transform.active = True
         transform.pivot = QtCore.QPointF(20, 20)
         transform.interp_mode, transform.lock_aspect = 1, True

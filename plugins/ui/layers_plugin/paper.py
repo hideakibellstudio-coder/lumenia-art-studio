@@ -240,7 +240,8 @@ class PaperLayerWidget(QWidget):
 
         # Atualiza documento ativo
         from ui.core.document.manager import DocumentManager
-        active_doc = DocumentManager.instance().active_document()
+        from ui.core.document.document import Document
+        active_doc: Document = DocumentManager.instance().active_document()
         if active_doc:
             active_doc.paper_color = self.color
             active_doc.paper_visible = self.visible

@@ -31,7 +31,7 @@ class TestLowLevelTelemetryDiagnostics(unittest.TestCase):
         self.assertFalse(self.facade.is_telemetry_enabled())
         self.assertFalse(self.facade.is_detailed_logging_enabled())
 
-        snap = self.facade.get_telemetry_snapshot()
+        snap: aen.RealTimeStrokeMetrics = self.facade.get_telemetry_snapshot()
         self.assertIsNotNone(snap)
         self.assertEqual(snap.total_dabs_in_stroke, 0)
         self.assertEqual(snap.last_segment_latency_us, 0.0)
@@ -154,7 +154,7 @@ class TestLowLevelTelemetryDiagnostics(unittest.TestCase):
             app = QtWidgets.QApplication(sys.argv)
 
         from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
-        grid_win = TelemetryGridWindow()
+        grid_win: TelemetryGridWindow = TelemetryGridWindow()
         self.assertIsNotNone(grid_win)
         self.assertEqual(len(grid_win._cards), 20, "Deve conter exatamente 20 cards métricos no Grid")
 

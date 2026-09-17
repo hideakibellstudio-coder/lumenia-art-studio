@@ -118,7 +118,7 @@ class TestToolbarsGeometryI18nRetranslation(unittest.TestCase):
 
     def test_04_advanced_geometry_dialog_retranslation(self):
         """Valida que o dialogo avancado de geometria re-traduz as 3 abas e todos os seus controles."""
-        dialog = AdvancedGeometryDialog()
+        dialog: AdvancedGeometryDialog = AdvancedGeometryDialog()
         try:
             # en_US
             self.i18n.set_locale("en_US", is_auto=False)

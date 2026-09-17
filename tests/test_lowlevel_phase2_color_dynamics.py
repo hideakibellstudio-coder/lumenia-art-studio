@@ -72,7 +72,7 @@ class TestLowLevelPhase2ColorDynamics(unittest.TestCase):
         """
         pt = aen.Point2D(50.0, 50.0)
         # Cria PointerEvent com inclinação de 45 graus em X e twist de 90 graus
-        evt = aen.PointerEvent(
+        evt: aen.PointerEvent = aen.PointerEvent(
             aen.PointerEventType.Move, pt, 0.8, 1.0, 45.0, 0.0, 90.0
         )
         self.assertAlmostEqual(evt.tilt_x, 45.0, places=2)

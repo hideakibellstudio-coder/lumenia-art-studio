@@ -30,7 +30,7 @@ class TestLowLevelUndoTileStress(unittest.TestCase):
         return np.frombuffer(buf, dtype=np.uint8).reshape((self.h, self.w, 4))
 
     def _draw_stroke(self, x0, y0, x1, y1, color: aen.ColorRGBA, size=15.0, steps=30):
-        profile = self.facade.get_brush_profile()
+        profile: aen.BrushProfile = self.facade.get_brush_profile()
         profile.engine_type = aen.EngineType.Inker
         profile.brush_size = size
         profile.opacity = 1.0

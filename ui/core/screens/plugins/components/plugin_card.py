@@ -3,6 +3,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.theme.manager import ThemeManager
+from ui.core.plugins.metadata import PluginMetadata
 
 
 class PluginCard(QtWidgets.QFrame):
@@ -52,7 +53,7 @@ class PluginCard(QtWidgets.QFrame):
             pass
 
         try:
-            metadata = self.plugin.get_metadata()
+            metadata: PluginMetadata = self.plugin.get_metadata()
             p_name = metadata.name
             p_version = metadata.version
             p_author = metadata.author

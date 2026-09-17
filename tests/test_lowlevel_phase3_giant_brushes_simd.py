@@ -39,7 +39,7 @@ class TestLowLevelPhase3GiantBrushesSimd(unittest.TestCase):
         Valida a estabilidade e cobertura contínua de pincéis gigantes (raio 250px, diâmetro 500px).
         Garante ausência de falhas de memória, travamentos ou furos de rasterização.
         """
-        profile = self.facade.get_brush_profile()
+        profile: aen.BrushProfile = self.facade.get_brush_profile()
         profile.brush_size = 500.0  # Raio = 250px
         profile.hardness = 0.85
         profile.spacing_factor = 0.15

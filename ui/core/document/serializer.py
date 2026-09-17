@@ -15,6 +15,8 @@ import shutil
 import zipfile
 from pathlib import Path
 from typing import Any
+from .document import Document
+from .local_layer import LocalLayer
 from .schema import CURRENT_VERSION, DocumentFormatError, encode_guides, migrate, validate_auxiliary
 
 
@@ -29,7 +31,7 @@ class DocumentSerializer:
         return [int(color.red()), int(color.green()), int(color.blue()), int(color.alpha())]
 
     @classmethod
-    def save(cls, document, backend, path: str | os.PathLike[str]) -> str:
+    def save(cls, document: Document, backend, path: str | os.PathLike[str]) -> str:
         if not backend or not getattr(backend, "available", False):
             raise DocumentFormatError("motor indisponível; salvamento cancelado para preservar o documento")
         context = getattr(backend, "get_active_document_context", None)
@@ -54,6 +56,7 @@ class DocumentSerializer:
         payloads: dict[str, bytes] = {}
         manager = document.layer_manager
         expected_size = int(document.width) * int(document.height) * 4
+        layer: LocalLayer
         for index, layer in enumerate(manager.layers):
             entry: dict[str, Any] = {
                 "uid": int(layer.uid),

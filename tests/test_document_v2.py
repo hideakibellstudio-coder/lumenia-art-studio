@@ -32,6 +32,7 @@ def drawing():
 
 
 def test_native_round_trip_preserves_mask_profile_texture_curve_and_guides(drawing, tmp_path):
+    document: Document
     document, backend = drawing
     pixels = bytes([77, 100, 33, 128]) * 16
     backend.paste_rgba_buffer_on_active_layer(0, 0, 4, 4, pixels)
@@ -52,7 +53,7 @@ def test_native_round_trip_preserves_mask_profile_texture_curve_and_guides(drawi
     manifest, payloads = DocumentSerializer.read(path)
     assert manifest["version"] == 2
     assert manifest["guide_state"]["p0"] == [1.5, 2.5]
-    other = Document("v2-copy", "Cópia", 4, 4)
+    other: Document = Document("v2-copy", "Cópia", 4, 4)
     backend.set_active_document_context(other.uid, 4, 4)
     # An existing selection must not clip the incoming layer pixels.
     backend.select_rect(0, 0, 1, 1)

@@ -30,7 +30,7 @@ class TestPhase5ViewportPipeline(unittest.TestCase):
         self.facade.set_background_visibility(False)
 
     def _draw_stroke(self, x0, y0, x1, y1, color: aen.ColorRGBA, size=20.0, steps=20):
-        profile = self.facade.get_brush_profile()
+        profile: aen.BrushProfile = self.facade.get_brush_profile()
         profile.engine_type = aen.EngineType.Inker
         profile.brush_size = size
         profile.opacity = 1.0

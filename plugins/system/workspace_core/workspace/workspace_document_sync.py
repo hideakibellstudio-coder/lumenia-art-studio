@@ -1,8 +1,12 @@
 """Document and Camera synchronization mixin for WorkspaceContainer."""
 
 import math
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.core.document.document import Document
+
+if TYPE_CHECKING:
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
 
 class WorkspaceDocSyncMixin:
@@ -46,7 +50,7 @@ class WorkspaceDocSyncMixin:
         self, zoom: float, norm_x: float, norm_y: float, rotation: float
     ) -> None:
         """Recebe coordenadas normalizadas do navigator e aplica ao canvas."""
-        cw = self.canvas_widget
+        cw: "RenderWidget" = self.canvas_widget
         cw_w = float(getattr(cw, "canvas_w", self.canvas_w))
         cw_h = float(getattr(cw, "canvas_h", self.canvas_h))
         cw.zoom     = zoom
@@ -67,7 +71,7 @@ class WorkspaceDocSyncMixin:
         view_w: float, view_h: float,
     ) -> None:
         """Mapeia parâmetros de câmera para coordenadas normalizadas do navigator."""
-        document = self._dm.active_document()
+        document: Document = self._dm.active_document()
         if document is not None:
             document.zoom, document.pan_x, document.pan_y, document.rotation = zoom, pan_x, pan_y, rotation
         cw_w = float(getattr(self.canvas_widget, "canvas_w", self.canvas_w))
@@ -89,7 +93,7 @@ class WorkspaceDocSyncMixin:
     def refresh_document_state(self, doc):
         self._on_active_document_changed(doc, capture_previous=False)
 
-    def _on_active_document_changed(self, doc, *, capture_previous=True) -> None:
+    def _on_active_document_changed(self, doc: Document, *, capture_previous=True) -> None:
         """
         Chamado pelo DocumentManager quando o documento ativo muda.
         Salva o estado do doc anterior e restaura o contexto C++, câmera, papel e guias do novo doc.
@@ -109,7 +113,7 @@ class WorkspaceDocSyncMixin:
             self.canvas_widget.transform_ctrl.cancel()
 
         if capture_previous and self._last_active_doc_uid:
-            last_doc = self._dm.get_document(self._last_active_doc_uid)
+            last_doc: Document = self._dm.get_document(self._last_active_doc_uid)
             if last_doc:
                 last_doc.zoom        = self.canvas_widget.zoom
                 last_doc.pan_x       = self.canvas_widget.pan_x

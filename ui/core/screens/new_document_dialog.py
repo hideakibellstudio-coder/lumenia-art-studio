@@ -323,6 +323,7 @@ class NewDocumentDialog(BaseFramelessDialog):
     def _unselect_cards_if_mismatched(self):
         cw, ch, cdpi = self.spn_width.value(), self.spn_height.value(), self.spn_dpi.value()
         matched = False
+        card: PresetCard
         for card in self._preset_cards:
             if (card.p_width == cw and card.p_height == ch and card.p_dpi == cdpi) or                (card.p_width == ch and card.p_height == cw and card.p_dpi == cdpi):
                 card.set_selected(True)

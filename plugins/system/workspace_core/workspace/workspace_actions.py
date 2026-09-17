@@ -10,6 +10,9 @@ import math
 import logging
 from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+
 logger = logging.getLogger("Workspace.Actions")
 
 _HISTORY_ERROR_MESSAGES = {
@@ -74,7 +77,7 @@ class WorkspaceActionsMixin:
         self._sync_navigator_to_canvas()
 
     def zoom_in(self) -> None:
-        cw = self.canvas_widget
+        cw: "RenderWidget" = self.canvas_widget
         cw.zoom = min(50.0, cw.zoom * 1.2)
         if cw.input_adapter:
             rot_rad = math.radians(getattr(cw, "rotation", 0.0))

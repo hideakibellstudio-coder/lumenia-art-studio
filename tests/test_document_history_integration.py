@@ -11,7 +11,7 @@ app = QApplication.instance() or QApplication(["--platform", "offscreen"])
 @pytest.fixture
 def session():
     backend = AladynBackend()
-    document = Document("history-integration", "History", 8, 8)
+    document: Document = Document("history-integration", "History", 8, 8)
     document.layer_manager.add_layer("Camada 1")
     backend.set_active_document_context(document.uid, 8, 8)
     yield document, backend

@@ -1,11 +1,12 @@
 """Restore a validated document into a newly allocated backend context."""
 
+from .document import Document
 from .serializer import DocumentFormatError
 from .schema import CURRENT_VERSION, decode_guides
 from PySide6.QtGui import QColor
 
 
-def restore_document(document, backend, manifest, payloads):
+def restore_document(document: Document, backend, manifest, payloads):
     if not backend or not backend.available:
         raise DocumentFormatError("motor indisponível para restaurar os pixels")
     records = manifest["layers"]

@@ -1,9 +1,13 @@
 """Typography & Text Tool Options for Secondary Toolbar."""
 
+from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.icons import get_icon
 
-def build_text_panels(toolbar):
+if TYPE_CHECKING:
+    from ..toolbar import SecondaryToolBar
+
+def build_text_panels(toolbar: "SecondaryToolBar"):
     # Horizontal
     p_h = QtWidgets.QWidget()
     l_h = QtWidgets.QHBoxLayout(p_h)

@@ -10,7 +10,7 @@ from .serializer import DocumentSerializer, DocumentFormatError
 from .restore import restore_document
 
 
-def change_geometry(document, backend, width, height, *, anchor=(1, 1), crop=None, resample=None):
+def change_geometry(document: Document, backend, width, height, *, anchor=(1, 1), crop=None, resample=None):
     width, height = int(width), int(height)
     if width <= 0 or height <= 0 or width * height * 4 > DocumentSerializer.MAX_PAYLOAD_BYTES:
         raise ValueError("dimensões fora do limite suportado")
@@ -52,7 +52,7 @@ def change_geometry(document, backend, width, height, *, anchor=(1, 1), crop=Non
         selection = Image.frombytes("L", original_size, payloads[selection_name])
         payloads[selection_name] = transform(selection, Image.Resampling.NEAREST).tobytes()
     prepared_uid = "geometry_" + uuid.uuid4().hex
-    shadow = Document(prepared_uid, document.name, width, height)
+    shadow: Document = Document(prepared_uid, document.name, width, height)
     shadow.paper_color = document.paper_color
     shadow.paper_visible = document.paper_visible
     shadow.paper_texture_id = document.paper_texture_id

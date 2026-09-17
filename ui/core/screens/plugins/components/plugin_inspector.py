@@ -4,6 +4,7 @@ import sys
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from ui.core.plugins.manager import PluginManager
+from ui.core.plugins.metadata import PluginMetadata
 from ui.core.icons import get_icon
 
 
@@ -200,7 +201,7 @@ class PluginDetailsInspector(QtWidgets.QFrame):
             pass
 
         try:
-            meta = plugin.get_metadata()
+            meta: PluginMetadata = plugin.get_metadata()
             p_id = meta.id if hasattr(meta, "id") and meta.id else class_name
             p_name = meta.name
             p_version = meta.version

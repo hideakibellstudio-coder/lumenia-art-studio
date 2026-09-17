@@ -34,7 +34,7 @@ class DocumentManager(QtCore.QObject):
         if not name:
             name = f"Sem Título {self._counter}"
             
-        doc = Document(uid, name, width, height)
+        doc: Document = Document(uid, name, width, height)
 
         if bg_color is not None:
             from PySide6.QtGui import QColor

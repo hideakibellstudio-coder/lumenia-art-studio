@@ -95,7 +95,7 @@ def test_rejects_invalid_layer_metadata(records):
 def test_recovery_keeps_dirty_state_and_skips_active_sessions(tmp_path):
     from ui.core.document.recovery import RecoveryStore
     from tests.test_document_serializer_integrity import _Backend
-    document = Document("doc", "Drawing", 2, 2)
+    document: Document = Document("doc", "Drawing", 2, 2)
     document.layer_manager.add_layer("Paint")
     document.file_path = "original.lmn"
     store = RecoveryStore(tmp_path)

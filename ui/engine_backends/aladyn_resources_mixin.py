@@ -1,5 +1,10 @@
 """Document-owned canvas assets crossing the canonical backend boundary."""
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from aladyn_engine_native import CanvasTexture
+
 
 class AladynResourcesMixin:
     def get_canvas_resource(self):
@@ -21,7 +26,7 @@ class AladynResourcesMixin:
         if not self._facade:
             return False
         self._facade.load_canvas_height_texture(state["width"], state["height"], state["pixels"])
-        canvas = self._facade.get_canvas_texture()
+        canvas: "CanvasTexture" = self._facade.get_canvas_texture()
         canvas.canvas_grain_enabled = state["enabled"]
         canvas.canvas_grain_scale = state["scale"]
         canvas.canvas_grain_contrast = state["contrast"]

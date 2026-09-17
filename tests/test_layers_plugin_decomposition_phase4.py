@@ -7,6 +7,7 @@ from plugins.ui.layers_plugin.paper_texture_dialog import TexturePopup
 from plugins.ui.layers_plugin.paper import TexturePopup as PaperTexturePopup, PaperLayerWidget
 from plugins.ui.layers_plugin.panel import LayersPanel
 from plugins.ui.layers_plugin.panel_actions import handle_delegate_action
+from ui.core.document.local_layer import LocalLayer
 
 
 @pytest.fixture(scope="session")
@@ -63,7 +64,7 @@ def test_layers_panel_delegate_actions(qapp):
 
     # Add a test layer
     panel.add_layer("Test Layer")
-    active = panel.layer_manager.get_active_layer()
+    active: LocalLayer = panel.layer_manager.get_active_layer()
     assert active is not None
     uid = active.uid
 

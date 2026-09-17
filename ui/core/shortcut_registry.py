@@ -3,6 +3,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from .shortcut_catalog import DEFAULT_SHORTCUTS
 from .shortcut_bindings import ShortcutBindings
+from ui.core.components.menu_bar.menu_bar import MenuBar
 
 
 class ShortcutRegistry(QtCore.QObject):
@@ -10,7 +11,7 @@ class ShortcutRegistry(QtCore.QObject):
         super().__init__(window)
         self.window = window
         self.contexts = {item["id"]: item.get("context", "window") for item in DEFAULT_SHORTCUTS}
-        menu = window.menu_bar
+        menu: MenuBar = window.menu_bar
         self.targets = {}
         groups = {
             "file": (menu.file_menu, {"new": "action_new", "open": "action_open", "save": "action_save",

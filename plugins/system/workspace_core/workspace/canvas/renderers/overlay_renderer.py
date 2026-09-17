@@ -3,6 +3,7 @@
 import math
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
+from plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
 
 class OverlayRenderer:
     """Renderizador de Overlays e Elementos de Interface Visual sobre o Canvas."""
@@ -200,7 +201,7 @@ class OverlayRenderer:
         painter.restore()
 
     @staticmethod
-    def render_transform_overlay(painter: QtGui.QPainter, transform_ctrl, zoom: float):
+    def render_transform_overlay(painter: QtGui.QPainter, transform_ctrl: TransformToolController, zoom: float):
         if not transform_ctrl.active or not transform_ctrl.source_qimage:
             return
         t_mat = transform_ctrl.get_transform_matrix()

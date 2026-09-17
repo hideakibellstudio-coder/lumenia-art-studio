@@ -5,6 +5,7 @@ from PySide6 import QtCore, QtWidgets
 from ui.core.config.manager import ConfigManager
 from ui.core.document.recovery import RecoveryStore
 from ui.core.engine.registry import EngineRegistry
+from ui.core.document.document import Document
 
 
 class MainWindowRecoveryMixin:
@@ -42,6 +43,7 @@ class MainWindowRecoveryMixin:
         if not active or not backend or not backend.available:
             return
         try:
+            document: Document
             for document in self.dm.documents():
                 if document.is_dirty:
                     backend.set_active_document_context(document.uid, document.width, document.height)

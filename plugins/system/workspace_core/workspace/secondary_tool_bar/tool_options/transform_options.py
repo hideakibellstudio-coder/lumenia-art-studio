@@ -1,8 +1,12 @@
 """Transform Tool Options for Secondary Toolbar."""
 
+from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtWidgets
 
-def build_transform_panels(toolbar):
+if TYPE_CHECKING:
+    from ..toolbar import SecondaryToolBar
+
+def build_transform_panels(toolbar: "SecondaryToolBar"):
     # Horizontal
     p_h = QtWidgets.QWidget()
     l_h = QtWidgets.QHBoxLayout(p_h)

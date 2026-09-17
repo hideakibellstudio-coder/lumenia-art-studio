@@ -47,7 +47,7 @@ class TestLowLevelBrushRaster(unittest.TestCase):
     def test_01_inker_stroke_rasterization(self):
         """Valida se o InkerEngine grava pixels vermelhos opacos ao longo do traço."""
         self.facade.set_engine_type(int(aen.EngineType.Inker))
-        profile = self.facade.get_brush_profile()
+        profile: aen.BrushProfile = self.facade.get_brush_profile()
         profile.brush_size = 14.0
         profile.opacity = 1.0
         profile.base_color = aen.ColorRGBA(255, 0, 0, 255)  # Vermelho puro

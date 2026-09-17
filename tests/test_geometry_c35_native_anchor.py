@@ -137,7 +137,7 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             _os.environ["LUMENIA_SNAP_NATIVE_CURVILINEAR"] = "1"
             registry.set_backend(FakeNativeBackend(candidates))
 
-            ctrl = GeometryToolController(DummyWidget())
+            ctrl: GeometryToolController = GeometryToolController(DummyWidget())
             self.assertTrue(ctrl._snap_use_native_curvilinear)
             ctrl.guide_state["type"] = "curvilinear"
             ctrl.start_stroke_snap((0.0, 0.0))

@@ -3,10 +3,14 @@
 from PySide6 import QtWidgets, QtCore
 from ui.core.widgets.slider import LabeledSlider
 from ui.core.i18n import tr
+from typing import TYPE_CHECKING
 from ..collapsible_section import CollapsibleSection
 from ..non_scroll_combo_box import NonScrollComboBox
 
-def create_brush_texture_section(panel) -> CollapsibleSection:
+if TYPE_CHECKING:
+    from ..panel import AdvancedPanel
+
+def create_brush_texture_section(panel: "AdvancedPanel") -> CollapsibleSection:
     sec = CollapsibleSection(tr("brush.sec_texture", "4. Textura do Pincel (Matéria)"), expanded=True)
     w = QtWidgets.QWidget()
     lo = QtWidgets.QVBoxLayout(w)

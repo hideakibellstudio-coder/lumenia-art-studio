@@ -19,6 +19,7 @@ from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.dialogs.telemetry_diagnostics_cards import StatCard
+from ui.core.engine.telemetry_dto import TelemetrySnapshot
 
 
 class TelemetryDiagnosticsDialog(BaseFramelessDialog):
@@ -309,7 +310,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         if not backend or not hasattr(backend, "get_telemetry_snapshot"):
             return
 
-        snap = backend.get_telemetry_snapshot()
+        snap: TelemetrySnapshot = backend.get_telemetry_snapshot()
         if snap is None:
             return
 

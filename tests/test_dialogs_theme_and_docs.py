@@ -161,7 +161,7 @@ class TestDialogsThemeAndDocs(unittest.TestCase):
 
     def test_08_help_menu_wiring(self):
         """Valida ações e sinais em HelpMenu."""
-        menu = HelpMenu()
+        menu: HelpMenu = HelpMenu()
         self.assertIsNotNone(menu.act_guide)
         self.assertIsNotNone(menu.act_test_report)
         self.assertIsNotNone(menu.act_shortcuts)

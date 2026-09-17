@@ -7,7 +7,10 @@ curvas de dinâmica Bezier LUT, texturas de ponta/papel e geração de buffers d
 
 from __future__ import annotations
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from aladyn_engine_native import BrushProfile, CanvasTexture
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ class AladynBrushMixin:
 
     def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False, *, reset_texture: bool = True) -> None:
         if self._facade:
-            c_tex = self._facade.get_canvas_texture()
+            c_tex: "CanvasTexture" = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_enabled = bool(enabled)
             if reset_texture:
@@ -165,7 +168,7 @@ class AladynBrushMixin:
 
     def set_brush_color(self, r: float, g: float, b: float) -> None:
         if self._facade and self._native:
-            prof = self._facade.get_brush_profile()
+            prof: "BrushProfile" = self._facade.get_brush_profile()
             r_int = int(r * 255) if 0.0 <= r <= 1.0 else int(r)
             g_int = int(g * 255) if 0.0 <= g <= 1.0 else int(g)
             b_int = int(b * 255) if 0.0 <= b <= 1.0 else int(b)

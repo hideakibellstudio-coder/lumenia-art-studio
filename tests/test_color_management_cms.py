@@ -222,7 +222,7 @@ def test_08_lmn_roundtrip_with_embedded_icc_profile(tmp_path, srgb_icc_bytes):
             assert saved_icc_bytes == srgb_icc_bytes
 
         # Restaura o documento em uma nova instância limpa
-        restored_doc = Document("restored-icc-doc", "Restaurado", width=w, height=h)
+        restored_doc: Document = Document("restored-icc-doc", "Restaurado", width=w, height=h)
         manifest, payloads = DocumentSerializer.read(saved_path)
         backend.set_active_document_context(restored_doc.uid, w, h)
         restore_document(restored_doc, backend, manifest, payloads)

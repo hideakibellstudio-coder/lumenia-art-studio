@@ -1,9 +1,13 @@
 """MainWindowImageActionsMixin — Handlers de Ações de Imagem, Canvas e Guias."""
 
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
 from ui.core.dialogs.canvas_size_dialog import CanvasSizeDialog
+
+if TYPE_CHECKING:
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
 
 class MainWindowImageActionsMixin:
@@ -26,7 +30,7 @@ class MainWindowImageActionsMixin:
 
     def reset_rotation(self) -> None:
         if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
+            cw: "RenderWidget" = self.workspace.canvas_widget
             cw.rotation = 0.0
             cw.update()
             self.status_bar.showMessage("Rotação do canvas resetada para 0°.", 2000)

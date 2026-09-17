@@ -12,6 +12,7 @@ from ui.core.screens.new_document.preset_catalog import (
     estimate_ram_usage_mb,
 )
 from ui.core.screens.new_document_dialog import NewDocumentDialog
+from ui.core.screens.new_document.preset_card import PresetCard
 
 
 class TestNewDocumentDialog(unittest.TestCase):
@@ -94,7 +95,7 @@ class TestNewDocumentDialog(unittest.TestCase):
         self.assertGreater(len(dlg._preset_cards), 0)
 
         # Clica no card 4K UHD
-        card_4k = dlg._preset_cards[0]
+        card_4k: PresetCard = dlg._preset_cards[0]
         card_4k.clicked.emit(card_4k.preset_id, card_4k.p_width, card_4k.p_height, card_4k.p_dpi)
 
         params = dlg.get_document_params()

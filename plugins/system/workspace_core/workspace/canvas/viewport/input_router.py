@@ -2,9 +2,12 @@
 
 import time
 import math
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.backend import PointerEvent
+
+if TYPE_CHECKING:
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
 class CanvasInputRouter:
     """Roteador modular de eventos de ponteiro e teclado para o RenderWidget."""
@@ -14,7 +17,7 @@ class CanvasInputRouter:
         self._previous_engine_type: Optional[int] = None
 
     def handle_pointer_press(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0):
-        w = self.widget
+        w: "RenderWidget" = self.widget
         effective_tool = "eraser" if is_eraser_tip else w.active_tool
 
         if hasattr(w, "geometry_ctrl"):

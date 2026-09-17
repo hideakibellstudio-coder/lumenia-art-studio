@@ -22,6 +22,7 @@ ROLE_COLLAPSED = Qt.UserRole + 13
 ROLE_IS_FILTER  = Qt.UserRole + 14
 
 from ui.core.document.history import layer_transaction
+from ui.core.document.local_layer import LocalLayer
 
 class LayerModel(QAbstractItemModel):
     def __init__(self, layer_manager):
@@ -236,7 +237,7 @@ class LayerModel(QAbstractItemModel):
         if not index.isValid():
             return Qt.ItemIsDropEnabled
         
-        layer = index.internalPointer()
+        layer: LocalLayer = index.internalPointer()
         if layer.is_group:
             return base_flags | Qt.ItemIsDropEnabled
         return base_flags

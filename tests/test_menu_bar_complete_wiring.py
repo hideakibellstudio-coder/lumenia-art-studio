@@ -6,6 +6,7 @@ import os
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.boundary.orchestrator.main_window import MainWindow
+from ui.core.components.menu_bar.menu_bar import MenuBar
 
 # Assegura que QApplication existe em modo offscreen
 app = QtWidgets.QApplication.instance()
@@ -29,7 +30,7 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
 
     def test_01_menu_bar_submenus_exist(self):
         """Verifica se todos os 10 submenus estão instanciados no menu_bar."""
-        mb = self.win.menu_bar
+        mb: MenuBar = self.win.menu_bar
         self.assertIsNotNone(mb.file_menu)
         self.assertIsNotNone(mb.edit_menu)
         self.assertIsNotNone(mb.image_menu)

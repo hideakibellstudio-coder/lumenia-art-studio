@@ -169,7 +169,7 @@ class LayersPanel(QWidget):
             self._sync_to_native_engine("reorder_all")
 
     def _on_layer_added(self, layer: LocalLayer):
-        pass
+        pass  # view ja atualiza via active_layer_changed/layer_property_changed
 
     def set_layer_manager(self, manager):
         if self.layer_manager:
@@ -382,8 +382,6 @@ class LayersPanel(QWidget):
                 self._updating_selection = True
                 try:
                     self.layer_manager.set_active_layer(uid)
-                    self._sync_header_controls()
-                    self._sync_to_native_engine("select")
                 finally:
                     self._updating_selection = False
 

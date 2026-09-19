@@ -33,8 +33,6 @@ MAX_LINES_ERROR = 450  # Zona Vermelha: >= 450 linhas (violacao)
 # Cada entrada precisa de uma razao explicita: uma excecao sem justificativa
 # escrita e indistinguivel de um teto simplesmente ignorado.
 DECLARED_LOC_EXCEPTIONS: dict[str, str] = {
-    "engine/boundary/public-api/PaintEngineFacade.cpp":
-        "Camada de agregacao da API publica nativa em C++",
     "engine/boundary/public-api/internal/StrokeOrchestrator.cpp":
         "Pipeline nativo de orquestracao de traco",
     "engine/core/raster/SelectionEngine.cpp":

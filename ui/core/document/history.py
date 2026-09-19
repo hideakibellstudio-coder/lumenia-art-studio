@@ -4,10 +4,13 @@ Native steps own COW layer snapshots. Python only associates stable UIDs and
 view metadata with the native step ID; it never guesses identity from names.
 """
 
+import logging
 from contextlib import contextmanager
 from copy import deepcopy
 from functools import wraps
 from .local_layer import LocalLayer
+
+logger = logging.getLogger(__name__)
 
 
 class LayerTransactionCancelled(Exception):
@@ -68,11 +71,63 @@ class DocumentHistory:
                 return
             raise RuntimeError("projeção de camadas divergente entre Document e motor")
 
+    def _native_document_uids(self, backend):
+        """UIDs de documento que o motor carrega hoje, por índice.
+
+        None quando o backend não expõe get_layer_info (dublês de teste) ou
+        quando algum índice não devolve um uid inteiro -- nesses casos não há
+        o que comparar e o chamador simplesmente segue.
+        """
+        if not hasattr(backend, "get_layer_info"):
+            return None
+        uids = []
+        for index in range(backend.get_drawing_layer_count()):
+            info = backend.get_layer_info(index)
+            if not isinstance(info, dict) or type(info.get("document_uid")) is not int:
+                return None
+            uids.append(info["document_uid"])
+        return uids
+
+    def _warn_if_order_diverged(self, backend, model_uids):
+        """Registra (sem interromper) a única divergência que escapa aos guards.
+
+        Quando esta função roda, transaction() já conferiu contagem, tipo de
+        camada e hierarquia. Sobra um caso: mesma população de camadas em
+        ordem diferente entre Document e motor. Ele é invisível hoje porque
+        bind_projection_identities vincula identidade POR POSIÇÃO -- ou seja,
+        reescreve os uids nativos para casarem com o modelo e apaga a
+        evidência antes que assert_projection possa olhar.
+
+        Comparar os conjuntos isola exatamente esse caso e só ele: em add o
+        motor tem um uid 0, em duplicate o clone nativo herda o uid da origem
+        (LayerStack.cpp: cloneLayer copia o documentUid), e em remove/merge as
+        populações diferem -- nenhum deles tem conjunto igual com ordem
+        diferente, então não geram falso positivo.
+
+        Deliberadamente só registra em log, não levanta: não existe caso
+        reproduzível conhecido (Achado #5 do panorama de auditoria de
+        camadas), e um falso positivo aqui abortaria uma ação legítima do
+        usuário com rollback. O log é o que transforma "sem caso reproduzível"
+        em "temos a ação que causou" -- se ele aparecer, aí sim vale fechar a
+        divergência na origem.
+        """
+        native_uids = self._native_document_uids(backend)
+        if native_uids is None or native_uids == model_uids:
+            return
+        if sorted(native_uids) != sorted(model_uids):
+            return
+        logger.error(
+            "ordem de camadas divergente entre Document e motor "
+            "(documento=%s, modelo=%s, motor=%s)",
+            self.document.uid, model_uids, native_uids,
+        )
+
     def bind_projection_identities(self, backend):
         """Bind immutable document UIDs to the aligned native layer stack."""
         manager = self.document.layer_manager
         if backend.get_drawing_layer_count() != len(manager.layers):
             raise RuntimeError("não é possível vincular identidades em pilhas divergentes")
+        self._warn_if_order_diverged(backend, [layer.uid for layer in manager.layers])
         for index, layer in enumerate(manager.layers):
             if not backend.set_layer_document_uid(index, layer.uid):
                 raise RuntimeError("não foi possível vincular a identidade da camada nativa")
@@ -100,16 +155,43 @@ class DocumentHistory:
             if backend.get_drawing_layer_count() != len(layers):
                 raise RuntimeError("Operação cancelada: camadas divergentes entre documento e motor.")
             layer: LocalLayer
+            # Achado #3 do panorama de auditoria profunda de camadas
+            # (claude/panorama-motor-camadas-auditoria-profunda-2026-09-19.md):
+            # este laço reescrevia incondicionalmente as 7 propriedades de
+            # TODAS as camadas a cada transação bem-sucedida -- 4 delas
+            # disparam uma composição completa do canvas (opacity, blend_mode,
+            # visible, clipping_mask), então uma única ação de UI (ex.: mover
+            # uma camada) custava 4xN composições completas, mesmo quando só
+            # uma camada mudou. Agora cada propriedade só é reenviada ao motor
+            # quando difere do valor nativo LIDO AO VIVO via get_layer_info().
+            # Ler o estado nativo real (em vez de comparar apenas snapshots
+            # Python antes/depois) preserva a garantia original de "cinto e
+            # suspensórios": qualquer divergência acumulada no motor, seja
+            # qual for a origem, ainda é detectada e corrigida aqui -- só o
+            # trabalho redundante de reescrever um valor que já está correto
+            # é eliminado. Backends sem get_layer_info (ex.: dublês de teste)
+            # caem de volta no comportamento incondicional original.
+            can_diff_live_state = hasattr(backend, "get_layer_info")
             for index, layer in enumerate(layers):
                 if backend.is_group(index) != layer.is_group or backend.is_filter_layer(index) != layer.is_filter:
                     raise RuntimeError("Operação cancelada: tipo de camada divergente.")
-                backend.set_layer_name(index, layer.name)
-                backend.set_layer_opacity(index, layer.opacity)
-                backend.set_layer_blend_mode(index, layer.blend_mode)
-                backend.set_layer_visibility(index, layer.visible)
-                backend.set_layer_lock(index, layer.locked)
-                backend.set_layer_alpha_lock(index, layer.alpha_locked)
-                backend.set_layer_clipping_mask(index, layer.clipping_mask)
+                live = backend.get_layer_info(index) if can_diff_live_state else None
+                if not isinstance(live, dict):
+                    live = None
+                if live is None or live.get("name") != layer.name:
+                    backend.set_layer_name(index, layer.name)
+                if live is None or live.get("opacity") != layer.opacity:
+                    backend.set_layer_opacity(index, layer.opacity)
+                if live is None or live.get("blend_mode") != layer.blend_mode:
+                    backend.set_layer_blend_mode(index, layer.blend_mode)
+                if live is None or live.get("visible") != layer.visible:
+                    backend.set_layer_visibility(index, layer.visible)
+                if live is None or live.get("locked") != layer.locked:
+                    backend.set_layer_lock(index, layer.locked)
+                if live is None or live.get("alpha_locked") != layer.alpha_locked:
+                    backend.set_layer_alpha_lock(index, layer.alpha_locked)
+                if live is None or live.get("clipping_mask") != layer.clipping_mask:
+                    backend.set_layer_clipping_mask(index, layer.clipping_mask)
             indices = {layer.uid: index for index, layer in enumerate(layers)}
             parents = [indices.get(layer.parent_uid, -1) for layer in layers]
             if not backend.set_layer_parents(parents):

@@ -34,6 +34,9 @@ namespace aladyn::engine::boundary {
 
 namespace internal {
     struct TouchdownSample;
+    struct DocumentContext;
+    struct EngineStateContext;
+    struct RawStrokeContext;
 }
 
 struct TelemetryData {
@@ -363,11 +366,16 @@ public:
     }
 
 private:
-    void syncHistoryGeometry();
+    // Contextos agregados que este facade entrega aos orquestradores de
+    // internal/. Declarados com tipo de retorno incompleto de proposito: o
+    // header publico nao inclui internal/ -- so o .cpp, que e' quem constroi e
+    // consome os contextos. Nunca armazene um deles: resizeCanvas() e o resync
+    // de historico trocam buffers e compositor por instancias novas.
+    internal::DocumentContext    docContext() noexcept;
+    internal::EngineStateContext stateContext() noexcept;
+    internal::RawStrokeContext   strokeContext() noexcept;
     void touchDocument() noexcept { ++m_documentGeneration; m_mipmapPyramid.markDirty(); }
-    void renderStrokeSegment(const raster::Dab& startDab, const raster::Dab& endDab);
     void initEngine(brush::EngineType type);
-    void applyActiveColorProfile(uint8_t* targetBuffer, size_t numPixels) const noexcept;
 
     int m_width;
     int m_height;

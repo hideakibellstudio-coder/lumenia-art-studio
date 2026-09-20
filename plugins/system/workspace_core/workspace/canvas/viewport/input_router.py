@@ -133,7 +133,7 @@ class CanvasInputRouter:
             w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp)
 
     def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0):
-        w = self.widget
+        w: "RenderWidget" = self.widget
         if w.drawing:
             w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp)
             if hasattr(w, "geometry_ctrl") and hasattr(w, "_last_draw_pos"):
@@ -218,7 +218,7 @@ class CanvasInputRouter:
             w.update()
 
     def handle_pointer_release(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, modifiers: QtCore.Qt.KeyboardModifiers):
-        w = self.widget
+        w: "RenderWidget" = self.widget
         if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.active_handle or w.geometry_ctrl.curv_drag_rotate):
             w.geometry_ctrl.mouse_release()
             w.update()
@@ -264,7 +264,7 @@ class CanvasInputRouter:
             w.is_panning = False
 
     def update_transform_cursor(self, handle_name: Optional[str]):
-        w = self.widget
+        w: "RenderWidget" = self.widget
         if handle_name == "move":
             w.setCursor(QtCore.Qt.SizeAllCursor)
         elif handle_name == "pivot":
@@ -283,7 +283,7 @@ class CanvasInputRouter:
             w.unsetCursor()
 
     def handle_key_press(self, event: QtGui.QKeyEvent) -> bool:
-        w = self.widget
+        w: "RenderWidget" = self.widget
         modifiers = event.modifiers()
         from ui.core.engine.registry import EngineRegistry
         from ui.core.shortcut_bindings import ShortcutBindings

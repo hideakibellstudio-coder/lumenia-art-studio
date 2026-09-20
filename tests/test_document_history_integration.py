@@ -26,7 +26,7 @@ def paint(backend, color):
     assert backend.paste_rgba_buffer_on_active_layer(0, 0, 8, 8, bytes(color) * 64)
 
 
-def duplicate(document, backend):
+def duplicate(document: Document, backend):
     manager = document.layer_manager
     with document.history.transaction(backend):
         index = manager.active_index

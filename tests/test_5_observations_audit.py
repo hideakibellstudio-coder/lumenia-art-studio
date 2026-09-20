@@ -45,8 +45,11 @@ class Test5ObservationsAudit(unittest.TestCase):
 
     # ── Item 2: Keyboard Shortcuts Dialog ────────────────────────────────────
     def test_keyboard_shortcuts_dialog(self):
-        dlg = KeyboardShortcutsDialog()
-        self.assertIsNotNone(dlg.card)
+        dlg: KeyboardShortcutsDialog = KeyboardShortcutsDialog()
+        # dlg.card não existe mais: migrado para BaseFramelessDialog em 2026-09-18
+        # (panorama-consistencia-visual-tema, Achado #4) -- root_container é o
+        # equivalente herdado da base compartilhada por ~20 outros diálogos.
+        self.assertIsNotNone(dlg.root_container)
         self.assertGreater(dlg.table.rowCount(), 0)
 
         # Testa filtragem por categoria
@@ -95,8 +98,11 @@ class Test5ObservationsAudit(unittest.TestCase):
         self.assertIsNotNone(cur_drop)
 
         # Testa Diálogo de Configurações de Cursor
-        dlg = CursorSettingsDialog()
-        self.assertIsNotNone(dlg.card)
+        dlg: CursorSettingsDialog = CursorSettingsDialog()
+        # dlg.card não existe mais: migrado para BaseFramelessDialog em 2026-09-18
+        # (panorama-consistencia-visual-tema, Achado #4) -- root_container é o
+        # equivalente herdado da base compartilhada por ~20 outros diálogos.
+        self.assertIsNotNone(dlg.root_container)
         self.assertIsNotNone(dlg.btn_group)
 
         # Testa cálculo de bounding rect do cursor

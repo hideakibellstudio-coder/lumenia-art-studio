@@ -150,7 +150,7 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
      rode `navigator_impact` antes de escrever qualquer linha.
    - Só depois, e só para o que o pacote de contexto não cobriu, inspecione
      arquivos com `view_file` ou `grep_search`. Não crie arquivos de dump para ler código.
-   - **Leia `NAVIGATOR_PROTOCOL.md` antes de interpretar qualquer saída do Navigator.**
+   - **Leia `docs/01-correcao-da-base/03-protocolo-do-navigator.md` antes de interpretar qualquer saída do Navigator.**
      As cinco categorias epistemológicas não são níveis de severidade e são
      rotineiramente mal lidas: `suspicious` é limitação da ferramenta, não defeito
      do código, e `declared_exception` é autorização deliberada que não se toca.

@@ -1,38 +1,80 @@
-# 📚 Documentação Técnica — Lumenia Art Studio & Aladyn Engine
+# Documentação técnica — Lumenia Art Studio & ALADYN ENGINE
 
-Bem-vindo à documentação técnica oficial e unificada do **Lumenia Art Studio** e do motor de pintura nativo **ALADYN ENGINE**.
+Reorganizada em 2026-09-20 por prioridade de uso: primeiro o que precisa ser
+corrigido nesta fase, depois referência estável, depois o que é só visão de
+futuro, por último o histórico já fechado. A numeração das pastas é ordem de
+leitura, não importância absoluta — mas se você só vai ler uma pasta, leia a `01-`.
 
-Esta documentação foi integralmente reescrita e alinhada com o estado real, atual e testado do código-fonte, servindo como referência canônica para arquitetura, contratos, especificações de formato, gestão de cor e rotinas de compilação.
+## Mapa
+
+### `01-correcao-da-base/` — ativo, leia primeiro
+O que vale a pena aplicar **agora**, nesta fase de correção da base (sem
+features novas). Começa por `01-pendencias-atuais.md`, o painel vivo de
+status. Os outros arquivos da pasta são o *como* e o *com que ferramenta*.
+
+### `02-arquitetura/` — referência estável
+Como o sistema é estruturado hoje: framework ARCcC, visão geral do sistema,
+motor ALADYN e a ponte PyBind11, modelo de documento, subsistema de plugins.
+Consulte quando precisar entender uma área antes de mexer nela, não quando
+procurar o que está pendente.
+
+### `03-guias/` — referência operacional estável
+Ambiente de desenvolvimento, compilação e distribuição.
+
+### `04-especificacoes/` — formais, estáveis
+Formato de arquivo `.lmn` e gestão de cor (LittleCMS/ICC).
+
+### `05-visao-e-futuro/` — explícitamente **não** é para agora
+Visão estratégica de produto e o roadmap do pipeline de cor 16-bit/float.
+Mantido por referência; nada aqui deve virar trabalho antes da base fechar.
+
+### `historico/` — encerrado, não numerado de propósito
+Auditorias já resolvidas (F-001 a F-031) e o panorama de estado de
+2026-09-15 que `01-correcao-da-base/01-pendencias-atuais.md` substituiu.
+É proveniência — explica *por que* uma regra ou teste existe — nunca lista de
+tarefas.
 
 ---
 
-## 🗺️ Mapa de Navegação da Documentação
+## Changelog — o que foi feito, por quê, e com base em quê
 
-### 🏛️ 1. Arquitetura e Engenharia de Software
-- [**ARCcC Framework (`architecture/ARCcC_FRAMEWORK.md`)**](architecture/ARCcC_FRAMEWORK.md): Princípios da Componentização Atômica Recursiva por Contrato, teto estrito de complexidade ($\le 450$ linhas de código por arquivo), desacoplamento por mixins e invariantes estruturais.
-- [**Visão Geral do Sistema (`architecture/SYSTEM_OVERVIEW.md`)**](architecture/SYSTEM_OVERVIEW.md): Arquitetura macro em camadas, Shell Qt (PySide6), orquestração MDI multi-documento e ciclo de vida da aplicação.
-- [**ALADYN Engine & PyBind11 Bridge (`architecture/ALADYN_ENGINE_AND_BRIDGE.md`)**](architecture/ALADYN_ENGINE_AND_BRIDGE.md): Motor C++20 de alto desempenho, `PaintEngineFacade`, `LayerStack`, `StrokeOrchestrator`, estabilização dinâmica de traço e contratos de ligação via PyBind11.
-- [**Modelo de Documento e Histórico (`architecture/DOCUMENT_MODEL.md`)**](architecture/DOCUMENT_MODEL.md): Estrutura de dados `Document`, gerenciamento de camadas `LocalLayerManager`, histórico transacional atômico, scratch disk paginado e vinculação de identidades nativas.
-- [**Subsistema de Plugins (`architecture/PLUGIN_SUBSYSTEM.md`)**](architecture/PLUGIN_SUBSYSTEM.md): Arquitetura extensível, descoberta dinâmica, manifesto de permissões, isolamento de workspaces e governança de ativação/rollback.
+> Toda entrada nova vai no topo. Formato: data, o que foi feito, por que
+> agora, em qual documento (deste `docs/` ou do Claude Project) isso estava
+> descrito, e qual era o objetivo declarado daquele documento. Não apague
+> entradas antigas — este arquivo é o rastro de decisão do projeto.
 
-### 📐 2. Especificações Formais
-- [**Especificação do Container LMN (`specifications/LMN_CONTAINER_SPEC.md`)**](specifications/LMN_CONTAINER_SPEC.md): Especificação completa do formato de arquivo nativo `.lmn` (versão 2+), estrutura ZIP, schema do `manifest.json`, migrações (v0 $	o$ v1 $	o$ v2), compressão de payloads e tolerância a falhas.
-- [**Sistema de Gestão de Cor LittleCMS (`specifications/COLOR_MANAGEMENT_SPEC.md`)**](specifications/COLOR_MANAGEMENT_SPEC.md): Integração com LittleCMS 2.18, suporte a perfis ICC arbitrários externos, pipeline de Soft-Proofing (CMYK/RGB), alerta de gamut, exportação com metadados e blueprint da transição para 16-bit/float.
+### 2026-09-20 — CI restaurada, teste de regressão `.pyi` e `EngineBackend` dividido em protocolos
+**O que foi feito:** três itens P0/P1 da rodada de auditoria aplicados: (1)
+`.github/workflows/ci.yml` criado (jobs `windows` e `windows-avx2`,
+fechando F-020); (2) `tests/test_pyi_contract_matches_binary.py` criado,
+formalizando via `ast` a checagem `.pyi` × binário compilado que antes só
+existia como verificação manual, e removendo 2 declarações mortas do
+`.pyi`; (3) `ui/core/engine/backend_protocols.py` criado, dividindo os 178
+métodos de `EngineBackend` em 11 `Protocol`s por papel (gerados via `ast`,
+verificados por `isinstance()` contra os dois backends concretos em
+`tests/test_engine_backend_protocols.py`) — mudança aditiva, `EngineBackend`
+em si não foi alterado.
+**Base:** `01-correcao-da-base/01-pendencias-atuais.md` (itens P0 e P1) e
+`01-correcao-da-base/02-simplificacao-da-ponte.md` (passos 1 e 3 da lista
+de "O que fazer, em ordem").
+**Objetivo original daqueles documentos:** reduzir a desconfiança
+estrutural entre a UI e o motor (guardas defensivas, interface
+monolítica) sem adicionar feature nova — só remoção/organização/verificação.
 
-### 🛠️ 3. Guias Práticos
-- [**Guia do Desenvolvedor (`guides/DEVELOPER_GUIDE.md`)**](guides/DEVELOPER_GUIDE.md): Configuração de ambiente de desenvolvimento no Windows, dependências, convenções de código e fluxo de trabalho com o ARCcC Navigator.
-- [**Testes Automatizados e Qualidade (`guides/TESTING_AND_QUALITY.md`)**](guides/TESTING_AND_QUALITY.md): Como executar os 390 testes automatizados, suítes de regressão de histórico/I/O, fuzzing do leitor de arquivos e benchmarks de renderização.
-- [**Compilação e Distribuição Comercial (`guides/BUILD_AND_RELEASE.md`)**](guides/BUILD_AND_RELEASE.md): Compilação do motor C++20 via MSVC, geração do executável autônomo portátil via Nuitka, assinatura/manifesto SHA-256 e geração do instalador oficial Inno Setup.
+### 2026-09-20 — Reorganização de `docs/` em estrutura numerada por prioridade
+**Por quê:** a organização anterior (`architecture/`, `guides/`,
+`specifications/`, `audit/`) agrupava por *tipo* de documento, não por
+*relevância para a fase atual*. Documentos de visão de futuro, auditorias já
+fechadas e pendências ativas ficavam misturados na mesma prateleira.
+**Base:** pedido direto do usuário na sessão de auditoria corretiva de
+2026-09-20 (Claude Project, documento `auditoria-corretiva-geral-2026-09-20.md`).
+**Objetivo:** que qualquer agente ou desenvolvedor saiba, só pela pasta, se
+está lendo algo acionável agora ou referência/histórico.
 
-### 📋 4. Governança e Auditoria
-- [**Relatório de Encerramento das Auditorias (`audit/AUDIT_CLOSURE_REPORT.md`)**](audit/AUDIT_CLOSURE_REPORT.md): Matriz executiva de resolução definitiva das 16 não-conformidades de auditoria (F-001 a F-016), evidenciando testes e garantias arquiteturais.
-
----
-
-## ⚡ Números e Métricas da Base de Código
-
-- **Linguagens**: C++20 (Motor de renderização) e Python 3.11+ / PySide6 (UI, Orquestração e Ferramentas).
-- **Cobertura de Testes**: **390/390 testes aprovados (100% GREEN)**.
-- **Zona Vermelha de Complexidade**: **0 arquivos com $\ge 450$ linhas de código**.
-- **Performance de Traço**: Latência $< 1.5\text{ms}$ por evento de entrada com estabilização cinemática ativa.
-- **Formato de Arquivo**: Container ZIP seguro com integridade transacional e recovery em background.\n
+### 2026-09-20 — Auditoria corretiva geral do projeto (Claude Project)
+**O que foi feito:** verificação ao vivo, item a item, de toda a lista de
+pendências de `historico/estado-da-base-2026-09-15.md`. Resultado consolidado
+em `01-correcao-da-base/01-pendencias-atuais.md`.
+**Base:** `estado-da-base-lumenia.md` (Claude Project, 2026-09-15).
+**Objetivo original daquele documento:** listar, em ordem de dependência, o
+que fazer para a base ficar sólida o suficiente para a Fase 3 começar.

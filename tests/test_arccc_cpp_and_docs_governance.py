@@ -19,8 +19,9 @@ Este modulo fecha essa lacuna:
   1. Teto estrito de LOC (mesmo limite numerico do teste Python) aplicado
      a todos os arquivos .cpp/.hpp/.h/.cc/.cxx de engine/ e bridge/.
   2. Consistencia documental: a versao do padrao C++ declarada em
-     ARCHITECTURE.md, AGENTS.md e docs/VISION_AND_ROADMAP.md deve bater
-     (hoje ARCHITECTURE.md fala em C++17 enquanto os demais falam C++20).
+     AGENTS.md e docs/05-visao-e-futuro/01-visao-estrategica.md deve bater.
+     (ARCHITECTURE.md foi removido em 2026-09-20; a checagem ignora
+     arquivos ausentes, entao so restam esses dois hoje.)
 """
 
 import os
@@ -88,7 +89,7 @@ class TestARCcCNativeGovernance(unittest.TestCase):
 
     def test_02_cpp_standard_version_consistency(self):
         """[ARCcC Documental] A versao do padrao C++ deve ser identica em toda a documentacao canonica."""
-        docs_to_check = ['ARCHITECTURE.md', 'AGENTS.md', os.path.join('docs', 'VISION_AND_ROADMAP.md')]
+        docs_to_check = ['AGENTS.md', os.path.join('docs', '05-visao-e-futuro', '01-visao-estrategica.md')]
         pattern = re.compile(r'C\+\+\s*(1[4-9]|2[0-9])')
 
         found_versions = {}

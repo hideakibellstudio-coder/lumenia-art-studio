@@ -19,7 +19,7 @@
 
 O **Lumenia** é um software desktop para ilustração, arte conceitual, lineart e pintura digital, construído para priorizar resposta de caneta e um motor nativo eficiente. Metas de latência, inicialização e compatibilidade de hardware exigem homologação em cada ambiente de release.
 
-O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_native`) e interface modular baseada em **PySide6 (Qt6)** sob a arquitetura ARCcC. Consulte [BUILD.md](BUILD.md) para compilar o artefato x64 compatível e executar a validação.
+O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_native`) e interface modular baseada em **PySide6 (Qt6)** sob a arquitetura ARCcC. Consulte [docs/03-guias/02-build-e-release.md](docs/03-guias/02-build-e-release.md) para compilar o artefato x64 compatível e executar a validação.
 
 ---
 
@@ -124,7 +124,7 @@ python scripts/build_portable.py
 ```
 O processo produz `build/portable/Lumenia.dist/Lumenia.exe` e um manifesto
 SHA-256 dos arquivos distribuídos. Antes de publicar, execute a validação do
-aplicativo e do instalador no ambiente de destino. Consulte [BUILD.md](BUILD.md)
+aplicativo e do instalador no ambiente de destino. Consulte [docs/03-guias/02-build-e-release.md](docs/03-guias/02-build-e-release.md)
 para gerar o instalador Inno Setup e para os requisitos de assinatura de release.
 
 ---

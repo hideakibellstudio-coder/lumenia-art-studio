@@ -5,7 +5,7 @@ Gera compile_commands.json capturando as invocacoes reais do MSVC (cl.exe)
 durante 'python setup.py build_ext --inplace', sem migrar o projeto para
 CMake nem tocar em build_native.py.
 
-Fecha F-022 de docs/audit/PRE_FEATURE_FREEZE_AUDIT.md: sem esse arquivo, o
+Fecha F-022 de docs/historico/auditoria-f017-f031-endurecimento-navigator.md: sem esse arquivo, o
 ARCcC Navigator resolve simbolos C++ por heuristica e qualquer chamada que
 nao consiga casar com certeza vira 'dynamic_dispatch_risk' (causa provavel
 da maioria dos achados 'suspicious' no `verify`).

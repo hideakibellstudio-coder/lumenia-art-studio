@@ -3,6 +3,12 @@
 *(2026-09-15 — medido, não estimado. Nenhuma feature nova: só remoção e
 unificação do que já existe.)*
 
+> **Atualização 2026-09-20:** os passos 1 (verificar o contrato) e 3
+> (protocolos por papel) desta lista foram implementados nesta sessão —
+> ver `01-pendencias-atuais.md` e o changelog em `../README.md`. Os
+> passos 2 (tabela de propriedades de pincel) e 4 (entrada única do
+> facade) seguem em aberto.
+
 ---
 
 ## 1. O que foi medido
@@ -168,11 +174,11 @@ a capacidade de trocar o motor — que é um dos pilares do projeto.
 
 ## 5. Ordem sugerida e critério de pronto
 
-| passo | custo | pronto quando |
-| :--- | :--- | :--- |
-| 1. verificar o contrato | ~40 linhas | o teste passa e o `.pyi` bate com o `.pyd` |
-| 2. tabela de pincel | médio | as 4 listas viram 1, e o teste de caracterização segue verde |
-| 3. protocolos por papel | mecânico | cada papel tem teste próprio sem backend completo |
-| 4. entrada única do facade | médio | `hasattr(self._facade` chega a zero |
+| passo | custo | pronto quando | status |
+| :--- | :--- | :--- | :--- |
+| 1. verificar o contrato | ~40 linhas | o teste passa e o `.pyi` bate com o `.pyd` | ✅ feito 2026-09-20 |
+| 2. tabela de pincel | médio | as 4 listas viram 1, e o teste de caracterização segue verde | em aberto |
+| 3. protocolos por papel | mecânico | cada papel tem teste próprio sem backend completo | ✅ feito 2026-09-20 |
+| 4. entrada única do facade | médio | `hasattr(self._facade` chega a zero | em aberto |
 
 Nenhum deles adiciona funcionalidade. Os quatro **removem** código.

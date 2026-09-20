@@ -7,7 +7,7 @@ quanto para `PixelBuffer`: nenhuma aresta estatica liga a suite ao compositor.
 A cobertura chega la por PyBind11, que o grafo nao atravessa — mas o efeito
 pratico e o mesmo: **nada trava a saida da composicao**.
 
-Isso importa agora porque `docs/COLOR_PIPELINE_ARCHITECTURE.md` secao 4 planeja
+Isso importa agora porque `docs/05-visao-e-futuro/02-pipeline-de-cor-16bit.md` secao 4 planeja
 trocar o armazenamento de RGBA8 para RGBA16/RGBA32F. Trocar representacao de
 pixel sem nada que fixe a saida atual e apostar que ninguem percebe uma borda
 meio tom diferente. A ordem segura de um refactor de representacao e sempre:

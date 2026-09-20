@@ -1,9 +1,8 @@
 #include "Compositor.hpp"
 #include "FilterLayer.hpp"
+#include "internal/CompositeRegionSupport.hpp"
 #include "blending/BlendEquations.hpp"
 #include "blending/FilterApplier.hpp"
-#include <algorithm>
-#include <cmath>
 
 namespace aladyn::engine::document {
 
@@ -64,6 +63,13 @@ void Compositor::composite(
     composite(rawPtrs, outputBuffer, bgColor);
 }
 
+// compositeRegion/compositeRegionWithScratch delegam o calculo de limites de
+// regiao e o par blendGroupToDestination/composeTileGrid para
+// internal::CompositeRegionSupport (ver esse arquivo) — as duas sobrecargas
+// duplicavam esse bloco byte a byte (Achado "Compositor.cpp estourou o teto
+// de LOC" do panorama de camadas de 2026-09-19). `snapToBlockSize` e
+// `parallelRowThreshold` preservam as duas divergencias de comportamento que
+// ja existiam entre as sobrecargas antes desta extracao.
 void Compositor::compositeRegion(
     const std::vector<const Layer*>& layers,
     const math::Rect2D& region,
@@ -72,127 +78,54 @@ void Compositor::compositeRegion(
 ) {
     if (layers.empty()) return;
 
-    bool hasBackground = false;
-    for (const Layer* l : layers) {
-        if (l && l->isBackground() && l->isVisible()) {
-            hasBackground = true;
-            break;
-        }
-    }
+    const auto bgReach = internal::computeBackgroundAndReach(layers, bgColor);
+    const auto bounds = internal::computeRegionBounds(
+        region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, /*snapToBlockSize=*/true);
+    if (bounds.empty) return;
 
-    const raster::ColorRGBA bgFill = hasBackground ? bgColor : raster::ColorRGBA{0, 0, 0, 0};
+    internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/256);
 
-    const int minX = std::max(0, static_cast<int>(std::floor(region.getLeft())) - 2);
-    const int maxX = std::min(m_width - 1, static_cast<int>(std::ceil(region.getRight())) + 2);
-    const int minY = std::max(0, static_cast<int>(std::floor(region.getTop())) - 2);
-    const int maxY = std::min(m_height - 1, static_cast<int>(std::ceil(region.getBottom())) + 2);
-
-    if (minX > maxX || minY > maxY) return;
-
-    const int startTileX = minX / canvas::Tile::TILE_SIZE;
-    const int endTileX   = maxX / canvas::Tile::TILE_SIZE;
-    const int startTileY = minY / canvas::Tile::TILE_SIZE;
-    const int endTileY   = maxY / canvas::Tile::TILE_SIZE;
-
-    const uint32_t bg32 = (static_cast<uint32_t>(bgFill.a) << 24) |
-                          (static_cast<uint32_t>(bgFill.b) << 16) |
-                          (static_cast<uint32_t>(bgFill.g) << 8)  |
-                           static_cast<uint32_t>(bgFill.r);
-    uint32_t* outData32 = reinterpret_cast<uint32_t*>(outputBuffer.getData());
-    const int outStride = outputBuffer.getWidth();
-
-    if (minX == 0 && maxX == m_width - 1 && minY == 0 && maxY == m_height - 1 && bg32 == 0) {
-        std::memset(outData32, 0, static_cast<size_t>(m_width) * m_height * 4);
-    } else {
-        #pragma omp parallel for schedule(static) if((maxY - minY) > 256)
-        for (int y = minY; y <= maxY; ++y) {
-            std::fill_n(outData32 + (static_cast<size_t>(y) * outStride + minX), maxX - minX + 1, bg32);
-        }
-    }
+    internal::GroupBlender blender(outputBuffer, bounds, m_linearGamma, m_deepColor);
+    const Layer* activeGroup = nullptr;
 
     for (const Layer* layerPtr : layers) {
         if (!layerPtr || !layerPtr->isVisible() || layerPtr->getEffectiveOpacity() <= 0.0) {
             continue;
         }
 
+        const Layer* isoGroup = internal::getIsolatedGroupAncestor(layerPtr);
+        if (isoGroup != activeGroup) {
+            if (activeGroup != nullptr) {
+                blender.blendGroupToDestination(activeGroup);
+            }
+            if (isoGroup != nullptr) {
+                blender.beginGroup();
+            }
+            activeGroup = isoGroup;
+        }
+
         if (layerPtr->isFilter()) {
             const FilterLayer* filterLayer = dynamic_cast<const FilterLayer*>(layerPtr);
             if (filterLayer) {
-                applyFilterToBuffer(*filterLayer, outputBuffer, minX, maxX, minY, maxY);
+                if (activeGroup != nullptr) {
+                    blender.applyFilterToGroup(*filterLayer);
+                } else {
+                    applyFilterToBuffer(*filterLayer, outputBuffer, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
+                }
             }
             continue;
         }
 
         const Layer& layer = *layerPtr;
-        const double layerOpacity = layer.getEffectiveOpacity();
+        const double layerOpacity = activeGroup ? internal::getRelativeOpacity(&layer, activeGroup) : layer.getEffectiveOpacity();
         const LayerBlendMode blendMode = layer.getBlendMode();
-        const canvas::TileGrid& grid = layer.getTileGrid();
+        const Layer* clipBaseLayer = internal::resolveClipBase(layer);
 
-        // Clipping mask
-        const Layer* clipBaseLayer = nullptr;
-        if (layer.isClippingMask()) {
-            auto it = std::find(layers.begin(), layers.end(), layerPtr);
-            if (it != layers.begin()) {
-                for (auto prevIt = it - 1; ; --prevIt) {
-                    if (*prevIt && !(*prevIt)->isBackground() && !(*prevIt)->isClippingMask() && !(*prevIt)->isFilter() && !(*prevIt)->isGroup() && (*prevIt)->isVisible()) {
-                        clipBaseLayer = *prevIt;
-                        break;
-                    }
-                    if (prevIt == layers.begin()) break;
-                }
-            }
-        }
+        blender.composeTileGrid(layer.getTileGrid(), layerOpacity, blendMode, clipBaseLayer, activeGroup != nullptr);
+    }
 
-        const int maxTilesX = grid.getTilesCountX();
-        const int maxTilesY = grid.getTilesCountY();
-        const int clampStartTx = std::clamp(startTileX, 0, maxTilesX - 1);
-        const int clampEndTx   = std::clamp(endTileX, 0, maxTilesX - 1);
-        const int clampStartTy = std::clamp(startTileY, 0, maxTilesY - 1);
-        const int clampEndTy   = std::clamp(endTileY, 0, maxTilesY - 1);
-
-        #pragma omp parallel for schedule(static) if((clampEndTy - clampStartTy) >= 4)
-        for (int ty = clampStartTy; ty <= clampEndTy; ++ty) {
-            for (int tx = clampStartTx; tx <= clampEndTx; ++tx) {
-                const canvas::Tile* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
-                if (!tile) continue;
-
-                const canvas::PixelBuffer& tileBuf = tile->getBuffer();
-                const int tilePixelX = tile->getPixelX();
-                const int tilePixelY = tile->getPixelY();
-
-                const int tileMinX = std::max(minX, tilePixelX);
-                const int tileMaxX = std::min(maxX, tilePixelX + canvas::Tile::TILE_SIZE - 1);
-                const int tileMinY = std::max(minY, tilePixelY);
-                const int tileMaxY = std::min(maxY, tilePixelY + canvas::Tile::TILE_SIZE - 1);
-
-                for (int globalY = tileMinY; globalY <= tileMaxY; ++globalY) {
-                    const int localY = globalY - tilePixelY;
-                    const raster::ColorRGBA* srcRow = reinterpret_cast<const raster::ColorRGBA*>(tileBuf.getData()) + (localY * canvas::Tile::TILE_SIZE);
-                    raster::ColorRGBA* dstRow = reinterpret_cast<raster::ColorRGBA*>(outData32) + (globalY * outStride);
-
-                    for (int globalX = tileMinX; globalX <= tileMaxX; ++globalX) {
-                        const int localX = globalX - tilePixelX;
-                        const raster::ColorRGBA src = srcRow[localX];
-                        if (src.a == 0) continue;
-
-                        double curOpacity = layerOpacity;
-                        if (clipBaseLayer) {
-                            const int bTx = globalX / canvas::Tile::TILE_SIZE;
-                            const int bTy = globalY / canvas::Tile::TILE_SIZE;
-                            const int bPx = globalX % canvas::Tile::TILE_SIZE;
-                            const int bPy = globalY % canvas::Tile::TILE_SIZE;
-                            const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
-                            if (!bTile) continue;
-                            const double baseA = (static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0) * clipBaseLayer->getEffectiveOpacity();
-                            if (baseA <= 0.0) continue;
-                            curOpacity *= baseA;
-                        }
-
-                        dstRow[globalX] = blending::blendPixel(src, curOpacity, dstRow[globalX], blendMode, m_linearGamma, m_deepColor);
-                    }
-                }
-            }
-        }
+    if (activeGroup != nullptr) {
+        blender.blendGroupToDestination(activeGroup);
     }
 }
 
@@ -222,127 +155,58 @@ void Compositor::compositeRegionWithScratch(
 ) {
     if (layers.empty()) return;
 
-    bool hasBackground = false;
-    for (const Layer* l : layers) {
-        if (l && l->isBackground() && l->isVisible()) { hasBackground = true; break; }
-    }
+    const auto bgReach = internal::computeBackgroundAndReach(layers, bgColor);
+    const auto bounds = internal::computeRegionBounds(
+        region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, /*snapToBlockSize=*/false);
+    if (bounds.empty) return;
 
-    const raster::ColorRGBA bgFill = hasBackground ? bgColor : raster::ColorRGBA{0, 0, 0, 0};
+    internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/64);
 
-    const int minX = std::max(0, static_cast<int>(std::floor(region.getLeft())) - 2);
-    const int maxX = std::min(m_width - 1, static_cast<int>(std::ceil(region.getRight())) + 2);
-    const int minY = std::max(0, static_cast<int>(std::floor(region.getTop())) - 2);
-    const int maxY = std::min(m_height - 1, static_cast<int>(std::ceil(region.getBottom())) + 2);
-    if (minX > maxX || minY > maxY) return;
-
-    const uint32_t bg32 = (static_cast<uint32_t>(bgFill.a) << 24) |
-                          (static_cast<uint32_t>(bgFill.b) << 16) |
-                          (static_cast<uint32_t>(bgFill.g) << 8)  |
-                           static_cast<uint32_t>(bgFill.r);
-    uint32_t* outData32 = reinterpret_cast<uint32_t*>(outputBuffer.getData());
-    const int outStride = outputBuffer.getWidth();
-
-    if (minX == 0 && maxX == m_width - 1 && minY == 0 && maxY == m_height - 1 && bg32 == 0) {
-        std::memset(outData32, 0, static_cast<size_t>(m_width) * m_height * 4);
-    } else {
-        #pragma omp parallel for schedule(static) if((maxY - minY) > 64)
-        for (int y = minY; y <= maxY; ++y) {
-            std::fill_n(outData32 + (static_cast<size_t>(y) * outStride + minX), maxX - minX + 1, bg32);
-        }
-    }
-
-    const int startTileX = minX / canvas::Tile::TILE_SIZE;
-    const int endTileX   = maxX / canvas::Tile::TILE_SIZE;
-    const int startTileY = minY / canvas::Tile::TILE_SIZE;
-    const int endTileY   = maxY / canvas::Tile::TILE_SIZE;
-
-    auto composeTileGrid = [&](const canvas::TileGrid& grid, double opacity, LayerBlendMode mode, const Layer* clipBase) {
-        const int maxTilesX = grid.getTilesCountX();
-        const int maxTilesY = grid.getTilesCountY();
-        const int cSTx = std::clamp(startTileX, 0, maxTilesX - 1);
-        const int cETx = std::clamp(endTileX,   0, maxTilesX - 1);
-        const int cSTy = std::clamp(startTileY, 0, maxTilesY - 1);
-        const int cETy = std::clamp(endTileY,   0, maxTilesY - 1);
-
-        #pragma omp parallel for schedule(static) if((cETy - cSTy) >= 2)
-        for (int ty = cSTy; ty <= cETy; ++ty) {
-            for (int tx = cSTx; tx <= cETx; ++tx) {
-                const canvas::Tile* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
-                if (!tile) continue;
-
-                const canvas::PixelBuffer& tileBuf = tile->getBuffer();
-                const int tilePixelX = tile->getPixelX();
-                const int tilePixelY = tile->getPixelY();
-
-                const int tileMinX = std::max(minX, tilePixelX);
-                const int tileMaxX = std::min(maxX, tilePixelX + canvas::Tile::TILE_SIZE - 1);
-                const int tileMinY = std::max(minY, tilePixelY);
-                const int tileMaxY = std::min(maxY, tilePixelY + canvas::Tile::TILE_SIZE - 1);
-
-                for (int globalY = tileMinY; globalY <= tileMaxY; ++globalY) {
-                    const int localY = globalY - tilePixelY;
-                    const raster::ColorRGBA* srcRow = reinterpret_cast<const raster::ColorRGBA*>(tileBuf.getData()) + (localY * canvas::Tile::TILE_SIZE);
-                    raster::ColorRGBA* dstRow = reinterpret_cast<raster::ColorRGBA*>(outData32) + (globalY * outStride);
-
-                    for (int globalX = tileMinX; globalX <= tileMaxX; ++globalX) {
-                        const int localX = globalX - tilePixelX;
-                        const raster::ColorRGBA src = srcRow[localX];
-                        if (src.a == 0) continue;
-
-                        double curOpacity = opacity;
-                        if (clipBase) {
-                            const int bTx = globalX / canvas::Tile::TILE_SIZE;
-                            const int bTy = globalY / canvas::Tile::TILE_SIZE;
-                            const int bPx = globalX % canvas::Tile::TILE_SIZE;
-                            const int bPy = globalY % canvas::Tile::TILE_SIZE;
-                            const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(clipBase->getTileGrid()).getTile(bTx, bTy);
-                            if (!bTile) continue;
-                            const double baseA = (static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0) * clipBase->getEffectiveOpacity();
-                            if (baseA <= 0.0) continue;
-                            curOpacity *= baseA;
-                        }
-
-                        dstRow[globalX] = blending::blendPixel(src, curOpacity, dstRow[globalX], mode, m_linearGamma, m_deepColor);
-                    }
-                }
-            }
-        }
-    };
+    internal::GroupBlender blender(outputBuffer, bounds, m_linearGamma, m_deepColor);
+    const Layer* activeGroup = nullptr;
 
     for (const Layer* layerPtr : layers) {
         if (!layerPtr || !layerPtr->isVisible() || layerPtr->getEffectiveOpacity() <= 0.0) {
             continue;
         }
 
+        const Layer* isoGroup = internal::getIsolatedGroupAncestor(layerPtr);
+        if (isoGroup != activeGroup) {
+            if (activeGroup != nullptr) {
+                blender.blendGroupToDestination(activeGroup);
+            }
+            if (isoGroup != nullptr) {
+                blender.beginGroup();
+            }
+            activeGroup = isoGroup;
+        }
+
         if (layerPtr->isFilter()) {
             const FilterLayer* filterLayer = dynamic_cast<const FilterLayer*>(layerPtr);
-            if (filterLayer) applyFilterToBuffer(*filterLayer, outputBuffer, minX, maxX, minY, maxY);
+            if (filterLayer) {
+                if (activeGroup != nullptr) {
+                    blender.applyFilterToGroup(*filterLayer);
+                } else {
+                    applyFilterToBuffer(*filterLayer, outputBuffer, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
+                }
+            }
             continue;
         }
 
         const Layer& layer = *layerPtr;
-        const double layerOpacity = layer.getEffectiveOpacity();
+        const double layerOpacity = activeGroup ? internal::getRelativeOpacity(&layer, activeGroup) : layer.getEffectiveOpacity();
         const LayerBlendMode blendMode = layer.getBlendMode();
+        const Layer* clipBaseLayer = internal::resolveClipBase(layer);
 
-        const Layer* clipBaseLayer = nullptr;
-        if (layer.isClippingMask()) {
-            auto it = std::find(layers.begin(), layers.end(), layerPtr);
-            if (it != layers.begin()) {
-                for (auto prevIt = it - 1; ; --prevIt) {
-                    if (*prevIt && !(*prevIt)->isBackground() && !(*prevIt)->isClippingMask() && !(*prevIt)->isFilter() && !(*prevIt)->isGroup() && (*prevIt)->isVisible()) {
-                        clipBaseLayer = *prevIt;
-                        break;
-                    }
-                    if (prevIt == layers.begin()) break;
-                }
-            }
-        }
-
-        composeTileGrid(layer.getTileGrid(), layerOpacity, blendMode, clipBaseLayer);
+        blender.composeTileGrid(layer.getTileGrid(), layerOpacity, blendMode, clipBaseLayer, activeGroup != nullptr);
 
         if (layerPtr == activeLayerTarget && scratchOpacity > 0.0) {
-            composeTileGrid(scratchGrid, scratchOpacity, scratchBlendMode, clipBaseLayer);
+            blender.composeTileGrid(scratchGrid, scratchOpacity, scratchBlendMode, clipBaseLayer, activeGroup != nullptr);
         }
+    }
+
+    if (activeGroup != nullptr) {
+        blender.blendGroupToDestination(activeGroup);
     }
 }
 

@@ -17,7 +17,9 @@ SOURCES = [
     "engine/core/canvas/TileHistoryRestore.cpp", "engine/core/canvas/ScratchDiskManager.cpp",
     "engine/core/compression/Lz4Codec.cpp", "engine/core/document/LayerStack.cpp",
     "engine/core/document/LayerMerger.cpp", "engine/core/document/FilterLayer.cpp",
-    "engine/core/document/Compositor.cpp", "engine/core/document/blending/FilterApplier.cpp",
+    "engine/core/document/Compositor.cpp",
+    "engine/core/document/internal/CompositeRegionSupport.cpp",
+    "engine/core/document/blending/FilterApplier.cpp",
     "engine/core/document/blending/filters/PointFilters.cpp",
     "engine/core/document/blending/filters/AreaFilters.cpp",
 ]

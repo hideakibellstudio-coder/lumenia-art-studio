@@ -42,6 +42,7 @@ cpp_sources = [
     "engine/core/canvas/MipmapPyramid.cpp",
     "engine/core/compression/Lz4Codec.cpp",
     "engine/core/document/Compositor.cpp",
+    "engine/core/document/internal/CompositeRegionSupport.cpp",
     "engine/core/document/blending/FilterApplier.cpp",
     "engine/core/document/blending/filters/PointFilters.cpp",
     "engine/core/document/blending/filters/AreaFilters.cpp",

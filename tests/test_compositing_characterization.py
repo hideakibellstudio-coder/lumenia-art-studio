@@ -209,3 +209,117 @@ def test_filtro_com_opacidade_zero_nao_altera_nada():
     engine.set_filter_params(indice, [50.0, 50.0, 2.0, 8.0])
     engine.set_layer_opacity(indice, 0.0)
     assert engine.get_pixel_buffer() == esperado
+
+
+# --------------------------------------------------------------------------
+# 3. Auditoria Rodada 2: R2-1 (Mascara), R2-2 (Grupo Blend), R2-3 (Filtro Area)
+# --------------------------------------------------------------------------
+
+def test_mascara_recorte_nao_migra_com_opacidade_zero_da_base():
+    """R2-1 / R2-5: Máscara não pode migrar para a camada inferior quando a base vai a opacidade 0."""
+    canvas_size = 512
+    engine = native.PaintEngineFacade(canvas_size, canvas_size)
+
+    # Camada 0: verde em 150..250
+    c0 = engine.get_active_layer_index()
+    green_buf = bytes([0, 255, 0, 255] * (100 * 100))
+    engine.paste_rgba_buffer_on_active_layer(150, 150, 100, 100, green_buf)
+
+    # Camada base: vermelho em 100..200
+    base = engine.add_layer("base")
+    engine.select_layer(base)
+    red_buf = bytes([255, 0, 0, 255] * (100 * 100))
+    engine.paste_rgba_buffer_on_active_layer(100, 100, 100, 100, red_buf)
+
+    # Camada mask: azul cobrindo o canvas, recortada
+    mask = engine.add_layer("mask")
+    engine.select_layer(mask)
+    blue_buf = bytes([0, 0, 255, 255] * (canvas_size * canvas_size))
+    engine.paste_rgba_buffer_on_active_layer(0, 0, canvas_size, canvas_size, blue_buf)
+    engine.set_layer_clipping_mask(mask, True)
+
+    # Ponto de observacao (220, 220): fora do vermelho, dentro do verde
+    idx = (220 * canvas_size + 220) * 4
+    buf_before = engine.get_pixel_buffer()
+    # Antes: a mascara corta contra o vermelho; em (220, 220) ve-se o verde da camada 0
+    assert buf_before[idx] == 0 and buf_before[idx + 1] == 255 and buf_before[idx + 2] == 0
+
+    # Zerar a opacidade da base: a mascara deve ocultar-se junto, NUNCA migrar para camada 0
+    engine.set_layer_opacity(base, 0.0)
+    buf_after = engine.get_pixel_buffer()
+    # Em (220, 220), continua verde (a mascara nao recortou contra a camada 0)
+    assert buf_after[idx + 2] != 255, "A máscara migrou indevidamente para a camada 0 ao zerar opacidade da base"
+    assert buf_after[idx] == 0 and buf_after[idx + 1] == 255 and buf_after[idx + 2] == 0
+
+
+@pytest.mark.parametrize("radius", [12, 40, 100])
+def test_composicao_parcial_equivale_a_completa_com_blur_raio_grande(radius):
+    """R2-3: Composição por região deve ser idêntica à composição completa com filtros de área."""
+    canvas_size = 512
+    # 1. Parcial (set_layer_opacity dispara compositeRegion)
+    e_part = native.PaintEngineFacade(canvas_size, canvas_size)
+    sq = e_part.add_layer("square")
+    e_part.select_layer(sq)
+    black_sq = bytes([0, 0, 0, 255] * (64 * 64))
+    e_part.paste_rgba_buffer_on_active_layer(100, 100, 64, 64, black_sq)
+    f1 = e_part.add_filter_layer("blur", FILTER_TYPES["gaussian_blur"])
+    e_part.set_filter_params(f1, [float(radius)])
+    e_part.set_layer_opacity(sq, 0.5)
+    buf_part = e_part.get_pixel_buffer()
+
+    # 2. Completa (criada com opacity 0.5 e composta inteira no set_filter_params)
+    e_comp = native.PaintEngineFacade(canvas_size, canvas_size)
+    sq2 = e_comp.add_layer("square")
+    e_comp.select_layer(sq2)
+    e_comp.paste_rgba_buffer_on_active_layer(100, 100, 64, 64, black_sq)
+    e_comp.set_layer_opacity(sq2, 0.5)
+    f2 = e_comp.add_filter_layer("blur", FILTER_TYPES["gaussian_blur"])
+    e_comp.set_filter_params(f2, [float(radius)])
+    buf_comp = e_comp.get_pixel_buffer()
+
+    assert _digest(buf_part) == _digest(buf_comp), (
+        f"Composição parcial e completa divergiram com blur de raio {radius}"
+    )
+
+
+def test_blend_mode_de_grupo_afeta_composicao_em_tempo_real():
+    """R2-2: Blend mode de grupo deve afetar o canvas em tempo real (não apenas ao achatar)."""
+    canvas_size = 256
+    # Camada de baixo: amarelo (255, 255, 0)
+    # Grupo: contém uma camada ciano (0, 255, 255)
+    # Com Blend Normal / PassThrough: Ciano cobre Amarelo -> Ciano
+    # Com Blend Multiply: Ciano (0, 255, 255) * Amarelo (255, 255, 0) -> Verde (0, 255, 0)
+
+    # Cena A: Grupo em PassThrough
+    e_pass = native.PaintEngineFacade(canvas_size, canvas_size)
+    yellow_buf = bytes([255, 255, 0, 255] * (canvas_size * canvas_size))
+    e_pass.paste_rgba_buffer_on_active_layer(0, 0, canvas_size, canvas_size, yellow_buf)
+
+    grp_pass = e_pass.add_group("grupo")
+    c_pass = e_pass.add_layer("filho")
+    e_pass.set_layer_parents([ -1, -1, grp_pass ]) # c_pass parent is grp_pass
+    e_pass.select_layer(c_pass)
+    cyan_buf = bytes([0, 255, 255, 255] * (canvas_size * canvas_size))
+    e_pass.paste_rgba_buffer_on_active_layer(0, 0, canvas_size, canvas_size, cyan_buf)
+    e_pass.set_layer_blend_mode(grp_pass, 7) # PassThrough
+    buf_pass = e_pass.get_pixel_buffer()
+
+    # Cena B: Grupo em Multiply (1)
+    e_mult = native.PaintEngineFacade(canvas_size, canvas_size)
+    e_mult.paste_rgba_buffer_on_active_layer(0, 0, canvas_size, canvas_size, yellow_buf)
+
+    grp_mult = e_mult.add_group("grupo")
+    c_mult = e_mult.add_layer("filho")
+    e_mult.set_layer_parents([ -1, -1, grp_mult ])
+    e_mult.select_layer(c_mult)
+    e_mult.paste_rgba_buffer_on_active_layer(0, 0, canvas_size, canvas_size, cyan_buf)
+    e_mult.set_layer_blend_mode(grp_mult, 1) # Multiply
+    buf_mult = e_mult.get_pixel_buffer()
+
+    # Os hashes devem diferir e o pixel com Multiply deve ser verde
+    assert _digest(buf_pass) != _digest(buf_mult), "Blend mode do grupo não alterou o canvas em tempo real"
+    idx = (100 * canvas_size + 100) * 4
+    assert buf_mult[idx] == 0, f"Canal R esperado 0, obtido {buf_mult[idx]}"
+    assert buf_mult[idx + 1] == 255, f"Canal G esperado 255, obtido {buf_mult[idx + 1]}"
+    assert buf_mult[idx + 2] == 0, f"Canal B esperado 0, obtido {buf_mult[idx + 2]}"
+

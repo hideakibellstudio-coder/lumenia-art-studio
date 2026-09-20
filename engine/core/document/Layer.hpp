@@ -26,8 +26,21 @@ public:
     [[nodiscard]] bool isBackground() const noexcept { return m_isBackground; }
     void setBackground(bool isBg) noexcept { m_isBackground = isBg; }
 
-    [[nodiscard]] double getEffectiveOpacity() const noexcept { return m_effectiveOpacity; }
+    [[nodiscard]] double getEffectiveOpacity() const noexcept {
+        if (!isVisible()) return 0.0;
+        double eff = getOpacity();
+        const LayerNode* curr = getParent();
+        while (curr) {
+            if (!curr->isVisible()) return 0.0;
+            eff *= curr->getOpacity();
+            curr = curr->getParent();
+        }
+        return eff;
+    }
     void setEffectiveOpacity(double opacity) noexcept { m_effectiveOpacity = opacity; }
+
+    [[nodiscard]] const Layer* getClipBase() const noexcept { return m_clipBase; }
+    void setClipBase(const Layer* base) const noexcept { m_clipBase = base; }
 
     [[nodiscard]] canvas::TileGrid& getTileGrid() noexcept { return m_tileGrid; }
     [[nodiscard]] const canvas::TileGrid& getTileGrid() const noexcept { return m_tileGrid; }
@@ -42,6 +55,7 @@ private:
     bool m_clippingMask{false};
     bool m_isBackground{false};
     double m_effectiveOpacity{1.0};
+    mutable const Layer* m_clipBase{nullptr};
     canvas::TileGrid m_tileGrid;
 };
 

@@ -109,6 +109,7 @@ class LocalLayerManager(QtCore.QObject):
 
     def validate_integrity(self) -> None:
         """Valida UIDs estáveis e o grafo hierárquico antes da projeção nativa."""
+        self._validate_clipping_masks()
         validate_layer_tree(self.layers, self._active_uid)
 
     def add_layer(self, name=None) -> int:
@@ -241,6 +242,7 @@ class LocalLayerManager(QtCore.QObject):
         self.layers[idx], self.layers[idx + 1] = self.layers[idx + 1], self.layers[idx]
         sync_backend_reorder(self, idx, idx + 1)
         self.order_changed.emit()
+        self._validate_clipping_masks()
         self.set_active_layer(uid)
         self.content_changed.emit("move_layer")
         return True
@@ -289,6 +291,8 @@ class LocalLayerManager(QtCore.QObject):
         """Garante que a primeira camada (índice 0) nunca permaneça como máscara de recorte."""
         if self.layers and self.layers[0].clipping_mask:
             self.layers[0].clipping_mask = False
+            if not self._history_guard:
+                sync_backend_property(self, 0, "clipping_mask", False)
             self.layer_property_changed.emit(self.layers[0].uid)
 
     def set_clipping_mask(self, idx: int, enabled: bool) -> None:
@@ -383,6 +387,7 @@ class LocalLayerManager(QtCore.QObject):
             self.set_active_layer(group.uid)
         sync_backend_parents(self)
         self.order_changed.emit()
+        self._validate_clipping_masks()
         self.content_changed.emit("flatten_group")
         self.validate_integrity()
         return True
@@ -396,6 +401,7 @@ class LocalLayerManager(QtCore.QObject):
             self.set_active_layer(base.uid)
             sync_backend_parents(self)
             self.order_changed.emit()
+            self._validate_clipping_masks()
             self.content_changed.emit("flatten_image")
             self.validate_integrity()
             return True
@@ -407,6 +413,7 @@ class LocalLayerManager(QtCore.QObject):
         sync_backend_parents(self)
         sync_backend_select(self, self.active_index)
         self.order_changed.emit()
+        self._validate_clipping_masks()
         self.validate_integrity()
 
     def replace_layers(self, records) -> None:
@@ -436,5 +443,6 @@ class LocalLayerManager(QtCore.QObject):
         active_uid = next((r.get("uid") for r in records or [] if r.get("uid") == self._active_uid), None)
         self._active_uid = active_uid if active_uid is not None else (new_layers[0].uid if new_layers else None)
         self.order_changed.emit()
+        self._validate_clipping_masks()
         if not self._history_guard:
             self._last_structural_snapshot = self._snapshot()

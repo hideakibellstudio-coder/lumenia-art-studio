@@ -77,8 +77,8 @@ public:
         } else {
             // Grupo: une o conteúdo de todos os descendentes. A própria
             // TileGrid de um grupo nunca recebe pinceladas diretamente.
-            const auto allLayers = stack.getAllLayersForComposition();
-            for (const document::Layer* candidate : allLayers) {
+            for (size_t i = 0; i < stack.getDrawingLayerCount(); ++i) {
+                const document::Layer* candidate = stack.getDrawingLayer(static_cast<int>(i));
                 if (!candidate || candidate == layer || candidate->isGroup()) continue;
                 const document::LayerNode* p = candidate->getParent();
                 bool isDescendant = false;

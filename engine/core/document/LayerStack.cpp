@@ -273,7 +273,7 @@ bool LayerStack::setLayerParents(const std::vector<int>& parentIndices) {
         size_t depth = 0;
         while (p != -1) {
             if (p < 0 || p >= static_cast<int>(parentIndices.size()) ||
-                p == static_cast<int>(i) || !m_drawingLayers[p]->isGroup() ||
+                p == static_cast<int>(i) || !m_drawingLayers[p] || !m_drawingLayers[p]->isGroup() ||
                 ++depth > parentIndices.size()) return false;
             p = parentIndices[p];
         }
@@ -333,23 +333,19 @@ std::vector<const Layer*> LayerStack::getAllLayersForComposition() const {
         if (!layerPtr || layerPtr->isGroup()) continue;
 
         bool effVis = layerPtr->isVisible();
-        double effOpacity = layerPtr->getOpacity();
+        double effOpacity = layerPtr->getEffectiveOpacity();
 
-        // Se for máscara de recorte, sua visibilidade depende da visibilidade da camada base
+        // Se for máscara de recorte, sua visibilidade e base dependem da base
         if (layerPtr->isClippingMask()) {
             const Layer* base = getClipBaseLayer(static_cast<int>(i));
-            if (!base || !base->isVisible()) {
+            if (!base || !base->isVisible() || base->getEffectiveOpacity() <= 0.0) {
                 effVis = false;
+                layerPtr->setClipBase(nullptr);
             } else {
-                const LayerNode* bCurr = base->getParent();
-                while (bCurr) {
-                    if (!bCurr->isVisible()) {
-                        effVis = false;
-                        break;
-                    }
-                    bCurr = bCurr->getParent();
-                }
+                layerPtr->setClipBase(base);
             }
+        } else {
+            layerPtr->setClipBase(nullptr);
         }
 
         const LayerNode* curr = layerPtr->getParent();
@@ -358,12 +354,10 @@ std::vector<const Layer*> LayerStack::getAllLayersForComposition() const {
                 effVis = false;
                 break;
             }
-            effOpacity *= curr->getOpacity();
             curr = curr->getParent();
         }
 
         if (effVis && effOpacity > 0.0) {
-            const_cast<Layer*>(layerPtr.get())->setEffectiveOpacity(effOpacity);
             list.push_back(layerPtr.get());
         }
     }

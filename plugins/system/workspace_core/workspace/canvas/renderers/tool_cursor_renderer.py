@@ -13,6 +13,7 @@ class ToolCursorRenderer:
     """Motor de renderização de cursores na viewport do canvas."""
 
     _cursor_cache: dict[tuple[str, int], QtGui.QCursor] = {}
+    _precision_chevron_cache: dict[float, QtGui.QCursor] = {}
     _cached_pens: dict[float, tuple[QtGui.QPen, QtGui.QPen, QtGui.QPen]] = {}
 
     @classmethod
@@ -29,6 +30,37 @@ class ToolCursorRenderer:
             pens = (pen_white, pen_black, pen_ch)
             cls._cached_pens[op_key] = pens
         return pens
+
+    @classmethod
+    def create_precision_chevron_cursor(cls, dpr: float = 1.0) -> QtGui.QCursor:
+        """Gera um cursor nativo chevron vetorial de precisão (branco com contorno preto e hotspot 0,0)."""
+        dpr_key = round(max(1.0, float(dpr)), 2)
+        if dpr_key in cls._precision_chevron_cache:
+            return cls._precision_chevron_cache[dpr_key]
+
+        size = int(32 * dpr_key)
+        pixmap = QtGui.QPixmap(size, size)
+        pixmap.fill(QtCore.Qt.transparent)
+        pixmap.setDevicePixelRatio(dpr_key)
+
+        painter = QtGui.QPainter(pixmap)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+
+        path = QtGui.QPainterPath()
+        path.moveTo(0.0, 0.0)
+        path.lineTo(14.0, 6.0)
+        path.lineTo(8.0, 8.0)
+        path.lineTo(6.0, 14.0)
+        path.closeSubpath()
+
+        painter.setBrush(QtGui.QColor(255, 255, 255, 255))
+        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 240), 1.0))
+        painter.drawPath(path)
+        painter.end()
+
+        cursor = QtGui.QCursor(pixmap, 0, 0)
+        cls._precision_chevron_cache[dpr_key] = cursor
+        return cursor
 
     @staticmethod
     def get_cursor_settings() -> dict:
@@ -55,7 +87,8 @@ class ToolCursorRenderer:
         brush_radius: float,
         zoom: float,
         is_painting: bool = False,
-        settings: dict | None = None
+        settings: dict | None = None,
+        tool_id: str = "brush",
     ) -> None:
         """Desenha o indicador geométrico de pincel com alto contraste e anti-aliasing."""
         if settings is None:
@@ -78,19 +111,33 @@ class ToolCursorRenderer:
         op = float(settings.get("ring_opacity", 0.9))
         pen_white, pen_black, pen_ch = cls._get_pens(op)
 
+        # Configuração de caneta por ferramenta (Diferenciação Visual Pincel vs Borracha vs Smudge)
+        if tool_id == "eraser":
+            p_outer = QtGui.QPen(pen_white)
+            p_outer.setStyle(QtCore.Qt.PenStyle.DashLine)
+            p_inner = QtGui.QPen(pen_black)
+            p_inner.setStyle(QtCore.Qt.PenStyle.DashLine)
+        elif tool_id == "smudge":
+            p_outer = QtGui.QPen(QtGui.QColor(180, 220, 255, pen_white.color().alpha()), 1.5)
+            p_outer.setCosmetic(True)
+            p_inner = pen_black
+        else:
+            p_outer = pen_white
+            p_inner = pen_black
+
         # 1. Renderização do Anel de Contorno (Borda Dupla Branco / Preto)
         if mode in ("ring_and_dot", "ring_only") and screen_radius >= 1.0:
-            # Anel Externo Branco
-            painter.setPen(pen_white)
+            # Anel Externo Branco / Temático
+            painter.setPen(p_outer)
             painter.setBrush(QtCore.Qt.NoBrush)
             painter.drawEllipse(QtCore.QPointF(cx, cy), screen_radius, screen_radius)
 
             # Anel Interno Preto de Contraste
-            painter.setPen(pen_black)
+            painter.setPen(p_inner)
             painter.drawEllipse(QtCore.QPointF(cx, cy), screen_radius, screen_radius)
 
-        # 2. Ponto Central (Dot)
-        if mode in ("ring_and_dot", "dot_only"):
+        # 2. Ponto Central (Dot) — Sempre visível se raio for minúsculo ou se configurado
+        if mode in ("ring_and_dot", "dot_only") or screen_radius < 3.0:
             painter.setPen(QtCore.Qt.NoPen)
             painter.setBrush(QtGui.QColor(0, 0, 0, 200))
             painter.drawEllipse(QtCore.QPointF(cx, cy), 2.0, 2.0)

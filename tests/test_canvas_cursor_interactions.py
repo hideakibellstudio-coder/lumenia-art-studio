@@ -43,33 +43,56 @@ def test_tool_cursor_renderer_hotspots_and_icons(qapp):
         assert cursor.shape() == QtCore.Qt.CursorShape.BitmapCursor
 
 
+def test_tool_cursor_renderer_precision_chevron(qapp):
+    """Verifica geração vetorial e cache do chevron de precisão nativo."""
+    chevron = ToolCursorRenderer.create_precision_chevron_cursor(dpr=1.0)
+    assert chevron is not None
+    assert chevron.shape() == QtCore.Qt.CursorShape.BitmapCursor
+    assert chevron.hotSpot() == QtCore.QPoint(0, 0)
+
+    # Cache determinístico por DPR
+    chevron_2x = ToolCursorRenderer.create_precision_chevron_cursor(dpr=2.0)
+    assert chevron_2x is not None
+    assert chevron_2x.shape() == QtCore.Qt.CursorShape.BitmapCursor
+
+
 def test_canvas_cursor_controller_tool_shapes(qapp):
-    """Verifica formas de cursor atribuídas para cada ferramenta ativa quando sobre o canvas e fora dele."""
+    """Verifica formas de cursor atribuídas para cada ferramenta ativa quando dentro e fora da viewport."""
     widget = QtWidgets.QWidget()
     widget.active_tool = "brush"
     widget.canvas_w = 800
     widget.canvas_h = 600
     controller = CanvasCursorController(widget)
 
-    # Fora do canvas: deve ser SEMPRE ArrowCursor
-    controller._is_over_canvas = False
+    # Fora da viewport: deve ser SEMPRE ArrowCursor
+    controller.cursor_in_viewport = False
     controller.update_cursor_shape()
     assert widget.cursor().shape() == QtCore.Qt.CursorShape.ArrowCursor
 
-    # Sobre o canvas: ferramentas especializadas
-    controller._is_over_canvas = True
+    # Dentro da viewport: ferramentas especializadas ativas em toda a área
+    controller.cursor_in_viewport = True
 
-    # Ferramentas com anel flutuante (BlankCursor por padrão no modo normal)
+    # Ferramentas com chevron de precisão (BitmapCursor por padrão)
     for tool in ("brush", "eraser", "smudge"):
         widget.active_tool = tool
         controller.update_cursor_shape()
-        assert widget.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
+        assert widget.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+
+    # Suporte ao modo BlankCursor configurável
+    controller.cursor_settings["mode"] = "blank"
+    controller.update_cursor_shape()
+    assert widget.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
 
     # Modo de sistema: deve usar ArrowCursor
     controller.cursor_settings["mode"] = "system"
     controller.update_cursor_shape()
     assert widget.cursor().shape() == QtCore.Qt.CursorShape.ArrowCursor
     controller.cursor_settings["mode"] = "ring_and_dot"
+
+    # Permanece especializado mesmo no fundo neutro fora do documento (viewport-wide)
+    controller._is_over_canvas = False
+    controller.update_cursor_shape()
+    assert widget.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 
     # Formas vetoriais e seleções: CrossCursor
     for tool in ("lasso", "rect_select", "ellipse_select", "shapes", "shape_rectangle", "shape_circle"):
@@ -134,9 +157,10 @@ def test_input_router_pan_and_zoom_cursor_feedback(qapp):
     """Verifica que Pan e Zoom Drag ativam ClosedHandCursor e SizeVerCursor e restauram ao soltar."""
     rw = RenderWidget()
     rw.active_tool = "brush"
+    rw.cursor_ctrl.cursor_in_viewport = True
     rw.cursor_ctrl._is_over_canvas = True
     rw.cursor_ctrl.update_cursor_shape()
-    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 
     router = CanvasInputRouter(rw)
 
@@ -157,7 +181,7 @@ def test_input_router_pan_and_zoom_cursor_feedback(qapp):
         modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
     )
     assert rw.is_panning is False
-    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 
     # Inicia Zoom Drag via Alt + RightButton
     router.handle_pointer_press(
@@ -176,4 +200,22 @@ def test_input_router_pan_and_zoom_cursor_feedback(qapp):
         modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
     )
     assert rw.is_zoom_dragging is False
-    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+
+
+def test_tool_cursor_renderer_eraser_dashed_and_smudge(qapp):
+    """Verifica renderização visual de anéis específicos para borracha (tracejado) e smudge."""
+    img = QtGui.QImage(100, 100, QtGui.QImage.Format_ARGB32_Premultiplied)
+    img.fill(QtCore.Qt.transparent)
+    p = QtGui.QPainter(img)
+    try:
+        # Borracha (tool_id="eraser") -> deve desenhar sem erro com estilo tracejado
+        ToolCursorRenderer.render_cursor(p, 50, 50, 20.0, 1.0, tool_id="eraser")
+
+        # Borrador (tool_id="smudge") -> deve desenhar sem erro com anel especializado
+        ToolCursorRenderer.render_cursor(p, 50, 50, 20.0, 1.0, tool_id="smudge")
+
+        # Micro-pincel (raio < 3.0) -> ponto central preservado
+        ToolCursorRenderer.render_cursor(p, 50, 50, 1.0, 1.0, tool_id="brush")
+    finally:
+        p.end()

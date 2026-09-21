@@ -80,13 +80,13 @@ class CanvasCursorController:
         self.widget.setCursor(cursor)
 
     def update_cursor_shape(self) -> None:
-        """Define o formato do cursor do widget com base na ferramenta ativa, posição e preferências."""
+        """Define o formato do cursor do widget com base na ferramenta ativa, presença na viewport e preferências."""
         w = self.widget
         cw = getattr(w, "canvas_w", 0)
         ch = getattr(w, "canvas_h", 0)
 
-        # Fora do canvas ou sem documento: mostra SEMPRE a seta padrão
-        if cw <= 0 or ch <= 0 or not self._is_over_canvas:
+        # Fora da viewport ou sem documento: mostra SEMPRE a seta padrão
+        if cw <= 0 or ch <= 0 or not self.cursor_in_viewport:
             self._set_widget_cursor(QtCore.Qt.ArrowCursor)
             return
 
@@ -96,8 +96,11 @@ class CanvasCursorController:
         if active_tool in ("brush", "eraser", "smudge"):
             if mode == "system":
                 self._set_widget_cursor(QtCore.Qt.ArrowCursor)
-            else:
+            elif mode == "blank":
                 self._set_widget_cursor(QtCore.Qt.BlankCursor)
+            else:
+                dpr = self.widget.devicePixelRatioF() if hasattr(self.widget, "devicePixelRatioF") else 1.0
+                self._set_widget_cursor(ToolCursorRenderer.create_precision_chevron_cursor(dpr))
         elif active_tool in ("eyedrop", "eyedropper", "bucket", "wand", "transform"):
             self._set_widget_cursor(ToolCursorRenderer.create_custom_cursor(active_tool))
         elif active_tool in ("lasso", "rect_select", "ellipse_select", "shapes") or active_tool.startswith("shape_"):
@@ -149,33 +152,27 @@ class CanvasCursorController:
         is_drawing: bool
     ) -> Optional[QtCore.QRect | QtGui.QRegion]:
         """
-        Atualiza a posição do cursor e alterna determinística entre o anel do pincel (no canvas)
-        e a seta do sistema operacional (fora do canvas).
+        Atualiza a posição do cursor na viewport e emite dirty rect para re-renderização suave.
         Garante cálculo inteligente de dirty region sem repintar a tela inteira em saltos.
         """
         old_pos = self.mouse_pos
         self.mouse_pos = pos
+        was_in_viewport = self.cursor_in_viewport
         self.cursor_in_viewport = True
         self._last_radius = brush_radius
 
-        was_over = self._is_over_canvas
-        now_over = self.is_over_canvas(pos)
-        self._is_over_canvas = now_over
+        self._is_over_canvas = self.is_over_canvas(pos)
 
-        if now_over != was_over:
+        if not was_in_viewport:
             self.update_cursor_shape()
 
         w = self.widget
         active_tool = getattr(w, "active_tool", "brush")
         if active_tool in ("brush", "eraser", "smudge") and not is_drawing:
-            # Se não está nem estava sobre o canvas, não há anel geométrico a redesenhar
-            if not now_over and not was_over:
-                return None
-
             r_new = ToolCursorRenderer.get_cursor_rect(self.mouse_pos.x(), self.mouse_pos.y(), brush_radius, zoom)
 
-            # Se a posição anterior era inválida/fora da tela ou fora do canvas
-            if old_pos.x() < -500.0 or old_pos.y() < -500.0 or not was_over:
+            # Se a posição anterior era inválida/fora da tela ou fora da viewport
+            if old_pos.x() < -500.0 or old_pos.y() < -500.0 or not was_in_viewport:
                 self._last_cursor_rect = r_new
                 return r_new
 
@@ -199,9 +196,9 @@ class CanvasCursorController:
         return None
 
     def render(self, painter: QtGui.QPainter, brush_radius: float, zoom: float, is_drawing: bool) -> None:
-        """Renderiza o cursor flutuante personalizado (anel/ponto/mira) SOMENTE se estiver sobre o canvas."""
+        """Renderiza o cursor flutuante personalizado (anel/ponto/mira) em toda a área visível da viewport."""
         active_tool = getattr(self.widget, "active_tool", "brush")
-        if self.cursor_in_viewport and self._is_over_canvas and active_tool in ("brush", "eraser", "smudge"):
+        if self.cursor_in_viewport and active_tool in ("brush", "eraser", "smudge"):
             ToolCursorRenderer.render_cursor(
                 painter,
                 self.mouse_pos.x(),
@@ -209,5 +206,6 @@ class CanvasCursorController:
                 brush_radius,
                 zoom,
                 is_drawing,
-                self.cursor_settings
+                self.cursor_settings,
+                tool_id=active_tool,
             )

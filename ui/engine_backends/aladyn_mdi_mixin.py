@@ -23,17 +23,6 @@ class AladynMdiMixin:
         if document is not None:
             document.mark_dirty(reason)
 
-    def replace_document_context(self, uid: str, prepared_uid: str) -> bool:
-        if uid == prepared_uid or uid not in self._doc_facades or prepared_uid not in self._doc_facades:
-            return False
-        prepared = self._doc_facades[prepared_uid]
-        self._doc_facades[uid] = prepared
-        del self._doc_facades[prepared_uid]
-        self._active_doc_uid = uid
-        self._facade = prepared
-        self._width, self._height = prepared.get_width(), prepared.get_height()
-        return True
-
     def set_active_document_context(self, uid: str, width: int, height: int) -> None:
         """
         Alterna o contexto ativo de execução C++ para o documento especificado em tempo O(1).

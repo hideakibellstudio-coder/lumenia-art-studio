@@ -93,14 +93,6 @@ class AladynGeometryMixin:
                 return [float(v) for v in res]
         return []
 
-    def get_nearest_primary_grid_curve(self, x: float, y: float, max_dist: float = 24.0) -> list[float]:
-        """Curva primária da grade mais próxima de (x, y); vazio se nenhuma dentro de max_dist."""
-        if self._facade and hasattr(self._facade, "get_nearest_primary_grid_curve"):
-            res = self._facade.get_nearest_primary_grid_curve(float(x), float(y), float(max_dist))
-            if res:
-                return [float(v) for v in res]
-        return []
-
     def snap_curvilinear(
         self, raw_x: float, raw_y: float, start_x: float, start_y: float,
         candidates: list[float], locked_index: int = -1,

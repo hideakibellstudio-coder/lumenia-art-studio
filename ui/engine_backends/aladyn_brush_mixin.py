@@ -28,12 +28,6 @@ class AladynBrushMixin:
             if hasattr(color, "red"):
                 self._facade.set_background_color(color.red(), color.green(), color.blue(), color.alpha() if visible else 0)
 
-    def set_canvas_grain_enabled(self, enabled: bool) -> None:
-        if self._facade:
-            c_tex = self._facade.get_canvas_texture()
-            if c_tex:
-                c_tex.canvas_grain_enabled = bool(enabled)
-
     def set_canvas_height_preset(self, preset_id: int) -> None:
         if self._facade:
             self._facade.set_canvas_height_preset(int(preset_id))
@@ -213,10 +207,6 @@ class AladynBrushMixin:
     def set_brush_grain_scale(self, scale: float) -> None:
         if self._facade:
             self._facade.get_brush_profile().brush_grain_scale = float(scale)
-
-    def set_brush_grain_invert(self, invert: bool) -> None:
-        if self._facade:
-            self._facade.get_brush_profile().brush_grain_invert = bool(invert)
 
     def set_brush_height_preset(self, preset_id: int) -> None:
         if self._facade:

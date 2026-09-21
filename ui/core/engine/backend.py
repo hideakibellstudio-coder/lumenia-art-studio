@@ -193,13 +193,11 @@ class EngineBackend(ABC):
     def set_brush_grain_enabled(self, enabled: bool) -> None: ...
     def set_brush_grain_contrast(self, contrast: float) -> None: ...
     def set_brush_grain_scale(self, scale: float) -> None: ...
-    def set_brush_grain_invert(self, invert: bool) -> None: ...
 
     # ── Papel & Textura do Canvas ─────────────────────────────────────────
 
     def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False, *, reset_texture: bool = True) -> None: ...
     def set_canvas_height_preset(self, preset_id: int) -> None: ...
-    def set_canvas_grain_enabled(self, enabled: bool) -> None: ...
     def set_canvas_grain_contrast(self, contrast: float) -> None: ...
     def set_canvas_grain_scale(self, scale: float) -> None: ...
     def set_canvas_grain_invert(self, invert: bool) -> None: ...
@@ -242,7 +240,6 @@ class EngineBackend(ABC):
     def set_layer_clipping_mask(self, index: int, clipped: bool) -> None: ...
     def is_layer_clipping_mask(self, index: int) -> bool: return False
     def flatten_group(self, index: int) -> bool: return False
-    def set_group_pass_through(self, index: int, pass_through: bool) -> bool: return False
     def merge_layer_down(self, index: int) -> bool: return False
     def clear_layer(self, index: int) -> None: ...
     def get_active_layer_index(self) -> int: return 0
@@ -268,7 +265,6 @@ class EngineBackend(ABC):
     def fill_selection_on_active_layer(self, fill_color: Any) -> bool: return False
     def get_selection_bounds(self) -> List[int]: return [0, 0, 0, 0]
     def get_selection_contour_loops(self) -> List[List[int]]: return []
-    def get_selection_contour_segments(self) -> List[int]: return []
     def get_selection_mask_qimage(self) -> Optional[Any]: return None
 
     def begin_transform(self) -> bool: return False
@@ -305,7 +301,6 @@ class EngineBackend(ABC):
     # "sem trava"), mesma convenção de snap_point acima.
     def set_curvilinear_guide_config(self, base_radius: float = 400.0, density: float = 30.0, show_v: bool = True, show_h: bool = True, show_d: bool = True, show_ground: bool = False, show_ceiling: bool = False, show_ground_verticals: bool = False, show_ceiling_verticals: bool = False, show_straight_verticals: bool = False, snap_mode: int = 0, snap_sensitivity: float = 3.0) -> None: ...
     def get_curvilinear_candidates(self, click_x: float, click_y: float) -> List[float]: return []
-    def get_nearest_primary_grid_curve(self, x: float, y: float, max_dist: float = 24.0) -> List[float]: return []
     def snap_curvilinear(self, raw_x: float, raw_y: float, start_x: float, start_y: float, candidates: List[float], locked_index: int = -1, is_stroking: bool = False, zoom: float = 1.0) -> List[float]: return [raw_x, raw_y, -1.0]
 
     # ── Perspectiva (1P/2P/3P/Isometric) ─ Fase C3.1 ─────────────────────────
@@ -348,10 +343,6 @@ class EngineBackend(ABC):
 
     def get_active_document_context(self) -> Any:
         return None
-
-    def replace_document_context(self, uid: str, prepared_uid: str) -> bool:
-        """Commit a fully prepared context without exposing partial document state."""
-        return False
 
     def get_render_options(self) -> Dict[str, bool]:
         """Retorna o estado efetivo das opções do pipeline."""

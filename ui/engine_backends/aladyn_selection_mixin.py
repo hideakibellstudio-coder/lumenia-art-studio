@@ -77,11 +77,6 @@ class AladynSelectionMixin:
                 return (b[0], b[1], b[2], b[3])
         return (0, 0, 0, 0)
 
-    def get_selection_contour_segments(self) -> list[int]:
-        if self._facade:
-            return self._facade.get_selection_contour_segments()
-        return []
-
     def get_selection_contour_loops(self) -> list[list[int]]:
         if self._facade:
             return self._facade.get_selection_contour_loops()

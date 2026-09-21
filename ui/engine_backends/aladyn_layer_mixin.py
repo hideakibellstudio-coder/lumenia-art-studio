@@ -105,11 +105,6 @@ class AladynLayerMixin:
             return self._facade.is_group(index)
         return False
 
-    def set_group_pass_through(self, index: int, pass_through: bool) -> bool:
-        if self._facade:
-            return self._facade.set_group_pass_through(index, pass_through)
-        return False
-
     def duplicate_layer(self, index: int) -> int:
         if self._facade:
             return self._facade.duplicate_layer(index)

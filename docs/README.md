@@ -24,9 +24,8 @@ Ambiente de desenvolvimento, compilação e distribuição.
 ### `04-especificacoes/` — formais, estáveis
 Formato de arquivo `.lmn` e gestão de cor (LittleCMS/ICC).
 
-### `05-visao-e-futuro/` — explícitamente **não** é para agora
-Visão estratégica de produto e o roadmap do pipeline de cor 16-bit/float.
-Mantido por referência; nada aqui deve virar trabalho antes da base fechar.
+### `05-visao-e-futuro/` — visão estratégica e evolução de produto
+Visão estratégica de produto, benchmark competitivo de mercado (`03-benchmark-competitivo-e-rotas-de-produto.md`) e roadmap do pipeline de cor 16-bit/float. Norteia as decisões de refinamento da branch `feature/evolucao-produto`.
 
 ### `historico/` — encerrado, não numerado de propósito
 Auditorias já resolvidas (F-001 a F-031) e o panorama de estado de
@@ -42,6 +41,11 @@ tarefas.
 > agora, em qual documento (deste `docs/` ou do Claude Project) isso estava
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
+
+### 2026-09-21 — Criação da Branch `feature/evolucao-produto` e Benchmark Competitivo de Mercado
+**O que foi feito:** Transição formal da fase de correção da base para a fase de evolução de produto:
+1. *Criação da Branch:* branch local `feature/evolucao-produto` criada e ativada a partir de `main` (commit `a41b41c`).
+2. *Documento Direcionador de Produto:* criação de `docs/05-visao-e-futuro/03-benchmark-competitivo-e-rotas-de-produto.md` mapeando as lacunas competitivas do Lumenia frente aos líderes de mercado (Procreate, Clip Studio Paint, Krita, Infinite Painter e Photoshop), estruturando as 5 rotas de refinamento coeso pelos 5 Grandes Rios.
 
 ### 2026-09-21 — Descida ao Núcleo Primordial C++ e Fechamento Ascendente dos 5 Grandes Rios (Rodada 14)
 **O que foi feito:** Décima quarta rodada de auditoria concêntrica expandindo a metodologia `lumenia-satellite-audit` até a profundidade máxima física e validando a subida dos 5 Rios:

@@ -43,6 +43,14 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-21 — Descida ao Núcleo Primordial C++ e Fechamento Ascendente dos 5 Grandes Rios (Rodada 14)
+**O que foi feito:** Décima quarta rodada de auditoria concêntrica expandindo a metodologia `lumenia-satellite-audit` até a profundidade máxima física e validando a subida dos 5 Rios:
+1. *Expansão Metodológica para 6 Camadas Concêntricas*: atualização da skill (`.agents/skills/lumenia-satellite-audit/SKILL.md`) e da documentação canônica (`docs/01-correcao-da-base/06-auditoria-orbital-decomposta.md`), incorporando formalmente a Órbita 5 (Ponte PyBind11 e os 11 Orquestradores de Borda) e a Órbita 6 (Núcleo Físico Primordial: `TileGrid`, `TileUndoManager`, `Compositor`, `DabRenderer` SIMD).
+2. *Formalização do Retorno Ascendente (The Complete Ascending River Loop)*: definição e verificação dos 5 Grandes Rios de propagação bottom-up: Rio 1 (Traço & Estabilizador), Rio 2 (Câmera & Viewport), Rio 3 (Camadas & Histórico), Rio 4 (Seleção & Transformação) e Rio 5 (Cor & Perfis Cromáticos).
+3. *Auditoria de Integridade da Fronteira PyBind11 e Orquestradores*: validação da segurança de memória de `BufferContract.hpp` (prevenção contra overflow aritmético via `checkedRasterBytes` e snapshots imutáveis `pixelSnapshot` sem vazamento de ponteiros crus) e garantia de invocação sistemática de `DocumentContext::touch()` e dirty tracking.
+4. *Suíte Dedicada de Integridade Primordial e Ascendente*: criação de `tests/test_satellite_round14_core_and_ascending_loop.py` cobrindo a descida e a subida dos 5 rios.
+5. *Governança Estrita ARCcC*: todos os arquivos criados ou modificados estritamente na Zona Verde (< 450 LOC). 100% de testes verdes na suíte global.
+
 ### 2026-09-21 — Sincronização Bidirecional Viewport/Navigator e Dirty Tracking de Camadas (Rodada 13)
 **O que foi feito:** Décima terceira rodada de auditoria e saneamento concêntrico aplicando `lumenia-satellite-audit`:
 1. *Alinhamento dos Ícones de Flip no Navigator*: correção dos ícones SVG em `NavigatorControls` (`plugins/ui/navigator_plugin/panel.py`), associando `flip-vertical` a `btn_fliph` e `flip-horizontal` a `btn_flipv`, alinhando a representação visual com a percepção do usuário e preservando conexões de sinal 1:1.

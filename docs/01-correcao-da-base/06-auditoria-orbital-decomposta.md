@@ -22,7 +22,7 @@ O desenvolvimento acelerado com modelos de linguagem (LLMs) permite construir ar
 
 ## 2. O Conceito: A Análise Orbital por Camadas Concêntricas
 
-A solução é o método **Concentric Satellite Peeling** (Descascamento Concêntrico de Satélites):
+A solução é o método **Concentric Satellite Peeling** (Descascamento Concêntrico de Satélites), descendo da superfície até a física de memória dos pixels e comprovando a consistência através do retorno ascendente:
 
 ```mermaid
 flowchart TD
@@ -32,9 +32,9 @@ flowchart TD
     end
 
     subgraph O2["Órbita 2: Painéis & Observadores (Plugins)"]
-        Nav["Navigator / Minimap"]
+        Nav["Navigator / Minimap Preview"]
         ColorWheel["Painéis de Cor / Paletas"]
-        Docks["Gavetas Dinâmicas & WorkspaceDocumentSync"]
+        Docks["Docks Dinâmicas / WorkspaceDocumentSync / Status Bar"]
     end
 
     subgraph O3["Órbita 3: Viewport & Ferramentas Satélites (Canvas Bridge)"]
@@ -43,29 +43,71 @@ flowchart TD
         SatTools["ShapeTool / TransformTool / Selection / Text / Bucket"]
     end
 
-    subgraph Core["Base Primordial: Motor & Persistência (Core Nativo)"]
-        Facade["EngineBackend / PaintEngineFacade"]
-        TileGrid["TileGrid / TileUndoManager / C++ Kernel"]
+    subgraph O4["Órbita 4: Adaptador do Motor (Python Backend)"]
+        Backend["AladynBackend & Mixins Atômicos (Stroke, Layer, Selection, etc.)"]
+        DirtyTracker["_mark_document_dirty & Sincronização de Estado"]
     end
 
-    Menus -->|"Invocam"| Router
-    Mixins -->|"Manipulam"| RW
-    Nav -->|"Observa & Espelha"| RW
-    RW -->|"Despacha"| Facade
-    Facade -->|"Persiste"| TileGrid
+    subgraph O5["Órbita 5: Fronteira C++ / PyBind11 & 11 Orquestradores"]
+        PyBind["BufferContract.hpp / bind_*.cpp (Checked Buffers & Snapshots)"]
+        Orchestrators["11 Orquestradores de Borda (LayerStack, DocumentState, StrokeSession, etc.)"]
+        DocCtx["DocumentContext (touchDocument, compositeRegion, dirty propagation)"]
+    end
+
+    subgraph O6["Órbita 6: Núcleo Físico Primordial C++"]
+        TileGrid["TileGrid (64x64 Sparse Tiles, COW, SpatialCuller, pruneEmptyTiles)"]
+        UndoMgr["TileUndoManager (LZ4 Deltas, MB Limits, ScratchDiskManager paging)"]
+        Comp["Compositor & BlendEquations (Linear Gamma, Deep Color, 13 Blends)"]
+        DabSIMD["DabRenderer (SIMD AVX2/SSE, Circle-AABB Culling)"]
+    end
+
+    Menus --> Mixins
+    Mixins --> RW
+    Nav <-->|"Bidirecional"| RW
+    RW --> Router
+    Router --> SatTools
+    SatTools --> Backend
+    Backend --> DirtyTracker
+    Backend --> PyBind
+    PyBind --> Orchestrators
+    Orchestrators --> DocCtx
+    DocCtx --> TileGrid
+    DocCtx --> UndoMgr
+    DocCtx --> Comp
+    Orchestrators --> DabSIMD
 
     style O1 fill:#2d3748,stroke:#cbd5e0,color:#fff
     style O2 fill:#2b6cb0,stroke:#bee3f8,color:#fff
     style O3 fill:#2c5282,stroke:#90cdf4,color:#fff
-    style Core fill:#1a365d,stroke:#63b3ed,color:#fff
+    style O4 fill:#234e52,stroke:#81e6d9,color:#fff
+    style O5 fill:#1a365d,stroke:#63b3ed,color:#fff
+    style O6 fill:#0f172a,stroke:#38bdf8,color:#fff
 ```
 
-### O Princípio da Descida até a Base Primordial
+### O Princípio da Descida até a Base Primordial C++
 
-1. **Camada Externa (Superfície):** Menus superiores, atalhos globais, diálogos de entrada.
-2. **Camada Intermediária (Satélites):** Docks, painéis de plugins (Navegador, Camadas, Cores), sincronizadores de documento.
-3. **Camada de Orquestração (Ponte):** Viewport, roteador de eventos do canvas, controladores de ferramentas secundárias.
-4. **Base Primordial (Núcleo):** O motor de renderização, gerenciador de tiles em C++, matrizes de pixels e buffers de memória.
+1. **Órbita 1 (Disparadores de Superfície):** Menus superiores, atalhos globais de teclado, ações de janela.
+2. **Órbita 2 (Painéis & Observadores):** Docks flutuantes, painéis de plugins (Navegador, Camadas, Cores), sincronizadores de documento.
+3. **Órbita 3 (Viewport & Ferramentas Satélites):** Viewport OpenGL/Software, roteador de eventos do canvas, controladores de ferramentas secundárias.
+4. **Órbita 4 (Adaptador Python do Motor):** `AladynBackend` e seus mixins atômicos especializados (`Stroke`, `Layer`, `Selection`, `Transform`, `Geometry`, `Color`, `Resources`, `MDI`), e rastreamento dirty.
+5. **Órbita 5 (Ponte PyBind11 e 11 Orquestradores de Borda):** `BufferContract.hpp` (segurança de ponteiros, snapshots imutáveis, checked byte allocation), e os 11 orquestradores de `engine/boundary/public-api/internal/`.
+6. **Órbita 6 (O Núcleo Físico Primordial C++):** Grade esparsa `TileGrid` (blocos 64x64, COW, `pruneEmptyTiles`, culling espacial), `TileUndoManager` (delta snapshots LZ4, limites MB, paginação para `ScratchDiskManager`), `Compositor` & `BlendEquations` (Linear Gamma, Deep Color float32, 13 modos canônicos de mesclagem) e `DabRenderer` SIMD.
+
+---
+
+### O Retorno Ascendente (The Complete Ascending River Loop)
+
+Descer até a base primordial C++ prova a integridade dos contratos de cima para baixo. **O teste definitivo de consistência é subir de volta**.
+
+Quando o motor C++ sofre uma mutação física, a informação deve ascender de forma determinística por todos os anéis concêntricos até os observadores de tela através dos **5 Grandes Rios**:
+
+| Rio | Nome do Fluxo | Descida (UI $\to$ C++) | Núcleo Primordial C++ | Subida (C++ $\to$ UI/Display) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Rio 1** | **Traço & Estabilizador** | `PointerEvent` $\to$ `InputRouter` $\to$ `AladynStrokeMixin` | `StrokeSession` $\to$ `DabRenderer SIMD` $\to$ `TileGrid` $\to$ `TileUndoManager` | `ctx.touch()` $\to$ `_mark_document_dirty()` $\to$ Invalidação do `RenderWidget` $\to$ Atualização de Miniaturas |
+| **Rio 2** | **Câmera & Viewport** | Menu/Atalho/Navigator $\to$ `RenderWidget` (`flip_x`, `flip_y`, `zoom`, `pan`) | `canvas_compat` / Câmera 2D | Emissão idempotente de `cameraChanged` $\to$ `WorkspaceDocumentSync` $\to$ Caixa de Viewport e Sliders no `NavigatorPanel` |
+| **Rio 3** | **Camadas & Histórico** | Painel de Camadas / Menu $\to$ `AladynLayerMixin` | `LayerStackOrchestrator` $\to$ `TileUndoManager` $\to$ `pruneEmptyTiles` | `ctx.touch()` $\to$ `_mark_document_dirty()` $\to$ Marcador `*` no Título $\to$ Autosave $\to$ Sincronia de Undo/Redo |
+| **Rio 4** | **Seleção & Transformação** | Ferramenta / Menu de Seleção $\to$ `AladynSelectionMixin` | `SelectionOrchestrator` $\to$ `SelectionMask` (buffer 1-bit / 8-bit) | `_mark_document_dirty()` $\to$ Marching Ants Timer ativo $\to$ Caixa de Delimitação visível $\to$ `TransformTool` |
+| **Rio 5** | **Cor & Perfis Cromáticos** | Roda de Cores / Paletas $\to$ Canvas `active_color` | `to_native_color_rgba` $\to$ `PaintEngineFacade` $\to$ `ColorProfileManager` | Recomposição Linear Gamma / Soft-Proofing LittleCMS $\to$ Buffer de Display atualizado |
 
 ---
 
@@ -199,6 +241,34 @@ Avançando na descida orbital e fechando a paridade de estado entre os subsistem
 
 5. **Suíte Dedicada de Integridade Primordial:**
    - Criação de `tests/test_satellite_round13_primordial.py` (7 testes verdes) e governança estrita de linhas de código (<450 LOC em todos os arquivos).
+
+---
+
+### Casos Reais Saneados — Rodada 14: Descida ao Núcleo Primordial C++ e Fechamento dos 5 Rios Ascendentes
+
+Atingindo a profundidade máxima da arquitetura (Camadas 5 e 6) e validando o retorno ascendente completo de ponta a ponta:
+
+1. **Blindagem e Verificação da Ponte PyBind11 (`BufferContract.hpp`):**
+   - *Verificação:* Validação do cálculo de dimensões seguras contra integer overflow (`checkedRasterBytes`) e isolamento de snapshots (`pixelSnapshot`), garantindo que ponteiros nativos de memória compartilhada nunca escapem desprotegidos para o Python.
+   - *Garantia:* Exceções controladas (`pybind11::value_error`) em buffers malformados, prevenindo *segfaults* silenciosos.
+
+2. **Propagação de Estado e Invalidadores nos 11 Orquestradores de Borda:**
+   - *Verificação:* Mapeamento dos 11 orquestradores em `engine/boundary/public-api/internal/`. Validação de que `DocumentContext::touch()` é invocado em todas as mutações de raster e estrutura, incrementando o contador monótono `documentGeneration` e invalidando a pirâmide de Mipmaps (`m_mipmapPyramid.markDirty()`).
+   - *Garantia:* Ausência de descompasso de renderização entre o buffer base e os níveis de LOD reduzidos da visualização.
+
+3. **Validação Física do Núcleo Primordial C++ (`TileGrid`, `TileUndoManager`, `Compositor`):**
+   - *Verificação:* Validação da preservação de pixels em operações de corte e redimensionamento (`resizePreserve`), clonagem Copy-on-Write (`copyFrom`), e expurgo automático de blocos transparentes pós-borracha (`pruneEmptyTiles`).
+   - *Garantia:* Limites de memória MB respeitados e paginação transparente em disco via `ScratchDiskManager`.
+
+4. **Fechamento do Retorno Ascendente nos 5 Grandes Rios:**
+   - *Rio 1 (Traço):* Toque de caneta/mouse $\to$ `begin_stroke_raw` $\to$ `DabRenderer` SIMD $\to$ `TileUndoManager` $\to$ `_mark_document_dirty("stroke")` $\to$ miniatura e título sincronizados.
+   - *Rio 2 (Câmera):* Menu/Atalho $\to$ `RenderWidget.flip_x/flip_y` $\to$ disparo de `cameraChanged` $\to$ atualização da caixa de navegação no `NavigatorPanel`.
+   - *Rio 3 (Camadas & Histórico):* `AladynLayerMixin` mutando camadas $\to$ `LayerStackOrchestrator` $\to$ `ctx.touch()` + `_mark_document_dirty()` $\to$ `canUndo()`/`canRedo()` ativos e sincronizados.
+   - *Rio 4 (Seleção):* `AladynSelectionMixin` $\to$ máscara C++ $\to$ marching ants ativas e dirty tracking propagado.
+   - *Rio 5 (Cor):* Canvas `active_color` $\to$ `to_native_color_rgba` $\to$ balde nativo $\to$ composição em Linear Gamma / Soft-Proofing.
+
+5. **Suíte Dedicada de Integridade Primordial e Ascendente:**
+   - Criação de `tests/test_satellite_round14_core_and_ascending_loop.py` e governança rigorosa de código (<450 LOC).
 
 ---
 

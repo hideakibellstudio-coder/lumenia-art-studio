@@ -30,35 +30,38 @@ class LocalLayer:
         self.clipping_mask = False
         self.collapsed = False
 
-        # Miniaturas procedurais simples
-        self.thumb = QtGui.QPixmap(38, 28)
+        # Miniaturas procedurais simples (geradas somente se houver GUI ativa)
+        if QtGui.QGuiApplication.instance() is not None:
+            self.thumb = QtGui.QPixmap(38, 28)
 
-        from ui.core.theme.manager import ThemeManager
-        theme = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {})
-        colors = theme.get("colors", {})
+            from ui.core.theme.manager import ThemeManager
+            theme = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {})
+            colors = theme.get("colors", {})
 
-        bg_darker = QtGui.QColor(ThemeManager.instance().resolve_color("BG_DARKER", colors))
-        bg_dark = QtGui.QColor(ThemeManager.instance().resolve_color("BG_DARK", colors))
-        bg_mid = QtGui.QColor(ThemeManager.instance().resolve_color("BG_MID", colors))
-        border = QtGui.QColor(ThemeManager.instance().resolve_color("BORDER", colors))
-        accent = QtGui.QColor(ThemeManager.instance().resolve_color("ACCENT", colors))
-        accent_muted = QtGui.QColor(ThemeManager.instance().resolve_color("accent_bg", colors))
-        bg_light = QtGui.QColor(ThemeManager.instance().resolve_color("BG_LIGHT", colors))
+            bg_darker = QtGui.QColor(ThemeManager.instance().resolve_color("BG_DARKER", colors))
+            bg_dark = QtGui.QColor(ThemeManager.instance().resolve_color("BG_DARK", colors))
+            bg_mid = QtGui.QColor(ThemeManager.instance().resolve_color("BG_MID", colors))
+            border = QtGui.QColor(ThemeManager.instance().resolve_color("BORDER", colors))
+            accent = QtGui.QColor(ThemeManager.instance().resolve_color("ACCENT", colors))
+            accent_muted = QtGui.QColor(ThemeManager.instance().resolve_color("accent_bg", colors))
+            bg_light = QtGui.QColor(ThemeManager.instance().resolve_color("BG_LIGHT", colors))
 
-        self.thumb.fill(bg_darker if is_group else bg_dark)
+            self.thumb.fill(bg_darker if is_group else bg_dark)
 
-        painter = QtGui.QPainter(self.thumb)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        if is_group:
-            painter.setPen(QtGui.QPen(border, 1))
-            painter.setBrush(bg_mid)
-            painter.drawRoundedRect(4, 4, 30, 20, 2, 2)
-        elif is_filter:
-            painter.setPen(QtGui.QPen(accent, 1))
-            painter.setBrush(accent_muted)
-            painter.drawRoundedRect(4, 4, 30, 20, 2, 2)
+            painter = QtGui.QPainter(self.thumb)
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            if is_group:
+                painter.setPen(QtGui.QPen(border, 1))
+                painter.setBrush(bg_mid)
+                painter.drawRoundedRect(4, 4, 30, 20, 2, 2)
+            elif is_filter:
+                painter.setPen(QtGui.QPen(accent, 1))
+                painter.setBrush(accent_muted)
+                painter.drawRoundedRect(4, 4, 30, 20, 2, 2)
+            else:
+                painter.setPen(QtGui.QPen(border, 1))
+                painter.setBrush(bg_light)
+                painter.drawRoundedRect(4, 4, 30, 20, 1, 1)
+            painter.end()
         else:
-            painter.setPen(QtGui.QPen(border, 1))
-            painter.setBrush(bg_light)
-            painter.drawRoundedRect(4, 4, 30, 20, 1, 1)
-        painter.end()
+            self.thumb = None

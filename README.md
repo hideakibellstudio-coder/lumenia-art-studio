@@ -25,11 +25,13 @@ O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_n
 
 ## ⚡ Recursos e Capacidades Implementadas
 
-### 🖋️ 1. Motor de Pincéis ALADYN (Catmull-Rom Spline)
+### 🖋️ 1. Motor de Pincéis ALADYN (Catmull-Rom Spline & WMA)
 *   **Inker Spline Contínuo:** Interpolação matemática Catmull-Rom nativa em C++ para estabilização de traços.
-*   **Dinâmica de Pressão:** Curvas de pressão configuráveis processadas pelo motor; a compatibilidade com mesas digitalizadoras requer homologação de hardware.
+*   **Dinâmica de Pressão & Stylus:** Curvas de pressão, suporte completo a inclinação (`xTilt`, `yTilt`) e rotação da caneta (`twist`) propagados do tablet ao motor nativo.
+*   **Estabilização Cinemática WMA:** `DynamicStabilizer` nativo C++ com escala configurável de 0% a 98%, compensação ponderada de latência e resposta instantânea para tap isolado (single-click).
 *   **Mídias Naturais:** Modos de Pincel de Tinta (Inker), Lápis de Esboço, Marcador com transparência, Aquarela com difusão e Óleo Impasto com relevo 3D processado em tempo real.
-*   **Borracha Inteligente:** Apagamento suave e preservação perfeita de canais alfa.
+*   **Borracha & Borrador Inteligente:** Apagamento suave, preservação perfeita de canais alfa e ferramenta borrador (`smudge`) com anel geométrico reativo.
+*   **Cursores Reativos & Feedback Tátil:** Redimensionamento de anel sob o ponteiro em tempo real (`brush_size`), hotspot milimétrico para conta-gotas e feedback de Pan (`ClosedHand`) e Zoom Drag (`SizeVer`).
 
 ### 📐 2. Suíte de Seleção Inteligente & Balde de Tinta
 *   **Varinha Mágica (Magic Wand - `W`):** Preenchimento de seleção contígua com tolerância configurável e expansão de borda de 1px (evita frestas brancas sob a lineart).

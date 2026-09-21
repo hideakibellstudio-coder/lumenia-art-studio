@@ -2,7 +2,7 @@
 
 > Documento vivo. Sintetiza e substitui `historico/estado-da-base-2026-09-15.md`
 > e a parte ainda acionável de `historico/auditoria-f017-f031-endurecimento-navigator.md`.
-> Atualizado com verificação ao vivo no terminal em 2026-09-20 (não é estimativa
+> Atualizado com verificação ao vivo no terminal em 2026-09-21 (não é estimativa
 > nem cópia do relatório anterior). Toda mudança de status aqui deve vir com uma
 > linha correspondente em `../README.md`.
 
@@ -11,7 +11,37 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
-## ✅ Resolvido nesta sessão (2026-09-20, segunda rodada)
+## ✅ Resolvido nesta sessão (2026-09-21, rodadas 6 a 8)
+
+Itens de auditoria vertical, código morto, integridade de traço e cursor concluídos e homologados:
+
+- **Auditoria de Código Morto & Sombra de Empacotamento (Níveis 1, 2 e 3)**:
+  - Nível 1: Remoção de 4 arquivos mortos isolados com zero chamadores (`color_wheel.py`, `dialog.py`, `flood_fill.py`, `IRenderContext.hpp` — commit `c217811`).
+  - Nível 2 e 3: Eliminação de sombras geradas por subpacotes com `__init__.py` duplicando módulos de mesmo nome (`icon_svg_catalog`, `dialogs`, `presets` — commit `4d3f254`). Modernização dos inicializadores desktop `Iniciar_Lumenia.bat` e `Iniciar_Lumenia_Silencioso.vbs` para `main.py` (commit `db2b80f`) e remoção segura de shims legados (commit `3cba060`).
+- **Desacoplamento de Arquitetura do Viewport (Nível 4)**:
+  - Rastreamento pelo "curso do rio" revelou dependência do `OverlayRenderer` em atributos privados de `CanvasCompatMixin` (`_selection_path`, `_shape_preview_points`).
+  - Refatorado para propriedades públicas limpas, prevenindo a quebra do desenho de seleções e formas na tela e eliminando o acoplamento espúrio (commit `f9980ae`).
+- **Saneamento do Sistema de Pincéis**:
+  - Eliminação de duplo despacho concorrente entre `BrushSettingsController`, backend e viewport widgets. Estado canônico centralizado no `EngineBackend` com propagação reativa unidirecional.
+  - Correção na escala linear de textura/relevo (`set_brush_grain_contrast`) para o motor nativo (commit `215646f`).
+- **Preservação de Buffer na Ferramenta de Texto**:
+  - Correção de ciclo de vida do `QImage` temporário em `_apply_rendered_text`, retendo a referência durante o dump de bytes RGBA para evitar use-after-free/corrupção de raster (commit `b0a83fe`).
+- **Saneamento Completo do Sistema de Cursor**:
+  - `RenderWidget.brush_size` como `@property` reativa: recalcula `_cached_brush_radius` e emite dirty rect imediato, redimensionando o anel sob o ponteiro sem requerer clique.
+  - Hotspot exato e alias do conta-gotas (`"eyedropper": "eyedrop"`, hotspot `(2, 22)`).
+  - Suporte ao anel geométrico na ferramenta borrador (`"smudge"`).
+  - Cursores especializados para formas (`CrossCursor`) e texto (`IBeamCursor`).
+  - Feedback tátil em Pan (`ClosedHandCursor`) e Zoom Drag (`SizeVerCursor`) com restauração via `invalidate_cursor_cache()`.
+  - Homologado em `tests/test_canvas_cursor_interactions.py` (5/5 passed, commit `7b59079`).
+- **Saneamento Profundo do Sistema de Traço (Stroke Pipeline)**:
+  - Rastreamento ponta a ponta: hardware $\to$ `InputRouter` $\to$ `CanvasStrokePipeline` $\to$ `AladynStrokeMixin` $\to$ Facade/Orchestrator C++ $\to$ `TileGrid` $\to$ Viewport.
+  - *Tap isolado (single-click sem arrasto / sarda)*: fallback analítico de bounding box em `end_stroke` quando `totalCatchupDirty` for vazio, garantindo renderização instantânea do ponto.
+  - *Ghosting de cursor*: atualização contínua de `widget._last_rendered_cursor_rect = cur_cursor_rect` frame a frame em `paint_stroke`.
+  - *Tilt e Twist*: propagação completa de inclinação (`xTilt`, `yTilt`) e rotação da caneta física até o motor C++.
+  - Validação de estabilizador WMA (0% a 98%), 8 direções cardeais e reversão brusca de 180° (U-turns).
+  - Homologado em `tests/test_stroke_pipeline_integrity.py` (5/5 passed), preservando 100% dos testes dourados de caracterização (`test_stroke_characterization.py`, 31/31 passed). Commit `f69be00`. Suíte global em **659 testes passando**.
+
+## ✅ Resolvido em sessões anteriores (2026-09-20, rodadas 1 a 5)
 
 Estes três itens estavam listados como P0/P1 até esta rodada. Detalhes de
 cada implementação estão no changelog do `../README.md`.

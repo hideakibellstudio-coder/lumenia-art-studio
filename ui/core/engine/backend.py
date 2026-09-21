@@ -137,19 +137,19 @@ class EngineBackend(ABC):
     # ── Traço (Stroke) & Fast-Path ────────────────────────────────────────
 
     @abstractmethod
-    def start_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> None:
+    def start_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None:
         """Inicia um traço no canvas."""
 
     @abstractmethod
-    def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> None:
+    def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None:
         """Continua um traço em andamento."""
 
     @abstractmethod
     def end_stroke(self) -> Any:
         """Finaliza o traço atual."""
 
-    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> None: pass
-    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> List[float]: return [0.0, 0.0, 0.0]
+    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None: pass
+    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> List[float]: return [0.0, 0.0, 0.0]
     def end_stroke_raw(self) -> List[float]: return []
 
     # ── Parâmetros Básicos de Pincel ──────────────────────────────────────

@@ -42,7 +42,10 @@ class CanvasStrokePipeline:
         screen_x: float,
         screen_y: float,
         pressure: float,
-        timestamp: float = 0.0
+        timestamp: float = 0.0,
+        tilt_x: float = 0.0,
+        tilt_y: float = 0.0,
+        twist: float = 0.0,
     ) -> None:
         """Initializes a new brush stroke, snaps origin point, and dispatches to backend."""
         CanvasStrokePipeline.sync_brush_radius(widget)
@@ -59,7 +62,11 @@ class CanvasStrokePipeline:
             else:
                 cur_x, cur_y = evt.x, evt.y
             widget._last_draw_pos = (cur_x, cur_y)
-            b.start_stroke(cur_x, cur_y, safe_pressure, timestamp)
+            if hasattr(b, "start_stroke"):
+                try:
+                    b.start_stroke(cur_x, cur_y, safe_pressure, timestamp, tilt_x, tilt_y, twist)
+                except TypeError:
+                    b.start_stroke(cur_x, cur_y, safe_pressure, timestamp)
             widget.update()
 
     @staticmethod
@@ -68,7 +75,10 @@ class CanvasStrokePipeline:
         screen_x: float,
         screen_y: float,
         pressure: float,
-        timestamp: float = 0.0
+        timestamp: float = 0.0,
+        tilt_x: float = 0.0,
+        tilt_y: float = 0.0,
+        twist: float = 0.0,
     ) -> None:
         """Feeds motion events to backend, calculating dirty rect union between dabs and cursor."""
         if not widget.drawing:
@@ -80,7 +90,10 @@ class CanvasStrokePipeline:
             safe_p = max(0.02, pressure)
             evt = widget.to_canvas(screen_x, screen_y, safe_p, timestamp)
             cur_x, cur_y = widget.geometry_ctrl.snap_point(evt.x, evt.y, widget.zoom) if hasattr(widget, "geometry_ctrl") else (evt.x, evt.y)
-            res = b.paint_stroke(cur_x, cur_y, safe_p, timestamp)
+            try:
+                res = b.paint_stroke(cur_x, cur_y, safe_p, timestamp, tilt_x, tilt_y, twist)
+            except TypeError:
+                res = b.paint_stroke(cur_x, cur_y, safe_p, timestamp)
             widget._last_draw_pos = (cur_x, cur_y)
             is_sym = hasattr(widget, "geometry_ctrl") and (widget.geometry_ctrl.sym_state.get("mode", "none") != "none")
             has_rendered_dabs = bool(res and len(res) >= 6 and res[2] > 0 and res[3] > 0)
@@ -109,6 +122,7 @@ class CanvasStrokePipeline:
                         widget.update(dirty_cursor)
                     elif not widget._last_rendered_cursor_rect.isEmpty():
                         widget.update(widget._last_rendered_cursor_rect)
+                widget._last_rendered_cursor_rect = cur_cursor_rect
 
     @staticmethod
     def end_stroke(
@@ -141,6 +155,17 @@ class CanvasStrokePipeline:
                 if res and len(res) >= 4 and res[2] > 0 and res[3] > 0:
                     dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
                     dirty_to_update = t.mapRect(dirty_c).toAlignedRect()
+                else:
+                    # Caso de tap isolado ou ausência de catch-up dirty bounds:
+                    # Invalida a área analítica do dab renderizado sob end_pos
+                    rad = widget.current_brush_radius
+                    spot_rect = QtCore.QRectF(
+                        end_pos.x() - rad - 6.0,
+                        end_pos.y() - rad - 6.0,
+                        (rad + 6.0) * 2.0,
+                        (rad + 6.0) * 2.0
+                    ).toAlignedRect()
+                    dirty_to_update = spot_rect
 
                 cur_cursor_rect = ToolCursorRenderer.get_cursor_rect(
                     end_pos.x(), end_pos.y(), widget.current_brush_radius, widget.zoom

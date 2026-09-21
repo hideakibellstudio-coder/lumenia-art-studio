@@ -159,10 +159,10 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
             r_old = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), old_radius, self.zoom)
             r_new = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), new_radius, self.zoom)
             self.update(r_old.united(r_new))
-    def start_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0):
-        CanvasStrokePipeline.start_stroke(self, screen_x, screen_y, pressure, timestamp)
-    def paint_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0):
-        CanvasStrokePipeline.paint_stroke(self, screen_x, screen_y, pressure, timestamp)
+    def start_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
+        CanvasStrokePipeline.start_stroke(self, screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist)
+    def paint_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
+        CanvasStrokePipeline.paint_stroke(self, screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist)
     def end_stroke(self, screen_x: float | None = None, screen_y: float | None = None):
         CanvasStrokePipeline.end_stroke(self, screen_x, screen_y)
 
@@ -282,12 +282,15 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
             is_er = (e.pointerType() == QtGui.QPointingDevice.PointerType.Eraser)
         et, btn = e.type(), e.button() if e.button() != QtCore.Qt.NoButton else QtCore.Qt.LeftButton
         ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        tilt_x = float(e.xTilt()) if hasattr(e, "xTilt") else 0.0
+        tilt_y = float(e.yTilt()) if hasattr(e, "yTilt") else 0.0
+        twist = float(e.rotation()) if hasattr(e, "rotation") else 0.0
         if et == QtCore.QEvent.TabletPress:
             self._tablet_in_use = True
-            self.input_router.handle_pointer_press(e.position(), btn, e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts)
+            self.input_router.handle_pointer_press(e.position(), btn, e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts, tilt_x=tilt_x, tilt_y=tilt_y, twist=twist)
             e.accept()
         elif et == QtCore.QEvent.TabletMove:
-            self.input_router.handle_pointer_move(e.position(), e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts)
+            self.input_router.handle_pointer_move(e.position(), e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts, tilt_x=tilt_x, tilt_y=tilt_y, twist=twist)
             e.accept()
         elif et == QtCore.QEvent.TabletRelease:
             self._tablet_in_use = False

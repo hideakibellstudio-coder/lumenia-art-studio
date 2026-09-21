@@ -76,15 +76,15 @@ class CoreLifecycleProtocol(Protocol):
 class StrokeProtocol(Protocol):
     """Papel \"Stroke\" extraido de EngineBackend (6 metodos)."""
 
-    def start_stroke(self, x: float, y: float, pressure: float, timestamp: float=0.0) -> None:
+    def start_stroke(self, x: float, y: float, pressure: float, timestamp: float=0.0, tilt_x: float=0.0, tilt_y: float=0.0, twist: float=0.0) -> None:
         ...
-    def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float=0.0) -> None:
+    def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float=0.0, tilt_x: float=0.0, tilt_y: float=0.0, twist: float=0.0) -> None:
         ...
     def end_stroke(self) -> Any:
         ...
-    def begin_stroke_raw(self, x: float, y: float, pressure: float=1.0, timestamp: float=0.0) -> None:
+    def begin_stroke_raw(self, x: float, y: float, pressure: float=1.0, timestamp: float=0.0, tilt_x: float=0.0, tilt_y: float=0.0, twist: float=0.0) -> None:
         ...
-    def update_stroke_raw(self, x: float, y: float, pressure: float=1.0, timestamp: float=0.0) -> List[float]:
+    def update_stroke_raw(self, x: float, y: float, pressure: float=1.0, timestamp: float=0.0, tilt_x: float=0.0, tilt_y: float=0.0, twist: float=0.0) -> List[float]:
         ...
     def end_stroke_raw(self) -> List[float]:
         ...

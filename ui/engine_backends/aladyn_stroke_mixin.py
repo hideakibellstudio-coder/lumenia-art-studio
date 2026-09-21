@@ -18,32 +18,58 @@ logger = logging.getLogger(__name__)
 class AladynStrokeMixin:
     """Mixin responsável pelo ciclo de vida do traço e telemetria no AladynBackend."""
 
-    def start_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> None:
+    def start_stroke(
+        self,
+        x: float,
+        y: float,
+        pressure: float,
+        timestamp: float = 0.0,
+        tilt_x: float = 0.0,
+        tilt_y: float = 0.0,
+        twist: float = 0.0,
+    ) -> None:
         self._last_x = float(x)
         self._last_y = float(y)
         if self._facade:
             if hasattr(self._facade, "begin_stroke_raw"):
-                self._facade.begin_stroke_raw(float(x), float(y), float(pressure), float(timestamp))
+                self._facade.begin_stroke_raw(
+                    float(x), float(y), float(pressure), float(timestamp),
+                    float(tilt_x), float(tilt_y), float(twist)
+                )
             elif self._native:
                 pt = self._native.Point2D(float(x), float(y))
                 evt = self._native.PointerEvent(
-                    self._native.PointerEventType.Press, pt, float(pressure), float(timestamp) if timestamp > 0 else time.time()
+                    self._native.PointerEventType.Press, pt, float(pressure), float(timestamp) if timestamp > 0 else time.time(),
+                    float(tilt_x), float(tilt_y), float(twist)
                 )
                 self._facade.begin_stroke(evt)
 
-    def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0) -> list[float]:
+    def paint_stroke(
+        self,
+        x: float,
+        y: float,
+        pressure: float,
+        timestamp: float = 0.0,
+        tilt_x: float = 0.0,
+        tilt_y: float = 0.0,
+        twist: float = 0.0,
+    ) -> list[float]:
         self._last_x = float(x)
         self._last_y = float(y)
         if self._facade:
             if hasattr(self._facade, "update_stroke_raw"):
-                res = self._facade.update_stroke_raw(float(x), float(y), float(pressure), float(timestamp))
+                res = self._facade.update_stroke_raw(
+                    float(x), float(y), float(pressure), float(timestamp),
+                    float(tilt_x), float(tilt_y), float(twist)
+                )
                 if res and len(res) >= 9:
                     self.last_telemetry = (float(res[6]), float(res[7]), float(res[8]))
                     return res
             elif self._native:
                 pt = self._native.Point2D(float(x), float(y))
                 evt = self._native.PointerEvent(
-                    self._native.PointerEventType.Move, pt, float(pressure), float(timestamp) if timestamp > 0 else time.time()
+                    self._native.PointerEventType.Move, pt, float(pressure), float(timestamp) if timestamp > 0 else time.time(),
+                    float(tilt_x), float(tilt_y), float(twist)
                 )
                 telemetry = self._facade.update_stroke(evt)
                 if telemetry:
@@ -93,11 +119,29 @@ class AladynStrokeMixin:
                 self._redo_stack.clear()
         return res or []
 
-    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> None:
-        self.start_stroke(x, y, pressure, timestamp)
+    def begin_stroke_raw(
+        self,
+        x: float,
+        y: float,
+        pressure: float = 1.0,
+        timestamp: float = 0.0,
+        tilt_x: float = 0.0,
+        tilt_y: float = 0.0,
+        twist: float = 0.0,
+    ) -> None:
+        self.start_stroke(x, y, pressure, timestamp, tilt_x, tilt_y, twist)
 
-    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> list[float]:
-        return self.paint_stroke(x, y, pressure, timestamp)
+    def update_stroke_raw(
+        self,
+        x: float,
+        y: float,
+        pressure: float = 1.0,
+        timestamp: float = 0.0,
+        tilt_x: float = 0.0,
+        tilt_y: float = 0.0,
+        twist: float = 0.0,
+    ) -> list[float]:
+        return self.paint_stroke(x, y, pressure, timestamp, tilt_x, tilt_y, twist)
 
     def end_stroke_raw(self) -> list[float]:
         return self.end_stroke()

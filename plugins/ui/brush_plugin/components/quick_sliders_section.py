@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Dict, List
 from PySide6 import QtCore, QtWidgets
 
-from ..compact_slider import CompactSlider
+from ui.core.widgets.compact_slider import CompactSlider
 from ui.core.theme.manager import ThemeManager
 from ui.core.i18n import tr
 

@@ -25,7 +25,7 @@ from ui.core.widgets.tool_options_widgets import (
 )
 
 from .stroke_preview import StrokePreview
-from .compact_slider import CompactSlider
+from ui.core.widgets.compact_slider import CompactSlider
 from .advanced_panel import AdvancedPanel
 from .brush_dropdown import BrushDropdown
 from .components import ToolSelectionColumn, QuickSlidersSection

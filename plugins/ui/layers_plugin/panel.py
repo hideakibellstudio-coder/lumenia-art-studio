@@ -45,7 +45,7 @@ class LayersPanel(QWidget):
         super().__init__(parent)
         
         # Inicializa o LocalLayerManager
-        from .manager import LocalLayerManager
+        from ui.core.document.layer_manager import LocalLayerManager
         self.layer_manager = LocalLayerManager()
         self._updating_selection = False
         

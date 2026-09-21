@@ -3,7 +3,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 from .base import ToolHeaderLabel
 from ui.core.widgets.shape_dropdown import ShapeDropdown, get_shape_label
-from plugins.ui.brush_plugin.compact_slider import CompactSlider
+from ui.core.widgets.compact_slider import CompactSlider
 from ui.core.i18n import tr, I18nManager
 from ui.core.tool_settings import normalize_tool_settings
 

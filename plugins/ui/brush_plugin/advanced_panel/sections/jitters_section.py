@@ -3,7 +3,7 @@
 from PySide6 import QtWidgets
 from ui.core.widgets.slider import LabeledSlider
 from ui.core.i18n import tr
-from ..collapsible_section import CollapsibleSection
+from ui.core.widgets.collapsible_section import CollapsibleSection
 
 def create_jitters_section(panel) -> CollapsibleSection:
     sec = CollapsibleSection(tr("brush.sec_jitters", "3. Jitters (Variações Aleatórias)"), expanded=True)

@@ -4,7 +4,7 @@ from PySide6 import QtWidgets, QtCore
 from ui.core.widgets.slider import LabeledSlider
 from ui.core.i18n import tr
 from typing import TYPE_CHECKING
-from ..collapsible_section import CollapsibleSection
+from ui.core.widgets.collapsible_section import CollapsibleSection
 from ..non_scroll_combo_box import NonScrollComboBox
 
 if TYPE_CHECKING:

@@ -6,7 +6,7 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from plugins.ui.brush_plugin.panel import BrushSettingsPanel
 from plugins.ui.brush_plugin.components.tool_selection_column import ToolSelectionColumn
 from plugins.ui.brush_plugin.components.quick_sliders_section import QuickSlidersSection
-from plugins.ui.brush_plugin.compact_slider import CompactSlider
+from ui.core.widgets.compact_slider import CompactSlider
 
 
 @pytest.fixture(scope="session")

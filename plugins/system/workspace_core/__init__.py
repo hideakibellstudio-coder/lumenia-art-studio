@@ -69,7 +69,7 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
         (O widget não pode ser parented antes de setCentralWidget.)
         """
         super().initialize(context)
-        from ui.core.components.workspace import WorkspaceContainer
+        from .workspace.workspace_container import WorkspaceContainer
         # Sem parent aqui — será passado via setCentralWidget abaixo
         self._container = WorkspaceContainer()
         logger.info("[WorkspaceCore] WorkspaceContainer criado.")

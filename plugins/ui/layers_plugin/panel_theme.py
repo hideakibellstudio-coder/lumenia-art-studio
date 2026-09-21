@@ -20,7 +20,15 @@ def apply_layers_panel_theme(panel: Any) -> None:
         "ACCENT": tm.get_color("accent"),
         "text_main": tm.get_color("text_main"),
         "text_sec": tm.get_color("text_sec"),
-        "ACCENT_MUTED": tm.get_color("bg_panel")
+        # Bug corrigido (panorama-consistencia-visual-tema-2026-09-18.md, Achado #1):
+        # isto apontava para "bg_panel", fazendo o destaque de layer-filtro (delegate.py)
+        # nunca aparecer diferenciado do fundo, em nenhum tema.
+        "ACCENT_MUTED": tm.get_color("accent_muted"),
+        # Chaves que faltavam (Achado #2): sem elas, os indicadores de "clipping mask" e
+        # "alpha lock" do delegate caíam sempre no fallback hardcoded (#10b981/#f59e0b),
+        # nunca de fato reagindo ao tema ativo.
+        "SUCCESS": tm.get_color("success"),
+        "WARNING": tm.get_color("warning"),
     }
     
     border = colors.get("border", "#374151")

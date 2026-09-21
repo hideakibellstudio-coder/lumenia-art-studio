@@ -27,7 +27,16 @@
         "BORDER": "#ff007f",
         "BORDER_LIGHT": "#a855f7",
         "SHADOW": "rgba(0, 0, 0, 0.6)",
-        "TRANSPARENT": "transparent"
+        "TRANSPARENT": "transparent",
+        "TELEMETRY_STAGE_KINEMATICS": "#38bdf8",
+        "TELEMETRY_STAGE_INTERPOLATION": "#facc15",
+        "TELEMETRY_STAGE_RASTER": "#f97316",
+        "TELEMETRY_STAGE_UNDO": "#a855f7",
+        "TELEMETRY_STAGE_COMPOSITOR": "#22c55e",
+        "TELEMETRY_STAGE_BLIT": "#ec4899",
+        "GUIDE_HOVER_POINT": "#ff7d2d",
+        "GUIDE_DISTANCE_TEXT": "#ffffff",
+        "GUIDE_HANDLE_BORDER": "#ffffff"
     },
     "metrics": {
         "RADIUS_SMALL": "4px",

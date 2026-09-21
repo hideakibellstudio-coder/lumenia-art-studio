@@ -51,7 +51,7 @@ def apply_theme_dialog_styles(dialog: Any, theme_manager: Any) -> None:
             background-color: {bg_card};
             color: {text_main};
             selection-background-color: {accent};
-            selection-color: #ffffff;
+            selection-color: {text_main};
             border: 1px solid {border};
         }}
         QPushButton {{
@@ -64,7 +64,7 @@ def apply_theme_dialog_styles(dialog: Any, theme_manager: Any) -> None:
         }}
         QPushButton:hover {{
             background-color: {accent};
-            color: #ffffff;
+            color: {text_main};
         }}
         QPushButton:disabled {{
             background-color: {bg_panel};
@@ -75,7 +75,7 @@ def apply_theme_dialog_styles(dialog: Any, theme_manager: Any) -> None:
     dialog.btn_apply.setStyleSheet(f"""
         QPushButton {{
             background-color: {accent};
-            color: #ffffff;
+            color: {text_main};
             border: none;
             border-radius: 6px;
             font-weight: bold;

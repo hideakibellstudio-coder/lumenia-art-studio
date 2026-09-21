@@ -27,11 +27,11 @@ QDockWidget::close-button, QDockWidget::float-button {
 }
 
 QDockWidget::close-button {
-    image: url(@ASSETS_DIR/icons/close.svg);
+    image: url(@ICON_CLOSE_PNG);
 }
 
 QDockWidget::float-button {
-    image: url(@ASSETS_DIR/icons/maximize.svg);
+    image: url(@ICON_MAXIMIZE_PNG);
 }
 
 QDockWidget::close-button:hover, QDockWidget::float-button:hover {

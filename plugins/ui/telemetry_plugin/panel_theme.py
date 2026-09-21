@@ -6,6 +6,7 @@ Aplica folhas de estilo nos widgets, barras de progresso e botões do TelemetryP
 
 from __future__ import annotations
 from typing import Any
+from PySide6 import QtGui
 from ui.core.theme.manager import ThemeManager
 
 
@@ -16,6 +17,13 @@ def apply_telemetry_panel_theme(panel: Any) -> None:
     accent = tm.get_color("accent")
     text = tm.get_color("text_main")
     bg_card = tm.get_color("bg_card")
+    stage_kin = tm.get_color("TELEMETRY_STAGE_KINEMATICS", "#38bdf8")
+    stage_kin_hover = QtGui.QColor(stage_kin).lighter(130).name()
+    _sk_c = QtGui.QColor(stage_kin)
+    stage_kin_bg = f"rgba({_sk_c.red()}, {_sk_c.green()}, {_sk_c.blue()}, 0.15)"
+    stage_kin_bg_hover = f"rgba({_sk_c.red()}, {_sk_c.green()}, {_sk_c.blue()}, 0.3)"
+    fg_on_accent = tm.get_color("FG_PRIMARY", "#ffffff")
+    track_shadow = tm.get_color("SHADOW", "rgba(0, 0, 0, 0.3)")
 
     panel.setStyleSheet(f"""
         QLabel#TelemLabel {{
@@ -29,7 +37,7 @@ def apply_telemetry_panel_theme(panel: Any) -> None:
             color: {muted};
         }}
         QProgressBar {{
-            background-color: rgba(0, 0, 0, 0.3);
+            background-color: {track_shadow};
             border: 1px solid {border};
             border-radius: 3px;
         }}
@@ -38,17 +46,17 @@ def apply_telemetry_panel_theme(panel: Any) -> None:
             border-radius: 2px;
         }}
         QPushButton#BtnOpenGrid {{
-            background-color: rgba(56, 189, 248, 0.15);
-            border: 1px solid #38bdf8;
+            background-color: {stage_kin_bg};
+            border: 1px solid {stage_kin};
             border-radius: 4px;
-            color: #38bdf8;
+            color: {stage_kin};
             font-weight: bold;
             font-size: 11px;
         }}
         QPushButton#BtnOpenGrid:hover {{
-            background-color: rgba(56, 189, 248, 0.3);
-            border-color: #7dd3fc;
-            color: #ffffff;
+            background-color: {stage_kin_bg_hover};
+            border-color: {stage_kin_hover};
+            color: {fg_on_accent};
         }}
         QPushButton#BtnToggleTelemetry {{
             background-color: {bg_card};

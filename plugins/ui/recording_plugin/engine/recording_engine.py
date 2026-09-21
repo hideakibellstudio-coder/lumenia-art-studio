@@ -216,47 +216,93 @@ class TimelapseRecordingEngine(QtCore.QObject):
 
     @staticmethod
     def apply_watermark(img: QtGui.QImage) -> None:
-        """Desenha a marca d'água oficial do Lumenia no canto inferior direito da imagem."""
+        """Desenha a marca d'água oficial proporcional do Lumenia (ícone + nome) no canto inferior direito."""
         w, h = img.width(), img.height()
-        if w < 240 or h < 120:
+        if w < 160 or h < 120:
             return
+
+        ref_dim = min(w, h)
+        icon_target_h = max(42, int(ref_dim * 0.135))
+        margin = max(18, int(ref_dim * 0.035))
+        gap = max(4, int(icon_target_h * 0.06))
+        font_pixel_size = max(11, int(icon_target_h * 0.16))
+
+        font = QtGui.QFont("Segoe UI", 10, QtGui.QFont.Weight.Bold)
+        font.setPixelSize(font_pixel_size)
+        font.setLetterSpacing(QtGui.QFont.SpacingType.AbsoluteSpacing, max(1.5, font_pixel_size * 0.12))
+
+        fm = QtGui.QFontMetrics(font)
+        text = "LUMENIA"
+        text_w = fm.horizontalAdvance(text)
+        text_h = fm.height()
+
+        # Carrega ícone com recorte justo (sem áreas transparentes excessivas)
+        icon_pix = None
+        try:
+            from ui.core.runtime_paths import resource_path
+            tight_path = str(resource_path("assets", "images", "icon_lumenia_tight.png"))
+            base_path = str(resource_path("assets", "images", "icon_lumenia.png"))
+            if os.path.exists(tight_path):
+                src_pix = QtGui.QPixmap(tight_path)
+            elif os.path.exists(base_path):
+                src_pix = QtGui.QPixmap(base_path).copy(QtCore.QRect(330, 118, 362, 644))
+            else:
+                src_pix = None
+
+            if src_pix and not src_pix.isNull():
+                icon_pix = src_pix.scaledToHeight(
+                    icon_target_h,
+                    QtCore.Qt.TransformationMode.SmoothTransformation
+                )
+        except Exception as e:
+            logger.debug("[TimelapseEngine] Falha ao carregar ícone para marca d'água: %s", e)
+
+        icon_w = icon_pix.width() if icon_pix else icon_target_h
+        icon_h = icon_pix.height() if icon_pix else icon_target_h
+
+        total_w = max(icon_w, text_w)
+        total_h = icon_h + gap + text_h
+
+        x = float(w - total_w - margin)
+        y = float(h - total_h - margin)
+        icon_x = x + (total_w - icon_w) / 2.0
+        icon_y = y
 
         painter = QtGui.QPainter(img)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
 
-        badge_w = 175
-        badge_h = 32
-        margin = 16
-        x = float(w - badge_w - margin)
-        y = float(h - badge_h - margin)
+        # 1. Ícone com sombra suave de destaque
+        if icon_pix:
+            shadow_offset = max(2.0, icon_target_h * 0.025)
+            painter.save()
+            painter.setOpacity(0.30)
+            painter.drawPixmap(int(icon_x + shadow_offset), int(icon_y + shadow_offset), icon_pix)
+            painter.restore()
 
-        # Fundo arredondado translúcido estilo cápsula moderna
-        painter.setBrush(QtGui.QColor(18, 22, 28, 190))
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 40), 1.0))
-        painter.drawRoundedRect(QtCore.QRectF(x, y, float(badge_w), float(badge_h)), 6.0, 6.0)
+            painter.save()
+            painter.setOpacity(0.95)
+            painter.drawPixmap(int(icon_x), int(icon_y), icon_pix)
+            painter.restore()
 
-        # Ícone oficial do Lumenia
-        try:
-            from ui.core.runtime_paths import resource_path
-            icon_path = str(resource_path("assets", "images", "icon_lumenia.png"))
-            if os.path.exists(icon_path):
-                icon_pix = QtGui.QPixmap(icon_path).scaled(
-                    20, 20, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation
-                )
-                painter.drawPixmap(int(x + 7), int(y + 6), icon_pix)
-        except Exception:
-            pass
+        # 2. Tipografia 'LUMENIA' com contorno protetor (legibilidade em qualquer fundo)
+        text_x = x + (total_w - text_w) / 2.0
+        text_baseline_y = y + icon_h + gap + fm.ascent()
 
-        # Tipografia de marca d'água
-        font = QtGui.QFont("Segoe UI", 9, QtGui.QFont.Weight.Bold)
-        painter.setFont(font)
-        painter.setPen(QtGui.QColor(245, 247, 250, 235))
-        painter.drawText(
-            QtCore.QRectF(x + 32, y, float(badge_w - 36), float(badge_h)),
-            QtCore.Qt.AlignmentFlag.AlignVCenter | QtCore.Qt.AlignmentFlag.AlignLeft,
-            "LUMENIA STUDIO"
+        path = QtGui.QPainterPath()
+        path.addText(text_x, text_baseline_y, font, text)
+
+        stroke_w = max(2.2, font_pixel_size * 0.15)
+        pen = QtGui.QPen(
+            QtGui.QColor(15, 18, 22, 180),
+            stroke_w,
+            QtCore.Qt.PenStyle.SolidLine,
+            QtCore.Qt.PenCapStyle.RoundCap,
+            QtCore.Qt.PenJoinStyle.RoundJoin
         )
+        painter.strokePath(path, pen)
+        painter.fillPath(path, QtGui.QColor(250, 252, 255, 245))
+
         painter.end()
 
     def capture_current_frame(self) -> None:

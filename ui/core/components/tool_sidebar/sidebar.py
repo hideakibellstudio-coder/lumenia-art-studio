@@ -63,11 +63,13 @@ class ToolSidebar(QtWidgets.QToolBar):
 
         # Desfazer (Undo)
         self.action_undo = QtGui.QAction(get_icon("undo"), "", self)
+        self.action_undo.setEnabled(False)
         self.action_undo.triggered.connect(self.undoRequested.emit)
         self.addAction(self.action_undo)
 
         # Refazer (Redo)
         self.action_redo = QtGui.QAction(get_icon("redo"), "", self)
+        self.action_redo.setEnabled(False)
         self.action_redo.triggered.connect(self.redoRequested.emit)
         self.addAction(self.action_redo)
 
@@ -142,3 +144,10 @@ class ToolSidebar(QtWidgets.QToolBar):
     def _on_theme_changed(self, theme_name: str):
         self.setup_actions()
         self.retranslate_ui()
+
+    def update_history_state(self, can_undo: bool, can_redo: bool) -> None:
+        """Atualiza a disponibilidade visual dos botões de Desfazer e Refazer na barra."""
+        if hasattr(self, "action_undo"):
+            self.action_undo.setEnabled(bool(can_undo))
+        if hasattr(self, "action_redo"):
+            self.action_redo.setEnabled(bool(can_redo))

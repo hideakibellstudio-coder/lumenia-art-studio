@@ -28,6 +28,8 @@ def setup_menu_and_shortcuts(win: MainWindow) -> None:
     # 2. Editar
     win.menu_bar.undoRequested.connect(win.undo)
     win.menu_bar.redoRequested.connect(win.redo)
+    if hasattr(win.menu_bar, "edit_menu") and win.menu_bar.edit_menu:
+        win.menu_bar.edit_menu.aboutToShow.connect(win.update_undo_redo_actions)
     win.menu_bar.cutRequested.connect(win.cut_selection_or_layer_to_clipboard)
     win.menu_bar.copyRequested.connect(win.copy_selection_or_layer_to_clipboard)
     win.menu_bar.pasteRequested.connect(win.paste_clipboard)

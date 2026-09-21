@@ -347,3 +347,8 @@ class MenuBar(QtWidgets.QMenuBar):
             self.act_plugins.setText(tr("menu.settings.plugins", "Gerenciador de Plugins..."))
         if hasattr(self, "help_menu") and hasattr(self.help_menu, "retranslate_ui"):
             self.help_menu.retranslate_ui()
+
+    def update_history_state(self, can_undo: bool, can_redo: bool) -> None:
+        """Propaga o estado de histórico para o menu Editar."""
+        if hasattr(self, "edit_menu") and self.edit_menu:
+            self.edit_menu.update_history_state(can_undo, can_redo)

@@ -122,17 +122,21 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
             self.shortcut_registry.apply({})
             self.status_bar.showMessage(str(exc), 10000)
 
-        # ── Wiring: documento ativo → status bar ─────────────────────────
+        # ── Wiring: documento ativo → status bar e histórico ─────────────────
         self.dm.activeDocumentChanged.connect(self._on_active_document_status)
+        self.dm.activeDocumentChanged.connect(lambda _: self.update_undo_redo_actions())
 
         # ── Componentes que dependem do workspace (WorkspaceCore plugin) ──
         if self.workspace is None:
+            self.update_undo_redo_actions()
             return
 
         # ── Wiring: WorkspaceContainer → StatusBar ────────────────────────
         self.workspace.zoomChanged.connect(self.status_bar.update_zoom)
         self.workspace.newDocumentRequested.connect(self.open_new_document_dialog)
         self.workspace.documentCloseRequested.connect(self.close_document_with_confirmation)
+        if hasattr(self.workspace, "canvas_widget") and self.workspace.canvas_widget:
+            self.workspace.canvas_widget.strokeFinished.connect(self.update_undo_redo_actions)
 
         # Propriedades de compatibilidade para código que acessa main_window.brush_dock
         if hasattr(self.workspace, "_brush_dock") and self.workspace._brush_dock:
@@ -154,6 +158,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
+        self.update_undo_redo_actions()
 
     def retranslate_ui(self) -> None:
         """Propaga a tradução ativa para todos os subcomponentes da interface."""
@@ -234,10 +239,24 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
     def undo(self) -> None:
         if self.workspace:
             self.workspace.undo()
+            self.update_undo_redo_actions()
 
     def redo(self) -> None:
         if self.workspace:
             self.workspace.redo()
+            self.update_undo_redo_actions()
+
+    def update_undo_redo_actions(self) -> None:
+        """Atualiza a disponibilidade visual das ações de Desfazer e Refazer."""
+        from ui.core.engine.registry import EngineRegistry
+        backend = EngineRegistry.instance().get_backend()
+        has_doc = self.dm.has_document()
+        can_undo = bool(has_doc and backend and backend.can_undo())
+        can_redo = bool(has_doc and backend and backend.can_redo())
+        if hasattr(self, "menu_bar") and self.menu_bar:
+            self.menu_bar.update_history_state(can_undo, can_redo)
+        if hasattr(self, "tool_sidebar") and self.tool_sidebar:
+            self.tool_sidebar.update_history_state(can_undo, can_redo)
 
     # ── Canvas ────────────────────────────────────────────────────────────
 

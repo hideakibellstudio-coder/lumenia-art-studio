@@ -30,11 +30,13 @@ class EditMenu(QtWidgets.QMenu):
         # 1. Histórico (Undo / Redo)
         self.act_undo = QtGui.QAction(get_icon("undo"), "", self)
         self.act_undo.setShortcut("Ctrl+Z")
+        self.act_undo.setEnabled(False)
         self.act_undo.triggered.connect(self.undoRequested.emit)
         self.addAction(self.act_undo)
 
         self.act_redo = QtGui.QAction(get_icon("redo"), "", self)
         self.act_redo.setShortcut("Ctrl+Y")
+        self.act_redo.setEnabled(False)
         self.act_redo.triggered.connect(self.redoRequested.emit)
         self.addAction(self.act_redo)
 
@@ -89,3 +91,8 @@ class EditMenu(QtWidgets.QMenu):
         self.act_fill.setText(tr("menu.edit.fill", "Preencher Seleção com Cor Ativa"))
         self.act_clear_layer.setText(tr("menu.edit.clear", "Limpar Conteúdo da Camada"))
         self.act_transform.setText(tr("menu.edit.transform", "Transformação Livre..."))
+
+    def update_history_state(self, can_undo: bool, can_redo: bool) -> None:
+        """Atualiza a disponibilidade visual das ações de Desfazer e Refazer."""
+        self.act_undo.setEnabled(bool(can_undo))
+        self.act_redo.setEnabled(bool(can_redo))

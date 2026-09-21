@@ -58,6 +58,40 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
         self.win.menu_bar.cutRequested.emit()
         self.win.menu_bar.fillRequested.emit()
 
+    def test_03b_undo_redo_history_state_feedback(self):
+        """Verifica a sincronização reativa de disponibilidade visual em Undo/Redo."""
+        mb = self.win.menu_bar
+        edit_menu = mb.edit_menu
+        self.assertIsNotNone(edit_menu)
+
+        mb.update_history_state(False, False)
+        self.assertFalse(edit_menu.act_undo.isEnabled())
+        self.assertFalse(edit_menu.act_redo.isEnabled())
+
+        mb.update_history_state(True, False)
+        self.assertTrue(edit_menu.act_undo.isEnabled())
+        self.assertFalse(edit_menu.act_redo.isEnabled())
+
+        mb.update_history_state(False, True)
+        self.assertFalse(edit_menu.act_undo.isEnabled())
+        self.assertTrue(edit_menu.act_redo.isEnabled())
+
+        mb.update_history_state(True, True)
+        self.assertTrue(edit_menu.act_undo.isEnabled())
+        self.assertTrue(edit_menu.act_redo.isEnabled())
+
+        if hasattr(self.win, "tool_sidebar") and self.win.tool_sidebar:
+            sidebar = self.win.tool_sidebar
+            sidebar.update_history_state(False, False)
+            self.assertFalse(sidebar.action_undo.isEnabled())
+            self.assertFalse(sidebar.action_redo.isEnabled())
+
+            sidebar.update_history_state(True, True)
+            self.assertTrue(sidebar.action_undo.isEnabled())
+            self.assertTrue(sidebar.action_redo.isEnabled())
+
+        self.win.update_undo_redo_actions()
+
     def test_04_selection_actions(self):
         """Testa acionamento das ações de Seleção."""
         self.win.menu_bar.selectAllRequested.emit()

@@ -42,7 +42,8 @@ class DummyCanvas(QtCore.QObject):
         super().__init__()
         self.canvas_w = 100
         self.canvas_h = 100
-        self.engine_backend = DummyBackend(100, 100)
+        self.backend = DummyBackend(100, 100)
+        self.engine_backend = self.backend
 
 
 class MockWorkspaceService(WorkspaceService):
@@ -138,6 +139,19 @@ def test_export_worker_zip(qapp, tmp_path):
         names = zf.namelist()
         assert len(names) == 3
         assert "frame_000001.jpg" in names
+
+
+def test_timelapse_watermark_applied(qapp):
+    """Valida renderização e integridade da marca d'água oficial do Lumenia."""
+    img = QtGui.QImage(400, 300, QtGui.QImage.Format.Format_RGBA8888)
+    img.fill(QtCore.Qt.GlobalColor.white)
+
+    # Aplica marca d'água
+    TimelapseRecordingEngine.apply_watermark(img)
+
+    # O canto inferior direito não deve ser mais branco puro (marca d'água foi pintada)
+    pixel = img.pixelColor(350, 270)
+    assert not (pixel.red() == 255 and pixel.green() == 255 and pixel.blue() == 255)
 
 
 def test_recording_panel_ui(qapp):

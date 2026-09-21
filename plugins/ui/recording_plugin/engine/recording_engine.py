@@ -24,7 +24,16 @@ logger = logging.getLogger(__name__)
 class FrameSaveTask(QtCore.QRunnable):
     """Tarefa assíncrona de escrita de imagem para não engasgar o traçado da caneta."""
 
-    def __init__(self, raw_bytes: bytes, width: int, height: int, target_w: int, target_h: int, output_path: str):
+    def __init__(
+        self,
+        raw_bytes: bytes,
+        width: int,
+        height: int,
+        target_w: int,
+        target_h: int,
+        output_path: str,
+        watermark: bool = False,
+    ):
         super().__init__()
         self.raw_bytes = raw_bytes
         self.width = width
@@ -32,6 +41,7 @@ class FrameSaveTask(QtCore.QRunnable):
         self.target_w = target_w
         self.target_h = target_h
         self.output_path = output_path
+        self.watermark = watermark
 
     def run(self) -> None:
         try:
@@ -55,6 +65,10 @@ class FrameSaveTask(QtCore.QRunnable):
                     QtCore.Qt.TransformationMode.SmoothTransformation
                 )
 
+            # Aplica marca d'água no canto inferior direito se solicitado
+            if self.watermark:
+                TimelapseRecordingEngine.apply_watermark(img)
+
             # Salva JPEG com compressão otimizada
             img.save(self.output_path, "JPEG", 90)
         except Exception as e:
@@ -77,6 +91,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.temp_dir: Optional[str] = None
         self.target_resolution: str = "Original (Canvas)"
         self.trigger_mode: str = "stroke"  # 'stroke' ou 'time'
+        self.add_watermark: bool = True
 
         self._connected_canvas = None
         self._thread_pool = QtCore.QThreadPool.globalInstance()
@@ -199,6 +214,51 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.state_changed.emit(False, False)
         return self.temp_dir
 
+    @staticmethod
+    def apply_watermark(img: QtGui.QImage) -> None:
+        """Desenha a marca d'água oficial do Lumenia no canto inferior direito da imagem."""
+        w, h = img.width(), img.height()
+        if w < 240 or h < 120:
+            return
+
+        painter = QtGui.QPainter(img)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform, True)
+
+        badge_w = 175
+        badge_h = 32
+        margin = 16
+        x = float(w - badge_w - margin)
+        y = float(h - badge_h - margin)
+
+        # Fundo arredondado translúcido estilo cápsula moderna
+        painter.setBrush(QtGui.QColor(18, 22, 28, 190))
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 40), 1.0))
+        painter.drawRoundedRect(QtCore.QRectF(x, y, float(badge_w), float(badge_h)), 6.0, 6.0)
+
+        # Ícone oficial do Lumenia
+        try:
+            from ui.core.runtime_paths import resource_path
+            icon_path = str(resource_path("assets", "images", "icon_lumenia.png"))
+            if os.path.exists(icon_path):
+                icon_pix = QtGui.QPixmap(icon_path).scaled(
+                    20, 20, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation
+                )
+                painter.drawPixmap(int(x + 7), int(y + 6), icon_pix)
+        except Exception:
+            pass
+
+        # Tipografia de marca d'água
+        font = QtGui.QFont("Segoe UI", 9, QtGui.QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.setPen(QtGui.QColor(245, 247, 250, 235))
+        painter.drawText(
+            QtCore.QRectF(x + 32, y, float(badge_w - 36), float(badge_h)),
+            QtCore.Qt.AlignmentFlag.AlignVCenter | QtCore.Qt.AlignmentFlag.AlignLeft,
+            "LUMENIA STUDIO"
+        )
+        painter.end()
+
     def capture_current_frame(self) -> None:
         """Extrai o buffer de pixels atual da engine e despacha para salvamento assíncrono."""
         if not self.is_recording or self.is_paused or not self.temp_dir:
@@ -207,22 +267,67 @@ class TimelapseRecordingEngine(QtCore.QObject):
             return
 
         canvas = self._connected_canvas
-        backend = getattr(canvas, "engine_backend", None)
-        if backend is None or not hasattr(backend, "get_display_pixel_buffer"):
-            return
 
-        raw_buf = backend.get_display_pixel_buffer()
-        if not raw_buf:
-            return
+        # 1. Recupera o backend ativo (canvas.backend ou EngineRegistry)
+        backend = getattr(canvas, "backend", None) or getattr(canvas, "engine_backend", None)
+        if backend is None:
+            try:
+                from ui.core.engine.registry import EngineRegistry
+                backend = EngineRegistry.instance().get_backend()
+            except Exception:
+                backend = None
 
-        # Garante cópia isolada dos bytes em memória para a thread secundária
-        raw_bytes = bytes(raw_buf)
+        # 2. Dimensões do documento
         cw = int(getattr(canvas, "canvas_w", 0))
         ch = int(getattr(canvas, "canvas_h", 0))
+        if (cw <= 0 or ch <= 0) and backend and hasattr(backend, "get_width"):
+            try:
+                cw = int(backend.get_width())
+                ch = int(backend.get_height())
+            except Exception:
+                pass
         if cw <= 0 or ch <= 0:
+            logger.debug("[TimelapseEngine] Dimensões inválidas para captura: %sx%s", cw, ch)
             return
 
-        # Resolução alvo calculada
+        # 3. Extração dos pixels (prioriza get_display_pixel_buffer, depois get_qimage, depois ViewportRenderer)
+        raw_bytes = None
+        if backend and hasattr(backend, "get_display_pixel_buffer"):
+            try:
+                raw_buf = backend.get_display_pixel_buffer()
+                if raw_buf:
+                    raw_bytes = bytes(raw_buf)
+            except Exception as e:
+                logger.debug("[TimelapseEngine] Falha em get_display_pixel_buffer: %s", e)
+
+        if not raw_bytes and backend and hasattr(backend, "get_qimage"):
+            try:
+                qimg = backend.get_qimage()
+                if qimg and not qimg.isNull():
+                    raw_bytes = bytes(qimg.constBits())
+            except Exception as e:
+                logger.debug("[TimelapseEngine] Falha em get_qimage: %s", e)
+
+        if not raw_bytes and backend and hasattr(backend, "get_qimage"):
+            try:
+                qimg = backend.get_qimage()
+                if qimg and not qimg.isNull():
+                    comp = QtGui.QImage(cw, ch, QtGui.QImage.Format.Format_RGBA8888)
+                    paper_col = getattr(canvas, "paper_color", QtGui.QColor(255, 255, 255))
+                    paper_vis = getattr(canvas, "paper_visible", True)
+                    comp.fill(paper_col if paper_vis else QtCore.Qt.GlobalColor.transparent)
+                    p = QtGui.QPainter(comp)
+                    p.drawImage(0, 0, qimg)
+                    p.end()
+                    raw_bytes = bytes(comp.constBits())
+            except Exception as e:
+                logger.debug("[TimelapseEngine] Falha na composição alternativa de frame: %s", e)
+
+        if not raw_bytes:
+            logger.warning("[TimelapseEngine] Nenhum pixel obtido da composição do canvas.")
+            return
+
+        # 4. Resolução alvo calculada
         tw, th = cw, ch
         if "1080p" in self.target_resolution:
             tw, th = 1920, 1080
@@ -233,7 +338,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         frame_name = f"frame_{self.frame_count:06d}.jpg"
         out_path = os.path.join(self.temp_dir, frame_name)
 
-        task = FrameSaveTask(raw_bytes, cw, ch, tw, th, out_path)
+        task = FrameSaveTask(raw_bytes, cw, ch, tw, th, out_path, watermark=self.add_watermark)
         self._thread_pool.start(task)
 
         self.frame_captured.emit(self.frame_count)

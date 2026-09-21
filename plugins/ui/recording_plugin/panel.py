@@ -142,6 +142,13 @@ class RecordingPanel(QtWidgets.QWidget):
         opt_layout.addWidget(lbl_fmt)
         opt_layout.addWidget(self.combo_format)
 
+        self.chk_watermark = QtWidgets.QCheckBox("Incluir Marca d'Água (Lumenia)")
+        self.chk_watermark.setChecked(True)
+        self.chk_watermark.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self.chk_watermark.setStyleSheet("font-size: 11px;")
+        self.chk_watermark.toggled.connect(self._on_watermark_toggled)
+        opt_layout.addWidget(self.chk_watermark)
+
         lbl_dir = QtWidgets.QLabel("Pasta de Destino:")
         lbl_dir.setStyleSheet("font-size: 11px;")
         opt_layout.addWidget(lbl_dir)
@@ -243,7 +250,11 @@ class RecordingPanel(QtWidgets.QWidget):
         self.combo_res.setEnabled(enabled)
         self.combo_trigger.setEnabled(enabled)
         self.combo_format.setEnabled(enabled)
+        self.chk_watermark.setEnabled(enabled)
         self.btn_browse.setEnabled(enabled)
+
+    def _on_watermark_toggled(self, checked: bool) -> None:
+        self.engine.add_watermark = bool(checked)
 
     def _on_pulse_tick(self) -> None:
         self._pulse_state = not self._pulse_state
@@ -254,6 +265,19 @@ class RecordingPanel(QtWidgets.QWidget):
 
     def _on_toggle_clicked(self) -> None:
         if not self.engine.is_recording:
+            # Garante que o canvas está conectado caso tenha sido instanciado tardiamente
+            if self.canvas is None:
+                try:
+                    from ui.core.plugins.registry import ServiceRegistry
+                    from ui.core.plugins.workspace_contract import WorkspaceService
+                    ws = ServiceRegistry.instance().get(WorkspaceService)
+                    if ws and hasattr(ws, "canvas") and ws.canvas:
+                        self.set_canvas(ws.canvas)
+                except Exception:
+                    pass
+            elif self.engine._connected_canvas is None:
+                self.engine.attach_canvas(self.canvas)
+
             self.engine.start_recording()
         elif self.engine.is_recording and not self.engine.is_paused:
             self.engine.pause_recording()
@@ -273,6 +297,9 @@ class RecordingPanel(QtWidgets.QWidget):
             self.lbl_time.setText("00:00:00")
 
     def _on_save_clicked(self) -> None:
+        # Aguarda qualquer gravação assíncrona pendente no pool de threads
+        QtCore.QThreadPool.globalInstance().waitForDone(1500)
+
         if self.engine.frame_count == 0:
             QtWidgets.QMessageBox.warning(self, "Aviso", "Nenhum quadro foi capturado para exportar.")
             return

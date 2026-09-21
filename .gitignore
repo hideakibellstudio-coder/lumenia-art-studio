@@ -39,3 +39,11 @@ dist_nuitka/
 nuitka-crash-report.xml
 .coverage
 scratch/
+
+# Debug/build logs acidentalmente capturados (achado na higienizacao 2026-09-17)
+debug.txt
+diag_*.txt
+*.bak
+.pytest_cache/
+theme_icon_cache/
+uv.lock

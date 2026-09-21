@@ -32,10 +32,14 @@ class AladynLayerMixin:
     def set_layer_alpha_lock(self, index: int, locked: bool) -> None:
         if self._facade:
             self._facade.set_layer_alpha_lock(index, locked)
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("alpha_lock")
 
     def set_layer_clipping_mask(self, index: int, clipped: bool) -> None:
         if self._facade:
             self._facade.set_layer_clipping_mask(index, clipped)
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("clipping_mask")
 
     def set_layer_blend_mode(self, index: int, mode_val: Any) -> None:
         if self._facade:
@@ -45,20 +49,31 @@ class AladynLayerMixin:
             # mas já expôs só 7 antes da Fase C5). Ver
             # ui.core.document.layer_blend_mode para o histórico completo.
             self._facade.set_layer_blend_mode(index, int(LayerBlendMode.coerce(mode_val)))
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("blend_mode")
 
     def reorder_layer(self, from_index: int, to_index: int) -> bool:
         if self._facade:
-            return self._facade.reorder_layer(from_index, to_index)
+            res = self._facade.reorder_layer(from_index, to_index)
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("reorder_layer")
+            return res
         return False
 
     def reorder_layers(self, new_order: list[int]) -> bool:
         if self._facade:
-            return self._facade.reorder_layers(new_order)
+            res = self._facade.reorder_layers(new_order)
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("reorder_layers")
+            return res
         return False
 
     def set_layer_parents(self, parent_indices: list[int]) -> bool:
         if self._facade:
-            return self._facade.set_layer_parents(parent_indices)
+            res = self._facade.set_layer_parents(parent_indices)
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("set_layer_parents")
+            return res
         return False
 
     def set_layer_document_uid(self, index: int, uid: int) -> bool:
@@ -68,17 +83,25 @@ class AladynLayerMixin:
 
     def add_group(self, name: str = "Novo Grupo", insert_index: int = -1) -> int:
         if self._facade:
-            return self._facade.add_group(name, int(insert_index))
+            idx = self._facade.add_group(name, int(insert_index))
+            if idx >= 0 and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("add_group")
+            return idx
         return -1
 
     def add_filter_layer(self, name: str, filter_type_id: int, insert_index: int = -1) -> int:
         if self._facade:
-            return self._facade.add_filter_layer(name, filter_type_id, int(insert_index))
+            idx = self._facade.add_filter_layer(name, filter_type_id, int(insert_index))
+            if idx >= 0 and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("add_filter_layer")
+            return idx
         return -1
 
     def set_filter_params(self, index: int, params: list[float]) -> None:
         if self._facade:
             self._facade.set_filter_params(index, [float(x) for x in params])
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("filter_params")
 
     def get_filter_params(self, index: int) -> list[float]:
         if self._facade:
@@ -98,6 +121,8 @@ class AladynLayerMixin:
     def set_layer_name(self, index: int, name: str) -> None:
         if self._facade:
             self._facade.set_layer_name(index, name)
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("layer_name")
 
     def get_layer_info(self, index: int) -> dict:
         if self._facade:
@@ -111,27 +136,42 @@ class AladynLayerMixin:
 
     def duplicate_layer(self, index: int) -> int:
         if self._facade:
-            return self._facade.duplicate_layer(index)
+            idx = self._facade.duplicate_layer(index)
+            if idx >= 0 and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("duplicate_layer")
+            return idx
         return -1
 
     def flatten_group(self, index: int) -> bool:
         if self._facade:
-            return self._facade.flatten_group(index)
+            res = self._facade.flatten_group(index)
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("flatten_group")
+            return res
         return False
 
     def merge_layer_down(self, index: int) -> bool:
         if self._facade:
-            return self._facade.merge_layer_down(index)
+            res = self._facade.merge_layer_down(index)
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("merge_layer_down")
+            return res
         return False
 
     def add_layer(self, name: str = "", insert_index: int = -1) -> int:
         if self._facade:
-            return self._facade.add_layer(name, int(insert_index))
+            idx = self._facade.add_layer(name, int(insert_index))
+            if idx >= 0 and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("add_layer")
+            return idx
         return -1
 
     def remove_layer(self, index: int) -> bool:
         if self._facade:
-            return self._facade.remove_layer(index)
+            res = self._facade.remove_layer(index)
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("remove_layer")
+            return res
         return False
 
     def select_layer(self, index: int) -> bool:
@@ -142,14 +182,20 @@ class AladynLayerMixin:
     def set_layer_opacity(self, index: int, opacity: float) -> None:
         if self._facade:
             self._facade.set_layer_opacity(index, float(opacity))
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("layer_opacity")
 
     def set_layer_visibility(self, index: int, visible: bool) -> None:
         if self._facade:
             self._facade.set_layer_visibility(index, bool(visible))
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("layer_visibility")
 
     def set_layer_lock(self, index: int, locked: bool) -> None:
         if self._facade:
             self._facade.set_layer_lock(index, bool(locked))
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("layer_lock")
 
     def is_layer_alpha_locked(self, index: int) -> bool:
         if self._facade:

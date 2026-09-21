@@ -104,4 +104,9 @@ class AladynSelectionMixin:
         return None
 
     def set_selection_mask_buffer(self, pixels: bytes) -> bool:
-        return bool(self._facade and self._facade.set_selection_mask_buffer(bytes(pixels)))
+        if self._facade:
+            res = bool(self._facade.set_selection_mask_buffer(bytes(pixels)))
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("selection")
+            return res
+        return False

@@ -151,6 +151,8 @@ class AladynBackend(
             self._width = max(1, width)
             self._height = max(1, height)
             self._facade.resize_canvas(self._width, self._height)
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("resize")
 
     def render(self, pan_x: float, pan_y: float, zoom: float, rotation_rad: float) -> None:
         self._view_state = (float(pan_x), float(pan_y), max(1e-6, float(zoom)), float(rotation_rad))
@@ -219,10 +221,15 @@ class AladynBackend(
             return False
         result = self._facade.apply_prepared_geometry(prepared)
         self._width, self._height = self._facade.get_width(), self._facade.get_height()
+        if result and hasattr(self, "_mark_document_dirty"):
+            self._mark_document_dirty("prepared_geometry")
         return bool(result)
 
     def commit_layer_transaction(self) -> int:
-        return int(self._facade.commit_layer_transaction()) if self._facade else 0
+        res = int(self._facade.commit_layer_transaction()) if self._facade else 0
+        if res and hasattr(self, "_mark_document_dirty"):
+            self._mark_document_dirty("layer_transaction")
+        return res
 
     def cancel_layer_transaction(self) -> bool:
         if not self._facade:

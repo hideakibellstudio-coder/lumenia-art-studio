@@ -43,6 +43,14 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-21 — Sincronização Bidirecional Viewport/Navigator e Dirty Tracking de Camadas (Rodada 13)
+**O que foi feito:** Décima terceira rodada de auditoria e saneamento concêntrico aplicando `lumenia-satellite-audit`:
+1. *Alinhamento dos Ícones de Flip no Navigator*: correção dos ícones SVG em `NavigatorControls` (`plugins/ui/navigator_plugin/panel.py`), associando `flip-vertical` a `btn_fliph` e `flip-horizontal` a `btn_flipv`, alinhando a representação visual com a percepção do usuário e preservando conexões de sinal 1:1.
+2. *Sincronização Bidirecional Viewport $\leftrightarrow$ Navigator*: os setters de `flip_x` e `flip_y` em `canvas_compat.py` agora emitem `cameraChanged.emit(...)` de forma idempotente quando alterados, garantindo que espelhamentos acionados externamente (menu principal, atalhos) atualizem imediatamente o viewport no painel do Navigator.
+3. *Completude de Rastreamento Dirty em Camadas (`aladyn_layer_mixin.py`)*: inclusão sistemática de chamadas a `self._mark_document_dirty(...)` em todas as mutações da pilha de camadas (`add_layer`, `remove_layer`, `duplicate_layer`, `merge_layer_down`, `flatten_group`, `add_group`, `add_filter_layer`, `reorder_layer`, `reorder_layers`, `set_layer_parents`, `set_layer_blend_mode`, `set_layer_opacity`, `set_layer_visibility`, `set_layer_lock`, `set_layer_alpha_lock`, `set_layer_clipping_mask`, `set_layer_name`, `set_filter_params`), fechando a paridade 1:1 com o `ctx.touch()` de `LayerStackOrchestrator` do C++.
+4. *Rastreamento Dirty em Geometria, Transações e Recursos*: adição de `_mark_document_dirty` em `resize`, `apply_prepared_geometry`, `commit_layer_transaction` (`aladyn.py`), `set_selection_mask_buffer` (`aladyn_selection_mixin.py`) e `set_canvas_resource` (`aladyn_resources_mixin.py`).
+5. *Suíte Modular e Governança ARCcC*: criação de `tests/test_satellite_round13_primordial.py` (7/7 testes verdes). Todos os arquivos modificados rigorosamente na Zona Verde (< 450 LOC). 100% de testes verdes na suíte global (670+ testes).
+
 ### 2026-09-21 — Saneamento dos Botões de Flip do Navigator e Fronteira Primordial C++ (Rodada 12)
 **O que foi feito:** Décima segunda rodada de saneamento concêntrico aplicando `lumenia-satellite-audit`:
 1. *Alinhamento dos Botões de Flip no Navigator*: correção no `NavigatorControls` (`plugins/ui/navigator_plugin/panel.py`), onde `btn_fliph` estava indevidamente conectado a `flipVRequested.emit` e `btn_flipv` conectado a `flipHRequested.emit`. Alinhamento 1:1 restabelecido (`btn_fliph` $\to$ `flipHRequested`, `btn_flipv` $\to$ `flipVRequested`).

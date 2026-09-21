@@ -33,4 +33,7 @@ class AladynResourcesMixin:
         canvas.canvas_grain_invert = state["invert"]
         canvas.canvas_texture_curve.set_lut(state["curve"])
         canvas.invalidate_lut()
-        return self.get_canvas_resource() == state
+        ok = (self.get_canvas_resource() == state)
+        if ok and hasattr(self, "_mark_document_dirty"):
+            self._mark_document_dirty("canvas_resource")
+        return ok

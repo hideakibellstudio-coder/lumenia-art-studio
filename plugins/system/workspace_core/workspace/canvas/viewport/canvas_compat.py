@@ -41,7 +41,18 @@ class CanvasCompatMixin:
     @flip_x.setter
     def flip_x(self, v: bool) -> None:
         if hasattr(self, "camera"):
-            self.camera.flip_horizontal = bool(v)
+            new_v = bool(v)
+            if getattr(self.camera, "flip_horizontal", False) != new_v:
+                self.camera.flip_horizontal = new_v
+                if hasattr(self, "cameraChanged"):
+                    self.cameraChanged.emit(
+                        getattr(self, "zoom", 1.0),
+                        getattr(self, "pan_x", 0.0),
+                        getattr(self, "pan_y", 0.0),
+                        getattr(self, "rotation", 0.0),
+                        float(self.width() if hasattr(self, "width") else 800),
+                        float(self.height() if hasattr(self, "height") else 600)
+                    )
 
     @property
     def flip_y(self) -> bool:
@@ -49,7 +60,18 @@ class CanvasCompatMixin:
     @flip_y.setter
     def flip_y(self, v: bool) -> None:
         if hasattr(self, "camera"):
-            self.camera.flip_vertical = bool(v)
+            new_v = bool(v)
+            if getattr(self.camera, "flip_vertical", False) != new_v:
+                self.camera.flip_vertical = new_v
+                if hasattr(self, "cameraChanged"):
+                    self.cameraChanged.emit(
+                        getattr(self, "zoom", 1.0),
+                        getattr(self, "pan_x", 0.0),
+                        getattr(self, "pan_y", 0.0),
+                        getattr(self, "rotation", 0.0),
+                        float(self.width() if hasattr(self, "width") else 800),
+                        float(self.height() if hasattr(self, "height") else 600)
+                    )
 
     # ── Tool Controller Proxies ──
     @property

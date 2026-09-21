@@ -79,8 +79,8 @@ class NavigatorControls(QtWidgets.QWidget):
         self.slider_rot.setFixedHeight(16)
         
         self.btn_reset = IconButton("refresh-ccw", tr("menu.image.reset_rotation", "Resetar Rotação"), size=22, icon_size=12)
-        self.btn_fliph = IconButton("flip-horizontal", tr("menu.image.flip_h", "Espelhar H"), size=22, icon_size=12)
-        self.btn_flipv = IconButton("flip-vertical", tr("menu.image.flip_v", "Espelhar V"), size=22, icon_size=12)
+        self.btn_fliph = IconButton("flip-vertical", tr("menu.image.flip_h", "Espelhar H"), size=22, icon_size=12)
+        self.btn_flipv = IconButton("flip-horizontal", tr("menu.image.flip_v", "Espelhar V"), size=22, icon_size=12)
         
         controls_r = QtWidgets.QHBoxLayout()
         controls_r.setSpacing(4)

@@ -177,6 +177,31 @@ Aprofundando a descida orbital na base primordial C++ e corrigindo satélites de
 
 ---
 
+### Casos Reais Saneados — Rodada 13: Sincronização Bidirecional Viewport/Navigator e Dirty Tracking de Camadas
+
+Avançando na descida orbital e fechando a paridade de estado entre os subsistemas Python e o motor C++:
+
+1. **Alinhamento dos Ícones SVG no Painel Navigator:**
+   - *Falha:* No painel `NavigatorControls`, os ícones atribuídos a `btn_fliph` e `btn_flipv` estavam visualmente invertidos para o usuário (`btn_fliph` exibia o ícone de eixo vertical e `btn_flipv` o de eixo horizontal).
+   - *Saneamento:* Atribuição correta dos ícones `flip-vertical` a `btn_fliph` e `flip-horizontal` a `btn_flipv`, mantendo as conexões 1:1 com os sinais de espelhamento horizontal e vertical.
+
+2. **Sincronização Bidirecional de Câmera (`cameraChanged` em `flip_x` e `flip_y`):**
+   - *Falha:* Os setters de `flip_x` e `flip_y` em `canvas_compat.py` atualizavam a câmera do canvas mas não emitiam `cameraChanged`. Disparos externos de espelhamento (menu "Imagem -> Espelhar H/V") não notificavam o Navigator, mantendo a caixa de viewport desatualizada.
+   - *Saneamento:* Emissão de `cameraChanged.emit(...)` nos setters de `flip_x` e `flip_y` quando o valor é alterado, acionando `_on_canvas_camera_changed` e atualizando o Navigator em tempo real com idempotência garantida.
+
+3. **Dirty Tracking Completo em Camadas (`AladynLayerMixin`):**
+   - *Falha:* Mutações de camada (`add_layer`, `remove_layer`, `duplicate_layer`, `merge_layer_down`, `flatten_group`, `add_group`, `add_filter_layer`, `reorder_layer`, `reorder_layers`, `set_layer_parents`, `set_layer_blend_mode`, `set_layer_opacity`, `set_layer_visibility`, `set_layer_lock`, `set_layer_alpha_lock`, `set_layer_clipping_mask`, `set_layer_name`, `set_filter_params`) invocavam `ctx.touch()` no C++ (`LayerStackOrchestrator`), mas o Python não chamava `_mark_document_dirty`, deixando o documento como não modificado.
+   - *Saneamento:* Inclusão sistemática de chamadas a `self._mark_document_dirty(...)` em todas as mutações bem-sucedidas.
+
+4. **Dirty Tracking em Redimensionamento, Transações e Recursos:**
+   - *Falha:* `resize`, `apply_prepared_geometry`, `commit_layer_transaction` em `aladyn.py`, `set_selection_mask_buffer` em `aladyn_selection_mixin.py` e `set_canvas_resource` em `aladyn_resources_mixin.py` alteravam o estado nativo sem marcar o documento Python como dirty.
+   - *Saneamento:* Adição de chamadas a `_mark_document_dirty` em todos esses fluxos.
+
+5. **Suíte Dedicada de Integridade Primordial:**
+   - Criação de `tests/test_satellite_round13_primordial.py` (7 testes verdes) e governança estrita de linhas de código (<450 LOC em todos os arquivos).
+
+---
+
 ## 5. Como Aplicar Esta Metodologia em Qualquer Projeto de Software com IA
 
 Para replicar esse sucesso em outros projetos de software (jogos, engines, aplicativos desktop, web apps de alta performance):

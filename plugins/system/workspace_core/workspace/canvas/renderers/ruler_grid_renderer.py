@@ -8,6 +8,8 @@ Strictly decoupled in compliance with ARCcC v2 (< 120 LOC).
 import math
 from PySide6 import QtCore, QtGui
 
+from ui.core.theme.manager import ThemeManager
+
 
 class RulerGridRenderer:
     """Renders straight and Bézier rulers with interactive handles and snap feedback."""
@@ -21,6 +23,13 @@ class RulerGridRenderer:
         length = math.hypot(dx, dy) or 1.0
         ux, uy = dx / length, dy / length
 
+        tm = ThemeManager.instance()
+        handle_border_col = QtGui.QColor(tm.get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
+        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
+        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
+        dist_base_col = QtGui.QColor(tm.get_color("GUIDE_DISTANCE_TEXT", "#ffffff"))
+        dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
+
         # Infinite guide ray
         pen_guide = QtGui.QPen(QtGui.QColor(59, 130, 246, 200), line_w, QtCore.Qt.DashLine)
         painter.setPen(pen_guide)
@@ -28,7 +37,7 @@ class RulerGridRenderer:
 
         # Endpoint handles
         painter.setBrush(QtGui.QColor(59, 130, 246, 220))
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), line_w))
+        painter.setPen(QtGui.QPen(handle_border_col, line_w))
         painter.drawEllipse(p0, handle_r, handle_r)
         painter.drawEllipse(p1, handle_r, handle_r)
 
@@ -38,12 +47,12 @@ class RulerGridRenderer:
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 180), line_w * 1.3, QtCore.Qt.DashLine))
             painter.drawLine(QtCore.QPointF(hpt.x() - 4000.0 * ux, hpt.y() - 4000.0 * uy), QtCore.QPointF(hpt.x() + 4000.0 * ux, hpt.y() + 4000.0 * uy))
             painter.setBrush(QtCore.Qt.NoBrush)
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
+            painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
             painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
             if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
                 dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
                 painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
+                painter.setPen(QtGui.QPen(dist_text_col))
                 painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
 
     @staticmethod
@@ -66,13 +75,18 @@ class RulerGridRenderer:
         painter.drawLine(p0, p1)
         painter.drawLine(p3, p2)
 
+        tm = ThemeManager.instance()
+        handle_border_col = QtGui.QColor(tm.get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
+        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
+        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
+
         painter.setBrush(QtGui.QColor(59, 130, 246, 220))
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), line_w))
+        painter.setPen(QtGui.QPen(handle_border_col, line_w))
         for pt in (p0, p1, p2, p3):
             painter.drawEllipse(pt, handle_r, handle_r)
 
         if ctrl and hasattr(ctrl, "hover_point") and ctrl.hover_point is not None:
             hpt = ctrl.hover_point
             painter.setBrush(QtCore.Qt.NoBrush)
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
+            painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
             painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)

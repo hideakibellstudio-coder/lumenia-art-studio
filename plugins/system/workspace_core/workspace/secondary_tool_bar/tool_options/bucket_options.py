@@ -119,5 +119,5 @@ def build_bucket_panels(toolbar):
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["bucket"] = p_h
-    toolbar._panels_v["bucket"] = p_v
+    toolbar.panels_h["bucket"] = p_h
+    toolbar.panels_v["bucket"] = p_v

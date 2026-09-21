@@ -20,6 +20,7 @@ from ..math.camera_3d_projector import (
 from .geometry_snapping_engine import GeometrySnappingEngine
 from ui.core.geometry.guide_type import GuideType
 from ui.core.geometry.symmetry_mode import SymmetryMode
+from ui.core.geometry.synced_dict import SyncedDict
 
 
 def _first_not_none(*values):
@@ -82,13 +83,13 @@ class GeometryToolController:
         self._native_curv_anchor = None
         self._native_persp_anchor = None
 
-        self.sym_state = {
+        self.sym_state = SyncedDict({
             "mode": "none", "cx": 400.0, "cy": 300.0, "angle": 90.0,
             "segments": 6, "stop_at_center": False, "locked": False,
             "hidden": False, "snap_increment": 15
-        }
+        }, on_change=self.sync_symmetry_to_engine)
 
-        self.guide_state = {
+        self.guide_state = SyncedDict({
             "type": "none",
             "p0": QtCore.QPointF(100, 300), "p1": QtCore.QPointF(700, 300),
             "p2": QtCore.QPointF(300, 150), "p3": QtCore.QPointF(500, 450),
@@ -102,34 +103,37 @@ class GeometryToolController:
             "show_letterbox": False, "aspect_ratio": "16:9", "snap_mode": "auto",
             "hidden": False, "snap_radius": 32.0, "snap_dynamic": True, "show_hint": True,
             "snap_sensitivity": 3.0
-        }
+        }, on_change=self.sync_guides_to_engine)
 
     def center_on_document(self, doc_w: float, doc_h: float):
         doc_w, doc_h = max(1.0, float(doc_w)), max(1.0, float(doc_h))
         cx, cy, base_r = doc_w / 2.0, doc_h / 2.0, min(doc_w, doc_h) * 0.42
         if not getattr(self, "_custom_sym_center", False):
-            self.sym_state["cx"], self.sym_state["cy"] = cx, cy
+            self.sym_state.update({"cx": cx, "cy": cy}, sync=False)
         self.guide_state.update({
             "cx": cx, "cy": cy, "base_radius": base_r,
             "p0": QtCore.QPointF(cx - doc_w * 0.35, cy), "p1": QtCore.QPointF(cx + doc_w * 0.35, cy),
             "p2": QtCore.QPointF(cx - doc_w * 0.15, cy - doc_h * 0.18), "p3": QtCore.QPointF(cx + doc_w * 0.15, cy - doc_h * 0.18),
             "vpA": QtCore.QPointF(cx - doc_w * 0.55, cy), "vpB": QtCore.QPointF(cx + doc_w * 0.55, cy),
             "vpC": QtCore.QPointF(cx, cy - doc_h * 0.65)
-        })
+        }, sync=False)
         self.sync_symmetry_to_engine()
         self.sync_guides_to_engine()
 
     def load_document_state(self, document):
         # Reset defaults first so omitted fields never leak from another tab.
+        # `reset()` preserva a identidade do SyncedDict (e o on_change ja
+        # vinculado a `self`) -- reatribuir o atributo trocaria pelo
+        # SyncedDict de `defaults`, vinculado ao controller errado.
         defaults = type(self)(self.widget)
-        self.guide_state = defaults.guide_state
-        self.sym_state = defaults.sym_state
+        self.guide_state.reset(dict(defaults.guide_state), sync=False)
+        self.sym_state.reset(dict(defaults.sym_state), sync=False)
         self._custom_sym_center = False
         self._loading_document = True
         try:
             self.center_on_document(document.width, document.height)
-            self.guide_state.update(copy.deepcopy(document.guide_state))
-            self.sym_state.update(copy.deepcopy(document.sym_state))
+            self.guide_state.update(copy.deepcopy(document.guide_state), sync=False)
+            self.sym_state.update(copy.deepcopy(document.sym_state), sync=False)
             self.sync_guides_to_engine()
             self.sync_symmetry_to_engine()
         finally:
@@ -200,15 +204,15 @@ class GeometryToolController:
         if self.curv_drag_rotate:
             dx, dy = pos.x() - self.curv_rotate_start.x(), pos.y() - self.curv_rotate_start.y()
             sy, sp = self.curv_start_angles
-            self.guide_state["yaw"] = (sy - dx * 0.25) % 360.0
-            self.guide_state["pitch"] = max(-90.0, min(90.0, sp + dy * 0.25))
-            self.sync_guides_to_engine()
+            self.guide_state.update({
+                "yaw": (sy - dx * 0.25) % 360.0,
+                "pitch": max(-90.0, min(90.0, sp + dy * 0.25)),
+            })
             return True
         if not self.active_handle:
             return False
         if self.active_handle == "sym_center":
-            self.sym_state["cx"], self.sym_state["cy"] = float(pos.x()), float(pos.y())
-            self.sync_symmetry_to_engine()
+            self.sym_state.update({"cx": float(pos.x()), "cy": float(pos.y())})
             return True
         if self.active_handle == "sym_angle":
             deg = math.degrees(math.atan2(pos.y() - self.sym_state["cy"], pos.x() - self.sym_state["cx"]))
@@ -216,24 +220,20 @@ class GeometryToolController:
             if shift_pressed and inc > 0:
                 deg = round(deg / inc) * inc
             self.sym_state["angle"] = deg % 360.0
-            self.sync_symmetry_to_engine()
             return True
         if self.active_handle == "guide_curv_center":
-            self.guide_state["cx"], self.guide_state["cy"] = float(pos.x()), float(pos.y())
-            self.sync_guides_to_engine()
+            self.guide_state.update({"cx": float(pos.x()), "cy": float(pos.y())})
             return True
         if self.active_handle == "guide_curv_rotate":
             deg = math.degrees(math.atan2(pos.y() - self.guide_state["cy"], pos.x() - self.guide_state["cx"])) % 360.0
             if shift_pressed:
                 deg = round(deg / 15.0) * 15.0
             self.guide_state["yaw"] = deg
-            self.sync_guides_to_engine()
             return True
         if self.active_handle.startswith("guide_"):
             n = self.active_handle.replace("guide_", "")
             if n in self.guide_state:
                 self.guide_state[n] = QtCore.QPointF(pos.x(), pos.y())
-                self.sync_guides_to_engine()
                 return True
         return False
 

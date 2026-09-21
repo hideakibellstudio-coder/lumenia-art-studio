@@ -7,6 +7,9 @@ Strictly decoupled in compliance with ARCcC v2 (< 250 LOC).
 
 import math
 from PySide6 import QtCore, QtGui
+
+from ui.core.theme.manager import ThemeManager
+
 from ..math.curvilinear_mesh_builder import CurvilinearMeshBuilder
 
 
@@ -33,9 +36,16 @@ class PerspectiveGridRenderer:
             painter.setPen(QtGui.QPen(QtGui.QColor(234, 88, 12, 180), line_w * 1.5))
             painter.drawLine(QtCore.QPointF(-8000, vps[0].y()), QtCore.QPointF(8000, vps[0].y()))
 
+        tm = ThemeManager.instance()
+        handle_border_col = QtGui.QColor(tm.get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
+        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
+        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
+        dist_base_col = QtGui.QColor(tm.get_color("GUIDE_DISTANCE_TEXT", "#ffffff"))
+        dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
+
         for vp in vps:
             painter.setBrush(QtGui.QColor(234, 88, 12, 220))
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), line_w))
+            painter.setPen(QtGui.QPen(handle_border_col, line_w))
             painter.drawEllipse(vp, handle_r * 1.2, handle_r * 1.2)
             painter.setPen(QtGui.QPen(QtGui.QColor(234, 88, 12, 90), line_w, QtCore.Qt.DashLine))
             for deg in range(0, 360, 20):
@@ -53,12 +63,12 @@ class PerspectiveGridRenderer:
                     ux, uy = dx / l, dy / l
                     painter.drawLine(vp, QtCore.QPointF(hpt.x() + ux * 4000.0, hpt.y() + uy * 4000.0))
             painter.setBrush(QtCore.Qt.NoBrush)
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
+            painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
             painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
             if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
                 dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
                 painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
+                painter.setPen(QtGui.QPen(dist_text_col))
                 painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
 
     @staticmethod
@@ -213,15 +223,21 @@ class PerspectiveGridRenderer:
             else:
                 painter.drawEllipse(c["center"], c["radius"], c["radius"])
 
+        tm = ThemeManager.instance()
+        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
+        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
+        dist_base_col = QtGui.QColor(tm.get_color("GUIDE_DISTANCE_TEXT", "#ffffff"))
+        dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
+
         if ctrl.hover_point is not None:
             hpt = ctrl.hover_point
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 230), line_w * 1.5))
+            painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
             painter.setBrush(QtCore.Qt.NoBrush)
             painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
             if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
                 dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
                 painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 220)))
+                painter.setPen(QtGui.QPen(dist_text_col))
                 painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
 
         if has_ring:

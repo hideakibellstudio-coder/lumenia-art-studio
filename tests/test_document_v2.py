@@ -216,21 +216,29 @@ def test_guide_switch_resets_old_modes_and_restores_points(drawing, monkeypatch)
     monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: document)
     monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
     controller = GeometryToolController(SimpleNamespace())
-    controller.guide_state["type"] = "three_point"
-    controller.sym_state["mode"] = "radial"
+    # `guide_state`/`sym_state` do controller sao SyncedDict (Fase pos-C5,
+    # item P1 #2): qualquer escrita -- inclusive uma unica chave -- propaga
+    # imediatamente para o documento ativo. Por isso o "estado anterior" e
+    # simulado diretamente no documento (que usa dicts simples), e nao no
+    # controller, para isolar este teste do proprio efeito de auto-sync que
+    # ele testa mais abaixo.
+    document.guide_state["type"] = "three_point"
+    document.sym_state["mode"] = "radial"
     document.mark_saved()
     controller.load_document_state(document)
     assert not document.is_dirty
-    assert controller.guide_state["type"] == "none"
-    assert controller.sym_state["mode"] == "none"
+    assert controller.guide_state["type"] == "three_point"
+    assert controller.sym_state["mode"] == "radial"
     controller.guide_state.update(type="straight", p0=QPointF(1, 2), p1=QPointF(3, 4))
-    controller.sync_guides_to_engine()
     assert document.is_dirty
     assert document.guide_state["p0"] == QPointF(1, 2)
+    # Escrita de chave unica -- sem chamada explicita a sync_guides_to_engine
+    # -- agora tambem propaga sozinha (o proprio comportamento que o
+    # SyncedDict foi criado para garantir).
     controller.guide_state["p0"] = QPointF(9, 9)
-    assert document.guide_state["p0"] == QPointF(1, 2)
+    assert document.guide_state["p0"] == QPointF(9, 9)
     controller.load_document_state(document)
-    assert controller.guide_state["p0"] == QPointF(1, 2)
+    assert controller.guide_state["p0"] == QPointF(9, 9)
 
 
 def test_selection_and_profile_changes_invalidate_recovery_revision(drawing, monkeypatch):

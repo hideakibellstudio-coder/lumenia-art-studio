@@ -1,6 +1,7 @@
 """In-place Text Overlay Editor Widget for Canvas."""
 
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.core.theme.manager import ThemeManager
 
 class TextOverlayEditor(QtWidgets.QFrame):
     """Widget de edição de texto in-place sobreposto diretamente no canvas com tipografia em tempo real."""
@@ -12,12 +13,16 @@ class TextOverlayEditor(QtWidgets.QFrame):
         self.settings = dict(settings)
 
         self.setObjectName("TextOverlayFrame")
-        self.setStyleSheet("""
-            #TextOverlayFrame {
-                background: rgba(26, 26, 36, 0.94);
-                border: 1.5px dashed #9333ea;
+        tm = ThemeManager.instance()
+        bg_c = QtGui.QColor(tm.get_color("BG_DARKEST", "#1a1a24"))
+        accent_c = tm.get_color("ACCENT", "#9333ea")
+        bg_rgba = f"rgba({bg_c.red()}, {bg_c.green()}, {bg_c.blue()}, 0.94)"
+        self.setStyleSheet(f"""
+            #TextOverlayFrame {{
+                background: {bg_rgba};
+                border: 1.5px dashed {accent_c};
                 border-radius: 6px;
-            }
+            }}
         """)
 
         layout = QtWidgets.QVBoxLayout(self)

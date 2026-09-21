@@ -67,13 +67,15 @@ class GeometryPanel(QtWidgets.QWidget):
         card_lay.addWidget(self.lbl_status)
 
         # Botão Centralizar Pivô
-        self.btn_center_pivot = QtWidgets.QPushButton(f"🎯 {tr('geometry.center_pivot', 'Centralizar Pivô no Canvas')}")
+        self.btn_center_pivot = QtWidgets.QPushButton(tr('geometry.center_pivot', 'Centralizar Pivô no Canvas'))
+        self.btn_center_pivot.setIcon(get_icon("target", ThemeManager.instance().get_color("text_main")))
         self.btn_center_pivot.clicked.connect(self._center_pivot_on_canvas)
         self.btn_center_pivot.setVisible(False)
         card_lay.addWidget(self.btn_center_pivot)
 
         # Botão Resetar Ângulo
-        self.btn_reset_angle = QtWidgets.QPushButton(f"🔄 {tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)')}")
+        self.btn_reset_angle = QtWidgets.QPushButton(tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)'))
+        self.btn_reset_angle.setIcon(get_icon("reset", ThemeManager.instance().get_color("text_main")))
         self.btn_reset_angle.clicked.connect(self._reset_angle)
         self.btn_reset_angle.setVisible(False)
         card_lay.addWidget(self.btn_reset_angle)
@@ -87,9 +89,9 @@ class GeometryPanel(QtWidgets.QWidget):
         if hasattr(self, "btn_advanced"):
             self.btn_advanced.setToolTip(tr("geometry.advanced_settings", "Configurações Avançadas de Simetria e Réguas"))
         if hasattr(self, "btn_center_pivot"):
-            self.btn_center_pivot.setText(f"🎯 {tr('geometry.center_pivot', 'Centralizar Pivô no Canvas')}")
+            self.btn_center_pivot.setText(tr('geometry.center_pivot', 'Centralizar Pivô no Canvas'))
         if hasattr(self, "btn_reset_angle"):
-            self.btn_reset_angle.setText(f"🔄 {tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)')}")
+            self.btn_reset_angle.setText(tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)'))
         self._update_status()
 
     def _apply_theme(self, *args):
@@ -101,6 +103,7 @@ class GeometryPanel(QtWidgets.QWidget):
         text_main = tm.get_color("text_main", "#f3f4f6")
         text_sec = tm.get_color("text_sec", "#9ca3af")
         bg_hover = tm.get_color("accent_muted", "#4f46e5")
+        fg_on_accent = tm.get_color("FG_PRIMARY", "#ffffff")
 
         self.btn_advanced.setIcon(get_icon("settings", color=accent))
         self.btn_advanced.setStyleSheet(f"""
@@ -121,7 +124,7 @@ class GeometryPanel(QtWidgets.QWidget):
                 background: {bg_panel}; color: {text_main}; border: 1px solid {border};
                 border-radius: 4px; padding: 6px 10px; font-size: 11px; font-weight: bold;
             }}
-            QPushButton:hover {{ background: {accent}; color: #ffffff; }}
+            QPushButton:hover {{ background: {accent}; color: {fg_on_accent}; }}
         """)
         self._update_status()
 
@@ -181,10 +184,10 @@ class GeometryPanel(QtWidgets.QWidget):
         lines = []
         if self.state["sym_type"] != "none":
             lbl_sym = tr("geometry.symmetry_label", "Simetria")
-            lines.append(f"🪞 <b>{lbl_sym}:</b> {s_name}")
+            lines.append(f"<b>{lbl_sym}:</b> {s_name}")
         if self.state["ruler_type"] != "none":
             lbl_ruler = tr("geometry.ruler_label", "Régua")
-            lines.append(f"📏 <b>{lbl_ruler}:</b> {r_name}")
+            lines.append(f"<b>{lbl_ruler}:</b> {r_name}")
 
         tm = ThemeManager.instance()
         accent = tm.get_color("accent", "#6366f1")
@@ -224,8 +227,9 @@ class GeometryPanel(QtWidgets.QWidget):
         self.state["angle"] = angle
         rw = self._get_render_widget()
         if rw and hasattr(rw, "geometry_ctrl"):
+            # `sym_state` e um SyncedDict: a atribuicao ja dispara o sync
+            # com o motor nativo (ver ui/core/geometry/synced_dict.py).
             rw.geometry_ctrl.sym_state["angle"] = angle
-            rw.geometry_ctrl.sync_symmetry_to_engine()
             rw.update()
 
     def _sync_to_render_widget(self):
@@ -239,49 +243,53 @@ class GeometryPanel(QtWidgets.QWidget):
             return
 
         ctrl = rw.geometry_ctrl
-        ctrl.sym_state["mode"] = self.state["sym_type"]
-        ctrl.sym_state["segments"] = self.state["segments"]
-        if self.state["sym_type"] == "mirror_v":
-            ctrl.sym_state["angle"] = 90.0
-        elif self.state["sym_type"] == "mirror_h":
-            ctrl.sym_state["angle"] = 0.0
-        elif "angle" in self.state and self.state["angle"] != 0.0:
-            ctrl.sym_state["angle"] = self.state["angle"]
-        ctrl.sym_state["stop_at_center"] = self.state["stop_at_center"]
-        ctrl.sym_state["locked"] = self.state["locked"]
-        ctrl.sym_state["hidden"] = self.state["hidden"]
+        # `sym_state`/`guide_state` sao SyncedDict (ver
+        # ui/core/geometry/synced_dict.py): `batch()` suprime o sync a cada
+        # chave e dispara uma unica vez ao sair do bloco, em vez de uma vez
+        # por atribuicao.
+        with ctrl.sym_state.batch():
+            ctrl.sym_state["mode"] = self.state["sym_type"]
+            ctrl.sym_state["segments"] = self.state["segments"]
+            if self.state["sym_type"] == "mirror_v":
+                ctrl.sym_state["angle"] = 90.0
+            elif self.state["sym_type"] == "mirror_h":
+                ctrl.sym_state["angle"] = 0.0
+            elif "angle" in self.state and self.state["angle"] != 0.0:
+                ctrl.sym_state["angle"] = self.state["angle"]
+            ctrl.sym_state["stop_at_center"] = self.state["stop_at_center"]
+            ctrl.sym_state["locked"] = self.state["locked"]
+            ctrl.sym_state["hidden"] = self.state["hidden"]
 
-        ctrl.guide_state["type"] = self.state["ruler_type"]
-        ctrl.guide_state["hidden"] = self.state["hidden"]
-        ctrl.guide_state["snap_radius"] = self.state["snap_radius"]
-        
-        # Camera synchronicity
-        if "yaw" in self.state:
-            ctrl.guide_state["yaw"] = float(self.state["yaw"])
-        if "pitch" in self.state:
-            ctrl.guide_state["pitch"] = float(self.state["pitch"])
-        if "fov" in self.state:
-            ctrl.guide_state["fov"] = float(self.state["fov"])
-        if "density" in self.state:
-            ctrl.guide_state["density"] = float(self.state["density"])
-        ctrl.guide_state["show_ring"] = self.state.get("show_ring", True)
-        ctrl.guide_state["show_straight_verticals"] = self.state.get("show_straight_verticals", False)
-        ctrl.guide_state["show_v"] = self.state.get("show_v", True)
-        ctrl.guide_state["show_h"] = self.state.get("show_h", True)
-        ctrl.guide_state["show_d"] = self.state.get("show_d", True)
-        ctrl.guide_state["show_vps"] = self.state.get("show_vps", False)
-        ctrl.guide_state["show_cube"] = self.state.get("show_cube", False)
-        ctrl.guide_state["show_ground"] = self.state.get("show_ground", False)
-        ctrl.guide_state["show_ground_verticals"] = self.state.get("show_ground_verticals", False)
-        ctrl.guide_state["show_ceiling"] = self.state.get("show_ceiling", False)
-        ctrl.guide_state["show_ceiling_verticals"] = self.state.get("show_ceiling_verticals", False)
-        ctrl.guide_state["show_letterbox"] = self.state.get("show_letterbox", False)
-        ctrl.guide_state["aspect_ratio"] = self.state.get("aspect_ratio", "16:9")
-        ctrl.guide_state["snap_mode"] = self.state.get("snap_mode", "auto")
-        ctrl.guide_state["snap_sensitivity"] = self.state.get("snap_sensitivity", 3.0)
-        ctrl.guide_state["snap_dynamic"] = self.state.get("snap_dynamic", True)
-        ctrl.guide_state["show_hint"] = self.state.get("show_hint", True)
+        with ctrl.guide_state.batch():
+            ctrl.guide_state["type"] = self.state["ruler_type"]
+            ctrl.guide_state["hidden"] = self.state["hidden"]
+            ctrl.guide_state["snap_radius"] = self.state["snap_radius"]
 
-        ctrl.sync_symmetry_to_engine()
-        ctrl.sync_guides_to_engine()
+            # Camera synchronicity
+            if "yaw" in self.state:
+                ctrl.guide_state["yaw"] = float(self.state["yaw"])
+            if "pitch" in self.state:
+                ctrl.guide_state["pitch"] = float(self.state["pitch"])
+            if "fov" in self.state:
+                ctrl.guide_state["fov"] = float(self.state["fov"])
+            if "density" in self.state:
+                ctrl.guide_state["density"] = float(self.state["density"])
+            ctrl.guide_state["show_ring"] = self.state.get("show_ring", True)
+            ctrl.guide_state["show_straight_verticals"] = self.state.get("show_straight_verticals", False)
+            ctrl.guide_state["show_v"] = self.state.get("show_v", True)
+            ctrl.guide_state["show_h"] = self.state.get("show_h", True)
+            ctrl.guide_state["show_d"] = self.state.get("show_d", True)
+            ctrl.guide_state["show_vps"] = self.state.get("show_vps", False)
+            ctrl.guide_state["show_cube"] = self.state.get("show_cube", False)
+            ctrl.guide_state["show_ground"] = self.state.get("show_ground", False)
+            ctrl.guide_state["show_ground_verticals"] = self.state.get("show_ground_verticals", False)
+            ctrl.guide_state["show_ceiling"] = self.state.get("show_ceiling", False)
+            ctrl.guide_state["show_ceiling_verticals"] = self.state.get("show_ceiling_verticals", False)
+            ctrl.guide_state["show_letterbox"] = self.state.get("show_letterbox", False)
+            ctrl.guide_state["aspect_ratio"] = self.state.get("aspect_ratio", "16:9")
+            ctrl.guide_state["snap_mode"] = self.state.get("snap_mode", "auto")
+            ctrl.guide_state["snap_sensitivity"] = self.state.get("snap_sensitivity", 3.0)
+            ctrl.guide_state["snap_dynamic"] = self.state.get("snap_dynamic", True)
+            ctrl.guide_state["show_hint"] = self.state.get("show_hint", True)
+
         rw.update()

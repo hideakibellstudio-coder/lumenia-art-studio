@@ -46,7 +46,7 @@ def build_lasso_panels(toolbar):
     toolbar.btn_lasso_deselect_h.setText(" Desmarcar")
     toolbar.btn_lasso_deselect_h.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
     toolbar.btn_lasso_deselect_h.setFixedHeight(24)
-    toolbar.btn_lasso_deselect_h.clicked.connect(toolbar._on_deselect_clicked)
+    toolbar.btn_lasso_deselect_h.clicked.connect(toolbar.request_deselect)
     l_h.addWidget(toolbar.btn_lasso_deselect_h)
 
     # Vertical
@@ -94,7 +94,7 @@ def build_lasso_panels(toolbar):
     toolbar.btn_lasso_deselect_v.setText(" Desmarcar")
     toolbar.btn_lasso_deselect_v.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
     toolbar.btn_lasso_deselect_v.setFixedHeight(24)
-    toolbar.btn_lasso_deselect_v.clicked.connect(toolbar._on_deselect_clicked)
+    toolbar.btn_lasso_deselect_v.clicked.connect(toolbar.request_deselect)
     row_btns.addWidget(toolbar.btn_lasso_deselect_v)
     l_v.addLayout(row_btns)
 
@@ -106,5 +106,5 @@ def build_lasso_panels(toolbar):
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["lasso"] = p_h
-    toolbar._panels_v["lasso"] = p_v
+    toolbar.panels_h["lasso"] = p_h
+    toolbar.panels_v["lasso"] = p_v

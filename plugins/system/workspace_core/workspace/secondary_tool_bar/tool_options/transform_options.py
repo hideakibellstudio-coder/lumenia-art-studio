@@ -2,6 +2,8 @@
 
 from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtWidgets
+from ui.core.icons import get_icon
+from ui.core.theme.manager import ThemeManager
 
 if TYPE_CHECKING:
     from ..toolbar import SecondaryToolBar
@@ -16,13 +18,15 @@ def build_transform_panels(toolbar: "SecondaryToolBar"):
 
     toolbar.btn_trans_commit_h = QtWidgets.QToolButton()
     toolbar.btn_trans_commit_h.setObjectName("successButton")
-    toolbar.btn_trans_commit_h.setText("✔ Aplicar")
+    toolbar.btn_trans_commit_h.setText("Aplicar")
+    toolbar.btn_trans_commit_h.setIcon(get_icon("check", ThemeManager.instance().get_color("text_main")))
     toolbar.btn_trans_commit_h.setFixedHeight(24)
     toolbar.btn_trans_commit_h.clicked.connect(toolbar._on_transform_commit_clicked)
     l_h.addWidget(toolbar.btn_trans_commit_h)
 
     toolbar.btn_trans_cancel_h = QtWidgets.QToolButton()
-    toolbar.btn_trans_cancel_h.setText("✖ Cancelar")
+    toolbar.btn_trans_cancel_h.setText("Cancelar")
+    toolbar.btn_trans_cancel_h.setIcon(get_icon("close", ThemeManager.instance().get_color("text_main")))
     toolbar.btn_trans_cancel_h.setFixedHeight(24)
     toolbar.btn_trans_cancel_h.clicked.connect(toolbar._on_transform_cancel_clicked)
     l_h.addWidget(toolbar.btn_trans_cancel_h)
@@ -74,13 +78,15 @@ def build_transform_panels(toolbar: "SecondaryToolBar"):
     r1 = QtWidgets.QHBoxLayout()
     toolbar.btn_trans_commit_v = QtWidgets.QToolButton()
     toolbar.btn_trans_commit_v.setObjectName("successButton")
-    toolbar.btn_trans_commit_v.setText("✔ Aplicar")
+    toolbar.btn_trans_commit_v.setText("Aplicar")
+    toolbar.btn_trans_commit_v.setIcon(get_icon("check", ThemeManager.instance().get_color("text_main")))
     toolbar.btn_trans_commit_v.setFixedHeight(24)
     toolbar.btn_trans_commit_v.clicked.connect(toolbar._on_transform_commit_clicked)
     r1.addWidget(toolbar.btn_trans_commit_v)
 
     toolbar.btn_trans_cancel_v = QtWidgets.QToolButton()
-    toolbar.btn_trans_cancel_v.setText("✖ Cancelar")
+    toolbar.btn_trans_cancel_v.setText("Cancelar")
+    toolbar.btn_trans_cancel_v.setIcon(get_icon("close", ThemeManager.instance().get_color("text_main")))
     toolbar.btn_trans_cancel_v.setFixedHeight(24)
     toolbar.btn_trans_cancel_v.clicked.connect(toolbar._on_transform_cancel_clicked)
     r1.addWidget(toolbar.btn_trans_cancel_v)
@@ -124,5 +130,5 @@ def build_transform_panels(toolbar: "SecondaryToolBar"):
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["transform"] = p_h
-    toolbar._panels_v["transform"] = p_v
+    toolbar.panels_h["transform"] = p_h
+    toolbar.panels_v["transform"] = p_v

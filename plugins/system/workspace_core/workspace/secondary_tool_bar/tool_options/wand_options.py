@@ -54,7 +54,7 @@ def build_wand_panels(toolbar):
     toolbar.btn_wand_deselect_h.setText(" Desmarcar")
     toolbar.btn_wand_deselect_h.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
     toolbar.btn_wand_deselect_h.setFixedHeight(24)
-    toolbar.btn_wand_deselect_h.clicked.connect(toolbar._on_deselect_clicked)
+    toolbar.btn_wand_deselect_h.clicked.connect(toolbar.request_deselect)
     l_h.addWidget(toolbar.btn_wand_deselect_h)
 
     # Vertical
@@ -117,10 +117,10 @@ def build_wand_panels(toolbar):
     toolbar.btn_wand_deselect_v.setText(" Desmarcar")
     toolbar.btn_wand_deselect_v.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
     toolbar.btn_wand_deselect_v.setFixedHeight(24)
-    toolbar.btn_wand_deselect_v.clicked.connect(toolbar._on_deselect_clicked)
+    toolbar.btn_wand_deselect_v.clicked.connect(toolbar.request_deselect)
     l_v.addWidget(toolbar.btn_wand_deselect_v)
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["wand"] = p_h
-    toolbar._panels_v["wand"] = p_v
+    toolbar.panels_h["wand"] = p_h
+    toolbar.panels_v["wand"] = p_v

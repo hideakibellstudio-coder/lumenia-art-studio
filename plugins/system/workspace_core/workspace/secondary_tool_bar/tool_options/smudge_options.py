@@ -122,5 +122,5 @@ def build_smudge_panels(toolbar):
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["smudge"] = p_h
-    toolbar._panels_v["smudge"] = p_v
+    toolbar.panels_h["smudge"] = p_h
+    toolbar.panels_v["smudge"] = p_v

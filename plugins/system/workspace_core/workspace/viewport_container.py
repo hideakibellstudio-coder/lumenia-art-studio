@@ -41,7 +41,7 @@ class TabCloseButton(QtWidgets.QToolButton):
             painter.setBrush(accent_color)
             painter.setPen(QtCore.Qt.NoPen)
             painter.drawRoundedRect(rect, 4, 4)  # Cantos arredondados com raio 4 (quadrado com cantos arredondados)
-            icon_color = QtGui.QColor("#ffffff")
+            icon_color = QtGui.QColor(ThemeManager.instance().resolve_color("FG_PRIMARY", colors))
         else:
             icon_color = QtGui.QColor(ThemeManager.instance().resolve_color("FG_SECONDARY", colors))
             

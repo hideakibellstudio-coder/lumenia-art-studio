@@ -168,8 +168,8 @@ def build_shapes_panels(toolbar: "SecondaryToolBar"):
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["shapes"] = p_h
-    toolbar._panels_v["shapes"] = p_v
+    toolbar.panels_h["shapes"] = p_h
+    toolbar.panels_v["shapes"] = p_v
     for st in ["shape_rect", "shape_ellipse", "shape_line", "shape_polygon", "shape_star"]:
-        toolbar._panels_h[st] = p_h
-        toolbar._panels_v[st] = p_v
+        toolbar.panels_h[st] = p_h
+        toolbar.panels_v[st] = p_v

@@ -26,7 +26,7 @@ from ui.core.document.layer_blend_mode import LayerBlendMode
 class TestPhase2Groups(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from ui.boundary.orchestrator.main_window import MainWindow
+        # MainWindow ja importado no topo do modulo -- nao reimportar aqui.
         top_mws = [w for w in QApplication.topLevelWidgets() if isinstance(w, MainWindow)]
         if top_mws:
             cls.mw = top_mws[0]

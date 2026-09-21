@@ -148,7 +148,8 @@ class SidebarButton(QtWidgets.QToolButton):
         border    = theme.get_color("border", "#2e2e38")
 
         is_active = self.isChecked()
-        icon_color = "#ffffff" if is_active else text_main
+        fg_on_accent = theme.get_color("FG_PRIMARY", "#ffffff")
+        icon_color = fg_on_accent if is_active else text_main
 
         # Renderiza o ícone SVG com a cor reativa ao tema e ao estado ativo
         if self._icon_key:
@@ -180,7 +181,7 @@ class SidebarButton(QtWidgets.QToolButton):
             }}
             QToolButton:checked {{
                 background-color: {bg_active};
-                color: #ffffff;
+                color: {fg_on_accent};
                 border: 1px solid {bg_active};
             }}
         """)

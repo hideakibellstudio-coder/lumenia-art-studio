@@ -95,7 +95,8 @@ def build_text_panels(toolbar: "SecondaryToolBar"):
     toolbar.btn_text_commit_h.clicked.connect(toolbar._on_commit_text_clicked)
     l_h.addWidget(toolbar.btn_text_commit_h)
 
-    toolbar.btn_text_cancel_h = QtWidgets.QPushButton("✕")
+    toolbar.btn_text_cancel_h = QtWidgets.QPushButton()
+    toolbar.btn_text_cancel_h.setIcon(get_icon("close"))
     toolbar.btn_text_cancel_h.setFixedSize(24, 24)
     toolbar.btn_text_cancel_h.clicked.connect(toolbar._on_cancel_text_clicked)
     l_h.addWidget(toolbar.btn_text_cancel_h)
@@ -214,5 +215,5 @@ def build_text_panels(toolbar: "SecondaryToolBar"):
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["text"] = p_h
-    toolbar._panels_v["text"] = p_v
+    toolbar.panels_h["text"] = p_h
+    toolbar.panels_v["text"] = p_v

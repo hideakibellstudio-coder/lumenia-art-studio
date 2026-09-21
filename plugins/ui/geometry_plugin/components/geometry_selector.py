@@ -3,6 +3,7 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
+from ui.core.icons import get_icon
 from ui.core.i18n import tr, I18nManager
 from .constants import (
     GUIDE_TYPES, GUIDE_NAMES, SYM_TYPES, SYM_NAMES,
@@ -37,6 +38,7 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
         text_main = tm.get_color("text_main", "#f3f4f6")
         text_sec = tm.get_color("text_sec", "#9ca3af")
         bg_hover = tm.get_color("accent_muted", "#4f46e5")
+        fg_on_accent = tm.get_color("FG_PRIMARY", "#ffffff")
 
         self.container.setStyleSheet(f"""
             QFrame {{ background-color: {bg_card}; border: 1px solid {border}; border-radius: 8px; }}
@@ -55,7 +57,7 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
                 background: {bg_hover}; border-color: {accent};
             }}
             QPushButton.grid-item:checked {{
-                background: {accent}; border-color: {accent}; font-weight: bold; color: #ffffff;
+                background: {accent}; border-color: {accent}; font-weight: bold; color: {fg_on_accent};
             }}
         """)
 
@@ -70,12 +72,14 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
 
         # Tab Bar
         tabs = QtWidgets.QHBoxLayout()
-        self.btn_tab_ruler = QtWidgets.QPushButton(f"📏  {tr('geometry.tab_rulers', 'Réguas & Guias')}")
+        self.btn_tab_ruler = QtWidgets.QPushButton(tr('geometry.tab_rulers', 'Réguas & Guias'))
+        self.btn_tab_ruler.setIcon(get_icon("ruler"))
         self.btn_tab_ruler.setProperty("class", "tab-btn")
         self.btn_tab_ruler.setCheckable(True)
         self.btn_tab_ruler.setChecked(True)
 
-        self.btn_tab_sym = QtWidgets.QPushButton(f"🪞  {tr('geometry.tab_symmetries', 'Simetrias')}")
+        self.btn_tab_sym = QtWidgets.QPushButton(tr('geometry.tab_symmetries', 'Simetrias'))
+        self.btn_tab_sym.setIcon(get_icon("mirror"))
         self.btn_tab_sym.setProperty("class", "tab-btn")
         self.btn_tab_sym.setCheckable(True)
 
@@ -131,9 +135,9 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
 
     def retranslate_ui(self):
         if hasattr(self, "btn_tab_ruler"):
-            self.btn_tab_ruler.setText(f"📏  {tr('geometry.tab_rulers', 'Réguas & Guias')}")
+            self.btn_tab_ruler.setText(tr('geometry.tab_rulers', 'Réguas & Guias'))
         if hasattr(self, "btn_tab_sym"):
-            self.btn_tab_sym.setText(f"🪞  {tr('geometry.tab_symmetries', 'Simetrias')}")
+            self.btn_tab_sym.setText(tr('geometry.tab_symmetries', 'Simetrias'))
         for idx, btn in enumerate(self.ruler_buttons):
             btn.setText(get_guide_name(idx))
         for idx, btn in enumerate(self.sym_buttons):
@@ -201,13 +205,17 @@ class GeometrySelectorButton(QtWidgets.QPushButton):
         r_name = get_guide_name(self.active_ruler_idx)
         s_name = get_sym_name(self.active_sym_idx)
         if self.active_ruler_idx == 0 and self.active_sym_idx == 0:
-            self.setText(f"📐  {tr('geometry.disabled', 'Geometria: Desativada')}  ▾")
+            self.setText(f"{tr('geometry.disabled', 'Geometria: Desativada')}  ▾")
+            self.setIcon(get_icon("compass"))
         elif self.active_ruler_idx > 0 and self.active_sym_idx == 0:
-            self.setText(f"📏  {tr('geometry.ruler_prefix', 'Régua')}: {r_name}  ▾")
+            self.setText(f"{tr('geometry.ruler_prefix', 'Régua')}: {r_name}  ▾")
+            self.setIcon(get_icon("ruler"))
         elif self.active_ruler_idx == 0 and self.active_sym_idx > 0:
-            self.setText(f"🪞  {tr('geometry.symmetry_prefix', 'Simetria')}: {s_name}  ▾")
+            self.setText(f"{tr('geometry.symmetry_prefix', 'Simetria')}: {s_name}  ▾")
+            self.setIcon(get_icon("mirror"))
         else:
-            self.setText(f"📐  {r_name} | {s_name}  ▾")
+            self.setText(f"{r_name} | {s_name}  ▾")
+            self.setIcon(get_icon("compass"))
 
     def _open_popup(self):
         if not self.popup:

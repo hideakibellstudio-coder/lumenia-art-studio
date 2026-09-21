@@ -84,5 +84,5 @@ def build_eyedrop_panels(toolbar):
 
     toolbar.stacked_widget.addWidget(p_h)
     toolbar.stacked_widget.addWidget(p_v)
-    toolbar._panels_h["eyedrop"] = p_h
-    toolbar._panels_v["eyedrop"] = p_v
+    toolbar.panels_h["eyedrop"] = p_h
+    toolbar.panels_v["eyedrop"] = p_v

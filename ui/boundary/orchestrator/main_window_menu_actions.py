@@ -36,8 +36,7 @@ class MainWindowMenuActionsMixin(
         self.copy_selection_or_layer_to_clipboard()
         backend = EngineRegistry.instance().get_backend()
         if backend and backend.has_selection():
-            if True:
-                backend.delete_selection_on_active_layer()
+            self._emit_stroke_wrap(backend.delete_selection_on_active_layer)
         else:
             self.clear_active_layer()
         if self.workspace:
@@ -54,7 +53,7 @@ class MainWindowMenuActionsMixin(
 
             backend = EngineRegistry.instance().get_backend()
             if backend and getattr(backend, "available", False):
-                backend.paste_rgba_buffer_on_active_layer(0, 0, w, h, raw_bytes)
+                self._emit_stroke_wrap(lambda: backend.paste_rgba_buffer_on_active_layer(0, 0, w, h, raw_bytes))
                 if self.workspace:
                     self.workspace.canvas_widget.update()
                 self.status_bar.showMessage(f"Imagem ({w}×{h}) colada na camada ativa.", 2500)
@@ -68,12 +67,14 @@ class MainWindowMenuActionsMixin(
         backend = EngineRegistry.instance().get_backend()
         if not backend:
             return
-        color = getattr(self.workspace, "_saved_color", QtGui.QColor("#000000")) if self.workspace else QtGui.QColor("#000000")
-        if backend and backend.has_selection():
-            if True:
+        cw = getattr(self.workspace, "canvas_widget", None) if self.workspace else None
+        color = getattr(cw, "active_color", getattr(self.workspace, "_saved_color", QtGui.QColor("#000000"))) if self.workspace else QtGui.QColor("#000000")
+        def _fill():
+            if backend.has_selection():
                 backend.fill_selection_on_active_layer(color)
-        else:
-            backend.fill_area(0, 0, color, tolerance=255, contiguous=False)
+            else:
+                backend.fill_area(0, 0, color, tolerance=255, contiguous=False)
+        self._emit_stroke_wrap(_fill)
         if self.workspace:
             self.workspace.canvas_widget.update()
         self.status_bar.showMessage("Preenchimento aplicado.", 2000)
@@ -139,23 +140,24 @@ class MainWindowMenuActionsMixin(
         if self.workspace:
             self.workspace.canvas_widget.update()
 
+    def _emit_stroke_wrap(self, action):
+        cw = getattr(self.workspace, "canvas_widget", None) if self.workspace else None
+        if cw and hasattr(cw, "strokeStarted"):
+            cw.strokeStarted.emit()
+        try:
+            return action()
+        finally:
+            if cw and hasattr(cw, "strokeFinished"):
+                cw.strokeFinished.emit()
+
     @layer_transaction
     def clear_active_layer(self) -> None:
-        """Limpa o conteudo (pixels) da camada ativa, preservando a propria camada.
-
-        Handler unico para toda acao de "limpar" exposta na interface
-        (Editar > Limpar Conteudo da Camada, Tool Sidebar, e o fallback de
-        Cortar sem selecao). A acao equivalente que existia em Arquivo >
-        Limpar foi removida por ser um acesso duplicado ao mesmo handler;
-        Editar e o unico ponto de entrada agora. Nao existe mais um caminho
-        de "limpar o canvas inteiro / todas as camadas" na UI -- ver
-        panorama claude/panorama-menu-bar-fluxo-navigator.md.
-        """
+        """Limpa o conteudo (pixels) da camada ativa, preservando a propria camada."""
         doc, lm, backend, act_idx = self._active_layer_context()
         if not lm or act_idx < 0:
             return
         if self._backend_ready(backend):
-            backend.clear_layer(act_idx)
+            self._emit_stroke_wrap(lambda: backend.clear_layer(act_idx))
         self._refresh_canvas()
         self.status_bar.showMessage("Conteudo da camada ativa limpo.", 2000)
 

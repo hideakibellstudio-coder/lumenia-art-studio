@@ -11,6 +11,7 @@ import time
 import logging
 from typing import Any
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
+from .aladyn_buffers import to_native_color_rgba
 
 logger = logging.getLogger(__name__)
 
@@ -159,16 +160,7 @@ class AladynStrokeMixin:
         sample_all_layers: bool = True,
     ) -> bool:
         if self._facade and self._native:
-            if hasattr(fill_color, "red"):
-                c = self._native.ColorRGBA(fill_color.red(), fill_color.green(), fill_color.blue(), fill_color.alpha())
-            elif isinstance(fill_color, (tuple, list)) and len(fill_color) >= 3:
-                r = int(fill_color[0] * 255) if isinstance(fill_color[0], float) else int(fill_color[0])
-                g = int(fill_color[1] * 255) if isinstance(fill_color[1], float) else int(fill_color[1])
-                b = int(fill_color[2] * 255) if isinstance(fill_color[2], float) else int(fill_color[2])
-                a = int(fill_color[3] * 255) if len(fill_color) > 3 and isinstance(fill_color[3], float) else (int(fill_color[3]) if len(fill_color) > 3 else 255)
-                c = self._native.ColorRGBA(r, g, b, a)
-            else:
-                c = self._native.ColorRGBA(0, 0, 0, 255)
+            c = to_native_color_rgba(self._native, fill_color)
             return self._facade.flood_fill(
                 int(seed_x), int(seed_y), c, int(tolerance), bool(contiguous),
                 int(expand_px), int(gap_closing_px), bool(anti_aliasing), bool(sample_all_layers)
@@ -183,12 +175,7 @@ class AladynStrokeMixin:
         """Executa Flood Fill ultra-rápido (<1ms) diretamente no motor nativo C++."""
         if not self._facade or not self._native or not hasattr(self._facade, "flood_fill"):
             return False
-        if hasattr(fill_color, "red"):
-            native_color = self._native.ColorRGBA(
-                int(fill_color.red()), int(fill_color.green()), int(fill_color.blue()), int(fill_color.alpha())
-            )
-        else:
-            native_color = self._native.ColorRGBA(0, 0, 0, 255)
+        native_color = to_native_color_rgba(self._native, fill_color)
         return self._facade.flood_fill(
             int(seed_x), int(seed_y), native_color, int(tolerance), bool(contiguous),
             int(expand_px), int(gap_closing_px), bool(aa), bool(sample_all)

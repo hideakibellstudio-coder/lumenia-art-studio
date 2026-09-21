@@ -42,7 +42,7 @@ class AladynTransformMixin:
         interp_mode: int = 2
     ) -> bool:
         if self._facade:
-            return self._facade.commit_transform(
+            res = self._facade.commit_transform(
                 float(dx), float(dy),
                 float(scale_x), float(scale_y),
                 float(rotation_deg),
@@ -50,6 +50,9 @@ class AladynTransformMixin:
                 bool(flip_h), bool(flip_v),
                 int(interp_mode)
             )
+            if res:
+                self._mark_document_dirty("transform")
+            return res
         return False
 
     def cancel_transform(self) -> bool:
@@ -59,12 +62,18 @@ class AladynTransformMixin:
 
     def flip_active_layer(self, horizontal: bool) -> bool:
         if self._facade:
-            return self._facade.flip_active_layer(bool(horizontal))
+            res = self._facade.flip_active_layer(bool(horizontal))
+            if res:
+                self._mark_document_dirty("flip")
+            return res
         return False
 
     def rotate_active_layer_90(self, clockwise: bool) -> bool:
         if self._facade:
-            return self._facade.rotate_active_layer_90(bool(clockwise))
+            res = self._facade.rotate_active_layer_90(bool(clockwise))
+            if res:
+                self._mark_document_dirty("rotate")
+            return res
         return False
 
     def get_transform_source_qimage(self) -> Optional[QImage]:
@@ -80,7 +89,10 @@ class AladynTransformMixin:
         self, x: int, y: int, width: int, height: int, buffer: bytes, blend_mode_id: int = 0, opacity: float = 1.0
     ) -> bool:
         if self._facade:
-            return bool(self._facade.paste_rgba_buffer_on_active_layer(
+            res = bool(self._facade.paste_rgba_buffer_on_active_layer(
                 int(x), int(y), int(width), int(height), buffer, int(blend_mode_id), float(opacity)
             ))
+            if res:
+                self._mark_document_dirty("paste")
+            return res
         return False

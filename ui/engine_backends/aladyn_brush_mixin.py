@@ -26,7 +26,10 @@ class AladynBrushMixin:
             if reset_texture:
                 self._facade.set_canvas_height_preset(int(preset_id))
             if hasattr(color, "red"):
-                self._facade.set_background_color(color.red(), color.green(), color.blue(), color.alpha() if visible else 0)
+                self._facade.set_background_color(int(color.red()), int(color.green()), int(color.blue()), int(color.alpha() if visible else 0))
+            elif isinstance(color, (tuple, list)) and len(color) >= 3:
+                a = int(color[3]) if len(color) > 3 and visible else (255 if visible else 0)
+                self._facade.set_background_color(int(color[0]), int(color[1]), int(color[2]), a)
 
     def set_canvas_height_preset(self, preset_id: int) -> None:
         if self._facade:

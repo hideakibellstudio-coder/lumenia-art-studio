@@ -130,6 +130,32 @@ Descendo mais um nível na espiral concêntrica em direção à base primordial,
 
 ---
 
+### Casos Reais Saneados — Rodada 11: Fronteira Primordial C++ (Python ↔ Motor Nativo)
+
+Atingindo a fronteira de transição imediata com o motor C++ (`PaintEngineFacade` / `aladyn_engine_native`), a auditoria orbital identificou e saneou 5 inconsistências na ponte PyBind11 e orquestração de menu:
+
+1. **Coerção Defensiva e Resiliente de Cores (`to_native_color_rgba`):**
+   - *Falha:* `fill_selection_on_active_layer` assumia `fill_color.red()` cegamente, causando `AttributeError` com tuplas `(r, g, b, a)` ou tipos não-QColor. `fill_area` e `flood_fill` tinham lógicas divergentes de conversão.
+   - *Saneamento:* Criação da função canônica unificada `to_native_color_rgba(native, color)` em `aladyn_buffers.py`, adotada no `AladynSelectionMixin` e `AladynStrokeMixin`, suportando instâncias nativas `ColorRGBA`, `QColor`, tuplas normalizadas ou inteiras e duck-typing.
+
+2. **Rastreamento de Modificação do Documento (`_mark_document_dirty`):**
+   - *Falha:* Mutações diretas de raster na camada ativa (`fill_selection_on_active_layer`, `delete_selection_on_active_layer`, `commit_transform`, `flip_active_layer`, `rotate_active_layer_90` e `paste_rgba_buffer_on_active_layer`) não chamavam `self._mark_document_dirty(...)`.
+   - *Saneamento:* Chamada explícita a `self._mark_document_dirty(...)` adicionada a todas as mutações de raster bem-sucedidas.
+
+3. **Simetria de Sinais e Paridade 1:1 no Menu Principal (`MainWindowMenuActionsMixin`):**
+   - *Falha:* `fill_active_selection_or_canvas`, `cut_selection_or_layer_to_clipboard`, `paste_clipboard` e `clear_active_layer` alteravam pixels na camada ativa do C++ sem emitir `strokeStarted` nem `strokeFinished`. As miniaturas das camadas e do navegador ficavam desatualizadas e o estado dos botões Undo/Redo não era recalculado.
+   - *Saneamento:* Criação do helper `_emit_stroke_wrap(action)` que envelopa com segurança cada mutação em `strokeStarted.emit()` e `try ... finally: strokeFinished.emit()`.
+
+4. **Resolução Canônica de Cor no Preenchimento via Menu:**
+   - *Falha:* `fill_active_selection_or_canvas` buscava apenas `_saved_color` no workspace, ignorando a cor atualmente selecionada na roda de cores (`active_color` do canvas).
+   - *Saneamento:* Resolução prioritária via `getattr(cw, "active_color", getattr(self.workspace, "_saved_color", ...))`.
+
+5. **Eliminação de Resíduos de IA (`if True:`):**
+   - *Falha:* Blocos `if True:` órfãos gerados artificialmente em edições anteriores de IA.
+   - *Saneamento:* Poda completa dos blocos espúrios e validação automatizada em teste de governança ARCcC.
+
+---
+
 ## 5. Como Aplicar Esta Metodologia em Qualquer Projeto de Software com IA
 
 Para replicar esse sucesso em outros projetos de software (jogos, engines, aplicativos desktop, web apps de alta performance):

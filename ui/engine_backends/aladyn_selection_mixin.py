@@ -1,7 +1,8 @@
 """Selection operations mixin for AladynBackend."""
 
-from typing import Optional
+from typing import Optional, Any
 from PySide6.QtGui import QImage, QColor
+from .aladyn_buffers import to_native_color_rgba
 
 
 class AladynSelectionMixin:
@@ -61,13 +62,19 @@ class AladynSelectionMixin:
 
     def delete_selection_on_active_layer(self) -> bool:
         if self._facade:
-            return self._facade.delete_selection_on_active_layer()
+            res = self._facade.delete_selection_on_active_layer()
+            if res:
+                self._mark_document_dirty("delete_selection")
+            return res
         return False
 
-    def fill_selection_on_active_layer(self, fill_color: QColor) -> bool:
+    def fill_selection_on_active_layer(self, fill_color: Any) -> bool:
         if self._facade and self._native:
-            c = self._native.ColorRGBA(int(fill_color.red()), int(fill_color.green()), int(fill_color.blue()), int(fill_color.alpha()))
-            return self._facade.fill_selection_on_active_layer(c)
+            c = to_native_color_rgba(self._native, fill_color)
+            res = self._facade.fill_selection_on_active_layer(c)
+            if res:
+                self._mark_document_dirty("fill_selection")
+            return res
         return False
 
     def get_selection_bounds(self) -> tuple[int, int, int, int]:

@@ -90,6 +90,14 @@ class CanvasCursorController:
             self._set_widget_cursor(QtCore.Qt.ArrowCursor)
             return
 
+        # Navegação de câmera ativa (Mão Livre / Panning)
+        if getattr(w, "is_panning", False):
+            self._set_widget_cursor(QtCore.Qt.ClosedHandCursor)
+            return
+        if getattr(w, "is_space_held", False):
+            self._set_widget_cursor(QtCore.Qt.OpenHandCursor)
+            return
+
         active_tool = getattr(w, "active_tool", "brush")
         mode = self.cursor_settings.get("mode", "ring_and_dot")
 
@@ -167,6 +175,9 @@ class CanvasCursorController:
             self.update_cursor_shape()
 
         w = self.widget
+        if getattr(w, "is_panning", False) or getattr(w, "is_space_held", False):
+            return None
+
         active_tool = getattr(w, "active_tool", "brush")
         if active_tool in ("brush", "eraser", "smudge") and not is_drawing:
             r_new = ToolCursorRenderer.get_cursor_rect(self.mouse_pos.x(), self.mouse_pos.y(), brush_radius, zoom)
@@ -197,7 +208,11 @@ class CanvasCursorController:
 
     def render(self, painter: QtGui.QPainter, brush_radius: float, zoom: float, is_drawing: bool) -> None:
         """Renderiza o cursor flutuante personalizado (anel/ponto/mira) em toda a área visível da viewport."""
-        active_tool = getattr(self.widget, "active_tool", "brush")
+        w = self.widget
+        if getattr(w, "is_panning", False) or getattr(w, "is_space_held", False):
+            return
+
+        active_tool = getattr(w, "active_tool", "brush")
         if self.cursor_in_viewport and active_tool in ("brush", "eraser", "smudge"):
             ToolCursorRenderer.render_cursor(
                 painter,

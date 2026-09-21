@@ -100,7 +100,22 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
             self.open_telemetry_grid_window()
             event.accept()
             return
+        if event.key() == QtCore.Qt.Key_Space:
+            cw = self.centralWidget()
+            if cw and hasattr(cw, "canvas") and cw.canvas and hasattr(cw.canvas, "input_router"):
+                if cw.canvas.input_router.handle_key_press(event):
+                    event.accept()
+                    return
         super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_Space:
+            cw = self.centralWidget()
+            if cw and hasattr(cw, "canvas") and cw.canvas and hasattr(cw.canvas, "input_router"):
+                if cw.canvas.input_router.handle_key_release(event):
+                    event.accept()
+                    return
+        super().keyReleaseEvent(event)
 
     # ── Setup de componentes da janela ────────────────────────────────────
 

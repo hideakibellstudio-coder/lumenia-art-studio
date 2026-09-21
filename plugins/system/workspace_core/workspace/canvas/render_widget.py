@@ -71,7 +71,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
 
         self.active_tool, self.drawing, self._brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
         self._cached_brush_radius = 30.0
-        self.is_panning, self.is_zoom_dragging = False, False
+        self.is_panning, self.is_zoom_dragging, self.is_space_held = False, False, False
         self.last_mouse_pos, self.zoom_drag_start_pos = QtCore.QPointF(), QtCore.QPointF()
         self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
         self._last_tablet_time, self._tablet_in_use = 0.0, False
@@ -259,10 +259,14 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         return self._tablet_in_use or (e.source() == QtCore.Qt.MouseEventSource.MouseEventSynthesizedBySystem)
 
     def enterEvent(self, e: QtGui.QEnterEvent):
+        focused = QtWidgets.QApplication.focusWidget()
+        if not isinstance(focused, (QtWidgets.QLineEdit, QtWidgets.QTextEdit, QtWidgets.QPlainTextEdit)):
+            self.setFocus(QtCore.Qt.FocusReason.MouseFocusReason)
         self.cursor_ctrl.handle_enter(e)
         super().enterEvent(e)
 
     def leaveEvent(self, e: QtCore.QEvent):
+        self.input_router.handle_focus_out()
         dirty = self.cursor_ctrl.handle_leave(e)
         if dirty: self.update(dirty)
         super().leaveEvent(e)
@@ -355,6 +359,14 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     def keyPressEvent(self, e: QtGui.QKeyEvent):
         if not self.input_router.handle_key_press(e):
             super().keyPressEvent(e)
+
+    def keyReleaseEvent(self, e: QtGui.QKeyEvent):
+        if not self.input_router.handle_key_release(e):
+            super().keyReleaseEvent(e)
+
+    def focusOutEvent(self, e: QtGui.QFocusEvent):
+        self.input_router.handle_focus_out()
+        super().focusOutEvent(e)
 
 
 CanvasWidget = RenderWidget

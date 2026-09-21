@@ -219,3 +219,94 @@ def test_tool_cursor_renderer_eraser_dashed_and_smudge(qapp):
         ToolCursorRenderer.render_cursor(p, 50, 50, 1.0, 1.0, tool_id="brush")
     finally:
         p.end()
+
+
+def test_space_key_pan_navigation(qapp):
+    """Valida ciclo completo de navegação com Barra de Espaço + Clique Esquerdo do mouse (panning estilo padrão da indústria)."""
+    rw = RenderWidget()
+    rw.resize(800, 600)
+    rw.canvas_w = 800
+    rw.canvas_h = 600
+    rw.active_tool = "brush"
+    rw.cursor_ctrl.handle_enter(QtGui.QEnterEvent(QtCore.QPointF(100, 100), QtCore.QPointF(100, 100), QtCore.QPointF(100, 100)))
+
+    router = rw.input_router
+
+    # 1. Estado inicial: cursor de precisão
+    assert rw.is_space_held is False
+    assert rw.is_panning is False
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+
+    # 2. Pressiona tecla Espaço -> Ativa cursor de mão aberta (OpenHandCursor)
+    press_space = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Space, QtCore.Qt.KeyboardModifier.NoModifier)
+    consumed = router.handle_key_press(press_space)
+    assert consumed is True
+    assert rw.is_space_held is True
+    assert rw.is_panning is False
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.OpenHandCursor
+
+    # 3. Pressiona botão esquerdo do mouse com Espaço pressionado -> Inicia Pan com mão fechada (ClosedHandCursor)
+    initial_pan_x, initial_pan_y = rw.pan_x, rw.pan_y
+    router.handle_pointer_press(
+        QtCore.QPointF(200, 200),
+        QtCore.Qt.MouseButton.LeftButton,
+        pressure=1.0,
+        modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+    )
+    assert rw.is_panning is True
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.ClosedHandCursor
+    # Não deve ter iniciado traço de pincel!
+    assert rw.drawing is False
+
+    # 4. Move o mouse -> desloca câmera/pan
+    router.handle_pointer_move(
+        QtCore.QPointF(250, 280),
+        pressure=1.0,
+        modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+    )
+    assert rw.pan_x == initial_pan_x + 50
+    assert rw.pan_y == initial_pan_y + 80
+
+    # 5. Solta botão esquerdo mas mantém Espaço -> Volta para mão aberta
+    router.handle_pointer_release(
+        QtCore.QPointF(250, 280),
+        QtCore.Qt.MouseButton.LeftButton,
+        modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+    )
+    assert rw.is_panning is False
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.OpenHandCursor
+
+    # 6. Solta tecla Espaço -> Restaura cursor da ferramenta ativa
+    release_space = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyRelease, QtCore.Qt.Key.Key_Space, QtCore.Qt.KeyboardModifier.NoModifier)
+    consumed = router.handle_key_release(release_space)
+    assert consumed is True
+    assert rw.is_space_held is False
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+
+    # 7. Cenário: soltar Espaço DURANTE o arrasto mantém pan até soltar o mouse
+    router.handle_key_press(press_space)
+    router.handle_pointer_press(
+        QtCore.QPointF(100, 100),
+        QtCore.Qt.MouseButton.LeftButton,
+        pressure=1.0,
+        modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+    )
+    assert rw.is_panning is True
+    router.handle_key_release(release_space)  # Solta espaço enquanto ainda arrasta
+    assert rw.is_space_held is False
+    assert rw.is_panning is True  # Pan continua ativo!
+
+    router.handle_pointer_release(
+        QtCore.QPointF(120, 120),
+        QtCore.Qt.MouseButton.LeftButton,
+        modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+    )
+    assert rw.is_panning is False
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+
+    # 8. Focus out limpa estado de espaço
+    router.handle_key_press(press_space)
+    assert rw.is_space_held is True
+    router.handle_focus_out()
+    assert rw.is_space_held is False
+    assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor

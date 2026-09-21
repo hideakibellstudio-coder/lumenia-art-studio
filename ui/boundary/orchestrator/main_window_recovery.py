@@ -65,7 +65,7 @@ class MainWindowRecoveryMixin:
             return
         for path in candidates:
             if self.open_native_document(str(path)):
-                document = self.dm.active_document()
+                document: Document = self.dm.active_document()
                 document.file_path = None
                 document.mark_dirty("recovery")
                 # Keep the recovered source until a new durable snapshot exists.

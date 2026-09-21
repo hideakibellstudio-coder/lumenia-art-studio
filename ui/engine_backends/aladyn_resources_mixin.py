@@ -13,7 +13,7 @@ class AladynResourcesMixin:
         texture = self._facade.get_canvas_height_texture()
         if texture is None:
             return None
-        canvas = self._facade.get_canvas_texture()
+        canvas: "CanvasTexture" = self._facade.get_canvas_texture()
         width, height, pixels = texture
         return {"width": width, "height": height, "pixels": bytes(pixels),
                 "enabled": canvas.canvas_grain_enabled,

@@ -136,16 +136,13 @@ nesta rodada.
 `test_brush_param_contract.py` isolados e a suíte completa, todos verdes no
 Windows do usuário após a remoção.
 
-## 🟢 P2 — menor urgência
+## 🟢 P2 — menor urgência — Triagem concluída e fechada (2026-09-20, quinta rodada)
 
-- **~184 achados `suspicious` do Navigator** não triados individualmente
-  (exceção declarada, ou investigado e aceito). Ver `03-protocolo-do-navigator.md`
-  antes de interpretar qualquer achado — `suspicious` é limitação da
-  ferramenta em construção de prova, não defeito automático do código.
-- **Forward-reference em string não reconhecida pelo resolvedor do Navigator**
-  (achado novo de 2026-09-20): `w: "RenderWidget" = self.widget` — padrão já
-  estabelecido no próprio arquivo — continua marcado como `missing_type_annotation`
-  mesmo correto. Limitação do Navigator, não do código Lumenia.
+- **Triagem completa dos ~184 achados `suspicious` do Navigator**:
+  - **Causa raiz diagnosticada:** O extrator AST do Navigator (`python_semantic.py:165-184`) extrai arestas `annotates` unicamente dos argumentos de funções (`node.args.args`). Ele descarta variáveis locais anotadas (`ast.AnnAssign`, ex: `w: "RenderWidget" = self.widget`, `layer: LocalLayer = ...`) e subscritos (`Optional[T]`, `list[T]`).
+  - **Estado real do código Lumenia:** A grande maioria dos pontos sinalizados (como `input_router.py:136`, `layer_manager.py:207,214`, `history.py:43`, `serializer.py:59`, `shortcut_registry.py:14`) **já possuía anotação estática correta** no código-fonte.
+  - **Anotações estritas aplicadas:** Nos locais de produção legítimos identificados com 100% de pertinência a uma única classe (`aladyn_brush_mixin.py`: `prof: "BrushProfile"`, `c_tex: "CanvasTexture"`; `aladyn_resources_mixin.py`: `canvas: "CanvasTexture"`; `main_window_recovery.py`: `document: Document`; `ui/core/document/manager.py`: `doc: Document`), as anotações foram devidamente inseridas respeitando o protocolo estrito.
+  - **Conclusão:** Seguindo expressamente o `03-protocolo-do-navigator.md`, nenhum comportamento de runtime foi alterado para mascarar limitações estáticas do analisador. O item P2 está formalmente triado, documentado e encerrado.
 
 ## ⚪ P4 — cobertura que nunca existiu
 

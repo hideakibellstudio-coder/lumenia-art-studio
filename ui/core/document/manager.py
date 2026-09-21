@@ -81,7 +81,7 @@ class DocumentManager(QtCore.QObject):
 
     def close_document(self, uid: str):
         if uid in self._documents:
-            doc = self._documents[uid]
+            doc: Document = self._documents[uid]
             del self._documents[uid]
             self.documentClosed.emit(uid)
             

@@ -34,20 +34,20 @@ class AladynBrushMixin:
 
     def set_canvas_grain_contrast(self, contrast: float) -> None:
         if self._facade:
-            c_tex = self._facade.get_canvas_texture()
+            c_tex: "CanvasTexture" = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_contrast = float(contrast)
                 c_tex.invalidate_lut()
 
     def set_canvas_grain_scale(self, scale: float) -> None:
         if self._facade:
-            c_tex = self._facade.get_canvas_texture()
+            c_tex: "CanvasTexture" = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_scale = float(scale)
 
     def set_canvas_grain_invert(self, invert: bool) -> None:
         if self._facade:
-            c_tex = self._facade.get_canvas_texture()
+            c_tex: "CanvasTexture" = self._facade.get_canvas_texture()
             if c_tex:
                 c_tex.canvas_grain_invert = bool(invert)
                 c_tex.invalidate_lut()
@@ -69,7 +69,7 @@ class AladynBrushMixin:
         linha = resolver(group, param)
         if not self._facade:
             return
-        prof = self._facade.get_brush_profile()
+        prof: "BrushProfile" = self._facade.get_brush_profile()
         if not prof:
             return
         destino = alvo_nativo(prof, linha.grupo)
@@ -87,7 +87,7 @@ class AladynBrushMixin:
         if not self._native or not hasattr(self._native, "render_stroke_preview"):
             return None
         try:
-            prof = self._facade.get_brush_profile() if self._facade else self._native.BrushProfile()
+            prof: "BrushProfile" = self._facade.get_brush_profile() if self._facade else self._native.BrushProfile()
             if brush_state:
                 if "size" in brush_state: prof.brush_size = float(brush_state["size"])
                 if "opacity" in brush_state: prof.opacity = float(brush_state["opacity"])

@@ -43,6 +43,9 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-20 — Triagem dos achados `suspicious` do ARCcC-Navigator e anotações estritas (quinta rodada)
+**O que foi feito:** Conclusão formal do item P2 (`01-pendencias-atuais.md`). Diagnóstico da causa raiz dos ~184 achados `suspicious: missing_type_annotation`: o extrator AST do Navigator processa exclusivamente argumentos de funções (`node.args.args`), ignorando anotações em variáveis locais (`ast.AnnAssign`) e subscritos (`Optional[T]`), fazendo com que arquivos com anotações perfeitas fossem marcados como ausentes. Anotações estritas de classe única aplicadas no backend e recovery (`aladyn_brush_mixin.py`, `aladyn_resources_mixin.py`, `main_window_recovery.py`, `manager.py`).
+
 ### 2026-09-20 — Guardas `hasattr` fechados, tabela de pincel confirmada, `EngineBackend` 178 → 172 (quarta rodada)
 **O que foi feito:** três itens P1 investigados e fechados na mesma
 sessão: (1) os 12 `hasattr(self._facade, ...)` restantes foram

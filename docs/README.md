@@ -43,6 +43,13 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-21 — Saneamento dos Botões de Flip do Navigator e Fronteira Primordial C++ (Rodada 12)
+**O que foi feito:** Décima segunda rodada de saneamento concêntrico aplicando `lumenia-satellite-audit`:
+1. *Alinhamento dos Botões de Flip no Navigator*: correção no `NavigatorControls` (`plugins/ui/navigator_plugin/panel.py`), onde `btn_fliph` estava indevidamente conectado a `flipVRequested.emit` e `btn_flipv` conectado a `flipHRequested.emit`. Alinhamento 1:1 restabelecido (`btn_fliph` $\to$ `flipHRequested`, `btn_flipv` $\to$ `flipVRequested`).
+2. *Guard Resiliente em MDI (`aladyn_mdi_mixin.py`)*: substituição de condicional inalcançável por `if hasattr(facade, "set_render_options"):` com suporte a fallbacks granulares (`set_low_latency`, `set_linear_gamma`, `set_deep_color`) tanto na inicialização quanto na re-ativação de documentos.
+3. *Rastreamento Dirty em Operações Nativas C++*: inclusão de chamadas a `self._mark_document_dirty(...)` em `clear_canvas`, `clear_layer`, `undo`, `redo` (`aladyn_layer_mixin.py`), e em `flood_fill`, `fill_area` e `end_stroke` (`aladyn_stroke_mixin.py`), garantindo sincronia perfeita do indicador de documento não-salvo.
+4. *Suíte Modular e Governança ARCcC*: criação de `tests/test_satellite_round12_primordial.py` (6/6 testes verdes). Todos os arquivos modificados abaixo do limite de 450 LOC (Zona Verde). 100% de testes verdes em toda a suíte do projeto.
+
 ### 2026-09-21 — Saneamento Orbital na Fronteira Primordial C++: Coerção de Cores, Dirty Tracking e Paridade no Menu (Rodada 11)
 **O que foi feito:** Descida orbital até a fronteira primordial de transição Python $\leftrightarrow$ C++ (`PaintEngineFacade` / `aladyn_engine_native` / bindings PyBind11 / `TileGrid`), integrando a metodologia `lumenia-satellite-audit`, "O Curso do Rio" e ARCcC-Navigator. Saneadas 5 inconsistências fundamentais de borda:
 1. *Coerção Resiliente de Cores na Borda C++ (`to_native_color_rgba`)*: unificada a conversão de cores em `ui/engine_backends/aladyn_buffers.py`, eliminando risco de `AttributeError` em `fill_selection_on_active_layer` e divergências entre `fill_area` e `flood_fill`. Suporte nativo a `ColorRGBA`, `QColor`, tuplas/listas normalizadas (0.0-1.0) ou inteiras (0-255) e duck-typing.

@@ -20,10 +20,14 @@ class AladynLayerMixin:
     def clear_canvas(self) -> None:
         if self._facade:
             self._facade.clear_canvas()
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("clear_canvas")
 
     def clear_layer(self, index: int) -> None:
         if self._facade:
             self._facade.clear_layer(index)
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("clear_layer")
 
     def set_layer_alpha_lock(self, index: int, locked: bool) -> None:
         if self._facade:
@@ -177,6 +181,8 @@ class AladynLayerMixin:
         if self._facade:
             result = self._facade.undo()
             self._width, self._height = self._facade.get_width(), self._facade.get_height()
+            if result and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("undo")
             return result
         return False
 
@@ -189,6 +195,8 @@ class AladynLayerMixin:
         if self._facade:
             result = self._facade.redo()
             self._width, self._height = self._facade.get_width(), self._facade.get_height()
+            if result and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("redo")
             return result
         return False
 

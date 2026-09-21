@@ -45,7 +45,7 @@ class AladynMdiMixin:
                 if hasattr(self, "_undo_max_steps"):
                     facade.set_undo_max_steps(self._undo_max_steps)
                 if hasattr(self, "_render_options"):
-                    if facade:
+                    if hasattr(facade, "set_render_options"):
                         facade.set_render_options(**self._render_options)
                     else:
                         for key, value in self._render_options.items():
@@ -95,7 +95,13 @@ class AladynMdiMixin:
         self._width = self._facade.get_width()
         self._height = self._facade.get_height()
         if hasattr(self, "_render_options"):
-            self._facade.set_render_options(**self._render_options)
+            if hasattr(self._facade, "set_render_options"):
+                self._facade.set_render_options(**self._render_options)
+            else:
+                for key, value in self._render_options.items():
+                    setter = getattr(self._facade, f"set_{key}", None)
+                    if setter:
+                        setter(value)
         if hasattr(self, "_last_brush_preset") and self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)
 

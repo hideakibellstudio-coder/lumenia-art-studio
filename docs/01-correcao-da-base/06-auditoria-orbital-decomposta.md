@@ -156,6 +156,27 @@ Atingindo a fronteira de transição imediata com o motor C++ (`PaintEngineFacad
 
 ---
 
+### Casos Reais Saneados — Rodada 12: Saneamento do Navigator e Fronteira Primordial C++
+
+Aprofundando a descida orbital na base primordial C++ e corrigindo satélites de visualização:
+
+1. **Alinhamento e Correção de Conexões dos Botões de Flip no Navigator:**
+   - *Falha:* No painel `NavigatorControls` (`panel.py`), `self.btn_fliph` estava indevidamente conectado a `flipVRequested.emit` e `self.btn_flipv` conectado a `flipHRequested.emit`. Clicar no botão com o ícone de flip horizontal espelhava verticalmente; e vice-versa.
+   - *Saneamento:* Alinhamento 1:1 rigoroso de `btn_fliph` $\to$ `flipHRequested` $\to$ `flip_x`, e `btn_flipv` $\to$ `flipVRequested` $\to$ `flip_y`.
+
+2. **Resiliência do Guard de Opções de Renderização em MDI (`AladynMdiMixin`):**
+   - *Falha:* Condicional defensiva `if facade: facade.set_render_options(...) else: for key, value ...` onde `facade` era sempre truthy, tornando o branch `else` inalcançável, além de chamada cega a `set_render_options` na re-ativação de documento.
+   - *Saneamento:* Verificação canônica `hasattr(facade, "set_render_options")` com suporte a fallbacks granulares (`set_low_latency`, `set_linear_gamma`, `set_deep_color`) na criação e na re-ativação.
+
+3. **Rastreamento Dirty Completo em Mutações C++:**
+   - *Falha:* Mutações de camada, histórico e preenchimento (`clear_canvas`, `clear_layer`, `undo`, `redo`, `flood_fill`, `fill_area` e `end_stroke`) alteravam os pixels e a grade de tiles no motor nativo sem chamar `self._mark_document_dirty(...)`, deixando os observadores de documento e o indicador de não-salvo dessincronizados.
+   - *Saneamento:* Inclusão sistemática de chamadas a `self._mark_document_dirty(...)` em todas as mutações nativas bem-sucedidas.
+
+4. **Suíte Dedicada de Integridade Primordial:**
+   - Criação de `tests/test_satellite_round12_primordial.py` cobrindo 100% dos novos casos e respeitando estritamente a governança de tamanho de arquivos ARCcC (<450 linhas).
+
+---
+
 ## 5. Como Aplicar Esta Metodologia em Qualquer Projeto de Software com IA
 
 Para replicar esse sucesso em outros projetos de software (jogos, engines, aplicativos desktop, web apps de alta performance):

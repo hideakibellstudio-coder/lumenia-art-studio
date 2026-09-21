@@ -118,6 +118,8 @@ class AladynStrokeMixin:
                     self._action_stack.pop(0)
             if hasattr(self, "_redo_stack"):
                 self._redo_stack.clear()
+            if hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("stroke")
         return res or []
 
     def begin_stroke_raw(
@@ -161,10 +163,13 @@ class AladynStrokeMixin:
     ) -> bool:
         if self._facade and self._native:
             c = to_native_color_rgba(self._native, fill_color)
-            return self._facade.flood_fill(
+            res = self._facade.flood_fill(
                 int(seed_x), int(seed_y), c, int(tolerance), bool(contiguous),
                 int(expand_px), int(gap_closing_px), bool(anti_aliasing), bool(sample_all_layers)
             )
+            if res and hasattr(self, "_mark_document_dirty"):
+                self._mark_document_dirty("flood_fill")
+            return res
         return False
 
     def fill_area(
@@ -176,10 +181,13 @@ class AladynStrokeMixin:
         if not self._facade or not self._native or not hasattr(self._facade, "flood_fill"):
             return False
         native_color = to_native_color_rgba(self._native, fill_color)
-        return self._facade.flood_fill(
+        res = self._facade.flood_fill(
             int(seed_x), int(seed_y), native_color, int(tolerance), bool(contiguous),
             int(expand_px), int(gap_closing_px), bool(aa), bool(sample_all)
         )
+        if res and hasattr(self, "_mark_document_dirty"):
+            self._mark_document_dirty("flood_fill")
+        return res
 
     def set_telemetry_enabled(self, enabled: bool) -> None:
         if self._facade:

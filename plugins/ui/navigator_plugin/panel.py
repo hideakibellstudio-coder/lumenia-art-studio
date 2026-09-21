@@ -102,8 +102,8 @@ class NavigatorControls(QtWidgets.QWidget):
         self.btn_fit.clicked.connect(self.fitRequested.emit)
         
         self.btn_reset.clicked.connect(lambda: self.slider_rot.setValue(0))
-        self.btn_fliph.clicked.connect(self.flipVRequested.emit)
-        self.btn_flipv.clicked.connect(self.flipHRequested.emit)
+        self.btn_fliph.clicked.connect(self.flipHRequested.emit)
+        self.btn_flipv.clicked.connect(self.flipVRequested.emit)
 
         # Style theme
         self.update_theme()

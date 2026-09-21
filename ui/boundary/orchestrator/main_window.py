@@ -241,11 +241,6 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
 
     # ── Canvas ────────────────────────────────────────────────────────────
 
-    def clear_screen(self) -> None:
-        if self.workspace:
-            self.workspace.clear_canvas()
-        self.status_bar.showMessage("Tela limpa.", 2000)
-
     def deselect_selection(self) -> None:
         if self.workspace and hasattr(self.workspace, "clear_selection"):
             self.workspace.clear_selection()
@@ -377,7 +372,3 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         self._curve_win.show()
         self._curve_win.raise_()
         self._curve_win.activateWindow()
-
-    def select_tool_by_id(self, tool_id: str) -> None:
-        if self.workspace:
-            self.workspace.select_tool(tool_id)

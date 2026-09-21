@@ -18,8 +18,6 @@ from .filter_menu import FilterMenu
 from .view_menu import ViewMenu
 from .window_menu import WindowMenu
 from .help_menu import HelpMenu
-from .theme_menu import ThemeMenu
-from .plugins_menu import PluginsMenu
 from ui.core.icons import get_icon
 from ui.core.runtime_paths import resource_path
 
@@ -32,7 +30,6 @@ class MenuBar(QtWidgets.QMenuBar):
     saveAsDocumentRequested = QtCore.Signal()
     exportImageRequested    = QtCore.Signal()
     closeDocumentRequested  = QtCore.Signal()
-    clearCanvasRequested    = QtCore.Signal()
 
     # ── Editar ───────────────────────────────────────────────────────────
     undoRequested           = QtCore.Signal()
@@ -43,7 +40,6 @@ class MenuBar(QtWidgets.QMenuBar):
     fillRequested           = QtCore.Signal()
     clearLayerRequested     = QtCore.Signal()
     freeTransformRequested  = QtCore.Signal()
-    preferencesRequested    = QtCore.Signal()
 
     # ── Imagem ───────────────────────────────────────────────────────────
     canvasSizeRequested       = QtCore.Signal()
@@ -98,6 +94,7 @@ class MenuBar(QtWidgets.QMenuBar):
     toggleGridRequested     = QtCore.Signal()
     toggleRulersRequested   = QtCore.Signal()
     telemetryGridRequested  = QtCore.Signal()
+    toggleSoftProofRequested = QtCore.Signal(bool)
 
     # ── Janela & Docks ───────────────────────────────────────────────────
     togglePanelRequested             = QtCore.Signal(str, str)  # panel_id, side
@@ -146,7 +143,6 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.saveAsDocumentRequested.connect(self.saveAsDocumentRequested.emit)
         self.file_menu.exportImageRequested.connect(self.exportImageRequested.emit)
         self.file_menu.closeDocumentRequested.connect(self.closeDocumentRequested.emit)
-        self.file_menu.clearCanvasRequested.connect(self.clearCanvasRequested.emit)
         self.addMenu(self.file_menu)
 
         # 2. [Editar]
@@ -158,9 +154,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.edit_menu.pasteRequested.connect(self.pasteRequested.emit)
         self.edit_menu.fillRequested.connect(self.fillRequested.emit)
         self.edit_menu.clearLayerRequested.connect(self.clearLayerRequested.emit)
-        self.edit_menu.clearCanvasRequested.connect(self.clearCanvasRequested.emit)
         self.edit_menu.freeTransformRequested.connect(self.freeTransformRequested.emit)
-        self.edit_menu.preferencesRequested.connect(self.preferencesRequested.emit)
         self.addMenu(self.edit_menu)
 
         # 3. [Imagem]
@@ -222,7 +216,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.view_menu.resetViewRequested.connect(self.resetViewRequested.emit)
         self.view_menu.fitToScreenRequested.connect(self.fitToScreenRequested.emit)
         self.view_menu.resetRotationRequested.connect(self.resetRotationRequested.emit)
-        self.view_menu.renderSettingsRequested.connect(self.renderSettingsRequested.emit)
+        self.view_menu.toggleSoftProofRequested.connect(self.toggleSoftProofRequested.emit)
         self.view_menu.toggleGridRequested.connect(self.toggleGridRequested.emit)
         self.view_menu.toggleRulersRequested.connect(self.toggleRulersRequested.emit)
         self.view_menu.telemetryGridRequested.connect(self.telemetryGridRequested.emit)

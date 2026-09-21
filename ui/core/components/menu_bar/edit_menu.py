@@ -19,9 +19,7 @@ class EditMenu(QtWidgets.QMenu):
     pasteRequested         = QtCore.Signal()
     fillRequested          = QtCore.Signal()
     clearLayerRequested    = QtCore.Signal()
-    clearCanvasRequested   = QtCore.Signal()
     freeTransformRequested = QtCore.Signal()
-    preferencesRequested   = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__("Editar", parent)
@@ -79,14 +77,6 @@ class EditMenu(QtWidgets.QMenu):
         self.act_transform.triggered.connect(self.freeTransformRequested.emit)
         self.addAction(self.act_transform)
 
-        self.addSeparator()
-
-        # 5. Preferências
-        self.act_pref = QtGui.QAction(get_icon("settings"), "", self)
-        self.act_pref.setShortcut("Ctrl+K")
-        self.act_pref.triggered.connect(self.preferencesRequested.emit)
-        self.addAction(self.act_pref)
-
     def retranslate_ui(self):
         self.setTitle(tr("menu.edit.title", "Editar"))
         self.act_undo.setText(tr("menu.edit.undo", "Desfazer"))
@@ -99,4 +89,3 @@ class EditMenu(QtWidgets.QMenu):
         self.act_fill.setText(tr("menu.edit.fill", "Preencher Seleção com Cor Ativa"))
         self.act_clear_layer.setText(tr("menu.edit.clear", "Limpar Conteúdo da Camada"))
         self.act_transform.setText(tr("menu.edit.transform", "Transformação Livre..."))
-        self.act_pref.setText(tr("menu.settings.render", "Configurações de Renderização & Latência..."))

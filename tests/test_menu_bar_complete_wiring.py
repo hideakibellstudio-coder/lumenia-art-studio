@@ -44,7 +44,10 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
 
     def test_02_file_menu_actions(self):
         """Testa acionamento das ações de Arquivo."""
-        self.win.menu_bar.clearCanvasRequested.emit()
+        # NOTA: a ação "Limpar" (antigo clearCanvasRequested) foi removida do
+        # menu Arquivo -- Editar > Limpar Conteúdo da Camada (clearLayerRequested)
+        # é o único ponto de acesso agora. Ver
+        # claude/panorama-menu-bar-fluxo-navigator.md.
         self.win.menu_bar.saveDocumentRequested.emit()
 
     def test_03_edit_and_clipboard_actions(self):
@@ -91,6 +94,18 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
         self.win.menu_bar.fitToScreenRequested.emit()
         self.win.menu_bar.toggleGridRequested.emit()
         self.win.menu_bar.toggleRulersRequested.emit()
+
+    def test_07b_soft_proof_toggle(self):
+        """Verifica o toggle leve de Prova de Cores (Exibir), sem RenderSettingsDialog."""
+        action = self.win.menu_bar.view_menu.action_proof
+        self.assertTrue(action.isCheckable())
+
+        # Liga via UI (dispara toggled -> toggleSoftProofRequested -> toggle_soft_proof)
+        action.setChecked(True)
+        self.assertTrue(self.win.menu_bar.view_menu.action_proof.isChecked())
+
+        action.setChecked(False)
+        self.assertFalse(self.win.menu_bar.view_menu.action_proof.isChecked())
 
     def test_08_dialog_instantiations(self):
         """Verifica a instanciação de todos os novos diálogos especializados."""

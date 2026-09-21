@@ -24,7 +24,6 @@ def setup_menu_and_shortcuts(win: MainWindow) -> None:
     win.menu_bar.saveAsDocumentRequested.connect(win.save_active_document_as)
     win.menu_bar.exportImageRequested.connect(win.export_image)
     win.menu_bar.closeDocumentRequested.connect(win.close_active_document)
-    win.menu_bar.clearCanvasRequested.connect(win.clear_screen)
 
     # 2. Editar
     win.menu_bar.undoRequested.connect(win.undo)
@@ -33,9 +32,8 @@ def setup_menu_and_shortcuts(win: MainWindow) -> None:
     win.menu_bar.copyRequested.connect(win.copy_selection_or_layer_to_clipboard)
     win.menu_bar.pasteRequested.connect(win.paste_clipboard)
     win.menu_bar.fillRequested.connect(win.fill_active_selection_or_canvas)
-    win.menu_bar.clearLayerRequested.connect(win.clear_screen)
+    win.menu_bar.clearLayerRequested.connect(win.clear_active_layer)
     win.menu_bar.freeTransformRequested.connect(lambda: win.select_tool_by_id("transform"))
-    win.menu_bar.preferencesRequested.connect(win.open_render_settings_dialog)
 
     # 3. Imagem & Rotações
     win.menu_bar.canvasSizeRequested.connect(lambda: win.open_canvas_size_dialog(False))
@@ -88,6 +86,7 @@ def setup_menu_and_shortcuts(win: MainWindow) -> None:
     win.menu_bar.resetViewRequested.connect(win.reset_view)
     win.menu_bar.fitToScreenRequested.connect(win.reset_view)
     win.menu_bar.renderSettingsRequested.connect(win.open_render_settings_dialog)
+    win.menu_bar.toggleSoftProofRequested.connect(win.toggle_soft_proof)
     win.menu_bar.toggleGridRequested.connect(win.toggle_grid)
     win.menu_bar.toggleRulersRequested.connect(win.toggle_rulers)
     win.menu_bar.telemetryGridRequested.connect(win.open_telemetry_grid_window)
@@ -121,7 +120,7 @@ def setup_menu_and_shortcuts(win: MainWindow) -> None:
     win.tool_sidebar.zoomInRequested.connect(win.zoom_in)
     win.tool_sidebar.zoomOutRequested.connect(win.zoom_out)
     win.tool_sidebar.resetRequested.connect(win.reset_view)
-    win.tool_sidebar.clearRequested.connect(win.clear_screen)
+    win.tool_sidebar.clearRequested.connect(win.clear_active_layer)
     win.tool_sidebar.deselectRequested.connect(win.deselect_selection)
 
     # ── Atalhos de Teclado Globais ────────────────────────────────────

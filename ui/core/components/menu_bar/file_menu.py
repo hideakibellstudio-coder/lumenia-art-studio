@@ -18,7 +18,6 @@ class FileMenu(QtWidgets.QMenu):
     saveAsDocumentRequested = QtCore.Signal()
     exportImageRequested    = QtCore.Signal()
     closeDocumentRequested  = QtCore.Signal()
-    clearCanvasRequested    = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__("Arquivo", parent)
@@ -63,11 +62,6 @@ class FileMenu(QtWidgets.QMenu):
         self.action_close.triggered.connect(self.closeDocumentRequested.emit)
         self.addAction(self.action_close)
 
-        self.action_clear = QtGui.QAction(get_icon("trash"), "", self)
-        self.action_clear.setShortcut("Ctrl+Alt+Del")
-        self.action_clear.triggered.connect(self.clearCanvasRequested.emit)
-        self.addAction(self.action_clear)
-
         self.addSeparator()
 
         self.action_exit = QtGui.QAction("", self)
@@ -83,5 +77,4 @@ class FileMenu(QtWidgets.QMenu):
         self.action_save_as.setText(tr("menu.file.save_as", "Salvar Como..."))
         self.action_export.setText(tr("menu.file.export", "Exportar Imagem..."))
         self.action_close.setText(tr("menu.file.close", "Fechar Documento"))
-        self.action_clear.setText(tr("menu.file.clear", "Limpar Canvas Inteiro"))
         self.action_exit.setText(tr("menu.file.exit", "Sair"))

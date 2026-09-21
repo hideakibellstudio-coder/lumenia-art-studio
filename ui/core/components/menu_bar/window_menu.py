@@ -43,8 +43,13 @@ class WindowMenu(QtWidgets.QMenu):
         self._add_panel_action("navigator_plugin","Navegador do Canvas",  "right", "Alt+N", icon="navigator")
         self._add_panel_action("telemetry",       "Painel de Telemetria", "right", icon="chart")
 
+        # NOTA: sem QKeySequence("F12") aqui de proposito -- o atalho F12
+        # já vive em ViewMenu.action_telemetry_grid (era um conflito de
+        # atalho ambiguo do Qt ter os dois definidos; o handler de teclado
+        # em MainWindow.keyPressEvent cobre o F12 fisico independentemente
+        # de qual QAction anuncia o atalho). Ver
+        # claude/panorama-menu-bar-fluxo-navigator.md.
         self.act_telemetry_grid = QtGui.QAction(get_icon("chart"), "Cockpit de Telemetria em Grid...", self)
-        self.act_telemetry_grid.setShortcut("F12")
         self.act_telemetry_grid.triggered.connect(self.telemetry_grid_requested.emit)
         self.addAction(self.act_telemetry_grid)
 

@@ -17,7 +17,7 @@ class ViewMenu(QtWidgets.QMenu):
     resetViewRequested     = QtCore.Signal()
     fitToScreenRequested   = QtCore.Signal()
     resetRotationRequested = QtCore.Signal()
-    renderSettingsRequested = QtCore.Signal()
+    toggleSoftProofRequested = QtCore.Signal(bool)
     toggleGridRequested    = QtCore.Signal()
     toggleRulersRequested  = QtCore.Signal()
     telemetryGridRequested = QtCore.Signal()
@@ -59,9 +59,13 @@ class ViewMenu(QtWidgets.QMenu):
 
         self.addSeparator()
 
-        # 3. Prova de Cores & Renderização
+        # 3. Prova de Cores (toggle leve -- liga/desliga soft-proofing direto
+        #    no backend, sem abrir o RenderSettingsDialog. O dialogo completo
+        #    de configuracao de perfil/intent continua em Configuracoes >
+        #    Renderizacao & Modos de Cor).
         self.action_proof = QtGui.QAction(get_icon("proof"), "", self)
-        self.action_proof.triggered.connect(self.renderSettingsRequested.emit)
+        self.action_proof.setCheckable(True)
+        self.action_proof.toggled.connect(self.toggleSoftProofRequested.emit)
         self.addAction(self.action_proof)
 
         self.addSeparator()
@@ -94,7 +98,7 @@ class ViewMenu(QtWidgets.QMenu):
         self.action_reset.setText(tr("menu.view.zoom_100", "Pixels Reais (100%)"))
         self.action_fit.setText(tr("menu.view.fit_to_screen", "Ajustar à Tela"))
         self.action_reset_rot.setText(tr("menu.view.reset_view", "Resetar Vista e Rotação"))
-        self.action_proof.setText(tr("menu.view.render_settings", "Prova de Cores & Renderização..."))
+        self.action_proof.setText(tr("menu.view.soft_proof_toggle", "Prova de Cores (Ativar/Desativar)"))
         self.action_grid.setText(tr("menu.view.toggle_grid", "Alternar Grade Guia"))
         self.action_rulers.setText(tr("menu.view.toggle_rulers", "Alternar Réguas"))
         self.action_telemetry_grid.setText(tr("menu.view.telemetry_grid", "Cockpit de Telemetria (Grid)..."))

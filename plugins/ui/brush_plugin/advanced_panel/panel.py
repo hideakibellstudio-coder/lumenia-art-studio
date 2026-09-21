@@ -4,6 +4,7 @@ import math
 import logging
 from PySide6 import QtWidgets, QtCore, QtGui
 
+from ui.core.dialogs.floating_tool_window import FloatingToolWindow
 from .engine_params_widget import DynamicEngineParamsWidget
 from .sections.size_opacity_section import create_size_opacity_section
 from .sections.tip_geometry_section import create_tip_geometry_section
@@ -13,7 +14,7 @@ from .panel_engine_bridge import PanelEngineBridgeMixin
 
 logger = logging.getLogger(__name__)
 
-class AdvancedPanel(QtWidgets.QDialog, PanelEngineBridgeMixin):
+class AdvancedPanel(FloatingToolWindow, PanelEngineBridgeMixin):
     # Signals
     pressureChanged           = QtCore.Signal(float)
     pressureCurvePowerChanged = QtCore.Signal(float)
@@ -30,12 +31,10 @@ class AdvancedPanel(QtWidgets.QDialog, PanelEngineBridgeMixin):
     pinToggled                = QtCore.Signal(str, bool)
 
     def __init__(self, parent=None):
-        flags = QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint | QtCore.Qt.NoDropShadowWindowHint
-        super().__init__(parent, flags)
+        super().__init__(parent, no_drop_shadow=True)
         self.setWindowTitle("Configurações Avançadas")
         self.setMinimumWidth(330)
         self.setMinimumHeight(440)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
         self._drag_pos = None
         self._build_ui()

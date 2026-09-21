@@ -17,13 +17,14 @@ import math
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from ui.core.icons import get_icon
+from ui.core.dialogs.floating_tool_window import FloatingToolWindow
 
 from .stroke_preview   import StrokePreview
 from .compact_slider   import CompactSlider
 from .advanced_panel   import AdvancedPanel
 
 
-class BrushSettingsDialog(QtWidgets.QDialog):
+class BrushSettingsDialog(FloatingToolWindow):
     # ── Signals ───────────────────────────────────────────────────────
     sizeChanged               = QtCore.Signal(float)
     opacityChanged            = QtCore.Signal(float)
@@ -39,7 +40,7 @@ class BrushSettingsDialog(QtWidgets.QDialog):
     loadHeightmapRequested    = QtCore.Signal()
 
     def __init__(self, parent=None):
-        super().__init__(parent, QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint)
+        super().__init__(parent, translucent=False)
         self.setWindowTitle("Pincel")
         self.setFixedWidth(340)
 
@@ -184,7 +185,10 @@ class BrushSettingsDialog(QtWidgets.QDialog):
             if icon and not icon.isNull():
                 btn.setIcon(icon)
             else:
-                btn.setText(emoji)
+                # Fallback textual quando o icone falha ao carregar (get_icon
+                # retornando nulo) -- inicial do nome da ferramenta em vez de
+                # um icone ausente. `emoji` nunca existiu como variavel aqui.
+                btn.setText(tooltip[0].upper())
             btn.clicked.connect(lambda _, t=tid: self._on_tool(t))
             lo.addWidget(btn)
             self._tool_buttons[tid] = btn

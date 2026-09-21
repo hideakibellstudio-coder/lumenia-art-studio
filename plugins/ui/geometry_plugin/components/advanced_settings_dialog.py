@@ -9,24 +9,23 @@ from typing import Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
+from ui.core.dialogs.floating_tool_window import FloatingToolWindow
 
 from .curvilinear_perspective_page import CurvilinearPerspectivePage
 from .snapping_guides_page import SnappingGuidesPage
 from .symmetry_settings_page import SymmetrySettingsPage
 
 
-class AdvancedGeometryDialog(QtWidgets.QDialog):
+class AdvancedGeometryDialog(FloatingToolWindow):
     """Janela flutuante avançada padronizada com abas, aberturas colapsáveis e sliders compactos."""
 
     settingsChanged = QtCore.Signal(dict)
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None, current_state: Optional[dict] = None) -> None:
-        flags = QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint | QtCore.Qt.NoDropShadowWindowHint
-        super().__init__(parent, flags)
+        super().__init__(parent, no_drop_shadow=True)
         self.setWindowTitle("Configurações Avançadas de Geometria")
         self.setMinimumWidth(330)
         self.setMinimumHeight(460)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
         self.state = current_state.copy() if current_state else {}
         self._drag_pos = None

@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.core.dialogs.floating_tool_window import FloatingToolWindow
 from ui.core.icons import get_icon
 from ui.core.theme.manager import ThemeManager
 from ui.core.tools import TOOL_META, DEFAULT_TOOLS
@@ -43,7 +44,7 @@ class FloatingToolbarButton(QtWidgets.QPushButton):
         bg_hover = theme.get_color("accent_muted")
 
         if active:
-            self.setIcon(get_icon(self.icon_key, color="#ffffff"))
+            self.setIcon(get_icon(self.icon_key, color="FG_PRIMARY"))
             self.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {accent};
@@ -67,22 +68,22 @@ class FloatingToolbarButton(QtWidgets.QPushButton):
             """)
 
 
-class FloatingToolbar(QtWidgets.QDialog):
+class FloatingToolbar(FloatingToolWindow):
     """
     Barra de ferramentas flutuante em formato de cápsula escura estilo Lumenia 2.0.
-    
-    Implementada como topo de janela nativa (Qt.Tool | Qt.FramelessWindowHint)
-    com fundo translúcido para garantir 100% de imunidade a flickering sobre
-    o viewport Surface WGPU.
+
+    Janela independente (ver FloatingToolWindow em ui/core/dialogs) para
+    flutuar sobre o canvas sem entrar na árvore de widgets da janela
+    principal. Efeito colateral conhecido: não aparece em captura de tela
+    "por janela específica" (não é bug do Lumenia -- ver
+    claude/panorama-ui-global-subjanelas-captura-tela.md).
     """
 
     drag_finished = QtCore.Signal(QtCore.QPoint)
     status_notification = QtCore.Signal(str)
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(parent, QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        self.setStyleSheet("QDialog { background: transparent; border: none; }")
+        super().__init__(parent, transparent_stylesheet=True)
 
         self.dock_state: Optional[str] = "snapped_bottom"
         self.orientation = QtCore.Qt.Horizontal
@@ -116,13 +117,6 @@ class FloatingToolbar(QtWidgets.QDialog):
         ThemeManager.instance().themeChanged.connect(lambda _: self._apply_theme())
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
-
-    def retranslate_ui(self):
-        from ui.core.tools import get_tool_name
-        for tid, btn in self.buttons.items():
-            name = get_tool_name(tid)
-            btn.tool_name = name
-            btn.setToolTip(name)
 
     def _build_ui(self) -> None:
         self.main_layout = QtWidgets.QVBoxLayout(self)

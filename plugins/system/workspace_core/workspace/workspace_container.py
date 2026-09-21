@@ -2,16 +2,28 @@
 WorkspaceContainer
 ==================
 Widget central autônomo que encapsula:
-  - CanvasWidget (Surface WGPU)
+  - CanvasWidget (RenderWidget, raster CPU entregue pelo motor Aladyn C++)
   - TabbedViewportContainer (abas de documento)
   - Todo o wiring de sinais brush ↔ renderer
   - Todo o wiring de câmera canvas ↔ navigator
   - Gestão de troca de documento ativo
 
-REGRA FUNDAMENTAL:
-  Nenhum widget Qt filho pode ser sobreposto ao CanvasWidget (WGPU / WA_PaintOnScreen).
-  Elementos que precisam flutuar SOBRE o canvas devem ser janelas Qt.Tool independentes
-  (HWNDs separados, compostos pelo DWM do Windows sem flickering).
+CONVENÇÃO DE JANELAS FLUTUANTES:
+  Elementos que precisam flutuar SOBRE o canvas (barra de ferramentas,
+  barra de opções secundária, painéis avançados de pincel/geometria) são
+  janelas Qt.Tool independentes -- ver FloatingToolWindow em
+  ui/core/dialogs/floating_tool_window.py. Isso é herdado de uma geração
+  anterior do motor (Rust/WGPU, quando o CanvasWidget realmente escrevia
+  direto num HWND nativo via WA_PaintOnScreen); não foi revalidado após a
+  migração para o motor Aladyn C++ atual, que pinta o canvas por
+  QPainter.drawImage() normal dentro de paintEvent (ver
+  RenderWidget/ViewportRenderer). Na prática isso deixou de importar como
+  causa do problema que motivou essa investigação: até menus QMenu padrão
+  do Qt (que não têm nada a ver com essa regra) somem em captura de tela
+  "por janela específica" (OBS Window Capture, Win+G) -- é uma limitação
+  documentada do Windows/OBS com qualquer app, não do Lumenia. Ver
+  claude/panorama-ui-global-subjanelas-captura-tela.md no projeto para o
+  diagnóstico completo antes de tentar remover essa convenção.
 
 Este módulo será injetado na MainWindow pelo WorkspaceCore system plugin na Fase 3.
 Por enquanto (Fase 2), é instanciável diretamente para validação visual.
@@ -22,8 +34,6 @@ from __future__ import annotations
 import math
 import os
 import logging
-from typing import TYPE_CHECKING, Any
-
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .canvas.render_widget import CanvasWidget
@@ -83,8 +93,8 @@ class WorkspaceContainer(
         self._last_active_doc_uid: str | None = None
 
         # Referências opcionais aos painéis (injetadas via connect_brush_dock / connect_properties_dock)
-        self._brush_dock:      "BrushDock | None"      = None
-        self._properties_dock: "PropertiesDock | None" = None
+        self._brush_dock:      QtWidgets.QWidget | None = None
+        self._properties_dock: QtWidgets.QWidget | None = None
         self._navigator_panel = None
         self._layers_panel = None
         self._color_panel = None
@@ -232,19 +242,28 @@ class WorkspaceContainer(
     def initialize_engine(self) -> None:
         """
         Inicializa o backend de motor ativo (EngineRegistry). Deve ser chamado
-        após o widget ser adicionado à hierarquia de janelas (setCentralWidget),
-        pois motores como o WGPU precisam do HWND nativo para criar a swapchain.
+        após o widget ser adicionado à hierarquia de janelas (setCentralWidget).
+
+        NOTA: RenderWidget.init_engine() ainda calcula um HWND nativo
+        (self.winId()) e o repassa até aqui por compatibilidade de
+        assinatura com uma geração anterior do motor (Rust/wgpu, via PyO3),
+        que efetivamente usava esse HWND para criar a swapchain gráfica. O
+        motor atual (AladynBackend, C++) recebe esse parâmetro e o ignora
+        por completo — o Aladyn entrega um buffer de pixels e o Qt desenha
+        via QPainter.drawImage() normal. Mantido por não quebrar a
+        assinatura pública sem necessidade; pode ser removido com segurança
+        numa limpeza futura (ver ui/engine_backends/aladyn.py:init_renderer).
 
         Sem backend registrado (ou com falha de inicialização), a casca segue
         em modo canvas vazio — nunca derruba a aplicação.
         """
         try:
             self.canvas_widget.init_engine(self.canvas_w, self.canvas_h)
-        except BaseException as e:  # noqa: BLE001 — PanicException (PyO3) não herda de Exception
+        except BaseException as e:  # noqa: BLE001 — motores nativos podem levantar exceções fora da hierarquia padrão
             logger.error(f"[WorkspaceContainer] Falha ao inicializar motor: {type(e).__name__}: {e}")
 
 
-    # ── API pública de painéis (stub — implementação completa na Fase 4) ──
+    # ── API pública de painéis ──
 
     def add_panel(
         self,

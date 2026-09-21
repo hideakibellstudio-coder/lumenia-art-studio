@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Optional, Dict
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.core.dialogs.floating_tool_window import FloatingToolWindow
 from ui.core.icons import get_icon
 from ui.core.tool_settings import default_tool_settings
 
@@ -20,7 +21,7 @@ from .tool_options.shapes_options import build_shapes_panels
 from .tool_options.text_options import build_text_panels
 
 
-class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
+class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
     """Barra flutuante secundária com suporte a orientação horizontal e vertical responsiva."""
 
     settingsChanged = QtCore.Signal(str, dict)
@@ -28,9 +29,7 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
     cancelTextRequested = QtCore.Signal()
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(parent, QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        self.setStyleSheet("QDialog { background: transparent; border: none; }")
+        super().__init__(parent, transparent_stylesheet=True)
 
         self._orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal
         self._active_tool_id: str = "shapes"
@@ -126,6 +125,21 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
             self.box_layout.setSpacing(8)
             self.box_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
+    # ── API PÚBLICA (PARA MÓDULOS DE OPÇÕES) ──
+    @property
+    def panels_h(self) -> Dict[str, QtWidgets.QWidget]:
+        """Registro público dos painéis de opções na orientação horizontal."""
+        return self._panels_h
+
+    @property
+    def panels_v(self) -> Dict[str, QtWidgets.QWidget]:
+        """Registro público dos painéis de opções na orientação vertical."""
+        return self._panels_v
+
+    def request_deselect(self):
+        """Ponto de entrada público para acionar o deselect da seleção ativa."""
+        self._on_deselect_clicked()
+
     # ── NAVEGAÇÃO E SINCRONIZAÇÃO ──
     def set_tool(self, tool_id: str):
         self._active_tool_id = tool_id
@@ -177,6 +191,11 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
         self._emit_shapes_settings()
 
     def _apply_theme(self):
+        # Intencionalmente vazio: esta barra usa stylesheet estatico (ver
+        # _build_ui) em vez de recolorir dinamicamente por tema, diferente
+        # da FloatingToolbar (que tem seu proprio _apply_theme com restyling
+        # de verdade). Mantido conectado a themeChanged por consistencia de
+        # contrato com outros componentes do workspace.
         pass
 
     def retranslate_ui(self) -> None:
@@ -214,10 +233,10 @@ class SecondaryToolBar(QtWidgets.QDialog, SecondaryToolbarHandlersMixin):
 
         # Transform & Text
         if hasattr(self, "btn_trans_commit_h"):
-            self.btn_trans_commit_h.setText(f"✔ {tr('common.apply', 'Aplicar')}")
-            self.btn_trans_commit_v.setText(f"✔ {tr('common.apply', 'Aplicar')}")
-            self.btn_trans_cancel_h.setText(f"✖ {tr('common.cancel', 'Cancelar')}")
-            self.btn_trans_cancel_v.setText(f"✖ {tr('common.cancel', 'Cancelar')}")
+            self.btn_trans_commit_h.setText(tr('common.apply', 'Aplicar'))
+            self.btn_trans_commit_v.setText(tr('common.apply', 'Aplicar'))
+            self.btn_trans_cancel_h.setText(tr('common.cancel', 'Cancelar'))
+            self.btn_trans_cancel_v.setText(tr('common.cancel', 'Cancelar'))
             self.btn_trans_flip_h_h.setText(tr("transform.flip_h", "Espelhar H"))
             self.btn_trans_flip_h_v.setText(tr("transform.flip_h", "Espelhar H"))
             self.btn_trans_flip_v_h.setText(tr("transform.flip_v", "Espelhar V"))

@@ -43,6 +43,23 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-21 — Saneamento e Auditoria Orbital Concêntrica dos Subsistemas Satélites (Rodadas 9 e 10)
+**O que foi feito:** Aplicação da nova metodologia e skill `lumenia-satellite-audit` (Concentric Satellite Peeling) integrada com "O Curso do Rio" e ARCcC-Navigator, rastreando órbitas concêntricas ao redor dos núcleos saneados até a base primordial. Identificadas e corrigidas 13 inconsistências críticas em UI, Menus, Ferramentas Satélites, Plugins e Viewport:
+1. *Balde de Tinta (`do_flood_fill`)*: preenchimento em preto silencioso corrigido com a propriedade canônica `active_color` e inicialização de `_active_draw_color` no `RenderWidget` e `CanvasCompatMixin`; garantia de simetria de sinais via `try ... finally: strokeFinished.emit()`.
+2. *Ciclo de Vida do `TextToolController`*: simetria estrita com `strokeStarted.emit()` em `open_editor()` e `strokeFinished.emit()` garantido em `commit()` e `cancel()`, destravando docas e gavetas despinadas.
+3. *Simetria de Sinais em Exclusão via Teclado*: Delete/Backspace em `input_router.py` agora dispara paridade 1:1 de `strokeStarted` e `strokeFinished`.
+4. *Sincronização de Miniaturas em `clear_canvas`*: disparos balanceados de `strokeStarted` e `strokeFinished` adicionados ao `ToolManager.clear_canvas()`.
+5. *Desacoplamento de `PaperLayerWidget`*: eliminação de varredura cega em `QApplication.topLevelWidgets()`, implementação de `set_paper_state(visible, color)` no `RenderWidget` e emissão do sinal `paperChanged(bool, object)`.
+6. *Grade & Réguas via Menu/Atalhos*: alias canônico `@property def geometry_controller` no canvas resolvendo atalhos e menus silenciosamente quebrados.
+7. *Espelhamento H/V Ponta a Ponta*: propriedades `flip_x`/`flip_y` no canvas e emissão de `flip_changed_by_user` pelo `NavigatorPanel` com sincronização bidirecional.
+8. *Marching Ants em Seleção via Menu*: métodos unificados `select_all()`, `invert_selection()` e `clear_selection()` sincronizando o timer de 60ms.
+9. *Guards em `AladynBackend`*: eliminação de branches `elif` inalcançáveis em `set_render_options` e `render`.
+10. *Eliminação de Shim Nível 2*: remoção definitiva de `plugins/ui/color_plugin/color_wheel.py` com import canônico conforme política Zero-Dirt.
+11. *Simetria de Sinais em Formas e Transformação*: `strokeStarted` disparado no início do arrasto e `strokeFinished` garantido no término.
+12. *Salvaguarda ARCcC Invariants*: divisão modular em `tests/test_satellite_subsystems_integrity.py` (11/11 testes verdes) e `tests/test_satellite_subsystems_round10.py` (6/6 testes verdes), mantendo todos os arquivos abaixo do teto de 450 LOC (Zona Verde).
+13. *Documentação e Skill*: criação de `.agents/skills/lumenia-satellite-audit/SKILL.md` e `docs/01-correcao-da-base/06-auditoria-orbital-decomposta.md`.
+Homologado com 100% de testes verdes (670+ testes na suíte global).
+
 ### 2026-09-21 — Saneamento do Sistema de Traço: tap isolado, cursor contínuo e suporte a tilt/twist (oitava rodada)
 **O que foi feito:** Auditoria vertical do pipeline de traço completo (hardware/tablet $\to$ `InputRouter` $\to$ `CanvasStrokePipeline` $\to$ `AladynStrokeMixin` $\to$ C++ facade/estabilizador $\to$ `TileGrid` $\to$ Viewport). Identificadas e corrigidas três inconsistências críticas: (1) *Tap isolado (single-click sem arrasto / sarda)*: o C++ registrava o dab mas retornava `[0,0,0,0]` em `totalCatchupDirty`, fazendo a UI ignorar a atualização; corrigido com cálculo de bounding box analítica defensiva baseada no raio ativo em `CanvasStrokePipeline.end_stroke`, tornando a marca imediatamente visível na tela; (2) *Fantasmas de cursor*: sincronização frame a frame de `widget._last_rendered_cursor_rect = cur_cursor_rect` em `paint_stroke`, garantindo que a união com a área anterior remova o anel sem deixar rastros geométricos em traços rápidos; (3) *Propagação de stylus tilt/twist*: adicionado suporte a `tilt_x`, `tilt_y` e `twist` em `RenderWidget`, `InputRouter`, `CanvasStrokePipeline`, `AladynStrokeMixin`, `EngineBackend` e `StrokeProtocol`, encaminhando inclinação e rotação da caneta física diretamente para as APIs C++. Testado com variações de velocidade (10 a 3500 px/s), 8 direções cardeais, inversão brusca de 180° e estabilizador de 0% a 98% em `tests/test_stroke_pipeline_integrity.py` (5/5 passed). Todos os 31 testes dourados do C++ (`test_stroke_characterization.py`) preservados intactos. Commit `f69be00`.
 

@@ -81,20 +81,37 @@ class MainWindowMenuActionsMixin(
     # ── 2. Seleção ────────────────────────────────────────────────────────
 
     def select_all(self) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        if backend:
-            backend.select_all()
-            if self.workspace:
-                self.workspace.canvas_widget.update()
-            self.status_bar.showMessage("Tudo selecionado.", 2000)
+        if self.workspace and hasattr(self.workspace, "canvas_widget"):
+            cw = self.workspace.canvas_widget
+            if hasattr(cw, "select_all"):
+                cw.select_all()
+            else:
+                backend = EngineRegistry.instance().get_backend()
+                if backend and hasattr(backend, "select_all"):
+                    backend.select_all()
+                cw.update()
+        else:
+            backend = EngineRegistry.instance().get_backend()
+            if backend and hasattr(backend, "select_all"):
+                backend.select_all()
+        self.status_bar.showMessage("Tudo selecionado.", 2000)
 
     def invert_selection(self) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        if backend:
-            backend.invert_selection()
-            if self.workspace:
-                self.workspace.canvas_widget.update()
-            self.status_bar.showMessage("Seleção invertida.", 2000)
+        if self.workspace and hasattr(self.workspace, "canvas_widget"):
+            cw = self.workspace.canvas_widget
+            if hasattr(cw, "invert_selection"):
+                cw.invert_selection()
+            else:
+                backend = EngineRegistry.instance().get_backend()
+                if backend and hasattr(backend, "invert_selection"):
+                    backend.invert_selection()
+                cw.update()
+        else:
+            backend = EngineRegistry.instance().get_backend()
+            if backend and hasattr(backend, "invert_selection"):
+                backend.invert_selection()
+        self.status_bar.showMessage("Seleção invertida.", 2000)
+
 
     def open_modify_selection_dialog(self, mode: str) -> None:
         dialog = ModifySelectionDialog(mode=mode, parent=self)

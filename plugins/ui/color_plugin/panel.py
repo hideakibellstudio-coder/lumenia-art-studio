@@ -8,8 +8,10 @@ envolvido na moldura padronizada PanelCardBox.
 from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from .color_wheel import ColorWheelWidget
+from ui.core.widgets.color_picker.color_wheel import ColorWheelWidget
 from ui.core.widgets.card_box import PanelCardBox
+
+
 
 
 class ColorWheelPanel(QtWidgets.QWidget):

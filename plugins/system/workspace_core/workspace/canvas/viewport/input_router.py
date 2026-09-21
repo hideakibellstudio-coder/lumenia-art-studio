@@ -67,8 +67,11 @@ class CanvasInputRouter:
             w.shape_ctrl.drag_active = True
             w.shape_ctrl.drag_start = QtCore.QPointF(world_evt.x, world_evt.y)
             w.shape_ctrl.drag_current = w.shape_ctrl.drag_start
+            if hasattr(w, "strokeStarted"):
+                w.strokeStarted.emit()
             w.update()
             return
+
 
         if effective_tool == "lasso":
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
@@ -348,9 +351,14 @@ class CanvasInputRouter:
         if event.key() in (QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace):
             if backend and hasattr(backend, "has_selection") and backend.has_selection():
                 if hasattr(backend, "delete_selection_on_active_layer"):
-                    ok = backend.delete_selection_on_active_layer()
-                    if ok:
-                        w.update()
-                        w.strokeFinished.emit()
-                        return True
+                    if hasattr(w, "strokeStarted"):
+                        w.strokeStarted.emit()
+                    try:
+                        ok = backend.delete_selection_on_active_layer()
+                        if ok:
+                            w.update()
+                    finally:
+                        if hasattr(w, "strokeFinished"):
+                            w.strokeFinished.emit()
+                    return True
         return False

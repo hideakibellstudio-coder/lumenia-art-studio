@@ -68,7 +68,10 @@ class WorkspaceBrushMixin:
         return EngineRegistry.instance().get_backend()
 
     def _apply_brush_color(self, color: QtGui.QColor) -> None:
-        self.canvas_widget._active_draw_color = color
+        if hasattr(self.canvas_widget, "active_color"):
+            self.canvas_widget.active_color = color
+        else:
+            self.canvas_widget._active_draw_color = color
         if hasattr(self.canvas_widget, "set_shape_color"):
             self.canvas_widget.set_shape_color(color)
         backend = self._get_backend()

@@ -125,8 +125,9 @@ class MainWindowImageActionsMixin:
     def toggle_grid(self) -> None:
         if self.workspace and hasattr(self.workspace, "canvas_widget"):
             cw = self.workspace.canvas_widget
-            if hasattr(cw, "geometry_controller"):
-                gs = cw.geometry_controller.guide_state
+            geo_ctrl = getattr(cw, "geometry_ctrl", getattr(cw, "geometry_controller", None))
+            if geo_ctrl and hasattr(geo_ctrl, "guide_state"):
+                gs = geo_ctrl.guide_state
                 curr = gs.get("show_v", True)
                 gs["show_v"] = not curr
                 gs["show_h"] = not curr
@@ -138,10 +139,12 @@ class MainWindowImageActionsMixin:
     def toggle_rulers(self) -> None:
         if self.workspace and hasattr(self.workspace, "canvas_widget"):
             cw = self.workspace.canvas_widget
-            if hasattr(cw, "geometry_controller"):
-                gs = cw.geometry_controller.guide_state
+            geo_ctrl = getattr(cw, "geometry_ctrl", getattr(cw, "geometry_controller", None))
+            if geo_ctrl and hasattr(geo_ctrl, "guide_state"):
+                gs = geo_ctrl.guide_state
                 curr = gs.get("type", "none") != "none"
                 gs["type"] = "straight" if not curr else "none"
                 cw.update()
                 state = "ativadas" if not curr else "ocultas"
                 self.status_bar.showMessage(f"Réguas {state}.", 2000)
+

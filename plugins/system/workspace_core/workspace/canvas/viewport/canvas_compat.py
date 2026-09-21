@@ -35,7 +35,27 @@ class CanvasCompatMixin:
     @rotation.setter
     def rotation(self, v: float): self.camera.rotation = v
 
+    @property
+    def flip_x(self) -> bool:
+        return getattr(self.camera, "flip_horizontal", False)
+    @flip_x.setter
+    def flip_x(self, v: bool) -> None:
+        if hasattr(self, "camera"):
+            self.camera.flip_horizontal = bool(v)
+
+    @property
+    def flip_y(self) -> bool:
+        return getattr(self.camera, "flip_vertical", False)
+    @flip_y.setter
+    def flip_y(self, v: bool) -> None:
+        if hasattr(self, "camera"):
+            self.camera.flip_vertical = bool(v)
+
     # ── Tool Controller Proxies ──
+    @property
+    def geometry_controller(self):
+        return getattr(self, "geometry_ctrl", None)
+
     @property
     def _eyedropper_active(self) -> bool: return self.eyedrop_ctrl.active
     @_eyedropper_active.setter
@@ -91,3 +111,10 @@ class CanvasCompatMixin:
     def _transform_active(self) -> bool: return self.transform_ctrl.active
     @_transform_active.setter
     def _transform_active(self, v: bool): self.transform_ctrl.active = v
+
+    @property
+    def active_color(self) -> QtGui.QColor:
+        return getattr(self, "_active_draw_color", QtGui.QColor(0, 0, 0, 255))
+    @active_color.setter
+    def active_color(self, v: QtGui.QColor):
+        self._active_draw_color = v

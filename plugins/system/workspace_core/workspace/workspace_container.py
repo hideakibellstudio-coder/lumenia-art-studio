@@ -293,11 +293,14 @@ class WorkspaceContainer(
         elif panel_id == "navigator":
             self._navigator_panel = widget
             self._bind_panel_signal(panel_id, widget.camera_changed_by_user, self._set_camera_from_navigator)
+            if hasattr(widget, "flip_changed_by_user"):
+                self._bind_panel_signal(panel_id, widget.flip_changed_by_user, self._set_flip_from_navigator)
             self._bind_panel_signal(panel_id, widget.request_global_fit_view, self.reset_view)
             self._bind_panel_signal(panel_id, self.canvas_widget.cameraChanged, self._on_canvas_camera_changed)
             if self.active_document:
                 widget.set_has_document(True)
                 self._sync_navigator_to_canvas()
+
         elif panel_id == "layers":
             self._layers_panel = widget
             if self.active_document:

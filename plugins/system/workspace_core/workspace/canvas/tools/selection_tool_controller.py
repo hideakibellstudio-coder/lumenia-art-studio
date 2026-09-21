@@ -189,3 +189,35 @@ class SelectionToolController:
             self.selection_timer.stop()
 
         self.widget.update()
+
+    def clear_selection(self) -> None:
+        """Limpa a seleção ativa e interrompe o timer de marching ants."""
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "clear_selection"):
+            backend.clear_selection()
+        if self.selection_timer.isActive():
+            self.selection_timer.stop()
+        self.widget.update()
+
+    def select_all(self) -> None:
+        """Seleciona todo o canvas e inicia a animação de marching ants."""
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "select_all"):
+            backend.select_all()
+        if not self.selection_timer.isActive():
+            self.selection_timer.start()
+        self.widget.update()
+
+    def invert_selection(self) -> None:
+        """Inverte a seleção ativa e sincroniza o timer de animação."""
+        backend = EngineRegistry.instance().get_backend()
+        if backend and hasattr(backend, "invert_selection"):
+            backend.invert_selection()
+        if backend and hasattr(backend, "has_selection") and backend.has_selection():
+            if not self.selection_timer.isActive():
+                self.selection_timer.start()
+        else:
+            if self.selection_timer.isActive():
+                self.selection_timer.stop()
+        self.widget.update()
+

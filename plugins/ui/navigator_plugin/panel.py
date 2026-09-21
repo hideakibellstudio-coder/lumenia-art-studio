@@ -169,6 +169,7 @@ class NavigatorControls(QtWidgets.QWidget):
 
 class NavigatorPanel(QtWidgets.QWidget):
     camera_changed_by_user = QtCore.Signal(float, float, float, float) # zoom, norm_x, norm_y, rotation
+    flip_changed_by_user = QtCore.Signal(bool, bool) # flip_x, flip_y
     request_global_fit_view = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -267,10 +268,13 @@ class NavigatorPanel(QtWidgets.QWidget):
     def toggle_flip_h(self):
         self.state["flip_x"] = not self.state["flip_x"]
         self._refresh_all()
+        self.flip_changed_by_user.emit(self.state["flip_x"], self.state["flip_y"])
 
     def toggle_flip_v(self):
         self.state["flip_y"] = not self.state["flip_y"]
         self._refresh_all()
+        self.flip_changed_by_user.emit(self.state["flip_x"], self.state["flip_y"])
+
 
     def _on_wheel_zoom(self, delta):
         current_percent = int(self.state["zoom"] * 100)

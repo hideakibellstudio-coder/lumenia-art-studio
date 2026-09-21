@@ -104,11 +104,15 @@ class WorkspaceActionsMixin:
 
     def clear_selection(self) -> None:
         """Desmarca/limpa a seleção ativa do documento."""
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if backend:
-            backend.clear_selection()
-        if hasattr(self.canvas_widget, "_selection_timer"):
-            self.canvas_widget._selection_timer.stop()
-        self.canvas_widget.update()
+        if hasattr(self.canvas_widget, "clear_selection"):
+            self.canvas_widget.clear_selection()
+        else:
+            from ui.core.engine.registry import EngineRegistry
+            backend = EngineRegistry.instance().get_backend()
+            if backend and hasattr(backend, "clear_selection"):
+                backend.clear_selection()
+            if hasattr(self.canvas_widget, "selection_ctrl"):
+                self.canvas_widget.selection_ctrl.selection_timer.stop()
+            self.canvas_widget.update()
         self._on_status_notification("Seleção cancelada.")
+

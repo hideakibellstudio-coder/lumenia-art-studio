@@ -76,6 +76,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
         self._last_tablet_time, self._tablet_in_use = 0.0, False
         self.paper_visible, self.paper_color = True, QtGui.QColor(255, 255, 255)
+        self._active_draw_color = QtGui.QColor(0, 0, 0, 255)
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
         self._last_rendered_cursor_rect = QtCore.QRect()
         self._bucket_settings = default_tool_settings("bucket")
@@ -105,6 +106,8 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     @property
     def geometry_ctrl(self): return self.tool_mgr.geometry_ctrl
     @property
+    def geometry_controller(self): return self.tool_mgr.geometry_ctrl
+    @property
     def text_ctrl(self): return self.tool_mgr.text_ctrl
 
     @property
@@ -125,12 +128,30 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     def transform_flip_v(self): self.tool_mgr.transform_flip_v()
     def transform_rotate_90(self, clockwise: bool = True): self.tool_mgr.transform_rotate_90(clockwise)
     def set_shape_settings(self, settings: dict): self.tool_mgr.set_shape_settings(settings)
+    def set_shape_color(self, color: QtGui.QColor): self.tool_mgr.set_shape_color(color)
     def set_text_settings(self, settings: dict): self.tool_mgr.set_text_settings(settings)
     def open_text_editor(self, canvas_x: float, canvas_y: float): self.tool_mgr.open_text_editor(canvas_x, canvas_y)
     def commit_text_overlay(self): self.tool_mgr.commit_text_overlay()
     def cancel_text_overlay(self): self.tool_mgr.cancel_text_overlay()
     def do_flood_fill(self, screen_x: float, screen_y: float): self.tool_mgr.do_flood_fill(screen_x, screen_y)
     def clear_canvas(self): self.tool_mgr.clear_canvas()
+    def clear_selection(self): self.selection_ctrl.clear_selection()
+    def select_all(self): self.selection_ctrl.select_all()
+    def invert_selection(self): self.selection_ctrl.invert_selection()
+
+    @property
+    def active_color(self) -> QtGui.QColor:
+        return getattr(self, "_active_draw_color", QtGui.QColor(0, 0, 0, 255))
+
+    @active_color.setter
+    def active_color(self, color: QtGui.QColor) -> None:
+        self._active_draw_color = color
+
+    def set_paper_state(self, visible: bool, color: QtGui.QColor = None) -> None:
+        self.paper_visible = bool(visible)
+        if color is not None:
+            self.paper_color = color
+        self.update()
 
     # ── Stroke & Brush Radius Delegation ──
     @property

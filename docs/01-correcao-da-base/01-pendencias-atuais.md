@@ -11,9 +11,20 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
-## ✅ Resolvido nesta sessão (2026-09-21, rodadas 6 a 8)
+## ✅ Resolvido nesta sessão (2026-09-21, rodadas 6 a 10)
 
-Itens de auditoria vertical, código morto, integridade de traço e cursor concluídos e homologados:
+Itens de auditoria vertical, código morto, integridade de traço, cursor e subsistemas satélites concluídos e homologados:
+
+- **Auditoria Orbital Concêntrica de Subsistemas Satélites (Rodadas 9 e 10)**:
+  - Criação da skill `lumenia-satellite-audit` e documento metodológico `06-auditoria-orbital-decomposta.md`.
+  - *Balde de Tinta (`do_flood_fill`)*: corrigido bug de cor com propriedade canônica `active_color` e garantia de simetria de sinais `strokeStarted`/`strokeFinished` via `try ... finally`.
+  - *TextToolController*: ciclo de vida simétrico de sinais `strokeStarted` e `strokeFinished` (em `open_editor`, `commit` e `cancel`), destravando docas e gavetas despinadas.
+  - *Sincronização de Previews e Exclusão*: Delete/Backspace com seleção ativa e `clear_canvas` integrados à paridade de sinais para atualização de miniaturas.
+  - *Desacoplamento de PaperLayerWidget*: método canônico `set_paper_state` no `RenderWidget` e sinal `paperChanged`.
+  - *Grade, Réguas e Espelhamento H/V*: alias `geometry_controller`, propriedades de flip no canvas conectadas bidirecionalmente com `NavigatorPanel`.
+  - *Seleção e Marching Ants*: métodos unificados `select_all()`, `invert_selection()` e `clear_selection()` sincronizados ao timer de 60ms.
+  - *Guards de Motor e Limpeza Zero-Dirt*: correções em `AladynBackend` e eliminação definitiva do shim `plugins/ui/color_plugin/color_wheel.py`.
+  - *Salvaguarda ARCcC Invariants*: modularização em `test_satellite_subsystems_integrity.py` e `test_satellite_subsystems_round10.py` respeitando o teto de 450 LOC (Zona Verde). 100% de testes verdes em toda a base (670+ testes).
 
 - **Auditoria de Código Morto & Sombra de Empacotamento (Níveis 1, 2 e 3)**:
   - Nível 1: Remoção de 4 arquivos mortos isolados com zero chamadores (`color_wheel.py`, `dialog.py`, `flood_fill.py`, `IRenderContext.hpp` — commit `c217811`).

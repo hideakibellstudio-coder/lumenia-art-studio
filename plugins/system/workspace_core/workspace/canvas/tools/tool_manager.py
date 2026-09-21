@@ -61,6 +61,10 @@ class ToolManager:
             self.widget.active_tool = "shapes"
         self.widget.update()
 
+    def set_shape_color(self, color: QtGui.QColor) -> None:
+        self.shape_ctrl.settings["stroke_color"] = color
+        self.shape_ctrl.settings["fill_color"] = color
+
     # ── Text Tool Commands ──
     @property
     def active_text_editor(self):
@@ -93,27 +97,38 @@ class ToolManager:
     # ── Bucket / Flood Fill Commands ──
     def do_flood_fill(self, screen_x: float, screen_y: float) -> None:
         evt = self.widget.to_canvas(screen_x, screen_y, 1.0, 0.0)
-        self.widget.strokeStarted.emit()
-        b = EngineRegistry.instance().get_backend()
-        if b:
-            ok = b.fill_area(
-                seed_x=int(evt.x),
-                seed_y=int(evt.y),
-                fill_color=getattr(self.widget, "_active_draw_color", QtGui.QColor(0, 0, 0, 255)),
-                tolerance=self.widget._bucket_settings.get("tolerance", 20),
-                contiguous=self.widget._bucket_settings.get("contiguous", True),
-                expand_px=self.widget._bucket_settings.get("expand_px", 1),
-                gap_closing_px=self.widget._bucket_settings.get("gap_closing_px", 0),
-                aa=self.widget._bucket_settings.get("aa", True),
-                sample_all=self.widget._bucket_settings.get("sample_all", True)
-            )
-            if ok:
-                self.widget.update()
+        if hasattr(self.widget, "strokeStarted"):
+            self.widget.strokeStarted.emit()
+        try:
+            b = EngineRegistry.instance().get_backend()
+            if b:
+                color = getattr(self.widget, "active_color", getattr(self.widget, "_active_draw_color", QtGui.QColor(0, 0, 0, 255)))
+                ok = b.fill_area(
+                    seed_x=int(evt.x),
+                    seed_y=int(evt.y),
+                    fill_color=color,
+                    tolerance=self.widget._bucket_settings.get("tolerance", 20),
+                    contiguous=self.widget._bucket_settings.get("contiguous", True),
+                    expand_px=self.widget._bucket_settings.get("expand_px", 1),
+                    gap_closing_px=self.widget._bucket_settings.get("gap_closing_px", 0),
+                    aa=self.widget._bucket_settings.get("aa", True),
+                    sample_all=self.widget._bucket_settings.get("sample_all", True)
+                )
+                if ok:
+                    self.widget.update()
+        finally:
+            if hasattr(self.widget, "strokeFinished"):
                 self.widget.strokeFinished.emit()
 
     def clear_canvas(self) -> None:
-        b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "clear_canvas"):
-            b.clear_canvas()
-        self.shape_ctrl.drag_active = False
-        self.widget.update()
+        if hasattr(self.widget, "strokeStarted"):
+            self.widget.strokeStarted.emit()
+        try:
+            b = EngineRegistry.instance().get_backend()
+            if b and hasattr(b, "clear_canvas"):
+                b.clear_canvas()
+            self.shape_ctrl.drag_active = False
+            self.widget.update()
+        finally:
+            if hasattr(self.widget, "strokeFinished"):
+                self.widget.strokeFinished.emit()

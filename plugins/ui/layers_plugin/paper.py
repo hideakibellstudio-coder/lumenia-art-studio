@@ -86,6 +86,8 @@ class TextureCircleButton(CircleButton):
         self.update()
 
 class PaperLayerWidget(QWidget):
+    paperChanged = Signal(bool, object)
+
     def __init__(self, bridge=None, parent=None):
         super().__init__(parent)
         self.bridge = bridge
@@ -252,17 +254,19 @@ class PaperLayerWidget(QWidget):
             active_doc.paper_invert = self.invert
             active_doc.mark_dirty("paper")
 
-        # Procura globalmente o CanvasWidget em todas as janelas ativas
+        self.paperChanged.emit(self.visible, self.color)
+
+        # Atualiza CanvasWidget através de método canônico ou fallback
         for top_w in QApplication.topLevelWidgets():
+            cw = None
             if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
                 cw = top_w.workspace.canvas_widget
-                if cw:
-                    cw.paper_visible = self.visible
-                    cw.paper_color = self.color
-                    cw.update()
             elif hasattr(top_w, "canvas_widget"):
                 cw = top_w.canvas_widget
-                if cw:
+            if cw:
+                if hasattr(cw, "set_paper_state"):
+                    cw.set_paper_state(self.visible, self.color)
+                else:
                     cw.paper_visible = self.visible
                     cw.paper_color = self.color
                     cw.update()

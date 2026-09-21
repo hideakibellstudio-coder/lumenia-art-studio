@@ -111,7 +111,7 @@ class AladynBackend(
             "linear_gamma": bool(linear_gamma),
             "deep_color": bool(deep_color),
         }
-        if self._facade:
+        if self._facade and hasattr(self._facade, "set_render_options"):
             self._facade.set_render_options(**self._render_options)
         elif self._facade:
             # Compatibilidade com extensões nativas antigas durante uma
@@ -156,10 +156,11 @@ class AladynBackend(
         self._view_state = (float(pan_x), float(pan_y), max(1e-6, float(zoom)), float(rotation_rad))
         # The native facade owns the raster; touching the display accessor here
         # makes the contract explicit and refreshes the generation-backed view.
-        if self._facade:
+        if self._facade and hasattr(self._facade, "refresh_display"):
             self._facade.refresh_display()
-        elif self._facade:
+        elif self._facade and hasattr(self._facade, "get_display_pixel_buffer"):
             self._facade.get_display_pixel_buffer()
+
 
     # ── Viewport / Câmera ────────────────────────────────────────────────
 

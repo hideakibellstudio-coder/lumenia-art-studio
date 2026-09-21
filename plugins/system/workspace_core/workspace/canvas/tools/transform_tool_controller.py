@@ -50,8 +50,9 @@ class TransformToolController:
         self.scale_y = 1.0
         self.rotation = 0.0
         self.flip_h = False
-        self.flip_v = False
         self.active = True
+        if hasattr(self.widget, "strokeStarted"):
+            self.widget.strokeStarted.emit()
         self.widget.update()
         return True
 
@@ -75,7 +76,8 @@ class TransformToolController:
         self.active = False
         self.source_qimage = None
         self.widget.update()
-        self.widget.strokeFinished.emit()
+        if hasattr(self.widget, "strokeFinished"):
+            self.widget.strokeFinished.emit()
 
     def cancel(self):
         if not self.active:
@@ -86,6 +88,9 @@ class TransformToolController:
         self.active = False
         self.source_qimage = None
         self.widget.update()
+        if hasattr(self.widget, "strokeFinished"):
+            self.widget.strokeFinished.emit()
+
 
     def flip_horizontal(self):
         if self.active:

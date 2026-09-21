@@ -155,6 +155,8 @@ class ShapeToolController:
         path = self.calculate_path()
         if not path:
             self.widget.update()
+            if hasattr(self.widget, "strokeFinished"):
+                self.widget.strokeFinished.emit()
             return
 
         shape_type = self.settings.get("shape_type", "shape_line")
@@ -193,9 +195,14 @@ class ShapeToolController:
         if backend and hasattr(backend, "paste_rgba_buffer_on_active_layer") and getattr(backend, "available", False):
             backend.paste_rgba_buffer_on_active_layer(0, 0, self.widget.canvas_w, self.widget.canvas_h, px_bytes)
             self.widget.update()
-            self.widget.strokeFinished.emit()
+            if hasattr(self.widget, "strokeFinished"):
+                self.widget.strokeFinished.emit()
         else:
+            self.widget.update()
+            if hasattr(self.widget, "strokeFinished"):
+                self.widget.strokeFinished.emit()
             logger.warning(
                 "Forma descartada: motor nativo indisponivel (paste_rgba_buffer_on_active_layer). "
                 "Nenhum pixel foi persistido no TileGrid; nada sera salvo no .lmn."
             )
+

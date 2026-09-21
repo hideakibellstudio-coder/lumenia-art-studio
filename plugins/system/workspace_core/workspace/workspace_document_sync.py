@@ -29,6 +29,8 @@ class WorkspaceDocSyncMixin:
         """
         self._properties_dock = dock
         self._bind_panel_signal(panel_id, dock.navigator.camera_changed_by_user, self._set_camera_from_navigator)
+        if hasattr(dock.navigator, "flip_changed_by_user"):
+            self._bind_panel_signal(panel_id, dock.navigator.flip_changed_by_user, self._set_flip_from_navigator)
         self._bind_panel_signal(panel_id, dock.navigator.request_global_fit_view, self.reset_view)
         self._bind_panel_signal(panel_id, self.canvas_widget.cameraChanged, self._on_canvas_camera_changed)
 
@@ -65,6 +67,13 @@ class WorkspaceDocSyncMixin:
         self.zoomChanged.emit(cw.zoom)
         cw.update()
 
+    def _set_flip_from_navigator(self, flip_x: bool, flip_y: bool) -> None:
+        """Recebe estado de espelhamento do navigator e aplica ao canvas."""
+        cw: "RenderWidget" = self.canvas_widget
+        cw.flip_x = bool(flip_x)
+        cw.flip_y = bool(flip_y)
+        cw.update()
+
     def _on_canvas_camera_changed(
         self,
         zoom: float, pan_x: float, pan_y: float, rotation: float,
@@ -80,17 +89,20 @@ class WorkspaceDocSyncMixin:
         norm_y  = 0.5 - pan_y / (zoom * cw_h)
         ratio_w = view_w / (zoom * cw_w)
         ratio_h = view_h / (zoom * cw_h)
+        flip_h = bool(getattr(self.canvas_widget, "flip_x", False))
+        flip_v = bool(getattr(self.canvas_widget, "flip_y", False))
 
         if self._properties_dock:
             self._properties_dock.navigator.update_viewport(
-                zoom, norm_x, norm_y, rotation, False, False, ratio_w, ratio_h
+                zoom, norm_x, norm_y, rotation, flip_h, flip_v, ratio_w, ratio_h
             )
         if hasattr(self, "_navigator_panel") and self._navigator_panel:
             self._navigator_panel.update_viewport(
-                zoom, norm_x, norm_y, rotation, False, False, ratio_w, ratio_h
+                zoom, norm_x, norm_y, rotation, flip_h, flip_v, ratio_w, ratio_h
             )
 
     def refresh_document_state(self, doc):
+
         self._on_active_document_changed(doc, capture_previous=False)
 
     def _on_active_document_changed(self, doc: Document, *, capture_previous=True) -> None:

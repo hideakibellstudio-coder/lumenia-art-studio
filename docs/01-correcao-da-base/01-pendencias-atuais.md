@@ -41,18 +41,100 @@ cada implementação estão no changelog do `../README.md`.
 
 ## 🟡 P1 — alto retorno, esforço baixo/médio
 
-### Guardas `hasattr(self._facade, ...)`
-107 → 12 entre 2026-09-15 e 2026-09-20 (queda de 89%). `02-simplificacao-da-ponte.md`
-descreve o padrão de substituição (`_exigir_facade()` que lança em vez de
-silenciar). Os 12 restantes são o que falta para fechar F-028 por completo.
+### Guardas `hasattr(self._facade, ...)` — investigados, fechados como não aplicável
+107 → 12 entre 2026-09-15 e 2026-09-20 (queda de 89%). Os 12 restantes foram
+investigados individualmente em 2026-09-20 (terceira rodada) e **não são dívida
+de código defensivo por desconfiança de contrato** — são fallback deliberado
+e documentado para quando o `.pyd` compilado está desatualizado (não tem os
+métodos mais novos ainda). Prova: o próprio docstring de
+`tests/test_stroke_characterization.py` descreve o caminho `facade` legado
+(`begin_stroke`/`update_stroke`/`end_stroke`) como "fallback para builds
+nativas antigas", e o teste mede os dois caminhos (`raw` e `facade`) de
+propósito porque uma correção no estabilizador precisa tocar
+`StrokeOrchestrator.cpp` **e** `PaintEngineFacade.cpp`. Os outros 8
+(`get_display_pixel_buffer`/`get_best_lod_level` em `aladyn.py`, 5 métodos
+de curvilinear/perspective em `aladyn_geometry_mixin.py`) seguem o mesmo
+formato: recursos mais novos que degradam graciosamente se o binário ainda
+não foi recompilado. O teste `.pyi`×binário (ver acima) garante que o
+*contrato declarado* bate com o binário *no momento do teste* — não impede
+rodar código novo contra um `.pyd` ainda não recompilado, que é exatamente o
+cenário que esses guards protegem. **Decisão do usuário (2026-09-20):**
+manter o código como está; fechar este item como investigado, não como
+removido. `02-simplificacao-da-ponte.md` (passo 4) foi corrigido para
+refletir isso.
 
-### `EngineBackend` continua com 178 métodos na classe original
-A divisão em protocolos (ver acima) nomeia o recorte natural, mas não
-reduz a classe `EngineBackend` em si — ela segue sendo o contrato
-universal com 152 → 178 métodos. O próximo passo natural, ainda não
-feito, é avaliar se as implementações concretas (`AladynBackend`,
-`WgpuRustBackend`) podem delegar a papeis internamente em vez de apenas
-satisfazê-los estruturalmente.
+> **Correção (2026-09-20, quarta rodada):** um dos 12, `get_nearest_primary_grid_curve`,
+> não era de fato um fallback ativo — investigação mais profunda (ver item
+> abaixo) mostrou que `GeometryToolController` sempre usa a versão pura-Python
+> (`GeometrySnappingEngine.find_nearest_primary_grid_curve`) para o hover do
+> grid curvilinear, e nunca chama a versão nativa. Diferente dos outros 11
+> (que são exercitados de verdade pelo caminho `_snap_use_native_*`), este
+> era órfão puro. Foi removido junto com os outros 5 métodos mortos abaixo.
+> Restam 11 guards legítimos, não 12.
+
+### `EngineBackend` — 178 → 172 métodos, 6 mortos removidos (2026-09-20, quarta rodada)
+A divisão em protocolos (ver acima) nomeia o recorte natural, mas por si só
+não reduz `EngineBackend`. A frase original aqui ("avaliar se as
+implementações concretas podem delegar a papeis internamente") era
+tecnicamente incoerente — `Protocol` do `typing` é tipagem estrutural pura,
+sem implementação para delegar a. Corrigido: o usuário pediu investigar
+duplicatas/mortos reais antes de decidir qualquer coisa.
+
+**Método:** `navigator_references` (`calls`) no arquivo inteiro só achou 14
+relações para uma classe de 178 métodos muito usada — limitação conhecida do
+resolvedor Python do Navigator para `self.atributo.metodo(...)` quando o tipo
+do atributo não é inferido estaticamente. Abandonado em favor de varredura
+direta por regex nos 178 nomes contra `ui/`, `plugins/` e `tests/` (excluindo
+os arquivos de definição e `ui/engine_backends/`), com verificação manual de
+cada candidato antes de confirmar — inclusive dois falsos positivos do
+próprio script (`available` é `@property`, acessado sem parênteses; `flood_fill`
+é chamado internamente por `fill_area`) e um bug de regex (`-SimpleMatch` do
+PowerShell tratando `|` como caractere literal, escondendo os chamadores reais
+de `snap_perspective`/`set_curvilinear_guide_config`/`get_curvilinear_candidates`).
+
+**6 métodos removidos** de `backend.py`, `backend_protocols.py` e do mixin
+correspondente (nada tocado no `.pyd` nativo — a Lei de Isolamento do Binário
+C++ continua intacta; o binário pode manter os símbolos, só a superfície
+Python some), todos com 0 chamadores em `ui/`, `plugins/` ou `tests/`:
+
+- `set_group_pass_through` — duplicata: o modo de blend "Pass Through" de
+  grupo já é aplicado via `set_layer_blend_mode` (valor 7), o caminho
+  genérico usado por `layers_plugin/header.py`. O setter dedicado nunca era
+  chamado por nada.
+- `set_canvas_grain_enabled` — duplicata: o "enabled" real do grain de
+  papel/canvas já viaja como parâmetro de `set_canvas_paper_state(...)`
+  (chamado por `layers_plugin/paper.py`); o setter dedicado nunca era chamado.
+- `set_brush_grain_invert` — duplicata: o checkbox "Inverter Topografia" da
+  UI (`brush_texture_section.py`) está ligado a `invertHeightChanged` →
+  `_on_brush_invert` → `backend.set_brush_invert_height(...)` (outro método,
+  em uso). A própria implementação antiga fazia
+  `self._facade.get_brush_profile().brush_grain_invert = bool(invert)` —
+  exatamente o que `apply_brush_preset_dict` (tabela única, ver Passo 2 de
+  `02-simplificacao-da-ponte.md`) já faz via `setattr` genérico no perfil
+  nativo. Redundante desde a unificação da tabela.
+- `get_selection_contour_segments` — órfão: implementado, delegava pro
+  facade, mas nenhum chamador em nenhum lugar.
+- `replace_document_context` — órfão: peça de um fluxo MDI de "preparar
+  documento em background e trocar atomicamente" (`uid`/`prepared_uid`) que
+  nunca foi conectado — nada no repositório cria um `prepared_uid`.
+- `get_nearest_primary_grid_curve` — órfão (ver correção acima): o guard
+  `hasattr` existia mas nunca era exercitado, porque `GeometryToolController`
+  sempre usa a versão Python pura (`GeometrySnappingEngine.find_nearest_primary_grid_curve`).
+
+**Não removido, cluster relacionado mas fora de escopo:** `get_redo_count`,
+`can_redo`, `get_undo_count`, `can_undo`, `get_undo_memory_limit_mb`,
+`get_undo_max_steps` — implementados e testados no nível do motor
+(`get_redo_count` inclusive tem um chamador interno real, `can_redo()` no
+próprio mixin), mas os itens de menu Undo/Redo nunca usam esses métodos
+para habilitar/desabilitar — ficam sempre habilitados, e `undo()`/`redo()`
+só retornam `False` em silêncio quando não há o que fazer. Não é código
+morto (há cobertura de teste real para a maioria), é uma decisão de
+produto/UX (mostrar ou não o estado do histórico na UI) que não foi tomada
+nesta rodada.
+
+**Validado:** `ast.parse` nos 7 arquivos tocados, `test_engine_backend_protocols.py` + `test_pyi_contract_matches_binary.py` +
+`test_brush_param_contract.py` isolados e a suíte completa, todos verdes no
+Windows do usuário após a remoção.
 
 ## 🟢 P2 — menor urgência
 

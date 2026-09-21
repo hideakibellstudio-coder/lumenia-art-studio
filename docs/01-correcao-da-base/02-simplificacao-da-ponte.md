@@ -125,6 +125,18 @@ que é o que de fato quebra.
 A tabela precisa marcar explicitamente quais são só-escrita, senão a unificação
 introduz perda de estado.
 
+> **Feito (encontrado em 2026-09-20, terceira rodada):** este passo já estava
+> implementado antes desta sessão — `ui/engine_backends/brush_param_table.py`
+> (commit `23900cc`, fases de solidificação R1-R5) declara `TABELA` e
+> `PARAMS_POR_METODO` uma única vez; `get_brush_profile_dict` e
+> `apply_brush_preset_dict` (`aladyn_brush_profiles.py`) derivam dela, sem
+> lista própria. O próprio módulo documenta a assimetria acima como já
+> corrigida ("`scatter_radius` e `jitter_opacity` eram escritas num destino
+> que o motor não tem, e `blend_mode` era lido de um dicionário que nunca o
+> produzia"). `tests/test_brush_param_contract.py` verifica a tabela contra
+> o módulo compilado (mesmo espírito do passo 1) e passa. Nenhum trabalho
+> restante identificado para este passo.
+
 ### Passo 3 — Alinhar o contrato aos mixins que já existem
 
 `EngineBackend` tem 152 métodos numa classe só. Os mixins **já** definem o
@@ -152,9 +164,22 @@ em vez de falhar — o oposto da filosofia do resto do projeto.
 não há contexto, e os métodos chamam sem guardar.
 *Risco:* menor. Falha alto, no lugar certo, com mensagem.
 
-**Recomendação: (b).** Ela remove a repetição sem trocar erro por silêncio. E
-depois do passo 1, os `hasattr` somem de graça, porque o contrato passa a ser
-garantido.
+**Recomendação: (b).** Ela remove a repetição sem trocar erro por silêncio.
+
+> **Correção (2026-09-20, terceira rodada):** a frase original aqui dizia que
+> "depois do passo 1, os `hasattr` somem de graça, porque o contrato passa a
+> ser garantido" — isso não se confirmou. Os 12 `hasattr(self._facade,
+> "metodo")` restantes (ver `01-pendencias-atuais.md`) foram investigados um
+> a um e são fallback deliberado para `.pyd` compilado desatualizado, não
+> dívida de contrato — o próprio `tests/test_stroke_characterization.py`
+> documenta o caminho `facade` legado como "fallback para builds nativas
+> antigas" e mede os dois caminhos de propósito. O teste `.pyi`×binário do
+> passo 1 garante que o *contrato* bate com o binário *no momento do teste*,
+> não que o binário de quem está rodando o código já foi recompilado — por
+> isso esses 12 guards continuam necessários e foram mantidos. O `_exigir_facade()`
+> descrito acima continua válido como recomendação para o padrão `if
+> self._facade:` (checagem de documento aberto), que é um problema
+> diferente e não foi remedido nesta rodada.
 
 ---
 
@@ -177,8 +202,8 @@ a capacidade de trocar o motor — que é um dos pilares do projeto.
 | passo | custo | pronto quando | status |
 | :--- | :--- | :--- | :--- |
 | 1. verificar o contrato | ~40 linhas | o teste passa e o `.pyi` bate com o `.pyd` | ✅ feito 2026-09-20 |
-| 2. tabela de pincel | médio | as 4 listas viram 1, e o teste de caracterização segue verde | em aberto |
+| 2. tabela de pincel | médio | as 4 listas viram 1, e o teste de caracterização segue verde | ✅ já estava feito (achado 2026-09-20) |
 | 3. protocolos por papel | mecânico | cada papel tem teste próprio sem backend completo | ✅ feito 2026-09-20 |
-| 4. entrada única do facade | médio | `hasattr(self._facade` chega a zero | em aberto |
+| 4. entrada única do facade | médio | `hasattr(self._facade` chega a zero | corrigido: os 12 restantes são fallback legítimo, não vão a zero (ver nota acima) |
 
 Nenhum deles adiciona funcionalidade. Os quatro **removem** código.

@@ -43,6 +43,36 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-20 — Guardas `hasattr` fechados, tabela de pincel confirmada, `EngineBackend` 178 → 172 (quarta rodada)
+**O que foi feito:** três itens P1 investigados e fechados na mesma
+sessão: (1) os 12 `hasattr(self._facade, ...)` restantes foram
+investigados um a um — 11 são fallback legítimo para `.pyd` desatualizado
+(documentado pelo próprio `test_stroke_characterization.py`), mantidos
+como estão por decisão do usuário; (2) a unificação da tabela de parâmetros
+de pincel (Passo 2 de `02-simplificacao-da-ponte.md`) já estava
+implementada antes desta sessão (`brush_param_table.py`, commit
+`23900cc`) — documentação corrigida, nenhum código novo; (3) os 178
+métodos de `EngineBackend` foram varridos por uso real (regex contra
+`ui/`, `plugins/`, `tests/`, após o Navigator se mostrar insuficiente
+para esta análise), achando 6 métodos genuinamente mortos/duplicados
+(`set_group_pass_through`, `set_canvas_grain_enabled`,
+`set_brush_grain_invert`, `get_selection_contour_segments`,
+`replace_document_context`, `get_nearest_primary_grid_curve`), removidos
+de `backend.py`, `backend_protocols.py` e dos mixins correspondentes
+(178 → 172 métodos). Nenhum símbolo do binário C++ nativo foi tocado.
+**Base:** `01-correcao-da-base/01-pendencias-atuais.md` (itens P1,
+seções "Guardas hasattr" e "EngineBackend") e
+`01-correcao-da-base/02-simplificacao-da-ponte.md` (passos 2 e 4).
+**Objetivo original daqueles documentos:** fechar as pendências P1 da
+fase de correção da base restantes, com evidência medida em vez de
+suposição, antes de mudar de área de foco.
+
+
+> Toda entrada nova vai no topo. Formato: data, o que foi feito, por que
+> agora, em qual documento (deste `docs/` ou do Claude Project) isso estava
+> descrito, e qual era o objetivo declarado daquele documento. Não apague
+> entradas antigas — este arquivo é o rastro de decisão do projeto.
+
 ### 2026-09-20 — CI restaurada, teste de regressão `.pyi` e `EngineBackend` dividido em protocolos
 **O que foi feito:** três itens P0/P1 da rodada de auditoria aplicados: (1)
 `.github/workflows/ci.yml` criado (jobs `windows` e `windows-avx2`,

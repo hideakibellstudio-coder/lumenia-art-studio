@@ -115,14 +115,16 @@ class ToolCursorRenderer:
 
         hotspots = {
             "eyedropper": (2, 22),
+            "eyedrop": (2, 22),
             "bucket": (4, 20),
             "eraser": (6, 20),
             "wand": (2, 2),
             "move": (12, 12),
             "transform": (12, 12),
         }
-        hot_x, hot_y = hotspots.get(icon_name, (0, 0))
-        icon = get_icon(icon_name, "text_main", QtCore.QSize(size, size))
+        resolved_icon = "eyedrop" if icon_name in ("eyedrop", "eyedropper") else icon_name
+        hot_x, hot_y = hotspots.get(icon_name, hotspots.get(resolved_icon, (0, 0)))
+        icon = get_icon(resolved_icon, "text_main", QtCore.QSize(size, size))
         pixmap = icon.pixmap(size, size)
         if pixmap.isNull():
             cursor = QtGui.QCursor(QtCore.Qt.ArrowCursor)

@@ -261,6 +261,7 @@ ALIASES = {
     "selection_lasso": "lasso",
     "shapes_tool": "shapes",
     "text_tool": "text",
+    "eyedropper": "eyedrop",
     "zoom_reset": "reset",
     "fit_screen": "zoom_fit",
     "edit": "pencil",

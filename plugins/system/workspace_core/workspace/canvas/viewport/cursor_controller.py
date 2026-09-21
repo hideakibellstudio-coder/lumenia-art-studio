@@ -64,10 +64,18 @@ class CanvasCursorController:
         canvas_pt = self._cached_inv_transform.map(pos)
         return (0.0 <= canvas_pt.x() <= float(cw)) and (0.0 <= canvas_pt.y() <= float(ch))
 
+    def invalidate_cursor_cache(self) -> None:
+        """Invalida o cache de formato para forçar re-sincronização na próxima atualização."""
+        self._current_shape = None
+
     def _set_widget_cursor(self, cursor: QtGui.QCursor | QtCore.Qt.CursorShape) -> None:
-        """Aplica o cursor ao widget evitando chamadas redundantes ao Win32."""
+        """Aplica o cursor ao widget evitando chamadas redundantes ao Win32, conferindo sincronismo real."""
         if self._current_shape == cursor:
-            return
+            actual = self.widget.cursor()
+            if isinstance(cursor, QtCore.Qt.CursorShape) and actual.shape() == cursor:
+                return
+            elif isinstance(cursor, QtGui.QCursor) and actual == cursor:
+                return
         self._current_shape = cursor
         self.widget.setCursor(cursor)
 
@@ -85,15 +93,17 @@ class CanvasCursorController:
         active_tool = getattr(w, "active_tool", "brush")
         mode = self.cursor_settings.get("mode", "ring_and_dot")
 
-        if active_tool in ("brush", "eraser"):
+        if active_tool in ("brush", "eraser", "smudge"):
             if mode == "system":
                 self._set_widget_cursor(QtCore.Qt.ArrowCursor)
             else:
                 self._set_widget_cursor(QtCore.Qt.BlankCursor)
-        elif active_tool in ("eyedropper", "bucket", "wand", "transform"):
+        elif active_tool in ("eyedrop", "eyedropper", "bucket", "wand", "transform"):
             self._set_widget_cursor(ToolCursorRenderer.create_custom_cursor(active_tool))
-        elif active_tool in ("lasso", "rect_select", "ellipse_select"):
+        elif active_tool in ("lasso", "rect_select", "ellipse_select", "shapes") or active_tool.startswith("shape_"):
             self._set_widget_cursor(QtCore.Qt.CrossCursor)
+        elif active_tool == "text":
+            self._set_widget_cursor(QtCore.Qt.IBeamCursor)
         else:
             self._set_widget_cursor(QtCore.Qt.ArrowCursor)
 
@@ -157,7 +167,7 @@ class CanvasCursorController:
 
         w = self.widget
         active_tool = getattr(w, "active_tool", "brush")
-        if active_tool in ("brush", "eraser") and not is_drawing:
+        if active_tool in ("brush", "eraser", "smudge") and not is_drawing:
             # Se não está nem estava sobre o canvas, não há anel geométrico a redesenhar
             if not now_over and not was_over:
                 return None
@@ -191,7 +201,7 @@ class CanvasCursorController:
     def render(self, painter: QtGui.QPainter, brush_radius: float, zoom: float, is_drawing: bool) -> None:
         """Renderiza o cursor flutuante personalizado (anel/ponto/mira) SOMENTE se estiver sobre o canvas."""
         active_tool = getattr(self.widget, "active_tool", "brush")
-        if self.cursor_in_viewport and self._is_over_canvas and active_tool in ("brush", "eraser"):
+        if self.cursor_in_viewport and self._is_over_canvas and active_tool in ("brush", "eraser", "smudge"):
             ToolCursorRenderer.render_cursor(
                 painter,
                 self.mouse_pos.x(),

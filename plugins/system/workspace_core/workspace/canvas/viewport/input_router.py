@@ -119,11 +119,13 @@ class CanvasInputRouter:
         if (button == QtCore.Qt.RightButton and (modifiers & QtCore.Qt.AltModifier)) or (button == QtCore.Qt.LeftButton and (modifiers & QtCore.Qt.ControlModifier) and (modifiers & QtCore.Qt.AltModifier)):
             w.is_zoom_dragging = True
             w.zoom_drag_start_pos = pos
+            w.setCursor(QtCore.Qt.SizeVerCursor)
             return
 
         if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and (modifiers & QtCore.Qt.ShiftModifier)):
             w.is_panning = True
             w.last_mouse_pos = pos
+            w.setCursor(QtCore.Qt.ClosedHandCursor)
             return
 
         if button == QtCore.Qt.LeftButton:
@@ -226,6 +228,11 @@ class CanvasInputRouter:
 
         if w.is_zoom_dragging:
             w.is_zoom_dragging = False
+            w.unsetCursor()
+            if hasattr(w, "cursor_ctrl"):
+                w.cursor_ctrl.invalidate_cursor_cache()
+            if hasattr(w, "_update_cursor_shape"):
+                w._update_cursor_shape()
             return
         if w.transform_ctrl.active and w.transform_ctrl.handle_dragged and button == QtCore.Qt.LeftButton:
             w.transform_ctrl.handle_dragged = None
@@ -261,7 +268,13 @@ class CanvasInputRouter:
                     w.backend.set_engine_type(self._previous_engine_type)
                 self._previous_engine_type = None
         elif button in (QtCore.Qt.MiddleButton, QtCore.Qt.LeftButton):
-            w.is_panning = False
+            if w.is_panning:
+                w.is_panning = False
+                w.unsetCursor()
+                if hasattr(w, "cursor_ctrl"):
+                    w.cursor_ctrl.invalidate_cursor_cache()
+                if hasattr(w, "_update_cursor_shape"):
+                    w._update_cursor_shape()
 
     def update_transform_cursor(self, handle_name: Optional[str]):
         w: "RenderWidget" = self.widget

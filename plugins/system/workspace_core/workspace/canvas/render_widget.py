@@ -69,7 +69,8 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self.cursor_ctrl = CanvasCursorController(self)
         self.tool_mgr = ToolManager(self)
 
-        self.active_tool, self.drawing, self.brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
+        self.active_tool, self.drawing, self._brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
+        self._cached_brush_radius = 30.0
         self.is_panning, self.is_zoom_dragging = False, False
         self.last_mouse_pos, self.zoom_drag_start_pos = QtCore.QPointF(), QtCore.QPointF()
         self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
@@ -140,6 +141,24 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     def sync_brush_radius(self): CanvasStrokePipeline.sync_brush_radius(self)
     @property
     def current_brush_radius(self) -> float: return CanvasStrokePipeline.get_current_brush_radius(self)
+    @property
+    def brush_size(self) -> float:
+        return getattr(self, "_brush_size", 60.0)
+    @brush_size.setter
+    def brush_size(self, val: float) -> None:
+        new_val = max(0.5, float(val))
+        if abs(getattr(self, "_brush_size", 0.0) - new_val) < 1e-4:
+            return
+        old_radius = getattr(self, "_cached_brush_radius", 12.0)
+        self._brush_size = new_val
+        new_radius = new_val / 2.0
+        self._cached_brush_radius = new_radius
+        if getattr(self, "_cursor_in_viewport", False) and hasattr(self, "_mouse_pos") and hasattr(self, "zoom"):
+            pos = self._mouse_pos
+            from ..renderers.tool_cursor_renderer import ToolCursorRenderer
+            r_old = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), old_radius, self.zoom)
+            r_new = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), new_radius, self.zoom)
+            self.update(r_old.united(r_new))
     def start_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0):
         CanvasStrokePipeline.start_stroke(self, screen_x, screen_y, pressure, timestamp)
     def paint_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0):

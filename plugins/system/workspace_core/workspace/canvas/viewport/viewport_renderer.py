@@ -114,7 +114,7 @@ class ViewportRenderer:
 
             t_cur_0 = time.perf_counter()
             should_hide = widget.drawing and widget._cursor_settings.get("hide_on_stroke", False)
-            if widget._cursor_in_viewport and not should_hide and widget.active_tool in ("brush", "eraser"):
+            if widget._cursor_in_viewport and not should_hide and widget.active_tool in ("brush", "eraser", "smudge"):
                 cur_rect = ToolCursorRenderer.get_cursor_rect(
                     widget._mouse_pos.x(), widget._mouse_pos.y(), widget.current_brush_radius, widget.zoom
                 )

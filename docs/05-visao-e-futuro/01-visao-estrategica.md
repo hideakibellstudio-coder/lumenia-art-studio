@@ -89,7 +89,7 @@ Até o momento presente, o projeto já consolidou avanços extraordinários que 
 6. **Release Comercial Standalone Pronto (F-016)**:
    - Executável portátil autônomo compilado via Nuitka com MSVC C++20, manifesto criptográfico SHA-256 e instalador oficial Inno Setup (apenas ~55 MB, sem dependências externas).
 7. **Saneamento Total e Ambiente Limpo**:
-   - Eliminação de mais de 3.4 GB de arquivos temporários e caches, estruturando um repositório limpo de apenas **6.95 MB** com compilação *Out-of-Tree*.
+   - Eliminação de mais de 3.4 GB de arquivos temporários e caches durante o saneamento inicial, mantendo um repositório enxuto de aproximadamente **12 MB** (`du`, sem contar `.git/` nem `build/`, que nunca fazem parte de uma distribuição) com compilação *Out-of-Tree*. O número subiu frente aos 6.95 MB medidos logo após o saneamento original à medida que assets, testes e o binário nativo compilado foram adicionados ao longo do desenvolvimento; o essencial do saneamento (sem cache, sem artefatos de build versionados) permanece.
 
 ---
 
@@ -103,7 +103,7 @@ O objetivo final do **Lumenia** é consolidar-se como o **ambiente de criação 
   [FASE 1: FUNDAÇÃO]             [FASE 2: CONSOLIDAÇÃO]          [FASE 3: DOMÍNIO CRIATIVO]
   ✅ Motor C++20 Aladyn           ✅ Release Comercial (Inno)     ⏳ Buffers 16-bit / Float
   ✅ Shell UI & MDI              ✅ Gestão de Cor LittleCMS      ⏳ Shaders GPU (WebGPU/Vulkan)
-  ✅ 390 Testes Verdes           ✅ Saneamento (6.95 MB)         ⏳ Pincéis de Aquarela Físicos
+  ✅ 390 Testes Verdes           ✅ Saneamento (~12 MB s/ .git)  ⏳ Pincéis de Aquarela Físicos
   ✅ Arquitetura ARCcC           ✅ Out-of-Tree Build            ⏳ Assistência Vetorial Suave
   ───────────────────────        ────────────────────────        ─────────────────────────
       "O Motor Funciona"             "O Produto é Sólido"            "A Ferramenta Definitiva"
@@ -122,7 +122,7 @@ Alcançar simulações físicas de materiais de desenho que rivalizem com mídia
 - **Smudge Realista**: Mistura física de pigmentos que respeita a física de cor espectral (sem o aspecto "acinzentado" ou "borrado digital" de softwares comuns).
 
 ### 3. Pipeline de Cor e Profundidade de Grau de Cinema
-Evoluir os buffers nativos do ALADYN de 8 bits para **16 bits lineares e ponto flutuante de 32 bits (Float HDR)**, conforme delineado no roadmap técnico (`docs/COLOR_PIPELINE_ARCHITECTURE.md`). Isso garantirá gradientes sem *banding* e preparará o software para a era dos monitores OLED HDR e fluxos de trabalho para a indústria de animação e jogos AAA.
+Evoluir os buffers nativos do ALADYN de 8 bits para **16 bits lineares e ponto flutuante de 32 bits (Float HDR)**, conforme delineado no roadmap técnico (`docs/05-visao-e-futuro/02-pipeline-de-cor-16bit.md`). Isso garantirá gradientes sem *banding* e preparará o software para a era dos monitores OLED HDR e fluxos de trabalho para a indústria de animação e jogos AAA.
 
 ### 4. O Software do Artista, Não da Corporação
 - Distribuição comercial justa, direta e perpétua (ex: no itch.io, Gumroad ou site próprio).
@@ -143,7 +143,7 @@ Com a base limpa, o histórico Git preservado e o repositório indexado no ARCcC
 2. **Expansão do Motor de Pincéis e Texturas**:
    - Calibrar os mini-motores de pintura (Óleo Impasto e Aquarela) para utilizar o novo pipeline de cor.
 3. **Implementação do Pipeline 16-bit**:
-   - Iniciar os primeiros passos do roadmap de `docs/COLOR_PIPELINE_ARCHITECTURE.md` para buffers nativos `uint16_t`.
+   - Iniciar os primeiros passos do roadmap de `docs/05-visao-e-futuro/02-pipeline-de-cor-16bit.md` para buffers nativos `uint16_t`.
 
 ---
 

@@ -53,4 +53,15 @@ O **Lumenia Art Studio** é uma aplicação desktop profissional para ilustraç�
 
 ### C. Recuperação de Falhas e Autosave em Background
 - O `DocumentManager` monitora continuamente o estado sujo (*dirty*) dos documentos.
-- Sessões inesperadamente interrompidas são recuperadas com base em transações atômicas seguras em arquivos de backup temporários `.lmn.bak`.\n
+- Sessões inesperadamente interrompidas são recuperadas com base em transações atômicas seguras em arquivos de backup temporários `.lmn.bak`.
+
+---
+
+## 🧭 3. Camada de Controle e Coordenação
+
+Entre o Shell Qt e o backend do motor nativo, a camada de controle concentra a lógica que não pertence nem à apresentação visual nem ao núcleo C++:
+
+- **`PluginManager`** (`ui/core/plugins/manager.py`): Ciclo de vida, injeção de `PluginContext` e resolução de dependências por ordenação topológica (DFS) — ver `architecture/PLUGIN_SUBSYSTEM.md`.
+- **`LocalLayerManager`** (`ui/core/document/layer_manager.py`): Ordem de pilha, grupos, *merge down* e a camada de papel (Camada 0) — ver `architecture/DOCUMENT_MODEL.md`.
+- **`AladynSelectionMixin`** / **`AladynTransformMixin`** (`ui/engine_backends/`): Delegam ao motor nativo as máscaras de seleção com operações booleanas e as matrizes de transformação afim/bicúbica — ver `architecture/ARCcC_FRAMEWORK.md`.
+- **`DocumentHistory`** (`ui/core/document/history.py`): Undo/redo com histórico transacional paginado em disco.

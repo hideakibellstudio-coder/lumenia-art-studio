@@ -38,4 +38,24 @@ Localizado em `ui/core/document/history.py`:
   - Passos de desfazer/refazer que envolvem buffers de alta resolução são paginados em blocos binários em disco temporário.
   - Cada bloco armazena tamanho e checksum de integridade.
   - O offset zero é tratado rigorosamente como válido.
-  - Em caso de falha de I/O ou disco cheio, o sistema aborta o passo de forma limpa, preserva os buffers em memória RAM e emite notificação explícita na interface ("Falha ao gravar histórico: disco cheio").\n
+  - Em caso de falha de I/O ou disco cheio, o sistema aborta o passo de forma limpa, preserva os buffers em memória RAM e emite notificação explícita na interface ("Falha ao gravar histórico: disco cheio").
+
+---
+
+## 🗂️ 4. Pilha de Camadas: Grupos e Merge Down
+
+Exemplo de árvore de documento com grupos e camada de papel:
+
+```text
+CanvasDocument
+├── LayerGroup: "Background & Sketch"
+│   ├── Layer: "Paper Base (Layer 0 - Cor Fixa)"
+│   └── Layer: "Rough Sketch" (Opacity: 40%, Blend: Normal)
+└── LayerGroup: "Lineart & Colors"
+    ├── Layer: "Flat Colors" (Blend: Normal)
+    └── Layer: "Clean Ink" (Blend: Normal, Alpha Lock: On)
+```
+
+- **Grupos de Camadas**: Árvores com visibilidade recursiva — desativar um grupo oculta todos os filhos sem alterar suas propriedades individuais.
+- **Merge Down**: Mescla a camada ativa sobre a camada inferior imediata, combinando buffers através de um canal temporário de composição e preservando o histórico de undo/redo.
+- **Camada 0 (Cor de Papel)**: Camada base com renderização contínua de fundo personalizável, sem ocupar memória de bitmap rasterizado.

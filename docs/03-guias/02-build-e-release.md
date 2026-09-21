@@ -12,9 +12,49 @@ A extensão nativa é compilada com MSVC C++20 via PyBind11 utilizando o script 
 python scripts/build_native.py --simd scalar --force
 ```
 
-- **Flags de Compilação**: `/std:c++20 /O2 /W4 /EHsc /openmp`.
+- **Flags de Compilação**: `/EHsc /bigobj /std:c++20 /openmp /O2` (declaradas em `setup.py`).
 - **Artefato Gerado**: `aladyn_engine_native.cp314-win_amd64.pyd` na raiz do projeto.
 - **Manifesto de Build**: Salva o SHA-256 e timestamp em `build/native-build.json`.
+
+---
+
+## ⚙️ 1.1 Pré-requisitos
+
+- Python 3.11+ de 64 bits — a versão usada para compilar precisa ser a mesma que carregará o `.pyd` gerado (a extensão distribuída no repositório foi compilada com Python 3.14, refletido no nome do artefato `aladyn_engine_native.cp314-win_amd64.pyd`).
+- Visual Studio 2022 com **Desktop development with C++** e Windows SDK.
+- Dependências de desenvolvimento com hashes declaradas em `requirements-dev.lock`:
+
+```powershell
+python -m pip install -r requirements-dev.lock
+```
+
+### Variantes SIMD
+
+`scalar` é o artefato base compatível com processadores Windows x64 sem AVX2:
+
+```powershell
+python scripts/build_native.py --simd scalar --force
+```
+
+Em uma frota controlada que exija AVX2, gere e distribua um artefato separado:
+
+```powershell
+python scripts/build_native.py --simd avx2 --force
+```
+
+Uma variante AVX2 não deve substituir o artefato base sem uma política de detecção e seleção no instalador — essa seleção automática ainda não existe (ver nota de limitações ao final deste guia).
+
+Ao terminar, o script grava `build/native-build.json` com `python_version`, `python_abi`, `msvc_tools_version`, a variante `simd` usada e o SHA-256 (`extension_sha256`) do `.pyd`. Esse registro permite comparar o binário executado localmente ou em CI com a configuração que o produziu.
+
+### Validação
+
+```powershell
+python tests/run_all_tests.py
+python benchmarks/run_engine_benchmarks.py --output build/benchmarks/engine.json
+python main.py
+```
+
+O benchmark grava JSON com ambiente, p50/p95 de criação da fachada, traço e `refresh_display`, além dos bytes de pixels. É uma base de comparação entre máquinas e commits, não um gate com valores fixos, porque hardware e carga do sistema alteram a medida.
 
 ---
 
@@ -47,4 +87,10 @@ O script `scripts/lumenia_installer.iss` compila o executável gerado em um inst
   - Instalação no diretório `Program Files\Lumenia Art Studio`.
   - Atalhos no Desktop e Menu Iniciar.
   - Associação de arquivos de extensão `.lmn` e `.lumenia`.
-  - Desinstalador limpo registrado no Painel de Controle do Windows.\n
+  - Desinstalador limpo registrado no Painel de Controle do Windows.
+
+---
+
+## ⚠️ 4. Limitações Conhecidas
+
+Ainda não existe instalador assinado, assinatura de artefatos nem seleção automática entre variantes SIMD (`scalar`/`avx2`). Essas etapas pertencem a um futuro job de release, não a uma cópia manual do `.pyd`.

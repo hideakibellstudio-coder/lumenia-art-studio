@@ -74,7 +74,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 ## 🔒 4. AS 6 LEIS ARQUITETURAIS INVIOLÁVEIS
 
 1. **Zero Cross-Plugin Imports**: Um plugin em `plugins/` **NUNCA** importa outro plugin irmão diretamente. Comunicação entre plugins deve usar a API de plugins ou componentes compartilhados em `ui/core/`.
-2. **Isolamento de Binário C++**: É expressamente proibido importar `aladyn_engine_native` fora de `ui/engine_backends/`.
+2. **Isolamento de Binário C++**: É expressamente proibido importar `aladyn_engine_native` fora de `ui/engine_backends/`. Exceção aceita: testes de caixa-branca do motor nativo (`tests/test_lowlevel_*.py` e afins) e scripts isolados de diagnóstico/benchmark na raiz do repositório (`diag_*.py`, `benchmarks/`) podem importar o módulo diretamente — não são código que a UI executa em produção. Auditado na Fase de panorama pós-C5 (2026-09-17): 20 ocorrências, todas nessa categoria (ver `claude/panorama-leis-do-rio-pos-c5.md` no Projects).
 3. **Zero Acesso a Atributos Privados**: A UI nunca acessa `_facade` ou `_native`. Toda comunicação é mediada por métodos canônicos em `EngineBackend`.
 4. **Fonte Única de Verdade (SSOT)**: O estado do documento reside em `Document` / `LocalLayerManager` (`ui/core/document/`). Painéis e widgets de UI são apenas **Views** reativas sincronizadas por sinais Qt.
 5. **Zero Hardcode de Cores**: Sempre utilize `ThemeManager.instance().get_color(...)` ou classes de estilo QSS.

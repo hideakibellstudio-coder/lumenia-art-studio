@@ -90,11 +90,11 @@ Lumenia/
 ├── data/                    # Dados graváveis ao executar o pacote portátil
 │   └── plugins_config.json  # Preferências de plugins, com backup
 │
-├── docs/                    # Documentação Técnica Completa
-│   ├── ARCHITECTURE.md      # Arquitetura detalhada do sistema
-│   ├── MODULOS_E_PLUGINS.md # Guia de plugins e ciclo de vida
-│   ├── CANVAS_E_TRANSFORMACOES.md # Algoritmos de desenho e transformações
-│   └── GUIA_COMPILACAO_E_PORTABILIDADE.md # Compilação e PyInstaller
+├── docs/                    # Documentação Técnica Completa (ver docs/README.md)
+│   ├── architecture/        # Arquitetura, engine nativo, modelo de documento, plugins
+│   ├── guides/               # Guia do desenvolvedor, build/release, testes, Navigator
+│   ├── specifications/       # Formato .lmn e gestão de cor
+│   └── audit/                # Relatórios de auditoria e encerramento
 │
 └── aladyn_engine_native.pyd # Binário C++20 compilado (Windows x64)
 ```

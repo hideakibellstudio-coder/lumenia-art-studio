@@ -1,6 +1,6 @@
 # Auditoria de Endurecimento Pre-Fase 3 (F-017 a F-031)
 
-Continuacao de `docs/audit/AUDIT_CLOSURE_REPORT.md` (F-001 a F-016, todas RESOLVIDAS).
+Continuacao de `docs/historico/auditoria-f001-f016-encerramento.md` (F-001 a F-016, todas RESOLVIDAS).
 
 > **Descoberta principal desta auditoria:** por varias rodadas, o `verify` do
 > ARCcC-Navigator apontou 127 e depois 67843 "suspeitas" no motor C++. Nenhuma

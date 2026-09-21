@@ -34,6 +34,13 @@ O pipeline de soft-proofing simula em tempo real no monitor como a pintura será
 
 ## 🚀 3. Roadmap para Buffers Nativos de 16-bit e Float
 
-Consulte o documento completo em [`docs/COLOR_PIPELINE_ARCHITECTURE.md`](../COLOR_PIPELINE_ARCHITECTURE.md) para a especificação do plano de evolução dos buffers internos do C++:
+Consulte o documento completo em [`docs/05-visao-e-futuro/02-pipeline-de-cor-16bit.md`](../05-visao-e-futuro/02-pipeline-de-cor-16bit.md) para a especificação do plano de evolução dos buffers internos do C++:
 - Transição de `uint8_t[4]` (RGBA8) para `uint16_t[4]` (RGBA16 linear) e `float[4]` (RGBA32F HDR).
-- Eliminação definitiva de *color banding* em gradientes suaves e pintura com pincéis de baixa opacidade.\n
+- Eliminação definitiva de *color banding* em gradientes suaves e pintura com pincéis de baixa opacidade.
+
+---
+
+## 🎯 4. Simulador de Daltonismo & Lupa HUD
+
+- **Simulador de Daltonismo**: Transformação de espectro baseada no modelo de Brettel para Protanopia (cegueira ao vermelho), Deuteranopia (verde) e Tritanopia (azul), aplicada em tempo real ao canvas para prova de acessibilidade cromática.
+- **Lupa HUD (4x Loupe)**: Extração de submatriz $7 \times 7$ ao redor do cursor com ampliação bicúbica e anel concêntrico de contraste, usada pelo conta-gotas para leitura precisa de pixel.

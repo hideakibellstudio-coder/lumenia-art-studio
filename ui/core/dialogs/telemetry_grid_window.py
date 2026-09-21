@@ -16,6 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.engine.registry import EngineRegistry
+from ui.core.theme.manager import ThemeManager
 from ui.core.widgets.pipeline_bar import PipelineBar
 from ui.core.widgets.metric_card import GridMetricCard
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
@@ -23,6 +24,7 @@ from ui.core.dialogs.telemetry_grid_report import (
     TelemetryStateHistoryDialog,
     TelemetryReportGenerator,
 )
+from ui.core.icons import get_icon
 
 __all__ = ["GridMetricCard", "TelemetryGridWindow"]
 
@@ -45,7 +47,7 @@ class TelemetryGridWindow(BaseFramelessDialog):
         self._apply_stay_on_top(True)
         self._init_state_tracking()
         self._record_state_transition(
-            new_state="✅ PIPELINE EQUILIBRADO (< 2ms)",
+            new_state="PIPELINE EQUILIBRADO (< 2ms)",
             state_key="PIPELINE_EQUILIBRADO",
             cause="Inicialização do Cockpit de Telemetria",
         )
@@ -60,7 +62,7 @@ class TelemetryGridWindow(BaseFramelessDialog):
 
     def _init_state_tracking(self) -> None:
         self._current_state_key = "PIPELINE_EQUILIBRADO"
-        self._current_state_str = "✅ PIPELINE EQUILIBRADO (< 2ms)"
+        self._current_state_str = "PIPELINE EQUILIBRADO (< 2ms)"
         self._state_history: list[dict[str, str]] = []
         self._state_counts: dict[str, int] = {
             "PIPELINE_EQUILIBRADO": 1, "GARGALO_RASTER": 0, "GARGALO_BLIT": 0,
@@ -103,28 +105,32 @@ class TelemetryGridWindow(BaseFramelessDialog):
         lo = self.content_layout
         lo.setContentsMargins(14, 8, 14, 12)
         lo.setSpacing(8)
+        tm = ThemeManager.instance()
+        c_success = tm.get_color("SUCCESS", "#34d399")
 
         # Barra de Controles do Topo
         ctrl_bar = QtWidgets.QHBoxLayout()
         ctrl_bar.setSpacing(8)
 
-        self.lbl_status_pill = QtWidgets.QLabel("🟢 CAPTURA ATIVA (60 FPS)")
-        self.lbl_status_pill.setStyleSheet("""
-            background-color: rgba(16, 185, 129, 0.15); color: #34d399;
+        self.lbl_status_pill = QtWidgets.QLabel(f"<span style='color:{c_success}'>\u25CF</span> CAPTURA ATIVA (60 FPS)")
+        self.lbl_status_pill.setStyleSheet(f"""
+            background-color: rgba(16, 185, 129, 0.15); color: {c_success};
             font-size: 10px; font-weight: bold; padding: 4px 8px;
             border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);
         """)
         ctrl_bar.addWidget(self.lbl_status_pill)
         ctrl_bar.addStretch()
 
+        text_main = tm.get_color("text_main")
         btns = [
-            ("btn_pin", "📌 Sempre no Topo: SIM", self._on_toggle_pin, True),
-            ("btn_reset", "🔄 Resetar Métricas", self._on_reset_metrics, False),
-            ("btn_copy", "📋 Copiar Relatório", self._on_copy_report, False),
-            ("btn_clear_undo", "🧹 Limpar Undo", self._on_clear_undo, False),
+            ("btn_pin", "pin", "Sempre no Topo: SIM", self._on_toggle_pin, True),
+            ("btn_reset", "reset", "Resetar Métricas", self._on_reset_metrics, False),
+            ("btn_copy", "copy", "Copiar Relatório", self._on_copy_report, False),
+            ("btn_clear_undo", "trash", "Limpar Undo", self._on_clear_undo, False),
         ]
-        for attr, text, slot, is_bold in btns:
+        for attr, icon_name, text, slot, is_bold in btns:
             b = QtWidgets.QPushButton(text)
+            b.setIcon(get_icon(icon_name, text_main))
             b.setCursor(QtCore.Qt.PointingHandCursor)
             b.setFixedHeight(26)
             b.setStyleSheet(f"font-size: 10px; {'font-weight: bold; ' if is_bold else ''}padding: 2px 10px;")
@@ -134,15 +140,15 @@ class TelemetryGridWindow(BaseFramelessDialog):
         lo.addLayout(ctrl_bar)
 
         # Banner de Diagnóstico
-        self.lbl_bottleneck = QtWidgets.QLabel("✅ PIPELINE EQUILIBRADO (< 2ms)")
+        self.lbl_bottleneck = QtWidgets.QLabel("PIPELINE EQUILIBRADO (< 2ms)")
         self.lbl_bottleneck.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_bottleneck.setFixedHeight(24)
         self.lbl_bottleneck.setCursor(QtCore.Qt.PointingHandCursor)
         self.lbl_bottleneck.setToolTip("Clique para visualizar o Histórico de Alterações de Estado.")
         self.lbl_bottleneck.mousePressEvent = lambda e: self._show_state_history_dialog()
-        self.lbl_bottleneck.setStyleSheet("""
-            background-color: rgba(16, 185, 129, 0.15); color: #34d399;
-            border: 1px solid #10b981; border-radius: 4px; font-size: 10px;
+        self.lbl_bottleneck.setStyleSheet(f"""
+            background-color: rgba(16, 185, 129, 0.15); color: {c_success};
+            border: 1px solid {c_success}; border-radius: 4px; font-size: 10px;
             font-weight: bold; letter-spacing: 0.5px;
         """)
         lo.addWidget(self.lbl_bottleneck)
@@ -152,13 +158,20 @@ class TelemetryGridWindow(BaseFramelessDialog):
         self.pipeline_bar.setFixedHeight(14)
         lo.addWidget(self.pipeline_bar)
 
+        c_stage_kin = tm.get_color("TELEMETRY_STAGE_KINEMATICS", "#38bdf8")
+        c_stage_int = tm.get_color("TELEMETRY_STAGE_INTERPOLATION", "#facc15")
+        c_stage_dab = tm.get_color("TELEMETRY_STAGE_RASTER", "#f97316")
+        c_stage_und = tm.get_color("TELEMETRY_STAGE_UNDO", "#a855f7")
+        c_stage_cmp = tm.get_color("TELEMETRY_STAGE_COMPOSITOR", "#22c55e")
+        c_stage_blt = tm.get_color("TELEMETRY_STAGE_BLIT", "#ec4899")
+
         self.lbl_legend = QtWidgets.QLabel(
-            "<span style='color:#38bdf8'>■</span> Cinemática &nbsp;&nbsp;"
-            "<span style='color:#facc15'>■</span> Interpolação &nbsp;&nbsp;"
-            "<span style='color:#f97316'>■</span> RasterDab &nbsp;&nbsp;"
-            "<span style='color:#a855f7'>■</span> Gravação Undo &nbsp;&nbsp;"
-            "<span style='color:#22c55e'>■</span> Compositor &nbsp;&nbsp;"
-            "<span style='color:#ec4899'>■</span> Apresentação Blit Qt"
+            f"<span style='color:{c_stage_kin}'>■</span> Cinemática &nbsp;&nbsp;"
+            f"<span style='color:{c_stage_int}'>■</span> Interpolação &nbsp;&nbsp;"
+            f"<span style='color:{c_stage_dab}'>■</span> RasterDab &nbsp;&nbsp;"
+            f"<span style='color:{c_stage_und}'>■</span> Gravação Undo &nbsp;&nbsp;"
+            f"<span style='color:{c_stage_cmp}'>■</span> Compositor &nbsp;&nbsp;"
+            f"<span style='color:{c_stage_blt}'>■</span> Apresentação Blit Qt"
         )
         self.lbl_legend.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_legend.setStyleSheet("font-size: 9px; font-weight: bold;")
@@ -175,26 +188,26 @@ class TelemetryGridWindow(BaseFramelessDialog):
         grid_lo.setSpacing(8)
 
         cards_spec = [
-            ("c_kin", "1. Cinemática / Dinâmica", "Filtro de caneta e velocidade", "#38bdf8", 0, 0, False, 100),
-            ("c_int", "2. Interpolação Dabs", "Espaçamento e resíduo", "#facc15", 0, 1, False, 100),
-            ("c_dab", "3. RasterDab (Shaders)", "SIMD AVX2 de ponta e papel", "#f97316", 0, 2, False, 100),
-            ("c_und", "4. Gravação de Undo", "Cópia de blocos 128x128", "#a855f7", 0, 3, False, 100),
-            ("c_cmp", "5. Compositor de Camadas", "Mesclagem SSE2 na região", "#22c55e", 1, 0, False, 100),
-            ("c_blt", "6. Apresentação Blit Qt", "QPainter.drawImage na tela", "#ec4899", 1, 1, False, 100),
-            ("c_lat", "7. Latência Total Motor", "Tempo de micro-evento C++", "#38bdf8", 1, 2, False, 100),
-            ("c_fps", "8. Taxa Real da Viewport", "Taxa efetiva de redesenho", "#10b981", 1, 3, False, 100),
+            ("c_kin", "1. Cinemática / Dinâmica", "Filtro de caneta e velocidade", c_stage_kin, 0, 0, False, 100),
+            ("c_int", "2. Interpolação Dabs", "Espaçamento e resíduo", c_stage_int, 0, 1, False, 100),
+            ("c_dab", "3. RasterDab (Shaders)", "SIMD AVX2 de ponta e papel", c_stage_dab, 0, 2, False, 100),
+            ("c_und", "4. Gravação de Undo", "Cópia de blocos 128x128", c_stage_und, 0, 3, False, 100),
+            ("c_cmp", "5. Compositor de Camadas", "Mesclagem SSE2 na região", c_stage_cmp, 1, 0, False, 100),
+            ("c_blt", "6. Apresentação Blit Qt", "QPainter.drawImage na tela", c_stage_blt, 1, 1, False, 100),
+            ("c_lat", "7. Latência Total Motor", "Tempo de micro-evento C++", c_stage_kin, 1, 2, False, 100),
+            ("c_fps", "8. Taxa Real da Viewport", "Taxa efetiva de redesenho", c_success, 1, 3, False, 100),
             ("c_hz", "9. Frequência da Mesa", "Taxa de eventos do hardware", "#06b6d4", 2, 0, False, 100),
             ("c_dabs_sec", "10. Taxa de Carimbos", "Rendimento do rasterizador", "#f59e0b", 2, 1, False, 100),
             ("c_dabs", "11. Dabs Emitidos", "Último micro-evento", "#eab308", 2, 2, False, 100),
-            ("c_dirty", "12. Região Suja Repintada", "Bounding box atual", "#ec4899", 2, 3, False, 100),
+            ("c_dirty", "12. Região Suja Repintada", "Bounding box atual", c_stage_blt, 2, 3, False, 100),
             ("c_area", "13. Área Suja do Evento", "Superfície de pixels repintada", "#8b5cf6", 3, 0, False, 100),
             ("c_tiles", "14. Blocos Gravados / Total", "Blocos 128x128 em RAM", "#6366f1", 3, 1, False, 100),
             ("c_ram_canvas", "15. RAM do Canvas", "Memória dos tiles do documento", "#14b8a6", 3, 2, False, 100),
-            ("c_ram_undo", "16. RAM do Histórico Undo", "0 passos de desfazer", "#ec4899", 3, 3, False, 100),
+            ("c_ram_undo", "16. RAM do Histórico Undo", "0 passos de desfazer", c_stage_blt, 3, 3, False, 100),
             ("c_press", "17. Pressão Física vs Curva", "Modulada: 0 %", "#3b82f6", 4, 0, True, 100),
-            ("c_vel", "18. Velocidade do Traço", "Velocidade vetorial", "#f97316", 4, 1, True, 1500),
-            ("c_lag", "19. Lag do Estabilizador", "Distância do filtro inercial", "#a855f7", 4, 2, False, 100),
-            ("c_hw", "20. Aceleração & Mini-Motor", "Mini-motor C++ ativo", "#10b981", 4, 3, False, 100),
+            ("c_vel", "18. Velocidade do Traço", "Velocidade vetorial", c_stage_dab, 4, 1, True, 1500),
+            ("c_lag", "19. Lag do Estabilizador", "Distância do filtro inercial", c_stage_und, 4, 2, False, 100),
+            ("c_hw", "20. Aceleração & Mini-Motor", "Mini-motor C++ ativo", c_success, 4, 3, False, 100),
         ]
         self._cards = []
         for attr, title, sub, col, r, c, bar, bmax in cards_spec:
@@ -208,7 +221,8 @@ class TelemetryGridWindow(BaseFramelessDialog):
 
     def _on_toggle_pin(self) -> None:
         self._stay_on_top = not self._stay_on_top
-        self.btn_pin.setText(f"📌 Sempre no Topo: {'SIM' if self._stay_on_top else 'NÃO'}")
+        self.btn_pin.setText(f"Sempre no Topo: {'SIM' if self._stay_on_top else 'NÃO'}")
+        self.btn_pin.setIcon(get_icon("pin" if self._stay_on_top else "pin_off", ThemeManager.instance().get_color("text_main")))
         pos = self.pos()
         self._apply_stay_on_top(self._stay_on_top)
         self.move(pos)
@@ -242,7 +256,7 @@ class TelemetryGridWindow(BaseFramelessDialog):
             backend.reset_telemetry()
         self._init_state_tracking()
         self._record_state_transition(
-            new_state="✅ PIPELINE EQUILIBRADO (< 2ms)",
+            new_state="PIPELINE EQUILIBRADO (< 2ms)",
             state_key="PIPELINE_EQUILIBRADO",
             cause="Métricas e contadores resetados pelo usuário",
         )
@@ -259,6 +273,7 @@ class TelemetryGridWindow(BaseFramelessDialog):
         backend = EngineRegistry.instance().get_backend()
         if not backend:
             return
+        tm = ThemeManager.instance()
 
         vp = EngineRegistry.get_viewport_telemetry()
         blit_ms = vp.get("qt_draw_image_ms", 0.0)
@@ -312,13 +327,13 @@ class TelemetryGridWindow(BaseFramelessDialog):
         # Atualiza Cards
         self.c_kin.set_value(f"{kin_us:.1f} µs", f"{kin_us/1000.0:.3f} ms")
         self.c_int.set_value(f"{int_us:.1f} µs", f"{int_us/1000.0:.3f} ms")
-        self.c_dab.set_value(f"{dab_us:.1f} µs", f"{dab_us/1000.0:.2f} ms", color="#fb923c" if dab_us > 15000 else None)
-        self.c_und.set_value(f"{und_us:.1f} µs", f"{und_us/1000.0:.2f} ms", color="#c084fc" if und_us > 10000 else None)
+        self.c_dab.set_value(f"{dab_us:.1f} µs", f"{dab_us/1000.0:.2f} ms", color=tm.get_color("TELEMETRY_STAGE_RASTER", "#fb923c") if dab_us > 15000 else None)
+        self.c_und.set_value(f"{und_us:.1f} µs", f"{und_us/1000.0:.2f} ms", color=tm.get_color("TELEMETRY_STAGE_UNDO", "#c084fc") if und_us > 10000 else None)
         self.c_cmp.set_value(f"{cmp_us:.1f} µs", f"{cmp_us/1000.0:.2f} ms")
-        blit_col = "#f87171" if blit_ms > 16.6 else ("#fbbf24" if blit_ms > 10.0 else None)
+        blit_col = tm.get_color("DANGER_HOVER", "#f87171") if blit_ms > 16.6 else (tm.get_color("WARNING", "#fbbf24") if blit_ms > 10.0 else None)
         self.c_blt.set_value(f"{blit_ms:.2f} ms", f"{blit_us:.0f} µs na viewport", color=blit_col)
         self.c_lat.set_value(f"{lat_us:.1f} µs", f"{lat_us/1000.0:.2f} ms")
-        fps_col = "#34d399" if vp_fps >= 55 else ("#fbbf24" if vp_fps >= 30 else "#f87171")
+        fps_col = tm.get_color("SUCCESS", "#34d399") if vp_fps >= 55 else (tm.get_color("WARNING", "#fbbf24") if vp_fps >= 30 else tm.get_color("DANGER_HOVER", "#f87171"))
         self.c_fps.set_value(f"{vp_fps:.1f} FPS", "Fluidez da tela", color=fps_col)
 
         self.c_hz.set_value(f"{snap.input_event_rate_hz} Hz", "Taxa do sensor")

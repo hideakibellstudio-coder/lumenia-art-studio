@@ -11,6 +11,7 @@ from ui.core.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.i18n import tr
 from ui.core.runtime_paths import resource_path
+from ui.core.icons import get_icon
 
 
 class AboutDialog(BaseFramelessDialog):
@@ -76,15 +77,19 @@ class AboutDialog(BaseFramelessDialog):
 
         self.spec_labels = []
         specs = [
-            ("dialogs.spec_engine", "⚡ Motor Gráfico", "ALADYN Native Core (C++20 / SIMD AVX2 / TileGrid 64×64)"),
-            ("dialogs.spec_color", "🎨 Gerenciador de Cor", "Display P3, Adobe RGB, sRGB & Prova de Cores"),
-            ("dialogs.spec_brushes", "🖌️ Motores de Pincel", "Catmull-Rom Spline, Óleo/Impasto, Aquarela e Inker"),
-            ("dialogs.spec_selection", "📐 Suíte de Seleções", "Varinha Mágica, Retangular, Elíptica e Laço Poligonal"),
-            ("dialogs.spec_transform", "🔄 Transformação", "Livre com Pivô Móvel, 8 Alças & Interpolação"),
+            ("dialogs.spec_engine", "Motor Gráfico", "ALADYN Native Core (C++20 / SIMD AVX2 / TileGrid 64×64)", "zap"),
+            ("dialogs.spec_color", "Gerenciador de Cor", "Display P3, Adobe RGB, sRGB & Prova de Cores", "palette"),
+            ("dialogs.spec_brushes", "Motores de Pincel", "Catmull-Rom Spline, Óleo/Impasto, Aquarela e Inker", "brush"),
+            ("dialogs.spec_selection", "Suíte de Seleções", "Varinha Mágica, Retangular, Elíptica e Laço Poligonal", "target"),
+            ("dialogs.spec_transform", "Transformação", "Livre com Pivô Móvel, 8 Alças & Interpolação", "transform"),
         ]
 
-        for key, default, desc in specs:
+        for key, default, desc, icon_name in specs:
             row = QtWidgets.QHBoxLayout()
+            row.setSpacing(8)
+            lbl_icon = QtWidgets.QLabel()
+            lbl_icon.setFixedSize(16, 16)
+            lbl_icon.setPixmap(get_icon(icon_name).pixmap(16, 16))
             lbl_t = QtWidgets.QLabel(f"{tr(key, default)}:")
             lbl_t.setProperty("heading", "true")
             lbl_t.setMinimumWidth(135)
@@ -92,6 +97,7 @@ class AboutDialog(BaseFramelessDialog):
             lbl_d.setProperty("muted", "true")
             lbl_d.setWordWrap(True)
             self.spec_labels.append((lbl_t, key, default, lbl_d))
+            row.addWidget(lbl_icon)
             row.addWidget(lbl_t)
             row.addWidget(lbl_d, 1)
             card_lay.addLayout(row)
@@ -166,7 +172,7 @@ class AboutDialog(BaseFramelessDialog):
             }}
             QPushButton#accentButton {{
                 background-color: {accent};
-                color: #ffffff;
+                color: {text_main};
                 font-weight: 600;
                 border: none;
                 border-radius: 5px;

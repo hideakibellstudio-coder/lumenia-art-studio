@@ -252,7 +252,7 @@ class CurveSection(QtWidgets.QFrame):
             }}
             QPushButton:hover {{
                 background-color: {accent};
-                color: #ffffff;
+                color: {text};
             }}
         """)
 

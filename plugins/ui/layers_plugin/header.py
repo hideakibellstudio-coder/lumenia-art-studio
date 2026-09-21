@@ -208,6 +208,7 @@ class LayersHeader(QWidget):
         border      = tm.get_color("border",   "#374151")
         accent      = tm.get_color("accent",   "#3b82f6")
         text_primary = tm.get_color("text_main", "#f3f4f6")
+        fg_on_accent = tm.get_color("FG_PRIMARY", "#ffffff")
 
         self.slider_op.set_theme_colors(
             bg_color=bg_input,
@@ -239,7 +240,7 @@ class LayersHeader(QWidget):
                 background-color: {bg_input};
                 color: {text_primary};
                 selection-background-color: {accent};
-                selection-color: #ffffff;
+                selection-color: {fg_on_accent};
                 border: 1px solid {border};
                 outline: none;
             }}

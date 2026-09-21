@@ -20,13 +20,15 @@ class GridMetricCard(QtWidgets.QFrame):
         title: str,
         initial_val: str = "0",
         subtitle: str = "",
-        tag_color: str = "#38bdf8",
+        tag_color: str = None,
         show_bar: bool = False,
         bar_max: int = 100,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("GridMetricCard")
+        if tag_color is None:
+            tag_color = ThemeManager.instance().get_color("TELEMETRY_STAGE_KINEMATICS", "#38bdf8")
         self._tag_color = tag_color
         self._show_bar = show_bar
         self._bar_max = bar_max

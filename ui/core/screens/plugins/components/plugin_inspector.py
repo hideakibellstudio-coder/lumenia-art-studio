@@ -136,13 +136,13 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         self.btn_toggle.clicked.connect(self._on_toggle_clicked)
 
         self.btn_config = QtWidgets.QPushButton(" Configurar")
-        self.btn_config.setIcon(get_icon("settings", "#ffffff"))
+        self.btn_config.setIcon(get_icon("settings", ThemeManager.instance().get_color("FG_PRIMARY", "#ffffff")))
         self.btn_config.setIconSize(QtCore.QSize(14, 14))
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.clicked.connect(lambda: self.current_plugin and self.action_configure.emit(self.current_plugin))
 
         self.btn_delete = QtWidgets.QPushButton(" Excluir")
-        self.btn_delete.setIcon(get_icon("trash", "#ffffff"))
+        self.btn_delete.setIcon(get_icon("trash", ThemeManager.instance().get_color("FG_PRIMARY", "#ffffff")))
         self.btn_delete.setIconSize(QtCore.QSize(14, 14))
         self.btn_delete.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_delete.clicked.connect(self._on_delete_clicked)
@@ -253,17 +253,17 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         from ui.core.i18n import tr
         if is_system:
             self.btn_toggle.setText(f" {tr('plugins.filter_system', 'Sistema')}")
-            self.btn_toggle.setIcon(get_icon("lock", "#9ca3af"))
+            self.btn_toggle.setIcon(get_icon("lock", ThemeManager.instance().get_color("FG_SECONDARY", "#9ca3af")))
             self.btn_toggle.setEnabled(False)
             self.btn_toggle.setProperty("btn_type", "system")
         elif is_active:
             self.btn_toggle.setText(f" {tr('plugins.deactivate', 'Desativar')}")
-            self.btn_toggle.setIcon(get_icon("power", "#ffffff"))
+            self.btn_toggle.setIcon(get_icon("power", ThemeManager.instance().get_color("FG_PRIMARY", "#ffffff")))
             self.btn_toggle.setEnabled(True)
             self.btn_toggle.setProperty("btn_type", "deactivate")
         else:
             self.btn_toggle.setText(f" {tr('plugins.activate', 'Ativar')}")
-            self.btn_toggle.setIcon(get_icon("power", "#ffffff"))
+            self.btn_toggle.setIcon(get_icon("power", ThemeManager.instance().get_color("FG_PRIMARY", "#ffffff")))
             self.btn_toggle.setEnabled(True)
             self.btn_toggle.setProperty("btn_type", "activate")
 
@@ -344,11 +344,11 @@ class PluginDetailsInspector(QtWidgets.QFrame):
 
         self.btn_toggle.setStyleSheet(f"""
             QPushButton[btn_type="activate"] {{
-                background-color: {success}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+                background-color: {success}; color: {text_main}; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
             }}
             QPushButton[btn_type="activate"]:hover {{ background-color: #059669; }}
             QPushButton[btn_type="deactivate"] {{
-                background-color: {accent}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+                background-color: {accent}; color: {text_main}; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
             }}
             QPushButton[btn_type="deactivate"]:hover {{ background-color: {accent_hover}; }}
             QPushButton[btn_type="system"] {{
@@ -358,14 +358,14 @@ class PluginDetailsInspector(QtWidgets.QFrame):
 
         self.btn_config.setStyleSheet(f"""
             QPushButton {{
-                background-color: {accent}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+                background-color: {accent}; color: {text_main}; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
             }}
             QPushButton:hover {{ background-color: {accent_hover}; }}
         """)
 
         self.btn_delete.setStyleSheet(f"""
             QPushButton {{
-                background-color: {danger}; color: #ffffff; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
+                background-color: {danger}; color: {text_main}; border: none; border-radius: 6px; padding: 7px 10px; font-weight: bold; font-size: 11px;
             }}
             QPushButton:hover {{ background-color: {danger_hover}; }}
             QPushButton:disabled {{

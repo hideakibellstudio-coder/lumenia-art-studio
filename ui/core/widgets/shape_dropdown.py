@@ -12,6 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.icons import get_icon
 from ui.core.theme.manager import ThemeManager
+from ui.core.dialogs.base_dialog import _shadow_qcolor
 from ui.core.i18n import tr, I18nManager
 
 SHAPE_ITEMS = [
@@ -62,7 +63,7 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
 
         shadow = QtWidgets.QGraphicsDropShadowEffect(self.container)
         shadow.setBlurRadius(16)
-        shadow.setColor(QtGui.QColor(0, 0, 0, 160))
+        shadow.setColor(_shadow_qcolor(160))
         shadow.setOffset(0, 4)
         self.container.setGraphicsEffect(shadow)
 
@@ -134,20 +135,20 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
         for sid, btn in self.buttons.items():
             is_active = (sid == self._active_shape_id)
             if is_active:
-                btn.setIcon(get_icon(sid, color="#ffffff"))
+                btn.setIcon(get_icon(sid, color=text_main))
                 btn.setStyleSheet(f"""
                     QToolButton#ShapeGridButton {{
                         background-color: {accent};
                         border: 1px solid {accent};
                         border-radius: 6px;
-                        color: #ffffff;
+                        color: {text_main};
                         font-size: 9px;
                         font-weight: bold;
                         padding: 2px;
                     }}
                 """)
             else:
-                btn.setIcon(get_icon(sid, color="text_main"))
+                btn.setIcon(get_icon(sid, color=text_main))
                 btn.setStyleSheet(f"""
                     QToolButton#ShapeGridButton {{
                         background-color: rgba(255, 255, 255, 0.04);
@@ -161,7 +162,7 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
                     QToolButton#ShapeGridButton:hover {{
                         background-color: {bg_hover};
                         border-color: {accent};
-                        color: #ffffff;
+                        color: {text_main};
                     }}
                 """)
 

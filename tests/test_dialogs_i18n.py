@@ -251,24 +251,24 @@ class TestDialogsI18nRetranslation(unittest.TestCase):
             self.i18n.set_locale("en_US", is_auto=False)
             self.assertIn("Enable Telemetry Capture", panel.btn_toggle_telemetry.text())
             self.assertIn("Idle", panel.lbl_status.text())
-            self.assertEqual(diag.tabs.tabText(0), "📈 Performance")
-            self.assertEqual(diag.tabs.tabText(1), "🧠 Memory & Tiles")
+            self.assertEqual(diag.tabs.tabText(0), "Performance")
+            self.assertEqual(diag.tabs.tabText(1), "Memory & Tiles")
             self.assertEqual(diag.btn_close.text(), "Close")
 
             # ja_JP
             self.i18n.set_locale("ja_JP", is_auto=False)
             self.assertIn("テレメトリ計測を有効化", panel.btn_toggle_telemetry.text())
             self.assertIn("待機中", panel.lbl_status.text())
-            self.assertEqual(diag.tabs.tabText(0), "📈 パフォーマンス")
-            self.assertEqual(diag.tabs.tabText(1), "🧠 メモリとタイル")
+            self.assertEqual(diag.tabs.tabText(0), "パフォーマンス")
+            self.assertEqual(diag.tabs.tabText(1), "メモリとタイル")
             self.assertEqual(diag.btn_close.text(), "閉じる")
 
             # pt_BR
             self.i18n.set_locale("pt_BR", is_auto=False)
             self.assertIn("Ativar Captura de Telemetria", panel.btn_toggle_telemetry.text())
             self.assertIn("Em Espera", panel.lbl_status.text())
-            self.assertEqual(diag.tabs.tabText(0), "📈 Desempenho")
-            self.assertEqual(diag.tabs.tabText(1), "🧠 Memória & Tiles")
+            self.assertEqual(diag.tabs.tabText(0), "Desempenho")
+            self.assertEqual(diag.tabs.tabText(1), "Memória & Tiles")
             self.assertEqual(diag.btn_close.text(), "Fechar")
         finally:
             panel.deleteLater()

@@ -90,6 +90,7 @@ class TestReportDialog(BaseFramelessDialog):
         I18nManager.instance().languageChanged.connect(self._on_app_language_changed)
 
     def _build_report_ui(self) -> None:
+        tm = ThemeManager.instance()
         # ── 1. Barra Superior: Idioma & Subtítulo ───────────────────────────
         top_bar = QtWidgets.QHBoxLayout()
         top_bar.setSpacing(10)
@@ -134,7 +135,7 @@ class TestReportDialog(BaseFramelessDialog):
         self.kpi_cards = []
         kpis = [
             ("kpi_total", "Total de Testes", "110", "#3b82f6"),
-            ("kpi_pass_rate", "Taxa de Sucesso", "100%", "#10b981"),
+            ("kpi_pass_rate", "Taxa de Sucesso", "100%", tm.get_color("SUCCESS", "#10b981")),
             ("kpi_architecture", "Arquitetura ARCcC", "100% Íntegra", "#8b5cf6"),
             ("kpi_engine", "Motor ALADYN C++20", "SIMD AVX2 Ativo", "#f59e0b"),
         ]
@@ -186,7 +187,7 @@ class TestReportDialog(BaseFramelessDialog):
 
         self.btn_run = QtWidgets.QPushButton(f" {tr('test_report.run_tests', 'Executar Suíte de Testes')}")
         self.btn_run.setObjectName("accentButton")
-        self.btn_run.setIcon(get_icon("play", "#ffffff"))
+        self.btn_run.setIcon(get_icon("play", tm.get_color("FG_PRIMARY", "#ffffff")))
         self.btn_run.setIconSize(QtCore.QSize(14, 14))
         self.btn_run.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_run.clicked.connect(self._start_tests)
@@ -215,14 +216,14 @@ class TestReportDialog(BaseFramelessDialog):
     def _populate_module_table(self) -> None:
         self.table.setRowCount(0)
         modules = [
-            ("section_native", "1. Motor Nativo ALADYN C++20", "✅ APROVADO", "100% (SIMD / Tiles 64×64)"),
-            ("section_arccc", "2. Arquitetura ARCcC & Invariantes AST", "✅ APROVADO", "100% (Zero Violações)"),
-            ("section_layers", "3. Camadas & Grupos Hierárquicos", "✅ APROVADO", "100% (14 Testes)"),
-            ("section_mdi", "4. Multi-Documento MDI & Memória", "✅ APROVADO", "100% (Instâncias Isoladas)"),
-            ("section_selection", "5. Sistema de Seleção & Transformação", "✅ APROVADO", "100% (Bicúbica / Laço)"),
-            ("section_themes", "6. Sistema de Temas & Dinamismo QSS", "✅ APROVADO", "100% (4 Temas Ativos)"),
-            ("section_i18n", "7. Sistema de Internacionalização (i18n)", "✅ APROVADO", "100% (4 Catálogos)"),
-            ("section_ui", "8. Diálogos de UI & MenuBar", "✅ APROVADO", "100% (Reatividade Total)"),
+            ("section_native", "1. Motor Nativo ALADYN C++20", "APROVADO", "100% (SIMD / Tiles 64×64)"),
+            ("section_arccc", "2. Arquitetura ARCcC & Invariantes AST", "APROVADO", "100% (Zero Violações)"),
+            ("section_layers", "3. Camadas & Grupos Hierárquicos", "APROVADO", "100% (14 Testes)"),
+            ("section_mdi", "4. Multi-Documento MDI & Memória", "APROVADO", "100% (Instâncias Isoladas)"),
+            ("section_selection", "5. Sistema de Seleção & Transformação", "APROVADO", "100% (Bicúbica / Laço)"),
+            ("section_themes", "6. Sistema de Temas & Dinamismo QSS", "APROVADO", "100% (4 Temas Ativos)"),
+            ("section_i18n", "7. Sistema de Internacionalização (i18n)", "APROVADO", "100% (4 Catálogos)"),
+            ("section_ui", "8. Diálogos de UI & MenuBar", "APROVADO", "100% (Reatividade Total)"),
         ]
 
         tm = ThemeManager.instance()
@@ -240,7 +241,8 @@ class TestReportDialog(BaseFramelessDialog):
 
             item_st = QtWidgets.QTableWidgetItem(status)
             item_st.setTextAlignment(QtCore.Qt.AlignCenter)
-            item_st.setForeground(QtGui.QBrush(QtGui.QColor("#10b981")))
+            item_st.setForeground(QtGui.QBrush(QtGui.QColor(tm.get_color("SUCCESS", "#10b981"))))
+            item_st.setIcon(get_icon("check_circle", tm.get_color("SUCCESS", "#10b981")))
             self.table.setItem(row, 1, item_st)
 
             item_cov = QtWidgets.QTableWidgetItem(coverage)
@@ -270,9 +272,9 @@ class TestReportDialog(BaseFramelessDialog):
         self.btn_run.setEnabled(True)
         self.btn_run.setText(f" {tr('test_report.run_tests', 'Executar Suíte de Testes')}")
         if exit_code == 0:
-            self.txt_log.appendPlainText("\n✨ TODOS OS TESTES FORAM CONCLUÍDOS COM 100% DE SUCESSO!\n")
+            self.txt_log.appendPlainText("\nTODOS OS TESTES FORAM CONCLUÍDOS COM 100% DE SUCESSO!\n")
         else:
-            self.txt_log.appendPlainText(f"\n⚠️ Suíte finalizada com código de erro {exit_code}.\n")
+            self.txt_log.appendPlainText(f"\nSuíte finalizada com código de erro {exit_code}.\n")
 
     def _on_lang_combo_changed(self, idx: int) -> None:
         loc_id = self.combo_lang.itemData(idx)
@@ -365,7 +367,7 @@ class TestReportDialog(BaseFramelessDialog):
                 background-color: {bg_card};
                 color: {text_main};
                 selection-background-color: {accent};
-                selection-color: #ffffff;
+                selection-color: {text_main};
                 border: 1px solid {border};
             }}
             QTableWidget {{
@@ -405,12 +407,12 @@ class TestReportDialog(BaseFramelessDialog):
             }}
             QPushButton:hover {{
                 background-color: {accent};
-                color: #ffffff;
+                color: {text_main};
                 border-color: {accent};
             }}
             QPushButton#accentButton {{
                 background-color: {accent};
-                color: #ffffff;
+                color: {text_main};
                 border: none;
                 border-radius: 6px;
                 padding: 6px 16px;

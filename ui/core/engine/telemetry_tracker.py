@@ -28,7 +28,7 @@ class TelemetryTracker:
 
     def __init__(self) -> None:
         self._current_state_key = "PIPELINE_EQUILIBRADO"
-        self._current_state_str = "✅ PIPELINE EQUILIBRADO (< 2ms)"
+        self._current_state_str = "PIPELINE EQUILIBRADO (< 2ms)"
         self._state_history: list[dict[str, str]] = []
         self._state_counts: dict[str, int] = {
             "PIPELINE_EQUILIBRADO": 1,
@@ -62,7 +62,7 @@ class TelemetryTracker:
         self._last_vp: dict = {}
 
         self.record_state_transition(
-            new_state="✅ PIPELINE EQUILIBRADO (< 2ms)",
+            new_state="PIPELINE EQUILIBRADO (< 2ms)",
             state_key="PIPELINE_EQUILIBRADO",
             cause="Inicialização do Sistema de Telemetria",
         )
@@ -109,7 +109,7 @@ class TelemetryTracker:
             "GARGALO_COMPOSITOR": 0,
         }
         self.record_state_transition(
-            new_state="✅ PIPELINE EQUILIBRADO (< 2ms)",
+            new_state="PIPELINE EQUILIBRADO (< 2ms)",
             state_key="PIPELINE_EQUILIBRADO",
             cause="Métricas e contadores resetados pelo usuário",
         )
@@ -184,23 +184,23 @@ class TelemetryTracker:
 
         # Avaliação de diagnóstico
         if blit_ms > 16.6:
-            new_state = "⚠️ GARGALO EM TELA: APRESENTAÇÃO QT BLIT LENTO (> 16ms / < 60 FPS)"
+            new_state = "GARGALO EM TELA: APRESENTAÇÃO QT BLIT LENTO (> 16ms / < 60 FPS)"
             state_key = "GARGALO_BLIT"
             cause = f"Apresentação Viewport Qt ({blit_ms:.2f} ms > 16.6 ms / fluidez abaixo de 60 FPS)"
         elif dab_us > 15000.0:
-            new_state = "⚠️ GARGALO EM RASTER: PINCEL GRANDE (> 15ms / CPU SATURADA)"
+            new_state = "GARGALO EM RASTER: PINCEL GRANDE (> 15ms / CPU SATURADA)"
             state_key = "GARGALO_RASTER"
             cause = f"Rasterização de Dabs ({dab_us:.1f} µs | {dab_us/1000.0:.2f} ms > 15 ms / pincel largo)"
         elif und_us > 10000.0:
-            new_state = "⚠️ GARGALO EM UNDO: MUITOS TILES GRAVADOS (> 10ms CÓPIA RAM)"
+            new_state = "GARGALO EM UNDO: MUITOS TILES GRAVADOS (> 10ms CÓPIA RAM)"
             state_key = "GARGALO_UNDO"
             cause = f"Cópia de Tiles para Histórico Undo ({und_us:.1f} µs | {und_us/1000.0:.2f} ms > 10 ms)"
         elif cmp_us > 10000.0:
-            new_state = "⚠️ GARGALO EM COMPOSIÇÃO DE CAMADAS (> 10ms)"
+            new_state = "GARGALO EM COMPOSIÇÃO DE CAMADAS (> 10ms)"
             state_key = "GARGALO_COMPOSITOR"
             cause = f"Mesclagem de Camadas no Compositor ({cmp_us:.1f} µs | {cmp_us/1000.0:.2f} ms > 10 ms)"
         else:
-            new_state = "✅ PIPELINE EQUILIBRADO (< 2ms)"
+            new_state = "PIPELINE EQUILIBRADO (< 2ms)"
             state_key = "PIPELINE_EQUILIBRADO"
             cause = "Todos os estágios operando com alta fluidez (< 2ms / 60 FPS)"
 
@@ -281,24 +281,24 @@ class TelemetryTracker:
 
         lines = [
             "=" * 78,
-            " 🏛️ LUMENIA ART STUDIO — COCKPIT DE TELEMETRIA & DIAGNÓSTICO EM GRID",
+            " LUMENIA ART STUDIO — COCKPIT DE TELEMETRIA & DIAGNÓSTICO EM GRID",
             "=" * 78,
             f"Data / Hora da Captura  : {time.strftime('%Y-%m-%d %H:%M:%S')}",
             f"Monitoramento em Tempo  : Captura Ativa (Timer 16ms / Zero Overhead)",
             "",
             "-" * 78,
-            " 🚦 DIAGNÓSTICO DO PIPELINE & ALTERAÇÕES DE ESTADO",
+            " DIAGNÓSTICO DO PIPELINE & ALTERAÇÕES DE ESTADO",
             "-" * 78,
             f"Estado Atual do Banner  : {self._current_state_str}",
             f"Classificação de Estado : {self._current_state_key}",
             f"Condição Operacional    : {'Equilibrado (Zero Sobrecarga)' if self._current_state_key == 'PIPELINE_EQUILIBRADO' else 'Presença de Gargalo Operacional'}",
             "",
             "Resumo de Ocorrências na Sessão de Teste:",
-            f"  • ✅ PIPELINE EQUILIBRADO (< 2ms) : {self._state_counts.get('PIPELINE_EQUILIBRADO', 0)} vez(es)",
-            f"  • ⚠️ GARGALO EM RASTER (> 15ms)   : {self._state_counts.get('GARGALO_RASTER', 0)} vez(es)",
-            f"  • ⚠️ GARGALO EM TELA / BLIT (> 16ms): {self._state_counts.get('GARGALO_BLIT', 0)} vez(es)",
-            f"  • ⚠️ GARGALO EM UNDO (> 10ms)     : {self._state_counts.get('GARGALO_UNDO', 0)} vez(es)",
-            f"  • ⚠️ GARGALO EM COMPOSITOR (> 10ms): {self._state_counts.get('GARGALO_COMPOSITOR', 0)} vez(es)",
+            f"  • PIPELINE EQUILIBRADO (< 2ms) : {self._state_counts.get('PIPELINE_EQUILIBRADO', 0)} vez(es)",
+            f"  • GARGALO EM RASTER (> 15ms)     : {self._state_counts.get('GARGALO_RASTER', 0)} vez(es)",
+            f"  • GARGALO EM TELA / BLIT (> 16ms): {self._state_counts.get('GARGALO_BLIT', 0)} vez(es)",
+            f"  • GARGALO EM UNDO (> 10ms)       : {self._state_counts.get('GARGALO_UNDO', 0)} vez(es)",
+            f"  • GARGALO EM COMPOSITOR (> 10ms) : {self._state_counts.get('GARGALO_COMPOSITOR', 0)} vez(es)",
             f"  • Total de Transições Registradas : {len(self._state_history)}",
             "",
             "Picos Máximos de Estresse Registrados na Sessão:",
@@ -325,19 +325,19 @@ class TelemetryTracker:
         lines.extend([
             "",
             "-" * 78,
-            " ⏱️ DECOMPOSIÇÃO PROPORCIONAL DO PIPELINE (BARRA DE ESTÁGIOS)",
+            " DECOMPOSIÇÃO PROPORCIONAL DO PIPELINE (BARRA DE ESTÁGIOS)",
             "-" * 78,
             f"  ■ 1. Cinemática / Dinâmica : {kin_us:>9.1f} µs ({kin_us/1000.0:>6.3f} ms) [{pct_kin:>5.1f}%]",
             f"  ■ 2. Interpolação Dabs     : {int_us:>9.1f} µs ({int_us/1000.0:>6.3f} ms) [{pct_int:>5.1f}%]",
-            f"  ■ 3. RasterDab (Shaders)   : {dab_us:>9.1f} µs ({dab_us/1000.0:>6.2f} ms) [{pct_dab:>5.1f}%] {'⚠️ GARGALO CRÍTICO' if dab_us > 15000 else ''}",
-            f"  ■ 4. Gravação de Undo      : {und_us:>9.1f} µs ({und_us/1000.0:>6.2f} ms) [{pct_und:>5.1f}%] {'⚠️ GARGALO' if und_us > 10000 else ''}",
-            f"  ■ 5. Compositor de Camadas : {cmp_us:>9.1f} µs ({cmp_us/1000.0:>6.2f} ms) [{pct_cmp:>5.1f}%] {'⚠️ GARGALO' if cmp_us > 10000 else ''}",
-            f"  ■ 6. Apresentação Blit Qt  : {blit_us:>9.1f} µs ({blit_ms:>6.2f} ms) [{pct_blt:>5.1f}%] {'⚠️ GARGALO' if blit_ms > 16.6 else ''}",
+            f"  ■ 3. RasterDab (Shaders)   : {dab_us:>9.1f} µs ({dab_us/1000.0:>6.2f} ms) [{pct_dab:>5.1f}%] {'[GARGALO CRÍTICO]' if dab_us > 15000 else ''}",
+            f"  ■ 4. Gravação de Undo      : {und_us:>9.1f} µs ({und_us/1000.0:>6.2f} ms) [{pct_und:>5.1f}%] {'[GARGALO]' if und_us > 10000 else ''}",
+            f"  ■ 5. Compositor de Camadas : {cmp_us:>9.1f} µs ({cmp_us/1000.0:>6.2f} ms) [{pct_cmp:>5.1f}%] {'[GARGALO]' if cmp_us > 10000 else ''}",
+            f"  ■ 6. Apresentação Blit Qt  : {blit_us:>9.1f} µs ({blit_ms:>6.2f} ms) [{pct_blt:>5.1f}%] {'[GARGALO]' if blit_ms > 16.6 else ''}",
             "  " + "-" * 66,
             f"  Ciclo Total do Micro-Evento: {total_cycle_us:.1f} µs ({total_cycle_us/1000.0:.2f} ms)",
             "",
             "-" * 78,
-            " 🪟 PAINEL COMPLETO EM GRID (TODOS OS 20 MEDIDORES EM TEMPO REAL)",
+            " PAINEL COMPLETO EM GRID (TODOS OS 20 MEDIDORES EM TEMPO REAL)",
             "-" * 78,
             "[LINHA 1: Estágios Granulares C++]",
             f"  • 1. CINEMÁTICA / DINÂMICA     : {kin_us:.1f} µs ({kin_us/1000.0:.3f} ms)  | Filtro de caneta e velocidade",
@@ -370,7 +370,7 @@ class TelemetryTracker:
             f"  • 20. ACELERAÇÃO & MINI-MOTOR  : {'AVX2 / SSE2':<22} | {eng_str}",
             "",
             "-" * 78,
-            " ⚙️ AMBIENTE, ARQUITETURA & ACELERAÇÃO",
+            " AMBIENTE, ARQUITETURA & ACELERAÇÃO",
             "-" * 78,
             "  • Instruções SIMD       : AVX2 / SSE2 Ativo (Vetorizado)",
             f"  • Mini-Motor em Execução : {eng_str}",

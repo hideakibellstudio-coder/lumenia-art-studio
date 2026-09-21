@@ -67,7 +67,7 @@ class TexturePopup(QDialog):
             }
             QPushButton:hover {
                 background-color: @ACCENT;
-                color: #ffffff;
+                color: @FG_PRIMARY;
             }
             QSlider::groove:horizontal { 
                 border: 1px solid @BORDER; 

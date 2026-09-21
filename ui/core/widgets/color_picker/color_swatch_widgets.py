@@ -245,9 +245,10 @@ class RecentColorsWidget(QtWidgets.QFrame):
         self._update_buttons()
         
     def _update_buttons(self, border_color=None):
+        from ui.core.theme.manager import ThemeManager
         if border_color is None:
-            from ui.core.theme.manager import ThemeManager
             border_color = ThemeManager.instance().get_color("border")
+        hover_color = ThemeManager.instance().get_color("FG_PRIMARY", "#ffffff")
             
         for i, btn in enumerate(self._buttons):
             if i < len(self._colors):
@@ -261,7 +262,7 @@ class RecentColorsWidget(QtWidgets.QFrame):
                         margin: 0px;
                     }}
                     QPushButton:hover {{
-                        border: 1px solid #ffffff;
+                        border: 1px solid {hover_color};
                     }}
                 """)
             else:

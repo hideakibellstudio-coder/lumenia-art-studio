@@ -41,7 +41,7 @@ class ToolSelectionColumn(QtWidgets.QFrame):
             btn.setIconSize(QtCore.QSize(15, 15))
             btn.setToolTip(meta["name"])
             is_active = (tid == "brush")
-            btn.setIcon(get_icon(meta["icon"], color="#ffffff" if is_active else "text_main"))
+            btn.setIcon(get_icon(meta["icon"], color="FG_PRIMARY" if is_active else "text_main"))
             btn.setCursor(QtCore.Qt.PointingHandCursor)
             btn.clicked.connect(lambda _, t=tid: self._on_btn_clicked(t))
 
@@ -64,7 +64,7 @@ class ToolSelectionColumn(QtWidgets.QFrame):
             btn.blockSignals(True)
             is_active = (tid == tool_name) or (tid == "shapes" and (tool_name.startswith("shape_") or tool_name == "shapes"))
             btn.setChecked(is_active)
-            btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="#ffffff" if is_active else "text_main"))
+            btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="FG_PRIMARY" if is_active else "text_main"))
             btn.blockSignals(False)
 
     def retranslate_ui(self) -> None:
@@ -102,4 +102,4 @@ class ToolSelectionColumn(QtWidgets.QFrame):
         for tid, btn in self.tool_buttons.items():
             btn.setStyleSheet(tool_style)
             is_active = btn.isChecked()
-            btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="#ffffff" if is_active else "text_main"))
+            btn.setIcon(get_icon(TOOL_META[tid]["icon"], color="FG_PRIMARY" if is_active else "text_main"))

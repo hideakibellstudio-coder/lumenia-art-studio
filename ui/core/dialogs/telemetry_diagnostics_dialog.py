@@ -19,6 +19,7 @@ from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.dialogs.telemetry_diagnostics_cards import StatCard
+from ui.core.icons import get_icon
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
 
 
@@ -84,7 +85,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_perf.addWidget(grp_hw)
         lo_perf.addStretch()
 
-        self.tabs.addTab(tab_perf, "📈 Desempenho")
+        self.tabs.addTab(tab_perf, get_icon("chart"), "Desempenho")
 
         # ── 2. Aba: Memória & Blocos (Tiles) ──────────────────────────────────
         tab_mem = QtWidgets.QWidget()
@@ -111,14 +112,15 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_opt = QtWidgets.QHBoxLayout(grp_opt)
         lo_opt.setContentsMargins(12, 12, 12, 12)
 
-        self.btn_clear_undo = QtWidgets.QPushButton("🧹 Limpar Histórico de Desfazer")
+        self.btn_clear_undo = QtWidgets.QPushButton("Limpar Histórico de Desfazer")
+        self.btn_clear_undo.setIcon(get_icon("trash"))
         self.btn_clear_undo.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_clear_undo.clicked.connect(self._on_clear_undo)
         lo_opt.addWidget(self.btn_clear_undo)
         lo_mem.addWidget(grp_opt)
         lo_mem.addStretch()
 
-        self.tabs.addTab(tab_mem, "🧠 Memória & Tiles")
+        self.tabs.addTab(tab_mem, get_icon("memory_chip"), "Memória & Tiles")
 
         # ── 3. Aba: Pipeline Granular & Viewport ──────────────────────────────
         tab_pipe = QtWidgets.QWidget()
@@ -163,7 +165,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_pipe.addWidget(grp_geom)
         lo_pipe.addStretch()
 
-        self.tabs.addTab(tab_pipe, "🔬 Pipeline & Viewport")
+        self.tabs.addTab(tab_pipe, get_icon("flask"), "Pipeline & Viewport")
 
         # ── 4. Aba: Sensor & Cinemática da Caneta ────────────────────────────
         tab_pen = QtWidgets.QWidget()
@@ -186,7 +188,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_pen.addLayout(grid_pen)
         lo_pen.addStretch()
 
-        self.tabs.addTab(tab_pen, "🖋️ Caneta & Sensor")
+        self.tabs.addTab(tab_pen, get_icon("pen_tool"), "Caneta & Sensor")
 
         # ── 4. Aba: Logs & Benchmark ──────────────────────────────────────────
         tab_tools = QtWidgets.QWidget()
@@ -215,11 +217,13 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_grp_bench.setSpacing(10)
 
         lo_btn_row = QtWidgets.QHBoxLayout()
-        self.btn_benchmark = QtWidgets.QPushButton("⚡ Executar Benchmark Sintético (1000 Dabs)")
+        self.btn_benchmark = QtWidgets.QPushButton("Executar Benchmark Sintético (1000 Dabs)")
+        self.btn_benchmark.setIcon(get_icon("zap"))
         self.btn_benchmark.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_benchmark.clicked.connect(self._run_benchmark)
 
-        self.btn_copy_report = QtWidgets.QPushButton("📋 Copiar Relatório do Sistema")
+        self.btn_copy_report = QtWidgets.QPushButton("Copiar Relatório do Sistema")
+        self.btn_copy_report.setIcon(get_icon("copy"))
         self.btn_copy_report.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_copy_report.clicked.connect(self._copy_diagnostic_report)
 
@@ -233,7 +237,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_tools.addWidget(grp_bench)
         lo_tools.addStretch()
 
-        self.tabs.addTab(tab_tools, "⚙️ Logs & Benchmark")
+        self.tabs.addTab(tab_tools, get_icon("settings"), "Logs & Benchmark")
 
         self.grp_hw = grp_hw
         self.grp_opt = grp_opt
@@ -258,11 +262,11 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
             self.title_bar.set_title(tr("telemetry.dialog_title", "Diagnóstico & Telemetria do Motor"))
 
         if hasattr(self, "tabs"):
-            self.tabs.setTabText(0, tr("telemetry.tab_performance", "📈 Desempenho"))
-            self.tabs.setTabText(1, tr("telemetry.tab_memory", "🧠 Memória & Tiles"))
-            self.tabs.setTabText(2, tr("telemetry.tab_pipeline", "🔬 Pipeline & Viewport"))
-            self.tabs.setTabText(3, tr("telemetry.tab_pen", "🖊️ Sensor da Caneta"))
-            self.tabs.setTabText(4, tr("telemetry.tab_system", "⚙️ Sistema & Logs"))
+            self.tabs.setTabText(0, tr("telemetry.tab_performance", "Desempenho"))
+            self.tabs.setTabText(1, tr("telemetry.tab_memory", "Memória & Tiles"))
+            self.tabs.setTabText(2, tr("telemetry.tab_pipeline", "Pipeline & Viewport"))
+            self.tabs.setTabText(3, tr("telemetry.tab_pen", "Sensor da Caneta"))
+            self.tabs.setTabText(4, tr("telemetry.tab_system", "Sistema & Logs"))
 
         if hasattr(self, "card_latency"):
             self.card_latency.set_label(tr("telemetry.card_latency", "Latência do Motor (C++)"))
@@ -297,7 +301,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         if hasattr(self, "grp_opt"):
             self.grp_opt.setTitle(tr("telemetry.mem_management", "Gestão & Limpeza de Memória"))
         if hasattr(self, "btn_clear_undo"):
-            self.btn_clear_undo.setText(tr("telemetry.clear_undo", "🧹 Limpar Histórico de Desfazer"))
+            self.btn_clear_undo.setText(tr("telemetry.clear_undo", "Limpar Histórico de Desfazer"))
         if hasattr(self, "grp_logs"):
             self.grp_logs.setTitle(tr("telemetry.sys_logs", "Logs do Sistema & Nível de Depuração"))
         if hasattr(self, "grp_bench"):
@@ -377,11 +381,14 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
 
     def _run_benchmark(self) -> None:
         backend = EngineRegistry.instance().get_backend()
+        tm = ThemeManager.instance()
         if not backend or not hasattr(backend, "paint_stroke"):
-            self.lbl_bench_result.setText("❌ Motor nativo não disponível para benchmark.")
+            self.lbl_bench_result.setStyleSheet(f"font-size: 11px; font-style: italic; color: {tm.get_color('danger', '#ef4444')};")
+            self.lbl_bench_result.setText("Motor nativo não disponível para benchmark.")
             return
 
-        self.lbl_bench_result.setText("⏳ Executando teste de estresse de 1.000 dabs...")
+        self.lbl_bench_result.setStyleSheet("font-size: 11px; font-style: italic;")
+        self.lbl_bench_result.setText("Executando teste de estresse de 1.000 dabs...")
         QtWidgets.QApplication.processEvents()
 
         t0 = time.perf_counter()
@@ -395,8 +402,9 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         dt = (time.perf_counter() - t0) * 1000.0
 
         dabs_per_sec = int((steps / dt) * 1000.0) if dt > 0 else 0
+        self.lbl_bench_result.setStyleSheet(f"font-size: 11px; font-style: italic; color: {tm.get_color('success', '#10b981')};")
         self.lbl_bench_result.setText(
-            f"✅ Concluído em {dt:.2f} ms | Rendimento: {dabs_per_sec:,} dabs/s ({dt/steps:.3f} ms/dab)"
+            f"Concluído em {dt:.2f} ms | Rendimento: {dabs_per_sec:,} dabs/s ({dt/steps:.3f} ms/dab)"
         )
 
     def _copy_diagnostic_report(self) -> None:

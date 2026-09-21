@@ -182,7 +182,7 @@ class UserGuideDialog(BaseFramelessDialog):
                 background-color: {bg_card};
                 color: {text_main};
                 selection-background-color: {accent};
-                selection-color: #ffffff;
+                selection-color: {text_main};
                 border: 1px solid {border};
             }}
             QPushButton {{
@@ -196,7 +196,7 @@ class UserGuideDialog(BaseFramelessDialog):
             }}
             QPushButton:hover {{
                 background-color: {accent};
-                color: #ffffff;
+                color: {text_main};
                 border-color: {accent};
             }}
         """)

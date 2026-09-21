@@ -3,25 +3,34 @@ Cursor Settings Dialog — Diálogo de Personalização e Preferências de Curso
 =============================================================================
 Padronizado no Design System do Lumenia V2 com seleção de formato de cursor,
 comportamento durante a pintura e persistência via QSettings.
+
+Migrado para BaseFramelessDialog em 2026-09-18 (panorama-consistencia-visual-tema,
+Achado #4): antes reimplementava manualmente header/drag/botão-fechar (com um glifo
+de texto "✕" em vez de ícone SVG), divergindo estruturalmente dos outros ~20 diálogos
+do app que já compartilham essa base.
 """
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.i18n import tr
 
 
-class CursorSettingsDialog(QtWidgets.QDialog):
+class CursorSettingsDialog(BaseFramelessDialog):
     """Diálogo para configuração do cursor de pincel e ferramentas."""
 
     cursorSettingsChanged = QtCore.Signal(dict)
 
     def __init__(self, parent=None):
-        super().__init__(parent, QtCore.Qt.FramelessWindowHint | QtCore.Qt.Window)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+        super().__init__(
+            title=tr("dialogs.cursor_title", "Configurações de Cursor"),
+            icon_name="cursor",
+            parent=parent,
+            modal=True,
+        )
         self.setMinimumSize(440, 480)
         self.resize(480, 520)
-        self._drag_pos = None
+        self.lbl_title = self.title_bar.lbl_title  # alias p/ compat. com testes (mesmo padrão de KeyboardShortcutsDialog)
 
         self._load_settings()
         self._build_ui()
@@ -40,32 +49,8 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         self.ring_opacity = int(sec.get("ring_opacity", 0.9) * 100)
 
     def _build_ui(self):
-        main_lay = QtWidgets.QVBoxLayout(self)
-        main_lay.setContentsMargins(10, 10, 10, 10)
-
-        self.card = QtWidgets.QFrame(self)
-        self.card.setObjectName("CursorCard")
-        card_lay = QtWidgets.QVBoxLayout(self.card)
-        card_lay.setContentsMargins(16, 14, 16, 16)
-        card_lay.setSpacing(12)
-
-        # ── Cabeçalho
-        hdr = QtWidgets.QHBoxLayout()
-        icon_lbl = QtWidgets.QLabel()
-        icon_lbl.setPixmap(get_icon("cursor", "ACCENT", QtCore.QSize(18, 18)).pixmap(18, 18))
-        hdr.addWidget(icon_lbl)
-
-        self.lbl_title = QtWidgets.QLabel(tr("dialogs.cursor_title", "Configurações de Cursor"))
-        self.lbl_title.setStyleSheet("font-weight: 700; font-size: 12px; letter-spacing: 0.5px;")
-        hdr.addWidget(self.lbl_title)
-        hdr.addStretch()
-
-        btn_close = QtWidgets.QPushButton("✕")
-        btn_close.setFixedSize(24, 24)
-        btn_close.setCursor(QtCore.Qt.PointingHandCursor)
-        btn_close.clicked.connect(self.reject)
-        hdr.addWidget(btn_close)
-        card_lay.addLayout(hdr)
+        content_lay = self.content_layout
+        content_lay.setSpacing(12)
 
         # ── Seção 1: Formato do Cursor do Pincel
         self.grp_box = QtWidgets.QGroupBox(tr("dialogs.cursor_shape_title", "Formato do Cursor de Pintura"))
@@ -100,7 +85,7 @@ class CursorSettingsDialog(QtWidgets.QDialog):
             rb.setCursor(QtCore.Qt.PointingHandCursor)
             grp_lay.addWidget(rb)
 
-        card_lay.addWidget(self.grp_box)
+        content_lay.addWidget(self.grp_box)
 
         # ── Seção 2: Comportamento
         self.grp_beh = QtWidgets.QGroupBox(tr("dialogs.cursor_behavior_title", "Comportamento e Dinâmica"))
@@ -128,8 +113,8 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         op_row.addWidget(self.slider_op, 1)
         beh_lay.addLayout(op_row)
 
-        card_lay.addWidget(self.grp_beh)
-        card_lay.addStretch()
+        content_lay.addWidget(self.grp_beh)
+        content_lay.addStretch()
 
         # ── Rodapé
         footer = QtWidgets.QHBoxLayout()
@@ -149,14 +134,13 @@ class CursorSettingsDialog(QtWidgets.QDialog):
         self.btn_save.clicked.connect(self._on_save)
         footer.addWidget(self.btn_save)
 
-        card_lay.addLayout(footer)
-        main_lay.addWidget(self.card)
+        content_lay.addLayout(footer)
 
     def retranslate_ui(self) -> None:
         """Atualiza dinamicamente os textos da tela de configurações de cursor."""
         from ui.core.i18n import tr
-        if hasattr(self, "lbl_title"):
-            self.lbl_title.setText(tr("dialogs.cursor_title", "Configurações de Cursor"))
+        if hasattr(self, "grp_box"):
+            self.set_dialog_title(tr("dialogs.cursor_title", "Configurações de Cursor"))
             self.grp_box.setTitle(tr("dialogs.cursor_shape_title", "Formato do Cursor de Pintura"))
             self.rb_ring_dot.setText(f"◎  {tr('dialogs.cursor_ring_dot', 'Anel de Contorno com Ponto Central (Padrão)')}")
             self.rb_ring_only.setText(f"◯  {tr('dialogs.cursor_ring_only', 'Apenas Anel de Contorno (Círculo de Raio)')}")
@@ -202,17 +186,12 @@ class CursorSettingsDialog(QtWidgets.QDialog):
 
     def _apply_theme(self, *args):
         tm = ThemeManager.instance()
-        bg_card = tm.get_color("bg_card", "#181825")
         bg_panel = tm.get_color("bg_panel", "#1e1e24")
         border = tm.get_color("border", "#313244")
         accent = tm.get_color("accent", "#6366f1")
         text_main = tm.get_color("text_main", "#f3f4f6")
-        text_sec = tm.get_color("text_sec", "#9ca3af")
 
-        self.card.setStyleSheet(f"""
-            QFrame#CursorCard {{
-                background-color: {bg_card}; border: 1px solid {border}; border-radius: 10px;
-            }}
+        self.setStyleSheet(f"""
             QGroupBox {{
                 font-weight: bold; font-size: 11px; color: {accent};
                 border: 1px solid {border}; border-radius: 6px; margin-top: 10px; padding-top: 10px;
@@ -223,16 +202,5 @@ class CursorSettingsDialog(QtWidgets.QDialog):
                 background-color: {bg_panel}; color: {text_main}; border: 1px solid {border};
                 border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold;
             }}
-            QPushButton:hover {{ background-color: {accent}; color: #ffffff; border-color: {accent}; }}
+            QPushButton:hover {{ background-color: {accent}; color: {text_main}; border-color: {accent}; }}
         """)
-
-    def mousePressEvent(self, e):
-        if e.button() == QtCore.Qt.LeftButton:
-            self._drag_pos = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
-
-    def mouseMoveEvent(self, e):
-        if self._drag_pos and e.buttons() & QtCore.Qt.LeftButton:
-            self.move(e.globalPosition().toPoint() - self._drag_pos)
-
-    def mouseReleaseEvent(self, e):
-        self._drag_pos = None

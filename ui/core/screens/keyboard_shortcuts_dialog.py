@@ -123,7 +123,11 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
         # ── Barra de Pesquisa e Filtros
         search_row = QtWidgets.QHBoxLayout()
         self.txt_search = QtWidgets.QLineEdit()
-        self.txt_search.setPlaceholderText(f"🔍 {tr('dialogs.search_placeholder', 'Buscar ação ou atalho...')}")
+        self.txt_search.setPlaceholderText(tr('dialogs.search_placeholder', 'Buscar ação ou atalho...'))
+        self._act_search_icon = self.txt_search.addAction(
+            get_icon("search", ThemeManager.instance().get_color("text_sec")),
+            QtWidgets.QLineEdit.LeadingPosition,
+        )
         self.txt_search.textChanged.connect(self._on_search_changed)
         search_row.addWidget(self.txt_search, 1)
         self.content_layout.addLayout(search_row)
@@ -189,7 +193,7 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.shortcuts_title", "Configurações de Atalhos de Teclado"))
         if hasattr(self, "txt_search"):
-            self.txt_search.setPlaceholderText(f"🔍 {tr('dialogs.search_placeholder', 'Buscar ação ou atalho...')}")
+            self.txt_search.setPlaceholderText(tr('dialogs.search_placeholder', 'Buscar ação ou atalho...'))
         if hasattr(self, "btn_restore"):
             self.btn_restore.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
         if hasattr(self, "btn_cancel"):
@@ -359,12 +363,12 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
                 background-color: {bg_panel}; color: {text_main}; border: 1px solid {border};
                 border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold;
             }}
-            QPushButton:hover {{ background-color: {accent}; color: #ffffff; border-color: {accent}; }}
+            QPushButton:hover {{ background-color: {accent}; color: {text_main}; border-color: {accent}; }}
         """)
         if hasattr(self, "btn_save"):
             self.btn_save.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {accent}; color: #ffffff; border: none;
+                    background-color: {accent}; color: {text_main}; border: none;
                     border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold;
                 }}
                 QPushButton:hover {{ background-color: {accent_hover}; }}

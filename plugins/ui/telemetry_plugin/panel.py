@@ -16,6 +16,7 @@ from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.widgets.card_box import PanelCardBox
 from ui.core.theme.manager import ThemeManager
+from ui.core.icons import get_icon
 from ui.core.engine.registry import EngineRegistry
 from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
 from ui.core.widgets.pipeline_bar import PipelineBar
@@ -57,8 +58,9 @@ class TelemetryPanel(QtWidgets.QWidget):
         from ui.core.i18n import tr, I18nManager
 
         # Botão Destaque: Cockpit em Grid (Janela Flutuante)
-        self.btn_open_grid = QtWidgets.QPushButton("🪟 Cockpit em Grid (F12)")
+        self.btn_open_grid = QtWidgets.QPushButton("Cockpit em Grid (F12)")
         self.btn_open_grid.setObjectName("BtnOpenGrid")
+        self.btn_open_grid.setIcon(get_icon("grid", ThemeManager.instance().get_color("text_main")))
         self.btn_open_grid.setFixedHeight(32)
         self.btn_open_grid.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_open_grid.setToolTip("Abre o cockpit flutuante com todos os 20 medidores em tempo real (F12)")
@@ -66,9 +68,13 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addWidget(self.btn_open_grid)
 
         # 1. Botão Mestre de Ativação / Desativação
-        btn_text = f"🟢 {tr('telemetry.disable_capture', 'Captura Ativa (Desativar)')}" if self._is_capturing else f"⚪ {tr('telemetry.enable_capture', 'Ativar Captura de Telemetria')}"
+        btn_text = tr('telemetry.disable_capture', 'Captura Ativa (Desativar)') if self._is_capturing else tr('telemetry.enable_capture', 'Ativar Captura de Telemetria')
         self.btn_toggle_telemetry = QtWidgets.QPushButton(btn_text)
         self.btn_toggle_telemetry.setObjectName("BtnToggleTelemetry")
+        self.btn_toggle_telemetry.setIcon(get_icon(
+            "check_circle" if self._is_capturing else "zap",
+            ThemeManager.instance().get_color("success") if self._is_capturing else ThemeManager.instance().get_color("text_sec"),
+        ))
         self.btn_toggle_telemetry.setFixedHeight(30)
         self.btn_toggle_telemetry.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_toggle_telemetry.setToolTip(tr("telemetry.tooltip", "Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória."))
@@ -80,11 +86,12 @@ class TelemetryPanel(QtWidgets.QWidget):
         self.lbl_status.setObjectName("TelemStatus")
         self.lbl_status.setAlignment(QtCore.Qt.AlignCenter)
         if self._is_capturing:
-            self.lbl_status.setStyleSheet("color: #10b981; font-weight: bold; font-size: 10px;")
+            _success_c = ThemeManager.instance().get_color("SUCCESS", "#10b981")
+            self.lbl_status.setStyleSheet(f"color: {_success_c}; font-weight: bold; font-size: 10px;")
         lo.addWidget(self.lbl_status)
 
         # 2. Banner de Diagnóstico de Gargalos (Bottleneck Alert)
-        self.lbl_bottleneck = QtWidgets.QLabel("✅ PIPELINE EQUILIBRADO")
+        self.lbl_bottleneck = QtWidgets.QLabel("PIPELINE EQUILIBRADO")
         self.lbl_bottleneck.setObjectName("BottleneckBanner")
         self.lbl_bottleneck.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_bottleneck.setFixedHeight(22)
@@ -100,13 +107,20 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addWidget(self.pipeline_bar)
 
         # Legenda compacta com cores dos estágios
+        tm_legend = ThemeManager.instance()
+        c_stage_kin = tm_legend.get_color("TELEMETRY_STAGE_KINEMATICS", "#38bdf8")
+        c_stage_int = tm_legend.get_color("TELEMETRY_STAGE_INTERPOLATION", "#facc15")
+        c_stage_dab = tm_legend.get_color("TELEMETRY_STAGE_RASTER", "#f97316")
+        c_stage_und = tm_legend.get_color("TELEMETRY_STAGE_UNDO", "#a855f7")
+        c_stage_cmp = tm_legend.get_color("TELEMETRY_STAGE_COMPOSITOR", "#22c55e")
+        c_stage_blt = tm_legend.get_color("TELEMETRY_STAGE_BLIT", "#ec4899")
         self.lbl_pipeline_legend = QtWidgets.QLabel(
-            "<span style='color:#38bdf8'>■</span>Kin "
-            "<span style='color:#facc15'>■</span>Int "
-            "<span style='color:#f97316'>■</span>Dab "
-            "<span style='color:#a855f7'>■</span>Und "
-            "<span style='color:#22c55e'>■</span>Cmp "
-            "<span style='color:#ec4899'>■</span>Blt"
+            f"<span style='color:{c_stage_kin}'>■</span>Kin "
+            f"<span style='color:{c_stage_int}'>■</span>Int "
+            f"<span style='color:{c_stage_dab}'>■</span>Dab "
+            f"<span style='color:{c_stage_und}'>■</span>Und "
+            f"<span style='color:{c_stage_cmp}'>■</span>Cmp "
+            f"<span style='color:{c_stage_blt}'>■</span>Blt"
         )
         self.lbl_pipeline_legend.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_pipeline_legend.setStyleSheet("font-size: 9px; font-weight: bold;")
@@ -182,15 +196,17 @@ class TelemetryPanel(QtWidgets.QWidget):
         btn_action_row = QtWidgets.QHBoxLayout()
         btn_action_row.setSpacing(6)
 
-        self.btn_open_dialog = QtWidgets.QPushButton(f"⚙️ {tr('telemetry.advanced_dialog', 'Avançado...')}")
+        self.btn_open_dialog = QtWidgets.QPushButton(tr('telemetry.advanced_dialog', 'Avançado...'))
         self.btn_open_dialog.setObjectName("BtnOpenDialog")
+        self.btn_open_dialog.setIcon(get_icon("settings", ThemeManager.instance().get_color("text_main")))
         self.btn_open_dialog.setFixedHeight(28)
         self.btn_open_dialog.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_open_dialog.clicked.connect(self._open_diagnostics_dialog)
         btn_action_row.addWidget(self.btn_open_dialog)
 
-        self.btn_copy_report = QtWidgets.QPushButton("📋 Copiar Relatório")
+        self.btn_copy_report = QtWidgets.QPushButton("Copiar Relatório")
         self.btn_copy_report.setObjectName("BtnCopyReport")
+        self.btn_copy_report.setIcon(get_icon("copy", ThemeManager.instance().get_color("text_main")))
         self.btn_copy_report.setFixedHeight(28)
         self.btn_copy_report.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_copy_report.setToolTip("Copia o relatório completo com 20 medidores do grid e histórico de alterações de estado")
@@ -209,10 +225,13 @@ class TelemetryPanel(QtWidgets.QWidget):
     def retranslate_ui(self) -> None:
         from ui.core.i18n import tr
         if hasattr(self, "btn_toggle_telemetry"):
+            tm_rt = ThemeManager.instance()
             if self._is_capturing:
-                self.btn_toggle_telemetry.setText(f"🟢 {tr('telemetry.disable_capture', 'Desativar Captura')}")
+                self.btn_toggle_telemetry.setText(tr('telemetry.disable_capture', 'Desativar Captura'))
+                self.btn_toggle_telemetry.setIcon(get_icon("check_circle", tm_rt.get_color("success")))
             else:
-                self.btn_toggle_telemetry.setText(f"⚪ {tr('telemetry.enable_capture', 'Ativar Captura de Telemetria')}")
+                self.btn_toggle_telemetry.setText(tr('telemetry.enable_capture', 'Ativar Captura de Telemetria'))
+                self.btn_toggle_telemetry.setIcon(get_icon("zap", tm_rt.get_color("text_sec")))
             self.btn_toggle_telemetry.setToolTip(tr("telemetry.tooltip", "Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória."))
         if hasattr(self, "lbl_status"):
             if self._is_capturing:
@@ -226,7 +245,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         if hasattr(self, "lbl_hdr_ram"):
             self.lbl_hdr_ram.setText(tr("telemetry.memory", "MEMÓRIA (CANVAS / UNDO)"))
         if hasattr(self, "btn_open_dialog"):
-            self.btn_open_dialog.setText(f"⚙️ {tr('telemetry.advanced_dialog', 'Diagnósticos Avançados...')}")
+            self.btn_open_dialog.setText(tr('telemetry.advanced_dialog', 'Diagnósticos Avançados...'))
 
     def _make_label(self, text: str) -> QtWidgets.QLabel:
         lbl = QtWidgets.QLabel(text)
@@ -333,11 +352,24 @@ class TelemetryPanel(QtWidgets.QWidget):
             self.bar_velocity.setValue(min(1000, max(0, vel_val)))
             self.lbl_velocity_val.setText(f"{vel_val} px/s")
 
+    @staticmethod
+    def _bottleneck_style(hex_color: str, bg_alpha: float = 0.2, text_color: str = None) -> str:
+        """Monta o QSS do banner de gargalo a partir de uma cor-base do tema (bg translúcido + borda sólida)."""
+        c = QtGui.QColor(hex_color)
+        bg = f"rgba({c.red()},{c.green()},{c.blue()},{bg_alpha})"
+        text = text_color if text_color else c.lighter(140).name()
+        return f"background-color: {bg}; color: {text}; border: 1px solid {hex_color}; border-radius: 4px; font-size: 9px; font-weight: bold;"
+
     def _update_bottleneck_banner(self, dab_us: float, und_us: float, cmp_us: float, blit_ms: float) -> None:
         """Atualiza a cor e o diagnóstico do banner conforme o estágio mais custoso."""
+        tm = ThemeManager.instance()
         if not self._is_capturing:
-            self.lbl_bottleneck.setText("⚪ TELEMETRIA PAUSADA")
-            self.lbl_bottleneck.setStyleSheet("background-color: rgba(255,255,255,0.05); color: #9ca3af; border: 1px solid #4b5563; border-radius: 4px; font-size: 9px; font-weight: bold;")
+            self.lbl_bottleneck.setText("TELEMETRIA PAUSADA")
+            idle_c = tm.get_color("FG_SECONDARY", "#9ca3af")
+            idle_border = tm.get_color("BORDER", "#4b5563")
+            idle_qc = QtGui.QColor(idle_c)
+            idle_bg = f"rgba({idle_qc.red()},{idle_qc.green()},{idle_qc.blue()},0.08)"
+            self.lbl_bottleneck.setStyleSheet(f"background-color: {idle_bg}; color: {idle_c}; border: 1px solid {idle_border}; border-radius: 4px; font-size: 9px; font-weight: bold;")
             return
 
         from ui.core.engine.telemetry_tracker import TelemetryTracker
@@ -346,20 +378,20 @@ class TelemetryPanel(QtWidgets.QWidget):
         state_str = tracker.current_state_str
 
         if state_key == "GARGALO_BLIT":
-            self.lbl_bottleneck.setText("⚠️ GARGALO: BLIT QT LENTO (>16ms)")
-            self.lbl_bottleneck.setStyleSheet("background-color: rgba(239,68,68,0.2); color: #f87171; border: 1px solid #ef4444; border-radius: 4px; font-size: 9px; font-weight: bold;")
+            self.lbl_bottleneck.setText("GARGALO: BLIT QT LENTO (>16ms)")
+            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("DANGER", "#ef4444"), 0.2))
         elif state_key == "GARGALO_RASTER":
-            self.lbl_bottleneck.setText("⚠️ GARGALO: RASTER DAB (>15ms)")
-            self.lbl_bottleneck.setStyleSheet("background-color: rgba(249,115,22,0.2); color: #fb923c; border: 1px solid #f97316; border-radius: 4px; font-size: 9px; font-weight: bold;")
+            self.lbl_bottleneck.setText("GARGALO: RASTER DAB (>15ms)")
+            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("TELEMETRY_STAGE_RASTER", "#f97316"), 0.2))
         elif state_key == "GARGALO_UNDO":
-            self.lbl_bottleneck.setText("⚠️ GARGALO: GRAVAÇÃO UNDO (>10ms)")
-            self.lbl_bottleneck.setStyleSheet("background-color: rgba(168,85,247,0.2); color: #c084fc; border: 1px solid #a855f7; border-radius: 4px; font-size: 9px; font-weight: bold;")
+            self.lbl_bottleneck.setText("GARGALO: GRAVAÇÃO UNDO (>10ms)")
+            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("TELEMETRY_STAGE_UNDO", "#a855f7"), 0.2))
         elif state_key == "GARGALO_COMPOSITOR":
-            self.lbl_bottleneck.setText("⚠️ GARGALO: COMPOSITOR (>10ms)")
-            self.lbl_bottleneck.setStyleSheet("background-color: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid #22c55e; border-radius: 4px; font-size: 9px; font-weight: bold;")
+            self.lbl_bottleneck.setText("GARGALO: COMPOSITOR (>10ms)")
+            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("TELEMETRY_STAGE_COMPOSITOR", "#22c55e"), 0.2))
         else:
-            self.lbl_bottleneck.setText("✅ PIPELINE EQUILIBRADO (< 2ms)")
-            self.lbl_bottleneck.setStyleSheet("background-color: rgba(16,185,129,0.15); color: #34d399; border: 1px solid #10b981; border-radius: 4px; font-size: 9px; font-weight: bold;")
+            self.lbl_bottleneck.setText("PIPELINE EQUILIBRADO (< 2ms)")
+            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("SUCCESS", "#10b981"), 0.15))
 
         self.lbl_bottleneck.setToolTip(f"Estado Atual: {state_str}\nClique para ver o histórico no Cockpit (F12).")
 

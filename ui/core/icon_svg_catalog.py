@@ -173,6 +173,41 @@ SVG_SYSTEM_ICONS = {
         <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 12 4.93 4.93"/><path d="m12 12 7.07 7.07"/><path d="m12 12-7.07 7.07"/>
     </svg>""",
 
+    "curves": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M6 18c3-1 4-6 6-9s5-4 6-3"/>
+    </svg>""",
+
+    "play": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="6 3 20 12 6 21 6 3"/>
+    </svg>""",
+
+    "zoom_fit": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+    </svg>""",
+
+    "mirror": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="3 3"/><path d="M8 8 4 12 8 16"/><path d="M16 8 20 12 16 16"/>
+    </svg>""",
+
+    "target": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>
+    </svg>""",
+
+    "warning": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>""",
+
+    "zap": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>""",
+
+    "memory_chip": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 5V2"/><path d="M15 5V2"/><path d="M9 22v-3"/><path d="M15 22v-3"/><path d="M5 9H2"/><path d="M5 15H2"/><path d="M22 9h-3"/><path d="M22 15h-3"/>
+    </svg>""",
+
+    "flask": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 3h6"/><path d="M10 3v6.34a1 1 0 0 1-.3.7l-5 5A2 2 0 0 0 6 18.66V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-.34a2 2 0 0 0-.7-1.52l-5-5a1 1 0 0 1-.3-.7V3"/>
+    </svg>""",
 }
 
 SVG_ICONS = {**SVG_SYSTEM_ICONS, **SVG_TOOL_ICONS}
@@ -228,6 +263,16 @@ ALIASES = {
     "text_tool": "text",
     "zoom_reset": "reset",
     "fit_screen": "zoom_fit",
+    "edit": "pencil",
+    "layer_flatten": "merge",
+    "refresh": "rotate_cw",
 }
+
+# Normaliza as chaves de ALIASES (hífen/espaço -> underscore) para casar com a normalização
+# que ui.core.icons.get_icon() já aplica ao nome recebido ANTES de consultar este dicionário.
+# Bug corrigido (panorama-consistencia-visual-tema-2026-09-18.md, Achado #3): chaves como
+# "arrow-swap" (hífen) nunca eram alcançadas, porque get_icon() já tinha trocado "-" por "_"
+# no nome antes de fazer ALIASES.get(nome) -- eram apelidos mortos por construção.
+ALIASES = {k.replace("-", "_").replace(" ", "_"): v for k, v in ALIASES.items()}
 
 

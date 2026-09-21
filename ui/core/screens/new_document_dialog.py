@@ -345,7 +345,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         h = self.spn_height.value()
         mb = estimate_ram_usage_mb(w, h, num_layers=3)
         mp = (float(w) * float(h)) / 1_000_000.0
-        self.lbl_ram_estimate.setText(f"📐 {mp:.1f} Megapixels  •  💾 RAM estimada: ~{mb:.1f} MB (3 camadas)")
+        self.lbl_ram_estimate.setText(f"{mp:.1f} Megapixels  •  RAM estimada: ~{mb:.1f} MB (3 camadas)")
 
     def get_document_params(self) -> Dict[str, Any]:
         """Retorna todos os parâmetros de criação do documento para inicialização do motor."""
@@ -416,7 +416,7 @@ class NewDocumentDialog(BaseFramelessDialog):
             }}
             QPushButton {{
                 background-color: {accent};
-                color: #ffffff;
+                color: {text};
                 border: none;
                 border-radius: 6px;
                 padding: 6px 14px;

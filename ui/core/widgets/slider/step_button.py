@@ -2,14 +2,18 @@ from PySide6 import QtWidgets, QtCore, QtGui, QtSvg
 from ui.core.theme.manager import ThemeManager
 
 
-def make_svg_minus_icon(color_hex: str = "#f3f4f6") -> bytes:
+def make_svg_minus_icon(color_hex: str = None) -> bytes:
+    if color_hex is None:
+        color_hex = ThemeManager.instance().get_color("FG_PRIMARY", "#f3f4f6")
     svg_data = f'''<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{color_hex}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>'''
     return svg_data.encode('utf-8')
 
 
-def make_svg_plus_icon(color_hex: str = "#f3f4f6") -> bytes:
+def make_svg_plus_icon(color_hex: str = None) -> bytes:
+    if color_hex is None:
+        color_hex = ThemeManager.instance().get_color("FG_PRIMARY", "#f3f4f6")
     svg_data = f'''<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{color_hex}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -75,6 +79,7 @@ class SliderStepButton(QtWidgets.QAbstractButton):
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, event):
+        tm = ThemeManager.instance()
         p = QtGui.QPainter(self)
         p.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -84,12 +89,12 @@ class SliderStepButton(QtWidgets.QAbstractButton):
         if not self.isEnabled():
             bg = self._bg_color.darker(120)
             border = self._border_color.darker(120)
-            icon_hex = "#6b7280"
+            icon_hex = tm.get_color("FG_TERTIARY", "#6b7280")
         elif self._pressed:
             bg = QtGui.QColor(self._accent_color)
             bg.setAlpha(180)
             border = self._accent_color
-            icon_hex = "#ffffff"
+            icon_hex = tm.get_color("FG_PRIMARY", "#ffffff")
         elif self._hover:
             bg = self._bg_hover_color
             border = self._accent_color

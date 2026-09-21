@@ -72,6 +72,7 @@ class CloseDocumentDialog(BaseFramelessDialog):
         accent = theme.get_color("accent", "#8b5cf6")
         text_main = theme.get_color("text_main", "#f3f4f6")
         bg_btn = theme.get_color("bg_panel", "#1f2937")
+        accent_hover = theme.get_color("accent_hover", "#a855f7")
 
         self.setStyleSheet(f"""
             QLabel {{
@@ -92,10 +93,10 @@ class CloseDocumentDialog(BaseFramelessDialog):
             QPushButton#SaveBtn {{
                 background-color: {accent};
                 border-color: {accent};
-                color: #ffffff;
+                color: {text_main};
                 font-weight: bold;
             }}
             QPushButton#SaveBtn:hover {{
-                background-color: #a855f7;
+                background-color: {accent_hover};
             }}
         """)

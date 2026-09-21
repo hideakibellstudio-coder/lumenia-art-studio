@@ -89,7 +89,7 @@ class PluginsWindow(BaseFramelessDialog):
 
         self.btn_import = QtWidgets.QPushButton(" Importar .zip")
         self.btn_import.setObjectName("pluginImportBtn")
-        self.btn_import.setIcon(get_icon("import", "#ffffff"))
+        self.btn_import.setIcon(get_icon("import", ThemeManager.instance().get_color("FG_PRIMARY", "#ffffff")))
         self.btn_import.setIconSize(QtCore.QSize(15, 15))
         self.btn_import.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_import.clicked.connect(self.import_zip)
@@ -365,7 +365,7 @@ class PluginsWindow(BaseFramelessDialog):
             QPushButton:checked {{
                 background-color: {accent};
                 border-color: {accent};
-                color: #ffffff;
+                color: {text_main};
                 font-weight: bold;
             }}
             QPushButton#pluginImportBtn {{
@@ -373,7 +373,7 @@ class PluginsWindow(BaseFramelessDialog):
                 border: none;
                 border-radius: 6px;
                 padding: 8px 12px;
-                color: #ffffff;
+                color: {text_main};
                 font-weight: bold;
                 font-size: 11px;
                 text-align: center;

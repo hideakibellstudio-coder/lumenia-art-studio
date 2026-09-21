@@ -118,8 +118,8 @@ class ToolSidebar(QtWidgets.QToolBar):
         self.action_zoom_out.setText(tr("tools.zoom_out", "Afastar (Zoom Out)"))
         self.action_reset.setText(tr("tools.reset", "Resetar Câmera"))
         self.action_deselect.setText(tr("tools.deselect", "Desmarcar Seleção (Ctrl+D)"))
-        self.action_clear.setText(tr("tools.clean", "Limpar Tela"))
-        self.action_clear.setToolTip(tr("tools.clean_tooltip", "Limpar todo o conteúdo do canvas"))
+        self.action_clear.setText(tr("tools.clean", "Limpar Camada Ativa"))
+        self.action_clear.setToolTip(tr("tools.clean_tooltip", "Limpar o conteúdo da camada ativa"))
 
     def _on_brush_triggered(self):
         self.action_brush.setChecked(True)

@@ -287,6 +287,7 @@ class BrushSelectorPopup(QtWidgets.QDialog):
         text_main = theme.get_color("text_main")
         accent = theme.get_color("accent")
         bg_hover = theme.get_color("accent_muted")
+        fg_on_accent = theme.get_color("FG_PRIMARY", "#ffffff")
 
         self.container.setStyleSheet(f"""
             QFrame#PopupContainer {{
@@ -311,7 +312,7 @@ class BrushSelectorPopup(QtWidgets.QDialog):
             }}
             QToolButton[active="true"], QToolButton:checked {{
                 background-color: {accent};
-                color: #ffffff;
+                color: {fg_on_accent};
             }}
         """)
 

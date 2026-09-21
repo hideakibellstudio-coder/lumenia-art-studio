@@ -11,20 +11,18 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
-## ✅ Resolvido nesta sessão (2026-09-21, rodadas 6 a 10)
+## ✅ Resolvido nesta sessão (2026-09-21, rodadas 6 a 14)
 
-Itens de auditoria vertical, código morto, integridade de traço, cursor e subsistemas satélites concluídos e homologados:
+Itens de auditoria vertical, código morto, integridade de traço, cursor, fronteira C++ e subsistemas satélites concluídos e homologados:
 
-- **Auditoria Orbital Concêntrica de Subsistemas Satélites (Rodadas 9 e 10)**:
-  - Criação da skill `lumenia-satellite-audit` e documento metodológico `06-auditoria-orbital-decomposta.md`.
-  - *Balde de Tinta (`do_flood_fill`)*: corrigido bug de cor com propriedade canônica `active_color` e garantia de simetria de sinais `strokeStarted`/`strokeFinished` via `try ... finally`.
-  - *TextToolController*: ciclo de vida simétrico de sinais `strokeStarted` e `strokeFinished` (em `open_editor`, `commit` e `cancel`), destravando docas e gavetas despinadas.
-  - *Sincronização de Previews e Exclusão*: Delete/Backspace com seleção ativa e `clear_canvas` integrados à paridade de sinais para atualização de miniaturas.
-  - *Desacoplamento de PaperLayerWidget*: método canônico `set_paper_state` no `RenderWidget` e sinal `paperChanged`.
-  - *Grade, Réguas e Espelhamento H/V*: alias `geometry_controller`, propriedades de flip no canvas conectadas bidirecionalmente com `NavigatorPanel`.
-  - *Seleção e Marching Ants*: métodos unificados `select_all()`, `invert_selection()` e `clear_selection()` sincronizados ao timer de 60ms.
-  - *Guards de Motor e Limpeza Zero-Dirt*: correções em `AladynBackend` e eliminação definitiva do shim `plugins/ui/color_plugin/color_wheel.py`.
-  - *Salvaguarda ARCcC Invariants*: modularização em `test_satellite_subsystems_integrity.py` e `test_satellite_subsystems_round10.py` respeitando o teto de 450 LOC (Zona Verde). 100% de testes verdes em toda a base (670+ testes).
+- **Auditoria Orbital Concêntrica de Subsistemas Satélites (Rodadas 9 a 14)**:
+  - Criação e expansão da skill `lumenia-satellite-audit` e documento metodológico `06-auditoria-orbital-decomposta.md` para o modelo de 6 camadas concêntricas e verificação ascendente dos 5 Rios.
+  - *Rodada 14 (Descida ao Núcleo C++ e Laço Ascendente dos 5 Rios)*: validação de `BufferContract.hpp` (`checkedRasterBytes`, `validateRasterInput`, `pixelSnapshot`), `DocumentContext::touch()` monótono, invariantes de `TileGrid`, `TileUndoManager`, `Compositor` e `DabRenderer` SIMD. Homologação do fechamento ascendente completo nos 5 Rios (Traço, Câmera/Viewport, Camadas/Histórico, Seleção/Transformação e Cor/Perfis). Suíte dedicada `tests/test_satellite_round14_core_and_ascending_loop.py` (9/9 testes verdes).
+  - *Rodada 13 (Sincronização Viewport/Navigator e Dirty Tracking de Camadas)*: alinhamento dos ícones SVG de flip no painel Navigator (`flip-vertical` / `flip-horizontal`), emissão idempotente de `cameraChanged` nos setters `flip_x`/`flip_y` de `canvas_compat.py` para sincronização bidirecional, e cobertura completa de dirty tracking (`_mark_document_dirty`) nas 18 operações de camada de `AladynLayerMixin`, geometria, transações e recursos. Suíte dedicada `tests/test_satellite_round13_primordial.py` (7/7 testes verdes).
+  - *Rodada 12 (Saneamento dos Botões de Flip e Fronteira Primordial C++)*: alinhamento 1:1 de `btn_fliph`/`btn_flipv` $\to$ `flipHRequested`/`flipVRequested` no Navigator, guard defensivo resiliente em MDI com `hasattr(facade, "set_render_options")` e fallbacks granulares, e dirty tracking em operações nativas (`clear_canvas`, `clear_layer`, `undo`, `redo`, `flood_fill`, `fill_area`, `end_stroke`). Suíte dedicada `tests/test_satellite_round12_primordial.py` (6/6 testes verdes).
+  - *Rodada 11 (Borda Primordial C++ e Paridade de Menu)*: função canônica `to_native_color_rgba` para coerção polimórfica resiliente de cores, marcação dirty em mutações de raster (fill, delete, transform, paste, flip, rotate), paridade de sinais `strokeStarted`/`strokeFinished` no menu principal com helper `_emit_stroke_wrap` e resolução canônica de cor. Suíte dedicada `tests/test_engine_boundary_round11.py` (4/4 testes verdes).
+  - *Rodadas 9 e 10 (Subsistemas Satélites, Ferramentas e Docks)*: balde de tinta com `active_color` e paridade de sinais `try ... finally`, ciclo de vida simétrico do `TextToolController`, sincronização de previews em Delete e `clear_canvas`, desacoplamento de `PaperLayerWidget` com sinal `paperChanged`, réguas/grade com alias `geometry_controller`, marching ants dinâmicas unificadas no `SelectionToolController` e eliminação do shim `color_wheel.py`.
+  - *Salvaguarda ARCcC Invariants*: 100% de conformidade com o teto de 450 LOC por arquivo (Zona Verde) em todos os arquivos modificados. 100% de testes verdes em toda a base (**725 testes passando** com zero falhas).
 
 - **Auditoria de Código Morto & Sombra de Empacotamento (Níveis 1, 2 e 3)**:
   - Nível 1: Remoção de 4 arquivos mortos isolados com zero chamadores (`color_wheel.py`, `dialog.py`, `flood_fill.py`, `IRenderContext.hpp` — commit `c217811`).

@@ -10,13 +10,13 @@ echo.
 
 where pythonw >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    start "" pythonw ui/main.py %*
+    start "" pythonw main.py %*
     exit /b 0
 )
 
 where python >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    start "" python ui/main.py %*
+    start "" python main.py %*
     exit /b 0
 )
 

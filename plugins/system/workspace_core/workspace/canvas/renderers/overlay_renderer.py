@@ -153,45 +153,52 @@ class OverlayRenderer:
         is_shift = bool(modifiers & QtCore.Qt.ShiftModifier)
         is_alt = bool(modifiers & QtCore.Qt.AltModifier)
 
-        if widget.active_tool in ("rect_select", "ellipse_select") and getattr(widget, "_sel_drag_active", False):
-            p1 = widget._sel_drag_start
-            p2 = widget._sel_drag_current
-            dx = p2.x() - p1.x()
-            dy = p2.y() - p1.y()
+        ctrl = getattr(widget, "selection_ctrl", None)
+        active_tool = getattr(widget, "active_tool", "")
 
-            if is_shift:
-                side = max(abs(dx), abs(dy))
-                dx = side if dx >= 0 else -side
-                dy = side if dy >= 0 else -side
+        if active_tool in ("rect_select", "ellipse_select"):
+            drag_active = ctrl.drag_active if ctrl is not None else getattr(widget, "_sel_drag_active", False)
+            if drag_active:
+                p1 = ctrl.drag_start if ctrl is not None else getattr(widget, "_sel_drag_start", QtCore.QPointF(0, 0))
+                p2 = ctrl.drag_current if ctrl is not None else getattr(widget, "_sel_drag_current", QtCore.QPointF(0, 0))
+                dx = p2.x() - p1.x()
+                dy = p2.y() - p1.y()
 
-            if is_alt:
-                rx = abs(dx)
-                ry = abs(dy)
-                rect = QtCore.QRectF(p1.x() - rx, p1.y() - ry, rx * 2.0, ry * 2.0)
-            else:
-                rect = QtCore.QRectF(min(p1.x(), p1.x() + dx), min(p1.y(), p1.y() + dy), abs(dx), abs(dy))
+                if is_shift:
+                    side = max(abs(dx), abs(dy))
+                    dx = side if dx >= 0 else -side
+                    dy = side if dy >= 0 else -side
 
-            if widget.active_tool == "rect_select":
-                painter.setPen(pen_black)
-                painter.drawRect(rect)
-                painter.setPen(pen_white)
-                painter.drawRect(rect)
-            elif widget.active_tool == "ellipse_select":
-                painter.setPen(pen_black)
-                painter.drawEllipse(rect)
-                painter.setPen(pen_white)
-                painter.drawEllipse(rect)
+                if is_alt:
+                    rx = abs(dx)
+                    ry = abs(dy)
+                    rect = QtCore.QRectF(p1.x() - rx, p1.y() - ry, rx * 2.0, ry * 2.0)
+                else:
+                    rect = QtCore.QRectF(min(p1.x(), p1.x() + dx), min(p1.y(), p1.y() + dy), abs(dx), abs(dy))
 
-        elif widget.active_tool == "lasso":
-            pts = getattr(widget, "_lasso_points", [])
+                if active_tool == "rect_select":
+                    painter.setPen(pen_black)
+                    painter.drawRect(rect)
+                    painter.setPen(pen_white)
+                    painter.drawRect(rect)
+                elif active_tool == "ellipse_select":
+                    painter.setPen(pen_black)
+                    painter.drawEllipse(rect)
+                    painter.setPen(pen_white)
+                    painter.drawEllipse(rect)
+
+        elif active_tool == "lasso":
+            pts = ctrl.lasso_points if ctrl is not None else getattr(widget, "_lasso_points", [])
             if len(pts) >= 1:
                 path = QtGui.QPainterPath()
                 path.moveTo(pts[0])
                 for p in pts[1:]:
                     path.lineTo(p)
 
-                if widget._lasso_settings.get("lasso_type") == "polygonal" and getattr(widget, "_lasso_hover_pt", None):
-                    path.lineTo(widget._lasso_hover_pt)
+                lasso_cfg = ctrl.lasso_settings if ctrl is not None else getattr(widget, "_lasso_settings", {})
+                hover_pt = ctrl.lasso_hover_pt if ctrl is not None else getattr(widget, "_lasso_hover_pt", None)
+                if lasso_cfg.get("lasso_type") == "polygonal" and hover_pt:
+                    path.lineTo(hover_pt)
 
                 painter.setPen(pen_black)
                 painter.drawPath(path)

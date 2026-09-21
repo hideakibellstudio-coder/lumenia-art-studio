@@ -28,10 +28,14 @@ class StrokePreview(QtWidgets.QWidget):
         self._pressure = 0.50
         self._color    = [0.0, 0.0, 0.0]
         
-        # Parâmetros específicos
+        # Parâmetros específicos por mini-motor
         self._watercolor_params = None
         self._oil_params = None
         self._pencil_params = None
+        self._inker_params = None
+        self._marker_params = None
+        self._blur_params = None
+        self._smudge_params = None
 
         self._cached_image = None
         self._dirty = True
@@ -50,7 +54,11 @@ class StrokePreview(QtWidgets.QWidget):
                            engine_type: int = None,
                            watercolor_params=None,
                            oil_params=None,
-                           pencil_params=None):
+                           pencil_params=None,
+                           inker_params=None,
+                           marker_params=None,
+                           blur_params=None,
+                           smudge_params=None):
         """Atualiza os parâmetros de traço e invalida o buffer em cache."""
         if size is not None:     self._size = size
         if opacity is not None:  self._opacity = opacity
@@ -62,6 +70,10 @@ class StrokePreview(QtWidgets.QWidget):
         if watercolor_params is not None: self._watercolor_params = watercolor_params
         if oil_params is not None: self._oil_params = oil_params
         if pencil_params is not None: self._pencil_params = pencil_params
+        if inker_params is not None: self._inker_params = inker_params
+        if marker_params is not None: self._marker_params = marker_params
+        if blur_params is not None: self._blur_params = blur_params
+        if smudge_params is not None: self._smudge_params = smudge_params
 
         self._dirty = True
         self.update()
@@ -83,6 +95,10 @@ class StrokePreview(QtWidgets.QWidget):
                 "watercolor_params": self._watercolor_params,
                 "oil_params": self._oil_params,
                 "pencil_params": self._pencil_params,
+                "inker_params": self._inker_params,
+                "marker_params": self._marker_params,
+                "blur_params": self._blur_params,
+                "smudge_params": self._smudge_params,
             }
             raw_bytes = backend.render_brush_preview(w, h, state)
             if raw_bytes and len(raw_bytes) == w * h * 4:

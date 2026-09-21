@@ -89,6 +89,8 @@ class AladynBrushMixin:
         try:
             prof: "BrushProfile" = self._facade.get_brush_profile() if self._facade else self._native.BrushProfile()
             if brush_state:
+                if "engine_type" in brush_state and hasattr(prof, "engine_type"):
+                    prof.engine_type = int(brush_state["engine_type"])
                 if "size" in brush_state: prof.brush_size = float(brush_state["size"])
                 if "opacity" in brush_state: prof.opacity = float(brush_state["opacity"])
                 if "hardness" in brush_state: prof.hardness = float(brush_state["hardness"])
@@ -99,18 +101,15 @@ class AladynBrushMixin:
                     g = int(c[1] * 255) if isinstance(c[1], float) else int(c[1])
                     b = int(c[2] * 255) if isinstance(c[2], float) else int(c[2])
                     prof.base_color = self._native.ColorRGBA(r, g, b, 255)
-                if "watercolor_params" in brush_state and brush_state["watercolor_params"]:
-                    for k, v in brush_state["watercolor_params"].items():
-                        if hasattr(prof.watercolor_params, k):
-                            setattr(prof.watercolor_params, k, v)
-                if "oil_params" in brush_state and brush_state["oil_params"]:
-                    for k, v in brush_state["oil_params"].items():
-                        if hasattr(prof.oil_params, k):
-                            setattr(prof.oil_params, k, v)
-                if "pencil_params" in brush_state and brush_state["pencil_params"]:
-                    for k, v in brush_state["pencil_params"].items():
-                        if hasattr(prof.pencil_params, k):
-                            setattr(prof.pencil_params, k, v)
+                for group in (
+                    "watercolor_params", "oil_params", "pencil_params",
+                    "inker_params", "marker_params", "blur_params", "smudge_params"
+                ):
+                    if group in brush_state and brush_state[group] and hasattr(prof, group):
+                        sub_obj = getattr(prof, group)
+                        for k, v in brush_state[group].items():
+                            if hasattr(sub_obj, k):
+                                setattr(sub_obj, k, v)
 
             raw = self._native.render_stroke_preview(prof, int(width), int(height))
             return bytes(raw) if raw else None

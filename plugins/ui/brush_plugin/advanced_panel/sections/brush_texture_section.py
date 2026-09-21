@@ -59,7 +59,7 @@ def create_brush_texture_section(panel: "AdvancedPanel") -> CollapsibleSection:
     lo.addWidget(panel.sl_b_scale)
 
     panel.slider_contrast = LabeledSlider(f"{tr('brush.texture_contrast', 'Contraste da Textura (Dureza)')}:", 10, 300, 100, "%", param_name="contrast", show_pin=True, default_pinned=False)
-    panel.slider_contrast.valueChanged.connect(panel.contrastChanged.emit)
+    panel.slider_contrast.valueChanged.connect(lambda v: panel.contrastChanged.emit(v / 100.0))
     panel.slider_contrast.valueChanged.connect(panel._on_b_grain_contrast)
     panel.slider_contrast.pinToggled.connect(panel.pinToggled.emit)
     lo.addWidget(panel.slider_contrast)

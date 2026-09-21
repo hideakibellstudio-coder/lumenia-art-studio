@@ -63,18 +63,17 @@ class WorkspaceBrushMixin:
         if self._brush_dock is dock:
             self._brush_dock = None
 
+    def _get_backend(self):
+        from ui.core.engine.registry import EngineRegistry
+        return EngineRegistry.instance().get_backend()
+
     def _apply_brush_color(self, color: QtGui.QColor) -> None:
         self.canvas_widget._active_draw_color = color
         if hasattr(self.canvas_widget, "set_shape_color"):
             self.canvas_widget.set_shape_color(color)
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_brush_color(color.redF(), color.greenF(), color.blueF())
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_brush_color(
-                color.redF(), color.greenF(), color.blueF()
-            )
         self.canvas_widget.update()
 
     def _on_brush_color(self, color: QtGui.QColor) -> None:
@@ -90,12 +89,9 @@ class WorkspaceBrushMixin:
     def _on_brush_size(self, val: float) -> None:
         cw = self.canvas_widget
         cw.brush_size = val
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_brush_size(val)
-        if cw.renderer:
-            cw.renderer.set_brush_size(val)
         cw.update()
         if self._brush_dock:
             d = self._brush_dock
@@ -119,50 +115,39 @@ class WorkspaceBrushMixin:
     def _on_brush_pressure(self, val: float) -> None:
         cw = self.canvas_widget
         cw.manual_pressure = val
-        if cw.renderer:
-            cw.renderer.set_brush_pressure(val)
-            cw.update()
+        backend = self._get_backend()
+        if backend:
+            backend.set_brush_pressure(val)
+        cw.update()
         if self._brush_dock:
             self._brush_dock.stroke_preview.update_brush_state(pressure=val)
 
     def _on_brush_pressure_curve(self, val: float) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_pressure_curve_power(val)
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_pressure_curve_power(val)
-            self.canvas_widget.update()
+        self.canvas_widget.update()
 
     def _on_brush_stabilizer(self, weight: float) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_stabilizer_weight(weight)
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_stabilizer_weight(weight)
-            self.canvas_widget.update()
+        self.canvas_widget.update()
 
     def _on_brush_spacing(self, factor: float) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_brush_spacing(factor)
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_brush_spacing(factor)
-            self.canvas_widget.update()
+        self.canvas_widget.update()
         if self._brush_dock:
             self._brush_dock.stroke_preview.update_brush_state(spacing=factor)
 
     def _on_brush_opacity(self, factor: float) -> None:
         cw = self.canvas_widget
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_brush_opacity(factor)
-        if cw.renderer:
-            cw.renderer.set_brush_opacity(factor)
-            cw.update()
+        cw.update()
         if self._brush_dock:
             d = self._brush_dock
             val = int(factor * 100.0)
@@ -176,43 +161,31 @@ class WorkspaceBrushMixin:
             d.stroke_preview.update_brush_state(opacity=factor)
 
     def _on_min_density_active(self, active: bool) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_min_density_active(active)
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_min_density_active(active)
-            self.canvas_widget.update()
+        self.canvas_widget.update()
 
     def _on_min_density_value(self, weight: float) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_min_density_value(weight)
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_min_density_value(weight)
-            self.canvas_widget.update()
+        self.canvas_widget.update()
 
     def _on_brush_contrast(self, val: float) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_brush_contrast(val)
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_brush_contrast(val)
-            self.canvas_widget.update()
+        self.canvas_widget.update()
         if self._brush_dock:
             hardness = min(0.99, max(0.01, val / 3.0))
             self._brush_dock.stroke_preview.update_brush_state(hardness=hardness)
 
     def _on_brush_invert(self, invert: bool) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._get_backend()
         if backend:
             backend.set_brush_invert_height(invert)
-        if self.canvas_widget.renderer:
-            self.canvas_widget.renderer.set_brush_invert_height(invert)
-            self.canvas_widget.update()
+        self.canvas_widget.update()
 
     def _load_custom_texture(self, is_shape: bool) -> None:
         from .brush_texture_io import BrushTextureIO
@@ -227,8 +200,7 @@ class WorkspaceBrushMixin:
 
     def _do_sync_previews(self) -> None:
         try:
-            from ui.core.engine.registry import EngineRegistry
-            backend = EngineRegistry.instance().get_backend()
+            backend = self._get_backend()
             if not backend:
                 return
             if hasattr(self, "_navigator_panel") and self._navigator_panel:

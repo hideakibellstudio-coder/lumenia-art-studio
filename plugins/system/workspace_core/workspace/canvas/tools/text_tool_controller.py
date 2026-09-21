@@ -70,8 +70,8 @@ class TextToolController:
             max_h = max(200.0, float(h) - ed.canvas_pos.y())
             p.drawText(QtCore.QRectF(ed.canvas_pos.x(), ed.canvas_pos.y(), max_w, max_h), align_f, text)
             p.end()
-
-            px_bytes = text_img.convertToFormat(QtGui.QImage.Format_RGBA8888).constBits().tobytes()
+            text_rgba = text_img.convertToFormat(QtGui.QImage.Format_RGBA8888)
+            px_bytes = text_rgba.constBits().tobytes()
             from ui.core.engine.registry import EngineRegistry
             b = EngineRegistry.instance().get_backend()
             if b and hasattr(b, "paste_rgba_buffer_on_active_layer") and getattr(b, "available", False):

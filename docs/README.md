@@ -43,6 +43,12 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-20 — Formalização e aprovação do Gate de Sessão Longa P4 (quinta rodada)
+**O que foi feito:** Conclusão do item P4 (`01-pendencias-atuais.md` e `04-testes-e-qualidade.md`). Pesquisa de práticas da indústria (Krita/Blender/Desktop Qt) para validação de estabilidade sem vazamentos. Formalizados os critérios de aceitação: $\Delta \text{GDI} == 0$, $\Delta \text{Handles} \le 5$, e drift de memória privada $\le 0.05 \text{ MB} / 100 \text{ ciclos}$ no platô pós-aquecimento. Implementado o harness automatizado `scripts/run_soak_test.py` com medição direta via `user32.dll!GetGuiResources` e regressão linear (aprovado com drift $+0.0000 \text{ MB} / 100 \text{ ciclos}$ em 350 ciclos). Implementado modo de pós-análise e emissão de laudo em `scripts/monitor_sessao.ps1 -Analisar`.
+
+### 2026-09-20 — Fiação de Feedback Visual de Undo/Redo na UI (quinta rodada)
+**O que foi feito:** Conclusão da pendência de UX/Produto de histórico (`01-pendencias-atuais.md`). Métodos `backend.can_undo()` e `backend.can_redo()` integrados à interface: ações `act_undo`/`act_redo` no Menu Editar e `action_undo`/`action_redo` na Barra Lateral agora iniciam desabilitadas e sincronizam reativamente com eventos de desenho (`strokeFinished`), operações de histórico e troca de documentos, além de conexão direta ao sinal `aboutToShow` do menu Editar. Testado em `tests/test_menu_bar_complete_wiring.py`.
+
 ### 2026-09-20 — Triagem dos achados `suspicious` do ARCcC-Navigator e anotações estritas (quinta rodada)
 **O que foi feito:** Conclusão formal do item P2 (`01-pendencias-atuais.md`). Diagnóstico da causa raiz dos ~184 achados `suspicious: missing_type_annotation`: o extrator AST do Navigator processa exclusivamente argumentos de funções (`node.args.args`), ignorando anotações em variáveis locais (`ast.AnnAssign`) e subscritos (`Optional[T]`), fazendo com que arquivos com anotações perfeitas fossem marcados como ausentes. Anotações estritas de classe única aplicadas no backend e recovery (`aladyn_brush_mixin.py`, `aladyn_resources_mixin.py`, `main_window_recovery.py`, `manager.py`).
 

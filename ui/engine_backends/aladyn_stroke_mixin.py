@@ -84,8 +84,13 @@ class AladynStrokeMixin:
                     )
 
         if not getattr(self, "_is_filling", False):
-            self._action_stack.append(("stroke", 1))
-            self._redo_stack.clear()
+            if hasattr(self, "_action_stack"):
+                self._action_stack.append(("stroke", 1))
+                max_steps = self.get_undo_max_steps() if hasattr(self, "get_undo_max_steps") else 50
+                if len(self._action_stack) > max_steps:
+                    self._action_stack.pop(0)
+            if hasattr(self, "_redo_stack"):
+                self._redo_stack.clear()
         return res or []
 
     def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0) -> None:

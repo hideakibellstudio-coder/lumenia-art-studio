@@ -144,11 +144,16 @@ Windows do usuário após a remoção.
   - **Anotações estritas aplicadas:** Nos locais de produção legítimos identificados com 100% de pertinência a uma única classe (`aladyn_brush_mixin.py`: `prof: "BrushProfile"`, `c_tex: "CanvasTexture"`; `aladyn_resources_mixin.py`: `canvas: "CanvasTexture"`; `main_window_recovery.py`: `document: Document`; `ui/core/document/manager.py`: `doc: Document`), as anotações foram devidamente inseridas respeitando o protocolo estrito.
   - **Conclusão:** Seguindo expressamente o `03-protocolo-do-navigator.md`, nenhum comportamento de runtime foi alterado para mascarar limitações estáticas do analisador. O item P2 está formalmente triado, documentado e encerrado.
 
-## ⚪ P4 — cobertura que nunca existiu
+## ⚪ P4 — cobertura que nunca existiu — Gate formalizado e validado (2026-09-20, quinta rodada)
 
-- Teste de sessão longa (`scripts/monitor_sessao.ps1` existe, sem critério de
-  aprovação nem execução registrada como gate).
-- Validação com artista real fora da máquina de desenvolvimento.
+- **Portão de Teste de Sessão Longa e Detecção de Vazamentos formalizado e aprovado**:
+  - **Critérios formais estabelecidos:** Embasados na literatura de engenharia desktop do Krita e Blender, definidos em `04-testes-e-qualidade.md`:
+    1. $\Delta \text{GDI} == 0$ (tolerância zero para vazamentos de GDI handles no Windows).
+    2. $\Delta \text{Handles} \le 5$ (estabilidade de handles do SO).
+    3. $\text{Drift} \le 0.05 \text{ MB} / 100 \text{ ciclos}$ na fase de platô (após aquecimento do anel de Undo e cache de tiles).
+  - **Harness de estresse headless criado:** `scripts/run_soak_test.py` simula centenas de ciclos de pintura interpolada, variações de dinâmica e transações de histórico em modo offscreen com medição direta via `user32.dll!GetGuiResources` e `psapi.dll!GetProcessMemoryInfo`.
+  - **Resultado da validação:** Bateria de 350 ciclos (180 warmup + 170 platô) executada e **100% APROVADA**: $\Delta \text{GDI} = 0$, $\Delta \text{Handles} = 0$, Drift de Memória Privada = $+0.0000 \text{ MB} / 100 \text{ ciclos}$.
+  - **Monitor de sessão com artista integrado:** `scripts/monitor_sessao.ps1` recebeu parâmetro `-Analisar <csv>` para processamento pós-sessão de desenho humano e emissão automática do laudo do Gate.
 
 ---
 

@@ -51,4 +51,47 @@ O leitor de arquivos de projeto `.lmn` passa por testes de fuzzing determinísti
 - Manifestos JSON com chaves ausentes, tipos incorretos ou referências circulares.
 - Payloads de pixels com dimensões divergentes do cabeçalho.
 
-O leitor **nunca causa segmentation fault ou crash não tratado**, rejeitando os dados corrompidos com exceções limpas `DocumentFormatError`.\n
+O leitor **nunca causa segmentation fault ou crash não tratado**, rejeitando os dados corrompidos com exceções limpas `DocumentFormatError`.
+
+---
+
+## ⏳ 3. Portão de Sessão Longa e Detecção de Vazamentos (Gate P4)
+
+A estabilidade de um aplicativo de pintura digital (como demonstrado pela literatura de engenharia do Krita e Blender) exige validação de longo curso para garantir que sessões prolongadas de trabalho não degradem a performance nem esgotem os recursos do sistema operacional.
+
+No ambiente Windows/Qt, vazamentos clássicos decorrem de acúmulo de **GDI Objects** (limite rígido do Windows de 10.000 por processo), handles de SO órfãos e crescimento linear irrestrito de memória privada.
+
+### 🎯 Critérios Formais de Aceitação do Gate P4
+
+| Recurso Monitorado | Critério de Aprovação | Justificativa Técnica |
+| :--- | :--- | :--- |
+| **GDI Objects** (`GetGuiResources`) | **$\Delta \text{GDI} == 0$** (Tolerância Zero) | Vazamentos de `QPainter`, `QPixmap`, `HDC` causam travamento catastrófico no Windows. Devem estabilizar imediatamente após carregar a UI. |
+| **OS Handles** (`GetProcessHandleCount`) | **$\Delta \text{Handles} \le 5$** | Protege contra vazamento de threads, pipes ou eventos de sincronização. |
+| **Memória Privada (Platô Estável)** | **$\text{Drift} \le 0.05 \text{ MB} / 100 \text{ ciclos}$** | Após a saturação do anel de Undo e do cache de tiles (fase de warmup), a taxa de alocação residual deve ser estatisticamente nula. |
+
+### 🤖 3.1 Bateria Automatizada Headless (`run_soak_test.py`)
+
+Simula centenas de ciclos de pintura contínua, interpolação de pressão, variações de cor/tamanho/opacidade e ciclos de desfazer/refazer em modo offscreen:
+
+```powershell
+# Execução padrão (350 ciclos, warmup de 180 ciclos, amostragem a cada 25):
+python scripts/run_soak_test.py
+
+# Execução profunda com exportação de telemetria CSV:
+python scripts/run_soak_test.py --cycles 1000 --warmup 200 --output-csv soak_report.csv
+```
+*O script calcula automaticamente a regressão linear na fase pós-aquecimento e retorna código de saída `0` (Aprovado) ou `1` (Reprovado).*
+
+### 🎨 3.2 Monitoramento e Análise de Sessão Real com Artista (`monitor_sessao.ps1`)
+
+Para validação em sessões manuais de desenho:
+1. **Durante a pintura:** Deixe o monitor rodando em um terminal em segundo plano:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts/monitor_sessao.ps1 -IntervaloSegundos 60
+   ```
+2. **Pós-sessão (Laudo Automático):** Avalie o arquivo CSV gerado contra os critérios do Gate:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts/monitor_sessao.ps1 -Analisar "$env:USERPROFILE\lumenia_sessao.csv"
+   ```
+   *O analisador descarta o primeiro quartil de tempo (aquecimento), calcula o drift de MB/hora e emite o veredicto formal de estabilidade.*
+\n

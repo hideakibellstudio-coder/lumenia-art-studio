@@ -69,14 +69,14 @@ def apply_telemetry_panel_theme(panel: Any) -> None:
         QPushButton#BtnToggleTelemetry:hover {{
             border-color: {accent};
         }}
-        QPushButton#BtnOpenDialog {{
+        QPushButton#BtnOpenDialog, QPushButton#BtnCopyReport {{
             background-color: transparent;
             border: 1px solid {border};
             border-radius: 4px;
             color: {text};
             font-size: 10px;
         }}
-        QPushButton#BtnOpenDialog:hover {{
+        QPushButton#BtnOpenDialog:hover, QPushButton#BtnCopyReport:hover {{
             background-color: {bg_card};
             border-color: {accent};
         }}

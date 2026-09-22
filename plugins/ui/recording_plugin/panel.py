@@ -31,6 +31,7 @@ class RecordingPanel(QtWidgets.QWidget):
 
     def __init__(self, canvas: Optional[QtCore.QObject] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
+        self.setMaximumWidth(280)
         self.canvas = canvas
         self.engine = TimelapseRecordingEngine(self)
         if canvas is not None:
@@ -100,20 +101,23 @@ class RecordingPanel(QtWidgets.QWidget):
         self.row_extra = QtWidgets.QWidget()
         rx_layout = QtWidgets.QHBoxLayout(self.row_extra)
         rx_layout.setContentsMargins(0, 0, 0, 0)
-        rx_layout.setSpacing(6)
+        rx_layout.setSpacing(4)
 
         self.btn_stop = QtWidgets.QPushButton("Parar")
         self.btn_stop.setFixedHeight(28)
+        self.btn_stop.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_stop.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_stop.clicked.connect(self.request_stop_recording)
 
         self.btn_save = QtWidgets.QPushButton("Salvar")
         self.btn_save.setFixedHeight(28)
+        self.btn_save.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_save.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_save.clicked.connect(self._on_save_clicked)
 
         self.btn_discard = QtWidgets.QPushButton("Descartar")
         self.btn_discard.setFixedHeight(28)
+        self.btn_discard.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_discard.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_discard.clicked.connect(self._on_discard_clicked)
 
@@ -161,14 +165,16 @@ class RecordingPanel(QtWidgets.QWidget):
         opt_layout.addWidget(lbl_fps)
         opt_layout.addWidget(self.combo_fps)
 
-        self.chk_watermark = QtWidgets.QCheckBox("Incluir Marca d'Água (Lumenia)")
+        self.chk_watermark = QtWidgets.QCheckBox("Incluir Marca d'Água")
+        self.chk_watermark.setToolTip("Adiciona marca d'água oficial do Lumenia no canto inferior direito")
         self.chk_watermark.setChecked(True)
         self.chk_watermark.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.chk_watermark.setStyleSheet("font-size: 11px;")
         self.chk_watermark.toggled.connect(self._on_watermark_toggled)
         opt_layout.addWidget(self.chk_watermark)
 
-        self.chk_guides = QtWidgets.QCheckBox("Incluir Guias Ativas (Perspectiva / Simetria)")
+        self.chk_guides = QtWidgets.QCheckBox("Incluir Guias Ativas")
+        self.chk_guides.setToolTip("Captura guias de perspectiva e eixos de simetria ativos no vídeo")
         self.chk_guides.setChecked(False)
         self.chk_guides.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.chk_guides.setStyleSheet("font-size: 11px;")
@@ -183,6 +189,8 @@ class RecordingPanel(QtWidgets.QWidget):
         row_dir.setSpacing(4)
         self.txt_dir = QtWidgets.QLineEdit(self.output_dir)
         self.txt_dir.setReadOnly(True)
+        self.txt_dir.setSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.txt_dir.setMinimumWidth(40)
         self.txt_dir.setStyleSheet("font-size: 10px; padding: 2px;")
         self.btn_browse = QtWidgets.QPushButton("...")
         self.btn_browse.setFixedSize(24, 22)
@@ -201,11 +209,11 @@ class RecordingPanel(QtWidgets.QWidget):
         diag_layout.setContentsMargins(8, 12, 8, 8)
         diag_layout.setSpacing(6)
 
-        self.lbl_diag_frames = QtWidgets.QLabel("Quadros Capturados: 0")
+        self.lbl_diag_frames = QtWidgets.QLabel("Quadros: 0")
         self.lbl_diag_frames.setStyleSheet("font-size: 11px;")
-        self.lbl_diag_size = QtWidgets.QLabel("Tamanho em Disco: 0.0 MB")
+        self.lbl_diag_size = QtWidgets.QLabel("Tamanho: 0.0 MB")
         self.lbl_diag_size.setStyleSheet("font-size: 11px;")
-        self.lbl_diag_dur = QtWidgets.QLabel("Duração do Vídeo: 0.0s (a 30 FPS)")
+        self.lbl_diag_dur = QtWidgets.QLabel("Duração: 0.0s (a 30 FPS)")
         self.lbl_diag_dur.setStyleSheet("font-size: 11px;")
 
         diag_layout.addWidget(self.lbl_diag_frames)
@@ -234,7 +242,6 @@ class RecordingPanel(QtWidgets.QWidget):
         fg_sec, danger, warning = theme.get_color("text_muted"), "#f85149", "#d29922"
 
         if not self.engine.is_recording:
-            self.lbl_led.setText("●")
             self.lbl_led.setStyleSheet(f"color: {fg_sec}; font-size: 16px;")
             self.lbl_status.setText("INATIVO")
             self.lbl_status.setStyleSheet(f"color: {fg_sec}; font-size: 11px; font-weight: bold;")
@@ -243,7 +250,6 @@ class RecordingPanel(QtWidgets.QWidget):
             self._set_options_enabled(True)
             self.pulse_timer.stop()
         elif self.engine.is_recording and not self.engine.is_paused:
-            self.lbl_led.setText("●")
             self.lbl_led.setStyleSheet(f"color: {danger}; font-size: 16px;")
             self.lbl_status.setText("GRAVANDO")
             self.lbl_status.setStyleSheet(f"color: {danger}; font-size: 11px; font-weight: bold;")
@@ -252,7 +258,6 @@ class RecordingPanel(QtWidgets.QWidget):
             self._set_options_enabled(False)
             self.pulse_timer.start()
         else:
-            self.lbl_led.setText("●")
             self.lbl_led.setStyleSheet(f"color: {warning}; font-size: 16px;")
             self.lbl_status.setText("PAUSADO")
             self.lbl_status.setStyleSheet(f"color: {warning}; font-size: 11px; font-weight: bold;")
@@ -273,10 +278,8 @@ class RecordingPanel(QtWidgets.QWidget):
 
     def _on_pulse_tick(self) -> None:
         self._pulse_state = not self._pulse_state
-        if self._pulse_state:
-            self.lbl_led.setStyleSheet("color: #f85149; font-size: 16px;")
-        else:
-            self.lbl_led.setStyleSheet("color: transparent; font-size: 16px;")
+        color = "#f85149" if self._pulse_state else "transparent"
+        self.lbl_led.setStyleSheet(f"color: {color}; font-size: 16px;")
         if hasattr(self, "floating_bar") and self.floating_bar:
             self.floating_bar.update_pulse(self._pulse_state)
 
@@ -415,7 +418,7 @@ class RecordingPanel(QtWidgets.QWidget):
         fps_val = fps_map.get(idx, 30)
         self.engine.fps = fps_val
         dur_secs = self.engine.frame_count / float(fps_val)
-        self.lbl_diag_dur.setText(f"Duração do Vídeo: {dur_secs:.1f}s (a {fps_val} FPS)")
+        self.lbl_diag_dur.setText(f"Duração: {dur_secs:.1f}s (a {fps_val} FPS)")
 
     def _on_trigger_changed(self, idx: int) -> None:
         self.engine.trigger_mode = "stroke" if idx == 0 else "time"
@@ -424,18 +427,15 @@ class RecordingPanel(QtWidgets.QWidget):
         self._update_status_view()
         if hasattr(self, "floating_bar") and self.floating_bar:
             self.floating_bar.update_state(is_rec, is_paused)
-            if is_rec:
-                self.floating_bar.show_bar()
-            else:
-                self.floating_bar.hide_bar()
+            self.floating_bar.show_bar() if is_rec else self.floating_bar.hide_bar()
 
     def _on_engine_stats_updated(self, frames: int, size_mb: float, dur_secs: float) -> None:
         secs = self.engine.elapsed_seconds
         h, m, s = secs // 3600, (secs % 3600) // 60, secs % 60
         self.lbl_time.setText(f"{h:02d}:{m:02d}:{s:02d}")
-        self.lbl_diag_frames.setText(f"Quadros Capturados: {frames}")
-        self.lbl_diag_size.setText(f"Tamanho em Disco: {size_mb:.1f} MB")
-        self.lbl_diag_dur.setText(f"Duração do Vídeo: {dur_secs:.1f}s (a {self.engine.fps} FPS)")
+        self.lbl_diag_frames.setText(f"Quadros: {frames}")
+        self.lbl_diag_size.setText(f"Tamanho: {size_mb:.1f} MB")
+        self.lbl_diag_dur.setText(f"Duração: {dur_secs:.1f}s (a {self.engine.fps} FPS)")
         if hasattr(self, "floating_bar") and self.floating_bar:
             self.floating_bar.update_stats(frames, secs)
 

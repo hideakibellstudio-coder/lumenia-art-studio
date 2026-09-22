@@ -29,6 +29,7 @@ class TelemetryPanel(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None, auto_start: bool = False) -> None:
         super().__init__(parent)
         self.setObjectName("TelemetryPanel")
+        self.setMaximumWidth(280)
         self._is_capturing = auto_start
 
         self._timer = QtCore.QTimer(self)
@@ -68,7 +69,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addWidget(self.btn_open_grid)
 
         # 1. Botão Mestre de Ativação / Desativação
-        btn_text = tr('telemetry.disable_capture', 'Captura Ativa (Desativar)') if self._is_capturing else tr('telemetry.enable_capture', 'Ativar Captura de Telemetria')
+        btn_text = tr('telemetry.disable_capture', 'Desativar Telemetria') if self._is_capturing else tr('telemetry.enable_capture', 'Ativar Telemetria')
         self.btn_toggle_telemetry = QtWidgets.QPushButton(btn_text)
         self.btn_toggle_telemetry.setObjectName("BtnToggleTelemetry")
         self.btn_toggle_telemetry.setIcon(get_icon(
@@ -81,7 +82,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         self.btn_toggle_telemetry.clicked.connect(self._on_toggle_capture)
         lo.addWidget(self.btn_toggle_telemetry)
 
-        status_text = f"{tr('telemetry.status', 'Status')}: {tr('telemetry.capturing', 'Capturando métricas (30 FPS)')}" if self._is_capturing else f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% Sobrecarga)"
+        status_text = f"{tr('telemetry.status', 'Status')}: {tr('telemetry.capturing', 'Capturando (30 FPS)')}" if self._is_capturing else f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% Carga)"
         self.lbl_status = QtWidgets.QLabel(status_text)
         self.lbl_status.setObjectName("TelemStatus")
         self.lbl_status.setAlignment(QtCore.Qt.AlignCenter)
@@ -131,21 +132,21 @@ class TelemetryPanel(QtWidgets.QWidget):
         # 4. Linha Comparativa: C++ Motor vs Qt Blit
         self.lbl_hdr_motor_vs_blit = self._make_label("MOTOR C++ vs APRESENTAÇÃO QT")
         lo.addWidget(self.lbl_hdr_motor_vs_blit)
-        self.lbl_motor_vs_blit = QtWidgets.QLabel("Motor: 0.00 µs | Blit Qt: 0.00 ms")
-        self.lbl_motor_vs_blit.setStyleSheet("font-size: 11px; font-weight: bold; font-family: monospace;")
+        self.lbl_motor_vs_blit = QtWidgets.QLabel("C++: 0.0 µs • Qt: 0.00 ms")
+        self.lbl_motor_vs_blit.setStyleSheet("font-size: 10px; font-weight: bold; font-family: monospace;")
         lo.addWidget(self.lbl_motor_vs_blit)
 
         # 5. Linha de Frequências: Mesa (Hz) vs Tela (FPS)
         self.lbl_hdr_rates = self._make_label("FREQUÊNCIAS (ENTRADA / TELA)")
         lo.addWidget(self.lbl_hdr_rates)
-        self.lbl_rates_val = QtWidgets.QLabel("Mesa: 0 Hz | Viewport: 0.0 FPS")
-        self.lbl_rates_val.setStyleSheet("font-size: 11px; font-weight: bold; font-family: monospace;")
+        self.lbl_rates_val = QtWidgets.QLabel("Mesa: 0 Hz • Tela: 0 FPS")
+        self.lbl_rates_val.setStyleSheet("font-size: 10px; font-weight: bold; font-family: monospace;")
         lo.addWidget(self.lbl_rates_val)
 
         # 6. Linha de Pegada Geométrica: Dabs / Região Suja
         self.lbl_hdr_geom = self._make_label("DENSIDADE & REGIÃO SUJA")
         lo.addWidget(self.lbl_hdr_geom)
-        self.lbl_geom_val = QtWidgets.QLabel("0 dabs | 0 × 0 px (0 tiles)")
+        self.lbl_geom_val = QtWidgets.QLabel("0 dabs • 0×0 px (0 t)")
         self.lbl_geom_val.setStyleSheet("font-size: 10px; font-weight: bold; font-family: monospace;")
         lo.addWidget(self.lbl_geom_val)
 
@@ -186,8 +187,8 @@ class TelemetryPanel(QtWidgets.QWidget):
         # 9. Memória (Canvas / Undo)
         self.lbl_hdr_ram = self._make_label(tr("telemetry.memory", "MEMÓRIA (CANVAS / UNDO)"))
         lo.addWidget(self.lbl_hdr_ram)
-        self.lbl_ram_val = QtWidgets.QLabel("0.00 MB / 0.00 MB")
-        self.lbl_ram_val.setStyleSheet("font-size: 11px; font-weight: bold; font-family: monospace;")
+        self.lbl_ram_val = QtWidgets.QLabel("Canvas: 0.0 MB • Undo: 0.0 MB")
+        self.lbl_ram_val.setStyleSheet("font-size: 10px; font-weight: bold; font-family: monospace;")
         lo.addWidget(self.lbl_ram_val)
 
         lo.addSpacing(6)
@@ -196,18 +197,20 @@ class TelemetryPanel(QtWidgets.QWidget):
         btn_action_row = QtWidgets.QHBoxLayout()
         btn_action_row.setSpacing(6)
 
-        self.btn_open_dialog = QtWidgets.QPushButton(tr('telemetry.advanced_dialog', 'Avançado...'))
+        self.btn_open_dialog = QtWidgets.QPushButton(tr('telemetry.advanced_dialog', 'Avançado'))
         self.btn_open_dialog.setObjectName("BtnOpenDialog")
         self.btn_open_dialog.setIcon(get_icon("settings", ThemeManager.instance().get_color("text_main")))
         self.btn_open_dialog.setFixedHeight(28)
+        self.btn_open_dialog.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_open_dialog.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_open_dialog.clicked.connect(self._open_diagnostics_dialog)
         btn_action_row.addWidget(self.btn_open_dialog)
 
-        self.btn_copy_report = QtWidgets.QPushButton("Copiar Relatório")
+        self.btn_copy_report = QtWidgets.QPushButton("Copiar")
         self.btn_copy_report.setObjectName("BtnCopyReport")
         self.btn_copy_report.setIcon(get_icon("copy", ThemeManager.instance().get_color("text_main")))
         self.btn_copy_report.setFixedHeight(28)
+        self.btn_copy_report.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_copy_report.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_copy_report.setToolTip("Copia o relatório completo com 20 medidores do grid e histórico de alterações de estado")
         self.btn_copy_report.clicked.connect(self._on_copy_report)
@@ -227,17 +230,17 @@ class TelemetryPanel(QtWidgets.QWidget):
         if hasattr(self, "btn_toggle_telemetry"):
             tm_rt = ThemeManager.instance()
             if self._is_capturing:
-                self.btn_toggle_telemetry.setText(tr('telemetry.disable_capture', 'Desativar Captura'))
+                self.btn_toggle_telemetry.setText(tr('telemetry.disable_capture', 'Desativar Telemetria'))
                 self.btn_toggle_telemetry.setIcon(get_icon("check_circle", tm_rt.get_color("success")))
             else:
-                self.btn_toggle_telemetry.setText(tr('telemetry.enable_capture', 'Ativar Captura de Telemetria'))
+                self.btn_toggle_telemetry.setText(tr('telemetry.enable_capture', 'Ativar Telemetria'))
                 self.btn_toggle_telemetry.setIcon(get_icon("zap", tm_rt.get_color("text_sec")))
             self.btn_toggle_telemetry.setToolTip(tr("telemetry.tooltip", "Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória."))
         if hasattr(self, "lbl_status"):
             if self._is_capturing:
-                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.capturing', 'Capturando métricas (30 FPS)')}")
+                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.capturing', 'Capturando (30 FPS)')}")
             else:
-                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% {tr('telemetry.overhead', 'Sobrecarga')})")
+                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% {tr('telemetry.overhead', 'Carga')})")
         if hasattr(self, "lbl_hdr_pressure"):
             self.lbl_hdr_pressure.setText(tr("telemetry.pen_pressure", "PRESSÃO DA CANETA"))
         if hasattr(self, "lbl_hdr_velocity"):
@@ -245,7 +248,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         if hasattr(self, "lbl_hdr_ram"):
             self.lbl_hdr_ram.setText(tr("telemetry.memory", "MEMÓRIA (CANVAS / UNDO)"))
         if hasattr(self, "btn_open_dialog"):
-            self.btn_open_dialog.setText(tr('telemetry.advanced_dialog', 'Diagnósticos Avançados...'))
+            self.btn_open_dialog.setText(tr('telemetry.advanced_dialog', 'Avançado'))
 
     def _make_label(self, text: str) -> QtWidgets.QLabel:
         lbl = QtWidgets.QLabel(text)
@@ -275,10 +278,10 @@ class TelemetryPanel(QtWidgets.QWidget):
             self.lbl_pressure_val.setText("0 %")
             self.bar_velocity.setValue(0)
             self.lbl_velocity_val.setText("0 px/s")
-            self.lbl_motor_vs_blit.setText("Motor: 0.00 µs | Blit Qt: 0.00 ms")
-            self.lbl_rates_val.setText("Mesa: 0 Hz | Viewport: 0.0 FPS")
-            self.lbl_geom_val.setText("0 dabs | 0 × 0 px (0 tiles)")
-            self.lbl_ram_val.setText("0.00 MB / 0.00 MB")
+            self.lbl_motor_vs_blit.setText("C++: 0.0 µs • Qt: 0.00 ms")
+            self.lbl_rates_val.setText("Mesa: 0 Hz • Tela: 0 FPS")
+            self.lbl_geom_val.setText("0 dabs • 0×0 px (0 t)")
+            self.lbl_ram_val.setText("Canvas: 0.0 MB • Undo: 0.0 MB")
             self.pipeline_bar.set_values_us(0, 0, 0, 0, 0, 0)
             self._update_bottleneck_banner(0, 0, 0, 0)
 
@@ -318,20 +321,20 @@ class TelemetryPanel(QtWidgets.QWidget):
                 self.pipeline_bar.set_values_us(kin_us, int_us, dab_us, und_us, cmp_us, blit_us)
 
                 # Motor vs Blit
-                self.lbl_motor_vs_blit.setText(f"Motor: {snap.last_segment_latency_us:.1f} µs | Blit Qt: {blit_ms:.2f} ms")
+                self.lbl_motor_vs_blit.setText(f"C++: {snap.last_segment_latency_us:.1f} µs • Qt: {blit_ms:.2f} ms")
 
                 # Frequências
-                self.lbl_rates_val.setText(f"Mesa: {snap.input_event_rate_hz} Hz | Viewport: {vp_fps:.1f} FPS")
+                self.lbl_rates_val.setText(f"Mesa: {snap.input_event_rate_hz} Hz • Tela: {vp_fps:.0f} FPS")
 
                 # Densidade e pegada
                 dabs_rendered = getattr(snap, "last_dabs_rendered", 0)
                 dw = int(getattr(snap, "last_dirty_width", 0.0))
                 dh = int(getattr(snap, "last_dirty_height", 0.0))
                 tiles_rec = getattr(snap, "last_tiles_recorded", 0)
-                self.lbl_geom_val.setText(f"{dabs_rendered} dabs | {dw}×{dh} px ({tiles_rec} tiles)")
+                self.lbl_geom_val.setText(f"{dabs_rendered} dabs • {dw}×{dh} px ({tiles_rec} t)")
 
                 # Memória
-                self.lbl_ram_val.setText(f"{snap.tile_grid_memory_mb:.2f} MB / {snap.undo_stack_memory_mb:.2f} MB")
+                self.lbl_ram_val.setText(f"Canvas: {snap.tile_grid_memory_mb:.1f} MB • Undo: {snap.undo_stack_memory_mb:.1f} MB")
 
                 # Banner de diagnóstico de gargalos
                 self._update_bottleneck_banner(dab_us, und_us, cmp_us, blit_ms)
@@ -378,7 +381,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         state_str = tracker.current_state_str
 
         if state_key == "GARGALO_BLIT":
-            self.lbl_bottleneck.setText("GARGALO: BLIT QT LENTO (>16ms)")
+            self.lbl_bottleneck.setText("GARGALO: BLIT QT (>16ms)")
             self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("DANGER", "#ef4444"), 0.2))
         elif state_key == "GARGALO_RASTER":
             self.lbl_bottleneck.setText("GARGALO: RASTER DAB (>15ms)")

@@ -49,7 +49,29 @@ class DockAnimator:
         self._expand_timer.setSingleShot(True)
         self._expand_timer.timeout.connect(self.do_expand)
 
+        try:
+            from ui.core.theme.manager import ThemeManager
+            ThemeManager.instance().scaleChanged.connect(self._on_scale_changed)
+        except Exception:
+            pass
+
         self.update_anim_duration()
+
+    @property
+    def drawer_width(self) -> int:
+        try:
+            from ui.core.theme.manager import ThemeManager
+            return max(180, int(self.DRAWER_WIDTH * ThemeManager.instance().ui_scale))
+        except Exception:
+            return self.DRAWER_WIDTH
+
+    def _on_scale_changed(self, scale: float) -> None:
+        if self.dock.drawer_container.maximumWidth() > 0:
+            w = self.drawer_width
+            self.dock.drawer_container.setMinimumWidth(w)
+            self.dock.drawer_container.setMaximumWidth(w)
+            if not self.dock.is_pinned:
+                self.dock.update_unpinned_position()
 
     def apply_settings(self, auto_collapse: bool, speed: str = "Rápido", delay: str = "Normal (350ms)") -> None:
         """Applies real-time animation settings."""
@@ -146,15 +168,16 @@ class DockAnimator:
         self.dock.drawer_container.show()
         if not self.dock.is_pinned:
             self.dock.drawer_container.raise_()
+        target_w = self.drawer_width
         current = self.dock.drawer_container.maximumWidth()
-        if current == self.DRAWER_WIDTH and self.dock.drawer_container.width() == self.DRAWER_WIDTH:
-            self.dock.drawer_container.setMinimumWidth(self.DRAWER_WIDTH)
+        if current == target_w and self.dock.drawer_container.width() == target_w:
+            self.dock.drawer_container.setMinimumWidth(target_w)
             if not self.dock.is_pinned:
                 self.dock.update_unpinned_position()
             return
         self._drawer_anim.stop()
         self._drawer_anim.setStartValue(current)
-        self._drawer_anim.setEndValue(self.DRAWER_WIDTH)
+        self._drawer_anim.setEndValue(target_w)
         self._drawer_anim.start()
 
     def close_drawer_anim(self) -> None:
@@ -182,7 +205,8 @@ class DockAnimator:
                 except RuntimeError:
                     pass
         else:
-            self.dock.drawer_container.setMinimumWidth(self.DRAWER_WIDTH)
-            self.dock.drawer_container.setMaximumWidth(self.DRAWER_WIDTH)
+            target_w = self.drawer_width
+            self.dock.drawer_container.setMinimumWidth(target_w)
+            self.dock.drawer_container.setMaximumWidth(target_w)
             if not self.dock.is_pinned:
                 self.dock.update_unpinned_position()

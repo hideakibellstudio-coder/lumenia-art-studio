@@ -97,6 +97,35 @@ class TestThemeSystem(unittest.TestCase):
         self.assertIsNotNone(dlg.root_container.styleSheet())
         dlg.close()
 
+    def test_06_ui_scale_getter_setter_and_persistence(self):
+        from ui.core.config.manager import ConfigManager
+        cfg = ConfigManager.instance()
+
+        orig_scale = self.tm.ui_scale
+        scale_events = []
+        self.tm.scaleChanged.connect(scale_events.append)
+
+        try:
+            self.tm.set_ui_scale(0.8)
+            self.assertAlmostEqual(self.tm.ui_scale, 0.8)
+            self.assertIn(0.8, scale_events)
+            self.assertAlmostEqual(cfg.get("interface", "scale", 1.0), 0.8)
+
+            qss_80 = self.tm._compile_qss("QPushButton { font-size: 10px; min-height: 20px; }")
+            self.assertIn("8px", qss_80)
+            self.assertIn("16px", qss_80)
+
+            self.tm.set_ui_scale(1.5)
+            self.assertAlmostEqual(self.tm.ui_scale, 1.5)
+            self.assertIn(1.5, scale_events)
+            self.assertAlmostEqual(cfg.get("interface", "scale", 1.0), 1.5)
+
+            qss_150 = self.tm._compile_qss("QPushButton { font-size: 10px; min-height: 20px; }")
+            self.assertIn("15px", qss_150)
+            self.assertIn("30px", qss_150)
+        finally:
+            self.tm.set_ui_scale(orig_scale)
+
 
 if __name__ == '__main__':
     unittest.main()

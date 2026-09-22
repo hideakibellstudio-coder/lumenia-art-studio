@@ -29,6 +29,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "theme": {
         "active": "lumenia_purple",
     },
+    "interface": {
+        "scale": 1.0,
+    },
     "floating_toolbar": {
         "active": True,
         "dock_state": "snapped_bottom",

@@ -95,6 +95,7 @@ def setup_menu_and_shortcuts(win: MainWindow) -> None:
 
     # 8. Janela & Docks
     win.menu_bar.dockSettingsRequested.connect(win.open_dock_settings_dialog)
+    win.menu_bar.scaleRequested.connect(win.set_interface_scale)
 
     # 9. Configurações & Temas
     win.menu_bar.curvesLutRequested.connect(win.open_curve_window)

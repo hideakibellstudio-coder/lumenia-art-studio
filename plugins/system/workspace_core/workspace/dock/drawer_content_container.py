@@ -52,11 +52,14 @@ class DrawerContentContainer(QtWidgets.QWidget):
         self._panels: Dict[str, QtWidgets.QWidget] = {}
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
+        ThemeManager.instance().scaleChanged.connect(self._apply_style)
         self._apply_style()
         self.ensurePolished()
 
     def _apply_style(self, *args) -> None:
         theme = ThemeManager.instance()
+        drawer_w = max(180, int(DockAnimator.DRAWER_WIDTH * theme.ui_scale))
+        self.scroll_content.setMaximumWidth(drawer_w)
         bg_panel = theme.get_color("bg_panel", "#1e1e24")
         border   = theme.get_color("border",   "#2e2e38")
 

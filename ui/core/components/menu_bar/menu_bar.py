@@ -102,6 +102,7 @@ class MenuBar(QtWidgets.QMenuBar):
     expandAllSidebarsRequested       = QtCore.Signal()
     dockSettingsRequested            = QtCore.Signal()
     floatingToolbarSettingsRequested = QtCore.Signal()
+    scaleRequested                   = QtCore.Signal(float)
 
     # ── 9. Configurações ──────────────────────────────────────────────────
     renderSettingsRequested   = QtCore.Signal()
@@ -230,6 +231,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.window_menu.dock_settings_requested.connect(self.dockSettingsRequested.emit)
         self.window_menu.floating_toolbar_settings_requested.connect(self.floatingToolbarSettingsRequested.emit)
         self.window_menu.telemetry_grid_requested.connect(self.telemetryGridRequested.emit)
+        self.window_menu.scale_requested.connect(self.scaleRequested.emit)
         self.addMenu(self.window_menu)
 
         # 9. [Configurações]

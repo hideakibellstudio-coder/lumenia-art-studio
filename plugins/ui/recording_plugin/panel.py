@@ -31,15 +31,13 @@ class RecordingPanel(QtWidgets.QWidget):
 
     def __init__(self, canvas: Optional[QtCore.QObject] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
-        self.setMaximumWidth(280)
+        self.setMaximumWidth(int(280 * ThemeManager.instance().ui_scale))
         self.canvas = canvas
         self.engine = TimelapseRecordingEngine(self)
         if canvas is not None:
             self.engine.attach_canvas(canvas)
 
-        self.output_dir: str = QtCore.QStandardPaths.writableLocation(
-            QtCore.QStandardPaths.StandardLocation.DocumentsLocation
-        )
+        self.output_dir: str = QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.StandardLocation.DocumentsLocation)
 
         self._pulse_state: bool = True
         self.pulse_timer = QtCore.QTimer(self)
@@ -53,6 +51,7 @@ class RecordingPanel(QtWidgets.QWidget):
         self._apply_theme()
 
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        ThemeManager.instance().scaleChanged.connect(self._apply_theme)
 
     def set_canvas(self, canvas: QtCore.QObject) -> None:
         """Conecta dinamicamente uma nova instância de canvas."""
@@ -230,10 +229,10 @@ class RecordingPanel(QtWidgets.QWidget):
         self.engine.state_changed.connect(self._on_engine_state_changed)
         self.engine.stats_updated.connect(self._on_engine_stats_updated)
 
-    def _apply_theme(self) -> None:
+    def _apply_theme(self, *args) -> None:
         theme = ThemeManager.instance()
-        bg = theme.get_color("bg_darker")
-        border = theme.get_color("border")
+        self.setMaximumWidth(max(180, int(280 * theme.ui_scale)))
+        bg, border = theme.get_color("bg_darker"), theme.get_color("border")
         self.status_box.setStyleSheet(f"QFrame {{ background-color: {bg}; border: 1px solid {border}; border-radius: 6px; }}")
         self._update_status_view()
 

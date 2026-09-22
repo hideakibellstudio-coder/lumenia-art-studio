@@ -282,6 +282,12 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
 
     # ── Diálogos ─────────────────────────────────────────────────────────
 
+    def set_interface_scale(self, scale_value: float) -> None:
+        from ui.core.theme import ThemeManager
+        ThemeManager.instance().set_ui_scale(scale_value)
+        pct = int(scale_value * 100)
+        self.status_bar.showMessage(f"Escala da interface alterada para {pct}%.", 3000)
+
     def open_theme_dialog(self) -> None:
         dialog = ThemeDialog(self)
         dialog.exec()

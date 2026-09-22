@@ -25,6 +25,8 @@ def apply_telemetry_panel_theme(panel: Any) -> None:
     fg_on_accent = tm.get_color("FG_PRIMARY", "#ffffff")
     track_shadow = tm.get_color("SHADOW", "rgba(0, 0, 0, 0.3)")
 
+    panel.setMaximumWidth(max(180, int(280 * tm.ui_scale)))
+
     panel.setStyleSheet(f"""
         QLabel#TelemLabel {{
             color: {muted};

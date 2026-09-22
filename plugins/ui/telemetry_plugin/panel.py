@@ -29,7 +29,7 @@ class TelemetryPanel(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None, auto_start: bool = False) -> None:
         super().__init__(parent)
         self.setObjectName("TelemetryPanel")
-        self.setMaximumWidth(280)
+        self.setMaximumWidth(int(280 * ThemeManager.instance().ui_scale))
         self._is_capturing = auto_start
 
         self._timer = QtCore.QTimer(self)
@@ -38,6 +38,7 @@ class TelemetryPanel(QtWidgets.QWidget):
 
         self._build_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        ThemeManager.instance().scaleChanged.connect(self._apply_theme)
         self._apply_theme()
 
         if self._is_capturing:

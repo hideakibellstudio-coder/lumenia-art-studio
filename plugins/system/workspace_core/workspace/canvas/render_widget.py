@@ -33,6 +33,7 @@ from .viewport.viewport_renderer import ViewportRenderer
 from .viewport.cursor_controller import CanvasCursorController
 from .viewport.canvas_stroke_pipeline import CanvasStrokePipeline
 from .renderers.canvas_background_renderer import CanvasBackgroundRenderer
+from .renderers.tool_cursor_renderer import ToolCursorRenderer
 from .tools.tool_manager import ToolManager
 from .text_overlay_editor import TextOverlayEditor
 
@@ -176,7 +177,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self._cached_brush_radius = new_radius
         if getattr(self, "_cursor_in_viewport", False) and hasattr(self, "_mouse_pos") and hasattr(self, "zoom"):
             pos = self._mouse_pos
-            from ..renderers.tool_cursor_renderer import ToolCursorRenderer
             r_old = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), old_radius, self.zoom)
             r_new = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), new_radius, self.zoom)
             self.update(r_old.united(r_new))

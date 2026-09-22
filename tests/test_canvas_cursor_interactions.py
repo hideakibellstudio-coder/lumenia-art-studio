@@ -152,6 +152,14 @@ def test_render_widget_brush_size_reactive_radius(qapp):
     assert rw.brush_size == 0.5
     assert rw._cached_brush_radius == 0.25
 
+    # Reatividade do cursor quando o mouse ESTÁ ativo na viewport (regressão de ToolCursorRenderer)
+    rw.cursor_ctrl.cursor_in_viewport = True
+    rw.cursor_ctrl.mouse_pos = QtCore.QPointF(200.0, 200.0)
+    rw.zoom = 1.0
+    rw.brush_size = 80.0
+    assert rw.brush_size == 80.0
+    assert rw.current_brush_radius == 40.0
+
 
 def test_input_router_pan_and_zoom_cursor_feedback(qapp):
     """Verifica que Pan e Zoom Drag ativam ClosedHandCursor e SizeVerCursor e restauram ao soltar."""

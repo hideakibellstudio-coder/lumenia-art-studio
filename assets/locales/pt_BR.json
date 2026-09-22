@@ -90,7 +90,8 @@
       "toggle_grid": "Alternar Grade Guia",
       "toggle_rulers": "Alternar Réguas",
       "toggle_guides": "Alternar Guias de Perspectiva",
-      "toggle_symmetry": "Alternar Simetria"
+      "toggle_symmetry": "Alternar Simetria",
+      "fullscreen": "Modo Tela Cheia"
     },
     "window": {
       "title": "Janela",
@@ -107,7 +108,8 @@
       "expand_all": "Expandir Todas as Barras",
       "floating_toolbar": "Barra Flutuante de Ferramentas…",
       "dock_settings": "Configurações de Gavetas & Docking…",
-      "reset_layout": "Resetar Layout Padrão"
+      "reset_layout": "Resetar Layout Padrão",
+      "fullscreen": "Alternar Tela Cheia (F11)"
     },
     "settings": {
       "title": "Configurações",
@@ -825,5 +827,9 @@
     "inspector_title": "PARÂMETROS DO FILTRO",
     "inspector_desc": "Ajuste os parâmetros abaixo para criar a camada.",
     "create_adjustment_layer": "Criar Camada de Ajuste"
+  },
+  "status": {
+    "fullscreen_on": "Modo Tela Cheia ativado. Pressione F11 para sair.",
+    "fullscreen_off": "Modo normal restaurado."
   }
 }

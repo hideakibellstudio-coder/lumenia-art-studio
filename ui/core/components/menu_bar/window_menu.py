@@ -27,6 +27,7 @@ class WindowMenu(QtWidgets.QMenu):
     floating_toolbar_settings_requested = QtCore.Signal()
     telemetry_grid_requested            = QtCore.Signal()
     scale_requested                     = QtCore.Signal(float)
+    toggle_fullscreen_requested         = QtCore.Signal()
 
     def __init__(self, parent=None) -> None:
         super().__init__("Janela", parent)
@@ -81,6 +82,12 @@ class WindowMenu(QtWidgets.QMenu):
         self.act_settings = QtGui.QAction(get_icon("settings"), "", self)
         self.act_settings.triggered.connect(self.dock_settings_requested.emit)
         self.addAction(self.act_settings)
+
+        # ── Modo de Janela ─────────────────────────────────────────────
+        self.addSeparator()
+        self.act_fullscreen = QtGui.QAction(get_icon("fullscreen"), "", self)
+        self.act_fullscreen.triggered.connect(self.toggle_fullscreen_requested.emit)
+        self.addAction(self.act_fullscreen)
 
         # ── Escala de Interface ─────────────────────────────────────────
         self.addSeparator()
@@ -157,6 +164,8 @@ class WindowMenu(QtWidgets.QMenu):
             self.act_ft_settings.setText(tr("menu.window.floating_toolbar", "Barra Flutuante de Ferramentas…"))
         if hasattr(self, "act_settings"):
             self.act_settings.setText(tr("menu.window.dock_settings", "Configurações de Gavetas & Docking…"))
+        if hasattr(self, "act_fullscreen"):
+            self.act_fullscreen.setText(tr("menu.window.fullscreen", "Alternar Tela Cheia (F11)"))
         if hasattr(self, "menu_scale"):
             self.menu_scale.setTitle(tr("menu.window.scale", "Escala da Interface"))
 

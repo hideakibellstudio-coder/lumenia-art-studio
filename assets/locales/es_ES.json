@@ -90,7 +90,8 @@
       "toggle_grid": "Alternar Cuadrícula",
       "toggle_rulers": "Alternar Reglas",
       "toggle_guides": "Alternar Guías de Perspectiva",
-      "toggle_symmetry": "Alternar Simetría"
+      "toggle_symmetry": "Alternar Simetría",
+      "fullscreen": "Modo Pantalla Completa"
     },
     "window": {
       "title": "Ventana",
@@ -107,7 +108,8 @@
       "expand_all": "Desplegar Todas las Barras",
       "floating_toolbar": "Ajustes de Barra Flotante...",
       "dock_settings": "Ajustes de Paneles y Acoplamiento...",
-      "reset_layout": "Restablecer Espacio de Trabajo"
+      "reset_layout": "Restablecer Espacio de Trabajo",
+      "fullscreen": "Alternar Pantalla Completa (F11)"
     },
     "settings": {
       "title": "Ajustes",
@@ -825,5 +827,9 @@
     "inspector_title": "PARÁMETROS DEL FILTRO",
     "inspector_desc": "Ajuste los parámetros a continuación para crear la capa.",
     "create_adjustment_layer": "Crear Capa de Ajuste"
+  },
+  "status": {
+    "fullscreen_on": "Modo Pantalla Completa activado. Presione F11 para salir.",
+    "fullscreen_off": "Modo normal restaurado."
   }
 }

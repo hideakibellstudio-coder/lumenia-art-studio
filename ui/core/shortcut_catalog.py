@@ -41,6 +41,7 @@ DEFAULT_SHORTCUTS = [
     {"id": "view_zoom_100", "category": "Exibir", "name": "Resetar Zoom para 100%", "default": "Ctrl+0", "icon": "reset"},
     {"id": "view_reset_rot", "category": "Exibir", "name": "Resetar Rotação da Câmera", "default": "Ctrl+R", "icon": "reset"},
     {"id": "view_grid", "category": "Exibir", "name": "Alternar Grade Guia", "default": "Ctrl+'", "icon": "grid"},
+    {"id": "view_fullscreen", "category": "Exibir", "name": "Alternar Modo Tela Cheia", "default": "F11", "icon": "fullscreen"},
 
     # Categoria: Seleção
     {"id": "select_all", "category": "Seleção", "name": "Selecionar Tudo", "default": "Ctrl+A", "icon": "select"},

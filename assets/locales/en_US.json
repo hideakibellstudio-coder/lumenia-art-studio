@@ -90,7 +90,8 @@
       "toggle_grid": "Toggle Grid",
       "toggle_rulers": "Toggle Rulers",
       "toggle_guides": "Toggle Perspective Guides",
-      "toggle_symmetry": "Toggle Symmetry"
+      "toggle_symmetry": "Toggle Symmetry",
+      "fullscreen": "Full Screen Mode"
     },
     "window": {
       "title": "Window",
@@ -107,7 +108,8 @@
       "expand_all": "Expand All Sidebars",
       "floating_toolbar": "Floating Toolbar Settings...",
       "dock_settings": "Docking & Drawer Settings...",
-      "reset_layout": "Reset Default Workspace"
+      "reset_layout": "Reset Default Workspace",
+      "fullscreen": "Toggle Full Screen (F11)"
     },
     "settings": {
       "title": "Settings",
@@ -825,5 +827,9 @@
     "inspector_title": "FILTER PARAMETERS",
     "inspector_desc": "Adjust the parameters below to create the layer.",
     "create_adjustment_layer": "Create Adjustment Layer"
+  },
+  "status": {
+    "fullscreen_on": "Full Screen Mode activated. Press F11 to exit.",
+    "fullscreen_off": "Normal mode restored."
   }
 }

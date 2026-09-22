@@ -21,7 +21,8 @@ class ShortcutRegistry(QtCore.QObject):
             "layer": (menu.layer_menu, {"new": "act_new_layer", "group": "act_new_group", "duplicate": "act_dup",
                 "delete": "act_del", "merge": "act_merge"}),
             "view": (menu.view_menu, {"zoom_in": "action_zoom_in", "zoom_out": "action_zoom_out",
-                "zoom_100": "action_reset", "reset_rot": "action_reset_rot", "grid": "action_grid"}),
+                "zoom_100": "action_reset", "reset_rot": "action_reset_rot", "grid": "action_grid",
+                "fullscreen": "action_fullscreen"}),
             "select": (menu.select_menu, {"all": "act_all", "deselect": "act_desel", "invert": "act_inv"}),
         }
         for prefix, (owner, names) in groups.items():
@@ -39,6 +40,15 @@ class ShortcutRegistry(QtCore.QObject):
         application = QtWidgets.QApplication.instance()
         if application is not None:
             application.installEventFilter(self)
+
+    def cleanup(self) -> None:
+        """Remove o eventFilter global da QApplication para prevenir ponteiros pendentes."""
+        app = QtWidgets.QApplication.instance()
+        if app is not None:
+            try:
+                app.removeEventFilter(self)
+            except Exception:
+                pass
 
     def validate(self, overrides):
         defaults = {item["id"]: item["default"] for item in DEFAULT_SHORTCUTS}

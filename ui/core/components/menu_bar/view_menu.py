@@ -20,6 +20,7 @@ class ViewMenu(QtWidgets.QMenu):
     toggleSoftProofRequested = QtCore.Signal(bool)
     toggleGridRequested    = QtCore.Signal()
     toggleRulersRequested  = QtCore.Signal()
+    toggleFullscreenRequested = QtCore.Signal()
     telemetryGridRequested = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -85,7 +86,16 @@ class ViewMenu(QtWidgets.QMenu):
 
         self.addSeparator()
 
-        # 5. Diagnóstico & Telemetria em Grid
+        # 5. Modo Tela Cheia
+        self.action_fullscreen = QtGui.QAction(get_icon("fullscreen"), "", self)
+        self.action_fullscreen.setCheckable(True)
+        self.action_fullscreen.setShortcut("F11")
+        self.action_fullscreen.triggered.connect(self.toggleFullscreenRequested.emit)
+        self.addAction(self.action_fullscreen)
+
+        self.addSeparator()
+
+        # 6. Diagnóstico & Telemetria em Grid
         self.action_telemetry_grid = QtGui.QAction(get_icon("chart"), "", self)
         self.action_telemetry_grid.setShortcut("F12")
         self.action_telemetry_grid.triggered.connect(self.telemetryGridRequested.emit)
@@ -101,4 +111,5 @@ class ViewMenu(QtWidgets.QMenu):
         self.action_proof.setText(tr("menu.view.soft_proof_toggle", "Prova de Cores (Ativar/Desativar)"))
         self.action_grid.setText(tr("menu.view.toggle_grid", "Alternar Grade Guia"))
         self.action_rulers.setText(tr("menu.view.toggle_rulers", "Alternar Réguas"))
+        self.action_fullscreen.setText(tr("menu.view.fullscreen", "Modo Tela Cheia"))
         self.action_telemetry_grid.setText(tr("menu.view.telemetry_grid", "Cockpit de Telemetria (Grid)..."))

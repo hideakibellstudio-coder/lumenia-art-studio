@@ -95,7 +95,18 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         self.recovery.close()
         super().closeEvent(event)
 
+    def changeEvent(self, event: QtCore.QEvent) -> None:
+        super().changeEvent(event)
+        if event.type() == QtCore.QEvent.WindowStateChange:
+            vm = getattr(getattr(self, "menu_bar", None), "view_menu", None)
+            if vm and hasattr(vm, "action_fullscreen"):
+                vm.action_fullscreen.setChecked(self.isFullScreen())
+
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_F11:
+            self.toggle_fullscreen()
+            event.accept()
+            return
         if event.key() == QtCore.Qt.Key_F12:
             self.open_telemetry_grid_window()
             event.accept()
@@ -248,6 +259,23 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
     def zoom_out(self) -> None:
         if self.workspace:
             self.workspace.zoom_out()
+
+    def toggle_fullscreen(self) -> None:
+        """Alterna entre modo tela cheia e modo normal/maximizado."""
+        from ui.core.i18n import tr
+        if self.isFullScreen():
+            self.showMaximized() if getattr(self, "_was_maximized_before_fullscreen", False) else self.showNormal()
+            msg = tr("status.fullscreen_off", "Modo normal restaurado.")
+        else:
+            self._was_maximized_before_fullscreen = self.isMaximized()
+            self.showFullScreen()
+            msg = tr("status.fullscreen_on", "Modo Tela Cheia ativado. Pressione F11 para sair.")
+
+        if getattr(self, "status_bar", None):
+            self.status_bar.showMessage(msg, 3500)
+        vm = getattr(getattr(self, "menu_bar", None), "view_menu", None)
+        if vm and hasattr(vm, "action_fullscreen"):
+            vm.action_fullscreen.setChecked(self.isFullScreen())
 
     # ── Desfazer / Refazer ────────────────────────────────────────────────
 

@@ -168,6 +168,13 @@ class RecordingPanel(QtWidgets.QWidget):
         self.chk_watermark.toggled.connect(self._on_watermark_toggled)
         opt_layout.addWidget(self.chk_watermark)
 
+        self.chk_guides = QtWidgets.QCheckBox("Incluir Guias Ativas (Perspectiva / Simetria)")
+        self.chk_guides.setChecked(False)
+        self.chk_guides.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self.chk_guides.setStyleSheet("font-size: 11px;")
+        self.chk_guides.toggled.connect(self._on_guides_toggled)
+        opt_layout.addWidget(self.chk_guides)
+
         lbl_dir = QtWidgets.QLabel("Pasta de Destino:")
         lbl_dir.setStyleSheet("font-size: 11px;")
         opt_layout.addWidget(lbl_dir)
@@ -255,11 +262,14 @@ class RecordingPanel(QtWidgets.QWidget):
             self.pulse_timer.stop()
 
     def _set_options_enabled(self, enabled: bool) -> None:
-        for w in (self.combo_res, self.combo_fps, self.combo_trigger, self.combo_format, self.chk_watermark, self.btn_browse):
+        for w in (self.combo_res, self.combo_fps, self.combo_trigger, self.combo_format, self.chk_watermark, self.chk_guides, self.btn_browse):
             w.setEnabled(enabled)
 
     def _on_watermark_toggled(self, checked: bool) -> None:
         self.engine.add_watermark = bool(checked)
+
+    def _on_guides_toggled(self, checked: bool) -> None:
+        self.engine.include_guides = bool(checked)
 
     def _on_pulse_tick(self) -> None:
         self._pulse_state = not self._pulse_state

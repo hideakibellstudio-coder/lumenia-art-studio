@@ -353,3 +353,49 @@ def test_recording_stop_flow_dialog(qapp, monkeypatch):
     canvas.close()
 
 
+def test_recording_include_guides_option(qapp, tmp_path):
+    """Valida a opção de incluir guias ativas (simetria e perspectiva) na captura de timelapse."""
+    from plugins.ui.recording_plugin.engine.recording_engine import FrameSaveTask
+
+    class DummyGeometryCtrl:
+        def __init__(self):
+            self.sym_state = {"mode": "mirror", "cx": 200.0, "cy": 150.0, "angle": 90.0}
+            self.guide_state = {"type": "straight", "p0": QtCore.QPointF(0, 150), "p1": QtCore.QPointF(400, 150), "hidden": False}
+
+    canvas = DummyCanvas()
+    canvas.geometry_ctrl = DummyGeometryCtrl()
+    panel = RecordingPanel(canvas=canvas)
+    panel.show()
+
+    assert panel.engine.include_guides is False
+    assert panel.chk_guides.isChecked() is False
+
+    # Marca o checkbox de guias
+    panel.chk_guides.setChecked(True)
+    assert panel.engine.include_guides is True
+
+    # Inicia gravação e captura um frame
+    panel.engine.start_recording()
+    QtCore.QThreadPool.globalInstance().waitForDone(2000)
+
+    # FrameSaveTask com guides_data deve ter gravado o frame com sucesso
+    assert panel.engine.frame_count >= 1
+    files = os.listdir(panel.engine.temp_dir)
+    assert "frame_000001.jpg" in files
+
+    # Valida execução direta do FrameSaveTask com guias
+    out_file = str(tmp_path / "frame_with_guides.jpg")
+    raw = b"\xff\xff\xff\xff" * (400 * 300)
+    guides_data = {
+        "sym": canvas.geometry_ctrl.sym_state,
+        "guide": canvas.geometry_ctrl.guide_state,
+    }
+    task = FrameSaveTask(raw, 400, 300, 400, 300, out_file, guides_data=guides_data)
+    task.run()
+    assert os.path.exists(out_file)
+
+    panel.engine.discard_recording()
+    panel.close()
+
+
+

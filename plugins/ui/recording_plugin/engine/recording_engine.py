@@ -33,34 +33,41 @@ class FrameSaveTask(QtCore.QRunnable):
         target_h: int,
         output_path: str,
         watermark: bool = False,
+        guides_data: Optional[dict] = None,
     ):
         super().__init__()
         self.raw_bytes = raw_bytes
-        self.width = width
-        self.height = height
-        self.target_w = target_w
-        self.target_h = target_h
+        self.width, self.height = width, height
+        self.target_w, self.target_h = target_w, target_h
         self.output_path = output_path
         self.watermark = watermark
+        self.guides_data = guides_data
 
     def run(self) -> None:
         try:
-            # Constrói QImage a partir do buffer RGBA
-            img = QtGui.QImage(
-                self.raw_bytes,
-                self.width,
-                self.height,
-                self.width * 4,
-                QtGui.QImage.Format.Format_RGBA8888
-            )
+            img = QtGui.QImage(self.raw_bytes, self.width, self.height, self.width * 4, QtGui.QImage.Format.Format_RGBA8888)
             if img.isNull():
                 return
+
+            # Renderiza as guias ativas se solicitado (antes de redimensionar ou marca d'água)
+            if self.guides_data:
+                try:
+                    from plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import GeometryOverlayRenderer
+                    p_guides = QtGui.QPainter(img)
+                    p_guides.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
+                    sym, guide = self.guides_data.get("sym"), self.guides_data.get("guide")
+                    if sym:
+                        GeometryOverlayRenderer.render_symmetry(p_guides, sym, 1.0)
+                    if guide:
+                        GeometryOverlayRenderer.render_guides(p_guides, guide, 1.0)
+                    p_guides.end()
+                except Exception as e:
+                    logger.debug("[TimelapseEngine] Falha ao renderizar guias no frame: %s", e)
 
             # Redimensiona se resolução alvo for diferente e válida
             if self.target_w > 0 and self.target_h > 0 and (self.target_w != self.width or self.target_h != self.height):
                 img = img.scaled(
-                    self.target_w,
-                    self.target_h,
+                    self.target_w, self.target_h,
                     QtCore.Qt.AspectRatioMode.KeepAspectRatio,
                     QtCore.Qt.TransformationMode.SmoothTransformation
                 )
@@ -92,6 +99,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.target_resolution: str = "Original (Canvas)"
         self.trigger_mode: str = "stroke"  # 'stroke' ou 'time'
         self.add_watermark: bool = True
+        self.include_guides: bool = False
         self.fps: int = 30
 
         self._connected_canvas = None
@@ -337,7 +345,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
             logger.debug("[TimelapseEngine] Dimensões inválidas para captura: %sx%s", cw, ch)
             return
 
-        # 3. Extração dos pixels (prioriza get_display_pixel_buffer, depois get_qimage, depois ViewportRenderer)
+        # 3. Extração dos pixels (prioriza get_display_pixel_buffer, depois get_qimage)
         raw_bytes = None
         if backend and hasattr(backend, "get_display_pixel_buffer"):
             try:
@@ -346,14 +354,6 @@ class TimelapseRecordingEngine(QtCore.QObject):
                     raw_bytes = bytes(raw_buf)
             except Exception as e:
                 logger.debug("[TimelapseEngine] Falha em get_display_pixel_buffer: %s", e)
-
-        if not raw_bytes and backend and hasattr(backend, "get_qimage"):
-            try:
-                qimg = backend.get_qimage()
-                if qimg and not qimg.isNull():
-                    raw_bytes = bytes(qimg.constBits())
-            except Exception as e:
-                logger.debug("[TimelapseEngine] Falha em get_qimage: %s", e)
 
         if not raw_bytes and backend and hasattr(backend, "get_qimage"):
             try:
@@ -368,13 +368,29 @@ class TimelapseRecordingEngine(QtCore.QObject):
                     p.end()
                     raw_bytes = bytes(comp.constBits())
             except Exception as e:
-                logger.debug("[TimelapseEngine] Falha na composição alternativa de frame: %s", e)
+                logger.debug("[TimelapseEngine] Falha na composição de frame: %s", e)
 
         if not raw_bytes:
             logger.warning("[TimelapseEngine] Nenhum pixel obtido da composição do canvas.")
             return
 
-        # 4. Resolução alvo calculada
+        # 4. Extração opcional dos estados de guias ativas
+        guides_data = None
+        if self.include_guides and self._connected_canvas:
+            geom_ctrl = getattr(self._connected_canvas, "geometry_ctrl", None)
+            if geom_ctrl:
+                import copy
+                sym = getattr(geom_ctrl, "sym_state", None)
+                guide = getattr(geom_ctrl, "guide_state", None)
+                has_sym = sym and sym.get("mode", "none") != "none"
+                has_guide = guide and guide.get("type", "none") != "none" and not guide.get("hidden", False)
+                if has_sym or has_guide:
+                    guides_data = {
+                        "sym": copy.deepcopy(sym) if has_sym else None,
+                        "guide": copy.deepcopy(guide) if has_guide else None,
+                    }
+
+        # 5. Resolução alvo calculada
         tw, th = cw, ch
         if "1080p" in self.target_resolution:
             tw, th = 1920, 1080
@@ -385,7 +401,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         frame_name = f"frame_{self.frame_count:06d}.jpg"
         out_path = os.path.join(self.temp_dir, frame_name)
 
-        task = FrameSaveTask(raw_bytes, cw, ch, tw, th, out_path, watermark=self.add_watermark)
+        task = FrameSaveTask(raw_bytes, cw, ch, tw, th, out_path, watermark=self.add_watermark, guides_data=guides_data)
         self._thread_pool.start(task)
 
         self.frame_captured.emit(self.frame_count)

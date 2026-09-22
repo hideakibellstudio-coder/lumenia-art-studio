@@ -115,6 +115,7 @@ class RecordingFloatingBar(FloatingToolWindow):
 
         # 4. Divisor Vertical
         self.sep = QtWidgets.QFrame(self.container)
+        self.sep.setObjectName("RecordingBarSep")
         self.sep.setFrameShape(QtWidgets.QFrame.Shape.VLine)
         self.sep.setFixedWidth(1)
         self.sep.setFixedHeight(18)
@@ -165,8 +166,13 @@ class RecordingFloatingBar(FloatingToolWindow):
                 background-color: {fg_muted};
                 border-radius: 2px;
             }}
-            QFrame {{
+            QFrame#RecordingBarSep {{
                 background-color: {border};
+                border: none;
+            }}
+            QLabel {{
+                background-color: transparent;
+                border: none;
             }}
             QPushButton {{
                 background-color: transparent;
@@ -204,14 +210,14 @@ class RecordingFloatingBar(FloatingToolWindow):
 
         if is_recording and not is_paused:
             self.lbl_status.setText("REC")
-            self.lbl_status.setStyleSheet(f"color: {danger}; font-size: 10px; font-weight: bold;")
+            self.lbl_status.setStyleSheet(f"color: {danger}; font-size: 10px; font-weight: bold; background: transparent;")
             self.lbl_led.setText("●")
-            self.lbl_led.setStyleSheet(f"color: {danger}; font-size: 14px;")
+            self.lbl_led.setStyleSheet(f"color: {danger}; font-size: 14px; background: transparent;")
         elif is_recording and is_paused:
             self.lbl_status.setText("PAUSA")
-            self.lbl_status.setStyleSheet(f"color: {warning}; font-size: 10px; font-weight: bold;")
+            self.lbl_status.setStyleSheet(f"color: {warning}; font-size: 10px; font-weight: bold; background: transparent;")
             self.lbl_led.setText("●")
-            self.lbl_led.setStyleSheet(f"color: {warning}; font-size: 14px;")
+            self.lbl_led.setStyleSheet(f"color: {warning}; font-size: 14px; background: transparent;")
 
         self._update_icons()
 
@@ -220,7 +226,7 @@ class RecordingFloatingBar(FloatingToolWindow):
         engine = getattr(self.panel, "engine", None)
         if engine and engine.is_recording and not engine.is_paused:
             self.lbl_led.setStyleSheet(
-                "color: #f85149; font-size: 14px;" if state else "color: transparent; font-size: 14px;"
+                "color: #f85149; font-size: 14px; background: transparent;" if state else "color: transparent; font-size: 14px; background: transparent;"
             )
 
     def update_stats(self, frames: int, elapsed_secs: int) -> None:

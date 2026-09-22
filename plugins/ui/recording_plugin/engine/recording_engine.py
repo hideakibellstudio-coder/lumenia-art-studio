@@ -92,6 +92,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.target_resolution: str = "Original (Canvas)"
         self.trigger_mode: str = "stroke"  # 'stroke' ou 'time'
         self.add_watermark: bool = True
+        self.fps: int = 30
 
         self._connected_canvas = None
         self._thread_pool = QtCore.QThreadPool.globalInstance()
@@ -414,7 +415,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
                 size_mb = total_bytes / (1024.0 * 1024.0)
             except Exception:
                 pass
-        duration_secs = self.frame_count / 30.0
+        duration_secs = self.frame_count / float(max(1, self.fps))
         self.stats_updated.emit(self.frame_count, size_mb, duration_secs)
 
     def cleanup_temp_files(self) -> None:

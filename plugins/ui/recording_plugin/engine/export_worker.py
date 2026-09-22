@@ -26,10 +26,11 @@ class TimelapseExportWorker(QtCore.QObject):
     progress = QtCore.Signal(int, str, str)  # (percent, status_text, details_text)
     finished = QtCore.Signal(bool, str, str)  # (success, message, output_path)
 
-    def __init__(self, temp_dir: str, total_frames: int, parent: Optional[QtCore.QObject] = None):
+    def __init__(self, temp_dir: str, total_frames: int, parent: Optional[QtCore.QObject] = None, fps: int = 30):
         super().__init__(parent)
         self.temp_dir = temp_dir
         self.total_frames = max(1, total_frames)
+        self.fps = max(1, fps)
         self._process: Optional[QtCore.QProcess] = None
         self._is_cancelled: bool = False
 
@@ -38,9 +39,11 @@ class TimelapseExportWorker(QtCore.QObject):
         """Verifica se o utilitário FFmpeg está acessível no ambiente."""
         return shutil.which("ffmpeg") is not None
 
-    def export(self, target_path: str, format_type: str = "mp4") -> None:
+    def export(self, target_path: str, format_type: str = "mp4", fps: Optional[int] = None) -> None:
         """Dispara a compilação do timelapse no formato selecionado."""
         self._is_cancelled = False
+        if fps is not None:
+            self.fps = max(1, fps)
         target_ext = os.path.splitext(target_path)[1].lower()
 
         if target_ext == ".zip" or "zip" in format_type.lower():
@@ -76,7 +79,7 @@ class TimelapseExportWorker(QtCore.QObject):
 
         args = [
             "-y",
-            "-r", "30",
+            "-r", str(self.fps),
             "-f", "image2",
             "-i", "frame_%06d.jpg",
             "-vcodec", "libx264",

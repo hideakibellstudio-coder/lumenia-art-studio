@@ -142,6 +142,14 @@ class RecordingPanel(QtWidgets.QWidget):
         opt_layout.addWidget(lbl_fmt)
         opt_layout.addWidget(self.combo_format)
 
+        lbl_fps = QtWidgets.QLabel("Taxa de Quadros (FPS):")
+        lbl_fps.setStyleSheet("font-size: 11px;")
+        self.combo_fps = QtWidgets.QComboBox()
+        self.combo_fps.addItems(["30 FPS (Padrão)", "60 FPS (Fluido)", "24 FPS (Cinema)"])
+        self.combo_fps.currentIndexChanged.connect(self._on_fps_changed)
+        opt_layout.addWidget(lbl_fps)
+        opt_layout.addWidget(self.combo_fps)
+
         self.chk_watermark = QtWidgets.QCheckBox("Incluir Marca d'Água (Lumenia)")
         self.chk_watermark.setChecked(True)
         self.chk_watermark.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
@@ -248,6 +256,7 @@ class RecordingPanel(QtWidgets.QWidget):
 
     def _set_options_enabled(self, enabled: bool) -> None:
         self.combo_res.setEnabled(enabled)
+        self.combo_fps.setEnabled(enabled)
         self.combo_trigger.setEnabled(enabled)
         self.combo_format.setEnabled(enabled)
         self.chk_watermark.setEnabled(enabled)
@@ -318,9 +327,9 @@ class RecordingPanel(QtWidgets.QWidget):
         if not temp_dir:
             return
 
-        # Abre o diálogo de exportação assíncrona
+        # Abre o diálogo de exportação assíncrona com FPS selecionado
         dlg = TimelapseExportDialog(self)
-        worker = TimelapseExportWorker(temp_dir, self.engine.frame_count, dlg)
+        worker = TimelapseExportWorker(temp_dir, self.engine.frame_count, dlg, fps=self.engine.fps)
 
         worker.progress.connect(dlg.update_progress)
         dlg.cancel_requested.connect(worker.cancel)
@@ -336,7 +345,7 @@ class RecordingPanel(QtWidgets.QWidget):
 
         worker.finished.connect(on_finished)
         dlg.show()
-        worker.export(save_path, fmt)
+        worker.export(save_path, fmt, fps=self.engine.fps)
 
     def _on_browse_clicked(self) -> None:
         dir_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta de Saída", self.output_dir)
@@ -346,6 +355,13 @@ class RecordingPanel(QtWidgets.QWidget):
 
     def _on_res_changed(self, text: str) -> None:
         self.engine.target_resolution = text
+
+    def _on_fps_changed(self, idx: int) -> None:
+        fps_map = {0: 30, 1: 60, 2: 24}
+        fps_val = fps_map.get(idx, 30)
+        self.engine.fps = fps_val
+        dur_secs = self.engine.frame_count / float(fps_val)
+        self.lbl_diag_dur.setText(f"Duração do Vídeo: {dur_secs:.1f}s (a {fps_val} FPS)")
 
     def _on_trigger_changed(self, idx: int) -> None:
         self.engine.trigger_mode = "stroke" if idx == 0 else "time"
@@ -361,4 +377,4 @@ class RecordingPanel(QtWidgets.QWidget):
         self.lbl_time.setText(f"{h:02d}:{m:02d}:{s:02d}")
         self.lbl_diag_frames.setText(f"Quadros Capturados: {frames}")
         self.lbl_diag_size.setText(f"Tamanho em Disco: {size_mb:.1f} MB")
-        self.lbl_diag_dur.setText(f"Duração do Vídeo: {dur_secs:.1f}s (a 30 FPS)")
+        self.lbl_diag_dur.setText(f"Duração do Vídeo: {dur_secs:.1f}s (a {self.engine.fps} FPS)")

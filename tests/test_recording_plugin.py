@@ -208,3 +208,37 @@ def test_recording_plugin_activation(qapp):
         assert "recording" not in mock_ws.panels
     finally:
         reg._registry[WorkspaceService] = old_impls
+
+
+def test_recording_fps_selection_and_duration_calculation(qapp):
+    """Valida a seleção dinâmica de taxa de quadros (24, 30, 60 FPS) e o cálculo de duração."""
+    canvas = DummyCanvas()
+    panel = RecordingPanel()
+    panel.set_canvas(canvas)
+
+    assert panel.engine.fps == 30
+    assert panel.combo_fps.currentText() == "30 FPS (Padrão)"
+
+    # Simula 60 quadros capturados
+    panel.engine.frame_count = 60
+    panel.engine._emit_stats()
+    assert "2.0s (a 30 FPS)" in panel.lbl_diag_dur.text()
+
+    # Muda para 60 FPS
+    panel.combo_fps.setCurrentIndex(1)
+    assert panel.engine.fps == 60
+    assert "1.0s (a 60 FPS)" in panel.lbl_diag_dur.text()
+
+    # Muda para 24 FPS
+    panel.combo_fps.setCurrentIndex(2)
+    assert panel.engine.fps == 24
+    assert "2.5s (a 24 FPS)" in panel.lbl_diag_dur.text()
+
+    # Valida worker com FPS configurado
+    worker = TimelapseExportWorker("dummy_dir", 60, fps=panel.engine.fps)
+    assert worker.fps == 24
+    worker.export("dummy.mp4", fps=60)
+    assert worker.fps == 60
+
+    panel.close()
+

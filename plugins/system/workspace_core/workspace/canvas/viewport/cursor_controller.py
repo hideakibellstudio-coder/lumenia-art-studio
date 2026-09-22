@@ -100,15 +100,34 @@ class CanvasCursorController:
 
         active_tool = getattr(w, "active_tool", "brush")
         mode = self.cursor_settings.get("mode", "ring_and_dot")
+        ori = self.cursor_settings.get("orientation", "right")
+        show_chev = self.cursor_settings.get("show_chevron", True)
 
         if active_tool in ("brush", "eraser", "smudge"):
             if mode == "system":
                 self._set_widget_cursor(QtCore.Qt.ArrowCursor)
             elif mode == "blank":
                 self._set_widget_cursor(QtCore.Qt.BlankCursor)
+            elif mode in ("dot_only", "crosshair"):
+                self._set_widget_cursor(QtCore.Qt.BlankCursor)
+            elif mode == "ring_only":
+                if show_chev:
+                    dpr = self.widget.devicePixelRatioF() if hasattr(self.widget, "devicePixelRatioF") else 1.0
+                    self._set_widget_cursor(ToolCursorRenderer.create_precision_chevron_cursor(dpr, ori))
+                else:
+                    self._set_widget_cursor(QtCore.Qt.BlankCursor)
+            elif mode == "chevron":
+                dpr = self.widget.devicePixelRatioF() if hasattr(self.widget, "devicePixelRatioF") else 1.0
+                self._set_widget_cursor(ToolCursorRenderer.create_precision_chevron_cursor(dpr, ori))
+            elif mode == "ring_and_dot":
+                if show_chev:
+                    dpr = self.widget.devicePixelRatioF() if hasattr(self.widget, "devicePixelRatioF") else 1.0
+                    self._set_widget_cursor(ToolCursorRenderer.create_precision_chevron_cursor(dpr, ori))
+                else:
+                    self._set_widget_cursor(QtCore.Qt.BlankCursor)
             else:
                 dpr = self.widget.devicePixelRatioF() if hasattr(self.widget, "devicePixelRatioF") else 1.0
-                self._set_widget_cursor(ToolCursorRenderer.create_precision_chevron_cursor(dpr))
+                self._set_widget_cursor(ToolCursorRenderer.create_precision_chevron_cursor(dpr, ori))
         elif active_tool in ("eyedrop", "eyedropper", "bucket", "wand", "transform"):
             self._set_widget_cursor(ToolCursorRenderer.create_custom_cursor(active_tool))
         elif active_tool in ("lasso", "rect_select", "ellipse_select", "shapes") or active_tool.startswith("shape_"):
@@ -169,6 +188,7 @@ class CanvasCursorController:
         self.cursor_in_viewport = True
         self._last_radius = brush_radius
 
+        was_over = self._is_over_canvas
         self._is_over_canvas = self.is_over_canvas(pos)
 
         if not was_in_viewport:

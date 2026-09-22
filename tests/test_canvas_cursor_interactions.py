@@ -318,3 +318,74 @@ def test_space_key_pan_navigation(qapp):
     router.handle_focus_out()
     assert rw.is_space_held is False
     assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+
+
+def test_tool_cursor_chameleon_high_contrast(qapp):
+    """Valida renderização camaleão bicolore (preto e branco) para conta-gotas e balde."""
+    for tool in ("eyedropper", "bucket"):
+        cur = ToolCursorRenderer.create_custom_cursor(tool, size=24)
+        pix = cur.pixmap()
+        assert not pix.isNull()
+        img = pix.toImage()
+
+        has_black = False
+        has_white = False
+        for y in range(img.height()):
+            for x in range(img.width()):
+                color = img.pixelColor(x, y)
+                if color.alpha() > 100:
+                    if color.red() < 50 and color.green() < 50 and color.blue() < 50:
+                        has_black = True
+                    elif color.red() > 200 and color.green() > 200 and color.blue() > 200:
+                        has_white = True
+        assert has_black, f"Ferramenta {tool} deve possuir contorno preto de contraste"
+        assert has_white, f"Ferramenta {tool} deve possuir corpo branco interno"
+
+
+def test_chevron_left_diagonal_inversion(qapp):
+    """Valida inversão de diagonal do chevron para desobstrução da mão do artista."""
+    chev_right = ToolCursorRenderer.create_precision_chevron_cursor(dpr=1.0, orientation="right")
+    assert chev_right.hotSpot() == QtCore.QPoint(0, 0)
+
+    chev_left = ToolCursorRenderer.create_precision_chevron_cursor(dpr=1.0, orientation="left")
+    assert chev_left.hotSpot() == QtCore.QPoint(14, 0)
+
+
+def test_cursor_controller_orientation_and_mode_cleanliness(qapp):
+    """Valida que modos limpos não exibem ponteiro sobreposto e que inversão é aplicada."""
+    widget = QtWidgets.QWidget()
+    widget.active_tool = "brush"
+    widget.canvas_w = 800
+    widget.canvas_h = 600
+    controller = CanvasCursorController(widget)
+    controller.cursor_in_viewport = True
+
+    # Orientação esquerda
+    controller.cursor_settings["orientation"] = "left"
+    controller.cursor_settings["show_chevron"] = True
+    controller.cursor_settings["mode"] = "ring_and_dot"
+    controller.update_cursor_shape()
+    assert widget.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+    assert widget.cursor().hotSpot() == QtCore.QPoint(14, 0)
+
+    # Modo ring_only sem chevron: BlankCursor
+    controller.cursor_settings["mode"] = "ring_only"
+    controller.cursor_settings["show_chevron"] = False
+    controller.update_cursor_shape()
+    assert widget.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
+
+    # Modo dot_only: BlankCursor
+    controller.cursor_settings["mode"] = "dot_only"
+    controller.update_cursor_shape()
+    assert widget.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
+
+    # Modo crosshair: BlankCursor
+    controller.cursor_settings["mode"] = "crosshair"
+    controller.update_cursor_shape()
+    assert widget.cursor().shape() == QtCore.Qt.CursorShape.BlankCursor
+
+    # Modo chevron puro: BitmapCursor
+    controller.cursor_settings["mode"] = "chevron"
+    controller.update_cursor_shape()
+    assert widget.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
+

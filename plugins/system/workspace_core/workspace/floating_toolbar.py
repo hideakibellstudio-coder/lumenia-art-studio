@@ -10,24 +10,27 @@ logger = logging.getLogger(__name__)
 
 
 class FloatingToolbarButton(QtWidgets.QPushButton):
-    """Botão de ferramenta individual da barra flutuante (38x38px)."""
+    """Botão de ferramenta individual da barra flutuante."""
 
     def __init__(self, tool_id: str, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.tool_id = tool_id
         meta = TOOL_META.get(tool_id, {"name": tool_id.capitalize(), "icon": "brush"})
         self.icon_key = meta["icon"]
-
         from ui.core.tools import get_tool_name
         self.tool_name = get_tool_name(tool_id)
-
-        self.setFixedSize(38, 38)
-        self.setIconSize(QtCore.QSize(22, 22))
         self.setCheckable(True)
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self.setToolTip(self.tool_name)
-
+        self.update_scale()
         self._apply_style(active=False)
+
+    def update_scale(self, scale: Optional[float] = None) -> None:
+        s = scale if scale is not None else ThemeManager.instance().ui_scale
+        btn_sz = max(24, int(38 * s))
+        ico_sz = max(14, int(22 * s))
+        self.setFixedSize(btn_sz, btn_sz)
+        self.setIconSize(QtCore.QSize(ico_sz, ico_sz))
 
     def retranslate_ui(self) -> None:
         from ui.core.tools import get_tool_name
@@ -69,15 +72,7 @@ class FloatingToolbarButton(QtWidgets.QPushButton):
 
 
 class FloatingToolbar(FloatingToolWindow):
-    """
-    Barra de ferramentas flutuante em formato de cápsula escura estilo Lumenia 2.0.
-
-    Janela independente (ver FloatingToolWindow em ui/core/dialogs) para
-    flutuar sobre o canvas sem entrar na árvore de widgets da janela
-    principal. Efeito colateral conhecido: não aparece em captura de tela
-    "por janela específica" (não é bug do Lumenia -- ver
-    claude/panorama-ui-global-subjanelas-captura-tela.md).
-    """
+    """Barra de ferramentas flutuante em formato de cápsula escura estilo Lumenia 2.0."""
 
     drag_finished = QtCore.Signal(QtCore.QPoint)
     status_notification = QtCore.Signal(str)
@@ -113,8 +108,10 @@ class FloatingToolbar(FloatingToolWindow):
         self._build_ui()
         self._apply_theme()
 
-        # Conecta às alterações globais de tema e idioma
-        ThemeManager.instance().themeChanged.connect(lambda _: self._apply_theme())
+        # Conecta às alterações globais de tema, escala e idioma
+        tm = ThemeManager.instance()
+        tm.themeChanged.connect(lambda _: self._apply_theme())
+        tm.scaleChanged.connect(self._on_scale_changed)
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
@@ -153,9 +150,6 @@ class FloatingToolbar(FloatingToolWindow):
 
         self.rebuild_tools()
 
-        from ui.core.i18n import I18nManager
-        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
-
     def retranslate_ui(self) -> None:
         """Atualiza os tooltips de todas as ferramentas da barra flutuante."""
         for btn in self.buttons.values():
@@ -164,10 +158,8 @@ class FloatingToolbar(FloatingToolWindow):
 
     def _apply_theme(self) -> None:
         theme = ThemeManager.instance()
-        bg_color = theme.get_color("bg_panel")
-        border_color = theme.get_color("border")
-        fg_secondary = theme.get_color("text_sec")
-        fg_primary = theme.get_color("text_main")
+        bg_color, border_color = theme.get_color("bg_panel"), theme.get_color("border")
+        fg_secondary, fg_primary = theme.get_color("text_sec"), theme.get_color("text_main")
 
         self.container.setStyleSheet(f"""
             QWidget#FloatBarContainer {{
@@ -240,21 +232,38 @@ class FloatingToolbar(FloatingToolWindow):
         finally:
             self._is_selecting_tool = False
 
+    def _on_scale_changed(self, scale: float) -> None:
+        """Propaga a escala global para botões, drag handle e dimensões da barra flutuante."""
+        for btn in self.buttons.values():
+            btn.update_scale(scale)
+        h_thick = max(3, int(4 * scale))
+        h_len = max(14, int(20 * scale))
+        if self.orientation == QtCore.Qt.Vertical:
+            self.drag_handle.setFixedSize(h_len, h_thick)
+        else:
+            self.drag_handle.setFixedSize(h_thick, h_len)
+        self._update_geometry(animate=False)
+        parent_ws = getattr(self, "_workspace", None) or self.parentWidget()
+        if parent_ws and hasattr(parent_ws, "update_toolbar_position"):
+            parent_ws.update_toolbar_position()
+
     def set_orientation(self, orientation: QtCore.Qt.Orientation) -> None:
         """Alterna a orientação entre Horizontal e Vertical."""
         if self.orientation == orientation:
             return
         self.orientation = orientation
-
+        s = ThemeManager.instance().ui_scale
+        h_thick = max(3, int(4 * s))
+        h_len = max(14, int(20 * s))
         if orientation == QtCore.Qt.Vertical:
             self.box_layout.setDirection(QtWidgets.QBoxLayout.TopToBottom)
             self.box_layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
-            self.drag_handle.setFixedSize(20, 4)
+            self.drag_handle.setFixedSize(h_len, h_thick)
             self.box_layout.setContentsMargins(6, 10, 6, 10)
         else:
             self.box_layout.setDirection(QtWidgets.QBoxLayout.LeftToRight)
             self.box_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-            self.drag_handle.setFixedSize(4, 20)
+            self.drag_handle.setFixedSize(h_thick, h_len)
             self.box_layout.setContentsMargins(10, 6, 10, 6)
 
         self._update_geometry(animate=False)
@@ -265,10 +274,15 @@ class FloatingToolbar(FloatingToolWindow):
 
     def _update_geometry(self, animate: bool = True) -> None:
         count = 1 if self._is_collapsed else max(1, len(self.buttons))
+        s = ThemeManager.instance().ui_scale
+        btn_sz = max(24, int(38 * s))
+        gap = max(3, int(6 * s))
+        pad = max(6, int(10 * s))
+        h_thick = max(3, int(4 * s))
 
-        # Cálculo preciso do tamanho interno da cápsula
-        inner_length = 10 + 4 + 6 + (count * 38) + max(0, (count - 1) * 6) + 10
-        inner_breadth = 52
+        # Cálculo preciso do tamanho interno da cápsula ponderado pela escala
+        inner_length = pad + h_thick + gap + (count * btn_sz) + max(0, (count - 1) * gap) + pad
+        inner_breadth = max(36, int(52 * s))
 
         container_size = (
             QtCore.QSize(inner_length, inner_breadth)
@@ -370,14 +384,8 @@ class FloatingToolbar(FloatingToolWindow):
         super().leaveEvent(event)
 
     def _get_speed_ms(self) -> int:
-        preset = self.auto_collapse_speed
-        if preset == "Desativado":
-            return 0
-        if preset == "Lento":
-            return 2000
-        if preset == "Ultra Rápido":
-            return 500
-        return 1000  # Rápido
+        speeds = {"Desativado": 0, "Lento": 2000, "Ultra Rápido": 500}
+        return speeds.get(self.auto_collapse_speed, 1000)
 
     def _do_collapse(self) -> None:
         self._is_collapsed = True
@@ -424,9 +432,8 @@ class FloatingToolbar(FloatingToolWindow):
         if "dock_state" in state:
             self.dock_state = state["dock_state"]
         if "orientation" in state:
-            ori = QtCore.Qt.Vertical if state["orientation"] == "vertical" else QtCore.Qt.Horizontal
-            self.set_orientation(ori)
-        if "visible_tools" in state and isinstance(state["visible_tools"], list) and state["visible_tools"]:
+            self.set_orientation(QtCore.Qt.Vertical if state["orientation"] == "vertical" else QtCore.Qt.Horizontal)
+        if state.get("visible_tools"):
             self.visible_tool_ids = list(state["visible_tools"])
             self.rebuild_tools()
         if "auto_collapse_speed" in state:

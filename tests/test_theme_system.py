@@ -126,6 +126,36 @@ class TestThemeSystem(unittest.TestCase):
         finally:
             self.tm.set_ui_scale(orig_scale)
 
+    def test_07_bars_scale_reactivity(self):
+        from ui.core.components.tool_sidebar.sidebar import ToolSidebar
+        from plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
+
+        orig_scale = self.tm.ui_scale
+        try:
+            self.tm.set_ui_scale(1.0)
+            sidebar = ToolSidebar()
+            float_bar = FloatingToolbar()
+
+            self.assertEqual(sidebar.iconSize().width(), 20)
+            btn = next(iter(float_bar.buttons.values()))
+            self.assertEqual(btn.width(), 38)
+            self.assertEqual(btn.iconSize().width(), 22)
+
+            self.tm.set_ui_scale(0.8)
+            self.assertEqual(sidebar.iconSize().width(), 16)
+            self.assertEqual(btn.width(), int(38 * 0.8))
+            self.assertEqual(btn.iconSize().width(), int(22 * 0.8))
+
+            self.tm.set_ui_scale(1.5)
+            self.assertEqual(sidebar.iconSize().width(), 30)
+            self.assertEqual(btn.width(), int(38 * 1.5))
+            self.assertEqual(btn.iconSize().width(), int(22 * 1.5))
+
+            sidebar.deleteLater()
+            float_bar.deleteLater()
+        finally:
+            self.tm.set_ui_scale(orig_scale)
+
 
 if __name__ == '__main__':
     unittest.main()

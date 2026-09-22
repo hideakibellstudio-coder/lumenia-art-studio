@@ -242,3 +242,114 @@ def test_recording_fps_selection_and_duration_calculation(qapp):
 
     panel.close()
 
+
+def test_recording_floating_bar_lifecycle_and_anchoring(qapp):
+    """Valida ciclo de vida, ancoragem no topo do viewport e sincronização da barra flutuante."""
+    canvas = QtWidgets.QWidget()
+    canvas.resize(800, 600)
+    canvas.show()
+
+    panel = RecordingPanel(canvas=canvas)
+    panel.show()
+
+    fbar = panel.floating_bar
+    assert fbar is not None
+    assert fbar.isHidden() is True
+
+    # Inicia gravação -> barra flutuante deve se tornar visível e ancorada
+    panel.btn_toggle.click()
+    assert panel.engine.is_recording is True
+    assert fbar.isVisible() is True
+    assert fbar.lbl_status.text() == "REC"
+
+    # Testa sincronização de estatísticas
+    panel.engine.elapsed_seconds = 125
+    panel.engine.frame_count = 42
+    panel.engine._emit_stats()
+    assert "00:02:05" in fbar.lbl_time.text()
+    assert "42 f" in fbar.lbl_frames.text()
+
+    # Pausa via botão da barra flutuante
+    fbar.btn_pause_resume.click()
+    assert panel.engine.is_paused is True
+    assert fbar.lbl_status.text() == "PAUSA"
+
+    # Retoma via botão da barra flutuante
+    fbar.btn_pause_resume.click()
+    assert panel.engine.is_paused is False
+    assert fbar.lbl_status.text() == "REC"
+
+    # Testa posicionamento na âncora do topo
+    fbar.reposition_to_top_anchor()
+    canvas_global = canvas.mapToGlobal(QtCore.QPoint(0, 0))
+    assert abs(fbar.y() - (canvas_global.y() + 14)) <= 5
+
+    # Encerra gravação -> barra flutuante deve desaparecer
+    panel.engine.discard_recording()
+    assert panel.engine.is_recording is False
+    assert fbar.isHidden() is True
+
+    panel.close()
+    canvas.close()
+
+
+def test_recording_stop_flow_dialog(qapp, monkeypatch):
+    """Valida o fluxo de parada (Stop) com pergunta de salvar, descartar e cancelar."""
+    canvas = QtWidgets.QWidget()
+    canvas.resize(400, 300)
+    panel = RecordingPanel(canvas=canvas)
+    panel.show()
+
+    # 1. Parar sem gravação ativa retorna False
+    assert panel.request_stop_recording() is False
+
+    # 2. Inicia gravação com 0 quadros -> parar descarta direto e avisa
+    panel.btn_toggle.click()
+    panel.engine.frame_count = 0
+    monkeypatch.setattr(QtWidgets.QMessageBox, "information", lambda *args, **kwargs: None)
+    stopped = panel.request_stop_recording()
+    assert stopped is True
+    assert panel.engine.is_recording is False
+
+    # 3. Gravação com quadros -> Escolher "Cancelar" não interrompe
+    panel.btn_toggle.click()
+    panel.engine.frame_count = 15
+
+    def mock_msgbox_choice(target_role):
+        def fake_exec(self):
+            for btn in self.buttons():
+                if self.buttonRole(btn) == target_role:
+                    self._mock_clicked = btn
+                    break
+        monkeypatch.setattr(QtWidgets.QMessageBox, "exec", fake_exec)
+        monkeypatch.setattr(QtWidgets.QMessageBox, "clickedButton", lambda self: getattr(self, "_mock_clicked", None))
+
+    mock_msgbox_choice(QtWidgets.QMessageBox.ButtonRole.RejectRole)
+    res = panel.request_stop_recording()
+    assert res is False
+    assert panel.engine.is_recording is True
+    assert panel.engine.is_paused is False
+
+    # 4. Gravação com quadros -> Escolher "Descartar"
+    mock_msgbox_choice(QtWidgets.QMessageBox.ButtonRole.DestructiveRole)
+    res = panel.request_stop_recording()
+    assert res is True
+    assert panel.engine.is_recording is False
+
+    # 5. Gravação com quadros -> Escolher "Salvar"
+    panel.btn_toggle.click()
+    panel.engine.frame_count = 20
+
+    mock_msgbox_choice(QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *a, **k: ("dummy_save.mp4", "mp4"))
+    monkeypatch.setattr(TimelapseExportWorker, "export", lambda self, path, fmt=None, fps=None: None)
+
+    res = panel.request_stop_recording()
+    assert res is True
+    assert panel.engine.is_recording is False
+    assert panel.floating_bar.isHidden() is True
+
+    panel.close()
+    canvas.close()
+
+

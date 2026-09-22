@@ -63,6 +63,9 @@ class RecordingPlugin(BasePlugin):
             ws.remove_panel("recording")
 
         if self._panel:
+            if hasattr(self._panel, "floating_bar") and self._panel.floating_bar:
+                self._panel.floating_bar.hide_bar()
+                self._panel.floating_bar.close()
             self._panel.engine.cleanup_temp_files()
             self._panel = None
 

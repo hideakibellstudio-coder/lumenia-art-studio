@@ -21,6 +21,7 @@ from ui.core.theme.manager import ThemeManager
 from .engine.recording_engine import TimelapseRecordingEngine
 from .engine.export_worker import TimelapseExportWorker
 from .components.export_dialog import TimelapseExportDialog
+from .components.recording_floating_bar import RecordingFloatingBar
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,8 @@ class RecordingPanel(QtWidgets.QWidget):
         self.pulse_timer.setInterval(500)
         self.pulse_timer.timeout.connect(self._on_pulse_tick)
 
+        self.floating_bar = RecordingFloatingBar(parent=self.window(), panel=self, canvas=canvas)
+
         self._setup_ui()
         self._wire_engine()
         self._apply_theme()
@@ -54,6 +57,8 @@ class RecordingPanel(QtWidgets.QWidget):
         """Conecta dinamicamente uma nova instância de canvas."""
         self.canvas = canvas
         self.engine.attach_canvas(canvas)
+        if hasattr(self, "floating_bar") and self.floating_bar:
+            self.floating_bar.set_canvas(canvas)
 
     def _setup_ui(self) -> None:
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -97,7 +102,12 @@ class RecordingPanel(QtWidgets.QWidget):
         rx_layout.setContentsMargins(0, 0, 0, 0)
         rx_layout.setSpacing(6)
 
-        self.btn_save = QtWidgets.QPushButton("Salvar Vídeo")
+        self.btn_stop = QtWidgets.QPushButton("Parar")
+        self.btn_stop.setFixedHeight(28)
+        self.btn_stop.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self.btn_stop.clicked.connect(self.request_stop_recording)
+
+        self.btn_save = QtWidgets.QPushButton("Salvar")
         self.btn_save.setFixedHeight(28)
         self.btn_save.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_save.clicked.connect(self._on_save_clicked)
@@ -107,6 +117,7 @@ class RecordingPanel(QtWidgets.QWidget):
         self.btn_discard.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_discard.clicked.connect(self._on_discard_clicked)
 
+        rx_layout.addWidget(self.btn_stop)
         rx_layout.addWidget(self.btn_save)
         rx_layout.addWidget(self.btn_discard)
         self.row_extra.setVisible(False)
@@ -208,23 +219,12 @@ class RecordingPanel(QtWidgets.QWidget):
         theme = ThemeManager.instance()
         bg = theme.get_color("bg_darker")
         border = theme.get_color("border")
-        fg = theme.get_color("text_main")
-        accent = theme.get_color("accent")
-
-        self.status_box.setStyleSheet(f"""
-            QFrame {{
-                background-color: {bg};
-                border: 1px solid {border};
-                border-radius: 6px;
-            }}
-        """)
+        self.status_box.setStyleSheet(f"QFrame {{ background-color: {bg}; border: 1px solid {border}; border-radius: 6px; }}")
         self._update_status_view()
 
     def _update_status_view(self) -> None:
         theme = ThemeManager.instance()
-        fg_sec = theme.get_color("text_muted")
-        danger = "#f85149"
-        warning = "#d29922"
+        fg_sec, danger, warning = theme.get_color("text_muted"), "#f85149", "#d29922"
 
         if not self.engine.is_recording:
             self.lbl_led.setText("●")
@@ -255,12 +255,8 @@ class RecordingPanel(QtWidgets.QWidget):
             self.pulse_timer.stop()
 
     def _set_options_enabled(self, enabled: bool) -> None:
-        self.combo_res.setEnabled(enabled)
-        self.combo_fps.setEnabled(enabled)
-        self.combo_trigger.setEnabled(enabled)
-        self.combo_format.setEnabled(enabled)
-        self.chk_watermark.setEnabled(enabled)
-        self.btn_browse.setEnabled(enabled)
+        for w in (self.combo_res, self.combo_fps, self.combo_trigger, self.combo_format, self.chk_watermark, self.btn_browse):
+            w.setEnabled(enabled)
 
     def _on_watermark_toggled(self, checked: bool) -> None:
         self.engine.add_watermark = bool(checked)
@@ -271,6 +267,8 @@ class RecordingPanel(QtWidgets.QWidget):
             self.lbl_led.setStyleSheet("color: #f85149; font-size: 16px;")
         else:
             self.lbl_led.setStyleSheet("color: transparent; font-size: 16px;")
+        if hasattr(self, "floating_bar") and self.floating_bar:
+            self.floating_bar.update_pulse(self._pulse_state)
 
     def _on_toggle_clicked(self) -> None:
         if not self.engine.is_recording:
@@ -293,6 +291,51 @@ class RecordingPanel(QtWidgets.QWidget):
         else:
             self.engine.resume_recording()
 
+    def request_stop_recording(self) -> bool:
+        """Interrompe a gravação e pergunta ao usuário se deseja salvar e o local."""
+        if not self.engine.is_recording:
+            return False
+
+        was_paused = self.engine.is_paused
+        if not was_paused:
+            self.engine.pause_recording()
+
+        if self.engine.frame_count == 0:
+            self.engine.discard_recording()
+            self.lbl_time.setText("00:00:00")
+            QtWidgets.QMessageBox.information(
+                self, "Gravação Parada", "A gravação foi encerrada sem quadros capturados."
+            )
+            return True
+
+        msg = QtWidgets.QMessageBox(self)
+        msg.setWindowTitle("Parar Gravação")
+        msg.setText("Deseja salvar a gravação antes de parar?")
+        msg.setInformativeText(f"A gravação contém {self.engine.frame_count} quadros capturados.")
+        msg.setIcon(QtWidgets.QMessageBox.Icon.Question)
+
+        btn_save = msg.addButton("Salvar Vídeo", QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+        btn_discard = msg.addButton("Descartar", QtWidgets.QMessageBox.ButtonRole.DestructiveRole)
+        btn_cancel = msg.addButton("Cancelar", QtWidgets.QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(btn_save)
+
+        msg.exec()
+        clicked = msg.clickedButton()
+
+        if clicked == btn_save:
+            saved = self._on_save_clicked()
+            if not saved and not was_paused:
+                self.engine.resume_recording()
+            return bool(saved)
+        elif clicked == btn_discard:
+            self.engine.discard_recording()
+            self.lbl_time.setText("00:00:00")
+            return True
+        else:
+            if not was_paused:
+                self.engine.resume_recording()
+            return False
+
     def _on_discard_clicked(self) -> None:
         reply = QtWidgets.QMessageBox.question(
             self,
@@ -305,13 +348,13 @@ class RecordingPanel(QtWidgets.QWidget):
             self.engine.discard_recording()
             self.lbl_time.setText("00:00:00")
 
-    def _on_save_clicked(self) -> None:
+    def _on_save_clicked(self) -> bool:
         # Aguarda qualquer gravação assíncrona pendente no pool de threads
         QtCore.QThreadPool.globalInstance().waitForDone(1500)
 
         if self.engine.frame_count == 0:
             QtWidgets.QMessageBox.warning(self, "Aviso", "Nenhum quadro foi capturado para exportar.")
-            return
+            return False
 
         fmt = self.combo_format.currentText()
         is_mp4 = "MP4" in fmt
@@ -321,11 +364,11 @@ class RecordingPanel(QtWidgets.QWidget):
         default_name = os.path.join(self.output_dir, f"lumenia_timelapse{ext}")
         save_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Salvar Gravação", default_name, filter_str)
         if not save_path:
-            return
+            return False
 
         temp_dir = self.engine.stop_recording()
         if not temp_dir:
-            return
+            return False
 
         # Abre o diálogo de exportação assíncrona com FPS selecionado
         dlg = TimelapseExportDialog(self)
@@ -346,6 +389,7 @@ class RecordingPanel(QtWidgets.QWidget):
         worker.finished.connect(on_finished)
         dlg.show()
         worker.export(save_path, fmt, fps=self.engine.fps)
+        return True
 
     def _on_browse_clicked(self) -> None:
         dir_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta de Saída", self.output_dir)
@@ -368,13 +412,25 @@ class RecordingPanel(QtWidgets.QWidget):
 
     def _on_engine_state_changed(self, is_rec: bool, is_paused: bool) -> None:
         self._update_status_view()
+        if hasattr(self, "floating_bar") and self.floating_bar:
+            self.floating_bar.update_state(is_rec, is_paused)
+            if is_rec:
+                self.floating_bar.show_bar()
+            else:
+                self.floating_bar.hide_bar()
 
     def _on_engine_stats_updated(self, frames: int, size_mb: float, dur_secs: float) -> None:
         secs = self.engine.elapsed_seconds
-        h = secs // 3600
-        m = (secs % 3600) // 60
-        s = secs % 60
+        h, m, s = secs // 3600, (secs % 3600) // 60, secs % 60
         self.lbl_time.setText(f"{h:02d}:{m:02d}:{s:02d}")
         self.lbl_diag_frames.setText(f"Quadros Capturados: {frames}")
         self.lbl_diag_size.setText(f"Tamanho em Disco: {size_mb:.1f} MB")
         self.lbl_diag_dur.setText(f"Duração do Vídeo: {dur_secs:.1f}s (a {self.engine.fps} FPS)")
+        if hasattr(self, "floating_bar") and self.floating_bar:
+            self.floating_bar.update_stats(frames, secs)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        if hasattr(self, "floating_bar") and self.floating_bar:
+            self.floating_bar.hide_bar()
+            self.floating_bar.close()
+        super().closeEvent(event)

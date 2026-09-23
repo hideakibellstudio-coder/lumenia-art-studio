@@ -25,12 +25,9 @@ from ui.core.engine.registry import EngineRegistry
 class TestPhase1Layers(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        top_mws = [w for w in QApplication.topLevelWidgets() if isinstance(w, MainWindow)]
-        if top_mws:
-            cls.mw = top_mws[0]
-        else:
-            cls.mw = MainWindow()
-            cls.mw.show()
+        from tests.main_window_fixture import main_window_com_workspace
+        cls.mw = main_window_com_workspace()
+        cls.mw.show()
         cls.doc = cls.mw.dm.new_document(800, 600, "Doc Teste Phase 1")
 
     @classmethod

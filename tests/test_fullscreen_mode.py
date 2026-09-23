@@ -14,7 +14,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.components.menu_bar.menu_bar import MenuBar
 from ui.core.shortcut_registry import ShortcutRegistry
 from ui.core.shortcut_catalog import DEFAULT_SHORTCUTS
-from ui.boundary.orchestrator.main_window import MainWindow
 
 
 @pytest.fixture(scope="module")
@@ -79,7 +78,11 @@ def test_fullscreen_registered_in_shortcut_catalog(qapp):
 
 def test_main_window_toggle_fullscreen(qapp):
     """Valida o método toggle_fullscreen da MainWindow e sincronização de estado."""
-    win = MainWindow()
+    # Usa a MainWindow compartilhada da suíte em vez de criar e destruir uma:
+    # só a primeira MainWindow do processo recebe o WorkspaceCore, e destruí-la
+    # deixava os módulos seguintes (MDI, menu bar, camadas) sem workspace.
+    from tests.main_window_fixture import main_window_com_workspace
+    win = main_window_com_workspace()
     try:
         assert win.isFullScreen() is False
         assert win.menu_bar.view_menu.action_fullscreen.isChecked() is False
@@ -107,7 +110,5 @@ def test_main_window_toggle_fullscreen(qapp):
         assert win.isFullScreen() is False
         assert win.menu_bar.view_menu.action_fullscreen.isChecked() is False
     finally:
-        if hasattr(win, "shortcut_registry"):
-            win.shortcut_registry.cleanup()
-        win.close()
-        win.deleteLater()
+        if win.isFullScreen():
+            win.toggle_fullscreen()

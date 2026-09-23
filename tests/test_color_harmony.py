@@ -46,10 +46,11 @@ def test_valor_desconhecido_vira_nenhuma():
 def test_roda_mostra_marca_e_amostras_e_lembra_a_regra():
     from ui.core.config.manager import ConfigManager
     from ui.core.widgets.color_picker.color_wheel import ColorWheelWidget
+    from ui.core.widgets.color_picker.harmony_widgets import HarmonyStrip
 
-    roda = ColorWheelWidget(initial_color=QtGui.QColor.fromHsvF(0.0, 1.0, 1.0))
-    faixa = roda.harmony
-    faixa.combo.setCurrentIndex(faixa.combo.findData(HarmonyRule.TRIADIC.value))
+    roda: ColorWheelWidget = ColorWheelWidget(initial_color=QtGui.QColor.fromHsvF(0.0, 1.0, 1.0))
+    faixa: HarmonyStrip = roda.harmony
+    faixa.set_rule(HarmonyRule.TRIADIC)
     assert ConfigManager.instance().get("color", "harmony") == "triadic"
     assert _graus(roda.wheel._harmony_hues) == [120, 240]
     visiveis = [b for b in faixa.amostras if not b.isHidden()]
@@ -62,6 +63,6 @@ def test_roda_mostra_marca_e_amostras_e_lembra_a_regra():
     # A nova cor vira a base: as parceiras giram junto.
     assert _graus(roda.wheel._harmony_hues) == [240, 0]
 
-    faixa.combo.setCurrentIndex(faixa.combo.findData(HarmonyRule.NONE.value))
+    faixa.set_rule(HarmonyRule.NONE)
     assert roda.wheel._harmony_hues == []
     assert all(b.isHidden() for b in faixa.amostras)

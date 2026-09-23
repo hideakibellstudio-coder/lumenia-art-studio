@@ -40,9 +40,8 @@ class HarmonyStrip(QtWidgets.QWidget):
         self.combo = QtWidgets.QComboBox()
         self.combo.setFixedHeight(22)
         for regra in HarmonyRule:
-            self.combo.addItem("", regra.value)
-        salva = HarmonyRule.coerce(ConfigManager.instance().get("color", "harmony", HarmonyRule.NONE.value))
-        self.combo.setCurrentIndex(self.combo.findData(salva.value))
+            self.combo.addItem("", str(regra))
+        self.set_rule(HarmonyRule.coerce(ConfigManager.instance().get("color", "harmony", str(HarmonyRule.NONE))))
         self.combo.currentIndexChanged.connect(self._on_regra)
         layout.addWidget(self.combo, 1)
 
@@ -64,6 +63,9 @@ class HarmonyStrip(QtWidgets.QWidget):
     def rule(self) -> HarmonyRule:
         return HarmonyRule.coerce(self.combo.currentData())
 
+    def set_rule(self, rule: HarmonyRule) -> None:
+        self.combo.setCurrentIndex(max(0, self.combo.findData(str(rule))))
+
     def hues(self) -> list[float]:
         return harmony_hues(self.rule(), self._hsv[0])
 
@@ -81,7 +83,7 @@ class HarmonyStrip(QtWidgets.QWidget):
             self.combo.setItemText(i, tr(chave, padrao))
 
     def _on_regra(self, _idx: int) -> None:
-        ConfigManager.instance().set("color", "harmony", self.rule().value)
+        ConfigManager.instance().set("color", "harmony", str(self.rule()))
         self._atualizar_amostras()
         self.ruleChanged.emit()
 

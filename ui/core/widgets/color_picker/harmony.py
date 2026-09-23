@@ -6,12 +6,12 @@ valor da cor base -- o artista escolhe a partir dali.
 """
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from PySide6 import QtGui
 
 
-class HarmonyRule(str, Enum):
+class HarmonyRule(StrEnum):
     NONE = "none"
     COMPLEMENTARY = "complementary"
     ANALOGOUS = "analogous"

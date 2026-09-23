@@ -4,6 +4,7 @@ import math
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
+from plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController
 
 class OverlayRenderer:
     """Renderizador de Overlays e Elementos de Interface Visual sobre o Canvas."""
@@ -153,7 +154,7 @@ class OverlayRenderer:
         is_shift = bool(modifiers & QtCore.Qt.ShiftModifier)
         is_alt = bool(modifiers & QtCore.Qt.AltModifier)
 
-        ctrl = getattr(widget, "selection_ctrl", None)
+        ctrl: Optional[SelectionToolController] = getattr(widget, "selection_ctrl", None)
         active_tool = getattr(widget, "active_tool", "")
 
         if active_tool in ("rect_select", "ellipse_select"):

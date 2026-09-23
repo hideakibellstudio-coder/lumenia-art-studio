@@ -2,6 +2,7 @@
 
 from typing import Optional, List
 from PySide6 import QtCore, QtWidgets, QtGui
+from ui.core.engine.backend import EngineBackend
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings
 from ui.core.document.history import layer_transaction
@@ -223,7 +224,7 @@ class SelectionToolController:
         Dentro de uma transação de documento: o motor grava a máscara antes e
         depois, então Desfazer/Refazer voltam a seleção anterior.
         """
-        backend = EngineRegistry.instance().get_backend()
+        backend: Optional[EngineBackend] = EngineRegistry.instance().get_backend()
         operacoes = {
             "expand": backend.expand_selection,
             "contract": backend.contract_selection,

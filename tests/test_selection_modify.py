@@ -112,8 +112,8 @@ def test_backend_marca_documento_sujo_so_quando_muda():
     backend = AladynBackend()
     backend.set_active_document_context("modificar-selecao", L, L)
     try:
-        motivos = []
-        backend._mark_document_dirty = motivos.append
+        motivos: list[str] = []
+        backend._mark_document_dirty = motivos.append  # type: ignore[method-assign]
         assert backend.expand_selection(3) is False
         assert motivos == []
         backend.select_rect(10, 10, 10, 10)
@@ -149,11 +149,12 @@ def janela_com_documento():
     from PySide6.QtWidgets import QApplication
     QApplication.instance() or QApplication(["--platform", "offscreen"])
     from tests.main_window_fixture import main_window_com_workspace
+    from ui.core.document.document import Document
     from ui.core.document.manager import DocumentManager
 
     win = main_window_com_workspace()
     dm = DocumentManager.instance()
-    doc = dm.new_document(200, 200, "Modificar seleção")
+    doc: Document = dm.new_document(200, 200, "Modificar seleção")
     try:
         yield win
     finally:
@@ -188,11 +189,13 @@ def test_menu_sem_selecao_avisa_e_nao_abre_dialogo(janela_com_documento, monkeyp
 
 
 def test_modificar_pela_interface_entra_no_desfazer(janela_com_documento):
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+    from ui.core.engine.backend import EngineBackend
     from ui.core.engine.registry import EngineRegistry
 
-    backend = EngineRegistry.instance().get_backend()
+    backend: EngineBackend = EngineRegistry.instance().get_backend()
     backend.select_rect(50, 50, 20, 20)
-    cw = janela_com_documento.workspace.canvas_widget
+    cw: RenderWidget = janela_com_documento.workspace.canvas_widget
     assert cw.modify_selection("contract", 5)
     assert list(backend.get_selection_bounds()) == [55, 55, 10, 10]
     assert backend.can_undo()

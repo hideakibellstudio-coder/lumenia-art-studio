@@ -14,6 +14,9 @@ native = pytest.importorskip("aladyn_engine_native")
 from PySide6 import QtCore, QtGui  # noqa: E402
 
 from plugins.system.workspace_core.workspace.canvas.tools import transform_distort as d  # noqa: E402
+from plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import (  # noqa: E402
+    TransformToolController,
+)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -78,7 +81,7 @@ def test_trapezio_estreita_o_topo_e_alarga_a_base():
 def test_previa_e_commit_levam_o_mesmo_ponto_ao_mesmo_lugar():
     quad = [QtCore.QPointF(10, 6), QtCore.QPointF(40, 12), QtCore.QPointF(50, 52), QtCore.QPointF(4, 44)]
     fonte = QtCore.QRectF(8, 8, 16, 16)
-    previa = d.matriz_do_quad(fonte, quad)
+    previa: QtGui.QTransform | None = d.matriz_do_quad(fonte, quad)
     assert previa is not None
     esperado = previa.map(QtCore.QPointF(16.0, 16.0))  # centro do ponto verde
 
@@ -158,7 +161,7 @@ def test_controlador_no_modo_distorcer(monkeypatch):
     monkeypatch.setattr(mod.EngineRegistry, "instance",
                         classmethod(lambda cls: type("R", (), {"get_backend": lambda self: backend})()))
     widget = type("W", (), {"update": lambda self: None})()
-    ctrl = mod.TransformToolController(widget)
+    ctrl: TransformToolController = mod.TransformToolController(widget)
     ctrl.active = True
     ctrl.source_rect = QtCore.QRectF(0, 0, 100, 100)
     ctrl.pivot = QtCore.QPointF(50, 50)

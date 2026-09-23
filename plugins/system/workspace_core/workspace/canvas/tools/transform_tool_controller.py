@@ -30,7 +30,7 @@ class TransformToolController:
         # Distorcer: cantos TL, TR, BR, BL na tela. None = caixa afim (livre).
         # Depois do primeiro arrasto distorcido a caixa fica neste modo até
         # aplicar ou cancelar.
-        self.quad: Optional[distorcao.Quad] = None
+        self.quad: Optional[list[QtCore.QPointF]] = None
         self.handle_dragged: Optional[str] = None
         self.mouse_press_pos: Optional[QtCore.QPointF] = None
         self.press_params: dict = {}
@@ -163,7 +163,7 @@ class TransformToolController:
         if not self.active:
             return None
 
-        t_mat = self.get_transform_matrix()
+        t_mat: QtGui.QTransform = self.get_transform_matrix()
         src_rect = self.source_rect
         pv = self.pivot
         zoom_factor = max(0.01, zoom)

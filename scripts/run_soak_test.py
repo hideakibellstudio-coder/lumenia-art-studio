@@ -260,9 +260,12 @@ def analisar_plato(samples, warmup_cycles: int, titulo: str = "GATE P4") -> bool
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Lumenia Long-Running Session Soak Test Harness")
-    parser.add_argument("--cycles", type=int, default=350, help="Total de ciclos de teste (padrão: 350)")
-    parser.add_argument("--warmup", type=int, default=180, help="Ciclos de aquecimento/saturação (padrão: 180)")
-    parser.add_argument("--interval", type=int, default=25, help="Intervalo de amostragem (padrão: 25)")
+    # 2026-09-22: com 350/180 o platô analisado ainda pegava o fim do aquecimento
+    # (+0,05 a +0,12 MB/100 ciclos variando entre execuções); de 600 em diante a
+    # memória fica plana (+0,006 MB/100 ciclos em 1500 ciclos).
+    parser.add_argument("--cycles", type=int, default=1500, help="Total de ciclos de teste (padrão: 1500)")
+    parser.add_argument("--warmup", type=int, default=600, help="Ciclos de aquecimento/saturação (padrão: 600)")
+    parser.add_argument("--interval", type=int, default=50, help="Intervalo de amostragem (padrão: 50)")
     parser.add_argument("--output-csv", type=str, default=None, help="Caminho opcional para salvar relatório CSV")
     args = parser.parse_args()
 

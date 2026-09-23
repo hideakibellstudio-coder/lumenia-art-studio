@@ -3,6 +3,7 @@
 Controls smooth drawer transitions, sidebar auto-collapse timers, and PillHandle interactions.
 Strictly decoupled in compliance with ARCcC v2 (< 190 LOC).
 """
+import logging
 
 from typing import TYPE_CHECKING, Optional
 from PySide6 import QtCore
@@ -53,7 +54,7 @@ class DockAnimator:
             from ui.core.theme.manager import ThemeManager
             ThemeManager.instance().scaleChanged.connect(self._on_scale_changed)
         except Exception:
-            pass
+            logging.getLogger(__name__).debug("DockAnimator sem reatividade de escala.", exc_info=True)
 
         self.update_anim_duration()
 

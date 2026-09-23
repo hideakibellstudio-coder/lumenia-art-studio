@@ -166,7 +166,10 @@ class PluginManager:
                 try:
                     module = importlib.import_module(canonical_pkg)
                 except Exception:
-                    pass
+                    logger.debug(
+                        "Import canônico de '%s' falhou; tentando spec_from_file_location.",
+                        canonical_pkg, exc_info=True,
+                    )
 
                 # 2. Fallback: carregar via spec_from_file_location com submódulos registrados
                 if module is None:
@@ -232,7 +235,10 @@ class PluginManager:
                 plugin_id = inst.get_metadata().id
                 id_to_classname[plugin_id] = classname
             except Exception:
-                pass
+                logger.warning(
+                    "Plugin '%s' não pôde ser instanciado para ler metadados; "
+                    "fica fora da resolução de dependências.", classname, exc_info=True,
+                )
 
         def get_priority_key(name):
             inst = self._temp_plugin_cache.get(name)
@@ -240,7 +246,7 @@ class PluginManager:
                 try:
                     return inst.get_priority()
                 except Exception:
-                    pass
+                    logger.debug("get_priority() falhou em '%s'; usando 0.", name, exc_info=True)
             return 0
 
         sorted_names = sorted(self.discovered_plugins.keys(), key=get_priority_key, reverse=True)

@@ -1,4 +1,5 @@
 """PluginCard component for PluginsWindow."""
+import logging
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
@@ -50,7 +51,7 @@ class PluginCard(QtWidgets.QFrame):
         try:
             is_system = self.plugin.is_system_plugin()
         except Exception:
-            pass
+            logging.getLogger(__name__).debug("is_system_plugin() falhou.", exc_info=True)
 
         try:
             metadata: PluginMetadata = self.plugin.get_metadata()

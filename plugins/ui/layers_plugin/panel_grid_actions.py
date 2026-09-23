@@ -5,6 +5,9 @@ Separado de panel.py em 2026-09-22 (447 linhas, na parede dos 450).
 from __future__ import annotations
 
 import logging
+from typing import Optional
+
+from ui.core.document.local_layer import LocalLayer
 from .model import ROLE_LOCKED, ROLE_ALPHA_LOCK, ROLE_CLIPPING_MASK
 from ui.core.document.history import layer_transaction
 
@@ -33,7 +36,7 @@ class LayersPanelGridActionsMixin:
 
     @layer_transaction
     def delete_selection(self):
-        layer = self.layer_manager.get_active_layer()
+        layer: Optional[LocalLayer] = self.layer_manager.get_active_layer()
         if layer:
             self._updating_selection = True
             try:
@@ -49,7 +52,7 @@ class LayersPanelGridActionsMixin:
     
     @layer_transaction
     def grid_toggle_lock(self):
-        layer = self.layer_manager.get_active_layer()
+        layer: Optional[LocalLayer] = self.layer_manager.get_active_layer()
         if layer:
             idx = self.model._find_index_by_uid(layer.uid)
             new_lock = not layer.locked
@@ -58,7 +61,7 @@ class LayersPanelGridActionsMixin:
 
     @layer_transaction
     def grid_toggle_alpha(self):
-        layer = self.layer_manager.get_active_layer()
+        layer: Optional[LocalLayer] = self.layer_manager.get_active_layer()
         if layer:
             idx = self.model._find_index_by_uid(layer.uid)
             new_val = not layer.alpha_locked
@@ -67,13 +70,13 @@ class LayersPanelGridActionsMixin:
             self._show_status(f"Alpha Lock em '{layer.name}': {'Ativado' if new_val else 'Desativado'}")
 
     def grid_toggle_clip(self):
-        layer = self.layer_manager.get_active_layer()
+        layer: Optional[LocalLayer] = self.layer_manager.get_active_layer()
         if layer:
             self._on_context_toggle_clipping(layer.uid)
 
     @layer_transaction
     def _on_context_toggle_clipping(self, uid: int):
-        layer = self.layer_manager.get_layer_by_uid(uid)
+        layer: Optional[LocalLayer] = self.layer_manager.get_layer_by_uid(uid)
         if layer:
             idx = self.model._find_index_by_uid(layer.uid)
             new_val = not layer.clipping_mask

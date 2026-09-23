@@ -76,6 +76,7 @@ def run_full_session(total: int, warmup: int, intervalo: int, output_csv: str | 
                      desligar: frozenset = frozenset()) -> bool:
     from PySide6 import QtWidgets
     from ui.boundary.orchestrator.main_window import MainWindow
+    from ui.core.document.document import Document
     from ui.core.document.manager import DocumentManager
     from ui.core.document.serializer import DocumentSerializer
     from ui.core.engine.registry import EngineRegistry
@@ -84,7 +85,7 @@ def run_full_session(total: int, warmup: int, intervalo: int, output_csv: str | 
     janela = MainWindow()
     janela.show()
     dm = DocumentManager.instance()
-    doc = dm.new_document(1920, 1080, "Soak principal")
+    doc: Document = dm.new_document(1920, 1080, "Soak principal")
     app.processEvents()
     backend = EngineRegistry.instance().get_backend()
     if backend is None or not backend.available:

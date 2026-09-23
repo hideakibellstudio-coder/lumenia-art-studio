@@ -71,7 +71,7 @@ class LayerTreeOpsMixin:
         for record in records or []:
             uid = int(record.get("uid", max_uid + 1))
             max_uid = max(max_uid, uid)
-            layer = LocalLayer(
+            layer: LocalLayer = LocalLayer(
                 uid,
                 str(record.get("name", f"Camada {uid}")),
                 parent_uid=record.get("parent_uid"),

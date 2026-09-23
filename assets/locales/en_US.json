@@ -91,7 +91,9 @@
       "toggle_rulers": "Toggle Rulers",
       "toggle_guides": "Toggle Perspective Guides",
       "toggle_symmetry": "Toggle Symmetry",
-      "fullscreen": "Full Screen Mode"
+      "fullscreen": "Full Screen Mode",
+      "soft_proof_toggle": "Soft Proofing (On/Off)",
+      "telemetry_grid": "Telemetry Grid Cockpit..."
     },
     "window": {
       "title": "Window",
@@ -109,7 +111,9 @@
       "floating_toolbar": "Floating Toolbar Settings...",
       "dock_settings": "Docking & Drawer Settings...",
       "reset_layout": "Reset Default Workspace",
-      "fullscreen": "Toggle Full Screen (F11)"
+      "fullscreen": "Toggle Full Screen (F11)",
+      "scale": "Interface Scale",
+      "telemetry_panel": "Telemetry Panel"
     },
     "settings": {
       "title": "Settings",
@@ -274,7 +278,8 @@
     "preset_category_blur": "Blurs",
     "preset_category_smudge": "Smudges",
     "preset_category_watercolor": "Watercolors",
-    "preset_category_paint": "Oils & Impasto"
+    "preset_category_paint": "Oils & Impasto",
+    "stroke_taper": "Taper on Pen Lift"
   },
   "brush_preset": {
     "round": "Round Brush",
@@ -363,7 +368,9 @@
     "add_filter": "Add Filter Layer",
     "paper_texture_title": "Canvas Texture (Background Paper)",
     "load_paper_png": "Load Paper PNG",
-    "enable_paper_relief": "Enable Paper Relief"
+    "enable_paper_relief": "Enable Paper Relief",
+    "create_clipping": "Create Clipping Mask",
+    "release_clipping": "Release Clipping Mask"
   },
   "geometry": {
     "advanced_settings": "Advanced Symmetry & Guide Settings",
@@ -478,7 +485,12 @@
     "log_level": "Log Level:",
     "engine_core": "Engine Core:",
     "simd_support": "Instruction Set:",
-    "active_engine": "Active Mini-Engine:"
+    "active_engine": "Active Mini-Engine:",
+    "bench_group": "Performance Tests & Technical Diagnostics",
+    "card_lag": "Stabilizer Lag",
+    "metric": "Metric",
+    "tab_pipeline": "Pipeline & Viewport",
+    "value": "Value"
   },
   "filter": {
     "choose_type": "Choose filter type:",
@@ -647,7 +659,11 @@
     "theme_font_segoe": "Segoe UI (Windows Default)",
     "theme_font_roboto": "Roboto / System",
     "theme_font_inter": "Inter Display",
-    "theme_font_helvetica": "Helvetica / Arial"
+    "theme_font_helvetica": "Helvetica / Arial",
+    "coverage_col": "Coverage",
+    "module_col": "Module / Subsystem",
+    "status_col": "Status",
+    "theme_scale": "Interface Scale:"
   },
   "status": {
     "ready": "Ready.",
@@ -808,7 +824,8 @@
     "lock_aspect": "Lock Aspect",
     "interp_nearest": "Nearest Neighbor",
     "interp_bilinear": "Bilinear",
-    "interp_bicubic": "Bicubic"
+    "interp_bicubic": "Bicubic",
+    "interp": "Interp:"
   },
   "selection": {
     "new": "New Selection",
@@ -829,5 +846,17 @@
     "inspector_title": "FILTER PARAMETERS",
     "inspector_desc": "Adjust the parameters below to create the layer.",
     "create_adjustment_layer": "Create Adjustment Layer"
+  },
+  "common": {
+    "apply": "Apply",
+    "cancel": "Cancel"
+  },
+  "scale": {
+    "80": "80% (Compact)",
+    "100": "100% (Default)",
+    "125": "125% (Medium)",
+    "150": "150% (Large / HiDPI)",
+    "175": "175% (Extra Large)",
+    "200": "200% (Ultra HiDPI)"
   }
 }

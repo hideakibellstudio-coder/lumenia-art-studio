@@ -91,7 +91,9 @@
       "toggle_rulers": "定規の表示切替",
       "toggle_guides": "パース定規の表示切替",
       "toggle_symmetry": "対称定規の表示切替",
-      "fullscreen": "全画面表示モード"
+      "fullscreen": "全画面表示モード",
+      "soft_proof_toggle": "ソフトプルーフ (オン/オフ)",
+      "telemetry_grid": "テレメトリーグリッド..."
     },
     "window": {
       "title": "ウィンドウ",
@@ -109,7 +111,9 @@
       "floating_toolbar": "フローティングツールバー設定...",
       "dock_settings": "ドック＆ドロワー設定...",
       "reset_layout": "初期レイアウトに戻す",
-      "fullscreen": "全画面表示の切り替え (F11)"
+      "fullscreen": "全画面表示の切り替え (F11)",
+      "scale": "インターフェースの拡大率",
+      "telemetry_panel": "テレメトリーパネル"
     },
     "settings": {
       "title": "設定",
@@ -274,7 +278,8 @@
     "preset_category_blur": "ぼかし",
     "preset_category_smudge": "指先・混色",
     "preset_category_watercolor": "リアル水彩",
-    "preset_category_paint": "油彩・厚塗り"
+    "preset_category_paint": "油彩・厚塗り",
+    "stroke_taper": "ペンアップ時の入り抜き"
   },
   "brush_preset": {
     "round": "丸ブラシ",
@@ -363,7 +368,9 @@
     "add_filter": "フィルターレイヤーを追加",
     "paper_texture_title": "キャンバステクスチャ (用紙背景)",
     "load_paper_png": "用紙PNG画像を読み込む",
-    "enable_paper_relief": "用紙の凹凸を有効化"
+    "enable_paper_relief": "用紙の凹凸を有効化",
+    "create_clipping": "クリッピングマスクを作成",
+    "release_clipping": "クリッピングマスクを解除"
   },
   "geometry": {
     "advanced_settings": "対称・ガイドの詳細設定",
@@ -478,7 +485,12 @@
     "log_level": "ログレベル:",
     "engine_core": "エンジンコア:",
     "simd_support": "命令セット:",
-    "active_engine": "アクティブミニエンジン:"
+    "active_engine": "アクティブミニエンジン:",
+    "bench_group": "パフォーマンステストと技術診断",
+    "card_lag": "手ブレ補正の遅延",
+    "metric": "指標",
+    "tab_pipeline": "パイプラインとビューポート",
+    "value": "値"
   },
   "filter": {
     "choose_type": "エフェクトの種類を選択:",
@@ -647,7 +659,11 @@
     "theme_font_segoe": "Segoe UI (Windows標準)",
     "theme_font_roboto": "Roboto / システム",
     "theme_font_inter": "Inter Display",
-    "theme_font_helvetica": "Helvetica / Arial"
+    "theme_font_helvetica": "Helvetica / Arial",
+    "coverage_col": "カバレッジ",
+    "module_col": "モジュール / サブシステム",
+    "status_col": "ステータス",
+    "theme_scale": "インターフェースの拡大率:"
   },
   "status": {
     "ready": "準備完了。",
@@ -808,7 +824,8 @@
     "lock_aspect": "縦横比を固定",
     "interp_nearest": "最近傍法 (Nearest)",
     "interp_bilinear": "バイリニア (Bilinear)",
-    "interp_bicubic": "バイキュービック (Bicubic)"
+    "interp_bicubic": "バイキュービック (Bicubic)",
+    "interp": "補間:"
   },
   "selection": {
     "new": "新規選択",
@@ -829,5 +846,17 @@
     "inspector_title": "フィルターパラメータ",
     "inspector_desc": "以下のパラメータを調整して調整レイヤーを作成します。",
     "create_adjustment_layer": "調整レイヤーを作成"
+  },
+  "common": {
+    "apply": "適用",
+    "cancel": "キャンセル"
+  },
+  "scale": {
+    "80": "80% (コンパクト)",
+    "100": "100% (標準)",
+    "125": "125% (中)",
+    "150": "150% (大 / HiDPI)",
+    "175": "175% (特大)",
+    "200": "200% (ウルトラ HiDPI)"
   }
 }

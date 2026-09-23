@@ -67,11 +67,21 @@ class Document(QtCore.QObject):
 
         # Qualquer mutação de camada invalida o estado salvo do documento.
         self.layer_manager.content_changed.connect(self._on_content_changed)
-        self.layer_manager.layer_property_changed.connect(lambda _uid: self.mark_dirty("layer_property"))
-        self.layer_manager.order_changed.connect(lambda: self.mark_dirty("layer_order"))
+        # Métodos ligados, não lambdas: o lambda capturava `self` dentro de uma
+        # conexão guardada no lado C++ do LocalLayerManager, formando um ciclo
+        # que o coletor do Python não enxerga. Todo documento fechado ficava vivo
+        # (~89 KB cada; medido em 2026-09-22 com scripts/soak_full_session.py).
+        self.layer_manager.layer_property_changed.connect(self._on_layer_property_changed)
+        self.layer_manager.order_changed.connect(self._on_layer_order_changed)
 
     def _on_content_changed(self, reason: str) -> None:
         self.mark_dirty(reason)
+
+    def _on_layer_property_changed(self, _uid=None) -> None:
+        self.mark_dirty("layer_property")
+
+    def _on_layer_order_changed(self) -> None:
+        self.mark_dirty("layer_order")
 
     def mark_dirty(self, reason: str = "content") -> None:
         self.revision += 1

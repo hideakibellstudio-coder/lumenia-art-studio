@@ -111,15 +111,7 @@ class AladynBackend(
             "linear_gamma": bool(linear_gamma),
             "deep_color": bool(deep_color),
         }
-        if self._facade and hasattr(self._facade, "set_render_options"):
-            self._facade.set_render_options(**self._render_options)
-        elif self._facade:
-            # Compatibilidade com extensões nativas antigas durante uma
-            # atualização incremental do aplicativo.
-            for key, value in self._render_options.items():
-                setter = getattr(self._facade, f"set_{key}", None)
-                if setter:
-                    setter(value)
+        self._push_render_options(self._facade)
 
     def get_render_options(self) -> dict[str, bool]:
         if self._facade:

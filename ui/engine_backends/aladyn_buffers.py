@@ -1,5 +1,6 @@
 """Pixel format conversion at the canonical RGBA / native intensity boundary."""
 
+import logging
 from typing import Any
 from PIL import Image, ImageChops
 
@@ -18,7 +19,7 @@ def to_native_color_rgba(native: Any, color: Any):
     """Converte defensivamente qualquer representação de cor em ColorRGBA nativo."""
     if native is None:
         return None
-    if hasattr(native, "ColorRGBA") and isinstance(color, native.ColorRGBA):
+    if isinstance(color, native.ColorRGBA):
         return color
     if hasattr(color, "red") and hasattr(color, "green") and hasattr(color, "blue"):
         a = color.alpha() if hasattr(color, "alpha") else 255
@@ -35,5 +36,10 @@ def to_native_color_rgba(native: Any, color: Any):
     if hasattr(color, "r") and hasattr(color, "g") and hasattr(color, "b"):
         a = getattr(color, "a", 255)
         return native.ColorRGBA(int(color.r), int(color.g), int(color.b), int(a))
+    # Entrada irreconhecível: mantém o preto histórico, mas sem silêncio -- um
+    # preenchimento preto inesperado já foi um bug real (rodada 9, balde de tinta).
+    logging.getLogger(__name__).warning(
+        "to_native_color_rgba: cor de tipo %s não reconhecida; usando preto.", type(color).__name__
+    )
     return native.ColorRGBA(0, 0, 0, 255)
 

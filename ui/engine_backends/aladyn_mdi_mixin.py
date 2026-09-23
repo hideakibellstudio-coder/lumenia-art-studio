@@ -23,6 +23,24 @@ class AladynMdiMixin:
         if document is not None:
             document.mark_dirty(reason)
 
+    def _push_render_options(self, facade) -> None:
+        """Aplica as opções de render guardadas numa facade (único ponto do fallback).
+
+        O caminho normal é `set_render_options(...)`. O `else` existe só para um
+        `.pyd` compilado antes desse método existir (ver lista de fallbacks
+        legítimos em tests/test_native_guard_ratchet.py).
+        """
+        options = getattr(self, "_render_options", None)
+        if not facade or not options:
+            return
+        if hasattr(facade, "set_render_options"):
+            facade.set_render_options(**options)
+            return
+        for key, value in options.items():
+            setter = getattr(facade, f"set_{key}", None)
+            if setter:
+                setter(value)
+
     def set_active_document_context(self, uid: str, width: int, height: int) -> None:
         """
         Alterna o contexto ativo de execução C++ para o documento especificado em tempo O(1).
@@ -44,14 +62,7 @@ class AladynMdiMixin:
                     facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
                 if hasattr(self, "_undo_max_steps"):
                     facade.set_undo_max_steps(self._undo_max_steps)
-                if hasattr(self, "_render_options"):
-                    if hasattr(facade, "set_render_options"):
-                        facade.set_render_options(**self._render_options)
-                    else:
-                        for key, value in self._render_options.items():
-                            setter = getattr(facade, f"set_{key}", None)
-                            if setter:
-                                setter(value)
+                self._push_render_options(facade)
                 if facade:
                     c_tex = facade.get_canvas_texture()
                     if c_tex:
@@ -94,14 +105,7 @@ class AladynMdiMixin:
         self._facade = self._doc_facades[uid]
         self._width = self._facade.get_width()
         self._height = self._facade.get_height()
-        if hasattr(self, "_render_options"):
-            if hasattr(self._facade, "set_render_options"):
-                self._facade.set_render_options(**self._render_options)
-            else:
-                for key, value in self._render_options.items():
-                    setter = getattr(self._facade, f"set_{key}", None)
-                    if setter:
-                        setter(value)
+        self._push_render_options(self._facade)
         if hasattr(self, "_last_brush_preset") and self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)
 

@@ -1,5 +1,6 @@
 #include "BindingsCommon.hpp"
 #include "../../../engine/core/math/ViewportTransform.hpp"
+#include "../../../engine/boundary/public-api/internal/StrokePreviewRenderer.hpp"
 
 namespace aladyn::bridge {
 
@@ -241,6 +242,9 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
     // ─── BRUSH PROFILE COMPLETO ───────────────────────────────────────────────
     py::class_<brush::BrushProfile>(m, "BrushProfile")
         .def(py::init<>())
+        // Cópia explícita: get_brush_profile() devolve REFERÊNCIA ao perfil vivo do
+        // documento; quem precisa experimentar valores (prévia do painel) copia antes.
+        .def(py::init<const brush::BrushProfile&>(), py::arg("other"))
         // Motor ativo
         .def_readwrite("engine_type",           &brush::BrushProfile::engineType)
         // Tamanho e opacidade
@@ -300,6 +304,17 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readonly("pressure",    &boundary::TelemetryData::pressure)
         .def_readonly("velocity",    &boundary::TelemetryData::velocity)
         .def_readonly("output_flow", &boundary::TelemetryData::outputFlow);
+
+    // ─── PRÉVIA DO TRAÇO (painel de pincel) ──────────────────────────────────
+    // Restaurado em 2026-09-22; ver StrokePreviewRenderer.hpp para o histórico.
+    m.def("render_stroke_preview", [](const brush::BrushProfile& profile, int width, int height) -> py::bytes {
+        std::vector<uint8_t> rgba;
+        {
+            py::gil_scoped_release release;
+            rgba = boundary::internal::renderStrokePreview(profile, width, height);
+        }
+        return py::bytes(reinterpret_cast<const char*>(rgba.data()), rgba.size());
+    }, py::arg("profile"), py::arg("width") = 260, py::arg("height") = 52);
 }
 
 } // namespace aladyn::bridge

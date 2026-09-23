@@ -32,6 +32,11 @@ from ._types import (
 )
 
 
+def render_stroke_preview(profile: BrushProfile, width: int = 260, height: int = 52) -> bytes:
+    """Pincelada de demonstração RGBA8 (width*height*4) com o motor real do perfil."""
+    ...
+
+
 class PaintEngineFacade:
     def __init__(self, width: int, height: int) -> None: ...
     def resize_canvas(self, width: int, height: int) -> None: ...

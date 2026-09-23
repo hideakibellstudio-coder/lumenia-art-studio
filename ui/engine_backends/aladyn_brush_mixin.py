@@ -90,10 +90,17 @@ class AladynBrushMixin:
         if not self._native or not hasattr(self._native, "render_stroke_preview"):
             return None
         try:
-            prof: "BrushProfile" = self._facade.get_brush_profile() if self._facade else self._native.BrushProfile()
+            # get_brush_profile() devolve REFERÊNCIA ao perfil vivo do documento; a
+            # prévia trabalha numa cópia para nunca alterar o pincel em uso.
+            prof: "BrushProfile" = (
+                self._native.BrushProfile(self._facade.get_brush_profile())
+                if self._facade else self._native.BrushProfile()
+            )
             if brush_state:
-                if "engine_type" in brush_state and hasattr(prof, "engine_type"):
-                    prof.engine_type = int(brush_state["engine_type"])
+                if "engine_type" in brush_state:
+                    # O binding exige o enum nativo; um int puro levanta TypeError
+                    # (engolido abaixo) e a prévia caía no desenho vetorial.
+                    prof.engine_type = self._native.EngineType(int(brush_state["engine_type"]))
                 if "size" in brush_state: prof.brush_size = float(brush_state["size"])
                 if "opacity" in brush_state: prof.opacity = float(brush_state["opacity"])
                 if "hardness" in brush_state: prof.hardness = float(brush_state["hardness"])

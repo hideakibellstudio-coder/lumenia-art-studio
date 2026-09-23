@@ -25,7 +25,7 @@ class AboutDialog(BaseFramelessDialog):
 
         self._build_ui()
         self._apply_theme()
-        ThemeManager.instance().themeChanged.connect(lambda _: self._apply_theme())
+        ThemeManager.instance().themeChanged.connect(self._apply_theme)
 
     def _build_ui(self):
         # ── Header: Logo e Nomes ────────────────────────────────────────────

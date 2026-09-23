@@ -83,7 +83,10 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self._bucket_settings = default_tool_settings("bucket")
 
         from ui.core.i18n import I18nManager
-        I18nManager.instance().languageChanged.connect(lambda *_: self.update())
+        # Método ligado (não lambda): o PySide desconecta sozinho quando o widget
+        # é destruído. Um lambda num sinal de singleton ficava vivo e chamava
+        # update() num RenderWidget já deletado (ex.: após fechar um documento).
+        I18nManager.instance().languageChanged.connect(self._on_language_changed)
 
         RenderWidget._active_instance = self
         from ui.core.engine.registry import EngineRegistry
@@ -147,6 +150,9 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     @active_color.setter
     def active_color(self, color: QtGui.QColor) -> None:
         self._active_draw_color = color
+
+    def _on_language_changed(self, *_args) -> None:
+        self.update()
 
     def set_paper_state(self, visible: bool, color: QtGui.QColor = None) -> None:
         self.paper_visible = bool(visible)

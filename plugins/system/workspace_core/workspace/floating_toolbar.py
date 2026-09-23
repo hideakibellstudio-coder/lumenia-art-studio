@@ -110,7 +110,7 @@ class FloatingToolbar(FloatingToolWindow):
 
         # Conecta às alterações globais de tema, escala e idioma
         tm = ThemeManager.instance()
-        tm.themeChanged.connect(lambda _: self._apply_theme())
+        tm.themeChanged.connect(self._apply_theme)  # método ligado: auto-desconecta
         tm.scaleChanged.connect(self._on_scale_changed)
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)

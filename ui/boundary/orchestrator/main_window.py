@@ -150,7 +150,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
 
         # ── Wiring: documento ativo → status bar e histórico ─────────────────
         self.dm.activeDocumentChanged.connect(self._on_active_document_status)
-        self.dm.activeDocumentChanged.connect(lambda _: self.update_undo_redo_actions())
+        self.dm.activeDocumentChanged.connect(self.update_undo_redo_actions)  # método ligado: auto-desconecta
 
         # ── Componentes que dependem do workspace (WorkspaceCore plugin) ──
         if self.workspace is None:

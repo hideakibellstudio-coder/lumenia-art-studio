@@ -49,7 +49,7 @@ class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
         self._build_ui()
         self._apply_theme()
         from ui.core.theme.manager import ThemeManager
-        ThemeManager.instance().themeChanged.connect(lambda _: self._apply_theme())
+        ThemeManager.instance().themeChanged.connect(self._apply_theme)
 
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)

@@ -258,7 +258,7 @@ class TestGeometrySymmetry(unittest.TestCase):
     def test_10_curvilinear_native_snap_mode_filter(self):
         """Regressao Fase C3.0 (nativo): snap_mode v/h/d deve travar na
         familia correta -- espelha o teste equivalente em
-        test_geometry_decomposition_phase1.py para o motor Python. Familias
+        test_geometry_structure.py para o motor Python. Familias
         geradas sao sempre GroundV/GroundX/GroundZ; um filtro que so
         reconhece GroundV faz H e D nunca travarem em nada."""
         family_index = 1  # layout: [kind, family, p1x, p1y, p2x, p2y, dirx, diry, cx, cy, radius]

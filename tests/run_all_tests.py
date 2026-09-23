@@ -62,7 +62,7 @@ SUITE_TARGETS = {
         "test_document_history_integration.py",
         "test_geometry_history.py",
         "test_layer_manager_history.py",
-        "test_main_window_actions_phase4.py",
+        "test_main_window_actions.py",
         "test_mdi_multidoc_lifecycle.py",
         "test_persistence_failures.py",
         "test_plugin_lifecycle.py",
@@ -70,10 +70,10 @@ SUITE_TARGETS = {
     "stress": (
         "test_document_format_fuzz.py",
         "test_history_io_failures.py",
-        "test_lowlevel_phase3_giant_brushes_simd.py",
-        "test_lowlevel_phase4_memory_scalability.py",
-        "test_lowlevel_phase5_viewport_lod_antialiasing.py",
-        "test_lowlevel_phase5_viewport_pipeline.py",
+        "test_lowlevel_giant_brushes_simd.py",
+        "test_lowlevel_memory_scalability.py",
+        "test_lowlevel_viewport_lod_antialiasing.py",
+        "test_lowlevel_viewport_pipeline.py",
         "test_lowlevel_undo_tile_stress.py",
     ),
 }

@@ -142,6 +142,9 @@ public:
     void clearSelection() noexcept { m_selectionMask.clear(); }
     void invertSelection() noexcept { m_selectionMask.invert(); }
     void selectAll() noexcept { m_selectionMask.selectAll(); }
+    bool expandSelection(int radiusPx);   // Seleção -> Modificar (SelectionMorphology)
+    bool contractSelection(int radiusPx);
+    bool featherSelection(int radiusPx);
     [[nodiscard]] bool hasSelection() const noexcept { return m_selectionMask.hasSelection(); }
     bool deleteSelectionOnActiveLayer();
     bool fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor);
@@ -166,6 +169,7 @@ public:
     bool commitTransform(double dx, double dy, double scaleX, double scaleY,
                          double rotationDeg, double pivotX, double pivotY,
                          bool flipH, bool flipV, int interpMode = 2);
+    bool commitTransformDistort(const std::vector<double>& corners, int interpMode = 2);
     bool cancelTransform();
     bool flipActiveLayer(bool horizontal);
     bool rotateActiveLayer90(bool clockwise);
@@ -375,6 +379,7 @@ private:
     internal::EngineStateContext stateContext() noexcept;
     internal::RawStrokeContext   strokeContext() noexcept;
     void touchDocument() noexcept { ++m_documentGeneration; m_mipmapPyramid.markDirty(); }
+    bool touchedIf(bool changed) noexcept { if (changed) touchDocument(); return changed; }
     void initEngine(brush::EngineType type);
 
     int m_width;

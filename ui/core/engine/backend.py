@@ -256,6 +256,9 @@ class EngineBackend(ABC):
     def clear_selection(self) -> None: ...
     def invert_selection(self) -> None: ...
     def select_all(self) -> None: ...
+    def expand_selection(self, radius_px: int) -> bool: return False
+    def contract_selection(self, radius_px: int) -> bool: return False
+    def feather_selection(self, radius_px: int) -> bool: return False
     def has_selection(self) -> bool: return False
     def get_selection_mask_buffer(self) -> Optional[bytes]: return None
     def set_selection_mask_buffer(self, pixels: bytes) -> bool: return False
@@ -272,6 +275,7 @@ class EngineBackend(ABC):
     def get_transform_source_bounds(self) -> List[float]: return [0.0, 0.0, 0.0, 0.0]
     def get_transform_pivot(self) -> List[float]: return [0.0, 0.0]
     def commit_transform(self, dx: float, dy: float, scale_x: float, scale_y: float, rotation_deg: float, pivot_x: float, pivot_y: float, flip_h: bool, flip_v: bool, interp_mode: int = 2) -> bool: return False
+    def commit_transform_distort(self, corners: List[float], interp_mode: int = 2) -> bool: return False
     def cancel_transform(self) -> bool: return False
     def flip_active_layer(self, horizontal: bool) -> bool: return False
     def rotate_active_layer_90(self, clockwise: bool) -> bool: return False

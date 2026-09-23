@@ -6,6 +6,7 @@
 #include "../../../core/document/LayerStack.hpp"
 #include "../../../core/canvas/TileUndoManager.hpp"
 #include "../../../core/document/Compositor.hpp"
+#include <array>
 #include <vector>
 
 namespace aladyn::engine::boundary::internal {
@@ -30,6 +31,19 @@ public:
         double dx, double dy, double scaleX, double scaleY,
         double rotationDeg, double pivotX, double pivotY,
         bool flipH, bool flipV, int interpMode,
+        int canvasWidth, int canvasHeight
+    );
+
+    /// Distorcer. Quad inválido (não convexo / fora da tela) cancela a
+    /// transformação -- os pixels voltam ao lugar -- e devolve false.
+    static bool commitTransformDistort(
+        raster::TransformEngine& transformEngine,
+        document::LayerStack& layerStack,
+        canvas::TileUndoManager& undoManager,
+        document::Compositor& compositor,
+        canvas::PixelBuffer& outputBuffer,
+        const raster::ColorRGBA& bgColor,
+        const std::array<double, 8>& corners, int interpMode,
         int canvasWidth, int canvasHeight
     );
 

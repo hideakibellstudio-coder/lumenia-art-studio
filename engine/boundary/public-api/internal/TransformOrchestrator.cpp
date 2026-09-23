@@ -50,6 +50,34 @@ bool TransformOrchestrator::commitTransform(
     return ok;
 }
 
+bool TransformOrchestrator::commitTransformDistort(
+    raster::TransformEngine& transformEngine,
+    document::LayerStack& layerStack,
+    canvas::TileUndoManager& undoManager,
+    document::Compositor& compositor,
+    canvas::PixelBuffer& outputBuffer,
+    const raster::ColorRGBA& bgColor,
+    const std::array<double, 8>& corners, int interpMode,
+    int canvasWidth, int canvasHeight
+) {
+    if (!transformEngine.isActive()) return false;
+    document::Layer* activeLayer = layerStack.getActiveLayer();
+    if (!activeLayer) return false;
+
+    math::Rect2D dirtyBounds;
+    const bool ok = transformEngine.commitTransformDistort(
+        activeLayer, corners, interpMode, canvasWidth, canvasHeight,
+        undoManager, layerStack.getActiveIndex(), dirtyBounds
+    );
+    if (ok) {
+        undoManager.commitStep(layerStack);
+        compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
+        return true;
+    }
+    cancelTransform(transformEngine, layerStack, undoManager, compositor, outputBuffer, bgColor, canvasWidth, canvasHeight);
+    return false;
+}
+
 bool TransformOrchestrator::cancelTransform(
     raster::TransformEngine& transformEngine,
     document::LayerStack& layerStack,

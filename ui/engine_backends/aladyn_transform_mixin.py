@@ -55,6 +55,15 @@ class AladynTransformMixin:
             return res
         return False
 
+    def commit_transform_distort(self, corners: list[float], interp_mode: int = 2) -> bool:
+        """Distorcer: cantos TL, TR, BR, BL (8 números, coordenadas da tela)."""
+        if not self._facade or len(corners) != 8:
+            return False
+        res = self._facade.commit_transform_distort([float(c) for c in corners], int(interp_mode))
+        if res:
+            self._mark_document_dirty("transform")
+        return res
+
     def cancel_transform(self) -> bool:
         if self._facade:
             return self._facade.cancel_transform()

@@ -8,6 +8,7 @@
 #include "../canvas/TileUndoManager.hpp"
 #include "../document/Layer.hpp"
 #include "../math/Rect2D.hpp"
+#include <array>
 #include <vector>
 #include <memory>
 #include <cmath>
@@ -73,6 +74,20 @@ public:
         double rotationDeg,
         double pivotX, double pivotY,
         bool flipH, bool flipV,
+        int interpMode,
+        int canvasWidth,
+        int canvasHeight,
+        canvas::TileUndoManager& undoManager,
+        int activeLayerIndex,
+        math::Rect2D& outDirtyBounds
+    );
+
+    /// Distorcer: grava a fonte no quadrilátero `corners` (TL, TR, BR, BL em
+    /// coordenadas da tela). false sem mexer em nada se o quad não for convexo
+    /// -- o chamador decide se cancela. Implementado em TransformEngineDistort.cpp.
+    bool commitTransformDistort(
+        document::Layer* activeLayer,
+        const std::array<double, 8>& corners,
         int interpMode,
         int canvasWidth,
         int canvasHeight,

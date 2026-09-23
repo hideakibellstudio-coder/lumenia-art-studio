@@ -11,6 +11,7 @@
 #include "internal/StrokeOrchestrator.hpp"
 #include "internal/StrokeSessionOrchestrator.hpp"
 #include "internal/TransformOrchestrator.hpp"
+#include "../../core/raster/SelectionMorphology.hpp"
 #include <cstdlib>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -249,6 +250,10 @@ bool PaintEngineFacade::fillSelectionOnActiveLayer(const raster::ColorRGBA& fill
     if (result) docContext().touch();
     return result;
 }
+// Seleção é salva no .lmn: mudar a geração faz a transação gravar o Desfazer.
+bool PaintEngineFacade::expandSelection(int radiusPx) { return touchedIf(raster::SelectionMorphology::expand(m_selectionMask, radiusPx)); }
+bool PaintEngineFacade::contractSelection(int radiusPx) { return touchedIf(raster::SelectionMorphology::contract(m_selectionMask, radiusPx)); }
+bool PaintEngineFacade::featherSelection(int radiusPx) { return touchedIf(raster::SelectionMorphology::feather(m_selectionMask, radiusPx)); }
 std::vector<int> PaintEngineFacade::getSelectionBounds() const {
     auto b = m_selectionMask.getBounds();
     return { static_cast<int>(b.x), static_cast<int>(b.y), static_cast<int>(b.width), static_cast<int>(b.height) };
@@ -271,6 +276,14 @@ std::vector<double> PaintEngineFacade::getTransformPivot() const {
 }
 bool PaintEngineFacade::commitTransform(double dx, double dy, double scaleX, double scaleY, double rotationDeg, double pivotX, double pivotY, bool flipH, bool flipV, int interpMode) {
     const bool result = internal::TransformOrchestrator::commitTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, dx, dy, scaleX, scaleY, rotationDeg, pivotX, pivotY, flipH, flipV, interpMode, m_width, m_height);
+    if (result) docContext().touch();
+    return result;
+}
+bool PaintEngineFacade::commitTransformDistort(const std::vector<double>& corners, int interpMode) {
+    if (corners.size() != 8) return false;
+    std::array<double, 8> quad{};
+    std::copy(corners.begin(), corners.end(), quad.begin());
+    const bool result = internal::TransformOrchestrator::commitTransformDistort(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, quad, interpMode, m_width, m_height);
     if (result) docContext().touch();
     return result;
 }

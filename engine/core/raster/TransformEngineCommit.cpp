@@ -1,8 +1,9 @@
 // TransformEngine::commitTransform / cancelTransform -- separados de
 // TransformEngine.cpp em 2026-09-22 (teto ARCcC de 450 linhas). Corpos movidos
-// sem alteração.
+// sem alteração. Em 2026-09-23 o laço de amostragem/composição foi para
+// transform/InverseMappedComposite.hpp (compartilhado com Distorcer).
 #include "TransformEngine.hpp"
-#include "transform/TransformSamplers.hpp"
+#include "transform/InverseMappedComposite.hpp"
 #include <cmath>
 #include <algorithm>
 #include <cstring>
@@ -53,93 +54,32 @@ bool TransformEngine::commitTransform(
     const double cosR = std::cos(rad);
     const double sinR = std::sin(rad);
 
-    auto& grid = activeLayer->getTileGrid();
-
-    const int startTileX = minDx / canvas::Tile::TILE_SIZE;
-    const int endTileX   = maxDx / canvas::Tile::TILE_SIZE;
-    const int startTileY = minDy / canvas::Tile::TILE_SIZE;
-    const int endTileY   = maxDy / canvas::Tile::TILE_SIZE;
-
-    for (int ty = startTileY; ty <= endTileY; ++ty) {
-        for (int tx = startTileX; tx <= endTileX; ++tx) {
-            canvas::Tile* tile = grid.getTile(tx, ty);
-            if (tile) {
-                const auto& buf = tile->getBuffer();
-                undoManager.recordTileBefore(activeLayerIndex, tx, ty, buf.getData(), buf.getSizeInBytes());
-            } else {
-                canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
-                undoManager.recordTileBefore(activeLayerIndex, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
-            }
-        }
-    }
-
     const double srcX0 = m_state.sourceBounds.x;
     const double srcY0 = m_state.sourceBounds.y;
     const int srcW = m_sourceBuffer->getWidth();
     const int srcH = m_sourceBuffer->getHeight();
 
-    // Mapeamento inverso para cada pixel de destino
-    for (int ty = startTileY; ty <= endTileY; ++ty) {
-        for (int tx = startTileX; tx <= endTileX; ++tx) {
-            canvas::Tile* tile = grid.getOrCreateTile(tx, ty);
-            auto& buf = tile->getBuffer();
-            int tpx = tile->getPixelX();
-            int tpy = tile->getPixelY();
+    transform::compositeInverseMapped(
+        activeLayer->getTileGrid(), *m_sourceBuffer, minDx, minDy, maxDx, maxDy,
+        interpMode, undoManager, activeLayerIndex,
+        [&](int destX, int destY, double& u, double& v) {
+            // Vetor do pivô transformado
+            double dpx = destX - (pivotX + dx);
+            double dpy = destY - (pivotY + dy);
 
-            for (int ly = 0; ly < canvas::Tile::TILE_SIZE; ++ly) {
-                int destY = tpy + ly;
-                if (destY > maxDy) break;
+            // Rotação inversa (-rad)
+            double rx = dpx * cosR + dpy * sinR;
+            double ry = -dpx * sinR + dpy * cosR;
 
-                for (int lx = 0; lx < canvas::Tile::TILE_SIZE; ++lx) {
-                    int destX = tpx + lx;
-                    if (destX > maxDx) break;
+            // Escala inversa
+            double ux = rx / sx;
+            double uy = ry / sy;
 
-                    // Vetor do pivô transformado
-                    double dpx = destX - (pivotX + dx);
-                    double dpy = destY - (pivotY + dy);
-
-                    // Rotação inversa (-rad)
-                    double rx = dpx * cosR + dpy * sinR;
-                    double ry = -dpx * sinR + dpy * cosR;
-
-                    // Escala inversa
-                    double ux = rx / sx;
-                    double uy = ry / sy;
-
-                    // Coordenada original no sourceBuffer
-                    double u = pivotX + ux - srcX0;
-                    double v = pivotY + uy - srcY0;
-
-                    if (u >= -0.5 && u <= srcW + 0.5 && v >= -0.5 && v <= srcH + 0.5) {
-                        ColorRGBA sampled;
-                        if (interpMode == static_cast<int>(InterpolationMode::Nearest)) {
-                            sampled = sampleNearest(*m_sourceBuffer, u, v);
-                        } else if (interpMode == static_cast<int>(InterpolationMode::Bilinear)) {
-                            sampled = sampleBilinear(*m_sourceBuffer, u, v);
-                        } else {
-                            sampled = sampleBicubic(*m_sourceBuffer, u, v);
-                        }
-
-                        if (sampled.a > 0) {
-                            auto cur = buf.getPixel(lx, ly);
-                            double srcA = sampled.a / 255.0;
-                            double dstA = cur.a / 255.0;
-                            double outA = srcA + dstA * (1.0 - srcA);
-
-                            if (outA > 0.001) {
-                                cur.r = static_cast<uint8_t>(std::clamp((sampled.r * srcA + cur.r * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
-                                cur.g = static_cast<uint8_t>(std::clamp((sampled.g * srcA + cur.g * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
-                                cur.b = static_cast<uint8_t>(std::clamp((sampled.b * srcA + cur.b * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
-                                cur.a = static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0));
-                                buf.setPixel(lx, ly, cur);
-                                tile->setDirty(true);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+            // Coordenada original no sourceBuffer
+            u = pivotX + ux - srcX0;
+            v = pivotY + uy - srcY0;
+            return u >= -0.5 && u <= srcW + 0.5 && v >= -0.5 && v <= srcH + 0.5;
+        });
 
     outDirtyBounds = math::Rect2D{
         std::min(m_state.sourceBounds.x, destBounds.x),

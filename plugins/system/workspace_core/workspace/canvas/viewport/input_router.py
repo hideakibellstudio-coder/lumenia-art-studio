@@ -112,16 +112,7 @@ class CanvasInputRouter:
                 if w.transform_ctrl.active:
                     handle = w.transform_ctrl.hit_test_handle(pt, w.zoom)
                     if handle:
-                        w.transform_ctrl.handle_dragged = handle
-                        w.transform_ctrl.mouse_press_pos = pt
-                        w.transform_ctrl.press_params = {
-                            "dx": w.transform_ctrl.dx,
-                            "dy": w.transform_ctrl.dy,
-                            "sx": w.transform_ctrl.scale_x,
-                            "sy": w.transform_ctrl.scale_y,
-                            "rot": w.transform_ctrl.rotation,
-                            "pivot": QtCore.QPointF(w.transform_ctrl.pivot)
-                        }
+                        w.transform_ctrl.begin_drag(handle, pt)
                         w.update()
                         return
                 else:

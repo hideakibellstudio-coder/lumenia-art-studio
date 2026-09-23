@@ -241,6 +241,9 @@ class OverlayRenderer:
         for pt in (c_tl, c_tr, c_br, c_bl, c_tc, c_bc, c_ml, c_mr):
             painter.drawRect(QtCore.QRectF(pt.x() - hs/2, pt.y() - hs/2, hs, hs))
 
+        if transform_ctrl.quad is not None:  # Distorcer: sem pivô nem rotação
+            painter.restore()
+            return
         pvm = t_mat.map(pv)
         pr = 7.0 / zf
         painter.setPen(QtGui.QPen(QtGui.QColor(255, 60, 60, 230), lw * 1.5))

@@ -247,6 +247,9 @@ class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
             self.btn_trans_commit_h.setToolTip(tr("tool_options.commit_text", "Confirmar"))
             self.btn_trans_cancel_h.setToolTip(tr("tool_options.cancel_text", "Cancelar"))
             self.btn_trans_aspect_h.setToolTip(tr("tool_options.lock_aspect", "Travar Proporções"))
+            for btn in (self.btn_trans_distort_h, self.btn_trans_distort_v):
+                btn.setText(tr("tools.transform_distort", "Distorcer"))
+                btn.setToolTip(tr("tool_options.distort_tip", "Arraste cada canto livremente (perspectiva)"))
             if hasattr(self, "lbl_trans_title_v"):
                 self.lbl_trans_title_v.setText(tr("transform.title", "TRANSFORMAÇÃO"))
             if hasattr(self, "lbl_trans_interp_h"):

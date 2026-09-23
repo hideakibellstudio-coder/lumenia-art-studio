@@ -68,7 +68,7 @@ def test_workspace_routes_canonical_settings_to_the_controllers_that_consume_the
         _lasso_settings=default_tool_settings("lasso"),
         _shape_settings=default_tool_settings("shapes"),
         _text_settings=default_tool_settings("text"),
-        transform_ctrl=SimpleNamespace(interp_mode=2, lock_aspect=False),
+        transform_ctrl=SimpleNamespace(interp_mode=2, lock_aspect=False, distort=False),
     )
     canvas.set_shape_settings = lambda settings: captured.setdefault("shapes", settings)
     canvas.set_text_settings = lambda settings: captured.setdefault("text", settings)
@@ -78,6 +78,7 @@ def test_workspace_routes_canonical_settings_to_the_controllers_that_consume_the
     workspace._on_tool_settings_changed("bucket", {"expansion": -2})
     workspace._on_tool_settings_changed("rect_select", {"feather": 9, "anti_alias": False})
     workspace._on_tool_settings_changed("transform", {"interp_mode": 1, "lock_aspect": True})
+    workspace._on_tool_settings_changed("transform", {"distort": True})
     workspace._on_tool_settings_changed("shapes", {"shape_type": "shape_star", "star_points": 7})
     workspace._on_tool_settings_changed("text", {"font_size": 48, "align": "center"})
 
@@ -86,6 +87,7 @@ def test_workspace_routes_canonical_settings_to_the_controllers_that_consume_the
     assert canvas._geom_select_settings["aa"] is False
     assert canvas.transform_ctrl.interp_mode == 1
     assert canvas.transform_ctrl.lock_aspect is True
+    assert canvas.transform_ctrl.distort is True, "chave ausente não pode resetar as outras"
     assert captured["shapes"]["shape_type"] == "shape_star"
     assert captured["shapes"]["star_points"] == 7
     assert captured["text"]["font_size"] == 48 and captured["text"]["align"] == "center"
@@ -106,6 +108,9 @@ def test_core_option_widgets_emit_canonical_values():
     assert transform_events[-1]["lock_aspect"] is True
     transform.chk_bicubic.setChecked(False)
     assert transform_events[-1]["interp_mode"] == 1
+    assert transform_events[-1]["distort"] is False
+    transform.combo_mode.setCurrentIndex(2)
+    assert transform_events[-1]["distort"] is True and transform_events[-1]["lock_aspect"] is False
 
 
 def test_brush_panel_forwards_wand_transform_and_active_selection_settings():

@@ -78,8 +78,11 @@ def pytest_unconfigure(config):
         pass
     try:
         from PySide6 import QtWidgets
-        QtWidgets.QApplication.closeAllWindows()
-        QtWidgets.QApplication.processEvents()
+        # Sem QApplication (rodando só testes puros) o Qt imprime
+        # "Must construct a QGuiApplication first." -- não há janela a fechar.
+        if QtWidgets.QApplication.instance() is not None:
+            QtWidgets.QApplication.closeAllWindows()
+            QtWidgets.QApplication.processEvents()
     except Exception:
         pass
     try:

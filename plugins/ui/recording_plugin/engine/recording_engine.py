@@ -14,72 +14,13 @@ import os
 import shutil
 import tempfile
 import logging
-from typing import Optional
+from typing import Callable, Optional
 
 from PySide6 import QtCore, QtGui
 
+from .frame_save_task import FrameSaveTask
+
 logger = logging.getLogger(__name__)
-
-
-class FrameSaveTask(QtCore.QRunnable):
-    """Tarefa assíncrona de escrita de imagem para não engasgar o traçado da caneta."""
-
-    def __init__(
-        self,
-        raw_bytes: bytes,
-        width: int,
-        height: int,
-        target_w: int,
-        target_h: int,
-        output_path: str,
-        watermark: bool = False,
-        guides_data: Optional[dict] = None,
-    ):
-        super().__init__()
-        self.raw_bytes = raw_bytes
-        self.width, self.height = width, height
-        self.target_w, self.target_h = target_w, target_h
-        self.output_path = output_path
-        self.watermark = watermark
-        self.guides_data = guides_data
-
-    def run(self) -> None:
-        try:
-            img = QtGui.QImage(self.raw_bytes, self.width, self.height, self.width * 4, QtGui.QImage.Format.Format_RGBA8888)
-            if img.isNull():
-                return
-
-            # Renderiza as guias ativas se solicitado (antes de redimensionar ou marca d'água)
-            if self.guides_data:
-                try:
-                    from plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import GeometryOverlayRenderer
-                    p_guides = QtGui.QPainter(img)
-                    p_guides.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
-                    sym, guide = self.guides_data.get("sym"), self.guides_data.get("guide")
-                    if sym:
-                        GeometryOverlayRenderer.render_symmetry(p_guides, sym, 1.0)
-                    if guide:
-                        GeometryOverlayRenderer.render_guides(p_guides, guide, 1.0)
-                    p_guides.end()
-                except Exception as e:
-                    logger.debug("[TimelapseEngine] Falha ao renderizar guias no frame: %s", e)
-
-            # Redimensiona se resolução alvo for diferente e válida
-            if self.target_w > 0 and self.target_h > 0 and (self.target_w != self.width or self.target_h != self.height):
-                img = img.scaled(
-                    self.target_w, self.target_h,
-                    QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                    QtCore.Qt.TransformationMode.SmoothTransformation
-                )
-
-            # Aplica marca d'água no canto inferior direito se solicitado
-            if self.watermark:
-                TimelapseRecordingEngine.apply_watermark(img)
-
-            # Salva JPEG com compressão otimizada
-            img.save(self.output_path, "JPEG", 90)
-        except Exception as e:
-            logger.error("[TimelapseEngine] Falha ao salvar frame %s: %s", self.output_path, e)
 
 
 class TimelapseRecordingEngine(QtCore.QObject):
@@ -88,6 +29,12 @@ class TimelapseRecordingEngine(QtCore.QObject):
     state_changed = QtCore.Signal(bool, bool)  # (is_recording, is_paused)
     stats_updated = QtCore.Signal(int, float, float)  # (frames, size_mb, duration_secs)
     frame_captured = QtCore.Signal(int)  # frame_count
+
+    _default_guides_renderer: Optional[Callable] = None
+
+    @classmethod
+    def set_default_guides_renderer(cls, renderer: Optional[Callable]) -> None:
+        cls._default_guides_renderer = renderer
 
     def __init__(self, parent: Optional[QtCore.QObject] = None):
         super().__init__(parent)
@@ -101,6 +48,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.add_watermark: bool = True
         self.include_guides: bool = False
         self.fps: int = 30
+        self._guides_renderer: Optional[Callable] = None
 
         self._connected_canvas = None
         self._thread_pool = QtCore.QThreadPool.globalInstance()
@@ -118,6 +66,10 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.stroke_debounce_timer.setSingleShot(True)
         self.stroke_debounce_timer.setInterval(50)
         self.stroke_debounce_timer.timeout.connect(self._execute_debounced_capture)
+
+    def set_guides_renderer(self, renderer: Optional[Callable]) -> None:
+        """Configura o renderizador de guias injetado (ex: WorkspaceService)."""
+        self._guides_renderer = renderer
 
     def attach_canvas(self, canvas: QtCore.QObject) -> None:
         """Conecta o sinal strokeFinished do canvas ativo para captura automática."""
@@ -401,7 +353,28 @@ class TimelapseRecordingEngine(QtCore.QObject):
         frame_name = f"frame_{self.frame_count:06d}.jpg"
         out_path = os.path.join(self.temp_dir, frame_name)
 
-        task = FrameSaveTask(raw_bytes, cw, ch, tw, th, out_path, watermark=self.add_watermark, guides_data=guides_data)
+        guides_renderer = self._guides_renderer or self._default_guides_renderer
+        if guides_renderer is None and guides_data:
+            try:
+                from ui.core.plugins.registry import ServiceRegistry
+                from ui.core.plugins.workspace_contract import WorkspaceService
+                ws = ServiceRegistry.instance().get(WorkspaceService)
+                if ws and hasattr(ws, "render_geometry_overlay"):
+                    guides_renderer = ws.render_geometry_overlay
+            except Exception:
+                pass
+
+        task = FrameSaveTask(
+            raw_bytes,
+            cw,
+            ch,
+            tw,
+            th,
+            out_path,
+            watermark=self.add_watermark,
+            guides_data=guides_data,
+            guides_renderer=guides_renderer,
+        )
         self._thread_pool.start(task)
 
         self.frame_captured.emit(self.frame_count)

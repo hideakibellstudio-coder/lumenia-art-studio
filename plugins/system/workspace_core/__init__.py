@@ -126,3 +126,21 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
     def workspace_container(self):
         """Referência read-only ao WorkspaceContainer."""
         return self._container
+
+    def render_geometry_overlay(
+        self,
+        painter,
+        sym_data: dict | None = None,
+        guide_data: dict | None = None,
+        zoom: float = 1.0,
+    ) -> None:
+        """Renderiza eixos de simetria e guias de perspectiva sobre um QPainter externo."""
+        try:
+            from .workspace.canvas.renderers.geometry_overlay_renderer import GeometryOverlayRenderer
+            if sym_data:
+                GeometryOverlayRenderer.render_symmetry(painter, sym_data, zoom)
+            if guide_data:
+                GeometryOverlayRenderer.render_guides(painter, guide_data, zoom)
+        except Exception as e:
+            logger.debug("[WorkspaceCore] Falha na renderização de overlays geométricos: %s", e)
+

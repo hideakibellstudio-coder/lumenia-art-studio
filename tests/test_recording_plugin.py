@@ -383,19 +383,39 @@ def test_recording_include_guides_option(qapp, tmp_path):
     files = os.listdir(panel.engine.temp_dir)
     assert "frame_000001.jpg" in files
 
-    # Valida execução direta do FrameSaveTask com guias
+    # Valida execução direta do FrameSaveTask com guias e callback injetado
+    called_render = []
+    def dummy_renderer(painter, sym, guide, zoom=1.0):
+        called_render.append((sym, guide))
+
     out_file = str(tmp_path / "frame_with_guides.jpg")
     raw = b"\xff\xff\xff\xff" * (400 * 300)
     guides_data = {
         "sym": canvas.geometry_ctrl.sym_state,
         "guide": canvas.geometry_ctrl.guide_state,
     }
-    task = FrameSaveTask(raw, 400, 300, 400, 300, out_file, guides_data=guides_data)
+    task = FrameSaveTask(raw, 400, 300, 400, 300, out_file, guides_data=guides_data, guides_renderer=dummy_renderer)
     task.run()
     assert os.path.exists(out_file)
+    assert len(called_render) == 1
+    assert called_render[0][0]["mode"] == "mirror"
 
     panel.engine.discard_recording()
     panel.close()
 
 
-
+def test_recording_zero_cross_plugin_imports():
+    """Garante conformidade estrita com a Lei Canônica de Zero Cross-Plugin Imports."""
+    import ast
+    import pathlib
+    base_dir = pathlib.Path(__file__).parent.parent / "plugins" / "ui" / "recording_plugin"
+    for py_file in base_dir.rglob("*.py"):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                if node.module and (node.module.startswith("plugins.system") or (node.module.startswith("plugins.") and "recording_plugin" not in node.module)):
+                    assert False, f"Cross-Plugin Import em {py_file}: {node.module}"
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name.startswith("plugins.system") or (alias.name.startswith("plugins.") and "recording_plugin" not in alias.name):
+                        assert False, f"Cross-Plugin Import em {py_file}: {alias.name}"

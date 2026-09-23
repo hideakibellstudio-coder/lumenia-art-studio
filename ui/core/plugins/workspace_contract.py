@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
+    from PySide6.QtGui import QPainter
 
 
 class WorkspaceService(ABC):
@@ -79,3 +80,20 @@ class WorkspaceService(ABC):
         como connect_brush_dock() e connect_properties_dock().
         """
         ...
+
+    # ── Renderização Compartilhada de Overlays ────────────────────────────
+
+    def render_geometry_overlay(
+        self,
+        painter: "QPainter",
+        sym_data: dict | None = None,
+        guide_data: dict | None = None,
+        zoom: float = 1.0,
+    ) -> None:
+        """
+        Renderiza eixos de simetria e guias de perspectiva sobre um QPainter externo.
+        Permite que plugins clientes (como o Timelapse) renderizem overlays sem
+        acoplamento estático a módulos internos do workspace_core.
+        """
+        pass
+

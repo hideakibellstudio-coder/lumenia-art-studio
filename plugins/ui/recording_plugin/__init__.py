@@ -47,6 +47,10 @@ class RecordingPlugin(BasePlugin):
         canvas_widget = getattr(ws, "canvas", None)
         self._panel = RecordingPanel(canvas=canvas_widget)
 
+        # Injeta o renderizador de guias do workspace para desacoplamento total
+        if hasattr(ws, "render_geometry_overlay"):
+            self._panel.engine.set_guides_renderer(ws.render_geometry_overlay)
+
         ws.add_panel(
             panel_id="recording",
             title="Timelapse",

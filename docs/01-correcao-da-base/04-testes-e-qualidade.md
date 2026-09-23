@@ -1,6 +1,8 @@
 # 🧪 Suíte de Testes Automatizados e Qualidade
 
-O Lumenia possui uma malha rigorosa de testes automatizados com **647 testes unitários e de integração** (mais 10 subtests parametrizados), cobrindo todas as camadas críticas do sistema.
+A contagem de testes muda a cada sessão; a fonte é o próprio pytest:
+`python -m pytest --collect-only -q`. (Este documento dizia "647"; em
+2026-09-22 eram 762.)
 
 ---
 
@@ -10,7 +12,9 @@ O Lumenia possui uma malha rigorosa de testes automatizados com **647 testes uni
 ```powershell
 python -m pytest
 ```
-Tempo médio de execução: ~3m30s para os 647 testes (209.45s no último run completo, com rebuild nativo).
+Tempo da suíte completa em 2026-09-22: ~110 s no Windows de desenvolvimento
+(antes ~369 s; a queda veio de `tests/conftest.py` descartar janelas órfãs
+entre módulos — `test_theme_system.py` sozinho levava ~220 s).
 
 ### Execução de Suítes Segmentadas:
 
@@ -66,12 +70,24 @@ No ambiente Windows/Qt, vazamentos clássicos decorrem de acúmulo de **GDI Obje
 | Recurso Monitorado | Critério de Aprovação | Justificativa Técnica |
 | :--- | :--- | :--- |
 | **GDI Objects** (`GetGuiResources`) | **$\Delta \text{GDI} == 0$** (Tolerância Zero) | Vazamentos de `QPainter`, `QPixmap`, `HDC` causam travamento catastrófico no Windows. Devem estabilizar imediatamente após carregar a UI. |
-| **OS Handles** (`GetProcessHandleCount`) | **$\Delta \text{Handles} \le 5$** | Protege contra vazamento de threads, pipes ou eventos de sincronização. |
-| **Memória Privada (Platô Estável)** | **$\text{Drift} \le 0.05 \text{ MB} / 100 \text{ ciclos}$** | Após a saturação do anel de Undo e do cache de tiles (fase de warmup), a taxa de alocação residual deve ser estatisticamente nula. |
+| **OS Handles** (`GetProcessHandleCount`) | **crescimento $\le 5$** (queda não reprova) | Protege contra vazamento de threads, pipes ou eventos de sincronização. |
+| **Memória Privada (Platô Estável)** | **Drift $\le 0.05$ MB/100 ciclos OU crescimento não significativo** (limite inferior do IC 95% da inclinação $\le 0$) | Com a aplicação inteira no ar, o alocador oscila ±1–3 MB entre amostras; o teto sozinho reprovaria ruído. Vazamento = inclinação acima do teto E estatisticamente positiva. (Revisado em 2026-09-22.) |
+
+### 🧭 3.0 Qual script mede o quê (2026-09-22)
+
+| Script | O que exercita | Serve para |
+|---|---|---|
+| `scripts/soak_full_session.py` | **MainWindow real** (offscreen) com plugins; traço + repaint do canvas, desfazer/refazer, criar/remover camadas pelo `LocalLayerManager`, salvar `.lmn`, abrir/fechar um 2º documento (MDI). Padrão: 3000 ciclos, aquecimento 1800. | **O gate de sessão longa.** |
+| `scripts/run_soak_test.py` | Só o caminho do pincel nativo, **sem nenhum widget**, 1 documento, desfazer limitado a 30 passos. | Smoke test rápido do motor. Não prova ausência de vazamento na aplicação: o platô é garantido pelo anel de desfazer e GDI = 0 é trivial sem janelas. |
+
+Medição de referência (2026-09-22, cenário completo, 2400 ciclos): a memória
+privada sobe devagar até ~1800 ciclos (caches enchendo, curva que achata) e
+fica plana depois (+0,05 ± 0,06 MB/100 ciclos entre 1800 e 2400). Handles e GDI
+estáveis. Por isso o aquecimento padrão é 1800.
 
 ### 🤖 3.1 Bateria Automatizada Headless (`run_soak_test.py`)
 
-Simula centenas de ciclos de pintura contínua, interpolação de pressão, variações de cor/tamanho/opacidade e ciclos de desfazer/refazer em modo offscreen:
+Simula centenas de ciclos de pintura contínua, interpolação de pressão, variações de cor/tamanho/opacidade e ciclos de desfazer/refazer em modo offscreen (smoke test do motor, ver 3.0):
 
 ```powershell
 # Execução padrão (350 ciclos, warmup de 180 ciclos, amostragem a cada 25):

@@ -18,7 +18,7 @@ O repositório foi totalmente saneado, reduzindo o tamanho de 3.4 GB para ~7 MB.
    - Imagens de depuração (`.png`, `.jpg`, `.raw`) geradas durante testes visuais devem ser descartadas imediatamente ou salvas em pastas temporárias do sistema (`%TEMP%`).
 3. **NUNCA grave logs de depuração dentro do repositório**:
    - Nenhuma pasta `logs/` ou arquivos `*.log` devem ser criados na raiz. Mensagens de depuração vão exclusivamente para `stdout`/`stderr` do processo de teste.
-4. **NUNCA compile ou gere artefatos dentro da árvore de fontes**:
+4. **NUNCA compile ou gere artefatos dentro da árvore de fontes** (o único `.pyd` permitido é o `aladyn_engine_native.*.pyd` que o build copia para a raiz; cópias em outras pastas carregam binários velhos em silêncio — achado em 2026-09-22):
    - A compilação é **Out-of-Tree**. Todos os arquivos intermediários (`.obj`, `.ilk`, `.pdb`, `.clcache`, `Lumenia.build`) pertencem à pasta externa `../build`.
    - Distribuições finais compiladas pertencem à pasta externa `../dist`.
 5. **NUNCA commite arquivos de despejo ou relatórios de crash**:
@@ -44,7 +44,7 @@ O ambiente é particionado em diretórios irmãos no nível superior:
 │   ├── assets/                          # Ícones e recursos visuais
 │   ├── docs/                            # Documentação técnica reconstruída
 │   ├── scripts/                         # Scripts oficiais de automação
-│   └── tests/                           # Suíte de 390 testes automatizados
+│   └── tests/                           # Suíte automatizada (conte com `python -m pytest --collect-only -q`)
 ├── ARCcC-Navigator/                     # Ferramenta de auditoria arquitetural
 ├── build/                               # 📁 ARTEFATOS DE COMPILAÇÃO INTERMEDIÁRIOS (fora do código!)
 │   ├── temp_native/                     # Objetos .obj, .lib, .pdb gerados pelo MSVC
@@ -62,12 +62,18 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 
 | Zona | Linhas de Código (LOC) | Ação Obrigatória para o Agente |
 |---|:---:|---|
-| 🟢 **Zona Verde** | $\le 250$ LOC | Ideal / Padrão esperado. |
-| 🟡 **Zona Amarela** | $251$ a $449$ LOC | Aceitável para módulos coesos. Exige atenção para não crescer. |
+| 🟢 **Zona Verde** | $\le 299$ LOC | Ideal / Padrão esperado. |
+| 🟡 **Zona Amarela** | $300$ a $449$ LOC | Aceitável para módulos coesos. Exige atenção para não crescer. |
 | 🔴 **Zona Vermelha** | $\ge 450$ LOC | **VIOLAÇÃO GRAVE DE ENTREGA**. O agente é obrigado a dividir o arquivo antes de responder ao usuário. |
 
-### Censo Atual:
-- **0 arquivos na Zona Vermelha**. Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
+> Fonte única dos números: `tests/arccc_governance_rules.py` (espelhada no perfil
+> `lumenia` do Navigator). Até 2026-09-22 esta tabela dizia "amarela a partir de
+> 251" enquanto o teste e o Navigator usavam 300; alinhada ao que é de fato
+> verificado.
+
+### Censo Atual (medido em 2026-09-22 com `navigator_verify --profile lumenia`):
+- **0 arquivos na Zona Vermelha e nenhuma exceção de LOC declarada.** Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
+- **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos.
 
 ---
 
@@ -170,6 +176,10 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
      achados com a anterior. Ela pode cair ou ficar igual; **se subir, você
      introduziu algo** — investigue antes de entregar. Se a mudança tocou arquivos
      indexados, rode `index` no terminal antes (nunca via MCP: bloqueia o servidor).
+   - **Números medidos, não adjetivos:** toda contagem escrita em doc, changelog ou
+     commit ("N testes", "0 arquivos na Zona Vermelha") vem do comando rodado
+     nesta sessão. Em 2026-09-21 o changelog afirmou "100% Zona Verde" e "zero
+     vazamentos" sem medir, e as duas frases estavam erradas.
    - Antes de ler qualquer achado, confirme que o índice não está vazio: contagem
      de símbolos plausível, `insufficient_info` em 0, sem `cxx_empty_extraction`.
      **Relatório limpo sobre índice vazio parece perfeito e já escondeu um motor

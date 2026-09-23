@@ -1,146 +1,132 @@
-# 🎯 Benchmark Competitivo de Produto & Rotas de Evolução
+# Benchmark competitivo e rotas de produto
 
-> **Documento Estratégico e Direcionador de Produto — Lumenia Art Studio**  
-> **Ramo Associado:** `feature/evolucao-produto`  
-> **Data de Emissão:** 2026-09-21  
-> **Status:** Ativo / Direcionador da Fase de Evolução de Produto  
-> **Relacionado:** [`01-visao-estrategica.md`](file:///z:/DESENVOLVIMENTO/+%20LUMENIA%20CLEAN/Lumenia/docs/05-visao-e-futuro/01-visao-estrategica.md), [`06-auditoria-orbital-decomposta.md`](file:///z:/DESENVOLVIMENTO/+%20LUMENIA%20CLEAN/Lumenia/docs/01-correcao-da-base/06-auditoria-orbital-decomposta.md)
-
----
-
-## 1. Contexto e Transição de Fase
-
-Com a conclusão da **Rodada 14** da metodologia de auditoria orbital, a base técnica do Lumenia atingiu solidez arquitetural comprovada:
-- **725 testes automatizados (100% de aprovação)** cobrindo a UI, plugins, ponte PyBind11 e núcleo físico C++.
-- **Zero Vazamentos de Recursos:** Gate de sessão longa aprovado ($\Delta\text{GDI} = 0$, $\Delta\text{Handles} = 0$, Drift de Memória Privada = $0.00\text{ MB} / 100\text{ ciclos}$).
-- **Governança ARCcC:** 100% dos arquivos Python e C++ na Zona Verde (< 450 linhas).
-
-Com a fundação saneada, o foco da branch **`feature/evolucao-produto`** passa a ser **o acabamento de produto e a competitividade da experiência do artista**. Em vez de dispersar esforço adicionando novas ferramentas do zero, o objetivo é **refinar o que já temos construído**, elevando a usabilidade e a fluidez ao patamar dos líderes de mercado.
+> **Documento direcionador da branch `feature/evolucao-produto`.**
+> Reescrito em 2026-09-22. A versão de 2026-09-21 listava 15 "lacunas" sem
+> conferir o código: 5 delas já existiam (total ou parcialmente) e 3 eram
+> piores que lacunas -- a interface **promete** e não faz nada. Esta versão
+> classifica cada item pelo que o código faz hoje, com evidência, e reordena o
+> trabalho por esse critério.
+> Relacionados: `01-visao-estrategica.md`, `../01-correcao-da-base/01-pendencias-atuais.md`.
 
 ---
 
-## 2. Matriz Comparativa: O Que Temos vs Mercado
+## 1. Regras deste documento
 
-Ao comparar o Lumenia lado a lado com os 4 gigantes de software criativo:
-- **Clip Studio Paint** (o padrão da indústria para lineart, arte-final e estabilização de traço)
-- **Procreate** (o padrão de fluidez, minimalismo e sensibilidade tátil)
-- **Krita** (a referência desktop para pintura profunda e arquitetura de camadas)
-- **Infinite Painter** (a referência em harmonias cromáticas e interface orgânica)
+1. **Nenhum item entra como "lacuna" sem busca no código.** Antes de escrever
+   "falta X", procure (Navigator `navigator_search`/`navigator_context`, ou
+   `grep`). Se o motor já tem o algoritmo, a tarefa é ligar a UI a ele -- nunca
+   reimplementar (Lei do Leito do Rio nº 2).
+2. **A interface não promete o que o motor não faz.** Item de menu, opção de
+   combo ou nome de painel sem comportamento real é defeito, não lacuna, e vem
+   antes de qualquer feature nova (Rota 0).
+3. **Um rio por vez**, do início ao fim, com teste de ponta a ponta.
+4. **Números medidos, não adjetivos.** "725 testes" e "100% Zona Verde" já
+   foram escritos aqui sem medição e estavam errados. Cite o comando e a data.
 
-Identifica-se que o Lumenia já possui o motor nativo e os recursos fundamentais, mas apresenta lacunas de acabamento distribuídas pelos **5 Grandes Rios**:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ RIO 1: TRAÇO & PINCEL (Procreate & Clip Studio)                                                 │
-│ • O que temos: Estabilizador WMA (0-98%), Catmull-Rom, Pressão/Tilt/Twist, SIMD Dab Renderer.  │
-│ • A Lacuna Competitiva:                                                                         │
-│   1. Curva Global de Calibração de Pressão (mão leve vs mão pesada do artista).                 │
-│   2. Tapering (Afilamento dinâmico de entrada e saída da ponta do traço).                       │
-│   3. Mistura Úmida (Color Pickup / Wet Blending na ponta do pincel).                            │
-├─────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ RIO 2: CÂMERA, VIEWPORT & AMBIENTE (Procreate & Photoshop)                                      │
-│ • O que temos: Zoom 5%-3200%, Pan subpixel, Rotação 360°, Flip H/V, Navigator bidirecional.     │
-│ • A Lacuna Competitiva:                                                                         │
-│   1. Modo Clean Canvas / Tela Imersiva (Tecla Tab para ocultar painéis e focar na arte).        │
-│   2. Duplo-clique para Fit-to-Screen rápido e reset instantâneo de rotação (0° snap).           │
-│   3. Feedback visual discreto de Undo/Redo no topo (HUD Toast: "Desfazer: Traço").              │
-├─────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ RIO 3: CAMADAS & PRODUTIVIDADE (Photoshop & Krita)                                              │
-│ • O que temos: 13 Blend modes, grupos (Pass Through), Alpha Lock, Clipping Mask, Opacidade.     │
-│ • A Lacuna Competitiva:                                                                         │
-│   1. Solo Mode de Camada (Alt + Clique no olho para isolar temporariamente uma camada).         │
-│   2. Renomeação In-Place direta na árvore com duplo-clique.                                     │
-│   3. Atalho de teclado canônico Ctrl+E para Merge Down rápido.                                  │
-├─────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ RIO 4: SELEÇÃO & TRANSFORMAÇÃO (Photoshop & Clip Studio)                                        │
-│ • O que temos: Retângulo, Elipse, Varinha Mágica, Polígono, Marching Ants 60fps, Free Transform │
-│ • A Lacuna Competitiva:                                                                         │
-│   1. Expansão/Contração de Seleção (Expand/Contract de 1-5px para fechar gaps sob lineart).     │
-│   2. Ajuste interativo de sensibilidade da Varinha Mágica (arraste de tolerância ao vivo).      │
-│   3. Modos Skew (Cisalhamento) e Perspectiva nas 8 alças da Transformação Livre (Ctrl+T).       │
-├─────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ RIO 5: COR & PALETAS (Infinite Painter & Clip Studio)                                           │
-│ • O que temos: Roda HSL, Eyedropper HUD 4x, Perfis ICC LittleCMS, Prova de Daltonismo.           │
-│ • A Lacuna Competitiva:                                                                         │
-│   1. Histórico Vivo de Cores Recentes (Swatches automáticos gravados ao soltar a caneta).       │
-│   2. Alternância instantânea de Cor Primária / Secundária via tecla "X".                        │
-│   3. Guias de Harmonias Cromáticas na Roda (Análogas, Complementares, Triádicas).               │
-└─────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+Legenda de status: **EXISTE** · **PARCIAL** · **PROMESSA FALSA** (a UI oferece,
+nada acontece) · **NÃO EXISTE** · **DECISÃO** (depende de escolha de produto).
 
 ---
 
-## 3. As 5 Rotas de Evolução Coesa
+## 2. O que a branch entregou até 2026-09-22 (fora das rotas originais)
 
-### Rota A — Rio 1: Traço & Sensibilidade ("The Brush Feel")
-*Foco: Fazer o artista sentir que o traço responde à mão de forma orgânica e imediata.*
-1. **Calibração Global de Curva de Pressão:**
-   - Diálogo com curva Bezier editável com 3 pontos interativos.
-   - Área de teste rápido de traço ao lado da curva.
-   - Presets de sensibilidade: Suave (mão leve), Normal, Firme (mão pesada).
-2. **Tapering (Afilamento de Ponta e Cauda):**
-   - Interpolação de raio no início e final do traço baseada em velocidade/comprimento.
-   - Essencial para lineart limpa, cabelos e arte-final de quadrinhos.
-3. **Descarte Instantâneo de Traço em Andamento:**
-   - Tecla `Esc` aborta o traço corrente sem registrar passo no histórico.
+Nenhum dos 15 itens do documento anterior foi feito; o trabalho foi para:
 
----
+| Entrega | Commits |
+|---|---|
+| Gravação de traços / timelapse (MP4 via ffmpeg do sistema, ou ZIP), marca d'água, 24/30/60 FPS, barra flutuante, guias na captura | `e2a325b` → `dd52e75` |
+| Cursores: chevron de precisão, anel tracejado da borracha, alto contraste "camaleão", inversão para destros | `3aeadd1`, `b77bb60` |
+| Pan com Espaço + clique | `334a709` |
+| Escala da interface 80–200% (reativa em barras e abas) | `1538b0f`, `f4cb66b` |
+| Tela cheia F11, menus Exibir/Janela, catálogo de atalhos | `50652a8` |
 
-### Rota B — Rio 2: Viewport, Câmera & Imersão ("The Studio Experience")
-*Foco: Eliminar qualquer distração entre o olhar do artista e o documento.*
-1. **Modo Clean Canvas (`Tab`):**
-   - Pressionar `Tab` recolhe suavemente as docas e barras laterais.
-   - Hover na borda da tela exibe temporariamente os controles.
-2. **Navegação Expressa:**
-   - Duplo clique na ferramenta de zoom/pan aciona *Fit View* (enquadrar documento).
-   - Duplo clique no slider de rotação ou botão dedicado restaura o ângulo para 0° com snap suave de 5°.
-3. **HUD Toast de Ações no Canvas:**
-   - Pequeno indicador semitransparente no topo central do viewport que surge por 1.2s ao acionar Undo/Redo:
-     - `Desfazer: Traço de Pincel`
-     - `Refazer: Preenchimento de Cor`
-     - `Espelhado Horizontalmente`
+Observação: o MP4 depende de `ffmpeg` no PATH do usuário -- o instalador não o
+traz, então para a maioria dos artistas a exportação cai em ZIP. Decidir se o
+instalador passa a incluir o ffmpeg (dezenas de MB; exige escolher um build
+de licença compatível, LGPL em vez de GPL) ou se a UI deve
+dizer claramente por que o MP4 não aparece.
 
 ---
 
-### Rota C — Rio 3: Workflow de Camadas ("The Studio Pipeline")
-*Foco: Reduzir os cliques e fricção no gerenciamento de arquivos complexos.*
-1. **Solo Mode (`Alt + Clique no Ícone do Olho`):**
-   - Isola a camada selecionada, ocultando todas as outras.
-   - Um segundo `Alt + Clique` restaura o estado de visibilidade anterior exato de todas as camadas.
-2. **Atalhos Canônicos de Camada:**
-   - `Ctrl+E`: Mescla a camada ativa na inferior (*Merge Down*) respeitando clipping masks e modo de mesclagem.
-   - `Ctrl+Shift+N`: Cria nova camada sem popup modal bloqueante.
-3. **Edição In-Place do Nome da Camada:**
-   - Duplo clique no texto do item da camada abre editor direto na linha (`QLineEdit` sem borda).
+## 3. Estado real de cada item (verificado no código em 2026-09-22)
+
+### Rio 1 — Traço e pincel
+| Item | Status | Evidência |
+|---|---|---|
+| Afunilamento (tapering) | **EXISTE** | `stroke_taper_enabled` (soltura) e `inkerParams.taperSmoothing` ("entrada/saída") em `BrushProfile.hpp`; checkbox no painel avançado. Falta só validar com artista se a entrada precisa de controle próprio. |
+| Curva de pressão | **PARCIAL** | `ui/core/screens/curve_window.py` edita curvas Bézier de tamanho/fluxo por pressão e velocidade, por pincel. Falta a **calibração global do artista** (mão leve/pesada) com área de teste. |
+| Mistura úmida / coleta de cor | **PARCIAL** | Existe em motores específicos (`smudge.color_pickup`, `marker.solvent_wetness`, motor aquarela). Não existe coleta de cor para o pincel comum. |
+| Esc descarta o traço em andamento | **NÃO EXISTE** | Esc só cancela a transformação (`input_router.py`). |
+| Prévia do pincel no painel | **CORRIGIDO em 2026-09-22** | A função nativa `render_stroke_preview` tinha sumido na decomposição do facade de 2026-08-25; o painel mostrava uma aproximação vetorial havia 4 semanas. Restaurada em `StrokePreviewRenderer.cpp`. |
+
+### Rio 2 — Câmera, viewport e ambiente
+| Item | Status | Evidência |
+|---|---|---|
+| Modo "canvas limpo" (Tab) | **NÃO EXISTE** | F11 (tela cheia) cobre parte; esconder painéis com uma tecla, não. |
+| Enquadrar / zerar rotação | **EXISTE** (via menu) | Exibir → Ajustar à Tela, Resetar Rotação. Duplo clique no canvas é usado para fechar o laço, então não serve de atalho aqui. |
+| Aviso rápido "Desfazer: Traço" (toast) | **NÃO EXISTE** | Os itens Desfazer/Refazer já ficam cinza quando não há o que fazer (desde 2026-09-20). |
+
+### Rio 3 — Camadas
+| Item | Status | Evidência |
+|---|---|---|
+| Solo (Alt+clique no olho) | **NÃO EXISTE** | — |
+| Renomear na própria linha | **EXISTE** | Duplo clique no nome abre um campo sobre a linha (`panel_rename_popup.py`). |
+| Nova camada sem diálogo | **EXISTE** | `Ctrl+Shift+N` → `create_new_layer`, sem janela. |
+| Mesclar abaixo em `Ctrl+E` | **DECISÃO** | Hoje `Ctrl+E` = Exportar e mesclar abaixo = `Ctrl+Shift+E`. Photoshop e Krita usam `Ctrl+E` para mesclar abaixo. Trocar ajuda quem vem deles e muda o que já está no catálogo de atalhos. |
+
+### Rio 4 — Seleção e transformação
+| Item | Status | Evidência |
+|---|---|---|
+| Expandir / Contrair / Suavizar seleção | **PROMESSA FALSA** | Seleção → Modificar abre o diálogo, lê os pixels e só escreve "Seleção modificada" na barra de status (`main_window_menu_actions.open_modify_selection_dialog`). Nada muda. O motor já tem `SelectionEngine::applyFeather` e dilatação circular (usada pela varinha), mas nenhuma API "modificar seleção". |
+| Distorcer / perspectiva na Transformação | **PROMESSA FALSA** | O combo de modo oferece "Distorcer", mas o valor só vira `lock_aspect=False` -- igual a "Livre". `TransformEngine` só faz transformação afim (escala, rotação, espelho). |
+| Tolerância da varinha arrastando | **PARCIAL** | A tolerância existe como controle na barra de opções; ajustar arrastando sobre o canvas, não. |
+
+### Rio 5 — Cor
+| Item | Status | Evidência |
+|---|---|---|
+| Harmonias na roda | **PROMESSA FALSA** (no nome) | O painel se chama "Cores & Harmonias", mas não há lógica de harmonia no código. |
+| Trocar primária/secundária | **PARCIAL** | Clique no seletor sobreposto troca (`swap_colors`); a tecla `X` não existe. |
+| Cores recentes | **PARCIAL** | `RecentColorsWidget` guarda a cor quando ela é escolhida na roda; não registra sozinho ao pintar. |
 
 ---
 
-### Rota D — Rio 4: Seleção & Transformação de Alta Precisão
-*Foco: Ferramentas de edição e recorte profissionais para coloristas e ilustradores.*
-1. **Modificadores de Seleção (`Seleção -> Modificar`):**
-   - `Expandir Seleção (Expand)`: Adiciona de 1 a 10px ao contorno ativo (vital para preencher cores sob lineart sem frestas brancas).
-   - `Contrair Seleção (Contract)`: Reduz o contorno da seleção.
-   - `Suavizar Borda (Feather)`: Aplica difusão gaussiana nas bordas da máscara.
-2. **Distorção Livre e Cisalhamento na Transformação (`Ctrl+T`):**
-   - Segurar `Ctrl` ao arrastar um vértice transforma em modo perspectiva livre.
-   - Segurar `Ctrl + Shift` aplica cisalhamento (*skew*).
+## 4. Ordem de trabalho
+
+### Rota 0 — Cumprir o que a interface já promete (antes de qualquer item novo)
+1. **Modificar seleção de verdade.** Expor no motor `modify_selection(modo, px)`:
+   expandir/contrair por transformada de distância (O(pixels), sem depender do
+   raio) e suavizar reaproveitando `SelectionEngine::applyFeather`. Ligar o
+   diálogo existente. Com desfazer. *Alternativa se não for agora:* esconder os
+   três itens do menu.
+2. **"Distorcer" na transformação.** Ou implementar transformação projetiva de
+   4 cantos no `TransformEngine` (amostragem já existe), ou tirar a opção do
+   combo até existir.
+3. **"Harmonias".** Ou implementar (complementar, análogas, tríade como marcas
+   na roda), ou renomear o painel para "Cores".
+
+### Rota 1 — Ganhos rápidos (pouco código, uso diário)
+Tecla `X` para trocar cores · `Esc` descarta o traço em andamento · cores
+recentes registradas ao pintar · Solo de camada · aviso rápido de
+Desfazer/Refazer · `Tab` para canvas limpo.
+
+### Rota 2 — Médio prazo
+Calibração global de pressão (reaproveitar `curve_window` + curva global
+aplicada antes das curvas por pincel) · tolerância da varinha arrastando.
+
+### Rota 3 — Motor
+Coleta de cor (mistura úmida) para o pincel comum · pipeline de cor 16-bit
+(`02-pipeline-de-cor-16bit.md`).
+
+### Pendência de distribuição
+ffmpeg no instalador (ver seção 2).
 
 ---
 
-### Rota E — Rio 5: Cores & Harmonias Cromáticas
-*Foco: Dar agilidade e inteligência cromática ao pintor digital.*
-1. **Alternância Rápida de Cores Primária / Secundária (`X`):**
-   - Tecla `X` inverte a cor primária de desenho com a cor secundária de suporte.
-2. **Barra de Cores Recentes Viva:**
-   - Fita dinâmica de 12 swatches no rodapé do painel de cores que acumula automaticamente as cores comitadas em traços e preenchimentos.
-3. **Harmonias Cromáticas Interativas:**
-   - Indicadores visuais na Roda de Cores para esquemas Complementares, Análogos e Triádicos em tempo real.
-
----
-
-## 4. Princípios de Execução na Branch `feature/evolucao-produto`
-
-1. **Um Rio por Vez:** O desenvolvimento deve focar em um único curso de rio do início ao fim, evitando dispersão.
-2. **Preservação de Governança ARCcC:** Nenhum arquivo pode ultrapassar 450 linhas (Zona Verde).
-3. **Zero Regressão:** Manter 100% dos 725 testes existentes verdes a cada incremento.
-4. **Testes Dedicados por Rota:** Cada nova funcionalidade de rota deve vir acompanhada de sua respectiva suíte de validação de ponta a ponta.
+## 5. Definição de pronto de cada item
+- Caminho completo UI → `EngineBackend` → motor, sem `hasattr` novo
+  (`tests/test_river_ratchets.py` barra guardas não aprovadas).
+- Algoritmo no C++ quando for processamento de pixels; Python só liga.
+- Teste que falha sem a mudança e passa com ela.
+- Chaves de tradução nos 4 idiomas (`tests/test_i18n_keys_exist.py`).
+- Nenhum arquivo ≥ 450 linhas; suíte completa verde; `navigator_verify` sem
+  aumento de achados.

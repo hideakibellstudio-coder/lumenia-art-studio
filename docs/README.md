@@ -42,6 +42,31 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-22 — Análise completa e correção dos achados (sessão Claude/Cowork)
+**Base:** `claude/analise-completa-projeto-2026-09-22.md` (Claude Project) —
+análise com medição ao vivo; o usuário pediu para corrigir tudo o que ela apontou.
+**Números medidos no fim da sessão** (Windows, Python 3.14): suíte completa
+verde (762 testes, 110–135 s), `navigator_verify` com 0 `confirmed_violation`,
+0 arquivos na Zona Vermelha e nenhuma exceção de LOC.
+**O que mudou (resumo; detalhe em `01-correcao-da-base/01-pendencias-atuais.md`):**
+- Motor: 3 C++ divididos (fim da Zona Vermelha); prévia nativa do pincel
+  restaurada (sumiu em 2026-08-25) com dois defeitos dormentes corrigidos.
+- Vazamentos reais achados pelo novo gate de sessão longa
+  (`scripts/soak_full_session.py`): cada documento aberto/fechado deixava
+  ~89 KB (lambda no `Document` + botão de aba não destruído) — corrigidos,
+  ~5 KB residuais por documento. Lambdas em sinais de singletons trocados por
+  métodos ligados.
+- Ponte: `WgpuRustBackend` removido; 5 varreduras `topLevelWidgets` →
+  `canvas_access.py`; guardas `hasattr` numa lista travada por teste.
+- Governança: catracas (`test_river_ratchets.py`, `test_i18n_keys_exist.py`,
+  `test_hardcoded_colors_ratchet.py`); 25 chaves de tradução; CI com 3.14;
+  testes renomeados por assunto (27 arquivos); suíte ≈3× mais rápida.
+- Navigator: 3 arquivos acima do próprio teto divididos (saída idêntica),
+  extrator `xl-contracts-v10`.
+- Documentação: `AGENTS.md` (faixa amarela alinhada a 300, censo medido, regra
+  de números medidos), benchmark de produto reescrito com o estado real de cada
+  item (5 já existiam; 3 eram promessas falsas da interface).
+
 ### 2026-09-21 — Criação da Branch `feature/evolucao-produto` e Benchmark Competitivo de Mercado
 **O que foi feito:** Transição formal da fase de correção da base para a fase de evolução de produto:
 1. *Criação da Branch:* branch local `feature/evolucao-produto` criada e ativada a partir de `main` (commit `a41b41c`).
@@ -52,7 +77,7 @@ tarefas.
 1. *Expansão Metodológica para 6 Camadas Concêntricas*: atualização da skill (`.agents/skills/lumenia-satellite-audit/SKILL.md`) e da documentação canônica (`docs/01-correcao-da-base/06-auditoria-orbital-decomposta.md`), incorporando formalmente a Órbita 5 (Ponte PyBind11 e os 11 Orquestradores de Borda) e a Órbita 6 (Núcleo Físico Primordial: `TileGrid`, `TileUndoManager`, `Compositor`, `DabRenderer` SIMD).
 2. *Formalização do Retorno Ascendente (The Complete Ascending River Loop)*: definição e verificação dos 5 Grandes Rios de propagação bottom-up: Rio 1 (Traço & Estabilizador), Rio 2 (Câmera & Viewport), Rio 3 (Camadas & Histórico), Rio 4 (Seleção & Transformação) e Rio 5 (Cor & Perfis Cromáticos).
 3. *Auditoria de Integridade da Fronteira PyBind11 e Orquestradores*: validação da segurança de memória de `BufferContract.hpp` (prevenção contra overflow aritmético via `checkedRasterBytes` e snapshots imutáveis `pixelSnapshot` sem vazamento de ponteiros crus) e garantia de invocação sistemática de `DocumentContext::touch()` e dirty tracking.
-4. *Suíte Dedicada de Integridade Primordial e Ascendente*: criação de `tests/test_satellite_round14_core_and_ascending_loop.py` cobrindo a descida e a subida dos 5 rios.
+4. *Suíte Dedicada de Integridade Primordial e Ascendente*: criação de `tests/test_native_core_invariants_and_rivers.py` cobrindo a descida e a subida dos 5 rios.
 5. *Governança Estrita ARCcC*: todos os arquivos criados ou modificados estritamente na Zona Verde (< 450 LOC). 100% de testes verdes na suíte global.
 
 ### 2026-09-21 — Sincronização Bidirecional Viewport/Navigator e Dirty Tracking de Camadas (Rodada 13)
@@ -61,14 +86,14 @@ tarefas.
 2. *Sincronização Bidirecional Viewport $\leftrightarrow$ Navigator*: os setters de `flip_x` e `flip_y` em `canvas_compat.py` agora emitem `cameraChanged.emit(...)` de forma idempotente quando alterados, garantindo que espelhamentos acionados externamente (menu principal, atalhos) atualizem imediatamente o viewport no painel do Navigator.
 3. *Completude de Rastreamento Dirty em Camadas (`aladyn_layer_mixin.py`)*: inclusão sistemática de chamadas a `self._mark_document_dirty(...)` em todas as mutações da pilha de camadas (`add_layer`, `remove_layer`, `duplicate_layer`, `merge_layer_down`, `flatten_group`, `add_group`, `add_filter_layer`, `reorder_layer`, `reorder_layers`, `set_layer_parents`, `set_layer_blend_mode`, `set_layer_opacity`, `set_layer_visibility`, `set_layer_lock`, `set_layer_alpha_lock`, `set_layer_clipping_mask`, `set_layer_name`, `set_filter_params`), fechando a paridade 1:1 com o `ctx.touch()` de `LayerStackOrchestrator` do C++.
 4. *Rastreamento Dirty em Geometria, Transações e Recursos*: adição de `_mark_document_dirty` em `resize`, `apply_prepared_geometry`, `commit_layer_transaction` (`aladyn.py`), `set_selection_mask_buffer` (`aladyn_selection_mixin.py`) e `set_canvas_resource` (`aladyn_resources_mixin.py`).
-5. *Suíte Modular e Governança ARCcC*: criação de `tests/test_satellite_round13_primordial.py` (7/7 testes verdes). Todos os arquivos modificados rigorosamente na Zona Verde (< 450 LOC). 100% de testes verdes na suíte global (670+ testes).
+5. *Suíte Modular e Governança ARCcC*: criação de `tests/test_dirty_tracking_layers_and_navigator_flip.py` (7/7 testes verdes). Todos os arquivos modificados rigorosamente na Zona Verde (< 450 LOC). 100% de testes verdes na suíte global (670+ testes).
 
 ### 2026-09-21 — Saneamento dos Botões de Flip do Navigator e Fronteira Primordial C++ (Rodada 12)
 **O que foi feito:** Décima segunda rodada de saneamento concêntrico aplicando `lumenia-satellite-audit`:
 1. *Alinhamento dos Botões de Flip no Navigator*: correção no `NavigatorControls` (`plugins/ui/navigator_plugin/panel.py`), onde `btn_fliph` estava indevidamente conectado a `flipVRequested.emit` e `btn_flipv` conectado a `flipHRequested.emit`. Alinhamento 1:1 restabelecido (`btn_fliph` $\to$ `flipHRequested`, `btn_flipv` $\to$ `flipVRequested`).
 2. *Guard Resiliente em MDI (`aladyn_mdi_mixin.py`)*: substituição de condicional inalcançável por `if hasattr(facade, "set_render_options"):` com suporte a fallbacks granulares (`set_low_latency`, `set_linear_gamma`, `set_deep_color`) tanto na inicialização quanto na re-ativação de documentos.
 3. *Rastreamento Dirty em Operações Nativas C++*: inclusão de chamadas a `self._mark_document_dirty(...)` em `clear_canvas`, `clear_layer`, `undo`, `redo` (`aladyn_layer_mixin.py`), e em `flood_fill`, `fill_area` e `end_stroke` (`aladyn_stroke_mixin.py`), garantindo sincronia perfeita do indicador de documento não-salvo.
-4. *Suíte Modular e Governança ARCcC*: criação de `tests/test_satellite_round12_primordial.py` (6/6 testes verdes). Todos os arquivos modificados abaixo do limite de 450 LOC (Zona Verde). 100% de testes verdes em toda a suíte do projeto.
+4. *Suíte Modular e Governança ARCcC*: criação de `tests/test_render_options_and_native_dirty_tracking.py` (6/6 testes verdes). Todos os arquivos modificados abaixo do limite de 450 LOC (Zona Verde). 100% de testes verdes em toda a suíte do projeto.
 
 ### 2026-09-21 — Saneamento Orbital na Fronteira Primordial C++: Coerção de Cores, Dirty Tracking e Paridade no Menu (Rodada 11)
 **O que foi feito:** Descida orbital até a fronteira primordial de transição Python $\leftrightarrow$ C++ (`PaintEngineFacade` / `aladyn_engine_native` / bindings PyBind11 / `TileGrid`), integrando a metodologia `lumenia-satellite-audit`, "O Curso do Rio" e ARCcC-Navigator. Saneadas 5 inconsistências fundamentais de borda:
@@ -76,7 +101,7 @@ tarefas.
 2. *Rastreamento Canônico de Dirty do Documento (`_mark_document_dirty`)*: adicionada notificação de alteração de documento nas mutações nativas de raster (`fill_selection_on_active_layer`, `delete_selection_on_active_layer`, `commit_transform`, `flip_active_layer`, `rotate_active_layer_90` e `paste_rgba_buffer_on_active_layer`), garantindo que o asterisco de aba (`*`) e autosave/recovery reflitam alterações visuais.
 3. *Simetria de Sinais de Traço no Menu (`MainWindowMenuActionsMixin`)*: criado helper unificado `_emit_stroke_wrap(action)` envelopando preenchimento (`fill_active_selection_or_canvas`), corte (`cut_selection_or_layer_to_clipboard`), colagem (`paste_clipboard`) e limpeza (`clear_active_layer`) no par balanceado `strokeStarted.emit()` e `try ... finally: strokeFinished.emit()`, garantindo sincronização instantânea das miniaturas das camadas e do navegador (`_on_stroke_finished_sync_previews`), além da atualização dos estados de Undo/Redo.
 4. *Resolução Canônica de Cor no Menu*: `fill_active_selection_or_canvas` agora prioriza a cor ativa selecionada na interface (`canvas_widget.active_color`), eliminando preenchimentos com cor desatualizada.
-5. *Governança e Poda de Resíduos de IA*: eliminação de blocos `if True:` órfãos em `main_window_menu_actions.py`, mantendo o arquivo em 418 LOC (Zona Verde < 450). Nova suíte modular `tests/test_engine_boundary_round11.py` (4/4 testes verdes, 263 LOC). 100% de testes verdes em toda a suíte global (670+ testes). Commit atômico.
+5. *Governança e Poda de Resíduos de IA*: eliminação de blocos `if True:` órfãos em `main_window_menu_actions.py`, mantendo o arquivo em 418 LOC (Zona Verde < 450). Nova suíte modular `tests/test_engine_boundary_color_and_signals.py` (4/4 testes verdes, 263 LOC). 100% de testes verdes em toda a suíte global (670+ testes). Commit atômico.
 
 ### 2026-09-21 — Saneamento e Auditoria Orbital Concêntrica dos Subsistemas Satélites (Rodadas 9 e 10)
 **O que foi feito:** Aplicação da nova metodologia e skill `lumenia-satellite-audit` (Concentric Satellite Peeling) integrada com "O Curso do Rio" e ARCcC-Navigator, rastreando órbitas concêntricas ao redor dos núcleos saneados até a base primordial. Identificadas e corrigidas 13 inconsistências críticas em UI, Menus, Ferramentas Satélites, Plugins e Viewport:
@@ -91,7 +116,7 @@ tarefas.
 9. *Guards em `AladynBackend`*: eliminação de branches `elif` inalcançáveis em `set_render_options` e `render`.
 10. *Eliminação de Shim Nível 2*: remoção definitiva de `plugins/ui/color_plugin/color_wheel.py` com import canônico conforme política Zero-Dirt.
 11. *Simetria de Sinais em Formas e Transformação*: `strokeStarted` disparado no início do arrasto e `strokeFinished` garantido no término.
-12. *Salvaguarda ARCcC Invariants*: divisão modular em `tests/test_satellite_subsystems_integrity.py` (11/11 testes verdes) e `tests/test_satellite_subsystems_round10.py` (6/6 testes verdes), mantendo todos os arquivos abaixo do teto de 450 LOC (Zona Verde).
+12. *Salvaguarda ARCcC Invariants*: divisão modular em `tests/test_tools_signal_symmetry_and_flip.py` (11/11 testes verdes) e `tests/test_tool_lifecycles_and_paper.py` (6/6 testes verdes), mantendo todos os arquivos abaixo do teto de 450 LOC (Zona Verde).
 13. *Documentação e Skill*: criação de `.agents/skills/lumenia-satellite-audit/SKILL.md` e `docs/01-correcao-da-base/06-auditoria-orbital-decomposta.md`.
 Homologado com 100% de testes verdes (670+ testes na suíte global).
 

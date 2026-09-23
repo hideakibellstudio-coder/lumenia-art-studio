@@ -189,8 +189,10 @@ não há contexto, e os métodos chamam sem guardar.
 o contrato verificado, metade do trabalho dos passos 2 e 4 desaparece sozinho.
 
 **Não encurte a estrada por encurtar.** A separação UI → contrato → adaptador →
-motor é o ARCcC funcionando: é ela que permite o `wgpu_rust.py` existir ao lado
-do `aladyn.py`. Colapsar camadas resolveria a sensação de distância e destruiria
+motor é o ARCcC funcionando: é ela que permitiria um segundo motor (outro
+arquivo ao lado do `aladyn.py`) sem tocar a UI. O antigo `wgpu_rust.py` foi
+removido em 2026-09-22 porque não havia motor Rust por trás dele — um adaptador
+nasce junto com o motor que ele adapta. Colapsar camadas resolveria a sensação de distância e destruiria
 a capacidade de trocar o motor — que é um dos pilares do projeto.
 
 **O alvo é a duplicação de declaração, não o número de saltos.**

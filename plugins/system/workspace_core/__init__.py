@@ -40,7 +40,7 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
             version="2.0.0",
             author="Lumenia Team",
             description=(
-                "Plugin de sistema que inicializa o WorkspaceContainer (canvas WGPU, "
+                "Plugin de sistema que inicializa o WorkspaceContainer (canvas, "
                 "docas dinâmicas e elementos flutuantes) e expõe o WorkspaceService."
             ),
             plugin_type=PluginType.SYSTEM,

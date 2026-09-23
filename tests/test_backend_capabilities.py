@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QApplication
 
 from ui.core.dialogs.render_settings_components import EnginePipelineGroup
 from ui.engine_backends.aladyn import AladynBackend
-from ui.engine_backends.wgpu_rust import WgpuRustBackend
 
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
@@ -53,12 +52,3 @@ def test_render_pipeline_controls_follow_backend_capabilities():
     assert enabled.switch_gam.isEnabled()
     assert enabled.switch_deep.isEnabled()
     assert enabled.combo_undo.isEnabled()
-
-
-def test_wgpu_backend_reports_only_the_legacy_features_it_can_execute():
-    backend = WgpuRustBackend()
-    capabilities = backend.get_capabilities()
-    assert not capabilities["layers"]
-    assert not capabilities["color_profiles"]
-    assert not capabilities["export_image"]
-    assert capabilities["document_pixel_format"] == "indisponível"

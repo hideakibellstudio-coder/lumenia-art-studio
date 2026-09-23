@@ -2,7 +2,7 @@
 ui.core.engine.backend — Contrato Canônico EngineBackend + PointerEvent
 ========================================================================
 Contrato abstrato universal (ARCcC Pilar 2.4 e Seção 15) que todo motor
-(Aladyn C++, Rust/WGPU, Software Canvas, etc.) implementa para integração
+(hoje: Aladyn C++; futuramente qualquer outro motor) implementa para integração
 com a interface gráfica do Lumenia.
 """
 

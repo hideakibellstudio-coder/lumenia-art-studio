@@ -5,8 +5,8 @@ Gerado a partir das assinaturas reais de EngineBackend (ui/core/engine/backend.p
 via AST -- nunca editar as assinaturas aqui a mao; regenerar a partir da fonte.
 
 Contexto: docs/01-correcao-da-base/02-simplificacao-da-ponte.md, item 3.6.
-EngineBackend continua sendo o contrato universal que AladynBackend e
-WgpuRustBackend implementam -- nada aqui remove ou substitui essa classe.
+EngineBackend continua sendo o contrato universal que AladynBackend
+implementa -- nada aqui remove ou substitui essa classe.
 O que estes Protocols oferecem e uma forma de depender apenas do papel que
 uma classe realmente usa (ex.: so LayerProtocol para testar logica de
 camadas), em vez de exigir um EngineBackend inteiro (152->178 metodos,

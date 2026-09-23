@@ -64,7 +64,7 @@ class WorkspaceService(ABC):
     @abstractmethod
     def canvas(self) -> "QWidget":
         """
-        Referência read-only ao CanvasWidget ativo (Surface WGPU).
+        Referência read-only ao CanvasWidget ativo.
         Plugins que precisam conectar sinais ao canvas devem usar esta
         propriedade em vez de acessar MainWindow diretamente.
         """

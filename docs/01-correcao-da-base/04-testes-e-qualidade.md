@@ -2,7 +2,7 @@
 
 A contagem de testes muda a cada sessão; a fonte é o próprio pytest:
 `python -m pytest --collect-only -q`. (Este documento dizia "647"; em
-2026-09-22 eram 762.)
+2026-09-22 eram 762; em 2026-09-23, 796.)
 
 ---
 

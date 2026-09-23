@@ -77,14 +77,14 @@ dizer claramente por que o MP4 não aparece.
 ### Rio 4 — Seleção e transformação
 | Item | Status | Evidência |
 |---|---|---|
-| Expandir / Contrair / Suavizar seleção | **PROMESSA FALSA** | Seleção → Modificar abre o diálogo, lê os pixels e só escreve "Seleção modificada" na barra de status (`main_window_menu_actions.open_modify_selection_dialog`). Nada muda. O motor já tem `SelectionEngine::applyFeather` e dilatação circular (usada pela varinha), mas nenhuma API "modificar seleção". |
-| Distorcer / perspectiva na Transformação | **PROMESSA FALSA** | O combo de modo oferece "Distorcer", mas o valor só vira `lock_aspect=False` -- igual a "Livre". `TransformEngine` só faz transformação afim (escala, rotação, espelho). |
+| Expandir / Contrair / Suavizar seleção | **EXISTE** (2026-09-23) | `engine/core/raster/SelectionMorphology.cpp`: expandir/contrair por transformada de distância euclidiana exata (custo não depende do raio, borda antisserrilhada, esmaecido preservado) e suavizar por desfoque gaussiano (sigma = raio/2). Borda da tela não contrai. Entra no Desfazer (transação estrutural). `tests/test_selection_modify.py`. |
+| Distorcer / perspectiva na Transformação | **EXISTE** (2026-09-23) | Modo "Distorcer" (painel e barra secundária): cada canto vai para onde é arrastado; lados movem dois cantos; o quad nunca dobra. Commit por homografia no motor (`TransformEngineDistort.cpp`), prévia por `QTransform.quadToQuad` -- o teste confere que os dois levam o mesmo ponto ao mesmo lugar. O laço de amostragem virou `transform/InverseMappedComposite.hpp`, compartilhado com o modo livre. `tests/test_transform_distort.py`. |
 | Tolerância da varinha arrastando | **PARCIAL** | A tolerância existe como controle na barra de opções; ajustar arrastando sobre o canvas, não. |
 
 ### Rio 5 — Cor
 | Item | Status | Evidência |
 |---|---|---|
-| Harmonias na roda | **PROMESSA FALSA** (no nome) | O painel se chama "Cores & Harmonias", mas não há lógica de harmonia no código. |
+| Harmonias na roda | **EXISTE** (2026-09-23) | Complementar, análogas, tríade, complementar dividida e quadrado: marcas no anel da roda + amostras clicáveis; a regra é lembrada entre sessões (`color.harmony`). `ui/core/widgets/color_picker/harmony.py`, `tests/test_color_harmony.py`. |
 | Trocar primária/secundária | **PARCIAL** | Clique no seletor sobreposto troca (`swap_colors`); a tecla `X` não existe. |
 | Cores recentes | **PARCIAL** | `RecentColorsWidget` guarda a cor quando ela é escolhida na roda; não registra sozinho ao pintar. |
 
@@ -92,17 +92,10 @@ dizer claramente por que o MP4 não aparece.
 
 ## 4. Ordem de trabalho
 
-### Rota 0 — Cumprir o que a interface já promete (antes de qualquer item novo)
-1. **Modificar seleção de verdade.** Expor no motor `modify_selection(modo, px)`:
-   expandir/contrair por transformada de distância (O(pixels), sem depender do
-   raio) e suavizar reaproveitando `SelectionEngine::applyFeather`. Ligar o
-   diálogo existente. Com desfazer. *Alternativa se não for agora:* esconder os
-   três itens do menu.
-2. **"Distorcer" na transformação.** Ou implementar transformação projetiva de
-   4 cantos no `TransformEngine` (amostragem já existe), ou tirar a opção do
-   combo até existir.
-3. **"Harmonias".** Ou implementar (complementar, análogas, tríade como marcas
-   na roda), ou renomear o painel para "Cores".
+### Rota 0 — Cumprir o que a interface já promete — **CONCLUÍDA em 2026-09-23**
+As três promessas falsas (Modificar seleção, Distorcer, Harmonias) viraram
+funções reais -- decisão do dono do produto: "deixar de prometer e desenvolver
+a função real". Ver as linhas da tabela acima.
 
 ### Rota 1 — Ganhos rápidos (pouco código, uso diário)
 Tecla `X` para trocar cores · `Esc` descarta o traço em andamento · cores
@@ -115,7 +108,8 @@ aplicada antes das curvas por pincel) · tolerância da varinha arrastando.
 
 ### Rota 3 — Motor
 Coleta de cor (mistura úmida) para o pincel comum · pipeline de cor 16-bit
-(`02-pipeline-de-cor-16bit.md`).
+(`02-pipeline-de-cor-16bit.md`) -- **adiado por decisão (2026-09-23)**: mexe no
+formato de tile, compositor, desfazer e arquivo; fica para depois da Rota 1.
 
 ### Pendência de distribuição
 ffmpeg no instalador (ver seção 2).

@@ -42,6 +42,19 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-23 — Decisões do usuário: promessas falsas viram funções reais
+**Base:** `claude/correcoes-e-decisoes-2026-09-22.md` (Claude Project), seção
+"Decisões" — o usuário escolheu desenvolver as funções em vez de escondê-las,
+seguir a recomendação sobre os `hasattr` e adiar o 16-bit.
+**Números medidos** (Windows, Python 3.14): suíte completa verde (796
+testes), `navigator_verify` com 0 `confirmed_violation`.
+**O que mudou:** Seleção → Modificar, Transformar → Distorcer e Harmonias
+implementados de ponta a ponta (motor C++ onde há pixels, UI só liga);
+plano B dos `hasattr` do grupo A passa a avisar no log; `backend_protocols.py`
+dividido antes de crescer. Detalhe em `01-correcao-da-base/01-pendencias-atuais.md`
+e `05-visao-e-futuro/03-benchmark-competitivo-e-rotas-de-produto.md` (Rota 0
+concluída).
+
 ### 2026-09-22 — Análise completa e correção dos achados (sessão Claude/Cowork)
 **Base:** `claude/analise-completa-projeto-2026-09-22.md` (Claude Project) —
 análise com medição ao vivo; o usuário pediu para corrigir tudo o que ela apontou.

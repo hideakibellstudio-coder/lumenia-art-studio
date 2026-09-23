@@ -11,6 +11,35 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
+## ✅ 2026-09-23 — Decisões do usuário aplicadas (sessão Claude/Cowork)
+
+Relatório: `claude/correcoes-e-decisoes-2026-09-22.md` (Claude Project).
+Medido no Windows: suíte completa verde (796 testes), `navigator_verify`
+com 0 `confirmed_violation`.
+
+- **Promessas falsas viraram funções reais** (decisão: "deixar de prometer e
+  desenvolver a função real"):
+  - Seleção → Modificar (Expandir, Contrair, Suavizar Borda) no motor
+    (`SelectionMorphology.cpp`), com Desfazer.
+  - Transformar → Distorcer (4 cantos, homografia no motor; prévia e commit
+    coincidem) no painel e na barra secundária.
+  - Harmonias na roda de cores (5 regras, marcas no anel, amostras clicáveis).
+- **Guardas `hasattr` do grupo A** (11, funções que já existem no binário):
+  o plano B continua, mas registra um aviso no log (`native_fallback.nativo_tem`)
+  em vez de ficar calado. Grupos B (traço raw vs legado, 3) e C (detector de
+  capacidades, 1) mantidos. Travados em `tests/test_river_ratchets.py`.
+- Anotações de tipo que o Navigator pedia (`layer`, `doc`).
+- `backend_protocols.py` (434, na parede dos 450) dividido: o papel
+  SelectionTransform foi para `backend_protocols_selection.py`.
+- **Adiado por decisão:** pipeline de cor 16-bit (mexe em tile, compositor,
+  desfazer e formato de arquivo).
+
+**Ainda com decisão do usuário:** `Ctrl+E`, ffmpeg no instalador, critério do
+gate de sessão longa, processos antigos do Antigravity, `.venv`, remoto do
+Navigator.
+
+---
+
 ## ✅ 2026-09-22 — Análise completa + correções (sessão Claude/Cowork)
 
 Relatório: `claude/analise-completa-projeto-2026-09-22.md` (Claude Project).
@@ -54,6 +83,7 @@ com 0 `confirmed_violation` e 0 arquivos na Zona Vermelha.
 promessas falsas da interface (Modificar Seleção, "Distorcer", "Harmonias"),
 lista final de guardas `hasattr`, faixa amarela 251 vs 300, `Ctrl+E`,
 ffmpeg no instalador, execução do gate de sessão longa com artista.
+*(Promessas falsas e guardas `hasattr` resolvidas em 2026-09-23, acima.)*
 
 ---
 

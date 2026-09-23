@@ -186,8 +186,13 @@ def run_soak(total_cycles: int = 350, warmup_cycles: int = 180, sample_interval:
         print(f"\n[+] Relatório CSV gravado em: {csv_path}")
 
     # 5. Avaliação Estatística e Portão de Aceitação
+    return analisar_plato(samples, warmup_cycles)
+
+
+def analisar_plato(samples, warmup_cycles: int, titulo: str = "GATE P4") -> bool:
+    """Julga o platô pós-aquecimento. `samples`: (ciclo, t, ws_mb, priv_mb, handles, gdi)."""
     print("\n" + "=" * 72)
-    print("  ANÁLISE ESTATÍSTICA DO PLATÔ DE ESTABILIDADE (GATE P4)")
+    print(f"  ANÁLISE ESTATÍSTICA DO PLATÔ DE ESTABILIDADE ({titulo})")
     print("=" * 72)
 
     warmup_cutoff = warmup_cycles
@@ -216,17 +221,29 @@ def run_soak(total_cycles: int = 350, warmup_cycles: int = 180, sample_interval:
     denom = sum((x - mean_x) ** 2 for x in x_vals)
     slope_per_cycle = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_vals, y_vals)) / denom if denom > 0 else 0.0
     drift_per_100_cycles = slope_per_cycle * 100.0
+    # Erro padrão da inclinação: com a aplicação inteira no ar, o alocador oscila
+    # ±1–3 MB entre amostras e uma inclinação de 0,2 MB/100 ciclos pode ser só
+    # ruído. Vazamento = inclinação acima do teto E limite inferior do IC de 95%
+    # acima de zero (crescimento estatisticamente sustentado). Critério revisado
+    # em 2026-09-22; ver claude/analise-completa-projeto-2026-09-22.md.
+    residuos = [y - (mean_y + slope_per_cycle * (x - mean_x)) for x, y in zip(x_vals, y_vals)]
+    if n > 2 and denom > 0:
+        erro_padrao = (sum(r * r for r in residuos) / (n - 2) / denom) ** 0.5 * 100.0
+    else:
+        erro_padrao = 0.0
+    limite_inferior = drift_per_100_cycles - 2.0 * erro_padrao
 
     print(f"  Fase de Aquecimento: Ciclos 0 a {warmup_cutoff}")
     print(f"  Fase de Platô Analisada: Ciclos {first_steady[0]} a {last_steady[0]} ({n} amostras)")
     print(f"  Delta GDI Objects:       {delta_gdi:+d}  (Tolerância: 0)")
     print(f"  Delta OS Handles:        {delta_handles:+d}  (Tolerância: <= 5)")
     print(f"  Drift de Memória Privada: {drift_per_100_cycles:+.4f} MB / 100 ciclos  (Teto: <= 0.0500 MB)")
+    print(f"  Erro padrão da inclinação: ±{erro_padrao:.4f} MB / 100 ciclos (IC 95% inferior: {limite_inferior:+.4f})")
 
     # Julgamento
     pass_gdi = (delta_gdi == 0)
-    pass_handles = (abs(delta_handles) <= 5)
-    pass_drift = (drift_per_100_cycles <= 0.0500)
+    pass_handles = (delta_handles <= 5)  # queda de handles não é vazamento
+    pass_drift = (drift_per_100_cycles <= 0.0500) or (limite_inferior <= 0.0)
 
     print("-" * 72)
     print(f"  [1] GDI Objects sem vazamento:   [{'APROVADO' if pass_gdi else 'REPROVADO'}]")

@@ -52,7 +52,7 @@ def test_roda_mostra_marca_e_amostras_e_lembra_a_regra():
     faixa: HarmonyStrip = roda.harmony
     faixa.set_rule(HarmonyRule.TRIADIC)
     assert ConfigManager.instance().get("color", "harmony") == "triadic"
-    assert _graus(roda.wheel._harmony_hues) == [120, 240]
+    assert _graus(roda.wheel.harmony_hues()) == [120, 240]
     visiveis = [b for b in faixa.amostras if not b.isHidden()]
     assert len(visiveis) == 2
 
@@ -61,8 +61,8 @@ def test_roda_mostra_marca_e_amostras_e_lembra_a_regra():
     visiveis[0].click()
     assert recebidas and round(recebidas[-1].hsvHueF() * 360) == 120
     # A nova cor vira a base: as parceiras giram junto.
-    assert _graus(roda.wheel._harmony_hues) == [240, 0]
+    assert _graus(roda.wheel.harmony_hues()) == [240, 0]
 
     faixa.set_rule(HarmonyRule.NONE)
-    assert roda.wheel._harmony_hues == []
+    assert roda.wheel.harmony_hues() == []
     assert all(b.isHidden() for b in faixa.amostras)

@@ -8,7 +8,12 @@ retos (retângulo 10x10 expandido 5 vira 20x20).
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
+
+if TYPE_CHECKING:
+    from ui.boundary.orchestrator.main_window import MainWindow
 
 native = pytest.importorskip("aladyn_engine_native")
 
@@ -104,7 +109,7 @@ def test_modificar_muda_a_geracao_do_documento():
     assert f.get_document_generation() > g
 
 
-def test_backend_marca_documento_sujo_so_quando_muda():
+def test_backend_marca_documento_sujo_so_quando_muda(monkeypatch):
     from PySide6.QtWidgets import QApplication
     from ui.engine_backends.aladyn import AladynBackend
 
@@ -113,7 +118,7 @@ def test_backend_marca_documento_sujo_so_quando_muda():
     backend.set_active_document_context("modificar-selecao", L, L)
     try:
         motivos: list[str] = []
-        backend._mark_document_dirty = motivos.append  # type: ignore[method-assign]
+        monkeypatch.setattr(backend, "_mark_document_dirty", motivos.append)
         assert backend.expand_selection(3) is False
         assert motivos == []
         backend.select_rect(10, 10, 10, 10)
@@ -188,7 +193,7 @@ def test_menu_sem_selecao_avisa_e_nao_abre_dialogo(janela_com_documento, monkeyp
     assert janela_com_documento.status_bar.currentMessage()
 
 
-def test_modificar_pela_interface_entra_no_desfazer(janela_com_documento):
+def test_modificar_pela_interface_entra_no_desfazer(janela_com_documento: "MainWindow"):
     from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
     from ui.core.engine.backend import EngineBackend
     from ui.core.engine.registry import EngineRegistry

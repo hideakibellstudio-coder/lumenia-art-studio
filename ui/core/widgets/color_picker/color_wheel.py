@@ -29,6 +29,9 @@ class WheelArea(QtWidgets.QWidget):
     def hsv(self) -> tuple[float, float, float]:
         return self._h, self._s, self._v
 
+    def harmony_hues(self) -> list[float]:
+        return list(self._harmony_hues)
+
     def set_harmony_hues(self, hues: list[float]) -> None:
         """Matizes das cores parceiras, marcados no anel além do marcador principal."""
         self._harmony_hues = list(hues)

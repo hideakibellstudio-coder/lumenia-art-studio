@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional, TYPE_CHECKING
 
+from .native_fallback import nativo_tem
+
 if TYPE_CHECKING:
     from aladyn_engine_native import BrushProfile, CanvasTexture
 
@@ -87,7 +89,7 @@ class AladynBrushMixin:
         apply_brush_preset_dict(self, self._facade, data)
 
     def render_brush_preview(self, width: int, height: int, brush_state: Optional[dict] = None) -> Optional[bytes]:
-        if not self._native or not hasattr(self._native, "render_stroke_preview"):
+        if not self._native or not nativo_tem(self._native, "render_stroke_preview", "o painel de pincel mostra uma prévia aproximada"):
             return None
         try:
             # get_brush_profile() devolve REFERÊNCIA ao perfil vivo do documento; a

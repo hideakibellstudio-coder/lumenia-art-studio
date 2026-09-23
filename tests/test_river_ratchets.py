@@ -27,21 +27,29 @@ ROOT = Path(__file__).resolve().parent.parent
 # (arquivo, metodo) -> motivo. Revisado em 2026-09-22 (ver
 # claude/analise-completa-projeto-2026-09-22.md no Project, seção hasattr).
 NATIVE_GUARDS_PERMITIDOS: dict[tuple[str, str], str] = {
+    # Grupo B: dois caminhos de traço medidos de propósito (test_stroke_characterization).
     ("aladyn_stroke_mixin.py", "begin_stroke_raw"): "fast-path raw vs facade legado (test_stroke_characterization)",
     ("aladyn_stroke_mixin.py", "update_stroke_raw"): "idem",
     ("aladyn_stroke_mixin.py", "end_stroke_raw"): "idem",
-    ("aladyn_stroke_mixin.py", "is_telemetry_enabled"): "telemetria opcional em builds antigos",
-    ("aladyn_stroke_mixin.py", "flood_fill"): "balde de tinta em builds antigos",
-    ("aladyn_geometry_mixin.py", "set_curvilinear_guide_config"): "snap curvilinear nativo (recente)",
-    ("aladyn_geometry_mixin.py", "get_curvilinear_candidates"): "idem",
-    ("aladyn_geometry_mixin.py", "snap_curvilinear"): "idem",
-    ("aladyn_geometry_mixin.py", "snap_perspective"): "idem",
-    ("aladyn.py", "get_display_pixel_buffer"): "buffer de exibição (LOD) em builds antigos",
-    ("aladyn.py", "get_best_lod_level"): "LOD em builds antigos",
-    ("aladyn.py", "refresh_display"): "PENDENTE DE DECISÃO (2026-09-22)",
-    ("aladyn_mdi_mixin.py", "set_render_options"): "PENDENTE DE DECISÃO (2026-09-22) -- único ponto, _push_render_options",
-    ("aladyn_brush_mixin.py", "render_stroke_preview"): "preview nativo do pincel (restaurado 2026-09-22)",
+    # Grupo C: uso correto de hasattr -- perguntar ao binário o que ele tem.
     ("aladyn_capabilities_mixin.py", "<dinâmico>"): "detector de capacidades: pergunta ao binário o que ele tem",
+}
+
+# Grupo A (decisão de 2026-09-23): o plano B continua, mas nunca em silêncio --
+# passa por ui/engine_backends/native_fallback.nativo_tem, que registra um
+# WARNING dizendo o que o usuário perde. Chamada nova precisa entrar aqui.
+GUARDAS_COM_AVISO: dict[tuple[str, str], str] = {
+    ("aladyn_stroke_mixin.py", "is_telemetry_enabled"): "telemetria por traço",
+    ("aladyn_stroke_mixin.py", "flood_fill"): "balde de tinta",
+    ("aladyn_geometry_mixin.py", "set_curvilinear_guide_config"): "snap curvilíneo",
+    ("aladyn_geometry_mixin.py", "get_curvilinear_candidates"): "snap curvilíneo",
+    ("aladyn_geometry_mixin.py", "snap_curvilinear"): "snap curvilíneo",
+    ("aladyn_geometry_mixin.py", "snap_perspective"): "snap de perspectiva",
+    ("aladyn.py", "get_display_pixel_buffer"): "buffer de exibição",
+    ("aladyn.py", "get_best_lod_level"): "LOD no zoom afastado",
+    ("aladyn.py", "refresh_display"): "atualização da tela",
+    ("aladyn_mdi_mixin.py", "set_render_options"): "opções de render (único ponto: _push_render_options)",
+    ("aladyn_brush_mixin.py", "render_stroke_preview"): "prévia nativa do pincel",
 }
 
 _NATIVE_RECEIVERS = {"self._facade", "facade", "self._native", "native", "f"}
@@ -78,6 +86,48 @@ def test_guardas_hasattr_no_motor_so_da_lista_aprovada():
 def test_lista_de_guardas_nao_tem_entradas_mortas():
     mortas = sorted(set(NATIVE_GUARDS_PERMITIDOS) - set(_guardas_nativas()))
     assert not mortas, f"Remova da lista (a guarda já não existe no código): {mortas}"
+
+
+def _guardas_com_aviso() -> Counter:
+    achados: Counter = Counter()
+    for path in (ROOT / "ui" / "engine_backends").glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "nativo_tem":
+                alvo = node.args[1] if len(node.args) > 1 else None
+                nome = alvo.value if isinstance(alvo, ast.Constant) else "<dinâmico>"
+                achados[(path.name, nome)] += 1
+                assert len(node.args) == 3 and isinstance(node.args[2], ast.Constant) and node.args[2].value.strip(), (
+                    f"{path.name}:{node.lineno}: nativo_tem precisa dizer a consequência para o usuário"
+                )
+    return achados
+
+
+def test_plano_b_com_aviso_so_da_lista_aprovada():
+    achados = _guardas_com_aviso()
+    novos = sorted(set(achados) - set(GUARDAS_COM_AVISO))
+    mortas = sorted(set(GUARDAS_COM_AVISO) - set(achados))
+    assert not novos, f"nativo_tem novo sem aprovação: {novos}. Se está no .pyi, chame direto."
+    assert not mortas, f"Remova de GUARDAS_COM_AVISO (já não existe no código): {mortas}"
+
+
+def test_plano_b_avisa_uma_vez_e_devolve_false(caplog):
+    from ui.engine_backends import native_fallback
+
+    class Velho:
+        def existe(self):
+            return 1
+
+    native_fallback._esquecer_avisos()
+    with caplog.at_level("WARNING", logger="ui.engine_backends.native"):
+        assert native_fallback.nativo_tem(Velho(), "existe", "x") is True
+        assert native_fallback.nativo_tem(Velho(), "sumiu", "a prévia fica aproximada") is False
+        assert native_fallback.nativo_tem(Velho(), "sumiu", "a prévia fica aproximada") is False
+    avisos = [r for r in caplog.records if "sumiu" in r.getMessage()]
+    assert len(avisos) == 1
+    assert "a prévia fica aproximada" in avisos[0].getMessage()
+    assert "build_ext" in avisos[0].getMessage()
+    native_fallback._esquecer_avisos()
 
 
 # findChild/findChildren DENTRO do próprio widget (ex.: um diálogo instalando

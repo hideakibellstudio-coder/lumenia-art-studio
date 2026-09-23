@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from .native_fallback import nativo_tem
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +35,7 @@ class AladynMdiMixin:
         options = getattr(self, "_render_options", None)
         if not facade or not options:
             return
-        if hasattr(facade, "set_render_options"):
+        if nativo_tem(facade, "set_render_options", "opções de render aplicadas uma a uma"):
             facade.set_render_options(**options)
             return
         for key, value in options.items():

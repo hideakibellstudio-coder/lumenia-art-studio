@@ -81,6 +81,16 @@ class WorkspaceService(ABC):
         """
         ...
 
+    def request_canvas_repaint(self) -> None:
+        """
+        Agenda o repaint do canvas ativo. Caminho canônico para painéis e para o
+        modelo de documento pedirem atualização visual sem varrer a árvore de
+        widgets (ver ui/core/plugins/canvas_access.py).
+        """
+        canvas = self.canvas
+        if canvas is not None:
+            canvas.update()
+
     # ── Renderização Compartilhada de Overlays ────────────────────────────
 
     def render_geometry_overlay(

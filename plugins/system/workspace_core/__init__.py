@@ -98,6 +98,13 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
         # Registra o serviço para que outros plugins possam consultar
         registry = self.context.service_registry
         registry.register(WorkspaceService, self)
+        # Se o container (e a janela) for destruído sem deactivate() -- fechamento
+        # da MainWindow, testes --, o registry não pode continuar entregando um
+        # serviço cujo canvas já não existe (canvas_access chamaria update() num
+        # objeto C++ deletado).
+        self._container.destroyed.connect(
+            lambda *_: registry.unregister(WorkspaceService, self)
+        )
         logger.info("[WorkspaceCore] WorkspaceService registrado no ServiceRegistry.")
 
     def deactivate(self) -> None:

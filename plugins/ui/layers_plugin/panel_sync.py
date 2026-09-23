@@ -7,7 +7,7 @@ Submódulo atômico do LayersPanel para comunicação com o EngineBackend.
 from __future__ import annotations
 
 import logging
-from PySide6.QtWidgets import QApplication
+from ui.core.plugins.canvas_access import request_canvas_repaint
 
 logger = logging.getLogger(__name__)
 
@@ -135,11 +135,7 @@ def sync_to_native_engine(panel, action: str, *args):
 
     # Repinta o CanvasWidget apenas para ações visuais (não para simples troca de seleção ou lock)
     if action not in ("select", "lock", "alpha_lock"):
-        for top_w in QApplication.topLevelWidgets():
-            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                top_w.workspace.canvas_widget.update()
-            elif hasattr(top_w, "canvas_widget"):
-                top_w.canvas_widget.update()
+        request_canvas_repaint()
 
 
 def refresh_layer_thumbnail(panel, uid: int):

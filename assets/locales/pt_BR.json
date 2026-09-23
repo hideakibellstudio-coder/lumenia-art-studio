@@ -657,7 +657,9 @@
     "shortcuts_applied": "Atalhos de teclado atualizados e aplicados.",
     "cursor_applied": "Preferências de cursor aplicadas.",
     "language_changed": "Idioma alterado para Português (Brasil).",
-    "theme_applied": "Tema '{name}' aplicado."
+    "theme_applied": "Tema '{name}' aplicado.",
+    "fullscreen_on": "Modo Tela Cheia ativado. Pressione F11 para sair.",
+    "fullscreen_off": "Modo normal restaurado."
   },
   "tool_options": {
     "sample_size": "Tamanho da Amostra",
@@ -827,9 +829,5 @@
     "inspector_title": "PARÂMETROS DO FILTRO",
     "inspector_desc": "Ajuste os parâmetros abaixo para criar a camada.",
     "create_adjustment_layer": "Criar Camada de Ajuste"
-  },
-  "status": {
-    "fullscreen_on": "Modo Tela Cheia ativado. Pressione F11 para sair.",
-    "fullscreen_off": "Modo normal restaurado."
   }
 }

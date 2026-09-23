@@ -657,7 +657,9 @@
     "shortcuts_applied": "ショートカット設定を更新しました。",
     "cursor_applied": "カーソル設定を適用しました。",
     "language_changed": "言語を日本語に変更しました。",
-    "theme_applied": "テーマ '{name}' を適用しました。"
+    "theme_applied": "テーマ '{name}' を適用しました。",
+    "fullscreen_on": "全画面表示モードが有効になりました。F11キーで終了します。",
+    "fullscreen_off": "通常モードに戻りました。"
   },
   "tool_options": {
     "sample_size": "サンプルサイズ",
@@ -827,9 +829,5 @@
     "inspector_title": "フィルターパラメータ",
     "inspector_desc": "以下のパラメータを調整して調整レイヤーを作成します。",
     "create_adjustment_layer": "調整レイヤーを作成"
-  },
-  "status": {
-    "fullscreen_on": "全画面表示モードが有効になりました。F11キーで終了します。",
-    "fullscreen_off": "通常モードに戻りました。"
   }
 }

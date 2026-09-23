@@ -657,7 +657,9 @@
     "shortcuts_applied": "Atajos de teclado actualizados y aplicados.",
     "cursor_applied": "Preferencias de cursor aplicadas.",
     "language_changed": "Idioma cambiado a Español.",
-    "theme_applied": "Tema '{name}' aplicado."
+    "theme_applied": "Tema '{name}' aplicado.",
+    "fullscreen_on": "Modo Pantalla Completa activado. Presione F11 para salir.",
+    "fullscreen_off": "Modo normal restaurado."
   },
   "tool_options": {
     "sample_size": "Tamaño de Muestra",
@@ -827,9 +829,5 @@
     "inspector_title": "PARÁMETROS DEL FILTRO",
     "inspector_desc": "Ajuste los parámetros a continuación para crear la capa.",
     "create_adjustment_layer": "Crear Capa de Ajuste"
-  },
-  "status": {
-    "fullscreen_on": "Modo Pantalla Completa activado. Presione F11 para salir.",
-    "fullscreen_off": "Modo normal restaurado."
   }
 }

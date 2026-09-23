@@ -657,7 +657,9 @@
     "shortcuts_applied": "Keyboard shortcuts updated and applied.",
     "cursor_applied": "Cursor preferences updated.",
     "language_changed": "Language changed to English (US).",
-    "theme_applied": "Theme '{name}' applied."
+    "theme_applied": "Theme '{name}' applied.",
+    "fullscreen_on": "Full Screen Mode activated. Press F11 to exit.",
+    "fullscreen_off": "Normal mode restored."
   },
   "tool_options": {
     "sample_size": "Sample Size",
@@ -827,9 +829,5 @@
     "inspector_title": "FILTER PARAMETERS",
     "inspector_desc": "Adjust the parameters below to create the layer.",
     "create_adjustment_layer": "Create Adjustment Layer"
-  },
-  "status": {
-    "fullscreen_on": "Full Screen Mode activated. Press F11 to exit.",
-    "fullscreen_off": "Normal mode restored."
   }
 }

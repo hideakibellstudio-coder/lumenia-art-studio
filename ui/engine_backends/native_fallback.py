@@ -16,7 +16,7 @@ from typing import Any
 
 logger = logging.getLogger("ui.engine_backends.native")
 
-DICA_RECOMPILAR = "Recompile o motor: python setup.py build_ext --inplace"
+DICA_RECOMPILAR = "Recompile o motor: python scripts/build_native.py --simd scalar"
 
 _avisados: set[str] = set()
 

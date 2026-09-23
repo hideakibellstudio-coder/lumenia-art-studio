@@ -126,7 +126,7 @@ def test_plano_b_avisa_uma_vez_e_devolve_false(caplog):
     avisos = [r for r in caplog.records if "sumiu" in r.getMessage()]
     assert len(avisos) == 1
     assert "a prévia fica aproximada" in avisos[0].getMessage()
-    assert "build_ext" in avisos[0].getMessage()
+    assert "build_native.py" in avisos[0].getMessage()
     native_fallback._esquecer_avisos()
 
 

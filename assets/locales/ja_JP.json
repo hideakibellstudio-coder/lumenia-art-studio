@@ -675,7 +675,10 @@
     "language_changed": "言語を日本語に変更しました。",
     "theme_applied": "テーマ '{name}' を適用しました。",
     "fullscreen_on": "全画面表示モードが有効になりました。F11キーで終了します。",
-    "fullscreen_off": "通常モードに戻りました。"
+    "fullscreen_off": "通常モードに戻りました。",
+    "no_selection_to_modify": "変更する選択範囲がありません。",
+    "selection_modified": "選択範囲を変更しました（{px} px）。",
+    "selection_modify_failed": "選択範囲を変更できませんでした。"
   },
   "tool_options": {
     "sample_size": "サンプルサイズ",
@@ -720,7 +723,8 @@
     "align_center": "中央揃え",
     "align_right": "右揃え",
     "size": "サイズ:",
-    "color": "色:"
+    "color": "色:",
+    "distort_tip": "各コーナーを自由にドラッグ（遠近）"
   },
   "workspace": {
     "no_document": "開いているドキュメントはありません",
@@ -858,5 +862,14 @@
     "150": "150% (大 / HiDPI)",
     "175": "175% (特大)",
     "200": "200% (ウルトラ HiDPI)"
+  },
+  "color": {
+    "harmony_label": "ハーモニー",
+    "harmony_none": "なし",
+    "harmony_complementary": "補色",
+    "harmony_analogous": "類似色",
+    "harmony_triadic": "トライアド",
+    "harmony_split_complementary": "分割補色",
+    "harmony_square": "スクエア"
   }
 }

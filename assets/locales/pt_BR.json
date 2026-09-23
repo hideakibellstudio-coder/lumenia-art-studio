@@ -675,7 +675,10 @@
     "language_changed": "Idioma alterado para Português (Brasil).",
     "theme_applied": "Tema '{name}' aplicado.",
     "fullscreen_on": "Modo Tela Cheia ativado. Pressione F11 para sair.",
-    "fullscreen_off": "Modo normal restaurado."
+    "fullscreen_off": "Modo normal restaurado.",
+    "no_selection_to_modify": "Não há seleção para modificar.",
+    "selection_modified": "Seleção modificada ({px} px).",
+    "selection_modify_failed": "Não foi possível modificar a seleção."
   },
   "tool_options": {
     "sample_size": "Tamanho da Amostra",
@@ -720,7 +723,8 @@
     "align_center": "Cen",
     "align_right": "Dir",
     "size": "Tam:",
-    "color": "Cor:"
+    "color": "Cor:",
+    "distort_tip": "Arraste cada canto livremente (perspectiva)"
   },
   "workspace": {
     "no_document": "Nenhum Documento Aberto",
@@ -858,5 +862,14 @@
     "150": "150% (Grande / HiDPI)",
     "175": "175% (Muito Grande)",
     "200": "200% (Ultra HiDPI)"
+  },
+  "color": {
+    "harmony_label": "Harmonia",
+    "harmony_none": "Nenhuma",
+    "harmony_complementary": "Complementar",
+    "harmony_analogous": "Análogas",
+    "harmony_triadic": "Tríade",
+    "harmony_split_complementary": "Complementar dividida",
+    "harmony_square": "Quadrado"
   }
 }

@@ -675,7 +675,10 @@
     "language_changed": "Idioma cambiado a Español.",
     "theme_applied": "Tema '{name}' aplicado.",
     "fullscreen_on": "Modo Pantalla Completa activado. Presione F11 para salir.",
-    "fullscreen_off": "Modo normal restaurado."
+    "fullscreen_off": "Modo normal restaurado.",
+    "no_selection_to_modify": "No hay selección para modificar.",
+    "selection_modified": "Selección modificada ({px} px).",
+    "selection_modify_failed": "No se pudo modificar la selección."
   },
   "tool_options": {
     "sample_size": "Tamaño de Muestra",
@@ -720,7 +723,8 @@
     "align_center": "Cen",
     "align_right": "Der",
     "size": "Tam:",
-    "color": "Color:"
+    "color": "Color:",
+    "distort_tip": "Arrastra cada esquina libremente (perspectiva)"
   },
   "workspace": {
     "no_document": "Ningún Documento Abierto",
@@ -858,5 +862,14 @@
     "150": "150% (Grande / HiDPI)",
     "175": "175% (Muy grande)",
     "200": "200% (Ultra HiDPI)"
+  },
+  "color": {
+    "harmony_label": "Armonía",
+    "harmony_none": "Ninguna",
+    "harmony_complementary": "Complementario",
+    "harmony_analogous": "Análogos",
+    "harmony_triadic": "Tríada",
+    "harmony_split_complementary": "Complementario dividido",
+    "harmony_square": "Cuadrado"
   }
 }

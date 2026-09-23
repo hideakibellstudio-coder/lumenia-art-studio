@@ -675,7 +675,10 @@
     "language_changed": "Language changed to English (US).",
     "theme_applied": "Theme '{name}' applied.",
     "fullscreen_on": "Full Screen Mode activated. Press F11 to exit.",
-    "fullscreen_off": "Normal mode restored."
+    "fullscreen_off": "Normal mode restored.",
+    "no_selection_to_modify": "There is no selection to modify.",
+    "selection_modified": "Selection modified ({px} px).",
+    "selection_modify_failed": "Could not modify the selection."
   },
   "tool_options": {
     "sample_size": "Sample Size",
@@ -720,7 +723,8 @@
     "align_center": "Center",
     "align_right": "Right",
     "size": "Size:",
-    "color": "Color:"
+    "color": "Color:",
+    "distort_tip": "Drag each corner freely (perspective)"
   },
   "workspace": {
     "no_document": "No Document Open",
@@ -858,5 +862,14 @@
     "150": "150% (Large / HiDPI)",
     "175": "175% (Extra Large)",
     "200": "200% (Ultra HiDPI)"
+  },
+  "color": {
+    "harmony_label": "Harmony",
+    "harmony_none": "None",
+    "harmony_complementary": "Complementary",
+    "harmony_analogous": "Analogous",
+    "harmony_triadic": "Triadic",
+    "harmony_split_complementary": "Split complementary",
+    "harmony_square": "Square"
   }
 }

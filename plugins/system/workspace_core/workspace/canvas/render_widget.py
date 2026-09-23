@@ -142,6 +142,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     def clear_selection(self): self.selection_ctrl.clear_selection()
     def select_all(self): self.selection_ctrl.select_all()
     def invert_selection(self): self.selection_ctrl.invert_selection()
+    def modify_selection(self, mode: str, radius_px: int) -> bool: return self.selection_ctrl.modify_selection(mode, radius_px)
 
     @property
     def active_color(self) -> QtGui.QColor:

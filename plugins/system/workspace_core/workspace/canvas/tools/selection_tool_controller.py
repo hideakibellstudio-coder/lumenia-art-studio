@@ -4,6 +4,7 @@ from typing import Optional, List
 from PySide6 import QtCore, QtWidgets, QtGui
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings
+from ui.core.document.history import layer_transaction
 
 class SelectionToolController:
     """Controlador de ferramentas de seleção e confinamento da máscara nativa C++."""
@@ -213,11 +214,32 @@ class SelectionToolController:
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "invert_selection"):
             backend.invert_selection()
+        self._sincronizar_formigas(backend)
+
+    @layer_transaction
+    def modify_selection(self, mode: str, radius_px: int) -> bool:
+        """Seleção -> Modificar: "expand", "contract" ou "feather" (raio em px).
+
+        Dentro de uma transação de documento: o motor grava a máscara antes e
+        depois, então Desfazer/Refazer voltam a seleção anterior.
+        """
+        backend = EngineRegistry.instance().get_backend()
+        operacoes = {
+            "expand": backend.expand_selection,
+            "contract": backend.contract_selection,
+            "feather": backend.feather_selection,
+        } if backend else {}
+        operacao = operacoes.get(mode)
+        ok = bool(operacao and operacao(int(radius_px)))
+        self._sincronizar_formigas(backend)
+        return ok
+
+    def _sincronizar_formigas(self, backend) -> None:
+        """Liga/desliga o marching ants conforme a seleção existe e repinta."""
         if backend and hasattr(backend, "has_selection") and backend.has_selection():
             if not self.selection_timer.isActive():
                 self.selection_timer.start()
-        else:
-            if self.selection_timer.isActive():
-                self.selection_timer.stop()
+        elif self.selection_timer.isActive():
+            self.selection_timer.stop()
         self.widget.update()
 

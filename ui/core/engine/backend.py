@@ -390,8 +390,3 @@ class EngineBackend(ABC):
     def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> PointerEvent:
         """Converte coordenadas de tela para o espaço do canvas."""
 
-    # ── Despacho de Comandos ─────────────────────────────────────────────
-
-    @abstractmethod
-    def dispatch(self, command: Any) -> None:
-        """Despacha um comando para o motor."""

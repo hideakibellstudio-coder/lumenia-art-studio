@@ -160,9 +160,6 @@
  "ui/core/plugins/lifecycle.py": {
   "foreign_private": 3
  },
- "ui/core/plugins/manager.py": {
-  "foreign_private": 2
- },
  "ui/core/plugins/package_installer.py": {
   "foreign_private": 1,
   "getattr_literal": 2

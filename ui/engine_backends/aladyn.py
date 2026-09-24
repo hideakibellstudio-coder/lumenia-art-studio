@@ -27,7 +27,7 @@ os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
 from PySide6.QtGui import QImage
 from ui.core.engine.backend import EngineBackend, PointerEvent
 
-from .aladyn_mdi_mixin import AladynMdiMixin
+from .aladyn_mdi_mixin import PLACEHOLDER_CONTEXT, AladynMdiMixin
 from .aladyn_selection_mixin import AladynSelectionMixin
 from .aladyn_transform_mixin import AladynTransformMixin
 from .aladyn_geometry_mixin import AladynGeometryMixin
@@ -79,7 +79,7 @@ class AladynBackend(
             import aladyn_engine_native
             self._native = aladyn_engine_native
             logger.info("[AladynBackend] Módulo nativo aladyn_engine_native carregado com sucesso.")
-            self.set_active_document_context("default_doc", self._width, self._height)
+            self.set_active_document_context(PLACEHOLDER_CONTEXT, self._width, self._height)
         except Exception as e:
             logger.info(
                 f"[AladynBackend] aladyn_engine_native indisponível "
@@ -117,9 +117,9 @@ class AladynBackend(
         try:
             self._width = max(1, canvas_w)
             self._height = max(1, canvas_h)
-            from ui.core.document.manager import DocumentManager
-            active_doc = DocumentManager.instance().active_document()
-            uid = active_doc.uid if active_doc else "default_doc"
+            # O contexto do documento ativo já foi escolhido pela troca de
+            # documento (DocumentViewSync); sem documento, fica o provisório.
+            uid = self._active_doc_uid or PLACEHOLDER_CONTEXT
             self.set_active_document_context(uid, self._width, self._height)
             logger.info(f"[AladynBackend] Contexto C++ inicializado para doc '{uid}' ({self._width}x{self._height}).")
         except Exception as e:
@@ -247,7 +247,3 @@ class AladynBackend(
     def clear_dirty_tiles(self) -> None:
         if self._facade:
             self._facade.clear_dirty_tiles()
-
-    def dispatch(self, command: Any) -> None:
-        from .aladyn_dispatch import dispatch
-        dispatch(self, command)

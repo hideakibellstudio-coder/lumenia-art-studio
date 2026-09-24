@@ -1,6 +1,6 @@
 # `ui/infrastructure/` — infraestrutura
 
-**Responsabilidade:** serviços técnicos sem regra de negócio: logging e a fachada antiga do motor.
+**Responsabilidade:** serviços técnicos sem regra de negócio (hoje, o logging). A fachada antiga do motor (`bridge_client`) saiu em 2026-09-24: o motor se alcança só pelo `EngineRegistry`.
 
 ## Porta de entrada
 

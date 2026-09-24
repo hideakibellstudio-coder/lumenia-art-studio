@@ -54,10 +54,13 @@ dependências medidas nas 62 pastas de código; CI verde.
    escalar padrão; o relatório mostrava sempre o motor padrão; o benchmark
    pintava 1000 carimbos na camada do usuário; o painel mostrava o estado do
    quadro anterior.)*
-6. **Segundo caminho até o motor**: `BridgeClient`
-   (`ui/infrastructure/bridge_client`) e os comandos em dataclass
-   (`ui/core/engine/commands.py` + `aladyn_dispatch.py`). O backend ainda
-   importa `ui.core.document` para marcar o documento modificado.
+6. ~~**Segundo caminho até o motor**~~ *(feito em 2026-09-24: saíram o
+   `BridgeClient`, os comandos em dataclass, `contracts.py`,
+   `aladyn_dispatch.py` e `dispatch` do contrato — nenhum chamador em
+   produção. O backend avisa `EngineRegistry.notify_document_modified` e o
+   `DocumentManager` suja o documento, sem o backend importar o modelo. O
+   contexto nativo provisório do boot (`default_doc`) passou a ser liberado
+   quando o primeiro documento abre; antes ficava alocado a sessão toda.)*
 7. **Cinco arquivos na parede dos 450**: `test_report_dialog.py`,
    `theme_dialog.py`, `new_document_dialog.py`, `recording_plugin/panel.py`,
    `geometry_tool_controller.py`.

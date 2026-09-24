@@ -4,8 +4,7 @@ ui.core.engine — Contratos de Motor (Shell Engine-Agnóstica)
 Esta é a camada de contrato que desacopla a interface (casca) de QUALQUER
 motor. A UI conversa exclusivamente com estas abstrações:
 
-    EngineBackend  — contrato do motor (render, brush, viewport, dispatch)
-    commands       — dataclasses puras dos comandos de traço/pincel
+    EngineBackend  — contrato do motor (render, brush, viewport, camadas...)
     EngineRegistry — registro do backend ativo (plugado por plugins de sistema)
 
 Regra de dependência: módulos de motor (ex.: ui/engine_backends/*) implementam

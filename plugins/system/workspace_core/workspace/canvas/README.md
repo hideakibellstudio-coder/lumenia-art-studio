@@ -27,10 +27,6 @@
   (`ui/boundary/orchestrator/workspace_port.py`): `run_as_stroke`,
   `forward_key`, `is_busy`, `toggle_grid`, `toggle_rulers`, seleção e câmera.
 
-## Dívida conhecida (medida em 2026-09-24)
-
-`render_widget.py` ainda usa a `BridgeClient` (fachada antiga) para `init_renderer` e `update_view`.
-
 ## Dependências internas
 
 Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
@@ -44,5 +40,4 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/engine`
 - `ui/core/i18n`
 - `ui/core/theme`
-- `ui/infrastructure/bridge_client`
 <!-- /arccc:deps -->

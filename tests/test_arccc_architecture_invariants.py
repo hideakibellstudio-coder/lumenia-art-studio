@@ -91,8 +91,8 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         for tdir in target_dirs:
             for fpath in self._get_py_files(tdir):
                 rel = os.path.relpath(fpath, self.root)
-                # Permitido unicamente na camada de ponte (ui/engine_backends ou ui/infrastructure/bridge_client)
-                if rel.startswith(os.path.join('ui', 'engine_backends')) or rel.startswith(os.path.join('ui', 'infrastructure', 'bridge_client')):
+                # Permitido unicamente no adaptador do motor (ui/engine_backends)
+                if rel.startswith(os.path.join('ui', 'engine_backends')):
                     continue
                 
                 with open(fpath, 'r', encoding='utf-8', errors='ignore') as fl:
@@ -120,7 +120,7 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         for tdir in target_dirs:
             for fpath in self._get_py_files(tdir):
                 rel = os.path.relpath(fpath, self.root)
-                if rel.startswith(os.path.join('ui', 'engine_backends')) or rel.startswith(os.path.join('ui', 'infrastructure', 'bridge_client')):
+                if rel.startswith(os.path.join('ui', 'engine_backends')):
                     continue
                 
                 with open(fpath, 'r', encoding='utf-8', errors='ignore') as fl:

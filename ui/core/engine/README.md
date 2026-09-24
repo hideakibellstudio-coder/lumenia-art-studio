@@ -17,7 +17,6 @@
 | `backend.py` | ui.core.engine.backend — Contrato Canônico EngineBackend + PointerEvent. |
 | `backend_protocols.py` | ui.core.engine.backend_protocols -- EngineBackend decomposto em Protocols por papel. |
 | `backend_protocols_selection.py` | ui.core.engine.backend_protocols_selection -- papel "SelectionTransform". |
-| `commands.py` | ui.core.engine.commands — Comandos de Motor como Dataclasses Puras. |
 | `errors.py` | ui.core.engine.errors — Exceções padronizadas da camada de motor. |
 | `registry.py` | ui.core.engine.registry — EngineRegistry. |
 | `telemetry_dto.py` | `TelemetrySnapshot`: DTO da telemetria; lê a struct nativa campo a campo sem valor padrão (contrato em `tests/test_telemetry_contract.py`). |
@@ -33,10 +32,10 @@
 - Método novo no contrato: adicione em `backend.py` (com implementação padrão
   segura quando fizer sentido) e no `Protocol` do papel em
   `backend_protocols*.py`.
-
-## Dívida conhecida (medida em 2026-09-24)
-
-`commands.py` (dataclasses de comando) só é usado pelo despacho antigo (`aladyn_dispatch.py`) e pela reexportação em `ui/core/plugins/contracts.py`: caminho paralelo aos métodos do `EngineBackend`.
+- Motor → documento: o backend não conhece o modelo de documentos; avisa
+  `EngineRegistry.notify_document_modified(uid, motivo)` e o `DocumentManager`
+  (que escuta) suja o documento. Um caminho só até o motor: não há fachada
+  paralela nem comandos em dataclass (saíram em 2026-09-24, sem chamadores).
 
 ## Dependências internas
 

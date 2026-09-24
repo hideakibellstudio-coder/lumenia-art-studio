@@ -26,7 +26,7 @@ from ui.core.engine.backend_protocols_selection import SelectionTransformProtoco
 
 @runtime_checkable
 class CoreLifecycleProtocol(Protocol):
-    """Papel \"CoreLifecycle\" extraido de EngineBackend (21 metodos)."""
+    """Papel \"CoreLifecycle\" extraido de EngineBackend (20 metodos)."""
 
     @property
     def available(self) -> bool:
@@ -68,8 +68,6 @@ class CoreLifecycleProtocol(Protocol):
     def update_view(self, zoom: float, pan_x: float, pan_y: float, rotation: float) -> None:
         ...
     def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> PointerEvent:
-        ...
-    def dispatch(self, command: Any) -> None:
         ...
 
 

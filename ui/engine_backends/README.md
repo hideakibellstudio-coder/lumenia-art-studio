@@ -18,7 +18,6 @@
 | `aladyn_buffers.py` | Pixel format conversion at the canonical RGBA / native intensity boundary. |
 | `aladyn_capabilities_mixin.py` | Capacidades efetivas publicadas pelo backend nativo Aladyn. |
 | `aladyn_color_mixin.py` | AladynColorMixin — Gerenciamento Atômico de Amostragem de Cor e Perfis ICC para o AladynBackend. |
-| `aladyn_dispatch.py` | Dispatch canonical commands through the same public backend operations. |
 | `aladyn_geometry_mixin.py` | AladynGeometryMixin — Integração com Guias, Réguas e Simetria C++ do ALADYN ENGINE. |
 | `aladyn_layer_mixin.py` | AladynLayerMixin — Gerenciador Atômico de Camadas, Grupos e Filtros para o AladynBackend. |
 | `aladyn_mdi_mixin.py` | AladynMdiMixin — Gerenciador de Contextos MDI Multi-Documento para o AladynBackend. |

@@ -9,6 +9,11 @@ from .aladyn_base import AladynBackendBase
 
 logger = logging.getLogger(__name__)
 
+# Contexto nativo provisório do boot, enquanto nenhum documento está aberto.
+# É liberado quando o primeiro documento real fica ativo: até 2026-09-24 ele
+# ficava alocado pelo resto da sessão (~4 MB em 800×600, medido).
+PLACEHOLDER_CONTEXT = "default_doc"
+
 
 class AladynMdiMixin(AladynBackendBase):
     """Mixin para gerenciamento de múltiplas instâncias de PaintEngineFacade por documento."""
@@ -96,6 +101,8 @@ class AladynMdiMixin(AladynBackendBase):
         self._push_render_options(self._facade)
         if self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)
+        if uid != PLACEHOLDER_CONTEXT:
+            self._doc_facades.pop(PLACEHOLDER_CONTEXT, None)
 
     def close_document_context(self, uid: str) -> None:
         """Libera a memória C++ e deleta a PaintEngineFacade do documento fechado."""

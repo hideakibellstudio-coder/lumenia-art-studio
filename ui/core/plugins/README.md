@@ -15,7 +15,6 @@ ServiceRegistry, PluginManager, PluginContext, WorkspaceService`.
 | `base.py` | `BasePlugin`: ciclo de vida (`activate`/`deactivate`) e acesso ao `PluginContext`. |
 | `canvas_access.py` | canvas_access — Caminho canônico para alcançar o canvas ativo. |
 | `context.py` | `PluginContext`: o que um plugin recebe da casca (registro de serviços, fachada do motor). |
-| `contracts.py` | ui.core.plugins.contracts — Contratos de comandos do motor (casca limp). |
 | `discovery.py` | Shared helpers for registering plugin classes from imported modules. |
 | `lifecycle.py` | Transações de ativação e encerramento de plugins. |
 | `manager.py` | PluginManager — Gerenciador do Ciclo de Vida e Descoberta de Plugins (Lumenia V2). |
@@ -37,10 +36,6 @@ ServiceRegistry, PluginManager, PluginContext, WorkspaceService`.
 - Painel de plugin fala com o usuário emitindo um sinal que o plugin liga a
   `WorkspaceService.show_status` (nunca `QApplication.activeWindow()`).
 
-## Dívida conhecida (medida em 2026-09-24)
-
-`context.py` entrega a `BridgeClient` (fachada antiga do motor) a todo plugin: um segundo caminho até o motor além do `EngineRegistry`.
-
 ## Dependências internas
 
 Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
@@ -50,5 +45,4 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core`
 - `ui/core/config`
 - `ui/core/engine`
-- `ui/infrastructure/bridge_client`
 <!-- /arccc:deps -->

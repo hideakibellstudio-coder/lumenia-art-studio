@@ -19,6 +19,15 @@ class DocumentManager(QtCore.QObject):
         self._documents = {}
         self._active_document = None
         self._counter = 0
+        # O motor avisa o que mudou (traço, seleção, camadas...); o documento
+        # fica sujo (asterisco na aba, autosave).
+        from ui.core.engine.registry import EngineRegistry
+        EngineRegistry.instance().add_document_modified_listener(self._on_engine_modified)
+
+    def _on_engine_modified(self, uid: str, reason: str) -> None:
+        document = self.get_document(uid)
+        if document is not None:
+            document.mark_dirty(reason)
 
     def new_document(
         self,

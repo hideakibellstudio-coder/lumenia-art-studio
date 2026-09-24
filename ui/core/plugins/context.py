@@ -7,23 +7,25 @@ class PluginContext:
     Centraliza o acesso seguro a recursos do núcleo sem imports globais.
 
     Propriedades disponíveis:
-        bridge_client    — BridgeClient singleton (operações síncronas no renderer)
-        main_window      — QMainWindow principal (injetado via PluginManager.set_main_window)
-        service_registry — ServiceRegistry singleton (registro/consulta de serviços entre plugins)
+        backend          — EngineBackend ativo (EngineRegistry), ou None sem motor
+        main_window      — QMainWindow principal (entregue por PluginManager.set_main_window)
+        service_registry — ServiceRegistry (registro/consulta de serviços entre plugins)
+
+    Até 2026-09-24 havia também `bridge_client` (fachada antiga do motor, sem
+    nenhum plugin usando) e o PluginManager escrevia nos atributos privados
+    deste objeto.
     """
 
-    def __init__(self, bridge_client):
-        self._bridge_client    = bridge_client
-        self._main_window      = None  # Injetado por PluginManager.set_main_window()
-        self._service_registry = None  # Injetado por PluginManager após criação do ServiceRegistry
+    def __init__(self, service_registry):
+        self._main_window      = None  # Entregue por PluginManager.set_main_window()
+        self._service_registry = service_registry
         self._loggers          = {}
 
-    # ── Serviços de infraestrutura ─────────────────────────────────────────
+    def attach_main_window(self, main_window) -> None:
+        """A janela principal nasce depois do contexto; o PluginManager a entrega aqui."""
+        self._main_window = main_window
 
-    @property
-    def bridge_client(self):
-        """Retorna o BridgeClient unificado para operações síncronas/diretas no renderizador."""
-        return self._bridge_client
+    # ── Serviços de infraestrutura ─────────────────────────────────────────
 
     @property
     def backend(self):

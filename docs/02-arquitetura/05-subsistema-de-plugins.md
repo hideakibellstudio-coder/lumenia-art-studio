@@ -10,7 +10,7 @@ O **Lumenia** adota uma arquitetura orientada a plugins onde até mesmo recursos
 - **`register_module_plugins` / `discover_compiled_plugins`** (`discovery.py`): Funções (não uma classe `PluginDiscovery`) que descobrem subclasses concretas de `BasePlugin` expostas pelos módulos Python dentro de `plugins/system/` e `plugins/ui/`. Não há manifesto em arquivo para esses plugins — os metadados vêm do objeto `PluginMetadata` retornado por `get_metadata()`.
 - **`install_plugin_package` / `uninstall_plugin_package`** (`package_installer.py`): Funções (não uma classe `PackageInstaller`) que extraem pacotes `.zip` de plugins instalados externamente, validam o `manifest.json` do pacote e o promovem para `plugins_dir`, com quarentena automática (`.plugin-quarantine/`) em caso de falha de validação.
 - **`validate_package_manifest`** (`package_manifest.py`): Valida o `manifest.json` de pacotes externos — schema, SemVer, versão mínima de API e permissões (ver seção 2).
-- **`PluginContext`** (`context.py`): Objeto injetado em cada plugin via `initialize()`, expondo `bridge_client`, `backend`, `main_window` e `service_registry`.
+- **`PluginContext`** (`context.py`): Objeto injetado em cada plugin via `initialize()`, expondo `backend`, `main_window` e `service_registry` (o `bridge_client`, fachada antiga do motor, saiu em 2026-09-24).
 - **`ServiceRegistry`** (`registry.py`): Registro singleton de serviços tipados para comunicação desacoplada entre plugins.
 - **Configuração Persistente (`plugins_config.json`)**: Salva o estado habilitado/desabilitado de cada plugin de forma atômica com backup automático (`.bak`).
 

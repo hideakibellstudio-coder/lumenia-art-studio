@@ -26,7 +26,6 @@ except ImportError:
 _OPENGL_ENABLED = _HAS_OPENGL and os.environ.get("LUMENIA_DISABLE_OPENGL", "0") != "1"
 _BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 
-from ui.infrastructure.bridge_client import BridgeClient
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.backend import PointerEvent
 
@@ -66,8 +65,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setAttribute(QtCore.Qt.WA_StaticContents)
-
-        self.bridge_client = BridgeClient.instance()
 
         self.camera = CameraController(self)
         self.input_router = CanvasInputRouter(self)
@@ -237,7 +234,9 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
     def init_engine(self, canvas_w=1920, canvas_h=1080):
         self.canvas_w, self.canvas_h = canvas_w, canvas_h
         hwnd = int(self.winId())
-        self.bridge_client.init_renderer(hwnd, max(1, self.width()), max(1, self.height()), canvas_w, canvas_h)
+        backend = self.backend
+        if backend is not None:  # sem motor: canvas vazio (casca pura)
+            backend.init_renderer(hwnd, max(1, self.width()), max(1, self.height()), canvas_w, canvas_h)
         self.geometry_ctrl.center_on_document(canvas_w, canvas_h)
         self.center_canvas()
         self.update()
@@ -252,7 +251,9 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         Quem muda zoom/pan/rotação chama isto depois. `notify_camera=False`
         quando a mudança veio do próprio Navigator (evita o eco de volta).
         """
-        self.bridge_client.update_view(self.zoom, self.pan_x, self.pan_y, math.radians(self.rotation))
+        backend = self.backend
+        if backend is not None:
+            backend.update_view(self.zoom, self.pan_x, self.pan_y, math.radians(self.rotation))
         if self.active_text_editor: self.active_text_editor.update_screen_position()
         self.update()
         if zoom_changed: self.zoomChanged.emit(self.zoom)

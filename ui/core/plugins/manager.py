@@ -68,12 +68,7 @@ class PluginManager:
         if self.plugins_dir not in sys.path:
             sys.path.insert(0, self.plugins_dir)
 
-        from ui.infrastructure.bridge_client.client import BridgeClient
-
-        self.context = PluginContext(
-            bridge_client=BridgeClient.instance(),
-        )
-        self.context._service_registry = ServiceRegistry.instance()
+        self.context = PluginContext(ServiceRegistry.instance())
 
         config_root = writable_data_dir() if is_packaged() and plugins_dir is None else Path(self.plugins_dir)
         self.config_path = (os.environ.get("LUMENIA_PLUGINS_CONFIG_PATH") if plugins_dir is None else None) or str(config_root / "plugins_config.json")
@@ -85,7 +80,7 @@ class PluginManager:
         self.load_config()
 
     def set_main_window(self, main_window) -> None:
-        self.context._main_window = main_window
+        self.context.attach_main_window(main_window)
         logger.debug("[PluginManager] main_window injetado no PluginContext.")
 
 

@@ -6,13 +6,18 @@ Registro singleton do EngineBackend ativo da aplicação.
 Plugins de sistema (ex.: o futuro workspace_core) chamam
 `EngineRegistry.instance().setup(create_backends())` durante o boot para
 plugarem o motor disponível (Rust/WGPU, software, etc.). A casca consome
-apenas `get_backend()` / `dispatch()`.
+apenas `get_backend()`.
+
+Motor → documento: o backend avisa "documento X modificado (motivo)" por
+`notify_document_modified`; quem guarda os documentos (`DocumentManager`)
+escuta com `add_document_modified_listener`. Até 2026-09-24 o backend
+importava o `DocumentManager` para marcar o documento sujo.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional
 
 from ui.core.engine.backend import EngineBackend
 
@@ -32,6 +37,7 @@ class EngineRegistry:
 
     def __init__(self) -> None:
         self._backend: Optional[EngineBackend] = None
+        self._document_modified_listeners: list[Callable[[str, str], None]] = []
 
     # ── Configuração ─────────────────────────────────────────────────────
 
@@ -72,15 +78,23 @@ class EngineRegistry:
         """Retorna o backend ativo, ou None se a casca estiver sem motor."""
         return self._backend
 
-    # ── Atalhos de despacho ──────────────────────────────────────────────
+    # ── Motor → documento ────────────────────────────────────────────────
 
-    def dispatch(self, command: Any) -> None:
-        """Despacha um comando para o backend ativo (no-op se não houver motor)."""
-        backend = self._backend
-        if backend is None:
-            logger.debug("[EngineRegistry] Comando descartado — sem backend de motor.")
+    def add_document_modified_listener(self, listener: Callable[[str, str], None]) -> None:
+        """`listener(uid_do_documento, motivo)` a cada mudança feita pelo motor."""
+        if listener not in self._document_modified_listeners:
+            self._document_modified_listeners.append(listener)
+
+    def remove_document_modified_listener(self, listener: Callable[[str, str], None]) -> None:
+        if listener in self._document_modified_listeners:
+            self._document_modified_listeners.remove(listener)
+
+    def notify_document_modified(self, uid: Optional[str], reason: str) -> None:
+        """Chamado pelo backend quando o conteúdo de um documento muda."""
+        if uid is None:
             return
-        backend.dispatch(command)
+        for listener in list(self._document_modified_listeners):
+            listener(uid, reason)
 
     def clear(self) -> None:
         """Remove o backend ativo (usado em testes/boot limp)."""

@@ -76,9 +76,7 @@ class AladynBackendBase:
         self.last_telemetry = (0.0, 0.0, 0.0)
 
     def _mark_document_dirty(self, reason: str) -> None:
-        """Marca o documento ativo como modificado (asterisco na aba, autosave)."""
-        from ui.core.document.manager import DocumentManager
+        """Avisa que o documento ativo mudou (o DocumentManager escuta pelo EngineRegistry)."""
+        from ui.core.engine.registry import EngineRegistry
 
-        document = DocumentManager.instance().get_document(self._active_doc_uid)
-        if document is not None:
-            document.mark_dirty(reason)
+        EngineRegistry.instance().notify_document_modified(self._active_doc_uid, reason)

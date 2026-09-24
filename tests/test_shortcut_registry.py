@@ -87,13 +87,3 @@ def test_native_pressure_power_curve():
     assert curve.sample(0.5) == pytest.approx(0.7071, abs=0.005)
     with pytest.raises(ValueError):
         curve.set_power(float("nan"))
-
-
-def test_backend_dispatch_changes_native_brush_state():
-    from ui.engine_backends.aladyn import AladynBackend
-    from ui.core.engine.commands import SetBrushOpacityCommand
-    backend = AladynBackend()
-    backend.dispatch(SetBrushOpacityCommand(0.37))
-    assert backend.get_brush_profile_dict()["opacity"] == pytest.approx(0.37)
-    with pytest.raises(TypeError):
-        backend.dispatch(object())

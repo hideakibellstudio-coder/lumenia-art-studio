@@ -37,6 +37,20 @@ from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controll
 )
 
 
+class GeometryConfigSink:
+    """Parte do contrato EngineBackend que o controlador sempre chama (guias e
+    simetria vão ao motor a cada mudança); os dublês abaixo só precisam do snap."""
+
+    def set_symmetry_config(self, *args):
+        pass
+
+    def set_guide_config(self, *args):
+        pass
+
+    def set_curvilinear_guide_config(self, *args):
+        pass
+
+
 class DummyWidget:
     canvas_w = 4000
     canvas_h = 4000
@@ -64,7 +78,7 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
         de 2000px de distancia e cuja direcao continua "quase horizontal"
         mesmo apos a guinada."""
 
-        class FakeNativeBackend:
+        class FakeNativeBackend(GeometryConfigSink):
             """Reimplementa em Python puro a mesma estrutura de
             CurvilinearSnapEngine::snap() (trava/stray/lockThresh/pontuacao
             por produto escalar, incluindo a penalizacao por distancia ate a
@@ -138,19 +152,19 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             registry.set_backend(FakeNativeBackend(candidates))
 
             ctrl: GeometryToolController = GeometryToolController(DummyWidget())
-            self.assertTrue(ctrl._snap_use_native_curvilinear)
+            self.assertTrue(ctrl.native_snap.use_curvilinear)
             ctrl.guide_state["type"] = "curvilinear"
             ctrl.start_stroke_snap((0.0, 0.0))
-            self.assertIsNone(ctrl._native_curv_anchor)
+            self.assertIsNone(ctrl.native_snap.curv_anchor)
 
             # 1) Traço longo e rápido ao longo da curva A (horizontal): trava
             #    nela e o anchor acompanha até bem longe do ponto de pressão.
             res1 = ctrl.snap_point(500.0, 5.0, 1.0)
-            self.assertEqual(ctrl._native_curv_locked_index, 0, "deveria travar na curva A (horizontal)")
+            self.assertEqual(ctrl.native_snap.curv_locked_index, 0, "deveria travar na curva A (horizontal)")
             res2 = ctrl.snap_point(2000.0, 0.0, 1.0)
-            self.assertEqual(ctrl._native_curv_locked_index, 0)
-            self.assertAlmostEqual(ctrl._native_curv_anchor.x(), 2000.0, delta=1e-6)
-            self.assertAlmostEqual(ctrl._native_curv_anchor.y(), 0.0, delta=1e-6)
+            self.assertEqual(ctrl.native_snap.curv_locked_index, 0)
+            self.assertAlmostEqual(ctrl.native_snap.curv_anchor.x(), 2000.0, delta=1e-6)
+            self.assertAlmostEqual(ctrl.native_snap.curv_anchor.y(), 0.0, delta=1e-6)
 
             # 2) Guinada brusca e curta para baixo: (10, 50) a partir de onde
             #    o cursor estava (2000, 0) -- claramente vertical -- mas a
@@ -161,7 +175,7 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             #    ficaria preso em A.
             res3 = ctrl.snap_point(2010.0, 50.0, 1.0)
             self.assertEqual(
-                ctrl._native_curv_locked_index, 1,
+                ctrl.native_snap.curv_locked_index, 1,
                 "com o anchor (2000,0), a guinada curta (10,50) e' claramente vertical e deveria "
                 "vencer a votacao; com o ponto de pressao original (0,0) o deslocamento acumulado "
                 "(2010,50) ainda vota esmagadoramente em horizontal -- se voltar a travar na curva A "
@@ -169,12 +183,12 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             )
             self.assertAlmostEqual(res3[0], 2000.0, delta=1e-6)
             self.assertAlmostEqual(res3[1], 50.0, delta=1e-6)
-            self.assertAlmostEqual(ctrl._native_curv_anchor.x(), res3[0], delta=1e-6)
-            self.assertAlmostEqual(ctrl._native_curv_anchor.y(), res3[1], delta=1e-6)
+            self.assertAlmostEqual(ctrl.native_snap.curv_anchor.x(), res3[0], delta=1e-6)
+            self.assertAlmostEqual(ctrl.native_snap.curv_anchor.y(), res3[1], delta=1e-6)
 
             # 3) mouse_release / start_stroke_snap devem limpar o anchor.
             ctrl.mouse_release()
-            self.assertIsNone(ctrl._native_curv_anchor)
+            self.assertIsNone(ctrl.native_snap.curv_anchor)
         finally:
             registry.set_backend(prev_backend)
             if prev_env is None:
@@ -191,7 +205,7 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
         referencia para o backend, e que ele e atualizado/limpo
         corretamente pelo ciclo de vida do traço."""
 
-        class RecordingFakeBackend:
+        class RecordingFakeBackend(GeometryConfigSink):
             """Trava sempre na direcao vertical (0,1) e apenas registra qual
             ponto foi usado como referencia (start_x, start_y) em cada
             chamada, para provar que o controller esta repassando o anchor."""
@@ -213,15 +227,15 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             registry.set_backend(backend)
 
             ctrl = GeometryToolController(DummyWidget())
-            self.assertTrue(ctrl._snap_use_native_perspective)
+            self.assertTrue(ctrl.native_snap.use_perspective)
             ctrl.guide_state["type"] = "one_point"
             ctrl.start_stroke_snap((0.0, 0.0))
-            self.assertIsNone(ctrl._native_persp_anchor)
+            self.assertIsNone(ctrl.native_snap.persp_anchor)
 
             ctrl.snap_point(0.0, 100.0, 1.0)
             self.assertEqual(backend.seen_starts[-1], (0.0, 0.0), "1a chamada deve usar o ponto de pressao (sem anchor ainda)")
-            self.assertAlmostEqual(ctrl._native_persp_anchor.x(), 0.0, delta=1e-6)
-            self.assertAlmostEqual(ctrl._native_persp_anchor.y(), 100.0, delta=1e-6)
+            self.assertAlmostEqual(ctrl.native_snap.persp_anchor.x(), 0.0, delta=1e-6)
+            self.assertAlmostEqual(ctrl.native_snap.persp_anchor.y(), 100.0, delta=1e-6)
 
             ctrl.snap_point(0.0, 250.0, 1.0)
             self.assertEqual(
@@ -230,7 +244,7 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             )
 
             ctrl.mouse_release()
-            self.assertIsNone(ctrl._native_persp_anchor)
+            self.assertIsNone(ctrl.native_snap.persp_anchor)
         finally:
             registry.set_backend(prev_backend)
             if prev_env is None:

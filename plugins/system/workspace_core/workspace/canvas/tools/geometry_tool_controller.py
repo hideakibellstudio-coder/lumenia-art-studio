@@ -3,38 +3,24 @@
 Coordinates mouse, touch, and stylus events, interactive handle hit-testing,
 and backend engine synchronization.
 Delegates analytical math and point projections to GeometrySnappingEngine and Camera3DProjector.
-Strictly decoupled in compliance with ARCcC v2 (< 250 LOC).
+
+Colaboradores (2026-09-24, o arquivo estava na parede dos 450 linhas):
+- `NativeGeometrySnap` (geometry_native_snap.py): snap pelo motor C++, com
+  o próprio estado de trava e âncoras;
+- `geometry_engine_sync.push_guides/push_symmetry`: escritor único no motor;
+- o documento ativo guarda guias e simetria por `Document.store_*_state`.
 """
 
-import math
 import copy
-import os
+import math
 from PySide6 import QtCore
+from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
-from ..math.camera_3d_projector import (
-    rotate_3d_forward,
-    rotate_3d_backward,
-    create_curve_from_normal,
-    closest_point_on_curve
-)
+from ..math.camera_3d_projector import closest_point_on_curve
+from .geometry_engine_sync import push_guides, push_symmetry
+from .geometry_native_snap import NativeGeometrySnap, first_not_none
 from .geometry_snapping_engine import GeometrySnappingEngine
-from ui.core.geometry.guide_type import GuideType
-from ui.core.geometry.symmetry_mode import SymmetryMode
 from ui.core.geometry.synced_dict import SyncedDict
-
-
-def _first_not_none(*values):
-    """Retorna o primeiro valor nao-None. NAO usar `a or b` para isso quando
-    os valores podem ser QPointF: PySide6 trata QPointF(0.0, 0.0) como
-    "falsy" (mesma semantica de Qt QPointF::isNull()), entao `QPointF(0,0)
-    or fallback` descarta silenciosamente um ponto de pressao/anchor valido
-    exatamente na origem -- bug real encontrado na Fase C3.5 (refinamento)
-    quando um teste sintetico usou (0,0) como ponto de pressao e o
-    fallback errado passou a ser usado (ver test_geometry_c35_native_anchor.py)."""
-    for v in values:
-        if v is not None:
-            return v
-    return None
 
 
 class GeometryToolController:
@@ -60,28 +46,11 @@ class GeometryToolController:
         self.stroke_candidate_curves = []
         self.current_stroke_pts = []
 
-        # Fase C3.2 -- toggle temporario de comparacao nativo vs Python
-        # (default off; usado so para validacao manual de "feel" antes de
-        # flipar o padrao em producao -- ver Fase C3.3/C3.4). Estado nativo
-        # de perspectiva reaproveita locked_dir (mesmo shape); curvilinear
-        # nativo usa indice em vez de dict, por isso tem estado proprio.
-        self._snap_use_native_perspective = os.environ.get("LUMENIA_SNAP_NATIVE_PERSPECTIVE", "0") == "1"
-        self._snap_use_native_curvilinear = os.environ.get("LUMENIA_SNAP_NATIVE_CURVILINEAR", "0") == "1"
-        self._native_curv_locked_index = -1
-        self._native_stroke_candidates_flat = []
-
-        # Fase C3.5 (refinamento) -- referencia de direcao para RE-travar
-        # apos um break-away. Usar sempre o ponto de pressao original
-        # (snap_start_pt) deixa essa corda cada vez mais desatualizada num
-        # traco longo e rapido (pior com mouse, cujos eventos sao mais
-        # espacados/saltados que com stylus) -- e essa desatualizacao, nao a
-        # trava rigida em si, que fazia o re-lock continuar errando mesmo
-        # depois do fix de break-away. `anchor` acompanha o ultimo ponto
-        # travado com sucesso e vira a referencia para reavaliacoes; None
-        # ate a primeira trava, quando cai de volta no ponto de pressao
-        # (preserva o comportamento de trava inicial ja validado na C3.3).
-        self._native_curv_anchor = None
-        self._native_persp_anchor = None
+        # Snap pelo motor C++ (toggle de comparação da Fase C3.2).
+        self.native_snap = NativeGeometrySnap(lambda: EngineRegistry.instance().get_backend())
+        # Durante load_document_state o documento não é reescrito com o que
+        # ele mesmo acabou de entregar.
+        self._loading_document = False
 
         self.sym_state = SyncedDict({
             "mode": "none", "cx": 400.0, "cy": 300.0, "angle": 90.0,
@@ -108,8 +77,7 @@ class GeometryToolController:
     def center_on_document(self, doc_w: float, doc_h: float):
         doc_w, doc_h = max(1.0, float(doc_w)), max(1.0, float(doc_h))
         cx, cy, base_r = doc_w / 2.0, doc_h / 2.0, min(doc_w, doc_h) * 0.42
-        if not getattr(self, "_custom_sym_center", False):
-            self.sym_state.update({"cx": cx, "cy": cy}, sync=False)
+        self.sym_state.update({"cx": cx, "cy": cy}, sync=False)
         self.guide_state.update({
             "cx": cx, "cy": cy, "base_radius": base_r,
             "p0": QtCore.QPointF(cx - doc_w * 0.35, cy), "p1": QtCore.QPointF(cx + doc_w * 0.35, cy),
@@ -128,7 +96,6 @@ class GeometryToolController:
         defaults = type(self)(self.widget)
         self.guide_state.reset(dict(defaults.guide_state), sync=False)
         self.sym_state.reset(dict(defaults.sym_state), sync=False)
-        self._custom_sym_center = False
         self._loading_document = True
         try:
             self.center_on_document(document.width, document.height)
@@ -139,14 +106,9 @@ class GeometryToolController:
         finally:
             self._loading_document = False
 
-    def _store_document_state(self, key, state):
-        if getattr(self, "_loading_document", False):
-            return
-        from ui.core.document.manager import DocumentManager
-        document = DocumentManager.instance().active_document()
-        if document is not None and getattr(document, key) != state:
-            setattr(document, key, copy.deepcopy(state))
-            document.mark_dirty(key)
+    def _active_document(self):
+        """Documento que guarda guias e simetria (nenhum durante o load dele mesmo)."""
+        return None if self._loading_document else DocumentManager.instance().active_document()
 
     def handle_hover(self, doc_pt: QtCore.QPointF):
         self.hover_point = doc_pt
@@ -241,16 +203,14 @@ class GeometryToolController:
         self.active_handle, self.curv_drag_rotate, self.is_stroking = None, False, False
         self.snap_start_pt, self.start_distance, self.locked_curve = None, (0.0, 0.0), None
         self.locked_dir, self.stroke_candidate_curves, self.current_stroke_pts = None, [], []
-        self._native_curv_locked_index, self._native_stroke_candidates_flat = -1, []
-        self._native_curv_anchor, self._native_persp_anchor = None, None
+        self.native_snap.reset()
 
     def start_stroke_snap(self, start_pt: tuple[float, float]):
         self.is_stroking = True
         pt = QtCore.QPointF(start_pt[0], start_pt[1])
         self.snap_start_pt, self.locked_curve, self.locked_dir = pt, None, None
         self.hover_point, self.current_stroke_pts = pt, [pt]
-        self._native_curv_locked_index, self._native_stroke_candidates_flat = -1, []
-        self._native_curv_anchor, self._native_persp_anchor = None, None
+        self.native_snap.reset()
         gtype = self.guide_state["type"]
 
         if gtype == "straight":
@@ -297,10 +257,13 @@ class GeometryToolController:
             return GeometrySnappingEngine.snap_bezier(raw_x, raw_y, self.guide_state)
 
         if gtype in ("one_point", "two_point", "three_point", "isometric"):
-            if self._snap_use_native_perspective:
-                native_res = self._compute_snap_perspective_native(raw_x, raw_y, zoom)
-                if native_res is not None:
-                    return native_res
+            if self.native_snap.use_perspective:
+                native = self.native_snap.perspective(raw_x, raw_y, zoom, self.snap_start_pt, self.locked_dir)
+                if native is not None:
+                    point, locked = native
+                    if locked is not None:
+                        self.locked_dir = locked
+                    return point
             pt_res, locked = GeometrySnappingEngine.snap_ray_perspective(
                 raw_x, raw_y, zoom, self.guide_state, self.snap_start_pt, self.locked_dir
             )
@@ -309,12 +272,12 @@ class GeometryToolController:
             return pt_res
 
         if gtype == "curvilinear":
-            if self._snap_use_native_curvilinear:
-                native_res = self._compute_snap_curvilinear_native(raw_x, raw_y, zoom)
-                if native_res is not None:
-                    return native_res
+            if self.native_snap.use_curvilinear:
+                native = self.native_snap.curvilinear(raw_x, raw_y, zoom, self.snap_start_pt, self.is_stroking)
+                if native is not None:
+                    return native
             curves = self.stroke_candidate_curves if (self.is_stroking and self.stroke_candidate_curves) else (
-                self.dynamic_hover_curves or GeometrySnappingEngine.get_dynamic_curves_at_point(self.guide_state, _first_not_none(self.snap_start_pt, QtCore.QPointF(raw_x, raw_y)))
+                self.dynamic_hover_curves or GeometrySnappingEngine.get_dynamic_curves_at_point(self.guide_state, first_not_none(self.snap_start_pt, QtCore.QPointF(raw_x, raw_y)))
             )
             pt_res, locked = GeometrySnappingEngine.snap_curvilinear(
                 raw_x, raw_y, zoom, self.guide_state, self.snap_start_pt, self.locked_curve, curves, self.is_stroking
@@ -326,107 +289,14 @@ class GeometryToolController:
 
         return (raw_x, raw_y)
 
-    # Fase C3.2 -- caminhos nativos opcionais (toggle de comparacao). Ambos
-    # retornam None (fallback silencioso para Python) se o backend ativo nao
-    # suportar o metodo -- nunca quebram a UI se o nativo nao estiver
-    # disponivel (ex.: testes sem extensao compilada).
-
-    def _compute_snap_perspective_native(self, raw_x: float, raw_y: float, zoom: float):
-        b = EngineRegistry.instance().get_backend()
-        if not b or not hasattr(b, "snap_perspective"):
-            return None
-        # Fase C3.5 (refinamento) -- ver comentario no __init__. Enquanto a
-        # trava se mantem, o anchor permanece sobre a mesma reta (e' a
-        # projecao do frame anterior), entao usa-lo aqui nao muda o ponto
-        # projetado; o que muda e' so a reavaliacao apos um break-away, que
-        # passa a usar uma referencia recente em vez do ponto de pressao.
-        anchor = _first_not_none(self._native_persp_anchor, self.snap_start_pt, QtCore.QPointF(raw_x, raw_y))
-        has_lock = self.locked_dir is not None
-        ldx, ldy = self.locked_dir if has_lock else (0.0, 0.0)
-        x, y, has_lock_out, ndx, ndy = b.snap_perspective(
-            raw_x, raw_y, anchor.x(), anchor.y(), has_lock, ldx, ldy, zoom
-        )
-        if has_lock_out:
-            self.locked_dir = (ndx, ndy)
-            self._native_persp_anchor = QtCore.QPointF(x, y)
-        return (x, y)
-
-    def _compute_snap_curvilinear_native(self, raw_x: float, raw_y: float, zoom: float):
-        b = EngineRegistry.instance().get_backend()
-        if not b or not hasattr(b, "snap_curvilinear") or not hasattr(b, "get_curvilinear_candidates"):
-            return None
-        press_start = _first_not_none(self.snap_start_pt, QtCore.QPointF(raw_x, raw_y))
-        candidates = self._native_stroke_candidates_flat if (self.is_stroking and self._native_stroke_candidates_flat) else (
-            b.get_curvilinear_candidates(press_start.x(), press_start.y())
-        )
-        # Fase C3.5 (refinamento) -- ver comentario no __init__. A geracao de
-        # candidatas continua ancorada na pressao (define o conjunto de
-        # curvas do traco inteiro); so a referencia passada para pontuar
-        # direcao/re-travar usa o anchor recente.
-        anchor = _first_not_none(self._native_curv_anchor, press_start)
-        x, y, new_idx = b.snap_curvilinear(
-            raw_x, raw_y, anchor.x(), anchor.y(), candidates, self._native_curv_locked_index, self.is_stroking, zoom
-        )
-        if new_idx >= 0:
-            self._native_curv_locked_index = new_idx
-            self._native_stroke_candidates_flat = candidates
-            self._native_curv_anchor = QtCore.QPointF(x, y)
-        return (x, y)
-
-    # Delegation aliases for backward compatibility and sub-systems
-    def _get_dynamic_curves_at_point(self, click_pt: QtCore.QPointF) -> list:
-        return GeometrySnappingEngine.get_dynamic_curves_at_point(self.guide_state, click_pt)
-
-    def _find_nearest_primary_grid_curve(self, pt: QtCore.QPointF, max_dist: float = 24.0):
-        return GeometrySnappingEngine.find_nearest_primary_grid_curve(self.guide_state, pt, max_dist)
-
-    def _closest_point_on_curve(self, curve, pt: QtCore.QPointF) -> QtCore.QPointF:
-        return closest_point_on_curve(curve, pt)
-
-    def _rotate_3d_forward(self, x, y, z, yaw_rad, pitch_rad):
-        return rotate_3d_forward(x, y, z, yaw_rad, pitch_rad)
-
-    def _rotate_3d_backward(self, x, y, z, yaw_rad, pitch_rad):
-        return rotate_3d_backward(x, y, z, yaw_rad, pitch_rad)
-
-    def _create_curve_from_normal(self, a, b, c, R, cx, cy, family):
-        return create_curve_from_normal(a, b, c, R, cx, cy, family)
-
     def sync_symmetry_to_engine(self):
-        self._store_document_state("sym_state", self.sym_state)
-        b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "set_symmetry_config"):
-            rad = math.pi / 2.0 if self.sym_state["mode"] == "mirror_v" else (0.0 if self.sym_state["mode"] == "mirror_h" else math.radians(self.sym_state["angle"]))
-            b.set_symmetry_config(
-                int(SymmetryMode.from_key(self.sym_state["mode"])), self.sym_state["cx"], self.sym_state["cy"], rad,
-                self.sym_state.get("segments", 6), self.sym_state.get("stop_at_center", False)
-            )
+        document = self._active_document()
+        if document is not None:
+            document.store_sym_state(self.sym_state)
+        push_symmetry(EngineRegistry.instance().get_backend(), self.sym_state)
 
     def sync_guides_to_engine(self):
-        self._store_document_state("guide_state", self.guide_state)
-        b = EngineRegistry.instance().get_backend()
-        if b and hasattr(b, "set_guide_config"):
-            p0, p1 = self.guide_state.get("p0", QtCore.QPointF(0, 0)), self.guide_state.get("p1", QtCore.QPointF(100, 100))
-            p2, p3 = self.guide_state.get("p2", QtCore.QPointF(200, 200)), self.guide_state.get("p3", QtCore.QPointF(300, 300))
-            vpA, vpB, vpC = self.guide_state.get("vpA", QtCore.QPointF(400, 300)), self.guide_state.get("vpB", QtCore.QPointF(-1000, 300)), self.guide_state.get("vpC", QtCore.QPointF(400, -2000))
-            b.set_guide_config(
-                int(GuideType.from_key(self.guide_state["type"])), p0.x(), p0.y(), p1.x(), p1.y(), p2.x(), p2.y(), p3.x(), p3.y(),
-                vpA.x(), vpA.y(), vpB.x(), vpB.y(), vpC.x(), vpC.y(),
-                self.guide_state.get("cx", 400.0), self.guide_state.get("cy", 300.0),
-                self.guide_state.get("fov", 130.0), self.guide_state.get("pitch", 0.0),
-                self.guide_state.get("yaw", 0.0), self.guide_state.get("snap_radius", 32.0)
-            )
-        if b and hasattr(b, "set_curvilinear_guide_config"):
-            # Completa os campos de GuideConfig usados só pelo Curvilinear
-            # (Fase C2b) — canal de dados adicional; a UI ainda calcula o
-            # snap em Python (GeometrySnappingEngine), isto só deixa o motor
-            # C++ pronto para ser chamado quando a delegação for ativada.
-            smap = {"auto": 0, "v": 1, "h": 2, "d": 3}
-            b.set_curvilinear_guide_config(
-                self.guide_state.get("base_radius", 400.0), self.guide_state.get("density", 30.0),
-                self.guide_state.get("show_v", True), self.guide_state.get("show_h", True), self.guide_state.get("show_d", True),
-                self.guide_state.get("show_ground", False), self.guide_state.get("show_ceiling", False),
-                self.guide_state.get("show_ground_verticals", False), self.guide_state.get("show_ceiling_verticals", False),
-                self.guide_state.get("show_straight_verticals", False),
-                smap.get(self.guide_state.get("snap_mode", "auto"), 0), self.guide_state.get("snap_sensitivity", 3.0)
-            )
+        document = self._active_document()
+        if document is not None:
+            document.store_guide_state(self.guide_state)
+        push_guides(EngineRegistry.instance().get_backend(), self.guide_state)

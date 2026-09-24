@@ -1,6 +1,8 @@
 """Document — Representação de um documento aberto no Lumenia."""
 
 from __future__ import annotations
+import copy
+
 from PySide6 import QtCore, QtGui
 from .layer_manager import LocalLayerManager
 
@@ -123,6 +125,18 @@ class Document(QtCore.QObject):
 
     def _on_layer_order_changed(self) -> None:
         self.mark_dirty("layer_order")
+
+    def store_guide_state(self, state) -> None:
+        """Guias do documento (escritas pelo controlador de geometria do canvas); diferente suja."""
+        if self.guide_state != dict(state):
+            self.guide_state = copy.deepcopy(dict(state))
+            self.mark_dirty("guide_state")
+
+    def store_sym_state(self, state) -> None:
+        """Simetria do documento; diferente suja."""
+        if self.sym_state != dict(state):
+            self.sym_state = copy.deepcopy(dict(state))
+            self.mark_dirty("sym_state")
 
     def mark_dirty(self, reason: str = "content") -> None:
         self.revision += 1

@@ -11,8 +11,10 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `eyedrop_tool_controller.py` | Eyedropper Tool and Color Sampling Controller. |
+| `geometry_engine_sync.py` | `push_guides`/`push_symmetry`: escritor único de guias e simetria no motor (contrato `EngineBackend`, sem `hasattr`). |
+| `geometry_native_snap.py` | `NativeGeometrySnap`: snap de perspectiva e curvilíneo pelo motor C++ (toggle `LUMENIA_SNAP_NATIVE_*`), com o próprio estado de trava e âncoras. |
 | `geometry_snapping_engine.py` | Pure Analytical Geometry Snapping Engine. |
-| `geometry_tool_controller.py` | Tool Controller for Symmetry, Guides, and Snapping Interactions. |
+| `geometry_tool_controller.py` | `GeometryToolController`: alças, arrasto e snap das guias e da simetria; guarda o estado no documento ativo (`Document.store_*_state`). |
 | `selection_tool_controller.py` | Selection Tool Controller (Magic Wand, Rect, Ellipse, Lasso). |
 | `shape_tool_controller.py` | Vector and Geometric Shape Tool Controller. |
 | `text_tool_controller.py` | TextToolController — Controlador de Edição e Inserção de Texto no Canvas. |
@@ -30,7 +32,7 @@
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-`geometry_tool_controller.py` está na parede dos 450 linhas. Os controladores recebem o widget inteiro (dependência de mão dupla com `canvas/`).
+Os controladores recebem o widget inteiro (dependência de mão dupla com `canvas/`).
 
 ## Dependências internas
 

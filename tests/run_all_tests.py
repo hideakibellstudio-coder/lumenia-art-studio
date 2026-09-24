@@ -84,11 +84,12 @@ SUITE_TARGETS = {
 }
 
 
-def build_pytest_args(start_dir: str, suite: str) -> list[str]:
+def build_pytest_args(start_dir: str, suite: str, junit: str | None = None) -> list[str]:
     """Return an explicit, reviewable pytest selection for a quality suite."""
+    report = [f"--junitxml={junit}"] if junit else []
     if suite == "full":
-        return [start_dir, "-q"]
-    return [*(os.path.join(start_dir, test_file) for test_file in SUITE_TARGETS[suite]), "-q"]
+        return [start_dir, "-q", *report]
+    return [*(os.path.join(start_dir, test_file) for test_file in SUITE_TARGETS[suite]), "-q", *report]
 
 
 def write_document_coverage() -> tuple[object, str]:
@@ -112,6 +113,8 @@ def main(argv: list[str] | None = None):
         default="full",
         help="full coleta toda a suíte; as demais opções executam uma fatia nomeada.",
     )
+    parser.add_argument("--junit", metavar="ARQUIVO",
+                        help="grava o resultado por teste em JUnit XML (o relatório de testes do app lê daqui).")
     parser.add_argument("--coverage", action="store_true", help="grava cobertura do núcleo de documento em build/coverage.")
     parser.add_argument("--coverage-minimum", type=float, default=0.0,
                         help="falha se a cobertura do núcleo de documento ficar abaixo deste percentual.")
@@ -137,7 +140,7 @@ def main(argv: list[str] | None = None):
         coverage_session, coverage_output = write_document_coverage()
         coverage_session.start()
     try:
-        exit_code = pytest.main(build_pytest_args(start_dir, args.suite))
+        exit_code = pytest.main(build_pytest_args(start_dir, args.suite, args.junit))
     finally:
         if coverage_session is not None:
             coverage_session.stop()

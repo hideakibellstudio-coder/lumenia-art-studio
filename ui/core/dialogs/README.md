@@ -29,7 +29,9 @@ Importados por módulo: `base_dialog.BaseFramelessDialog`,
 | `telemetry_diagnostics_dialog.py` | `TelemetryDiagnosticsDialog`: diagnóstico em abas (desempenho, memória, pipeline, caneta, logs e benchmark). |
 | `telemetry_grid_window.py` | `TelemetryGridWindow`: cockpit não modal com os 20 medidores (`telemetry_meters`); view do `TelemetryTracker`. |
 | `telemetry_state_history_dialog.py` | `TelemetryStateHistoryDialog`: linha do tempo das transições de estado do pipeline. |
-| `test_report_dialog.py` | Test Report Dialog — Diálogo Executivo de Relatório de Testes e Verificação de Sistema. |
+| `test_report_dialog.py` | `TestReportDialog`: roda a suíte com log ao vivo e mostra o resultado medido (cartões e seções). |
+| `test_report_model.py` | `parse_junit`: JUnit XML do pytest → contagens totais e por seção (`SECTIONS`). |
+| `test_report_runner.py` | `TestRunnerThread`: executa `tests/run_all_tests.py --junit` sem travar a interface (XML na pasta temporária do sistema). |
 | `user_guide_dialog.py` | User Guide Dialog — Diálogo de Visualização do Guia do Usuário e Documentação. |
 
 ## Regras
@@ -43,7 +45,7 @@ medidores são definidos em `ui/core/engine/telemetry_meters.py`.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-`render_settings_components.py` e `test_report_dialog.py` estão acima de 420 linhas (perto da parede dos 450).
+`render_settings_components.py` está acima de 420 linhas (perto da parede dos 450).
 
 ## Dependências internas
 

@@ -20,10 +20,6 @@
  "plugins/system/workspace_core/workspace/canvas/tools/eyedrop_tool_controller.py": {
   "getattr_literal": 1
  },
- "plugins/system/workspace_core/workspace/canvas/tools/geometry_tool_controller.py": {
-  "getattr_literal": 2,
-  "hasattr": 6
- },
  "plugins/system/workspace_core/workspace/canvas/tools/selection_tool_controller.py": {
   "hasattr": 11
  },
@@ -112,9 +108,6 @@
  },
  "ui/core/dialogs/render_settings_dialog.py": {
   "hasattr": 8
- },
- "ui/core/dialogs/test_report_dialog.py": {
-  "hasattr": 10
  },
  "ui/core/dialogs/user_guide_dialog.py": {
   "hasattr": 4

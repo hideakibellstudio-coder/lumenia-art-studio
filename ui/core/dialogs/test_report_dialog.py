@@ -1,67 +1,33 @@
 """
-Test Report Dialog — Diálogo Executivo de Relatório de Testes e Verificação de Sistema.
-========================================================================================
-Exibe os resultados da auditoria executiva da suíte de 110 testes (22 suítes),
-com suporte multilíngue dinâmico (pt_BR, en_US, es_ES, ja_JP), reatividade a temas
-e capacidade de execução assíncrona dos testes com log em tempo real.
+Test Report Dialog — Relatório de Testes e Verificação do Sistema.
+==================================================================
+Executa `tests/run_all_tests.py` sem travar a interface (log em tempo real)
+e mostra o resultado MEDIDO: total, taxa de sucesso, falhas e pulados, e o
+resultado por seção (`test_report_model.SECTIONS`). Antes de executar, os
+valores aparecem como "—".
+
+Até 2026-09-24 os cartões e a tabela eram fixos ("110 testes", "100%",
+"SIMD AVX2 Ativo", "APROVADO" em todas as linhas), independentes da execução.
 """
 
-import sys
 import os
-from pathlib import Path
+
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
+from ui.core.dialogs.test_report_model import SECTIONS, SuiteReport, parse_junit
+from ui.core.dialogs.test_report_runner import TestRunnerThread
 from ui.core.theme.manager import ThemeManager
 from ui.core.i18n import I18nManager, tr
 from ui.core.icons import get_icon
 
-
-class TestRunnerThread(QtCore.QThread):
-    """Thread assíncrona para executar a suíte de testes sem travar a interface."""
-
-    __test__ = False
-
-    log_received = QtCore.Signal(str)
-    tests_finished = QtCore.Signal(int)  # exit_code
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._process = None
-
-    def run(self):
-        import subprocess
-
-        repo_root = Path(__file__).resolve().parent.parent.parent.parent
-        test_script = repo_root / "tests" / "run_all_tests.py"
-
-        if not test_script.exists():
-            self.log_received.emit(f"Erro: Script não encontrado em {test_script}\n")
-            self.tests_finished.emit(1)
-            return
-
-        cmd = [sys.executable, str(test_script)]
-        try:
-            self._process = subprocess.Popen(
-                cmd,
-                cwd=str(repo_root),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-            )
-
-            for line in iter(self._process.stdout.readline, ""):
-                if line:
-                    self.log_received.emit(line)
-
-            self._process.stdout.close()
-            ret_code = self._process.wait()
-            self.tests_finished.emit(ret_code)
-        except Exception as ex:
-            self.log_received.emit(f"Falha na execução: {ex}\n")
-            self.tests_finished.emit(1)
+# (chave de tradução, título padrão, token de cor do tema)
+_KPIS = (
+    ("kpi_total", "Total de Testes", "ACCENT"),
+    ("kpi_pass_rate", "Taxa de Sucesso", "SUCCESS"),
+    ("kpi_failed", "Falhas", "DANGER"),
+    ("kpi_skipped", "Pulados", "WARNING"),
+)
+_NOT_RUN = "—"
 
 
 class TestReportDialog(BaseFramelessDialog):
@@ -81,6 +47,7 @@ class TestReportDialog(BaseFramelessDialog):
 
         self._current_locale = I18nManager.instance().get_current_locale()
         self._runner_thread = None
+        self._report: SuiteReport | None = None  # None = ainda não executado
 
         self._build_report_ui()
 
@@ -133,38 +100,27 @@ class TestReportDialog(BaseFramelessDialog):
         kpi_layout.setSpacing(10)
 
         self.kpi_cards = []
-        kpis = [
-            ("kpi_total", "Total de Testes", "110", "#3b82f6"),
-            ("kpi_pass_rate", "Taxa de Sucesso", "100%", tm.get_color("SUCCESS", "#10b981")),
-            ("kpi_architecture", "Arquitetura ARCcC", "100% Íntegra", "#8b5cf6"),
-            ("kpi_engine", "Motor ALADYN C++20", "SIMD AVX2 Ativo", "#f59e0b"),
-        ]
-
-        for key, default_title, value, color in kpis:
+        for key, default_title, color_token in _KPIS:
             card = QtWidgets.QFrame()
             card.setObjectName("KpiCard")
             card_lay = QtWidgets.QVBoxLayout(card)
             card_lay.setContentsMargins(12, 10, 12, 10)
             card_lay.setSpacing(4)
-
             lbl_t = QtWidgets.QLabel(tr(f"test_report.{key}", default_title))
             lbl_t.setObjectName("KpiTitle")
             lbl_t.setStyleSheet("font-size: 10px; font-weight: bold;")
-
-            lbl_v = QtWidgets.QLabel(value)
+            lbl_v = QtWidgets.QLabel(_NOT_RUN)
             lbl_v.setObjectName("KpiValue")
-            lbl_v.setStyleSheet(f"font-size: 16px; font-weight: 800; color: {color};")
-
+            lbl_v.setStyleSheet(f"font-size: 16px; font-weight: 800; color: {tm.get_color(color_token)};")
             card_lay.addWidget(lbl_t)
             card_lay.addWidget(lbl_v)
             kpi_layout.addWidget(card)
-            self.kpi_cards.append((card, lbl_t, key, default_title))
+            self.kpi_cards.append((card, lbl_t, lbl_v, key, default_title))
 
         self.content_layout.addLayout(kpi_layout)
 
         # ── 3. Tabela de Módulos Auditados ──────────────────────────────────
-        self.table = QtWidgets.QTableWidget(8, 3)
-        self.table.setHorizontalHeaderLabels(["Módulo / Subsistema", "Status", "Cobertura"])
+        self.table = QtWidgets.QTableWidget(len(SECTIONS), 3)
         self.table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
@@ -173,6 +129,7 @@ class TestReportDialog(BaseFramelessDialog):
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table.setFixedHeight(175)
 
+        self._set_table_headers()
         self._populate_module_table()
         self.content_layout.addWidget(self.table)
 
@@ -214,41 +171,55 @@ class TestReportDialog(BaseFramelessDialog):
         self.content_layout.addLayout(footer)
 
     def _populate_module_table(self) -> None:
+        """Seções com o resultado medido (ou "—" antes de executar)."""
         self.table.setRowCount(0)
-        modules = [
-            ("section_native", "1. Motor Nativo ALADYN C++20", "APROVADO", "100% (SIMD / Tiles 64×64)"),
-            ("section_arccc", "2. Arquitetura ARCcC & Invariantes AST", "APROVADO", "100% (Zero Violações)"),
-            ("section_layers", "3. Camadas & Grupos Hierárquicos", "APROVADO", "100% (14 Testes)"),
-            ("section_mdi", "4. Multi-Documento MDI & Memória", "APROVADO", "100% (Instâncias Isoladas)"),
-            ("section_selection", "5. Sistema de Seleção & Transformação", "APROVADO", "100% (Bicúbica / Laço)"),
-            ("section_themes", "6. Sistema de Temas & Dinamismo QSS", "APROVADO", "100% (4 Temas Ativos)"),
-            ("section_i18n", "7. Sistema de Internacionalização (i18n)", "APROVADO", "100% (4 Catálogos)"),
-            ("section_ui", "8. Diálogos de UI & MenuBar", "APROVADO", "100% (Reatividade Total)"),
-        ]
-
         tm = ThemeManager.instance()
-        text_main = tm.get_color("text_main", "#f8fafc")
-        text_sec = tm.get_color("text_sec", "#94a3b8")
-
-        for key, default_title, status, coverage in modules:
+        report = self._report
+        for key, default_title, _prefixes in SECTIONS:
             row = self.table.rowCount()
             self.table.insertRow(row)
             self.table.setRowHeight(row, 24)
-
             item_mod = QtWidgets.QTableWidgetItem(f" {tr(f'test_report.{key}', default_title)}")
-            item_mod.setForeground(QtGui.QBrush(QtGui.QColor(text_main)))
+            item_mod.setForeground(QtGui.QBrush(QtGui.QColor(tm.get_color("text_main"))))
             self.table.setItem(row, 0, item_mod)
 
+            counts = report.sections[key] if report is not None else None
+            if counts is None or counts.total == 0:
+                status, detail, color, icon = _NOT_RUN, _NOT_RUN, tm.get_color("text_sec"), None
+            elif counts.failed:
+                status, color, icon = tr("test_report.failed", "FALHOU"), tm.get_color("DANGER"), "warning"
+                detail = self._counts_text(counts)
+            else:
+                status, color, icon = tr("test_report.passed", "APROVADO"), tm.get_color("SUCCESS"), "check_circle"
+                detail = self._counts_text(counts)
             item_st = QtWidgets.QTableWidgetItem(status)
             item_st.setTextAlignment(QtCore.Qt.AlignCenter)
-            item_st.setForeground(QtGui.QBrush(QtGui.QColor(tm.get_color("SUCCESS", "#10b981"))))
-            item_st.setIcon(get_icon("check_circle", tm.get_color("SUCCESS", "#10b981")))
+            item_st.setForeground(QtGui.QBrush(QtGui.QColor(color)))
+            if icon:
+                item_st.setIcon(get_icon(icon, color))
             self.table.setItem(row, 1, item_st)
+            item_res = QtWidgets.QTableWidgetItem(detail)
+            item_res.setTextAlignment(QtCore.Qt.AlignCenter)
+            item_res.setForeground(QtGui.QBrush(QtGui.QColor(tm.get_color("text_sec"))))
+            self.table.setItem(row, 2, item_res)
 
-            item_cov = QtWidgets.QTableWidgetItem(coverage)
-            item_cov.setTextAlignment(QtCore.Qt.AlignCenter)
-            item_cov.setForeground(QtGui.QBrush(QtGui.QColor(text_sec)))
-            self.table.setItem(row, 2, item_cov)
+    @staticmethod
+    def _counts_text(counts) -> str:
+        return tr("test_report.result_fmt", "{passed} de {ran} passaram").format(
+            passed=counts.passed, ran=counts.passed + counts.failed)
+
+    def _show_kpis(self) -> None:
+        report = self._report
+        values = (_NOT_RUN,) * 4 if report is None else (
+            str(report.total.total), f"{report.pass_rate:.1f}%", str(report.total.failed), str(report.total.skipped))
+        for (_card, _title, lbl_value, _key, _default), value in zip(self.kpi_cards, values):
+            lbl_value.setText(value)
+
+    def show_report(self, report: SuiteReport | None) -> None:
+        """Mostra um resultado medido (None volta para "não executado")."""
+        self._report = report
+        self._show_kpis()
+        self._populate_module_table()
 
     def _start_tests(self) -> None:
         if self._runner_thread and self._runner_thread.isRunning():
@@ -268,9 +239,13 @@ class TestReportDialog(BaseFramelessDialog):
         self.txt_log.insertPlainText(line)
         self.txt_log.ensureCursorVisible()
 
-    def _on_tests_finished(self, exit_code: int) -> None:
+    def _on_tests_finished(self, exit_code: int, junit_path: str) -> None:
         self.btn_run.setEnabled(True)
         self.btn_run.setText(f" {tr('test_report.run_tests', 'Executar Suíte de Testes')}")
+        if junit_path and os.path.getsize(junit_path) > 0:
+            self.show_report(parse_junit(junit_path))
+        if junit_path:
+            os.remove(junit_path)
         if exit_code == 0:
             self.txt_log.appendPlainText("\nTODOS OS TESTES FORAM CONCLUÍDOS COM 100% DE SUCESSO!\n")
         else:
@@ -295,30 +270,26 @@ class TestReportDialog(BaseFramelessDialog):
     def retranslate_ui(self) -> None:
         title = tr("test_report.title", "Relatório de Testes & Verificação do Sistema")
         self.setWindowTitle(title)
-        if hasattr(self, "title_bar") and self.title_bar:
-            self.title_bar.set_title(title)
-        if hasattr(self, "lbl_subtitle"):
-            self.lbl_subtitle.setText(
-                tr("test_report.subtitle", "Validação Executiva do Motor ALADYN C++20 e Arquitetura ARCcC")
-            )
-        if hasattr(self, "lbl_lang"):
-            self.lbl_lang.setText(tr("test_report.language", "Idioma do Relatório:"))
-        if hasattr(self, "lbl_log_title"):
-            self.lbl_log_title.setText(tr("test_report.log_output", "Console de Execução em Tempo Real"))
-        if hasattr(self, "btn_run"):
-            self.btn_run.setText(f" {tr('test_report.run_tests', 'Executar Suíte de Testes')}")
-        if hasattr(self, "btn_close"):
-            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self.title_bar.set_title(title)
+        self.lbl_subtitle.setText(
+            tr("test_report.subtitle", "Validação Executiva do Motor ALADYN C++20 e Arquitetura ARCcC")
+        )
+        self.lbl_lang.setText(tr("test_report.language", "Idioma do Relatório:"))
+        self.lbl_log_title.setText(tr("test_report.log_output", "Console de Execução em Tempo Real"))
+        self.btn_run.setText(f" {tr('test_report.run_tests', 'Executar Suíte de Testes')}")
+        self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
-        for card, lbl_t, key, default_title in self.kpi_cards:
+        for _card, lbl_t, _value, key, default_title in self.kpi_cards:
             lbl_t.setText(tr(f"test_report.{key}", default_title))
+        self._set_table_headers()
+        self._populate_module_table()
 
+    def _set_table_headers(self) -> None:
         self.table.setHorizontalHeaderLabels([
             tr("dialogs.module_col", "Módulo / Subsistema"),
             tr("dialogs.status_col", "Status"),
-            tr("dialogs.coverage_col", "Cobertura"),
+            tr("test_report.result_col", "Resultado"),
         ])
-        self._populate_module_table()
 
     def _apply_theme(self, *args) -> None:
         tm = ThemeManager.instance()
@@ -332,18 +303,17 @@ class TestReportDialog(BaseFramelessDialog):
         accent = tm.get_color("accent", "#3b82f6")
         accent_hover = tm.get_color("accent_hover", "#60a5fa")
 
-        if hasattr(self, "root_container") and self.root_container:
-            self.root_container.setStyleSheet(f"""
-                QWidget#DialogRootContainer {{
-                    background-color: {bg_main};
-                    border: 1px solid {border};
-                    border-radius: 10px;
-                }}
-                QFrame#DialogHeaderSep {{
-                    background-color: {border};
-                    border: none;
-                }}
-            """)
+        self.root_container.setStyleSheet(f"""
+            QWidget#DialogRootContainer {{
+                background-color: {bg_main};
+                border: 1px solid {border};
+                border-radius: 10px;
+            }}
+            QFrame#DialogHeaderSep {{
+                background-color: {border};
+                border: none;
+            }}
+        """)
 
         self.setStyleSheet(f"""
             QLabel {{ color: {text_main}; }}
@@ -423,10 +393,7 @@ class TestReportDialog(BaseFramelessDialog):
                 background-color: {accent_hover};
             }}
         """)
-        if hasattr(self, "lbl_subtitle"):
-            self.lbl_subtitle.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {text_sec};")
-        if hasattr(self, "lbl_lang"):
-            self.lbl_lang.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_sec};")
-        if hasattr(self, "lbl_log_title"):
-            self.lbl_log_title.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_sec};")
+        self.lbl_subtitle.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {text_sec};")
+        self.lbl_lang.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_sec};")
+        self.lbl_log_title.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_sec};")
         self._populate_module_table()

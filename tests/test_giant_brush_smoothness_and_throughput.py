@@ -14,12 +14,23 @@ import unittest
 import numpy as np
 import aladyn_engine_native as aen
 
-# Tempo de relógio numa máquina compartilhada (CI) varia com o agendador do
-# sistema: uma execução só chegou a 53-62 ms contra 8-11 ms das seguintes, no
-# mesmo binário (CI, 2026-09-24). O limite continua o mesmo; mede-se o MELHOR
-# de várias execuções, como o `timeit`: uma regressão real do motor sobe até o
-# melhor tempo, a interrupção do agendador não.
+# Limites de tempo de relógio: calibrados pela velocidade da máquina.
+#
+# Os limites (25 ms, 30 ms, 5 ms) valem para uma máquina de referência. Os
+# runners do CI são compartilhados e de hardware variável: o mesmo binário
+# levou 8-11 ms numa execução e 39-62 ms em outras, e em 2026-09-24 um runner
+# ficou acima de 39 ms nas 5 repetições seguidas -- o "melhor de 5" (que já
+# absorve interrupções isoladas do agendador) não absorve máquina lenta.
+#
+# Por isso cada limite é multiplicado pelo fator da máquina: o melhor tempo de
+# um trabalho de referência fixo (numpy, CPU e memória, sem o motor) dividido
+# pelo tempo dele na máquina de referência. Máquina lenta: os dois tempos
+# sobem juntos. Regressão do motor: só o traço sobe, e o teste falha. O fator
+# nunca é menor que 1 (máquina rápida não aperta o limite) e tem teto
+# (_FATOR_MAXIMO): acima dele o ambiente está anormal e o teste deve falhar.
 _REPETICOES = 5
+_CALIBRACAO_REFERENCIA_MS = 5.0  # medido no container Linux de referência (4,7 ms)
+_FATOR_MAXIMO = 8.0
 
 
 def _melhor_tempo_ms(tracar) -> float:
@@ -29,6 +40,27 @@ def _melhor_tempo_ms(tracar) -> float:
         tracar()
         melhor = min(melhor, (time.perf_counter() - t0) * 1000.0)
     return melhor
+
+
+def _calibracao():
+    rng = np.random.default_rng(0)
+    a = rng.random((512, 512, 4), dtype=np.float32)
+    b = rng.random((512, 512, 4), dtype=np.float32)
+    saida = np.empty_like(a)
+
+    def trabalho():
+        for _ in range(4):
+            np.multiply(a, 0.3, out=saida)
+            np.add(saida, b * 0.7, out=saida)
+            np.clip(saida, 0.0, 1.0, out=saida)
+
+    return trabalho
+
+
+def fator_da_maquina() -> float:
+    """Quantas vezes esta máquina é mais lenta que a de referência (>= 1, com teto)."""
+    medido = _melhor_tempo_ms(_calibracao())
+    return min(_FATOR_MAXIMO, max(1.0, medido / _CALIBRACAO_REFERENCIA_MS))
 
 
 class TestGiantBrushSmoothnessAndThroughput(unittest.TestCase):
@@ -109,11 +141,13 @@ class TestGiantBrushSmoothnessAndThroughput(unittest.TestCase):
             self.facade.end_stroke_raw()
 
         total_time_ms = _melhor_tempo_ms(tracar)
+        fator = fator_da_maquina()
 
-        # 15 eventos de movimento com pincel de 500px devem executar em menos de 25ms
+        # 15 eventos de movimento com pincel de 500px: menos de 25ms na máquina de referência
         self.assertLess(
-            total_time_ms, 25.0,
-            f"Tempo total do traço de 500px ({total_time_ms:.2f}ms) excedeu o limite de alta fluidez"
+            total_time_ms, 25.0 * fator,
+            f"Tempo total do traço de 500px ({total_time_ms:.2f}ms) excedeu o limite de alta fluidez "
+            f"(25ms × fator da máquina {fator:.2f})"
         )
 
     def test_03_analytic_shape_preview_buffer(self):
@@ -165,10 +199,12 @@ class TestGiantBrushSmoothnessAndThroughput(unittest.TestCase):
             relogio["t"] = t
 
         total_ms = _melhor_tempo_ms(tracar)
+        fator = fator_da_maquina()
 
         self.assertLess(
-            total_ms, 30.0,
-            f"200 eventos a 773 Hz levaram {total_ms:.2f}ms (esperado < 30ms para fluidez de 120 FPS)"
+            total_ms, 30.0 * fator,
+            f"200 eventos a 773 Hz levaram {total_ms:.2f}ms (esperado < 30ms × fator da máquina "
+            f"{fator:.2f} para fluidez de 120 FPS)"
         )
 
         snap = self.facade.get_telemetry_snapshot()
@@ -236,10 +272,12 @@ class TestGiantBrushSmoothnessAndThroughput(unittest.TestCase):
 
         snap = facade.get_telemetry_snapshot()
         self.assertIsNotNone(snap)
-        # O último composite time deve ser muito rápido (< 5.0 ms / 5000 µs)
+        # O último composite time deve ser muito rápido (< 5.0 ms na máquina de referência)
+        fator = fator_da_maquina()
         self.assertLess(
-            snap.time_composite_us, 5000.0,
-            f"Tempo de composição ({snap.time_composite_us:.1f} µs) excedeu o teto de 5ms para traço horizontal multi-tile"
+            snap.time_composite_us, 5000.0 * fator,
+            f"Tempo de composição ({snap.time_composite_us:.1f} µs) excedeu o teto de 5ms × fator da "
+            f"máquina {fator:.2f} para traço horizontal multi-tile"
         )
 
     def test_07_centripetal_catmull_rom_spline_circular_accuracy(self):

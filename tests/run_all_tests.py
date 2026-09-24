@@ -32,6 +32,7 @@ if PROJECT_ROOT not in sys.path:
 SUITE_TARGETS = {
     "smoke": (
         "test_arccc_architecture_invariants.py",
+        "test_arccc_coupling_ratchet.py",
         "test_backend_capabilities.py",
         "test_config_schema.py",
         "test_engine_benchmark_runner.py",
@@ -42,6 +43,7 @@ SUITE_TARGETS = {
     ),
     "contract": (
         "test_arccc_architecture_invariants.py",
+        "test_arccc_coupling_ratchet.py",
         "test_backend_capabilities.py",
         "test_buffer_contract.py",
         "test_config_manager.py",

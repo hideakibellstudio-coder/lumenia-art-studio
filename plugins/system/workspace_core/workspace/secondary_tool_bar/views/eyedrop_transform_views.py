@@ -11,7 +11,7 @@ from ui.core.tools import ToolCommand
 from ui.core.widgets.tool_options import SAMPLE_RADII
 
 from .base import (
-    OrientedOptionsView, VALUE_LABEL_STYLE, combo, header_row, icon_label, paint_swatch, set_checked,
+    OrientedOptionsView, Text, VALUE_LABEL_STYLE, combo, header_row, icon_label, paint_swatch, set_checked,
     set_combo_items, toggle, tool_button,
 )
 
@@ -27,7 +27,7 @@ class EyedropOptionsView(OrientedOptionsView):
     def build(self, layout):
         v = self.vertical
         if v:
-            layout.addLayout(header_row("eyedrop", "CONTA-GOTAS")[0])
+            layout.addLayout(header_row(self, "eyedrop", Text("secondary_bar.eyedrop_title", "CONTA-GOTAS"))[0])
         else:
             layout.addWidget(icon_label("eyedrop"))
         self.cbo_sample = combo()
@@ -40,7 +40,7 @@ class EyedropOptionsView(OrientedOptionsView):
         layout.addWidget(self.btn_merged)
         if v:
             row = QtWidgets.QHBoxLayout()
-            row.addWidget(QtWidgets.QLabel("Cor:"))
+            row.addWidget(self.label(Text("tool_options.color", "Cor:")))
             row.addWidget(self.swatch)
             row.addWidget(self.lbl_hex)
             row.addStretch()
@@ -90,12 +90,11 @@ class TransformOptionsView(OrientedOptionsView):
         self.btn_flip_h, self.btn_flip_v, self.btn_rot_90 = tool_button(), tool_button(), tool_button()
         self.btn_aspect, self.btn_distort = toggle(), toggle()
         self.cbo_interp = combo()
-        self.lbl_title = self.lbl_interp = None
 
         if v:
-            self.lbl_title = QtWidgets.QLabel()
-            self.lbl_title.setProperty("heading", "true")
-            layout.addWidget(self.lbl_title)
+            title = self.label(Text("transform.title", "TRANSFORMAÇÃO"))
+            title.setProperty("heading", "true")
+            layout.addWidget(title)
             for row_widgets in ((self.btn_commit, self.btn_cancel), (self.btn_flip_h, self.btn_flip_v),
                                 (self.btn_rot_90, self.btn_aspect, self.btn_distort)):
                 row = QtWidgets.QHBoxLayout()
@@ -104,9 +103,9 @@ class TransformOptionsView(OrientedOptionsView):
                 layout.addLayout(row)
             layout.addWidget(self.cbo_interp)
         else:
-            self.lbl_interp = QtWidgets.QLabel()
+            interp = self.label(Text("transform.interp", "Interp:"))
             for w in (self.btn_commit, self.btn_cancel, self.btn_flip_h, self.btn_flip_v, self.btn_rot_90,
-                      self.lbl_interp, self.cbo_interp, self.btn_aspect, self.btn_distort):
+                      interp, self.cbo_interp, self.btn_aspect, self.btn_distort):
                 layout.addWidget(w)
 
         commands = {
@@ -134,14 +133,11 @@ class TransformOptionsView(OrientedOptionsView):
         self.btn_flip_v.setText(tr("transform.flip_v", "Espelhar V"))
         self.btn_rot_90.setText(tr("transform.rotate_90", "Girar 90°"))
         # Na vertical a coluna é estreita: o rótulo curto cabe, o longo não.
-        self.btn_aspect.setText("Proporção" if self.vertical else tr("transform.lock_aspect", "Travar Proporção"))
+        self.btn_aspect.setText(tr("secondary_bar.aspect_short", "Proporção") if self.vertical
+                                else tr("transform.lock_aspect", "Travar Proporção"))
         self.btn_aspect.setToolTip(tr("tool_options.lock_aspect", "Travar Proporções"))
         self.btn_distort.setText(tr("tools.transform_distort", "Distorcer"))
         self.btn_distort.setToolTip(tr("tool_options.distort_tip", "Arraste cada canto livremente (perspectiva)"))
-        if self.lbl_title is not None:
-            self.lbl_title.setText(tr("transform.title", "TRANSFORMAÇÃO"))
-        if self.lbl_interp is not None:
-            self.lbl_interp.setText(tr("transform.interp", "Interp:"))
         set_combo_items(self.cbo_interp, [
             tr("transform.interp_nearest", "Mais Próximo"),
             tr("transform.interp_bilinear", "Bilinear"),

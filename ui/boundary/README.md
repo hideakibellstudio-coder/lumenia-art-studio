@@ -1,6 +1,6 @@
 # `ui/boundary/` — casca da aplicação
 
-**Responsabilidade:** agrupa a camada mais externa da interface: a janela principal, o boot e (no futuro) a API pública para plugins de terceiros.
+**Responsabilidade:** agrupa a camada mais externa da interface: a janela principal e o boot (`orchestrator/`).
 
 ## Porta de entrada
 

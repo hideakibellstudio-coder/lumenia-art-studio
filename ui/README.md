@@ -17,8 +17,7 @@
 
 - Subpastas: `boundary/` (casca: janela principal e boot), `core/` (núcleo
   compartilhado por casca e plugins), `engine_backends/` (único lugar que fala
-  com o motor nativo), `infrastructure/` (logging e a fachada antiga do motor),
-  `utils/` (funções puras).
+  com o motor nativo) e `infrastructure/` (logging).
 - `ui/` nunca importa `plugins/` (catraca `reverse_import` em
   `tests/arccc_coupling_metrics.py`). Plugins importam o núcleo, nunca o contrário.
 

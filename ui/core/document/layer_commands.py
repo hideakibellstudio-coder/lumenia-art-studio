@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Callable, Optional
 
 from ui.core.engine.registry import EngineRegistry
+from ui.core.i18n import tr
 from ui.core.plugins.canvas_access import request_canvas_repaint
 
 from .history import layer_transaction
@@ -52,43 +53,43 @@ class LayerCommands:
         manager = self.layer_manager
         layer_name = name or f"Camada {len(manager.layers) + 1}"
         manager.add_layer(layer_name)
-        self.show_status(f"Camada '{layer_name}' criada.")
+        self.show_status(tr("status.layer_created", "Camada '{name}' criada.", name=layer_name))
 
     @layer_transaction
     def add_group(self, name: Optional[str] = None) -> None:
         group_name = name or "Novo Grupo"
         self.layer_manager.add_group(group_name)
-        self.show_status(f"Grupo '{group_name}' criado com sucesso.")
+        self.show_status(tr("status.group_created", "Grupo '{name}' criado com sucesso.", name=group_name))
 
     @layer_transaction
     def delete_active(self) -> None:
         layer = self.layer_manager.get_active_layer()
         if layer and self.layer_manager.remove_layer(layer.uid):
-            self.show_status(f"Camada '{layer.name}' removida.")
+            self.show_status(tr("status.layer_removed", "Camada '{name}' removida.", name=layer.name))
 
     @layer_transaction
     def duplicate_active(self) -> None:
         layer = self.layer_manager.get_active_layer()
         if layer and self.layer_manager.duplicate_layer(layer.uid):
-            self.show_status(f"Camada '{layer.name}' duplicada com sucesso.")
+            self.show_status(tr("status.layer_duplicated", "Camada '{name}' duplicada com sucesso.", name=layer.name))
 
     @layer_transaction
     def merge_active_down(self) -> None:
         layer = self.layer_manager.get_active_layer()
         if layer and self.layer_manager.merge_down(layer.uid):
-            self.show_status(f"Camada '{layer.name}' fundida para baixo.")
+            self.show_status(tr("status.layer_merged_down", "Camada '{name}' fundida para baixo.", name=layer.name))
 
     @layer_transaction
     def move_active_up(self) -> None:
         layer = self.layer_manager.get_active_layer()
         if layer and self.layer_manager.move_layer_up(layer.uid):
-            self.show_status(f"Camada '{layer.name}' movida para cima.")
+            self.show_status(tr("status.layer_moved_up", "Camada '{name}' movida para cima.", name=layer.name))
 
     @layer_transaction
     def move_active_down(self) -> None:
         layer = self.layer_manager.get_active_layer()
         if layer and self.layer_manager.move_layer_down(layer.uid):
-            self.show_status(f"Camada '{layer.name}' movida para baixo.")
+            self.show_status(tr("status.layer_moved_down", "Camada '{name}' movida para baixo.", name=layer.name))
 
     @layer_transaction
     def rename(self, uid: int, name: str) -> None:
@@ -99,12 +100,12 @@ class LayerCommands:
         manager = self.layer_manager
         layer = manager.get_active_layer()
         if layer and layer.is_group and manager.flatten_group(manager.active_index):
-            self.show_status("Grupo achatado com sucesso.")
+            self.show_status(tr("status.group_flattened", "Grupo achatado com sucesso."))
 
     @layer_transaction
     def flatten_image(self) -> None:
         if self.layer_manager.flatten_image():
-            self.show_status("Imagem achatada completamente.")
+            self.show_status(tr("status.image_flattened", "Imagem achatada completamente."))
 
     # ── Pixels ────────────────────────────────────────────────────────────
 
@@ -114,14 +115,14 @@ class LayerCommands:
         if not layer:
             return
         if layer.locked:
-            self.show_status("A camada está bloqueada e não pode ser limpa.")
+            self.show_status(tr("status.layer_locked_cannot_clear", "A camada está bloqueada e não pode ser limpa."))
             return
         backend = EngineRegistry.instance().get_backend()
         if backend is not None:
             backend.clear_layer(self.layer_manager.active_index)
             request_canvas_repaint()
             self.layer_manager.request_thumbnails([layer.uid])
-        self.show_status(f"Conteúdo de '{layer.name}' limpo.")
+        self.show_status(tr("status.layer_cleared", "Conteúdo de '{name}' limpo.", name=layer.name))
 
     # ── Propriedades ──────────────────────────────────────────────────────
 
@@ -149,14 +150,17 @@ class LayerCommands:
         manager.set_layer_visibility(idx, visible)
         manager.set_alpha_lock(idx, alpha_locked)
         manager.set_clipping_mask(idx, clipping)
-        self.show_status("Propriedades da camada atualizadas.")
+        self.show_status(tr("status.layer_props_updated", "Propriedades da camada atualizadas."))
 
     @layer_transaction
     def toggle_visibility(self, uid: int) -> None:
         layer, idx = self._layer_and_index(uid)
         if layer:
             self.layer_manager.set_layer_visibility(idx, not layer.visible)
-            self.show_status(f"Camada '{layer.name}' {'visível' if layer.visible else 'oculta'}.")
+            if layer.visible:
+                self.show_status(tr("status.layer_shown", "Camada '{name}' visível.", name=layer.name))
+            else:
+                self.show_status(tr("status.layer_hidden", "Camada '{name}' oculta.", name=layer.name))
 
     @layer_transaction
     def toggle_lock(self, uid: int) -> None:
@@ -169,14 +173,20 @@ class LayerCommands:
         layer, idx = self._layer_and_index(uid)
         if layer:
             self.layer_manager.set_alpha_lock(idx, not layer.alpha_locked)
-            self.show_status(f"Alpha Lock em '{layer.name}': {'Ativado' if layer.alpha_locked else 'Desativado'}")
+            if layer.alpha_locked:
+                self.show_status(tr("status.alpha_lock_on", "Alpha Lock em '{name}': Ativado", name=layer.name))
+            else:
+                self.show_status(tr("status.alpha_lock_off", "Alpha Lock em '{name}': Desativado", name=layer.name))
 
     @layer_transaction
     def toggle_clipping_mask(self, uid: int) -> None:
         layer, idx = self._layer_and_index(uid)
         if layer:
             self.layer_manager.set_clipping_mask(idx, not layer.clipping_mask)
-            self.show_status(f"Clipping Mask em '{layer.name}': {'Ativado' if layer.clipping_mask else 'Desativado'}")
+            if layer.clipping_mask:
+                self.show_status(tr("status.clipping_on", "Clipping Mask em '{name}': Ativado", name=layer.name))
+            else:
+                self.show_status(tr("status.clipping_off", "Clipping Mask em '{name}': Desativado", name=layer.name))
 
     def active_uid(self) -> Optional[int]:
         """UID da camada ativa do gerenciador (para os comandos de alternar)."""

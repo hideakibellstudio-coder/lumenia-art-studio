@@ -10,11 +10,20 @@ A barra tem uma view por orientação para cada ferramenta; as duas não se
 conhecem e ficam iguais porque mostram o mesmo estado. Até 2026-09-24 cada
 handler copiava o valor da versão horizontal para a vertical
 (`for sld in (getattr(self, "slider_x_h", None), getattr(self, "slider_x_v", None))`).
+
+Textos: texto fixo (título, rótulo de slider) é declarado junto do widget
+com `Text(chave, padrão)` e `view.translate`, e troca sozinho quando o idioma
+muda; `retranslate_ui` fica para o que depende de estado (itens de combo,
+rótulo que muda com a ferramenta). Até 2026-09-24 os títulos e rótulos
+destas views eram literais em pt-BR e não mudavam com o idioma.
 """
 from __future__ import annotations
 
+from typing import Callable, NamedTuple
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.core.i18n import I18nManager, tr
 from ui.core.icons import get_icon
 from ui.core.state import ToolState
 from ui.core.widgets.tool_options import ToolOptionsView
@@ -23,10 +32,17 @@ VALUE_LABEL_STYLE = "font-size: 11px; font-weight: bold;"
 _SWATCH_STYLE = "background: {color}; border-radius: 4px; border: 1px solid rgba(255,255,255,{alpha});"
 
 
+class Text(NamedTuple):
+    """Texto fixo traduzível: chave do locale e padrão em pt-BR."""
+    key: str
+    default: str
+
+
 class OrientedOptionsView(ToolOptionsView):
     def __init__(self, tool_state: ToolState, key: str, orientation: QtCore.Qt.Orientation,
                  parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(tool_state, key, parent)
+        self._texts: list[tuple[Callable[[str], None], Text]] = []
         self.vertical = orientation == QtCore.Qt.Vertical
         if self.vertical:
             layout = QtWidgets.QVBoxLayout(self)
@@ -43,6 +59,24 @@ class OrientedOptionsView(ToolOptionsView):
     def build(self, layout: QtWidgets.QBoxLayout) -> None:
         raise NotImplementedError
 
+    def translate(self, setter: Callable[[str], None], text: Text) -> None:
+        """Aplica `text` agora e de novo a cada troca de idioma."""
+        self._texts.append((setter, text))
+        setter(tr(text.key, text.default))
+
+    def label(self, text: Text) -> QtWidgets.QLabel:
+        label = QtWidgets.QLabel()
+        self.translate(label.setText, text)
+        return label
+
+    def bind(self) -> None:
+        I18nManager.instance().languageChanged.connect(self._retranslate_texts)
+        super().bind()
+
+    def _retranslate_texts(self) -> None:
+        for setter, text in self._texts:
+            setter(tr(text.key, text.default))
+
 
 # ── Fábricas dos widgets que todas as views usam ─────────────────────────────
 
@@ -53,11 +87,12 @@ def icon_label(icon: str) -> QtWidgets.QLabel:
     return label
 
 
-def header_row(icon: str, title: str) -> tuple[QtWidgets.QHBoxLayout, QtWidgets.QLabel, QtWidgets.QLabel]:
+def header_row(view: OrientedOptionsView, icon: str,
+               title: Text) -> tuple[QtWidgets.QHBoxLayout, QtWidgets.QLabel, QtWidgets.QLabel]:
     """Cabeçalho da orientação vertical: ícone + título em destaque."""
     row = QtWidgets.QHBoxLayout()
     icon_lbl = icon_label(icon)
-    title_lbl = QtWidgets.QLabel(title)
+    title_lbl = view.label(title)
     title_lbl.setProperty("heading", "true")
     row.addWidget(icon_lbl)
     row.addWidget(title_lbl)
@@ -79,10 +114,10 @@ def slider(low: int, high: int, width: int | None = None) -> QtWidgets.QSlider:
     return s
 
 
-def add_slider(view: OrientedOptionsView, caption: str, s: QtWidgets.QSlider, value_lbl: QtWidgets.QLabel,
-               caption_lbl: QtWidgets.QLabel | None = None) -> QtWidgets.QLabel:
+def add_slider(view: OrientedOptionsView, caption: Text, s: QtWidgets.QSlider,
+               value_lbl: QtWidgets.QLabel) -> QtWidgets.QLabel:
     """Horizontal: rótulo, slider, valor na mesma linha. Vertical: rótulo e valor, slider embaixo."""
-    caption_lbl = caption_lbl or QtWidgets.QLabel(caption)
+    caption_lbl = view.label(caption)
     layout = view.layout_
     if view.vertical:
         row = QtWidgets.QHBoxLayout()

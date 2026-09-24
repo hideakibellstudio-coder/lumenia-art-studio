@@ -10,6 +10,7 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `eyedrop_tool_controller.py` | Eyedropper Tool and Color Sampling Controller. |
 | `geometry_engine_sync.py` | `push_guides`/`push_symmetry`: escritor único de guias e simetria no motor (contrato `EngineBackend`, sem `hasattr`). |
 | `geometry_native_snap.py` | `NativeGeometrySnap`: snap de perspectiva e curvilíneo pelo motor C++ (toggle `LUMENIA_SNAP_NATIVE_*`), com o próprio estado de trava e âncoras. |

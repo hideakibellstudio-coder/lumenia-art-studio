@@ -17,7 +17,7 @@ from ui.core.widgets.compact_slider import CompactSlider
 from ui.core.widgets.shape_dropdown import ShapeDropdown
 
 from .base import (
-    OrientedOptionsView, color_button, header_row, paint_swatch, set_combo_items, set_value, slider,
+    OrientedOptionsView, Text, color_button, header_row, paint_swatch, set_combo_items, set_value, slider,
     value_label, combo,
 )
 
@@ -41,9 +41,10 @@ class ShapesOptionsView(OrientedOptionsView):
 
     def build(self, layout):
         v = self.vertical
-        self.lbl_icon = self.lbl_title = None
+        self.lbl_icon = None
         if v:
-            row, self.lbl_icon, self.lbl_title = header_row("shape_line", "")
+            row, self.lbl_icon, _ = header_row(
+                self, "shape_line", Text("tool_options.shapes_title", "FORMAS VETORIAIS"))
             layout.addLayout(row)
         self.shape_dropdown = ShapeDropdown()
         self.cbo_mode = combo()
@@ -113,13 +114,15 @@ class ShapesOptionsView(OrientedOptionsView):
             self.publish(**{extra[0]: value})
 
     def _pick_stroke_color(self) -> None:
-        color = QtWidgets.QColorDialog.getColor(self.options()["stroke_color"], self, "Cor de Contorno")
+        color = QtWidgets.QColorDialog.getColor(
+            self.options()["stroke_color"], self, tr("secondary_bar.stroke_color", "Cor de Contorno"))
         if color.isValid():
             self.publish(stroke_color=color)
 
     def _pick_fill_color(self) -> None:
         color = QtWidgets.QColorDialog.getColor(
-            self.options()["fill_color"], self, "Cor de Preenchimento", QtWidgets.QColorDialog.ShowAlphaChannel)
+            self.options()["fill_color"], self, tr("secondary_bar.fill_color", "Cor de Preenchimento"),
+            QtWidgets.QColorDialog.ShowAlphaChannel)
         if color.isValid():
             self.publish(fill_color=color, fill_opacity=color.alphaF())
 
@@ -164,7 +167,6 @@ class ShapesOptionsView(OrientedOptionsView):
         if self.vertical:
             self.slider_stroke.setPrefix(tr("tool_options.stroke", "Traço:"))
             self.slider_opacity.setPrefix(tr("tool_options.fill_opacity", "Opac. Fundo:"))
-            self.lbl_title.setText(tr("tool_options.shapes_title", "FORMAS VETORIAIS"))
         else:
             self.lbl_stroke.setText(tr("tool_options.stroke", "Traço:"))
             self.lbl_opacity.setText(tr("tool_options.opacity", "Opac:"))

@@ -1,4 +1,4 @@
-"""Toda chave literal passada a tr(...) em ui/ e plugins/ existe nos 4 locales.
+"""Toda chave literal passada a tr(...) ou Text(...) em ui/ e plugins/ existe nos 4 locales.
 
 Sem isto, uma chave nova cai no texto padrão em português para TODOS os
 idiomas -- foi o caso de 25 chaves em 2026-09-22 (menus de escala, telemetria,
@@ -32,7 +32,7 @@ def _chaves_usadas() -> dict[str, str]:
             if "__pycache__" in path.parts:
                 continue
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-                if (isinstance(node, ast.Call) and getattr(node.func, "id", None) == "tr"
+                if (isinstance(node, ast.Call) and getattr(node.func, "id", None) in ("tr", "Text")
                         and node.args and isinstance(node.args[0], ast.Constant)
                         and isinstance(node.args[0].value, str)):
                     usadas.setdefault(node.args[0].value, f"{path.relative_to(ROOT)}:{node.lineno}")

@@ -73,7 +73,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 
 ### Censo Atual (medido em 2026-09-24 com `wc -l` em `ui/` e `plugins/`):
 - **0 arquivos na Zona Vermelha e nenhuma exceção de LOC declarada.** Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
-- 306 verdes, 35 amarelos e **0 na parede** (430–449).
+- 313 verdes, 35 amarelos e **0 na parede** (430–449).
 - **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos.
 - **Dividir é por responsabilidade, não por tamanho.** O diagnóstico de
   2026-09-24 achou o teto de LOC "cumprido" com mixins e funções soltas que

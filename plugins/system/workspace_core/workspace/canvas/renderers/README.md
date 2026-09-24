@@ -10,6 +10,7 @@ Importar por módulo; os mais usados: `geometry_overlay_renderer.GeometryOverlay
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `canvas_background_renderer.py` | Canvas Background and Transparency Pattern Renderer. |
 | `geometry_overlay_renderer.py` | Geometry Overlay Renderer Facade. |
 | `overlay_renderer.py` | Canvas Overlays Renderer (Selection Marching Ants, Transform Gizmo, Shape Preview, Loupe HUD). |
@@ -24,7 +25,7 @@ Pintor recebe `QPainter` e dados; não guarda estado entre pinturas e não alter
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-Pasta sem `__init__.py`; os pintores são classes de métodos estáticos que recebem o widget inteiro em vez dos dados que usam.
+Os pintores são classes de métodos estáticos que recebem o widget inteiro em vez dos dados que usam.
 
 ## Dependências internas
 

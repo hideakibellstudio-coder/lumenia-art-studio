@@ -23,6 +23,12 @@
 
 Ver o README da pasta mãe (`secondary_tool_bar/`). Publicar só o campo editado; botões emitem `ToolCommand`.
 
+Texto fixo (título, rótulo de slider) nasce traduzível: `Text(chave, padrão)` passado a
+`header_row`, `add_slider`, `view.label` ou `view.translate`, que o reaplicam quando o idioma
+muda. `retranslate_ui` fica para o que depende de estado (itens de combo, rótulo que muda com a
+ferramenta). Nunca literal em português: `tests/test_i18n_keys_exist.py` confere as chaves de
+`tr(...)` e `Text(...)` nos 4 idiomas.
+
 ## Dependências internas
 
 Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre

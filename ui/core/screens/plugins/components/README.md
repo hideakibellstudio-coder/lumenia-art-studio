@@ -4,12 +4,13 @@
 
 ## Porta de entrada
 
-Importar por módulo (sem `__init__.py`): `plugin_card.PluginCard`, `plugin_inspector.PluginDetailsInspector`.
+Importar por módulo: `plugin_card.PluginCard`, `plugin_inspector.PluginDetailsInspector`.
 
 ## Arquivos
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `plugin_card.py` | PluginCard component for PluginsWindow. |
 | `plugin_inspector.py` | PluginDetailsInspector component for PluginsWindow. |
 

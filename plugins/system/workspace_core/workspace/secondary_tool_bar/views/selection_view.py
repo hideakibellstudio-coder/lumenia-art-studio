@@ -12,15 +12,16 @@ from PySide6 import QtWidgets
 from ui.core.i18n import tr
 
 from .base import (
-    OrientedOptionsView, add_slider, combo, header_row, icon_label, set_checked, set_combo_items,
+    OrientedOptionsView, Text, add_slider, combo, header_row, icon_label, set_checked, set_combo_items,
     set_value, slider, toggle, value_label,
 )
 from .fill_views import deselect_button, selection_modes
 
+_SELECTION = Text("secondary_bar.selection_title", "SELEÇÃO")
 _LOOK = {
-    "rect_select": ("select_rect", "SELEÇÃO"),
-    "ellipse_select": ("select_ellipse", "SELEÇÃO"),
-    "lasso": ("lasso", "LAÇO DE SELEÇÃO"),
+    "rect_select": ("select_rect", _SELECTION),
+    "ellipse_select": ("select_ellipse", _SELECTION),
+    "lasso": ("lasso", Text("secondary_bar.lasso_title", "LAÇO DE SELEÇÃO")),
 }
 
 
@@ -32,12 +33,12 @@ class SelectionOptionsView(OrientedOptionsView):
         v = self.vertical
         icon, title = _LOOK[self.key]
         if v:
-            layout.addLayout(header_row(icon, title)[0])
+            layout.addLayout(header_row(self, icon, title)[0])
         else:
             layout.addWidget(icon_label(icon))
         self.slider_feather = slider(0, 50, None if v else 50)
         self.lbl_feather_val = value_label("0px")
-        add_slider(self, "Feather:", self.slider_feather, self.lbl_feather_val)
+        add_slider(self, Text("secondary_bar.feather", "Suavização:"), self.slider_feather, self.lbl_feather_val)
 
         self.btn_aa = toggle()
         self.cbo_mode = combo()

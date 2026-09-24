@@ -12,6 +12,7 @@ from typing import Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.core.i18n import tr
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.restore import restore_document
@@ -69,7 +70,8 @@ class DocumentActions(ShellActions):
             self._brush_sync.resync()
         self._reset_view()
         prof_name = backend.get_color_profile_name(color_prof) if backend else "sRGB"
-        self._say(f"Novo documento '{name}' ({w}×{h} px, {dpi} DPI, {prof_name}) criado.", 3000)
+        self._say(tr("status.doc_created", "Novo documento '{name}' ({w}×{h} px, {dpi} DPI, {profile}) criado.",
+                     name=name, w=w, h=h, dpi=dpi, profile=prof_name), 3000)
 
     # ── Abrir ─────────────────────────────────────────────────────────────
 
@@ -90,7 +92,7 @@ class DocumentActions(ShellActions):
     def open_image(self, filename: str) -> None:
         qimg = QtGui.QImage(filename)
         if qimg.isNull():
-            self._say(f"Não foi possível ler a imagem '{filename}'.", 4000)
+            self._say(tr("status.image_read_failed", "Não foi possível ler a imagem '{name}'.", name=filename), 4000)
             return
         name = os.path.splitext(os.path.basename(filename))[0]
         width, height = qimg.width(), qimg.height()
@@ -102,7 +104,7 @@ class DocumentActions(ShellActions):
             backend.paste_rgba_buffer_on_active_layer(0, 0, width, height, raw_bytes)
         doc.mark_dirty("import_image")
         self._reset_view()
-        self._say(f"Imagem '{name}' ({width}x{height}) aberta com sucesso!", 3000)
+        self._say(tr("status.image_opened", "Imagem '{name}' ({w}×{h}) aberta.", name=name, w=width, h=height), 3000)
 
     def open_native_document(self, filename: str | None = None) -> bool:
         if not filename:
@@ -114,7 +116,7 @@ class DocumentActions(ShellActions):
         try:
             manifest, payloads = DocumentSerializer.read(filename)
         except (OSError, DocumentFormatError, ValueError) as exc:
-            self._say(f"Falha ao abrir documento: {exc}", 5000)
+            self._say(tr("status.doc_open_failed", "Falha ao abrir documento: {error}", error=exc), 5000)
             return False
 
         previous = self._dm.active_document()
@@ -138,7 +140,7 @@ class DocumentActions(ShellActions):
                 backend.close_document_context(doc.uid)
             if previous:
                 self._dm.set_active_document(previous.uid)
-            self._say(f"Falha ao restaurar documento: {exc}", 5000)
+            self._say(tr("status.doc_restore_failed", "Falha ao restaurar documento: {error}", error=exc), 5000)
             return False
 
         doc.zoom = float(manifest.get("zoom", 1.0))
@@ -148,7 +150,7 @@ class DocumentActions(ShellActions):
         if self._workspace is not None:
             self._workspace.refresh_document_state(doc)
         doc.mark_saved(filename)
-        self._say(f"Documento '{doc.name}' aberto com sucesso.", 3000)
+        self._say(tr("status.doc_opened", "Documento '{name}' aberto.", name=doc.name), 3000)
         return True
 
     # ── Salvar ────────────────────────────────────────────────────────────
@@ -156,14 +158,14 @@ class DocumentActions(ShellActions):
     def save_active(self) -> bool:
         doc = self._dm.active_document()
         if not doc:
-            self._say("Nenhum documento ativo para salvar.", 2000)
+            self._say(tr("status.no_doc_to_save", "Nenhum documento ativo para salvar."), 2000)
             return False
         return self._save_to_path(doc, doc.file_path) if doc.file_path else self.save_active_as()
 
     def save_active_as(self) -> bool:
         doc = self._dm.active_document()
         if not doc:
-            self._say("Nenhum documento ativo para salvar.", 2000)
+            self._say(tr("status.no_doc_to_save", "Nenhum documento ativo para salvar."), 2000)
             return False
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(
             self._window, "Salvar Documento Lumenia", f"{doc.name}.lmn", "Documento Lumenia (*.lmn)"
@@ -174,11 +176,11 @@ class DocumentActions(ShellActions):
         try:
             saved_path = DocumentSerializer.save(doc, self._backend(), path)
         except Exception as exc:
-            self._say(f"Falha ao salvar '{doc.name}': {exc}", 5000)
+            self._say(tr("status.doc_save_failed", "Falha ao salvar '{name}': {error}", name=doc.name, error=exc), 5000)
             return False
         doc.mark_saved(saved_path)
         self.documentSaved.emit(doc.uid)
-        self._say(f"Documento '{doc.name}' salvo.", 2500)
+        self._say(tr("status.doc_saved", "Documento '{name}' salvo com sucesso.", name=doc.name), 2500)
         return True
 
     # ── Fechar ────────────────────────────────────────────────────────────

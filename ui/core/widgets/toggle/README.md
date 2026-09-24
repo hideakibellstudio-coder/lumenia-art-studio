@@ -10,11 +10,8 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `toggle_switch.py` | `ToggleSwitch`: interruptor animado com cores do tema. |
-
-## Dívida conhecida (medida em 2026-09-24)
-
-Sem `__init__.py` (pacote de namespace).
 
 ## Dependências internas
 

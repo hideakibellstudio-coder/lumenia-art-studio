@@ -7,17 +7,27 @@ atuais, então as duas orientações sempre concordam.
 """
 from __future__ import annotations
 
+from ui.core.i18n import tr
 from ui.core.state import ToolState
 
-from .base import OrientedOptionsView, add_slider, combo, header_row, icon_label, set_value, slider, value_label
+from .base import (
+    OrientedOptionsView, Text, add_slider, combo, header_row, icon_label, set_combo_items, set_value, slider,
+    value_label,
+)
 
 # (nome, arrasto, coleta, mistura) em %
 _PRESETS = (
-    ("Arrasto Suave", 80, 70, 50),
-    ("Mistura de Tinta", 90, 85, 70),
-    ("Esfuminho Pesado", 50, 50, 40),
+    (Text("secondary_bar.smudge_preset_soft", "Arrasto Suave"), 80, 70, 50),
+    (Text("secondary_bar.smudge_preset_paint", "Mistura de Tinta"), 90, 85, 70),
+    (Text("secondary_bar.smudge_preset_heavy", "Esfuminho Pesado"), 50, 50, 40),
 )
 _FIELDS = ("smudge_stretch", "color_pickup", "mix_ratio")
+# (rótulo na vertical, rótulo curto na horizontal) de cada campo
+_CAPTIONS = (
+    (Text("secondary_bar.stretch", "Alongamento:"), Text("secondary_bar.stretch_short", "Arrasto:")),
+    (Text("secondary_bar.pickup", "Coleta de Cor:"), Text("secondary_bar.pickup_short", "Coleta:")),
+    (Text("secondary_bar.mix", "Taxa de Mistura:"), Text("secondary_bar.mix_short", "Mix:")),
+)
 
 
 class SmudgeOptionsView(OrientedOptionsView):
@@ -27,15 +37,14 @@ class SmudgeOptionsView(OrientedOptionsView):
     def build(self, layout):
         v = self.vertical
         if v:
-            layout.addLayout(header_row("smudge", "SMUDGE / MISTURA")[0])
+            layout.addLayout(header_row(self, "smudge", Text("secondary_bar.smudge_title", "SMUDGE / MISTURA"))[0])
         else:
             layout.addWidget(icon_label("smudge"))
-        self.cbo_preset = combo([name for name, *_ in _PRESETS])
+        self.cbo_preset = combo()
         layout.addWidget(self.cbo_preset)
 
-        captions = (("Alongamento:", "Arrasto:"), ("Coleta de Cor:", "Coleta:"), ("Taxa de Mistura:", "Mix:"))
         self.sliders, self.value_labels = {}, {}
-        for field, (long_caption, short_caption), low in zip(_FIELDS, captions, (1, 0, 0)):
+        for field, (long_caption, short_caption), low in zip(_FIELDS, _CAPTIONS, (1, 0, 0)):
             s = slider(low, 100, None if v else 50)
             lbl = value_label("")
             add_slider(self, long_caption if v else short_caption, s, lbl)
@@ -58,3 +67,6 @@ class SmudgeOptionsView(OrientedOptionsView):
             if preset == percents:
                 self.cbo_preset.setCurrentIndex(index)
                 break
+
+    def retranslate_ui(self):
+        set_combo_items(self.cbo_preset, [tr(name.key, name.default) for name, *_ in _PRESETS])

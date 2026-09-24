@@ -8,7 +8,7 @@ acompanham a mudanca de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP).
 import os
 import sys
 import unittest
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 # Configura modo offscreen
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -189,6 +189,54 @@ class TestToolbarsGeometryI18nRetranslation(unittest.TestCase):
             self.assertEqual(dialog.slider_seg.core.prefix, "Segmentos:")
         finally:
             dialog.deleteLater()
+
+    def test_05_secondary_toolbar_fixed_texts_follow_language(self):
+        """Titulos e rotulos fixos das views (antes literais em pt-BR) trocam com o idioma."""
+        state = install_app_state(ServiceRegistry(), lambda: None)
+        tb = SecondaryToolBar(state.tools, state.brush)
+        vertical, horizontal = QtCore.Qt.Vertical, QtCore.Qt.Horizontal
+        bucket_v, bucket_h = tb.option_view("bucket", vertical), tb.option_view("bucket", horizontal)
+        smudge, lasso = tb.option_view("smudge", vertical), tb.option_view("lasso", vertical)
+        text_v = tb.option_view("text", vertical)
+
+        def labels(view):
+            return {lbl.text() for lbl in view.findChildren(QtWidgets.QLabel)}
+
+        try:
+            self.i18n.set_locale("en_US", is_auto=False)
+            self.assertLessEqual({"PAINT BUCKET", "Tolerance:", "Expansion:"}, labels(bucket_v))
+            self.assertLessEqual({"Tol:", "Exp:"}, labels(bucket_h))
+            self.assertLessEqual({"SMUDGE / BLEND", "Stretch:", "Color Pickup:", "Mix Ratio:"}, labels(smudge))
+            self.assertEqual(smudge.cbo_preset.itemText(0), "Soft Drag")
+            self.assertLessEqual({"LASSO SELECTION", "Feather:"}, labels(lasso))
+            self.assertLessEqual({"TYPOGRAPHIC TEXT", "Size:", "Style:", "Align:", "Color:"}, labels(text_v))
+            self.assertEqual(text_v.btn_commit.text(), "Insert Text")
+
+            self.i18n.set_locale("ja_JP", is_auto=False)
+            self.assertLessEqual({"塗りつぶし", "許容値:"}, labels(bucket_v))
+            self.assertEqual(smudge.cbo_preset.itemText(0), "ソフト引き")
+
+            self.i18n.set_locale("pt_BR", is_auto=False)
+            self.assertLessEqual({"BALDE DE TINTA", "Tolerância:", "Expansão:"}, labels(bucket_v))
+            self.assertLessEqual({"LAÇO DE SELEÇÃO", "Suavização:"}, labels(lasso))
+            self.assertEqual(smudge.cbo_preset.itemText(0), "Arrasto Suave")
+            self.assertEqual(text_v.btn_cancel.text(), "Cancelar")
+        finally:
+            tb.deleteLater()
+
+    def test_06_smudge_preset_combo_shows_matching_preset(self):
+        """O combo de presets (agora preenchido na traducao) mostra o preset que casa com o estado."""
+        state = install_app_state(ServiceRegistry(), lambda: None)
+        tb = SecondaryToolBar(state.tools, state.brush)
+        smudge = tb.option_view("smudge", QtCore.Qt.Vertical)
+        try:
+            smudge.cbo_preset.setCurrentIndex(1)
+            self.assertAlmostEqual(state.tools.options("smudge")["mix_ratio"], 0.70)
+            self.i18n.set_locale("en_US", is_auto=False)
+            self.assertEqual(smudge.cbo_preset.currentIndex(), 1)
+            self.assertEqual(smudge.cbo_preset.currentText(), "Paint Blend")
+        finally:
+            tb.deleteLater()
 
 
 if __name__ == "__main__":

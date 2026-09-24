@@ -7,9 +7,12 @@ from ui.core.i18n import tr
 from ui.core.tools import ToolCommand
 
 from .base import (
-    OrientedOptionsView, add_slider, combo, header_row, icon_label, set_checked, set_combo_items,
+    OrientedOptionsView, Text, add_slider, combo, header_row, icon_label, set_checked, set_combo_items,
     set_value, slider, toggle, tool_button, value_label,
 )
+
+TOLERANCE = Text("secondary_bar.tolerance", "Tolerância:")
+TOLERANCE_SHORT = Text("secondary_bar.tolerance_short", "Tol:")
 
 
 def selection_modes() -> list[str]:
@@ -35,15 +38,17 @@ class BucketOptionsView(OrientedOptionsView):
     def build(self, layout):
         v = self.vertical
         if v:
-            layout.addLayout(header_row("bucket", "BALDE DE TINTA")[0])
+            layout.addLayout(header_row(self, "bucket", Text("secondary_bar.bucket_title", "BALDE DE TINTA"))[0])
         else:
             layout.addWidget(icon_label("bucket"))
         self.slider_tol = slider(0, 100, None if v else 55)
         self.lbl_tol_val = value_label("20%")
-        add_slider(self, "Tolerância:" if v else "Tol:", self.slider_tol, self.lbl_tol_val)
+        add_slider(self, TOLERANCE if v else TOLERANCE_SHORT, self.slider_tol, self.lbl_tol_val)
         self.slider_exp = slider(-10, 10, None if v else 45)
         self.lbl_exp_val = value_label("+1px")
-        add_slider(self, "Expansão:" if v else "Exp:", self.slider_exp, self.lbl_exp_val)
+        expansion = (Text("secondary_bar.expansion", "Expansão:") if v
+                     else Text("secondary_bar.expansion_short", "Exp:"))
+        add_slider(self, expansion, self.slider_exp, self.lbl_exp_val)
 
         self.btn_contig, self.btn_merged = toggle(), toggle()
         row = QtWidgets.QHBoxLayout() if v else layout
@@ -77,12 +82,12 @@ class WandOptionsView(OrientedOptionsView):
     def build(self, layout):
         v = self.vertical
         if v:
-            layout.addLayout(header_row("wand", "VARINHA MÁGICA")[0])
+            layout.addLayout(header_row(self, "wand", Text("secondary_bar.wand_title", "VARINHA MÁGICA"))[0])
         else:
             layout.addWidget(icon_label("wand"))
         self.slider_tol = slider(0, 100, None if v else 55)
         self.lbl_tol_val = value_label("20%")
-        add_slider(self, "Tolerância:" if v else "Tol:", self.slider_tol, self.lbl_tol_val)
+        add_slider(self, TOLERANCE if v else TOLERANCE_SHORT, self.slider_tol, self.lbl_tol_val)
 
         self.btn_contig, self.btn_merged = toggle(), toggle()
         row = QtWidgets.QHBoxLayout() if v else layout

@@ -10,6 +10,7 @@ Criados pelo `RenderWidget` (`camera`, `input_router`, `cursor_ctrl`, `stroke`, 
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `camera_controller.py` | Camera and Viewport 2D Navigation Controller. |
 | `camera_proxies.py` | CanvasCameraProxies — zoom/pan/rotação/espelhamento do canvas lidos da câmera. |
 | `canvas_stroke_pipeline.py` | CanvasStrokePipeline — ciclo de vida do traço interativo e regiões sujas da tela. |

@@ -198,14 +198,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setStyleSheet(ThemeManager.instance().get_stylesheet())
 
     def _on_config_save_failed(self, message: str) -> None:
-        self.status_bar.showMessage(f"Não foi possível salvar as preferências: {message}", 10000)
+        self.status_bar.showMessage(
+            tr("status.prefs_save_failed", "Não foi possível salvar as preferências: {error}", error=message), 10000)
 
     def _on_active_document_changed(self, doc: Optional[Document]) -> None:
         self._watch_document(doc)
         if doc is not None:
-            self.status_bar.showMessage(f"Documento ativo: {doc.name}")
+            self.status_bar.showMessage(tr("status.active_document", "Documento ativo: {name}", name=doc.name))
         else:
-            self.status_bar.showMessage("Nenhum documento aberto.")
+            self.status_bar.showMessage(tr("status.no_document", "Nenhum documento aberto."))
         self.update_undo_redo_actions()
 
     def _watch_document(self, doc: Optional[Document]) -> None:
@@ -268,7 +269,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def reset_view(self) -> None:
         if self.workspace is not None:
             self.workspace.reset_view()
-        self.status_bar.showMessage("Visão do canvas resetada.", 2000)
+        self.status_bar.showMessage(tr("status.view_reset", "Visão do canvas resetada."), 2000)
 
     def zoom_in(self) -> None:
         if self.workspace is not None:

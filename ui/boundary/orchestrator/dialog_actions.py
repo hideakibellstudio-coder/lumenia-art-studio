@@ -81,7 +81,7 @@ class DialogActions(ShellActions):
 
     def apply_shortcuts(self, shortcuts_map: dict) -> None:
         self._shortcuts.apply(shortcuts_map)
-        self._say("Atalhos de teclado atualizados e aplicados.", 3000)
+        self._say(tr("status.shortcuts_applied", "Atalhos de teclado atualizados e aplicados."), 3000)
 
     def open_cursor_settings(self) -> None:
         from ui.core.screens.cursor_settings_dialog import CursorSettingsDialog
@@ -92,7 +92,7 @@ class DialogActions(ShellActions):
     def apply_cursor_settings(self, cfg: dict) -> None:
         if self._workspace is not None:
             self._workspace.canvas_widget.apply_cursor_settings(cfg)
-        self._say("Preferências de cursor aplicadas.", 3000)
+        self._say(tr("status.cursor_applied", "Preferências de cursor aplicadas."), 3000)
 
     def set_language(self, locale_code: str) -> None:
         mgr = I18nManager.instance()
@@ -104,7 +104,7 @@ class DialogActions(ShellActions):
 
     def set_interface_scale(self, scale_value: float) -> None:
         ThemeManager.instance().set_ui_scale(scale_value)
-        self._say(f"Escala da interface alterada para {int(scale_value * 100)}%.", 3000)
+        self._say(tr("status.ui_scale_changed", "Escala da interface alterada para {percent}%.", percent=int(scale_value * 100)), 3000)
 
     def open_theme_dialog(self) -> None:
         from ui.core.components import ThemeDialog
@@ -126,7 +126,7 @@ class DialogActions(ShellActions):
             self._workspace.refresh_previews()
         backend = self._backend()
         name = backend.get_color_profile_name(profile_id) if backend else ""
-        self._say(f"Modo de Cor ativo: {name}", 3000)
+        self._say(tr("status.color_mode_active", "Modo de Cor ativo: {name}", name=name), 3000)
 
     # ── Workspace (docas e barra flutuante) ───────────────────────────────
 
@@ -160,7 +160,7 @@ class DialogActions(ShellActions):
             from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
             self.telemetry_window = TelemetryGridWindow(self._window)
         self._raise(self.telemetry_window)
-        self._say("Cockpit de Telemetria (Grid) ativado.", 3000)
+        self._say(tr("status.telemetry_grid_opened", "Cockpit de Telemetria (Grid) ativado."), 3000)
 
     @staticmethod
     def _raise(window: QtWidgets.QWidget) -> None:

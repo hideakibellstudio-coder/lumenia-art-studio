@@ -49,7 +49,7 @@ class EditActions(ShellActions):
         image = backend.get_qimage()
         if image and not image.isNull():
             QtWidgets.QApplication.clipboard().setImage(image)
-            self._say("Camada / Imagem copiada para a Área de Transferência.", 2500)
+            self._say(tr("status.copied", "Camada / Imagem copiada para a Área de Transferência."), 2500)
 
     def cut(self) -> None:
         self.copy()
@@ -58,22 +58,22 @@ class EditActions(ShellActions):
             self._as_stroke(backend.delete_selection_on_active_layer)
         else:
             self._layers.clear_active_pixels()
-        self._say("Cortado para a Área de Transferência.", 2500)
+        self._say(tr("status.cut", "Cortado para a Área de Transferência."), 2500)
 
     def paste(self) -> None:
         image = QtWidgets.QApplication.clipboard().image()
         if image.isNull():
-            self._say("Nenhuma imagem encontrada na Área de Transferência.", 2000)
+            self._say(tr("status.clipboard_empty", "Nenhuma imagem encontrada na Área de Transferência."), 2000)
             return
         backend = self._backend()
         if not backend_ready(backend):
-            self._say("Motor indisponível: não há onde colar a imagem.", 2500)
+            self._say(tr("status.paste_no_engine", "Motor indisponível: não há onde colar a imagem."), 2500)
             return
         rgba = image.convertToFormat(QtGui.QImage.Format_RGBA8888)
         w, h = rgba.width(), rgba.height()
         raw_bytes = bytes(rgba.constBits()[: w * h * 4])
         self._as_stroke(lambda: backend.paste_rgba_buffer_on_active_layer(0, 0, w, h, raw_bytes))
-        self._say(f"Imagem ({w}×{h}) colada na camada ativa.", 2500)
+        self._say(tr("status.pasted", "Imagem ({w}×{h}) colada na camada ativa.", w=w, h=h), 2500)
 
     def fill(self) -> None:
         backend = self._backend()
@@ -89,7 +89,7 @@ class EditActions(ShellActions):
                 backend.fill_area(0, 0, color, tolerance=255, contiguous=False)
 
         self._as_stroke(_fill)
-        self._say("Preenchimento aplicado.", 2000)
+        self._say(tr("status.fill_applied", "Preenchimento aplicado."), 2000)
 
     # ── Seleção ───────────────────────────────────────────────────────────
 
@@ -98,20 +98,20 @@ class EditActions(ShellActions):
             self._canvas.select_all()
         elif self._backend():
             self._backend().select_all()
-        self._say("Tudo selecionado.", 2000)
+        self._say(tr("status.select_all", "Tudo selecionado."), 2000)
 
     def invert_selection(self) -> None:
         if self._canvas is not None:
             self._canvas.invert_selection()
         elif self._backend():
             self._backend().invert_selection()
-        self._say("Seleção invertida.", 2000)
+        self._say(tr("status.selection_inverted", "Seleção invertida."), 2000)
 
     def deselect(self) -> None:
         if self._canvas is None:
             return
         self._canvas.clear_selection()
-        self._say("Seleção desmarcada.", 2000)
+        self._say(tr("status.selection_cleared", "Seleção desmarcada."), 2000)
 
     def modify_selection(self, mode: str) -> None:
         backend = self._backend()

@@ -19,6 +19,7 @@ from PySide6 import QtWidgets
 from ui.core.document.history import LayerTransactionCancelled, layer_transaction
 from ui.core.document.layer_manager import LocalLayerManager
 from ui.core.engine.registry import EngineRegistry
+from ui.core.i18n import tr
 from ui.core.plugins.canvas_access import request_canvas_repaint
 
 
@@ -75,7 +76,8 @@ class FilterLayerFlow:
             backend.remove_layer(self._preview_idx)
         self._preview_idx = -1
         self.layer_manager.add_filter_layer(name, type_id, params)
-        self.show_status(f"Camada de Ajuste '{name}' criada com sucesso.")
+        self.show_status(tr("status.filter_layer_created", "Camada de Ajuste '{name}' criada com sucesso.",
+                            name=name))
 
     # ── Editar parâmetros de uma camada de ajuste existente ───────────────
 
@@ -87,7 +89,8 @@ class FilterLayerFlow:
             return
         c_idx = self.layer_manager.layers.index(layer)
         if not backend.is_filter_layer(c_idx):
-            self.show_status(f"A camada '{layer.name}' não é uma camada de ajuste.")
+            self.show_status(tr("status.not_filter_layer", "A camada '{name}' não é uma camada de ajuste.",
+                                name=layer.name))
             return
 
         from ui.core.screens.filters import FilterEditPopup

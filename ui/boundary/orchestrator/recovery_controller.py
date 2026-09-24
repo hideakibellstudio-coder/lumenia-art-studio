@@ -11,6 +11,7 @@ from typing import Optional
 
 from PySide6 import QtCore, QtWidgets
 
+from ui.core.i18n import tr
 from ui.core.config.manager import ConfigManager
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
@@ -57,7 +58,7 @@ class RecoveryController(ShellActions):
         try:
             self.store.discard(uid)
         except OSError as exc:
-            self._say(f"Falha ao limpar recuperação: {exc}", 5000)
+            self._say(tr("status.recovery_clear_failed", "Falha ao limpar recuperação: {error}", error=exc), 5000)
 
     def capture(self) -> None:
         if self._canvas is not None and self._canvas.is_busy:
@@ -73,7 +74,7 @@ class RecoveryController(ShellActions):
                     backend.set_active_document_context(document.uid, document.width, document.height)
                     self.store.capture(document, backend)
         except Exception as exc:
-            self._say(f"Falha ao criar recuperação: {exc}", 10000)
+            self._say(tr("status.recovery_create_failed", "Falha ao criar recuperação: {error}", error=exc), 10000)
         finally:
             backend.set_active_document_context(active.uid, active.width, active.height)
 
@@ -98,4 +99,4 @@ class RecoveryController(ShellActions):
                 self.store.capture(document, self._backend())
                 self.store.discard_candidate(path)
             except Exception as exc:
-                self._say(f"Recuperação aberta; cópia original mantida: {exc}", 5000)
+                self._say(tr("status.recovery_opened_kept", "Recuperação aberta; cópia original mantida: {error}", error=exc), 5000)

@@ -69,12 +69,18 @@ dependências medidas nas 62 pastas de código; CI verde.
    (`NativeGeometrySnap`, `geometry_engine_sync`, `Document.store_*_state`) e
    relatório de testes (mostra o resultado medido da execução em vez de
    "110 testes / 100% / APROVADO" fixos). Censo: 0 na parede.)*
-8. **Textos sem `tr()`**: rótulos das views da barra secundária e mensagens de
-   status da `MainWindow` em português fixo.
-9. **Pastas sem porta de entrada** (`__init__.py`): `ui/core/geometry`,
-   `canvas/renderers`, `canvas/tools`, `canvas/viewport`, `dock`, entre
-   outras (cada README registra). `ui/utils` não tem consumidor;
-   `ui/boundary/public_api` está vazia.
+8. ~~**Textos sem `tr()`**~~ *(feito em 2026-09-24: os títulos e rótulos das
+   views da barra secundária nascem traduzíveis com `Text(chave, padrão)` e
+   trocam com o idioma (28 chaves `secondary_bar.*`; o combo de presets do
+   smudge também); as mensagens de status da casca (`ui/boundary/orchestrator`),
+   dos comandos de camada, das camadas de ajuste e da barra de status passaram
+   por `tr` (69 chaves `status.*` novas). O teste de chaves agora confere
+   `tr(...)` e `Text(...)` nos 4 idiomas.)* Resta: nome padrão de camada nova
+   ("Camada N", "Novo Grupo") é dado do documento e continua em português.
+9. ~~**Pastas sem porta de entrada**~~ *(feito em 2026-09-24: `__init__.py` em
+   `ui/core/geometry`, `canvas/renderers`, `canvas/tools`, `canvas/viewport`,
+   `dock` e mais 4; saíram `ui/utils` (sem consumidor) e
+   `ui/boundary/public_api` (vazia).)*
 
 ---
 

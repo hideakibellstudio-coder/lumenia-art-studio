@@ -10,6 +10,7 @@ Classes `SizeOpacitySection`, `TipGeometrySection`, `JittersSection`, `BrushText
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `base.py` | `AdvancedSection`: controles rápidos (→ `BrushState`) e do motor (→ `BrushEngineWriter`), `show_param` e `show_profile`. |
 | `brush_texture_section.py` | Seções 4 e 5: textura (matéria) do pincel e espaçamento. |
 | `jitters_section.py` | Seção 3: jitter de tamanho, rotação e posição. |
@@ -23,10 +24,6 @@ Classes `SizeOpacitySection`, `TipGeometrySection`, `JittersSection`, `BrushText
   perfil do motor.
 - Parâmetro que passar a ter uma segunda tela vira `BrushParam` (controle
   rápido), nunca cópia sincronizada à mão.
-
-## Dívida conhecida (medida em 2026-09-24)
-
-Pasta sem `__init__.py`.
 
 ## Dependências internas
 

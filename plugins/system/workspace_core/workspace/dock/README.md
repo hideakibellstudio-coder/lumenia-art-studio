@@ -10,6 +10,7 @@ Importar por módulo; quem usa é `dock_system.py`.
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `dock_animator.py` | DockAnimator — Animation Orchestration and Auto-Collapse Timers for Docks. |
 | `dock_geometry_calculator.py` | DockGeometryCalculator — Geometry, Positioning, and Bounds Calculations for Docks. |
 | `dock_state_store.py` | DockStateStore — State Serialization, Layout Persistence, and i18n for Docks. |
@@ -28,7 +29,6 @@ Importar por módulo; quem usa é `dock_system.py`.
   callback (antes chamava `_workspace._update_pill_positions()`).
 - `DockStateStore.serialize_state/restore_state` têm teste, mas o app ainda
   não salva nem restaura o estado das gavetas entre sessões (decisão pendente).
-- Pasta sem `__init__.py`.
 
 ## Dependências internas
 

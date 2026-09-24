@@ -10,11 +10,8 @@ Importar por módulo: `navigator_preview.NavigatorPreview`.
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `navigator_preview.py` | `NavigatorPreview`: miniatura do documento com o retângulo da área visível, arrastável. |
-
-## Dívida conhecida (medida em 2026-09-24)
-
-Pasta sem `__init__.py`.
 
 ## Dependências internas
 

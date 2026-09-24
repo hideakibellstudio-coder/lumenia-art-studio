@@ -12,9 +12,13 @@ from ui.core.i18n import tr
 from ui.core.icons import get_icon
 from ui.core.tools import ToolCommand
 
-from .base import OrientedOptionsView, color_button, header_row, icon_label, paint_swatch, set_checked, set_value
+from .base import (
+    OrientedOptionsView, Text, color_button, header_row, icon_label, paint_swatch, set_checked, set_value,
+)
 
 _ALIGNS = ("left", "center", "right")
+_SIZE = Text("tool_options.size", "Tam:")
+_COLOR = Text("tool_options.color", "Cor:")
 
 
 def _style_button(text: str, css: str, width: int) -> QtWidgets.QToolButton:
@@ -51,10 +55,13 @@ class TextOptionsView(OrientedOptionsView):
             self.align_group.addButton(button)
             self.align_buttons[align] = button
         self.btn_color = color_button(20)
-        self.btn_commit = QtWidgets.QPushButton("Inserir Texto" if v else "")
+        self.btn_commit = QtWidgets.QPushButton()
         self.btn_commit.setFixedHeight(24)
-        self.btn_cancel = QtWidgets.QPushButton("Cancelar" if v else "")
+        self.translate(self.btn_commit.setText, Text("secondary_bar.insert_text", "Inserir Texto") if v
+                       else Text("tool_options.insert_text", "Inserir"))
+        self.btn_cancel = QtWidgets.QPushButton()
         if v:
+            self.translate(self.btn_cancel.setText, Text("common.cancel", "Cancelar"))
             self.btn_cancel.setFixedHeight(24)
         else:
             self.btn_cancel.setIcon(get_icon("close"))
@@ -64,12 +71,14 @@ class TextOptionsView(OrientedOptionsView):
         styles = (self.btn_bold, self.btn_italic, self.btn_underline)
         aligns = tuple(self.align_buttons.values())
         if v:
-            layout.addLayout(header_row("text", "TEXTO TIPOGRÁFICO")[0])
+            layout.addLayout(header_row(self, "text", Text("secondary_bar.text_title", "TEXTO TIPOGRÁFICO"))[0])
             layout.addWidget(self.cbo_font)
-            for caption, widgets in (("Tam:", (self.spin_size,)), ("Estilo:", styles),
-                                     ("Alinhar:", aligns), ("Cor:", (self.btn_color,))):
+            for caption, widgets in ((_SIZE, (self.spin_size,)),
+                                     (Text("secondary_bar.style", "Estilo:"), styles),
+                                     (Text("secondary_bar.align", "Alinhar:"), aligns),
+                                     (_COLOR, (self.btn_color,))):
                 row = QtWidgets.QHBoxLayout()
-                row.addWidget(QtWidgets.QLabel(caption))
+                row.addWidget(self.label(caption))
                 row.addStretch()
                 for w in widgets:
                     row.addWidget(w)
@@ -81,8 +90,8 @@ class TextOptionsView(OrientedOptionsView):
         else:
             layout.addWidget(icon_label("text"))
             layout.addWidget(self.cbo_font)
-            layout.addWidget(QtWidgets.QLabel("Tam:"))
-            for w in (self.spin_size, *styles, *aligns, QtWidgets.QLabel("Cor:"), self.btn_color,
+            layout.addWidget(self.label(_SIZE))
+            for w in (self.spin_size, *styles, *aligns, self.label(_COLOR), self.btn_color,
                       self.btn_commit, self.btn_cancel):
                 layout.addWidget(w)
 
@@ -99,7 +108,8 @@ class TextOptionsView(OrientedOptionsView):
 
     def _pick_color(self) -> None:
         color = QtWidgets.QColorDialog.getColor(
-            self.options()["color"], self, "Cor do Texto", QtWidgets.QColorDialog.ShowAlphaChannel)
+            self.options()["color"], self, tr("secondary_bar.text_color", "Cor do Texto"),
+            QtWidgets.QColorDialog.ShowAlphaChannel)
         if color.isValid():
             self.publish(color=color)
 
@@ -117,5 +127,3 @@ class TextOptionsView(OrientedOptionsView):
         self.align_buttons["left"].setText(tr("tool_options.align_left", "Esq"))
         self.align_buttons["center"].setText(tr("tool_options.align_center", "Cen"))
         self.align_buttons["right"].setText(tr("tool_options.align_right", "Dir"))
-        if not self.vertical:
-            self.btn_commit.setText(tr("tool_options.insert_text", "Inserir"))

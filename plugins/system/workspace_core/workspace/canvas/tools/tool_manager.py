@@ -6,10 +6,10 @@ Strictly decoupled in compliance with ARCcC v2 (< 200 LOC).
 """
 
 from typing import TYPE_CHECKING
-from PySide6 import QtGui
 
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
+from ui.core.tools import ToolCommand
 
 from .selection_tool_controller import SelectionToolController
 from .shape_tool_controller import ShapeToolController
@@ -67,6 +67,20 @@ class ToolManager:
         # "smudge": parâmetros do perfil nativo do pincel, aplicados ao motor
         # pela barra secundária; o canvas não os usa.
 
+    def run_command(self, command: ToolCommand) -> None:
+        """Executa um comando pontual vindo de um botão (ver `ui.core.tools.ToolCommand`)."""
+        actions = {
+            ToolCommand.DESELECT: self.selection_ctrl.clear_selection,
+            ToolCommand.TRANSFORM_COMMIT: self.commit_transform,
+            ToolCommand.TRANSFORM_CANCEL: self.cancel_transform,
+            ToolCommand.TRANSFORM_FLIP_H: self.transform_flip_h,
+            ToolCommand.TRANSFORM_FLIP_V: self.transform_flip_v,
+            ToolCommand.TRANSFORM_ROTATE_90: self.transform_rotate_90,
+            ToolCommand.TEXT_COMMIT: self.commit_text_overlay,
+            ToolCommand.TEXT_CANCEL: self.cancel_text_overlay,
+        }
+        actions[ToolCommand(command)]()
+
     # ── Transform Tool Commands ──
     def start_transform_mode(self) -> bool:
         return self.transform_ctrl.start_mode()
@@ -90,10 +104,6 @@ class ToolManager:
     def set_shape_settings(self, settings: dict) -> None:
         self.shape_ctrl.settings = normalize_tool_settings("shapes", settings, self.shape_ctrl.settings)
         self.widget.update()
-
-    def set_shape_color(self, color: QtGui.QColor) -> None:
-        self.shape_ctrl.settings["stroke_color"] = color
-        self.shape_ctrl.settings["fill_color"] = color
 
     # ── Text Tool Commands ──
     @property

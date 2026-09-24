@@ -19,6 +19,10 @@ class FloatingToolbar(FloatingToolWindow):
     """
 
     drag_finished = QtCore.Signal(QtCore.QPoint)
+    # Tamanho mudou (escala, animação de recolher/expandir): o workspace
+    # reposiciona as barras. Até 2026-09-24 a barra procurava
+    # `update_toolbar_position` no pai com `hasattr`.
+    sizeChanged = QtCore.Signal()
 
     def __init__(self, tool_state: ToolState, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent, transparent_stylesheet=True)
@@ -32,6 +36,7 @@ class FloatingToolbar(FloatingToolWindow):
         self.buttons: Dict[str, FloatingToolbarButton] = {}
 
         self._drag_pos: Optional[QtCore.QPoint] = None
+        self._geom_anim: Optional[QtCore.QVariantAnimation] = None
         self._is_collapsed: bool = False
 
         # Timers de auto-recolhimento
@@ -98,8 +103,7 @@ class FloatingToolbar(FloatingToolWindow):
     def retranslate_ui(self) -> None:
         """Atualiza os tooltips de todas as ferramentas da barra flutuante."""
         for btn in self.buttons.values():
-            if hasattr(btn, "retranslate_ui"):
-                btn.retranslate_ui()
+            btn.retranslate_ui()
 
     def _apply_theme(self) -> None:
         theme = ThemeManager.instance()
@@ -166,9 +170,7 @@ class FloatingToolbar(FloatingToolWindow):
         else:
             self.drag_handle.setFixedSize(h_thick, h_len)
         self._update_geometry(animate=False)
-        parent_ws = getattr(self, "_workspace", None) or self.parentWidget()
-        if parent_ws and hasattr(parent_ws, "update_toolbar_position"):
-            parent_ws.update_toolbar_position()
+        self.sizeChanged.emit()
 
     def set_orientation(self, orientation: QtCore.Qt.Orientation) -> None:
         """Alterna a orientação entre Horizontal e Vertical."""
@@ -224,7 +226,7 @@ class FloatingToolbar(FloatingToolWindow):
         )
 
         if animate and self.isVisible():
-            if hasattr(self, "_geom_anim") and self._geom_anim.state() == QtCore.QAbstractAnimation.Running:
+            if self._geom_anim is not None and self._geom_anim.state() == QtCore.QAbstractAnimation.Running:
                 self._geom_anim.stop()
 
             start_c_size = self.container.size()
@@ -254,9 +256,7 @@ class FloatingToolbar(FloatingToolWindow):
                 self.setMaximumSize(ww, wh)
                 self.resize(ww, wh)
 
-                parent_ws = getattr(self, "_workspace", None) or self.parentWidget()
-                if parent_ws and hasattr(parent_ws, "update_toolbar_position"):
-                    parent_ws.update_toolbar_position()
+                self.sizeChanged.emit()
 
             def _on_anim_finish():
                 self.container.setFixedSize(container_size)
@@ -266,9 +266,7 @@ class FloatingToolbar(FloatingToolWindow):
                 if self._is_collapsed:
                     for tid, btn in self.buttons.items():
                         btn.setVisible(tid == self._active_tool_id)
-                parent_ws = getattr(self, "_workspace", None) or self.parentWidget()
-                if parent_ws and hasattr(parent_ws, "update_toolbar_position"):
-                    parent_ws.update_toolbar_position()
+                self.sizeChanged.emit()
 
             self._geom_anim.valueChanged.connect(_on_anim_step)
             self._geom_anim.finished.connect(_on_anim_finish)

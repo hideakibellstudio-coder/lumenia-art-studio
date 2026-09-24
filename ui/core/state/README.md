@@ -27,8 +27,10 @@ podem mudar sem aviso.
 | `BrushParam` | Enum canônico dos parâmetros rápidos (Lei do Rio nº 4). Unidades no docstring de `brush_params.py`. |
 | `BrushEngineSync` | Único caminho `BrushState → motor`. Também `resync()` após trocar a facade nativa. |
 | `ToolState` | QObject com a ferramenta ativa e as opções normalizadas de cada ferramenta (`ui.core.tool_settings`). |
+| `ToolEngineSync` | Único caminho `ToolState → motor` para opções que o motor consome (hoje: Smudge). |
+| `ShapeColorLink` | Regra "as formas usam a cor do pincel": contorno = cor nova; fundo = cor nova com a opacidade de fundo atual. |
 | `options_key(tool)` / `is_shape_tool(tool)` | `shape_*` compartilham as opções de `"shapes"`. |
-| `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry` (devolve `AppState(brush, brush_sync, tools)`). Chamado pela casca. |
+| `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry` (devolve `AppState(brush, brush_sync, tools, tool_sync, shape_colors)`). Idempotente. Chamado pela casca. |
 | `require(registry, Tipo)` | Busca um serviço obrigatório com mensagem de erro clara. |
 
 ## Fluxo
@@ -57,6 +59,17 @@ Antes de 2026-09-24: quatro caminhos escreviam a ferramenta em cada view à
 mão, dois com guarda de reentrância; o canvas trocava `shape_rect` por
 `shapes` sozinho; a barra secundária mantinha um cache de opções que ninguém
 lia e mandava opções de forma ao canvas por dois caminhos.
+
+Telas de opções (páginas do painel de pincel e views da barra secundária)
+herdam `ui.core.widgets.tool_options.ToolOptionsView`: mostram o estado em
+`show_options`, publicam só o campo editado e nunca republicam ao mostrar.
+
+### Regras entre estados (`state_links.py`)
+
+Quando mudar um estado deve mudar outro (ou o motor), a regra fica aqui, num
+lugar só — nunca em cada tela que a conhece. Até 2026-09-24 "formas usam a
+cor do pincel" estava implementada três vezes (canvas, barra secundária,
+painel) e uma das cópias zerava a opacidade do fundo.
 
 ## Regras do contrato
 
@@ -87,13 +100,14 @@ lia e mandava opções de forma ao canvas por dois caminhos.
 - `plugins/system/workspace_core/workspace/canvas_brush_binding.py`,
   `canvas_tool_binding.py`, `floating_toolbar.py`, `secondary_tool_bar/`,
   `workspace_document_sync.py`
+- `ui/core/widgets/tool_options/` (páginas de opções, via `ToolOptionsView`)
 - `ui/boundary/orchestrator/main_window.py`, `main_window_menu_actions.py`,
   `main_window_tool_camera_actions.py`
 
 ## Testes
 
-`tests/test_brush_state.py` e `tests/test_tool_state.py` (contratos dos
-estados), `tests/test_brush_panel_structure.py` (painel como view),
+`tests/test_brush_state.py`, `tests/test_tool_state.py` e
+`tests/test_state_links.py` (contratos dos estados e das regras), `tests/test_brush_panel_structure.py` (painel como view),
 `tests/test_tool_settings_contract.py` (opções chegando aos controladores).
 
 ## Dependências permitidas

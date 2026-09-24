@@ -1,123 +1,141 @@
-"""SecondaryToolBar — Floating contextual options bar for active tool."""
+"""SecondaryToolBar — barra flutuante com as opções da ferramenta ativa.
 
+Só moldura: cápsula com sombra, orientação (horizontal quando a barra de
+ferramentas está em cima/embaixo, vertical quando está nas laterais) e uma
+pilha com uma view por ferramenta e orientação (`views/`). Cada view lê e
+escreve o `ToolState` sozinha; a barra não guarda opção nenhuma.
+
+Para fora, dois sinais:
+- `commandRequested(ToolCommand)`: botões pontuais (Aplicar, Desmarcar,
+  Inserir texto...). O workspace liga em `RenderWidget.run_tool_command`.
+- `sizeChanged()`: o conteúdo mudou de tamanho (troca de ferramenta, tipo de
+  forma com parâmetro extra). O workspace reposiciona a barra.
+
+Até 2026-09-24 a barra tinha 366 linhas mais três mixins de handlers e nove
+funções `build_*_panels(toolbar)` que penduravam ~200 atributos nela; cada
+opção existia duas vezes (`slider_x_h`/`slider_x_v`) e era copiada de uma
+para a outra à mão, e os botões chamavam `self.parent().canvas_widget`.
+"""
 from __future__ import annotations
 
-from typing import Optional, Dict
+from typing import Optional
+
 from PySide6 import QtCore, QtGui, QtWidgets
+
 from ui.core.dialogs.floating_tool_window import FloatingToolWindow
-from ui.core.icons import get_icon
-from ui.core.state import ToolState, is_shape_tool
+from ui.core.state import BrushState, ToolState, options_key
 
 from .dynamic_stacked_widget import DynamicStackedWidget
-from .toolbar_handlers import SecondaryToolbarHandlersMixin
-from .tool_options.eyedrop_options import build_eyedrop_panels
-from .tool_options.bucket_options import build_bucket_panels
-from .tool_options.wand_options import build_wand_panels
-from .tool_options.geom_options import build_geom_panels
-from .tool_options.lasso_options import build_lasso_panels
-from .tool_options.transform_options import build_transform_panels
-from .tool_options.smudge_options import build_smudge_panels
-from .tool_options.shapes_options import build_shapes_panels
-from .tool_options.text_options import build_text_panels
+from .views import OrientedOptionsView, build_option_views
+
+_H, _V = QtCore.Qt.Horizontal, QtCore.Qt.Vertical
 
 
-class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
-    """Barra flutuante secundária com suporte a orientação horizontal e vertical responsiva."""
+class SecondaryToolBar(FloatingToolWindow):
+    commandRequested = QtCore.Signal(str)
+    sizeChanged = QtCore.Signal()
 
-    commitTextRequested = QtCore.Signal()
-    cancelTextRequested = QtCore.Signal()
-
-    def __init__(self, tool_state: ToolState, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, tool_state: ToolState, brush_state: BrushState,
+                 parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent, transparent_stylesheet=True)
-
-        # Opções editadas aqui vão para o ToolState (fonte única); a barra
-        # troca de conteúdo quando o estado avisa que a ferramenta mudou.
         self._tool_state = tool_state
-        self._orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal
-        self._active_tool_id: str = "shapes"
-        self._current_color: QtGui.QColor = QtGui.QColor(0, 0, 0)
-        self._shape_stroke_color: QtGui.QColor = QtGui.QColor(0, 0, 0, 255)
-        self._shape_fill_color: QtGui.QColor = QtGui.QColor(0, 0, 0, 255)
-        self._text_color: QtGui.QColor = QtGui.QColor(0, 0, 0, 255)
+        self._orientation = _H
+        self._build_frame()
 
-        self._build_ui()
-        self._apply_theme()
-        from ui.core.theme.manager import ThemeManager
-        ThemeManager.instance().themeChanged.connect(self._apply_theme)
-
-        from ui.core.i18n import I18nManager
-        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
-        self.retranslate_ui()
+        self._views: dict[QtCore.Qt.Orientation, dict[str, OrientedOptionsView]] = {
+            orientation: build_option_views(tool_state, brush_state, orientation) for orientation in (_H, _V)
+        }
+        for views in self._views.values():
+            for view in views.values():
+                self.stacked_widget.addWidget(view)
+                view.commandRequested.connect(self.commandRequested)
+        self._apply_orientation_constraints()
+        self._select_page()
 
         tool_state.activeToolChanged.connect(self._on_active_tool_changed)
         tool_state.optionsChanged.connect(self._on_options_changed)
 
-    def _on_active_tool_changed(self, tool_id: str, _previous: str) -> None:
-        self.set_tool(tool_id)
+    # ── API pública ───────────────────────────────────────────────────────
 
-    def _on_options_changed(self, key: str, options: dict) -> None:
-        # O tipo de forma pode mudar por outro editor (painel de pincel, barra
-        # flutuante): os dois seletores desta barra acompanham.
-        if key == "shapes" and self.shape_dropdown_h.shape_id() != options["shape_type"]:
-            self.shape_dropdown_h.set_shape(options["shape_type"])
-            self._on_shape_type_changed(options["shape_type"], self.shape_dropdown_h.shape_label(), "h")
+    def option_view(self, key: str, orientation: QtCore.Qt.Orientation | None = None) -> OrientedOptionsView:
+        """View das opções `key` na orientação pedida (padrão: a atual)."""
+        return self._views[orientation or self._orientation][key]
 
-    def _build_ui(self):
-        self.main_layout = QtWidgets.QVBoxLayout(self)
-        self.main_layout.setContentsMargins(6, 6, 6, 10)
-        self.main_layout.setSpacing(0)
-        self.main_layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+    def set_orientation(self, orientation: QtCore.Qt.Orientation) -> None:
+        """Chamado pelo workspace, que reposiciona a barra logo depois."""
+        if self._orientation == orientation:
+            return
+        self._orientation = orientation
+        self._apply_orientation_constraints()
+        self._select_page()
+        self._refit()
+
+    # ── Estado → barra ────────────────────────────────────────────────────
+
+    def _on_active_tool_changed(self, _tool: str, _previous: str) -> None:
+        if self._select_page():
+            self.show()
+            self._refit()
+            self.sizeChanged.emit()
+        else:
+            self.hide()
+
+    def _on_options_changed(self, key: str, _options: dict) -> None:
+        if not self.isVisible() or key != options_key(self._tool_state.active_tool):
+            return
+        before = self.size()
+        self._refit()
+        if self.size() != before:
+            self.sizeChanged.emit()
+
+    def _refit(self) -> None:
+        """Ajusta a barra ao conteúdo da página atual, já.
+
+        Esconder/mostrar um widget (o parâmetro extra da forma) só invalida os
+        layouts por evento postado; sem forçar aqui, a barra ficava com a
+        largura antiga (até 2026-09-24 ela não encolhia de estrela para elipse).
+        """
+        page = self.stacked_widget.currentWidget()
+        if page is not None:
+            page.layout().invalidate()
+            page.layout().activate()
+        self.stacked_widget.updateGeometry()
+        self.box_layout.invalidate()
+        self.box_layout.activate()
+        self.layout().activate()
+        self.adjustSize()
+
+    def _select_page(self) -> bool:
+        """Mostra na pilha a view da ferramenta ativa; False se ela não tem opções aqui."""
+        view = self._views[self._orientation].get(options_key(self._tool_state.active_tool))
+        if view is not None:
+            self.stacked_widget.setCurrentWidget(view)
+        return view is not None
+
+    # ── Moldura ───────────────────────────────────────────────────────────
+
+    def _build_frame(self) -> None:
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(6, 6, 6, 10)
+        main_layout.setSpacing(0)
+        main_layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
 
         self.container = QtWidgets.QWidget(self)
         self.container.setObjectName("SecondaryBarContainer")
-
         shadow = QtWidgets.QGraphicsDropShadowEffect(self.container)
         shadow.setBlurRadius(10)
         shadow.setXOffset(0)
         shadow.setYOffset(2)
         shadow.setColor(QtGui.QColor(0, 0, 0, 160))
         self.container.setGraphicsEffect(shadow)
-
-        self.main_layout.addWidget(self.container)
+        main_layout.addWidget(self.container)
 
         self.box_layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight, self.container)
-        self.box_layout.setContentsMargins(12, 0, 12, 0)
-        self.box_layout.setSpacing(8)
-        self.box_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-
         self.stacked_widget = DynamicStackedWidget(self.container)
         self.box_layout.addWidget(self.stacked_widget)
 
-        self._panels_h: Dict[str, QtWidgets.QWidget] = {}
-        self._panels_v: Dict[str, QtWidgets.QWidget] = {}
-
-        build_eyedrop_panels(self)
-        build_bucket_panels(self)
-        build_wand_panels(self)
-        build_geom_panels(self)
-        build_lasso_panels(self)
-        build_transform_panels(self)
-        build_smudge_panels(self)
-        build_shapes_panels(self)
-        build_text_panels(self)
-
-        self._apply_orientation_constraints()
-
-    def set_orientation(self, orientation: QtCore.Qt.Orientation):
-        if self._orientation == orientation:
-            return
-        self._orientation = orientation
-        self._apply_orientation_constraints()
-        self._sync_active_tool_view()
-        self._apply_theme()
-        self.adjustSize()
-        parent = self.parent()
-        if parent and hasattr(parent, "update_toolbar_position"):
-            parent.update_toolbar_position()
-
-    def _apply_orientation_constraints(self):
-        is_vert = (self._orientation == QtCore.Qt.Vertical)
-        if is_vert:
+    def _apply_orientation_constraints(self) -> None:
+        if self._orientation == _V:
             self.container.setMinimumHeight(0)
             self.container.setMaximumHeight(16777215)
             self.container.setFixedWidth(206)
@@ -131,236 +149,3 @@ class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
             self.box_layout.setContentsMargins(12, 0, 12, 0)
             self.box_layout.setSpacing(8)
             self.box_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-
-    # ── API PÚBLICA (PARA MÓDULOS DE OPÇÕES) ──
-    @property
-    def panels_h(self) -> Dict[str, QtWidgets.QWidget]:
-        """Registro público dos painéis de opções na orientação horizontal."""
-        return self._panels_h
-
-    @property
-    def panels_v(self) -> Dict[str, QtWidgets.QWidget]:
-        """Registro público dos painéis de opções na orientação vertical."""
-        return self._panels_v
-
-    def request_deselect(self):
-        """Ponto de entrada público para acionar o deselect da seleção ativa."""
-        self._on_deselect_clicked()
-
-    # ── NAVEGAÇÃO E SINCRONIZAÇÃO ──
-    def set_tool(self, tool_id: str):
-        self._active_tool_id = tool_id
-        if tool_id.startswith("shape_") and tool_id != "shapes":
-            self.shape_dropdown_h.set_shape(tool_id)
-            self.shape_dropdown_v.set_shape(tool_id)
-            self._on_shape_type_changed(tool_id, self.shape_dropdown_h.shape_label(), "h")
-
-        if tool_id in self._panels_h or is_shape_tool(tool_id):
-            self._sync_active_tool_view()
-            self.show()
-            self.adjustSize()
-            if is_shape_tool(tool_id):
-                self._emit_shapes_settings()
-            elif tool_id == "text":
-                self._emit_text_settings()
-        else:
-            self.hide()
-
-    def _sync_active_tool_view(self):
-        is_vert = (self._orientation == QtCore.Qt.Vertical)
-        panel_map = self._panels_v if is_vert else self._panels_h
-        target_widget = panel_map.get(self._active_tool_id)
-        if not target_widget and (self._active_tool_id.startswith("shape") or self._active_tool_id == "shapes"):
-            target_widget = panel_map.get("shapes")
-        if target_widget:
-            self.stacked_widget.setCurrentWidget(target_widget)
-
-    def set_captured_color(self, color: QtGui.QColor):
-        self._current_color = color
-        hex_str = color.name().upper()
-        for sw, lbl in [(self.swatch_h, self.lbl_hex_h), (self.swatch_v, self.lbl_hex_v)]:
-            sw.setStyleSheet(f"background: {hex_str}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3);")
-            lbl.setText(hex_str)
-
-        self._shape_stroke_color = QtGui.QColor(color)
-        old_a = self._shape_fill_color.alpha()
-        self._shape_fill_color = QtGui.QColor(color.red(), color.green(), color.blue(), old_a)
-
-        st_s = f"background: {color.name()}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.4);"
-        st_f = f"background: {self._shape_fill_color.name()}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.4);"
-        for b_s, b_f in [(self.btn_shape_stroke_col_h, self.btn_shape_fill_col_h), (self.btn_shape_stroke_col_v, self.btn_shape_fill_col_v)]:
-            b_s.setStyleSheet(st_s)
-            b_f.setStyleSheet(st_f)
-
-        self._emit_shapes_settings()
-
-    def _apply_theme(self):
-        # Intencionalmente vazio: esta barra usa stylesheet estatico (ver
-        # _build_ui) em vez de recolorir dinamicamente por tema, diferente
-        # da FloatingToolbar (que tem seu proprio _apply_theme com restyling
-        # de verdade). Mantido conectado a themeChanged por consistencia de
-        # contrato com outros componentes do workspace.
-        pass
-
-    def retranslate_ui(self) -> None:
-        """Atualiza dinamicamente rótulos, comboboxes e tooltips da barra secundária."""
-        from ui.core.i18n import tr
-        # Eyedrop
-        if hasattr(self, "cbo_sample_h"):
-            for cbo in (self.cbo_sample_h, self.cbo_sample_v):
-                idx = max(0, cbo.currentIndex())
-                cbo.blockSignals(True)
-                cbo.clear()
-                cbo.addItems([
-                    tr("tool_options.sample_1x1", "1x1 Ponto"),
-                    tr("tool_options.sample_3x3", "3x3 Média"),
-                    tr("tool_options.sample_5x5", "5x5 Média"),
-                    "11x11 " + tr("tool_options.sample_3x3", "Média").split()[-1]
-                ])
-                cbo.setCurrentIndex(idx)
-                cbo.blockSignals(False)
-            self.btn_eye_merged_h.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
-            self.btn_eye_merged_v.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
-
-        # Bucket & Wand
-        if hasattr(self, "btn_bkt_contig_h"):
-            self.btn_bkt_contig_h.setText(tr("tool_options.contiguous", "Contíguo"))
-            self.btn_bkt_contig_v.setText(tr("tool_options.contiguous", "Contíguo"))
-            self.btn_bkt_merged_h.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
-            self.btn_bkt_merged_v.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
-
-        if hasattr(self, "btn_wand_contig_h"):
-            self.btn_wand_contig_h.setText(tr("tool_options.contiguous", "Contíguo"))
-            self.btn_wand_contig_v.setText(tr("tool_options.contiguous", "Contíguo"))
-            self.btn_wand_merged_h.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
-            self.btn_wand_merged_v.setText(tr("tool_options.sample_all_layers", "Todas Camadas"))
-
-        # Transform & Text
-        if hasattr(self, "btn_trans_commit_h"):
-            self.btn_trans_commit_h.setText(tr('common.apply', 'Aplicar'))
-            self.btn_trans_commit_v.setText(tr('common.apply', 'Aplicar'))
-            self.btn_trans_cancel_h.setText(tr('common.cancel', 'Cancelar'))
-            self.btn_trans_cancel_v.setText(tr('common.cancel', 'Cancelar'))
-            self.btn_trans_flip_h_h.setText(tr("transform.flip_h", "Espelhar H"))
-            self.btn_trans_flip_h_v.setText(tr("transform.flip_h", "Espelhar H"))
-            self.btn_trans_flip_v_h.setText(tr("transform.flip_v", "Espelhar V"))
-            self.btn_trans_flip_v_v.setText(tr("transform.flip_v", "Espelhar V"))
-            self.btn_trans_rot_90_h.setText(tr("transform.rotate_90", "Girar 90°"))
-            self.btn_trans_rot_90_v.setText(tr("transform.rotate_90", "Girar 90°"))
-            self.btn_trans_aspect_h.setText(tr("transform.lock_aspect", "Travar Proporção"))
-            self.btn_trans_commit_h.setToolTip(tr("tool_options.commit_text", "Confirmar"))
-            self.btn_trans_cancel_h.setToolTip(tr("tool_options.cancel_text", "Cancelar"))
-            self.btn_trans_aspect_h.setToolTip(tr("tool_options.lock_aspect", "Travar Proporções"))
-            for btn in (self.btn_trans_distort_h, self.btn_trans_distort_v):
-                btn.setText(tr("tools.transform_distort", "Distorcer"))
-                btn.setToolTip(tr("tool_options.distort_tip", "Arraste cada canto livremente (perspectiva)"))
-            if hasattr(self, "lbl_trans_title_v"):
-                self.lbl_trans_title_v.setText(tr("transform.title", "TRANSFORMAÇÃO"))
-            if hasattr(self, "lbl_trans_interp_h"):
-                self.lbl_trans_interp_h.setText(tr("transform.interp", "Interp:"))
-            if hasattr(self, "cbo_trans_interp_h"):
-                idx = max(0, self.cbo_trans_interp_h.currentIndex())
-                self.cbo_trans_interp_h.blockSignals(True)
-                self.cbo_trans_interp_h.clear()
-                self.cbo_trans_interp_h.addItems([
-                    tr("transform.interp_nearest", "Mais Próximo"),
-                    tr("transform.interp_bilinear", "Bilinear"),
-                    tr("transform.interp_bicubic", "Bicúbica")
-                ])
-                self.cbo_trans_interp_h.setCurrentIndex(idx)
-                self.cbo_trans_interp_h.blockSignals(False)
-
-        if hasattr(self, "btn_commit_text_h"):
-            self.btn_commit_text_h.setToolTip(tr("tool_options.commit_text", "Confirmar"))
-            self.btn_cancel_text_h.setToolTip(tr("tool_options.cancel_text", "Cancelar"))
-        if hasattr(self, "btn_text_commit_h"):
-            self.btn_text_commit_h.setText(tr("tool_options.insert_text", "Inserir"))
-            self.btn_text_align_l_h.setText(tr("tool_options.align_left", "Esq"))
-            self.btn_text_align_c_h.setText(tr("tool_options.align_center", "Cen"))
-            self.btn_text_align_r_h.setText(tr("tool_options.align_right", "Dir"))
-
-        # Shapes (Primitivas)
-        if hasattr(self, "shape_dropdown_h"):
-            self.shape_dropdown_h.retranslate_ui()
-        if hasattr(self, "shape_dropdown_v"):
-            self.shape_dropdown_v.retranslate_ui()
-        if hasattr(self, "cbo_shape_mode_h"):
-            modes = [
-                tr("tool_options.shapes_stroke_and_fill", "Contorno & Preenchimento"),
-                tr("tool_options.shapes_stroke_only", "Apenas Contorno"),
-                tr("tool_options.shapes_fill_only", "Apenas Preenchimento")
-            ]
-            for cbo in (self.cbo_shape_mode_h, self.cbo_shape_mode_v):
-                idx = max(0, cbo.currentIndex())
-                cbo.blockSignals(True)
-                cbo.clear()
-                cbo.addItems(modes)
-                cbo.setCurrentIndex(idx)
-                cbo.blockSignals(False)
-
-        if hasattr(self, "lbl_shape_stroke_h"):
-            self.lbl_shape_stroke_h.setText(tr("tool_options.stroke", "Traço:"))
-        if hasattr(self, "lbl_shape_border_h"):
-            self.lbl_shape_border_h.setText(tr("tool_options.border", "Borda:"))
-        if hasattr(self, "lbl_shape_border_v"):
-            self.lbl_shape_border_v.setText(tr("tool_options.border", "Borda:"))
-        if hasattr(self, "lbl_shape_fill_h"):
-            self.lbl_shape_fill_h.setText(tr("tool_options.fill", "Fundo:"))
-        if hasattr(self, "lbl_shape_fill_v"):
-            self.lbl_shape_fill_v.setText(tr("tool_options.fill", "Fundo:"))
-        if hasattr(self, "lbl_shape_opac_h"):
-            self.lbl_shape_opac_h.setText(tr("tool_options.opacity", "Opac:"))
-        if hasattr(self, "slider_shape_width_v"):
-            self.slider_shape_width_v.setPrefix(tr("tool_options.stroke", "Traço:"))
-        if hasattr(self, "slider_shape_fill_opac_v"):
-            self.slider_shape_fill_opac_v.setPrefix(tr("tool_options.fill_opacity", "Opac. Fundo:"))
-        if hasattr(self, "lbl_shape_title_v"):
-            self.lbl_shape_title_v.setText(tr("tool_options.shapes_title", "FORMAS VETORIAIS"))
-
-        if hasattr(self, "lbl_shape_extra_h"):
-            if self._active_tool_id == "shape_rect":
-                self.lbl_shape_extra_h.setText(tr("tool_options.radius", "Raio:"))
-                self.lbl_shape_extra_v.setText(tr("tool_options.radius", "Raio:"))
-            elif self._active_tool_id in ("shape_polygon", "shape_star"):
-                txt = tr("tool_options.sides", "Lados:") if self._active_tool_id == "shape_polygon" else tr("tool_options.points", "Pontas:")
-                self.lbl_shape_extra_h.setText(txt)
-                self.lbl_shape_extra_v.setText(txt)
-
-        # Geom & Lasso
-        if hasattr(self, "cbo_geom_mode_h"):
-            modes = [
-                tr("selection.new", "Nova Seleção"),
-                tr("selection.add", "Adicionar (+)"),
-                tr("selection.subtract", "Subtrair (-)"),
-                tr("selection.intersect", "Interseção")
-            ]
-            for cbo in (self.cbo_geom_mode_h, self.cbo_geom_mode_v):
-                idx = max(0, cbo.currentIndex())
-                cbo.blockSignals(True)
-                cbo.clear()
-                cbo.addItems(modes)
-                cbo.setCurrentIndex(idx)
-                cbo.blockSignals(False)
-            self.btn_geom_deselect_h.setText(f" {tr('selection.deselect', 'Desmarcar')}")
-            self.btn_geom_deselect_v.setText(f" {tr('selection.deselect', 'Desmarcar')}")
-            self.btn_geom_aa_h.setText(tr("selection.anti_alias", "Anti-Alias"))
-            self.btn_geom_aa_v.setText(tr("selection.anti_alias", "Anti-Alias"))
-
-        if hasattr(self, "cbo_lasso_mode_h"):
-            modes = [
-                tr("selection.new", "Nova Seleção"),
-                tr("selection.add", "Adicionar (+)"),
-                tr("selection.subtract", "Subtrair (-)"),
-                tr("selection.intersect", "Interseção")
-            ]
-            for cbo in (self.cbo_lasso_mode_h, self.cbo_lasso_mode_v):
-                idx = max(0, cbo.currentIndex())
-                cbo.blockSignals(True)
-                cbo.clear()
-                cbo.addItems(modes)
-                cbo.setCurrentIndex(idx)
-                cbo.blockSignals(False)
-            self.btn_lasso_deselect_h.setText(f" {tr('selection.deselect', 'Desmarcar')}")
-            self.btn_lasso_deselect_v.setText(f" {tr('selection.deselect', 'Desmarcar')}")
-            self.btn_lasso_aa_h.setText(tr("selection.anti_alias", "Anti-Alias"))
-            self.btn_lasso_aa_v.setText(tr("selection.anti_alias", "Anti-Alias"))

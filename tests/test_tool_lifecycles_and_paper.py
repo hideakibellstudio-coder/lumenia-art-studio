@@ -102,8 +102,17 @@ def test_text_tool_controller_lifecycle_symmetry(app):
     assert rw.tool_mgr.active_text_editor is None
 
 
-def test_render_widget_active_color_and_set_shape_color(app):
-    """Garante leitura/escrita de active_color e propagação para set_shape_color."""
+def test_render_widget_active_color_and_brush_color_reaching_shapes(app):
+    """active_color é lido/escrito direto; a cor das formas chega pelo estado.
+
+    Cadeia: BrushState.colorChanged → ShapeColorLink (ToolState "shapes") →
+    CanvasToolBinding → ShapeToolController. Até 2026-09-24 havia também um
+    `RenderWidget.set_shape_color` paralelo, que zerava a transparência do fundo.
+    """
+    from plugins.system.workspace_core.workspace.canvas_tool_binding import CanvasToolBinding
+    from ui.core.plugins.registry import ServiceRegistry
+    from ui.core.state import install_app_state
+
     rw = RenderWidget()
     assert rw.active_color == QtGui.QColor(0, 0, 0, 255)
 
@@ -111,8 +120,9 @@ def test_render_widget_active_color_and_set_shape_color(app):
     rw.active_color = test_color
     assert rw.active_color == test_color
 
-    # Testa propagação via set_shape_color
-    rw.set_shape_color(test_color)
+    state = install_app_state(ServiceRegistry(), lambda: None)
+    binding = CanvasToolBinding(state.tools, rw, lambda _msg: None)  # noqa: F841
+    state.brush.set_color(test_color)
     assert rw.shape_ctrl.settings["stroke_color"] == test_color
     assert rw.shape_ctrl.settings["fill_color"] == test_color
 

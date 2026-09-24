@@ -12,8 +12,7 @@ from plugins.system.workspace_core.workspace.canvas.tools.transform_tool_control
 from plugins.ui.brush_plugin.panel import BrushSettingsPanel
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import TOOL_SETTING_DEFAULTS, default_tool_settings, normalize_tool_settings
-from ui.core.widgets.tool_options.bucket_wand_options import BucketOptionsWidget
-from ui.core.widgets.tool_options.transform_selection_options import TransformOptionsWidget
+from ui.core.widgets.tool_options import BucketOptionsWidget, TransformOptionsWidget
 
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
@@ -95,27 +94,31 @@ def test_tool_state_routes_canonical_settings_to_the_controllers_that_consume_th
     canvas.deleteLater()
 
 
-def test_core_option_widgets_emit_canonical_values():
-    bucket = BucketOptionsWidget()
-    bucket_events = []
-    bucket.settingsChanged.connect(bucket_events.append)
+def test_core_option_widgets_publish_only_what_was_edited_and_follow_the_state():
+    from ui.core.state import ToolState
+    tools = ToolState()
+    bucket = BucketOptionsWidget(tools)
     bucket.slider_exp.setValue(-5)
-    assert bucket_events[-1]["expand_px"] == -5
-    assert "expansion" not in bucket_events[-1]
+    assert tools.options("bucket")["expand_px"] == -5
+    assert bucket.lbl_exp_val.text() == "-5px"
 
-    transform = TransformOptionsWidget()
-    transform_events = []
-    transform.settingsChanged.connect(transform_events.append)
+    # Outra tela mudou o estado: a página mostra, sem republicar.
+    tools.update_options("bucket", {"tolerance": 77})
+    assert bucket.slider_tol.value() == 77 and bucket.lbl_tol_val.text() == "77%"
+
+    transform = TransformOptionsWidget(tools)
+    tools.update_options("transform", {"interp_mode": 0})
     transform.combo_mode.setCurrentIndex(1)
-    assert transform_events[-1]["lock_aspect"] is True
-    transform.chk_bicubic.setChecked(False)
-    assert transform_events[-1]["interp_mode"] == 1
-    assert transform_events[-1]["distort"] is False
+    options = tools.options("transform")
+    assert options["lock_aspect"] is True and options["distort"] is False
+    # Até 2026-09-24 a página publicava tudo e trocava "Mais Próximo" (0) por
+    # bilinear (1) só porque o usuário mexeu no modo.
+    assert options["interp_mode"] == 0
     transform.combo_mode.setCurrentIndex(2)
-    assert transform_events[-1]["distort"] is True and transform_events[-1]["lock_aspect"] is False
+    assert tools.options("transform")["distort"] is True and tools.options("transform")["lock_aspect"] is False
 
 
-def test_brush_panel_forwards_wand_transform_and_active_selection_settings():
+def test_brush_panel_pages_edit_the_tool_state_for_the_active_selection_tool():
     from ui.core.state import BrushState, ToolState
     tools = ToolState()
     panel = BrushSettingsPanel(BrushState(), tools)  # noqa: F841

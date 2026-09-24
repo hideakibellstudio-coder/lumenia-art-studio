@@ -1,7 +1,7 @@
-"""CanvasBrushBinding — mostra o BrushState no canvas e na barra secundária.
+"""CanvasBrushBinding — mostra o BrushState no canvas.
 
 O canvas usa três coisas do pincel para desenhar a própria interface: a cor
-(balde, formas, conta-gotas), o tamanho (anel do cursor) e a pressão manual
+(balde, conta-gotas), o tamanho (anel do cursor) e a pressão manual
 (traço com mouse). Esta classe é o único lugar que copia esses valores do
 estado para o canvas, e o único que devolve ao estado a cor capturada pelo
 conta-gotas.
@@ -19,7 +19,6 @@ from ui.core.state import BrushParam, BrushState
 
 if TYPE_CHECKING:
     from .canvas.render_widget import RenderWidget
-    from .secondary_tool_bar import SecondaryToolBar
 
 
 class CanvasBrushBinding(QtCore.QObject):
@@ -27,12 +26,10 @@ class CanvasBrushBinding(QtCore.QObject):
         self,
         brush_state: BrushState,
         canvas: "RenderWidget",
-        secondary_toolbar: "SecondaryToolBar",
         parent: QtCore.QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self._canvas = canvas
-        self._secondary_toolbar = secondary_toolbar
 
         brush_state.colorChanged.connect(self._show_color)
         brush_state.paramChanged.connect(self._show_param)
@@ -43,9 +40,8 @@ class CanvasBrushBinding(QtCore.QObject):
             self._show_param(param, brush_state.value(param))
 
     def _show_color(self, color: QtGui.QColor) -> None:
+        # As cores das formas seguem o pincel pelo ShapeColorLink (ui/core/state).
         self._canvas.active_color = color
-        self._canvas.set_shape_color(color)
-        self._secondary_toolbar.set_captured_color(color)
         self._canvas.update()
 
     def _show_param(self, param: BrushParam, value) -> None:

@@ -9,6 +9,8 @@ casca nunca importa de plugins.
 """
 
 from __future__ import annotations
+
+from enum import Enum
 from typing import Dict
 
 TOOL_META: Dict[str, Dict[str, str]] = {
@@ -75,4 +77,23 @@ def get_tool_name(tool_id: str) -> str:
     return TOOL_META.get(tool_id, {}).get("name", tool_id)
 
 
-__all__ = ["TOOL_META", "TOOL_I18N_KEYS", "DEFAULT_TOOLS", "get_tool_name"]
+class ToolCommand(str, Enum):
+    """Comandos pontuais sobre a ferramenta em uso (botões "Aplicar", "Desmarcar"...).
+
+    Quem oferece o botão emite o comando; o canvas executa
+    (`RenderWidget.run_tool_command`). Antes de 2026-09-24 a barra secundária
+    chamava `self.parent().canvas_widget.commit_transform()` e afins, com
+    `hasattr` para descobrir se o pai era o workspace.
+    """
+
+    DESELECT = "deselect"
+    TRANSFORM_COMMIT = "transform_commit"
+    TRANSFORM_CANCEL = "transform_cancel"
+    TRANSFORM_FLIP_H = "transform_flip_h"
+    TRANSFORM_FLIP_V = "transform_flip_v"
+    TRANSFORM_ROTATE_90 = "transform_rotate_90"
+    TEXT_COMMIT = "text_commit"
+    TEXT_CANCEL = "text_cancel"
+
+
+__all__ = ["TOOL_META", "TOOL_I18N_KEYS", "DEFAULT_TOOLS", "ToolCommand", "get_tool_name"]

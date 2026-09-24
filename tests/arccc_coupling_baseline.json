@@ -62,54 +62,7 @@
   "getattr_literal": 2
  },
  "plugins/system/workspace_core/workspace/floating_toolbar.py": {
-  "foreign_private": 1,
-  "getattr_literal": 3,
-  "hasattr": 5
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/dynamic_stacked_widget.py": {
-  "hasattr": 1
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/handlers/brush_fill_toolbar_handlers.py": {
-  "getattr_literal": 10,
-  "hasattr": 20
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/handlers/selection_toolbar_handlers.py": {
-  "getattr_literal": 7,
-  "hasattr": 11
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/handlers/shape_text_toolbar_handlers.py": {
-  "getattr_literal": 17,
-  "hasattr": 21
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/bucket_options.py": {
-  "foreign_private": 8
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/eyedrop_options.py": {
-  "foreign_private": 4
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/geom_options.py": {
-  "foreign_private": 6
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/lasso_options.py": {
-  "foreign_private": 6
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/shapes_options.py": {
-  "foreign_private": 14
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/smudge_options.py": {
-  "foreign_private": 8
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/text_options.py": {
-  "foreign_private": 24
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/transform_options.py": {
-  "foreign_private": 16
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/wand_options.py": {
-  "foreign_private": 8
- },
- "plugins/system/workspace_core/workspace/secondary_tool_bar/toolbar.py": {
-  "hasattr": 25
+  "foreign_private": 1
  },
  "plugins/system/workspace_core/workspace/viewport_container.py": {
   "foreign_private": 1
@@ -118,7 +71,7 @@
   "hasattr": 3
  },
  "plugins/system/workspace_core/workspace/workspace_container.py": {
-  "hasattr": 9
+  "hasattr": 8
  },
  "plugins/system/workspace_core/workspace/workspace_document_sync.py": {
   "getattr_literal": 14,
@@ -397,18 +350,6 @@
  },
  "ui/core/widgets/toggle/toggle_switch.py": {
   "foreign_private": 1
- },
- "ui/core/widgets/tool_options/bucket_wand_options.py": {
-  "hasattr": 8
- },
- "ui/core/widgets/tool_options/eyedrop_options.py": {
-  "hasattr": 3
- },
- "ui/core/widgets/tool_options/shapes_options.py": {
-  "hasattr": 8
- },
- "ui/core/widgets/tool_options/transform_selection_options.py": {
-  "hasattr": 4
  },
  "ui/engine_backends/aladyn_brush_mixin.py": {
   "hasattr": 3

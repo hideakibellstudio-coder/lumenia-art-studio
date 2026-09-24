@@ -1,27 +1,32 @@
-"""EyedropOptionsWidget."""
+"""EyedropOptionsWidget — página do conta-gotas no painel de pincel.
+
+View do ToolState ("eyedrop") e do BrushState (a cor do pincel é a última
+cor capturada). Até 2026-09-24 o painel repassava a cor à mão
+(`set_captured_color`) e o widget publicava o dicionário inteiro a cada clique.
+"""
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import tr, I18nManager
-from ui.core.tool_settings import normalize_tool_settings
+from ui.core.i18n import tr
+from ui.core.state import BrushState, ToolState
 from .base import ToolHeaderLabel, ModernOptionCheckBox
+from .bound_view import ToolOptionsView
+
+# Índice do combo de amostragem ↔ raio de amostragem em pixels (1x1, 3x3, 5x5, 11x11).
+SAMPLE_RADII = (0, 1, 2, 5)
 
 
-class EyedropOptionsWidget(QtWidgets.QWidget):
-    """Painel de configurações da ferramenta Conta-Gotas (Fit Compacto)."""
-
-    settingsChanged = QtCore.Signal(dict)
-    colorCaptured   = QtCore.Signal(QtGui.QColor)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class EyedropOptionsWidget(ToolOptionsView):
+    def __init__(self, tool_state: ToolState, brush_state: BrushState, parent=None):
+        super().__init__(tool_state, "eyedrop", parent)
         self.setObjectName("EyedropOptionsWidget")
-        self._current_color = QtGui.QColor(0, 0, 0)
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         self._build_ui()
         self._apply_theme()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
-        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        brush_state.colorChanged.connect(self._show_color)
+        self._show_color(brush_state.color)
+        self.bind()
 
     def _build_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -34,7 +39,7 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
         row_sample = QtWidgets.QHBoxLayout()
         row_sample.setContentsMargins(0, 0, 0, 0)
         row_sample.setSpacing(4)
-        self.lbl_s = QtWidgets.QLabel(f"{tr('tools.sample', 'Amostra')}:")
+        self.lbl_s = QtWidgets.QLabel()
         self.lbl_s.setProperty("muted", "true")
         self.combo_sample = QtWidgets.QComboBox()
         self.combo_sample.addItems([
@@ -44,21 +49,17 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
             tr("tools.sample_11x11", "11x11 Média")
         ])
         self.combo_sample.setFixedHeight(22)
-        self.combo_sample.currentIndexChanged.connect(self._emit_changes)
+        self.combo_sample.currentIndexChanged.connect(lambda i: self.publish(sample_radius=SAMPLE_RADII[i]))
         row_sample.addWidget(self.lbl_s)
         row_sample.addWidget(self.combo_sample, 1)
         layout.addLayout(row_sample)
 
-        self.chk_sample_all = ModernOptionCheckBox(tr("tools.sample_all_layers", "Todas as Camadas"))
-        self.chk_sample_all.setToolTip(tr("tools.sample_all_tooltip", "Amostrar todas as camadas mescladas (Merged)"))
-        self.chk_sample_all.setChecked(True)
-        self.chk_sample_all.toggled.connect(self._emit_changes)
+        self.chk_sample_all = ModernOptionCheckBox("")
+        self.chk_sample_all.toggled.connect(lambda x: self.publish(sample_all=x))
         layout.addWidget(self.chk_sample_all)
 
-        self.chk_show_loupe = ModernOptionCheckBox(tr("tools.loupe", "Lupa Dinâmica 4×"))
-        self.chk_show_loupe.setToolTip(tr("tools.loupe_tooltip", "Exibir lupa de ampliação 4x no cursor ao clicar/arrastar"))
-        self.chk_show_loupe.setChecked(True)
-        self.chk_show_loupe.toggled.connect(self._emit_changes)
+        self.chk_show_loupe = ModernOptionCheckBox("")
+        self.chk_show_loupe.toggled.connect(lambda x: self.publish(show_loupe=x))
         layout.addWidget(self.chk_show_loupe)
 
         layout.addSpacing(2)
@@ -71,18 +72,15 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
 
         self.swatch_preview = QtWidgets.QFrame()
         self.swatch_preview.setFixedSize(28, 28)
-        self.swatch_preview.setStyleSheet(
-            "background-color: #000000; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25);"
-        )
         card_layout.addWidget(self.swatch_preview)
 
         info_layout = QtWidgets.QVBoxLayout()
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(2)
 
-        self.lbl_hex = QtWidgets.QLabel("#000000")
+        self.lbl_hex = QtWidgets.QLabel()
         self.lbl_hex.setProperty("heading", "true")
-        self.lbl_rgb = QtWidgets.QLabel("RGB: 0, 0, 0")
+        self.lbl_rgb = QtWidgets.QLabel()
         self.lbl_rgb.setProperty("muted", "true")
 
         info_layout.addWidget(self.lbl_hex)
@@ -92,36 +90,25 @@ class EyedropOptionsWidget(QtWidgets.QWidget):
         layout.addWidget(self.card_color)
         layout.addStretch()
 
-    def retranslate_ui(self):
-        if hasattr(self, "lbl_s"):
-            self.lbl_s.setText(f"{tr('tools.sample', 'Amostra')}:")
-        if hasattr(self, "chk_sample_all"):
-            self.chk_sample_all.setText(tr("tools.sample_all_layers", "Todas as Camadas"))
-            self.chk_sample_all.setToolTip(tr("tools.sample_all_tooltip", "Amostrar todas as camadas mescladas (Merged)"))
-        if hasattr(self, "chk_show_loupe"):
-            self.chk_show_loupe.setText(tr("tools.loupe", "Lupa Dinâmica 4×"))
-            self.chk_show_loupe.setToolTip(tr("tools.loupe_tooltip", "Exibir lupa de ampliação 4x no cursor ao clicar/arrastar"))
+    def show_options(self, o):
+        self.combo_sample.setCurrentIndex(SAMPLE_RADII.index(o["sample_radius"]))
+        self.chk_sample_all.setChecked(o["sample_all"])
+        self.chk_show_loupe.setChecked(o["show_loupe"])
 
-    def set_captured_color(self, color: QtGui.QColor):
-        self._current_color = color
+    def retranslate_ui(self):
+        self.lbl_s.setText(f"{tr('tools.sample', 'Amostra')}:")
+        self.chk_sample_all.setText(tr("tools.sample_all_layers", "Todas as Camadas"))
+        self.chk_sample_all.setToolTip(tr("tools.sample_all_tooltip", "Amostrar todas as camadas mescladas (Merged)"))
+        self.chk_show_loupe.setText(tr("tools.loupe", "Lupa Dinâmica 4×"))
+        self.chk_show_loupe.setToolTip(tr("tools.loupe_tooltip", "Exibir lupa de ampliação 4x no cursor ao clicar/arrastar"))
+
+    def _show_color(self, color: QtGui.QColor):
         hex_str = color.name().upper()
         self.lbl_hex.setText(hex_str)
         self.lbl_rgb.setText(f"RGB: {color.red()}, {color.green()}, {color.blue()}")
         self.swatch_preview.setStyleSheet(
             f"background-color: {hex_str}; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3);"
         )
-
-    def _emit_changes(self):
-        sample_map = {0: "1x1 Ponto Único", 1: "3x3 Média", 2: "5x5 Média", 3: "11x11 Média"}
-        radius_map = {0: 0, 1: 1, 2: 2, 3: 5}
-        idx = self.combo_sample.currentIndex()
-        settings = normalize_tool_settings("eyedrop", {
-            "sample_size": sample_map.get(idx, "1x1 Ponto Único"),
-            "sample_radius": radius_map.get(idx, 0),
-            "sample_all": self.chk_sample_all.isChecked(),
-            "show_loupe": self.chk_show_loupe.isChecked(),
-        })
-        self.settingsChanged.emit(settings)
 
     def _apply_theme(self, *_):
         theme = ThemeManager.instance()

@@ -1,6 +1,6 @@
 {
  "plugins/system/workspace_core/workspace/canvas/math/curvilinear_mesh_builder.py": 6,
- "plugins/system/workspace_core/workspace/canvas/render_widget.py": 3,
+ "plugins/system/workspace_core/workspace/canvas/render_widget.py": 2,
  "plugins/system/workspace_core/workspace/canvas/renderers/canvas_background_renderer.py": 4,
  "plugins/system/workspace_core/workspace/canvas/renderers/overlay_renderer.py": 18,
  "plugins/system/workspace_core/workspace/canvas/renderers/perspective_grid_renderer.py": 24,
@@ -11,12 +11,10 @@
  "plugins/system/workspace_core/workspace/canvas/tools/eyedrop_tool_controller.py": 3,
  "plugins/system/workspace_core/workspace/canvas/tools/shape_tool_controller.py": 2,
  "plugins/system/workspace_core/workspace/canvas/tools/text_tool_controller.py": 1,
- "plugins/system/workspace_core/workspace/canvas/viewport/canvas_compat.py": 1,
  "plugins/system/workspace_core/workspace/canvas/viewport/viewport_renderer.py": 1,
  "plugins/system/workspace_core/workspace/floating_toolbar.py": 1,
  "plugins/system/workspace_core/workspace/pill_handle.py": 1,
- "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/eyedrop_options.py": 2,
- "plugins/system/workspace_core/workspace/secondary_tool_bar/toolbar.py": 5,
+ "plugins/system/workspace_core/workspace/secondary_tool_bar/toolbar.py": 1,
  "plugins/system/workspace_core/workspace/workspace_document_sync.py": 3,
  "plugins/ui/brush_plugin/advanced_panel/panel_thumbnails.py": 6,
  "plugins/ui/brush_plugin/brush_dropdown.py": 4,
@@ -46,7 +44,5 @@
  "ui/core/widgets/color_picker/picker.py": 10,
  "ui/core/widgets/pipeline_bar.py": 1,
  "ui/core/widgets/shape_dropdown.py": 9,
- "ui/core/widgets/toggle/toggle_switch.py": 4,
- "ui/core/widgets/tool_options/eyedrop_options.py": 2,
- "ui/core/widgets/tool_options/shapes_options.py": 2
+ "ui/core/widgets/toggle/toggle_switch.py": 4
 }

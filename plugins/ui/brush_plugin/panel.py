@@ -24,7 +24,7 @@ from ui.core.icons import get_icon
 from ui.core.state import BrushParam, BrushState, ToolState, is_shape_tool
 from ui.core.theme.manager import ThemeManager
 from ui.core.widgets.card_box import PanelCardBox
-from ui.core.widgets.tool_options_widgets import (
+from ui.core.widgets.tool_options import (
     EyedropOptionsWidget,
     BucketOptionsWidget,
     WandOptionsWidget,
@@ -66,8 +66,9 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             self._on_param_changed(param, value)
         self._on_color_changed(brush_state.color)
 
+        # As páginas de opções de ferramenta são views do ToolState por conta
+        # própria (ui/core/widgets/tool_options); aqui só se escolhe a página.
         tool_state.activeToolChanged.connect(self._on_active_tool_changed)
-        tool_state.optionsChanged.connect(self._on_tool_options_changed)
         self._show_tool(tool_state.active_tool)
 
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
@@ -101,8 +102,6 @@ class BrushSettingsPanel(QtWidgets.QWidget):
 
     def _on_color_changed(self, color: QtGui.QColor) -> None:
         self.stroke_preview.update_brush_state(color=[color.redF(), color.greenF(), color.blueF()])
-        self.eyedrop_options_widget.set_captured_color(color)
-        self.shapes_options_widget.set_active_color(color)
 
     def _on_preset_selected(self, _tool_id: str, _name: str, data: dict) -> None:
         self.stroke_preview.update_brush_state(
@@ -122,24 +121,12 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     def _on_active_tool_changed(self, tool_name: str, _previous: str) -> None:
         self._show_tool(tool_name)
         self.preset_combo.sync_to_tool(tool_name)
-        if tool_name == "shapes":
-            # A página de formas publica o que mostra, para o canvas desenhar
-            # com as mesmas opções que o usuário está vendo.
-            self.shapes_options_widget.emit_current_settings()
 
     def _show_tool(self, tool_name: str) -> None:
         self.tool_column.set_tool_active(tool_name)
+        if tool_name in _SELECTION_TOOLS:
+            self.selection_options_widget.set_key(tool_name)
         self.stacked_tool_props.setCurrentWidget(self._options_page_for(tool_name))
-
-    def _on_tool_options_changed(self, key: str, options: dict) -> None:
-        if key != "shapes":
-            return
-        shape_type = options["shape_type"]
-        if self.shapes_options_widget.shape_dropdown.shape_id() != shape_type:
-            # Só mostra: republicar daqui sobrescreveria as opções que outro
-            # editor acabou de escrever.
-            with QtCore.QSignalBlocker(self.shapes_options_widget):
-                self.shapes_options_widget.set_active_shape_type(shape_type)
 
     def _options_page_for(self, tool_name: str) -> QtWidgets.QWidget:
         if tool_name in _BRUSH_PAGE_TOOLS:
@@ -155,12 +142,6 @@ class BrushSettingsPanel(QtWidgets.QWidget):
             "transform": self.transform_options_widget,
         }
         return pages.get(tool_name, self.brush_props_widget)
-
-    # ── Ferramentas (view → estado) ───────────────────────────────────────
-
-    def _on_selection_options_changed(self, settings: dict) -> None:
-        active = self._tools.active_tool
-        self._tools.update_options(active if active in _SELECTION_TOOLS else "rect_select", settings)
 
     # ── Painel avançado ───────────────────────────────────────────────────
 
@@ -257,23 +238,13 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         return self.brush_props_widget
 
     def _build_option_pages(self) -> None:
-        self.eyedrop_options_widget = EyedropOptionsWidget(self)
-        self.bucket_options_widget = BucketOptionsWidget(self)
-        self.wand_options_widget = WandOptionsWidget(self)
-        self.transform_options_widget = TransformOptionsWidget(self)
-        self.selection_options_widget = SelectionOptionsWidget(self)
-        self.shapes_options_widget = ShapesOptionsWidget(self)
-
-        forwarded = {
-            "eyedrop": self.eyedrop_options_widget,
-            "bucket": self.bucket_options_widget,
-            "wand": self.wand_options_widget,
-            "transform": self.transform_options_widget,
-            "shapes": self.shapes_options_widget,
-        }
-        for tool_id, widget in forwarded.items():
-            widget.settingsChanged.connect(lambda s, t=tool_id: self._tools.update_options(t, s))
-        self.selection_options_widget.settingsChanged.connect(self._on_selection_options_changed)
+        tools = self._tools
+        self.eyedrop_options_widget = EyedropOptionsWidget(tools, self._state, self)
+        self.bucket_options_widget = BucketOptionsWidget(tools, self)
+        self.wand_options_widget = WandOptionsWidget(tools, self)
+        self.transform_options_widget = TransformOptionsWidget(tools, self)
+        self.selection_options_widget = SelectionOptionsWidget(tools, self)
+        self.shapes_options_widget = ShapesOptionsWidget(tools, self)
 
         for widget in (
             self.eyedrop_options_widget, self.bucket_options_widget, self.wand_options_widget,

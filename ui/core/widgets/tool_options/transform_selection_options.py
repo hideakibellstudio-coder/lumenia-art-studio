@@ -1,22 +1,23 @@
-"""TransformOptionsWidget and SelectionOptionsWidget."""
+"""TransformOptionsWidget e SelectionOptionsWidget — páginas do painel de pincel (views do ToolState)."""
 
-from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.i18n import tr, I18nManager
-from ui.core.tool_settings import normalize_tool_settings
+from PySide6 import QtWidgets
+from ui.core.i18n import tr
+from ui.core.state import ToolState
 from .base import ToolHeaderLabel, ModernOptionCheckBox
+from .bound_view import ToolOptionsView
 
 
-class TransformOptionsWidget(QtWidgets.QWidget):
-    """Painel de configurações da ferramenta Transformação (Fit Compacto)."""
+class TransformOptionsWidget(ToolOptionsView):
+    """Transformação. O combo "Modo" é a combinação de `lock_aspect` e `distort`;
+    "Interpolação Bicúbica" liga `interp_mode` 2 (bicúbica) ou 1 (bilinear).
+    """
 
-    settingsChanged = QtCore.Signal(dict)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, tool_state: ToolState, parent=None):
+        super().__init__(tool_state, "transform", parent)
         self.setObjectName("TransformOptionsWidget")
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         self._build_ui()
-        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.bind()
 
     def _build_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -37,44 +38,37 @@ class TransformOptionsWidget(QtWidgets.QWidget):
             tr("tools.transform_distort", "Distorcer")
         ])
         self.combo_mode.setFixedHeight(22)
-        self.combo_mode.currentIndexChanged.connect(self._emit_changes)
+        self.combo_mode.currentIndexChanged.connect(lambda i: self.publish(lock_aspect=i == 1, distort=i == 2))
         row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)
 
         self.chk_bicubic = ModernOptionCheckBox(tr("tools.bicubic_interp", "Interpolação Bicúbica"))
-        self.chk_bicubic.setChecked(True)
-        self.chk_bicubic.toggled.connect(self._emit_changes)
+        self.chk_bicubic.toggled.connect(lambda on: self.publish(interp_mode=2 if on else 1))
         layout.addWidget(self.chk_bicubic)
 
         layout.addStretch()
 
+    def show_options(self, o):
+        self.combo_mode.setCurrentIndex(2 if o["distort"] else 1 if o["lock_aspect"] else 0)
+        self.chk_bicubic.setChecked(o["interp_mode"] == 2)
+
     def retranslate_ui(self):
-        if hasattr(self, "lbl_m"):
-            self.lbl_m.setText(f"{tr('tools.selection_mode', 'Modo')}:")
-        if hasattr(self, "chk_bicubic"):
-            self.chk_bicubic.setText(tr("tools.bicubic_interp", "Interpolação Bicúbica"))
-
-    def _emit_changes(self):
-        settings = normalize_tool_settings("transform", {
-            "interp_mode": 2 if self.chk_bicubic.isChecked() else 1,
-            "lock_aspect": self.combo_mode.currentIndex() == 1,
-            "distort": self.combo_mode.currentIndex() == 2,
-        })
-        self.settingsChanged.emit(settings)
+        self.lbl_m.setText(f"{tr('tools.selection_mode', 'Modo')}:")
+        self.chk_bicubic.setText(tr("tools.bicubic_interp", "Interpolação Bicúbica"))
 
 
-class SelectionOptionsWidget(QtWidgets.QWidget):
-    """Painel de configurações das ferramentas de Seleção (Fit Compacto)."""
+class SelectionOptionsWidget(ToolOptionsView):
+    """Seleção retangular, elíptica e laço: uma página só; o painel troca a
+    ferramenta mostrada com `set_key` ao trocar de ferramenta.
+    """
 
-    settingsChanged = QtCore.Signal(dict)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, tool_state: ToolState, parent=None):
+        super().__init__(tool_state, "rect_select", parent)
         self.setObjectName("SelectionOptionsWidget")
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         self._build_ui()
-        I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        self.bind()
 
     def _build_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -96,27 +90,21 @@ class SelectionOptionsWidget(QtWidgets.QWidget):
             tr("tools.mode_intersect", "Interseção")
         ])
         self.combo_mode.setFixedHeight(22)
-        self.combo_mode.currentIndexChanged.connect(self._emit_changes)
+        self.combo_mode.currentIndexChanged.connect(lambda i: self.publish(mode=i))
         row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)
 
         self.chk_aa = ModernOptionCheckBox(tr("tools.anti_alias", "Anti-Aliasing"))
-        self.chk_aa.setChecked(True)
-        self.chk_aa.toggled.connect(self._emit_changes)
+        self.chk_aa.toggled.connect(lambda v: self.publish(aa=v))
         layout.addWidget(self.chk_aa)
 
         layout.addStretch()
 
-    def retranslate_ui(self):
-        if hasattr(self, "lbl_m"):
-            self.lbl_m.setText(f"{tr('tools.selection_mode', 'Modo')}:")
-        if hasattr(self, "chk_aa"):
-            self.chk_aa.setText(tr("tools.anti_alias", "Anti-Aliasing"))
+    def show_options(self, o):
+        self.combo_mode.setCurrentIndex(o["mode"])
+        self.chk_aa.setChecked(o["aa"])
 
-    def _emit_changes(self):
-        settings = {
-            "aa": self.chk_aa.isChecked(),
-            "mode": self.combo_mode.currentIndex(),
-        }
-        self.settingsChanged.emit(settings)
+    def retranslate_ui(self):
+        self.lbl_m.setText(f"{tr('tools.selection_mode', 'Modo')}:")
+        self.chk_aa.setText(tr("tools.anti_alias", "Anti-Aliasing"))

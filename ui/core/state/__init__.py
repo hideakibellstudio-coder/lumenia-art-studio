@@ -1,7 +1,9 @@
 """
 ui.core.state — Estado de aplicação compartilhado entre componentes (fonte única).
 
-Hoje: pincel (BrushState + BrushEngineSync) e ferramenta ativa/opções (ToolState).
+Hoje: pincel (BrushState + BrushEngineSync), ferramenta ativa/opções
+(ToolState + ToolEngineSync) e a regra "formas usam a cor do pincel"
+(ShapeColorLink).
 
 Porta de entrada pública da pasta. Tudo que outro módulo precisa daqui é
 importado deste arquivo; os módulos internos podem mudar sem aviso.
@@ -23,6 +25,7 @@ from ui.core.plugins.registry import ServiceRegistry
 from .brush_engine_sync import BackendProvider, BrushEngineSync
 from .brush_params import BRUSH_PARAM_DEFAULTS, BrushParam, quick_params_from_preset
 from .brush_state import BrushState
+from .state_links import ShapeColorLink, ToolEngineSync
 from .tool_state import ToolState, is_shape_tool, options_key
 
 
@@ -31,6 +34,8 @@ class AppState:
     brush: BrushState
     brush_sync: BrushEngineSync
     tools: ToolState
+    tool_sync: ToolEngineSync
+    shape_colors: ShapeColorLink
 
 
 def install_app_state(registry: ServiceRegistry, backend_provider: BackendProvider) -> AppState:
@@ -40,19 +45,23 @@ def install_app_state(registry: ServiceRegistry, backend_provider: BackendProvid
     MainWindow no mesmo processo (testes) compartilham o mesmo estado, como
     compartilham o mesmo ServiceRegistry.
     """
-    brush = registry.get(BrushState)
-    sync = registry.get(BrushEngineSync)
-    tools = registry.get(ToolState)
-    if brush is None:
-        brush = BrushState()
-        registry.register(BrushState, brush)
-    if sync is None:
-        sync = BrushEngineSync(brush, backend_provider)
-        registry.register(BrushEngineSync, sync)
-    if tools is None:
-        tools = ToolState()
-        registry.register(ToolState, tools)
-    return AppState(brush=brush, brush_sync=sync, tools=tools)
+    def get_or_register(service: type, create):
+        impl = registry.get(service)
+        if impl is None:
+            impl = create()
+            registry.register(service, impl)
+        return impl
+
+    brush = get_or_register(BrushState, BrushState)
+    tools = get_or_register(ToolState, ToolState)
+    return AppState(
+        brush=brush,
+        brush_sync=get_or_register(BrushEngineSync, lambda: BrushEngineSync(brush, backend_provider)),
+        tools=tools,
+        tool_sync=get_or_register(ToolEngineSync, lambda: ToolEngineSync(tools, backend_provider)),
+        # Registrados para ficarem vivos junto do registry (ninguém os busca).
+        shape_colors=get_or_register(ShapeColorLink, lambda: ShapeColorLink(brush, tools)),
+    )
 
 
 def require(registry: ServiceRegistry, service: type):
@@ -73,6 +82,8 @@ __all__ = [
     "BrushEngineSync",
     "BrushParam",
     "BrushState",
+    "ShapeColorLink",
+    "ToolEngineSync",
     "ToolState",
     "install_app_state",
     "is_shape_tool",

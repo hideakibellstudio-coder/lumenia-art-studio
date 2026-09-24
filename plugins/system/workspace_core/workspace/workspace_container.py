@@ -174,19 +174,22 @@ class WorkspaceContainer(
         from ui.core.screens.floating_toolbar_settings_dialog import load_floating_toolbar_settings
         self.floating_toolbar = FloatingToolbar(tool_state, parent=self)
         self.floating_toolbar.drag_finished.connect(self._on_floating_toolbar_dropped)
+        self.floating_toolbar.sizeChanged.connect(self.update_toolbar_position)
         QtCore.QTimer.singleShot(0, self, lambda: self.apply_floating_toolbar_settings(load_floating_toolbar_settings()))
 
         # ── Barra Secundária Contextual de Ferramentas ───────────────────────
-        self.secondary_toolbar = SecondaryToolBar(tool_state, parent=self)
-        # A barra secundária troca de conteúdo com a ferramenta; o workspace só
-        # a reposiciona depois (conexão feita depois da dela, então roda depois).
+        self.secondary_toolbar = SecondaryToolBar(tool_state, brush_state, parent=self)
+        self.secondary_toolbar.commandRequested.connect(self.canvas_widget.run_tool_command)
+        self.secondary_toolbar.sizeChanged.connect(self.update_toolbar_position)
+        # A barra flutuante também muda de tamanho com a ferramenta: o workspace
+        # reposiciona depois (conexão feita depois da dela, então roda depois).
         tool_state.activeToolChanged.connect(self._on_active_tool_changed_layout)
 
         # ── Ferramenta: estado → canvas (texto, cursor, transformar, opções) ─
         self._canvas_tools = CanvasToolBinding(tool_state, self.canvas_widget, self._on_status_notification, self)
 
-        # ── Pincel: estado → canvas/barra secundária; conta-gotas → estado ───
-        self._canvas_brush = CanvasBrushBinding(brush_state, self.canvas_widget, self.secondary_toolbar, self)
+        # ── Pincel: estado → canvas; conta-gotas → estado ──────────────────
+        self._canvas_brush = CanvasBrushBinding(brush_state, self.canvas_widget, self)
 
         # ── Miniaturas (navegador e camadas) depois de cada traço ───────────
         self._preview_sync = StrokePreviewSync(
@@ -253,8 +256,7 @@ class WorkspaceContainer(
             self.right_dock.retranslate_ui()
         if hasattr(self, "floating_toolbar") and self.floating_toolbar:
             self.floating_toolbar.retranslate_ui()
-        if hasattr(self, 'secondary_toolbar') and self.secondary_toolbar:
-            self.secondary_toolbar.retranslate_ui()
+        # A barra secundária se traduz sozinha (cada view escuta o idioma).
 
     # ── Engine ────────────────────────────────────────────────────────────
 

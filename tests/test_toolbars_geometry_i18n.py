@@ -19,7 +19,8 @@ if PROJECT_ROOT not in sys.path:
 from ui.core.config import ConfigManager
 from ui.core.i18n import I18nManager
 from plugins.system.workspace_core.workspace.secondary_tool_bar.toolbar import SecondaryToolBar
-from ui.core.state import ToolState
+from ui.core.plugins.registry import ServiceRegistry
+from ui.core.state import install_app_state
 from plugins.ui.geometry_plugin.panel import GeometryPanel
 from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 
@@ -40,58 +41,62 @@ class TestToolbarsGeometryI18nRetranslation(unittest.TestCase):
 
     def test_01_secondary_toolbar_retranslation(self):
         """Valida que a barra de ferramentas secundaria re-traduz opcoes dinamicamente."""
-        tb = SecondaryToolBar(ToolState())
+        state = install_app_state(ServiceRegistry(), lambda: None)
+        tb = SecondaryToolBar(state.tools, state.brush)
+        eye, bkt, wand = tb.option_view("eyedrop"), tb.option_view("bucket"), tb.option_view("wand")
         try:
             # en_US
             self.i18n.set_locale("en_US", is_auto=False)
-            self.assertEqual(tb.cbo_sample_h.itemText(0), "1x1 Point Sample")
-            self.assertEqual(tb.btn_eye_merged_h.text(), "All Layers")
-            self.assertEqual(tb.btn_bkt_contig_h.text(), "Contiguous")
-            self.assertEqual(tb.btn_wand_contig_h.text(), "Contiguous")
+            self.assertEqual(eye.cbo_sample.itemText(0), "1x1 Point Sample")
+            self.assertEqual(eye.btn_merged.text(), "All Layers")
+            self.assertEqual(bkt.btn_contig.text(), "Contiguous")
+            self.assertEqual(wand.btn_contig.text(), "Contiguous")
 
             # ja_JP
             self.i18n.set_locale("ja_JP", is_auto=False)
-            self.assertEqual(tb.cbo_sample_h.itemText(0), "1x1 ポイント")
-            self.assertEqual(tb.btn_eye_merged_h.text(), "すべてのレイヤー")
-            self.assertEqual(tb.btn_bkt_contig_h.text(), "隣接")
-            self.assertEqual(tb.btn_wand_contig_h.text(), "隣接")
+            self.assertEqual(eye.cbo_sample.itemText(0), "1x1 ポイント")
+            self.assertEqual(eye.btn_merged.text(), "すべてのレイヤー")
+            self.assertEqual(bkt.btn_contig.text(), "隣接")
+            self.assertEqual(wand.btn_contig.text(), "隣接")
 
             # pt_BR
             self.i18n.set_locale("pt_BR", is_auto=False)
-            self.assertEqual(tb.cbo_sample_h.itemText(0), "1x1 Ponto Único")
-            self.assertEqual(tb.btn_eye_merged_h.text(), "Todas as Camadas")
-            self.assertEqual(tb.btn_bkt_contig_h.text(), "Contíguo")
-            self.assertEqual(tb.btn_wand_contig_h.text(), "Contíguo")
+            self.assertEqual(eye.cbo_sample.itemText(0), "1x1 Ponto Único")
+            self.assertEqual(eye.btn_merged.text(), "Todas as Camadas")
+            self.assertEqual(bkt.btn_contig.text(), "Contíguo")
+            self.assertEqual(wand.btn_contig.text(), "Contíguo")
         finally:
             tb.deleteLater()
 
     def test_02_secondary_toolbar_shapes_transform_selection_retranslation(self):
         """Valida que formas, transformacao e selecoes da barra secundaria re-traduzem."""
-        tb = SecondaryToolBar(ToolState())
+        state = install_app_state(ServiceRegistry(), lambda: None)
+        tb = SecondaryToolBar(state.tools, state.brush)
+        shapes, trans, geom = tb.option_view("shapes"), tb.option_view("transform"), tb.option_view("rect_select")
         try:
             # en_US
             self.i18n.set_locale("en_US", is_auto=False)
-            self.assertEqual(tb.lbl_shape_stroke_h.text(), "Stroke:")
-            self.assertEqual(tb.lbl_shape_border_h.text(), "Border:")
-            self.assertEqual(tb.lbl_shape_fill_h.text(), "Fill:")
-            self.assertEqual(tb.btn_trans_aspect_h.text(), "Lock Aspect")
-            self.assertEqual(tb.btn_geom_deselect_h.text().strip(), "Deselect")
+            self.assertEqual(shapes.lbl_stroke.text(), "Stroke:")
+            self.assertEqual(shapes.lbl_border.text(), "Border:")
+            self.assertEqual(shapes.lbl_fill.text(), "Fill:")
+            self.assertEqual(trans.btn_aspect.text(), "Lock Aspect")
+            self.assertEqual(geom.btn_deselect.text().strip(), "Deselect")
 
             # ja_JP
             self.i18n.set_locale("ja_JP", is_auto=False)
-            self.assertEqual(tb.lbl_shape_stroke_h.text(), "線の太さ:")
-            self.assertEqual(tb.lbl_shape_border_h.text(), "輪郭:")
-            self.assertEqual(tb.lbl_shape_fill_h.text(), "塗り:")
-            self.assertEqual(tb.btn_trans_aspect_h.text(), "縦横比を固定")
-            self.assertEqual(tb.btn_geom_deselect_h.text().strip(), "選択解除")
+            self.assertEqual(shapes.lbl_stroke.text(), "線の太さ:")
+            self.assertEqual(shapes.lbl_border.text(), "輪郭:")
+            self.assertEqual(shapes.lbl_fill.text(), "塗り:")
+            self.assertEqual(trans.btn_aspect.text(), "縦横比を固定")
+            self.assertEqual(geom.btn_deselect.text().strip(), "選択解除")
 
             # pt_BR
             self.i18n.set_locale("pt_BR", is_auto=False)
-            self.assertEqual(tb.lbl_shape_stroke_h.text(), "Traço:")
-            self.assertEqual(tb.lbl_shape_border_h.text(), "Borda:")
-            self.assertEqual(tb.lbl_shape_fill_h.text(), "Fundo:")
-            self.assertEqual(tb.btn_trans_aspect_h.text(), "Travar Proporção")
-            self.assertEqual(tb.btn_geom_deselect_h.text().strip(), "Desmarcar")
+            self.assertEqual(shapes.lbl_stroke.text(), "Traço:")
+            self.assertEqual(shapes.lbl_border.text(), "Borda:")
+            self.assertEqual(shapes.lbl_fill.text(), "Fundo:")
+            self.assertEqual(trans.btn_aspect.text(), "Travar Proporção")
+            self.assertEqual(geom.btn_deselect.text().strip(), "Desmarcar")
         finally:
             tb.deleteLater()
 

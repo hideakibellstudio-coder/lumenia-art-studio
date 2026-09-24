@@ -1,9 +1,9 @@
-"""Secondary Toolbar Package."""
+"""Barra secundária: opções da ferramenta ativa, flutuando junto da barra de ferramentas.
+
+Porta de entrada: `SecondaryToolBar(tool_state, brush_state, parent)`.
+Ver README.md desta pasta.
+"""
 
 from .toolbar import SecondaryToolBar
-from .dynamic_stacked_widget import DynamicStackedWidget
 
-__all__ = [
-    "SecondaryToolBar",
-    "DynamicStackedWidget"
-]
+__all__ = ["SecondaryToolBar"]

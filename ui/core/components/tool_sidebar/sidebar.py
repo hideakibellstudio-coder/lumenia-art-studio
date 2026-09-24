@@ -27,14 +27,15 @@ class ToolSidebar(QtWidgets.QToolBar):
         super().__init__("Ferramentas", parent)
         self.setMovable(False)
         self.setOrientation(QtCore.Qt.Horizontal)
-        self.setIconSize(QtCore.QSize(20, 20))
+        self._update_scale()
         
         self.setup_actions()
         self.retranslate_ui()
         
-        # Track theme changes to keep icons colorized
+        # Track theme and scale changes
         from ui.core.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
+        ThemeManager.instance().scaleChanged.connect(self._update_scale)
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def setup_actions(self):
@@ -151,3 +152,10 @@ class ToolSidebar(QtWidgets.QToolBar):
             self.action_undo.setEnabled(bool(can_undo))
         if hasattr(self, "action_redo"):
             self.action_redo.setEnabled(bool(can_redo))
+
+    def _update_scale(self, scale: float | None = None) -> None:
+        """Redimensiona os ícones da barra superior de ferramentas de acordo com a escala global."""
+        from ui.core.theme.manager import ThemeManager
+        s = scale if scale is not None else ThemeManager.instance().ui_scale
+        sz = max(16, int(20 * s))
+        self.setIconSize(QtCore.QSize(sz, sz))

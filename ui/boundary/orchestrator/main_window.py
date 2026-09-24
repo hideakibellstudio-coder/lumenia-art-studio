@@ -7,9 +7,10 @@ from ui.core.components import MenuBar, ToolSidebar, StatusBar, ThemeDialog
 from ui.core.runtime_paths import resource_path
 from .main_window_menu_actions import MainWindowMenuActionsMixin
 from .main_window_recovery import MainWindowRecoveryMixin
+from .main_window_tool_camera_actions import MainWindowToolCameraActionsMixin
 
 
-class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRecoveryMixin):
+class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRecoveryMixin, MainWindowToolCameraActionsMixin):
 
     def __init__(self):
         super().__init__()
@@ -95,12 +96,38 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         self.recovery.close()
         super().closeEvent(event)
 
+    def changeEvent(self, event: QtCore.QEvent) -> None:
+        super().changeEvent(event)
+        if event.type() == QtCore.QEvent.WindowStateChange:
+            vm = getattr(getattr(self, "menu_bar", None), "view_menu", None)
+            if vm and hasattr(vm, "action_fullscreen"):
+                vm.action_fullscreen.setChecked(self.isFullScreen())
+
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_F11:
+            self.toggle_fullscreen()
+            event.accept()
+            return
         if event.key() == QtCore.Qt.Key_F12:
             self.open_telemetry_grid_window()
             event.accept()
             return
+        if event.key() == QtCore.Qt.Key_Space:
+            cw = self.centralWidget()
+            if cw and hasattr(cw, "canvas") and cw.canvas and hasattr(cw.canvas, "input_router"):
+                if cw.canvas.input_router.handle_key_press(event):
+                    event.accept()
+                    return
         super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_Space:
+            cw = self.centralWidget()
+            if cw and hasattr(cw, "canvas") and cw.canvas and hasattr(cw.canvas, "input_router"):
+                if cw.canvas.input_router.handle_key_release(event):
+                    event.accept()
+                    return
+        super().keyReleaseEvent(event)
 
     # ── Setup de componentes da janela ────────────────────────────────────
 
@@ -124,7 +151,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
 
         # ── Wiring: documento ativo → status bar e histórico ─────────────────
         self.dm.activeDocumentChanged.connect(self._on_active_document_status)
-        self.dm.activeDocumentChanged.connect(lambda _: self.update_undo_redo_actions())
+        self.dm.activeDocumentChanged.connect(self.update_undo_redo_actions)  # método ligado: auto-desconecta
 
         # ── Componentes que dependem do workspace (WorkspaceCore plugin) ──
         if self.workspace is None:
@@ -183,57 +210,6 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         else:
             self.status_bar.showMessage(f"Documento ativo: {doc.name}")
 
-    # ── Ferramenta ────────────────────────────────────────────────────────
-
-    def _on_dock_tool_activated(self, tool_id: str) -> None:
-        """Sincroniza ToolSidebar quando a ferramenta muda via BrushDock."""
-        if tool_id == "brush":
-            self.tool_sidebar.action_brush.setChecked(True)
-            self.tool_sidebar.action_eraser.setChecked(False)
-        elif tool_id == "eraser":
-            self.tool_sidebar.action_brush.setChecked(False)
-            self.tool_sidebar.action_eraser.setChecked(True)
-
-    def select_brush_tool(self) -> None:
-        self.select_tool_by_id("brush")
-
-    def select_eraser_tool(self) -> None:
-        self.select_tool_by_id("eraser")
-
-    def select_shapes_tool(self) -> None:
-        self.select_tool_by_id("shapes")
-
-    def select_text_tool(self) -> None:
-        self.select_tool_by_id("text")
-
-    def select_tool_by_id(self, tool_id: str) -> None:
-        if self.workspace:
-            self.workspace.select_tool(tool_id)
-        if hasattr(self, "tool_sidebar"):
-            self.tool_sidebar.action_brush.setChecked(tool_id == "brush")
-            self.tool_sidebar.action_eraser.setChecked(tool_id == "eraser")
-            if hasattr(self.tool_sidebar, "action_shapes"):
-                self.tool_sidebar.action_shapes.setChecked(tool_id.startswith("shape") or tool_id == "shapes")
-        
-        from ui.core.tools import TOOL_META
-        tool_name = TOOL_META.get(tool_id, {}).get("name", tool_id.capitalize())
-        self.status_bar.showMessage(f"Ferramenta {tool_name} selecionada.")
-
-    # ── Câmera ────────────────────────────────────────────────────────────
-
-    def reset_view(self) -> None:
-        if self.workspace:
-            self.workspace.reset_view()
-        self.status_bar.showMessage("Visão do canvas resetada.", 2000)
-
-    def zoom_in(self) -> None:
-        if self.workspace:
-            self.workspace.zoom_in()
-
-    def zoom_out(self) -> None:
-        if self.workspace:
-            self.workspace.zoom_out()
-
     # ── Desfazer / Refazer ────────────────────────────────────────────────
 
     def undo(self) -> None:
@@ -266,6 +242,12 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
             self.status_bar.showMessage("Seleção desmarcada.", 2000)
 
     # ── Diálogos ─────────────────────────────────────────────────────────
+
+    def set_interface_scale(self, scale_value: float) -> None:
+        from ui.core.theme import ThemeManager
+        ThemeManager.instance().set_ui_scale(scale_value)
+        pct = int(scale_value * 100)
+        self.status_bar.showMessage(f"Escala da interface alterada para {pct}%.", 3000)
 
     def open_theme_dialog(self) -> None:
         dialog = ThemeDialog(self)

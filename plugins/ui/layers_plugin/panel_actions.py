@@ -1,6 +1,6 @@
 """Auxiliary action handlers for LayersPanel (Filters, Popups, Renaming, Moves, Duplicates)."""
 
-from PySide6.QtWidgets import QApplication
+from ui.core.plugins.canvas_access import request_canvas_repaint
 from PySide6.QtCore import QRect
 from .panel_rename_popup import LayerRenamePopup
 from .panel_sync import refresh_layer_thumbnail
@@ -16,11 +16,7 @@ def add_filter_layer(panel, filter_type=None):
     panel._preview_filter_idx = -1
 
     def _repaint():
-        for top_w in QApplication.topLevelWidgets():
-            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                top_w.workspace.canvas_widget.update()
-            elif hasattr(top_w, "canvas_widget"):
-                top_w.canvas_widget.update()
+        request_canvas_repaint()
 
     def on_preview_changed(name, type_id, params):
         from ui.core.engine.registry import EngineRegistry
@@ -126,11 +122,7 @@ def open_edit_filter_popup(panel, uid: int = None):
 
     def on_params_changed(target_c_idx, new_params):
         backend.set_filter_params(target_c_idx, new_params)
-        for top_w in QApplication.topLevelWidgets():
-            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                top_w.workspace.canvas_widget.update()
-            elif hasattr(top_w, "canvas_widget"):
-                top_w.canvas_widget.update()
+        request_canvas_repaint()
 
     popup.params_changed.connect(on_params_changed)
     result = popup.exec()

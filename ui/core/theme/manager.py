@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 class ThemeManager(QtCore.QObject):
     themeChanged = QtCore.Signal(str)  # Emite o nome do novo tema ("dark_default", etc.)
+    scaleChanged = QtCore.Signal(float)  # Emite o novo fator de escala (0.8, 1.0, etc.)
 
     _instance = None
 
@@ -93,6 +94,7 @@ class ThemeManager(QtCore.QObject):
 
         from ui.core.config import ConfigManager
         saved_theme = ConfigManager.instance().get("theme", "active", "lumenia_purple")
+        self._ui_scale = float(ConfigManager.instance().get("interface", "scale", 1.0))
         if saved_theme in self._themes:
             self._current_theme = saved_theme
         elif "lumenia_purple" in self._themes:
@@ -167,12 +169,32 @@ class ThemeManager(QtCore.QObject):
         theme_info = self._themes.get(self._current_theme, {})
         return theme_info.get("metadata", {}).get("type", "dark") == "dark"
 
+    @property
+    def ui_scale(self) -> float:
+        return self._ui_scale
+
+    def set_ui_scale(self, scale: float) -> None:
+        """Define a escala global da interface e reaplica a folha de estilos."""
+        new_scale = max(0.5, min(3.0, round(float(scale), 2)))
+        self._ui_scale = new_scale
+
+        from ui.core.config import ConfigManager
+        ConfigManager.instance().set("interface", "scale", new_scale)
+
+        app = QtWidgets.QApplication.instance()
+        if app:
+            app.setStyleSheet(self.get_stylesheet())
+
+        self.scaleChanged.emit(new_scale)
+        self.themeChanged.emit(self._current_theme)
+        logger.info(f"ThemeManager: Escala de interface definida para {new_scale} ({int(new_scale * 100)}%).")
+
     def set_theme(self, theme_name: str):
         self.apply_theme(theme_name)
 
-    def apply_theme(self, theme_name: str):
+    def apply_theme(self, theme_name: str, force: bool = False):
         """Aplica o tema ativo e atualiza a folha de estilos global da QApplication."""
-        if theme_name in self._themes and theme_name != self._current_theme:
+        if (theme_name in self._themes and theme_name != self._current_theme) or force:
             self._current_theme = theme_name
 
             from ui.core.config import ConfigManager
@@ -249,9 +271,8 @@ class ThemeManager(QtCore.QObject):
 
         compiled = re.sub(r'@([A-Za-z0-9_]+)', replace_token, template)
 
-        # Regra de escala (HiDPI)
-        scale = 1.0
-        # Simula escala simples
+        # Regra de escala (HiDPI / Compact scaling)
+        scale = getattr(self, "_ui_scale", 1.0)
         if scale != 1.0:
             def scale_match(match):
                 value = float(match.group(1))

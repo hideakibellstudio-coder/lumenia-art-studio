@@ -40,7 +40,7 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
             version="2.0.0",
             author="Lumenia Team",
             description=(
-                "Plugin de sistema que inicializa o WorkspaceContainer (canvas WGPU, "
+                "Plugin de sistema que inicializa o WorkspaceContainer (canvas, "
                 "docas dinâmicas e elementos flutuantes) e expõe o WorkspaceService."
             ),
             plugin_type=PluginType.SYSTEM,
@@ -98,6 +98,13 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
         # Registra o serviço para que outros plugins possam consultar
         registry = self.context.service_registry
         registry.register(WorkspaceService, self)
+        # Se o container (e a janela) for destruído sem deactivate() -- fechamento
+        # da MainWindow, testes --, o registry não pode continuar entregando um
+        # serviço cujo canvas já não existe (canvas_access chamaria update() num
+        # objeto C++ deletado).
+        self._container.destroyed.connect(
+            lambda *_: registry.unregister(WorkspaceService, self)
+        )
         logger.info("[WorkspaceCore] WorkspaceService registrado no ServiceRegistry.")
 
     def deactivate(self) -> None:
@@ -126,3 +133,21 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
     def workspace_container(self):
         """Referência read-only ao WorkspaceContainer."""
         return self._container
+
+    def render_geometry_overlay(
+        self,
+        painter,
+        sym_data: dict | None = None,
+        guide_data: dict | None = None,
+        zoom: float = 1.0,
+    ) -> None:
+        """Renderiza eixos de simetria e guias de perspectiva sobre um QPainter externo."""
+        try:
+            from .workspace.canvas.renderers.geometry_overlay_renderer import GeometryOverlayRenderer
+            if sym_data:
+                GeometryOverlayRenderer.render_symmetry(painter, sym_data, zoom)
+            if guide_data:
+                GeometryOverlayRenderer.render_guides(painter, guide_data, zoom)
+        except Exception as e:
+            logger.debug("[WorkspaceCore] Falha na renderização de overlays geométricos: %s", e)
+

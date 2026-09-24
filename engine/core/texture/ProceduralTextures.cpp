@@ -22,10 +22,9 @@ std::shared_ptr<Texture2D> ProceduralTextures::createShapePreset(ShapePreset pre
             double alpha = 0.0;
             switch (preset) {
                 case ShapePreset::SoftCircle: {
-                    if (dist <= maxDist * 0.8) {
-                        alpha = 1.0;
-                    } else if (dist <= maxDist) {
-                        alpha = (maxDist - dist) / (maxDist * 0.2);
+                    if (dist <= maxDist) {
+                        const double t = (maxDist - dist) / maxDist;
+                        alpha = t * t * (3.0 - 2.0 * t);
                     }
                     break;
                 }
@@ -33,7 +32,8 @@ std::shared_ptr<Texture2D> ProceduralTextures::createShapePreset(ShapePreset pre
                     if (dist <= maxDist * 0.95) {
                         alpha = 1.0;
                     } else if (dist <= maxDist) {
-                        alpha = (maxDist - dist) / (maxDist * 0.05);
+                        const double t = (maxDist - dist) / (maxDist * 0.05);
+                        alpha = t * t * (3.0 - 2.0 * t);
                     }
                     break;
                 }

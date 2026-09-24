@@ -1,5 +1,6 @@
 #include "BindingsCommon.hpp"
 #include "BufferContract.hpp"
+#include "../../../engine/core/raster/LargeBrushOptimizer.hpp"
 
 namespace aladyn::bridge {
 
@@ -56,7 +57,8 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         .def("update_stroke_raw", &boundary::PaintEngineFacade::updateStrokeRaw,
              py::arg("x"), py::arg("y"), py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0,
              py::arg("tilt_x") = 0.0, py::arg("tilt_y") = 0.0, py::arg("twist") = 0.0)
-        .def("end_stroke_raw",    &boundary::PaintEngineFacade::endStrokeRaw)
+        .def("end_stroke_raw",    &boundary::PaintEngineFacade::endStrokeRaw,
+             py::arg("end_x") = -1e9, py::arg("end_y") = -1e9)
         // Texturas e presets
         .def("set_shape_preset", &boundary::PaintEngineFacade::setShapePreset)
         .def("set_brush_height_preset", &boundary::PaintEngineFacade::setBrushHeightPreset)
@@ -79,12 +81,35 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         // Preview buffers
         .def("get_shape_preview_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             const auto tex = self.getBrushProfile().shapeTexture;
-            if (!tex) return py::none();
+            if (!tex) {
+                constexpr int sz = 64;
+                const double center = 32.0;
+                const double maxDist = 30.0;
+                const double hardness = std::clamp(self.getBrushProfile().hardness, 0.0, 0.99);
+                const double hardSpan = hardness * maxDist;
+                const double invSoftSpan = 1.0 / std::max(0.001, maxDist - hardSpan);
+                std::vector<uint8_t> preview(sz * sz, 0);
+                for (int y = 0; y < sz; ++y) {
+                    const double dy = static_cast<double>(y) + 0.5 - center;
+                    for (int x = 0; x < sz; ++x) {
+                        const double dx = static_cast<double>(x) + 0.5 - center;
+                        const double dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist > maxDist) continue;
+                        double a = 1.0;
+                        if (dist > hardSpan) {
+                            const double t = (maxDist - dist) * invSoftSpan;
+                            a = raster::LargeBrushOptimizer::smoothHermite(t);
+                        }
+                        preview[static_cast<size_t>(y * sz + x)] = static_cast<uint8_t>(std::clamp(a * 255.0, 0.0, 255.0));
+                    }
+                }
+                return py::bytes(reinterpret_cast<const char*>(preview.data()), preview.size());
+            }
             return pixelSnapshot(tex->getData(), checkedRasterBytes(tex->getWidth(), tex->getHeight(), 1));
         })
         .def("get_shape_preview_dimensions", [](boundary::PaintEngineFacade& self) {
             const auto tex = self.getBrushProfile().shapeTexture;
-            return tex ? std::make_pair(tex->getWidth(), tex->getHeight()) : std::make_pair(0, 0);
+            return tex ? std::make_pair(tex->getWidth(), tex->getHeight()) : std::make_pair(64, 64);
         })
         .def("get_brush_height_preview_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             const auto tex = self.getBrushProfile().brushHeightTexture;

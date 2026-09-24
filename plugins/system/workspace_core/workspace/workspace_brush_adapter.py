@@ -331,10 +331,12 @@ class WorkspaceBrushMixin:
                 {
                     "interp_mode": self.canvas_widget.transform_ctrl.interp_mode,
                     "lock_aspect": self.canvas_widget.transform_ctrl.lock_aspect,
+                    "distort": self.canvas_widget.transform_ctrl.distort,
                 },
             )
             self.canvas_widget.transform_ctrl.interp_mode = normalized["interp_mode"]
             self.canvas_widget.transform_ctrl.lock_aspect = normalized["lock_aspect"]
+            self.canvas_widget.transform_ctrl.distort = normalized["distort"]
 
     def sync_all_properties(self) -> None:
         if not self._brush_dock:

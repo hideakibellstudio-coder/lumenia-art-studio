@@ -25,6 +25,8 @@ def apply_telemetry_panel_theme(panel: Any) -> None:
     fg_on_accent = tm.get_color("FG_PRIMARY", "#ffffff")
     track_shadow = tm.get_color("SHADOW", "rgba(0, 0, 0, 0.3)")
 
+    panel.setMaximumWidth(max(180, int(280 * tm.ui_scale)))
+
     panel.setStyleSheet(f"""
         QLabel#TelemLabel {{
             color: {muted};
@@ -69,14 +71,14 @@ def apply_telemetry_panel_theme(panel: Any) -> None:
         QPushButton#BtnToggleTelemetry:hover {{
             border-color: {accent};
         }}
-        QPushButton#BtnOpenDialog {{
+        QPushButton#BtnOpenDialog, QPushButton#BtnCopyReport {{
             background-color: transparent;
             border: 1px solid {border};
             border-radius: 4px;
             color: {text};
             font-size: 10px;
         }}
-        QPushButton#BtnOpenDialog:hover {{
+        QPushButton#BtnOpenDialog:hover, QPushButton#BtnCopyReport:hover {{
             background-color: {bg_card};
             border-color: {accent};
         }}

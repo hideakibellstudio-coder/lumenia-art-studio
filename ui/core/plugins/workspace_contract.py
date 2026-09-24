@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
+    from PySide6.QtGui import QPainter
 
 
 class WorkspaceService(ABC):
@@ -63,7 +64,7 @@ class WorkspaceService(ABC):
     @abstractmethod
     def canvas(self) -> "QWidget":
         """
-        Referência read-only ao CanvasWidget ativo (Surface WGPU).
+        Referência read-only ao CanvasWidget ativo.
         Plugins que precisam conectar sinais ao canvas devem usar esta
         propriedade em vez de acessar MainWindow diretamente.
         """
@@ -79,3 +80,30 @@ class WorkspaceService(ABC):
         como connect_brush_dock() e connect_properties_dock().
         """
         ...
+
+    def request_canvas_repaint(self) -> None:
+        """
+        Agenda o repaint do canvas ativo. Caminho canônico para painéis e para o
+        modelo de documento pedirem atualização visual sem varrer a árvore de
+        widgets (ver ui/core/plugins/canvas_access.py).
+        """
+        canvas = self.canvas
+        if canvas is not None:
+            canvas.update()
+
+    # ── Renderização Compartilhada de Overlays ────────────────────────────
+
+    def render_geometry_overlay(
+        self,
+        painter: "QPainter",
+        sym_data: dict | None = None,
+        guide_data: dict | None = None,
+        zoom: float = 1.0,
+    ) -> None:
+        """
+        Renderiza eixos de simetria e guias de perspectiva sobre um QPainter externo.
+        Permite que plugins clientes (como o Timelapse) renderizem overlays sem
+        acoplamento estático a módulos internos do workspace_core.
+        """
+        pass
+

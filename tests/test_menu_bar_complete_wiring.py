@@ -19,11 +19,8 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        top_mws = [w for w in QtWidgets.QApplication.topLevelWidgets() if isinstance(w, MainWindow)]
-        if top_mws:
-            cls.win = top_mws[0]
-        else:
-            cls.win = MainWindow()
+        from tests.main_window_fixture import main_window_com_workspace
+        cls.win = main_window_com_workspace()
 
     def setUp(self):
         pass

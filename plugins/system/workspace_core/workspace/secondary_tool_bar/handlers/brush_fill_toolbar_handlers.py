@@ -166,10 +166,18 @@ class BrushFillToolbarHandlersMixin:
         target.blockSignals(False)
         self._emit_transform_settings()
 
+    def _on_trans_distort_changed(self, val: bool, src: str):
+        target = self.btn_trans_distort_v if src == "h" else self.btn_trans_distort_h
+        target.blockSignals(True)
+        target.setChecked(val)
+        target.blockSignals(False)
+        self._emit_transform_settings()
+
     def _emit_transform_settings(self):
         settings = normalize_tool_settings("transform", {
             "interp_mode": self.cbo_trans_interp_h.currentIndex(),
             "lock_aspect": self.btn_trans_aspect_h.isChecked(),
+            "distort": self.btn_trans_distort_h.isChecked(),
         })
         self._settings_cache["transform"] = settings
         self.settingsChanged.emit("transform", settings)

@@ -1,6 +1,7 @@
 """Capacidades efetivas publicadas pelo backend nativo Aladyn."""
 
 from __future__ import annotations
+import logging
 import os
 from pathlib import Path
 
@@ -73,7 +74,8 @@ class AladynCapabilitiesMixin:
                         img.save(str(target_path), icc_profile=icc_bytes)
                         return True
                     except Exception:
-                        pass  # Em caso de qualquer anomalia no Pillow, utiliza fallback QImage abaixo
+                        # Qualquer anomalia no Pillow: registra e usa o fallback QImage abaixo.
+                        logging.getLogger(__name__).debug("Export via Pillow falhou; usando QImage.", exc_info=True)
 
         image = self.get_qimage()
         return bool(image and not image.isNull() and image.save(str(target_path)))

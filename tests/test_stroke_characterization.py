@@ -20,8 +20,10 @@ O motor tem dois, e eles não compartilham a lógica do estabilizador:
               Fallback para builds nativas antigas.
 
 Os dois desviam o estabilizador quando `lowLatency` está ligado, em lugares
-diferentes: StrokeOrchestrator.cpp nas linhas 192, 254, 385, 386, 403, 411 e
-448; PaintEngineFacade.cpp na 281. Uma correção que toque só um dos arquivos
+diferentes: StrokeOrchestrator.cpp (updateStrokeRaw) e StrokeOrchestratorEnd.cpp
+(endStrokeRaw) -- um arquivo só até a divisão de 2026-09-22 --, e
+PaintEngineFacade.cpp. A regra agora mora num lugar só:
+StrokeLatencyPolicy.hpp (usarAtalhoDeLatencia). Uma correção que toque só um dos arquivos
 conserta só metade, e é por isso que os dois caminhos são medidos aqui.
 
 O QUE A CORREÇÃO DEVE PRODUZIR
@@ -222,7 +224,7 @@ def test_no_raw_a_baixa_latencia_desliga_mais_que_o_estabilizador():
     Escrevi este teste ao contrário na primeira versão, afirmando que os dois
     modos deveriam coincidir. A medição mostrou que não coincidem: além do
     estabilizador, `lowLatency` gateia o catch-up e o afunilamento do pen-up
-    (StrokeOrchestrator.cpp:427 e 435), e esses disparam mesmo com estabilização
+    (StrokeOrchestratorEnd.cpp, endStrokeRaw), e esses disparam mesmo com estabilização
     zero, porque `getLastMovementDelta()` continua não-nulo.
 
     "Baixa latência" são duas features empacotadas numa flag: pular o

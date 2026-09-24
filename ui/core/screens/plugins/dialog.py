@@ -266,7 +266,7 @@ class PluginsWindow(BaseFramelessDialog):
             try:
                 is_sys = card.plugin.is_system_plugin()
             except Exception:
-                pass
+                logging.getLogger(__name__).debug("is_system_plugin() falhou.", exc_info=True)
 
             # Checa Filtro de Categoria
             cat_match = True

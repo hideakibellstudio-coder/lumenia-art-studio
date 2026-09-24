@@ -47,6 +47,7 @@ BRUSH_CATEGORY = {
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "brush_grain_enabled": False,
             "stabilizer_weight": 0.05, "stroke_taper_enabled": True,
+            "time_spacing_enabled": True, "dabs_per_second": 60.0,
         },
     ],
 }
@@ -83,6 +84,7 @@ ERASER_CATEGORY = {
             "hardness": 0.0, "spacing_factor": 0.025,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "stabilizer_weight": 0.05, "stroke_taper_enabled": False,
+            "time_spacing_enabled": True, "dabs_per_second": 60.0,
         },
     ],
 }

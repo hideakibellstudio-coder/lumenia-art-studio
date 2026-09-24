@@ -59,6 +59,7 @@ class TransformOptionsWidget(QtWidgets.QWidget):
         settings = normalize_tool_settings("transform", {
             "interp_mode": 2 if self.chk_bicubic.isChecked() else 1,
             "lock_aspect": self.combo_mode.currentIndex() == 1,
+            "distort": self.combo_mode.currentIndex() == 2,
         })
         self.settingsChanged.emit(settings)
 

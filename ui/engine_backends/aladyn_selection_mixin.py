@@ -55,6 +55,21 @@ class AladynSelectionMixin:
             self._mark_document_dirty("selection")
             self._facade.select_all()
 
+    # Seleção -> Modificar: morfologia no motor (SelectionMorphology.cpp).
+    def expand_selection(self, radius_px: int) -> bool:
+        return self._selection_modified(bool(self._facade and self._facade.expand_selection(int(radius_px))))
+
+    def contract_selection(self, radius_px: int) -> bool:
+        return self._selection_modified(bool(self._facade and self._facade.contract_selection(int(radius_px))))
+
+    def feather_selection(self, radius_px: int) -> bool:
+        return self._selection_modified(bool(self._facade and self._facade.feather_selection(int(radius_px))))
+
+    def _selection_modified(self, ok: bool) -> bool:
+        if ok:
+            self._mark_document_dirty("selection")
+        return ok
+
     def has_selection(self) -> bool:
         if self._facade:
             return self._facade.has_selection()

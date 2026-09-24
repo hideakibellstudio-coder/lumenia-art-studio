@@ -99,6 +99,7 @@ public:
     bool pressureFlowEnabled{true};
     bool velocitySizeEnabled{false};
     bool strokeTaperEnabled{true};
+    double strokeTaperLength{20.0};
 
     math::BezierCurve pressureSizeCurve{math::CurvePreset::Linear};
     math::BezierCurve pressureFlowCurve{math::CurvePreset::Linear};
@@ -121,8 +122,9 @@ public:
     bool   brushGrainInvert{false};
     math::BezierCurve brushTextureCurve{math::CurvePreset::Linear};
 
-    std::shared_ptr<texture::Texture2D> shapeTexture{
-        texture::ProceduralTextures::createRadialShapeMask(256)};
+    // Ponta do pincel: nullptr por padrão (cálculo 100% analítico procedural governado por hardness).
+    // Texturas de ponta só são instanciadas quando o usuário seleciona um preset com máscara ou carrega PNG.
+    std::shared_ptr<texture::Texture2D> shapeTexture{nullptr};
     std::shared_ptr<texture::Texture2D> brushHeightTexture{
         texture::ProceduralTextures::createHeightPreset(texture::HeightPreset::NoiseGrain, 512, 512)};
 

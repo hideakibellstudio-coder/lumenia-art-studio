@@ -32,8 +32,8 @@ void StrokeSessionOrchestrator::beginStroke(RawStrokeContext& ctx, const stroke:
     ctx.pendingFirstSegment = false;
     ctx.strokeStartPoint = event.position;
     ctx.lastRawPressure = event.pressure;
-    ctx.distanceCarryover = 0.0;
-    ctx.stabilizer.reset(event.position);
+    ctx.distanceCarryover = -1.0;
+    ctx.stabilizer.reset(event.position, event.pressure);
     ctx.velocityTracker.reset(event.position, event.timestamp);
     ctx.undoManager.beginStep("Stroke");
     if (ctx.activeEngine) ctx.activeEngine->onBeginStroke();
@@ -42,8 +42,11 @@ void StrokeSessionOrchestrator::beginStroke(RawStrokeContext& ctx, const stroke:
         event.twist, event.altitude, event.azimuth
     );
     ctx.lastDab = raster::Dab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
+    ctx.splineP0 = ctx.lastDab;
+    ctx.splineCount = 1;
     ctx.telemetryManager.onBeginStroke(event.pressure, static_cast<int>(ctx.brushProfile.engineType));
 }
+
 
 StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& ctx, const stroke::PointerEvent& event) {
     if (!ctx.isDrawing) return {0.0, 0.0, 0.0};
@@ -56,7 +59,8 @@ StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& 
     // estabilizador, e como low_latency=True e' o padrao do backend o slider de
     // suavizacao nao tinha efeito nenhum neste caminho tambem.
     const bool atalho = ctx.lowLatency && ctx.stabilizer.getStabilizationPercentage() <= 0.5;
-    const math::Point2D pos = atalho ? event.position : ctx.stabilizer.update(event.position, normVel);
+    const math::Point2D pos = atalho ? event.position : ctx.stabilizer.update(event.position, event.pressure, normVel);
+    const double effectivePressure = atalho ? event.pressure : ctx.stabilizer.getStabilizedPressure();
 
     double strokeAngle = 0.0;
     const double dx = pos.x - ctx.lastDab.position.x;
@@ -67,7 +71,7 @@ StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& 
     }
 
     auto mapped = brush::DynamicMapper::map(
-        ctx.brushProfile, pos, event.pressure, normVel, strokeAngle,
+        ctx.brushProfile, pos, effectivePressure, normVel, strokeAngle,
         event.twist, event.altitude, event.azimuth
     );
     raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);

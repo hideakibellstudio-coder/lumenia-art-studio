@@ -45,6 +45,9 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
         .def("clear_selection", &boundary::PaintEngineFacade::clearSelection)
         .def("invert_selection", &boundary::PaintEngineFacade::invertSelection)
         .def("select_all", &boundary::PaintEngineFacade::selectAll)
+        .def("expand_selection", &boundary::PaintEngineFacade::expandSelection, py::arg("radius_px"))
+        .def("contract_selection", &boundary::PaintEngineFacade::contractSelection, py::arg("radius_px"))
+        .def("feather_selection", &boundary::PaintEngineFacade::featherSelection, py::arg("radius_px"))
         .def("has_selection", &boundary::PaintEngineFacade::hasSelection)
         .def("delete_selection_on_active_layer", &boundary::PaintEngineFacade::deleteSelectionOnActiveLayer)
         .def("fill_selection_on_active_layer", &boundary::PaintEngineFacade::fillSelectionOnActiveLayer, py::arg("fill_color"))
@@ -69,6 +72,8 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
              py::arg("dx"), py::arg("dy"), py::arg("scale_x"), py::arg("scale_y"),
              py::arg("rotation_deg"), py::arg("pivot_x"), py::arg("pivot_y"),
              py::arg("flip_h") = false, py::arg("flip_v") = false, py::arg("interp_mode") = 2)
+        .def("commit_transform_distort", &boundary::PaintEngineFacade::commitTransformDistort,
+             py::arg("corners"), py::arg("interp_mode") = 2)
         .def("cancel_transform", &boundary::PaintEngineFacade::cancelTransform)
         .def("flip_active_layer", &boundary::PaintEngineFacade::flipActiveLayer, py::arg("horizontal"))
         .def("rotate_active_layer_90", &boundary::PaintEngineFacade::rotateActiveLayer90, py::arg("clockwise"))

@@ -5,6 +5,7 @@ from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings
+from . import transform_distort as distorcao
 
 class TransformToolController:
     """Controlador de Transformação Livre (Bounding Box, Escala, Rotação e Translação)."""
@@ -25,6 +26,11 @@ class TransformToolController:
         settings = default_tool_settings("transform")
         self.interp_mode = settings["interp_mode"]
         self.lock_aspect = settings["lock_aspect"]
+        self.distort = settings["distort"]
+        # Distorcer: cantos TL, TR, BR, BL na tela. None = caixa afim (livre).
+        # Depois do primeiro arrasto distorcido a caixa fica neste modo até
+        # aplicar ou cancelar.
+        self.quad: Optional[list[QtCore.QPointF]] = None
         self.handle_dragged: Optional[str] = None
         self.mouse_press_pos: Optional[QtCore.QPointF] = None
         self.press_params: dict = {}
@@ -50,6 +56,8 @@ class TransformToolController:
         self.scale_y = 1.0
         self.rotation = 0.0
         self.flip_h = False
+        self.flip_v = False
+        self.quad = None
         self.active = True
         if hasattr(self.widget, "strokeStarted"):
             self.widget.strokeStarted.emit()
@@ -60,7 +68,9 @@ class TransformToolController:
         if not self.active:
             return
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "commit_transform"):
+        if backend and self.quad is not None:
+            backend.commit_transform_distort(distorcao.plano(self.quad), interp_mode=self.interp_mode)
+        elif backend and hasattr(backend, "commit_transform"):
             backend.commit_transform(
                 dx=self.dx,
                 dy=self.dy,
@@ -75,6 +85,7 @@ class TransformToolController:
             )
         self.active = False
         self.source_qimage = None
+        self.quad = None
         self.widget.update()
         if hasattr(self.widget, "strokeFinished"):
             self.widget.strokeFinished.emit()
@@ -87,6 +98,7 @@ class TransformToolController:
             backend.cancel_transform()
         self.active = False
         self.source_qimage = None
+        self.quad = None
         self.widget.update()
         if hasattr(self.widget, "strokeFinished"):
             self.widget.strokeFinished.emit()
@@ -94,21 +106,49 @@ class TransformToolController:
 
     def flip_horizontal(self):
         if self.active:
-            self.flip_h = not self.flip_h
+            if self.quad is not None:
+                self.quad = distorcao.espelhar(self.quad, horizontal=True)
+            else:
+                self.flip_h = not self.flip_h
             self.widget.update()
 
     def flip_vertical(self):
         if self.active:
-            self.flip_v = not self.flip_v
+            if self.quad is not None:
+                self.quad = distorcao.espelhar(self.quad, horizontal=False)
+            else:
+                self.flip_v = not self.flip_v
             self.widget.update()
 
     def rotate_90(self, clockwise: bool = True):
         if self.active:
-            delta = 90.0 if clockwise else -90.0
-            self.rotation = (self.rotation + delta) % 360.0
+            if self.quad is not None:
+                self.quad = distorcao.girar_90(self.quad, horario=clockwise)
+            else:
+                delta = 90.0 if clockwise else -90.0
+                self.rotation = (self.rotation + delta) % 360.0
             self.widget.update()
 
+    def begin_drag(self, handle: str, canvas_pt: QtCore.QPointF) -> None:
+        """Guarda o estado no clique; apply_drag calcula tudo relativo a ele."""
+        self.handle_dragged = handle
+        self.mouse_press_pos = canvas_pt
+        self.press_params = {
+            "dx": self.dx,
+            "dy": self.dy,
+            "sx": self.scale_x,
+            "sy": self.scale_y,
+            "rot": self.rotation,
+            "pivot": QtCore.QPointF(self.pivot),
+            "quad": ([QtCore.QPointF(p) for p in self.quad] if self.quad is not None
+                     else distorcao.quad_da_matriz(self.source_rect, self.get_transform_matrix())),
+        }
+
     def get_transform_matrix(self) -> QtGui.QTransform:
+        if self.quad is not None:
+            matriz = distorcao.matriz_do_quad(self.source_rect, self.quad)
+            if matriz is not None:
+                return matriz
         t = QtGui.QTransform()
         pv = self.pivot
         t.translate(pv.x() + self.dx, pv.y() + self.dy)
@@ -123,14 +163,14 @@ class TransformToolController:
         if not self.active:
             return None
 
-        t_mat = self.get_transform_matrix()
+        t_mat: QtGui.QTransform = self.get_transform_matrix()
         src_rect = self.source_rect
         pv = self.pivot
         zoom_factor = max(0.01, zoom)
         hit_dist = 12.0 / zoom_factor
 
         pv_mapped = t_mat.map(pv)
-        if (canvas_pt - pv_mapped).manhattanLength() <= hit_dist:
+        if self.quad is None and (canvas_pt - pv_mapped).manhattanLength() <= hit_dist:
             return "pivot"
 
         handles = {
@@ -149,7 +189,7 @@ class TransformToolController:
                 return h_name
 
         rot_dist = 30.0 / zoom_factor
-        for h_name in ("tl", "tr", "br", "bl"):
+        for h_name in (() if self.quad is not None else ("tl", "tr", "br", "bl")):
             if (canvas_pt - handles[h_name]).manhattanLength() <= rot_dist:
                 return "rotate"
 
@@ -167,6 +207,12 @@ class TransformToolController:
         start_pt = self.mouse_press_pos
         init_p = self.press_params
         is_shift = bool(modifiers & QtCore.Qt.ShiftModifier)
+
+        if self.quad is not None or (self.distort and handle in distorcao.CANTOS + tuple(distorcao.LADOS)):
+            novo = distorcao.arrastar(init_p["quad"], handle, canvas_pt - start_pt)
+            if distorcao.quad_convexo(novo):  # nunca deixa o quad dobrar sobre si
+                self.quad = novo
+            return
 
         if handle == "move":
             self.dx = init_p["dx"] + (canvas_pt.x() - start_pt.x())

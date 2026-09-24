@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (QWidget, QHBoxLayout, QLabel, QPushButton,
 from PySide6.QtGui import QColor, QPainter, QBrush, QPixmap, QIcon, QPen, QAction
 from PySide6.QtCore import Qt, QSize, Signal, QPoint
 from ui.core.icons import get_icon
+from ui.core.plugins.canvas_access import active_canvas
 
 logger = logging.getLogger(__name__)
 
@@ -256,20 +257,11 @@ class PaperLayerWidget(QWidget):
 
         self.paperChanged.emit(self.visible, self.color)
 
-        # Atualiza CanvasWidget através de método canônico ou fallback
-        for top_w in QApplication.topLevelWidgets():
-            cw = None
-            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                cw = top_w.workspace.canvas_widget
-            elif hasattr(top_w, "canvas_widget"):
-                cw = top_w.canvas_widget
-            if cw:
-                if hasattr(cw, "set_paper_state"):
-                    cw.set_paper_state(self.visible, self.color)
-                else:
-                    cw.paper_visible = self.visible
-                    cw.paper_color = self.color
-                    cw.update()
+        # Atualiza o canvas ativo pelo contrato do WorkspaceService (sem varrer
+        # a árvore de widgets). RenderWidget.set_paper_state já agenda o repaint.
+        canvas = active_canvas()
+        if canvas is not None:
+            canvas.set_paper_state(self.visible, self.color)
 
     def update_theme(self, colors):
         from ui.core.theme.manager import ThemeManager

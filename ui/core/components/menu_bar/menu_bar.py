@@ -95,6 +95,7 @@ class MenuBar(QtWidgets.QMenuBar):
     toggleRulersRequested   = QtCore.Signal()
     telemetryGridRequested  = QtCore.Signal()
     toggleSoftProofRequested = QtCore.Signal(bool)
+    toggleFullscreenRequested = QtCore.Signal()
 
     # ── Janela & Docks ───────────────────────────────────────────────────
     togglePanelRequested             = QtCore.Signal(str, str)  # panel_id, side
@@ -102,6 +103,7 @@ class MenuBar(QtWidgets.QMenuBar):
     expandAllSidebarsRequested       = QtCore.Signal()
     dockSettingsRequested            = QtCore.Signal()
     floatingToolbarSettingsRequested = QtCore.Signal()
+    scaleRequested                   = QtCore.Signal(float)
 
     # ── 9. Configurações ──────────────────────────────────────────────────
     renderSettingsRequested   = QtCore.Signal()
@@ -220,6 +222,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.view_menu.toggleGridRequested.connect(self.toggleGridRequested.emit)
         self.view_menu.toggleRulersRequested.connect(self.toggleRulersRequested.emit)
         self.view_menu.telemetryGridRequested.connect(self.telemetryGridRequested.emit)
+        self.view_menu.toggleFullscreenRequested.connect(self.toggleFullscreenRequested.emit)
         self.addMenu(self.view_menu)
 
         # 8. [Janela]
@@ -230,6 +233,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.window_menu.dock_settings_requested.connect(self.dockSettingsRequested.emit)
         self.window_menu.floating_toolbar_settings_requested.connect(self.floatingToolbarSettingsRequested.emit)
         self.window_menu.telemetry_grid_requested.connect(self.telemetryGridRequested.emit)
+        self.window_menu.scale_requested.connect(self.scaleRequested.emit)
+        self.window_menu.toggle_fullscreen_requested.connect(self.toggleFullscreenRequested.emit)
         self.addMenu(self.window_menu)
 
         # 9. [Configurações]

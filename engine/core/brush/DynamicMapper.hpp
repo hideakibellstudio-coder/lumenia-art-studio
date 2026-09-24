@@ -39,6 +39,11 @@ public:
         double altitude = 90.0,
         double azimuth = 0.0
     );
+
+    static void applyJitter(
+        raster::Dab& dab,
+        const BrushProfile& profile
+    ) noexcept;
 };
 
 } // namespace aladyn::engine::brush

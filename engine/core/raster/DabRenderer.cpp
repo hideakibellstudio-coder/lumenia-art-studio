@@ -1,5 +1,6 @@
 #include "DabRenderer.hpp"
 #include "SimdSpanBlender.hpp"
+#include "LargeBrushOptimizer.hpp"
 #include "../canvas/SpatialCuller.hpp"
 #include "../math/MathUtils.hpp"
 #include "../document/Layer.hpp"
@@ -187,7 +188,8 @@ void DabRenderer::renderDab(
                     if (distSq > hardSpanSq || distSq > outerSubpixelThreshSq) {
                         const double dist = std::sqrt(distSq);
                         if (dist > hardSpan) {
-                            shapeAlpha = std::clamp((safeR - dist) * invSoftSpan, 0.0, 1.0);
+                            const double t = (safeR - dist) * invSoftSpan;
+                            shapeAlpha = LargeBrushOptimizer::smoothHermite(t);
                         }
                         if (dist > outerSubpixelThresh) {
                             shapeAlpha *= std::clamp((safeR - dist) * 2.0, 0.0, 1.0);

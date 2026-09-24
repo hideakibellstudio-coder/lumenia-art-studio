@@ -26,12 +26,17 @@ class WindowMenu(QtWidgets.QMenu):
     dock_settings_requested             = QtCore.Signal()
     floating_toolbar_settings_requested = QtCore.Signal()
     telemetry_grid_requested            = QtCore.Signal()
+    scale_requested                     = QtCore.Signal(float)
+    toggle_fullscreen_requested         = QtCore.Signal()
 
     def __init__(self, parent=None) -> None:
         super().__init__("Janela", parent)
         self._panel_actions: dict[str, QtGui.QAction] = {}
+        self._scale_actions: dict[float, QtGui.QAction] = {}
         self._setup_actions()
         self.retranslate_ui()
+        from ui.core.theme.manager import ThemeManager
+        ThemeManager.instance().scaleChanged.connect(self.sync_scale_checked)
 
     def _setup_actions(self) -> None:
         # ── Painéis ────────────────────────────────────────────────────
@@ -77,6 +82,39 @@ class WindowMenu(QtWidgets.QMenu):
         self.act_settings = QtGui.QAction(get_icon("settings"), "", self)
         self.act_settings.triggered.connect(self.dock_settings_requested.emit)
         self.addAction(self.act_settings)
+
+        # ── Modo de Janela ─────────────────────────────────────────────
+        self.addSeparator()
+        self.act_fullscreen = QtGui.QAction(get_icon("fullscreen"), "", self)
+        self.act_fullscreen.triggered.connect(self.toggle_fullscreen_requested.emit)
+        self.addAction(self.act_fullscreen)
+
+        # ── Escala de Interface ─────────────────────────────────────────
+        self.addSeparator()
+        self.menu_scale = self.addMenu("Escala da Interface")
+        self.menu_scale.setIcon(get_icon("display"))
+        self._scale_group = QtGui.QActionGroup(self)
+        self._scale_group.setExclusive(True)
+
+        from ui.core.theme.manager import ThemeManager
+        current_scale = ThemeManager.instance().ui_scale
+        scale_options = [
+            ("80%", 0.8),
+            ("100% (Padrão)", 1.0),
+            ("125%", 1.25),
+            ("150%", 1.5),
+            ("175%", 1.75),
+            ("200%", 2.0),
+        ]
+        for label, factor in scale_options:
+            act = QtGui.QAction(label, self)
+            act.setCheckable(True)
+            if abs(factor - current_scale) < 0.05:
+                act.setChecked(True)
+            act.triggered.connect(lambda checked=False, val=factor: self.scale_requested.emit(val))
+            self._scale_group.addAction(act)
+            self.menu_scale.addAction(act)
+            self._scale_actions[factor] = act
 
     def _add_panel_action(
         self,
@@ -126,8 +164,19 @@ class WindowMenu(QtWidgets.QMenu):
             self.act_ft_settings.setText(tr("menu.window.floating_toolbar", "Barra Flutuante de Ferramentas…"))
         if hasattr(self, "act_settings"):
             self.act_settings.setText(tr("menu.window.dock_settings", "Configurações de Gavetas & Docking…"))
+        if hasattr(self, "act_fullscreen"):
+            self.act_fullscreen.setText(tr("menu.window.fullscreen", "Alternar Tela Cheia (F11)"))
+        if hasattr(self, "menu_scale"):
+            self.menu_scale.setTitle(tr("menu.window.scale", "Escala da Interface"))
 
     # ── API pública ────────────────────────────────────────────────────────
+
+    def sync_scale_checked(self, current_scale: float) -> None:
+        """Marca o item de escala ativo no submenu."""
+        for factor, act in getattr(self, "_scale_actions", {}).items():
+            act.blockSignals(True)
+            act.setChecked(abs(factor - current_scale) < 0.05)
+            act.blockSignals(False)
 
     def set_panel_checked(self, panel_id: str, checked: bool) -> None:
         """Sincroniza o estado visual (check) do item de menu com a gaveta."""

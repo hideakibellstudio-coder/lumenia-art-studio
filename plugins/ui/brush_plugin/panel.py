@@ -29,8 +29,10 @@ from ui.core.widgets.compact_slider import CompactSlider
 from .advanced_panel import AdvancedPanel
 from .brush_dropdown import BrushDropdown
 from .components import ToolSelectionColumn, QuickSlidersSection
+from .panel_advanced_sync import BrushPanelAdvancedSyncMixin
+from .panel_compat_accessors import BrushPanelCompatAccessorsMixin
 
-class BrushSettingsPanel(QtWidgets.QWidget):
+class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, BrushPanelAdvancedSyncMixin):
     """Painel isolado contendo as Configurações do Pincel e Ferramentas."""
 
     colorChanged              = QtCore.Signal(QtGui.QColor)
@@ -64,62 +66,6 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         self._apply_theme_style()
         QtCore.QTimer.singleShot(0, self.sync_initial_state)
 
-    # ── Retrocompatibilidade de Propriedades de Sliders e Colunas ─────────
-    @property
-    def qs_size(self) -> CompactSlider:
-        return self.sliders_section.size_slider
-
-    @property
-    def qs_opacity(self) -> CompactSlider:
-        return self.sliders_section.opacity_slider
-
-    @property
-    def size_slider(self) -> CompactSlider:
-        return self.sliders_section.size_slider
-
-    @property
-    def opacity_slider(self) -> CompactSlider:
-        return self.sliders_section.opacity_slider
-
-    @property
-    def contrast_slider(self) -> CompactSlider:
-        return self.sliders_section.contrast_slider
-
-    @property
-    def pressure_slider(self) -> CompactSlider:
-        return self.sliders_section.pressure_slider
-
-    @property
-    def curve_slider(self) -> CompactSlider:
-        return self.sliders_section.curve_slider
-
-    @property
-    def stabilizer_slider(self) -> CompactSlider:
-        return self.sliders_section.stabilizer_slider
-
-    @property
-    def spacing_slider(self) -> CompactSlider:
-        return self.sliders_section.spacing_slider
-
-    @property
-    def min_density_slider(self) -> CompactSlider:
-        return self.sliders_section.min_density_slider
-
-    @property
-    def lbl_quick(self) -> QtWidgets.QLabel:
-        return self.sliders_section.lbl_quick
-
-    @property
-    def _quick_sliders(self):
-        return self.sliders_section.all_sliders
-
-    @property
-    def _tool_buttons(self) -> Dict[str, QtWidgets.QToolButton]:
-        return self.tool_column.tool_buttons
-
-    @property
-    def tool_col_box(self) -> ToolSelectionColumn:
-        return self.tool_column
 
     def sync_initial_state(self) -> None:
         if hasattr(self, "preset_combo") and self.preset_combo:
@@ -397,53 +343,3 @@ class BrushSettingsPanel(QtWidgets.QWidget):
                 size=sz, opacity=op, hardness=hd, spacing=sp, engine_type=eng_type
             )
 
-    def _open_advanced_dialog(self) -> None:
-        if self._adv_panel is None:
-            self._adv_panel = AdvancedPanel(self)
-            self._adv_panel.sizeChanged.connect(self._sync_size_from_adv)
-            self._adv_panel.opacityChanged.connect(self._sync_opacity_from_adv)
-            self._adv_panel.stabilizerWeightChanged.connect(self._sync_stabilizer_from_adv)
-            self._adv_panel.spacingChanged.connect(self._sync_spacing_from_adv)
-            self._adv_panel.contrastChanged.connect(self._sync_contrast_from_adv)
-
-            self._adv_panel.pressureChanged.connect(self.pressureChanged.emit)
-            self._adv_panel.pressureCurvePowerChanged.connect(self.pressureCurvePowerChanged.emit)
-            self._adv_panel.minDensityActiveChanged.connect(self.minDensityActiveChanged.emit)
-            self._adv_panel.minDensityValueChanged.connect(self.minDensityValueChanged.emit)
-            self._adv_panel.invertHeightChanged.connect(self.invertHeightChanged.emit)
-            self._adv_panel.loadShapeRequested.connect(self.loadShapeRequested.emit)
-            self._adv_panel.loadHeightmapRequested.connect(self.loadHeightmapRequested.emit)
-            self._adv_panel.pinToggled.connect(self._on_pin_toggled)
-
-        if self._adv_panel.isVisible():
-            self._adv_panel.hide()
-        else:
-            self._adv_panel.sync_from_engine_profile()
-            self._adv_panel.show_near(self.btn_adv)
-
-    def _sync_size_from_adv(self, val: float) -> None:
-        self.sliders_section.sync_size(val)
-        self.sizeChanged.emit(val)
-        if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_preview()
-
-    def _sync_opacity_from_adv(self, val: float) -> None:
-        self.sliders_section.sync_opacity(val)
-        self.opacityChanged.emit(val)
-        if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_preview()
-
-    def _sync_stabilizer_from_adv(self, val: float) -> None:
-        self.sliders_section.sync_stabilizer(val)
-        self.stabilizerWeightChanged.emit(val)
-
-    def _sync_spacing_from_adv(self, val: float) -> None:
-        self.sliders_section.sync_spacing(val)
-        self.spacingChanged.emit(val)
-
-    def _sync_contrast_from_adv(self, val: float) -> None:
-        self.sliders_section.sync_contrast(val)
-        self.contrastChanged.emit(val)
-
-    def _on_pin_toggled(self, param_name: str, is_pinned: bool) -> None:
-        self.sliders_section.set_pinned_visible(param_name, is_pinned)

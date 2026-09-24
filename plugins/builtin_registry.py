@@ -12,5 +12,6 @@ BUILTIN_PLUGIN_MODULES = (
     "plugins.ui.geometry_plugin.plugin",
     "plugins.ui.layers_plugin",
     "plugins.ui.navigator_plugin",
+    "plugins.ui.recording_plugin",
     "plugins.ui.telemetry_plugin",
 )

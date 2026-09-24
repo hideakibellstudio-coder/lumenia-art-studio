@@ -29,6 +29,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "theme": {
         "active": "lumenia_purple",
     },
+    "interface": {
+        "scale": 1.0,
+    },
     "floating_toolbar": {
         "active": True,
         "dock_state": "snapped_bottom",
@@ -44,10 +47,12 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "hover_delay": "Normal (350ms)",
     },
     "cursor": {
-        "style": "crosshair_ring",
-        "brush_outline": True,
-        "precision_cross": True,
-        "anti_flicker": True,
+        "mode": "ring_and_dot",
+        "orientation": "right",
+        "show_chevron": True,
+        "hide_on_stroke": False,
+        "show_crosshair": False,
+        "ring_opacity": 0.9,
     },
     "render": {
         "profile_id": 0,

@@ -7,6 +7,7 @@ import os
 from .color_swatch_widgets import (
     IconButton, OverlappingColorSwitcher, TransparencyButton, HexWidget, RecentColorsWidget
 )
+from .harmony_widgets import HarmonyStrip
 
 
 
@@ -22,7 +23,19 @@ class WheelArea(QtWidgets.QWidget):
         self._last_size = QtCore.QSize()
         self._dragging_part = None
         self.wheel_thickness = 20
+        self._harmony_hues: list[float] = []
         self.setMouseTracking(True)
+
+    def hsv(self) -> tuple[float, float, float]:
+        return self._h, self._s, self._v
+
+    def harmony_hues(self) -> list[float]:
+        return list(self._harmony_hues)
+
+    def set_harmony_hues(self, hues: list[float]) -> None:
+        """Matizes das cores parceiras, marcados no anel além do marcador principal."""
+        self._harmony_hues = list(hues)
+        self.update()
 
     def get_current_color(self) -> QtGui.QColor:
         return QtGui.QColor.fromHsvF(self._h, self._s, self._v, 1.0)
@@ -148,6 +161,15 @@ class WheelArea(QtWidgets.QWidget):
         painter.setBrush(QtCore.Qt.white)
         painter.drawEllipse(center + QtCore.QPoint(hue_x, hue_y), 5, 5)
 
+        painter.setBrush(QtCore.Qt.NoBrush)
+        for h in self._harmony_hues:
+            a = h * 2 * math.pi
+            p = center + QtCore.QPoint(int(marker_radius_pos * math.cos(a)), int(-marker_radius_pos * math.sin(a)))
+            painter.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+            painter.drawEllipse(p, 5, 5)
+            painter.setPen(QtGui.QPen(QtCore.Qt.white, 1.5))
+            painter.drawEllipse(p, 3, 3)
+
         square_radius = (radius - self.wheel_thickness - 6) / math.sqrt(2)
         if square_radius <= 0:
             return
@@ -172,7 +194,7 @@ class ColorWheelWidget(QtWidgets.QWidget):
         self._updating_from_external = False
         
         self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        self.setMinimumHeight(300)
+        self.setMinimumHeight(330)
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -194,6 +216,12 @@ class ColorWheelWidget(QtWidgets.QWidget):
         self.wheel.colorCommitted.connect(self._on_color_committed)
         self.wheel.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout.addWidget(self.wheel, 1)
+
+        # 2b. HARMONIAS (regra + cores parceiras clicáveis)
+        self.harmony = HarmonyStrip(self)
+        self.harmony.colorSelected.connect(self._on_manual_input)
+        self.harmony.ruleChanged.connect(self._sync_harmony)
+        main_layout.addWidget(self.harmony)
 
         # 3. CENTRAL SECTION (Recent Colors + Switcher)
         mid_layout = QtWidgets.QHBoxLayout()
@@ -273,6 +301,11 @@ class ColorWheelWidget(QtWidgets.QWidget):
             self.switcher.set_primary(color)
             self.wheel.set_color(color)
         self.hex_widget.set_color(color)
+        self._sync_harmony()
+
+    def _sync_harmony(self) -> None:
+        self.harmony.set_base(*self.wheel.hsv())
+        self.wheel.set_harmony_hues(self.harmony.hues())
 
     def _on_wheel_changed(self, color: QtGui.QColor):
         if self._updating_from_external: 
@@ -280,6 +313,7 @@ class ColorWheelWidget(QtWidgets.QWidget):
         self._updating_from_external = True
         self.switcher.set_primary(color)
         self.hex_widget.set_color(color)
+        self._sync_harmony()
         self.colorChanged.emit(color)
         self._updating_from_external = False
 
@@ -290,6 +324,7 @@ class ColorWheelWidget(QtWidgets.QWidget):
         if color.alpha() != 0:
             self.wheel.set_color(color)
         self.hex_widget.set_color(color)
+        self._sync_harmony()
         self.colorChanged.emit(color)
         self._updating_from_external = False
 
@@ -311,6 +346,7 @@ class ColorWheelWidget(QtWidgets.QWidget):
         if c.alpha() != 0:
             self.wheel.set_color(c)
         self.hex_widget.set_color(c)
+        self._sync_harmony()
         self.colorChanged.emit(c)
         self._updating_from_external = False
 

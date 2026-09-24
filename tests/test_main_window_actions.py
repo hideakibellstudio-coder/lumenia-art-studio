@@ -58,17 +58,20 @@ def test_main_window_dialog_actions_mixin_contract():
         assert hasattr(MainWindowDialogActionsMixin, method_name), f"Método {method_name} ausente em MainWindowDialogActionsMixin"
 
 
-def test_main_window_menu_actions_mixin_inheritance():
+def test_main_window_menu_actions_mixin_inheritance(qapp):
     """Valida que MainWindowMenuActionsMixin herda e mantém 100% dos métodos."""
     assert issubclass(MainWindowMenuActionsMixin, MainWindowDialogActionsMixin)
 
     host = DummyHost()
+    try:
+        # Testa aplicação de atalhos pelo mixin
+        host._on_shortcuts_applied({"edit_undo": "Ctrl+Z", "tool_brush": "B"})
+        assert host.shortcut_undo.shortcut().toString() == "Ctrl+Z"
+        assert host.shortcut_tool_b.shortcut().toString() == "B"
 
-    # Testa aplicação de atalhos pelo mixin
-    host._on_shortcuts_applied({"edit_undo": "Ctrl+Z", "tool_brush": "B"})
-    assert host.shortcut_undo.shortcut().toString() == "Ctrl+Z"
-    assert host.shortcut_tool_b.shortcut().toString() == "B"
-
-    # Testa troca de idioma
-    host.set_application_language("auto")
-    assert "Idioma" in host.status_bar.currentMessage()
+        # Testa troca de idioma
+        host.set_application_language("auto")
+        assert "Idioma" in host.status_bar.currentMessage()
+    finally:
+        host.shortcut_registry.cleanup()
+        host.deleteLater()

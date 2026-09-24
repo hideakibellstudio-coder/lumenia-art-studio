@@ -20,6 +20,15 @@ class CanvasInputRouter:
         w: "RenderWidget" = self.widget
         effective_tool = "eraser" if is_eraser_tip else w.active_tool
 
+        # ── Navegação de Câmera / Pan (Espaço + Clique Esquerdo ou Botão do Meio) ──
+        is_space = getattr(w, "is_space_held", False)
+        if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and is_space):
+            w.is_panning = True
+            w.last_mouse_pos = pos
+            w.setCursor(QtCore.Qt.ClosedHandCursor)
+            w.update()
+            return
+
         if hasattr(w, "geometry_ctrl"):
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             pt = QtCore.QPointF(world_evt.x, world_evt.y)
@@ -103,16 +112,7 @@ class CanvasInputRouter:
                 if w.transform_ctrl.active:
                     handle = w.transform_ctrl.hit_test_handle(pt, w.zoom)
                     if handle:
-                        w.transform_ctrl.handle_dragged = handle
-                        w.transform_ctrl.mouse_press_pos = pt
-                        w.transform_ctrl.press_params = {
-                            "dx": w.transform_ctrl.dx,
-                            "dy": w.transform_ctrl.dy,
-                            "sx": w.transform_ctrl.scale_x,
-                            "sy": w.transform_ctrl.scale_y,
-                            "rot": w.transform_ctrl.rotation,
-                            "pivot": QtCore.QPointF(w.transform_ctrl.pivot)
-                        }
+                        w.transform_ctrl.begin_drag(handle, pt)
                         w.update()
                         return
                 else:
@@ -125,20 +125,38 @@ class CanvasInputRouter:
             w.setCursor(QtCore.Qt.SizeVerCursor)
             return
 
-        if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and (modifiers & QtCore.Qt.ShiftModifier)):
-            w.is_panning = True
-            w.last_mouse_pos = pos
-            w.setCursor(QtCore.Qt.ClosedHandCursor)
-            return
-
         if button == QtCore.Qt.LeftButton:
             if is_eraser_tip and w.backend and hasattr(w.backend, "set_engine_type") and hasattr(w.backend, "get_active_engine_type"):
                 self._previous_engine_type = w.backend.get_active_engine_type()
                 w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
-            w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+
+            if (modifiers & QtCore.Qt.ShiftModifier) and getattr(w, "_last_stroke_end_screen", None) is not None:
+                p0 = w._last_stroke_end_screen
+                w.start_stroke(p0.x(), p0.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+                steps = 10
+                for s in range(1, steps + 1):
+                    t = s / steps
+                    ix = p0.x() + (pos.x() - p0.x()) * t
+                    iy = p0.y() + (pos.y() - p0.y()) * t
+                    w.paint_stroke(ix, iy, max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+            else:
+                w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
 
     def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
         w: "RenderWidget" = self.widget
+        if w.is_panning:
+            delta = pos - w.last_mouse_pos
+            w.pan_x += delta.x()
+            w.pan_y += delta.y()
+            w.last_mouse_pos = pos
+            rot_rad = math.radians(w.rotation)
+            w.bridge_client.update_view(w.zoom, w.pan_x, w.pan_y, rot_rad)
+            w.cameraChanged.emit(w.zoom, w.pan_x, w.pan_y, w.rotation, float(w.width()), float(w.height()))
+            if w._active_text_editor:
+                w._active_text_editor.update_screen_position()
+            w.update()
+            return
+
         if w.drawing:
             w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
             if hasattr(w, "geometry_ctrl") and hasattr(w, "_last_draw_pos"):
@@ -204,19 +222,6 @@ class CanvasInputRouter:
             w.zoom_drag_start_pos = pos
             return
 
-        if w.is_panning:
-            delta = pos - w.last_mouse_pos
-            w.pan_x += delta.x()
-            w.pan_y += delta.y()
-            w.last_mouse_pos = pos
-            rot_rad = math.radians(w.rotation)
-            w.bridge_client.update_view(w.zoom, w.pan_x, w.pan_y, rot_rad)
-            w.cameraChanged.emit(w.zoom, w.pan_x, w.pan_y, w.rotation, float(w.width()), float(w.height()))
-            if w._active_text_editor:
-                w._active_text_editor.update_screen_position()
-            w.update()
-            return
-
         if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.guide_state.get("type") != "none" or w.geometry_ctrl.sym_state.get("mode") != "none"):
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             w.geometry_ctrl.handle_hover(QtCore.QPointF(world_evt.x, world_evt.y))
@@ -224,6 +229,21 @@ class CanvasInputRouter:
 
     def handle_pointer_release(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, modifiers: QtCore.Qt.KeyboardModifiers):
         w: "RenderWidget" = self.widget
+
+        # ── Liberação de Panning / Navegação ──
+        if w.is_panning and button in (QtCore.Qt.MiddleButton, QtCore.Qt.LeftButton):
+            w.is_panning = False
+            if getattr(w, "is_space_held", False):
+                w.setCursor(QtCore.Qt.OpenHandCursor)
+            else:
+                w.unsetCursor()
+                if hasattr(w, "cursor_ctrl"):
+                    w.cursor_ctrl.invalidate_cursor_cache()
+                if hasattr(w, "_update_cursor_shape"):
+                    w._update_cursor_shape()
+            w.update()
+            return
+
         if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.active_handle or w.geometry_ctrl.curv_drag_rotate):
             w.geometry_ctrl.mouse_release()
             w.update()
@@ -270,14 +290,6 @@ class CanvasInputRouter:
                 if w.backend and hasattr(w.backend, "set_engine_type"):
                     w.backend.set_engine_type(self._previous_engine_type)
                 self._previous_engine_type = None
-        elif button in (QtCore.Qt.MiddleButton, QtCore.Qt.LeftButton):
-            if w.is_panning:
-                w.is_panning = False
-                w.unsetCursor()
-                if hasattr(w, "cursor_ctrl"):
-                    w.cursor_ctrl.invalidate_cursor_cache()
-                if hasattr(w, "_update_cursor_shape"):
-                    w._update_cursor_shape()
 
     def update_transform_cursor(self, handle_name: Optional[str]):
         w: "RenderWidget" = self.widget
@@ -348,6 +360,18 @@ class CanvasInputRouter:
                 w.update()
                 return True
 
+        # ── Barra de Espaço: Ativa navegação de câmera (Mão Livre / Pan) ──
+        if event.key() == QtCore.Qt.Key_Space:
+            if getattr(w, "_active_text_editor", None) and w._active_text_editor.isVisible():
+                return False
+            if event.isAutoRepeat():
+                return True
+            w.is_space_held = True
+            if not w.is_panning and not w.drawing:
+                w.setCursor(QtCore.Qt.OpenHandCursor)
+                w.update()
+            return True
+
         if event.key() in (QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace):
             if backend and hasattr(backend, "has_selection") and backend.has_selection():
                 if hasattr(backend, "delete_selection_on_active_layer"):
@@ -362,3 +386,33 @@ class CanvasInputRouter:
                             w.strokeFinished.emit()
                     return True
         return False
+
+    def handle_key_release(self, event: QtGui.QKeyEvent) -> bool:
+        """Chamado quando uma tecla é liberada na viewport."""
+        w: "RenderWidget" = self.widget
+        if event.key() == QtCore.Qt.Key_Space:
+            if event.isAutoRepeat():
+                return True
+            w.is_space_held = False
+            if not w.is_panning:
+                w.unsetCursor()
+                if hasattr(w, "cursor_ctrl"):
+                    w.cursor_ctrl.invalidate_cursor_cache()
+                if hasattr(w, "_update_cursor_shape"):
+                    w._update_cursor_shape()
+                w.update()
+            return True
+        return False
+
+    def handle_focus_out(self) -> None:
+        """Chamado na perda de foco para evitar estados presos de teclas modificadoras."""
+        w: "RenderWidget" = self.widget
+        if getattr(w, "is_space_held", False):
+            w.is_space_held = False
+            if not w.is_panning:
+                w.unsetCursor()
+                if hasattr(w, "cursor_ctrl"):
+                    w.cursor_ctrl.invalidate_cursor_cache()
+                if hasattr(w, "_update_cursor_shape"):
+                    w._update_cursor_shape()
+                w.update()

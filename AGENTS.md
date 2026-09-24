@@ -71,9 +71,16 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 > 251" enquanto o teste e o Navigator usavam 300; alinhada ao que é de fato
 > verificado.
 
-### Censo Atual (medido em 2026-09-22 com `navigator_verify --profile lumenia`):
+### Censo Atual (medido em 2026-09-24 com `wc -l` em `ui/` e `plugins/`):
 - **0 arquivos na Zona Vermelha e nenhuma exceção de LOC declarada.** Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
+- 279 verdes, 37 amarelos e **5 na parede** (430–449): `test_report_dialog.py`,
+  `theme_dialog.py`, `new_document_dialog.py`, `recording_plugin/panel.py`,
+  `geometry_tool_controller.py`.
 - **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos.
+- **Dividir é por responsabilidade, não por tamanho.** O diagnóstico de
+  2026-09-24 achou o teto de LOC "cumprido" com mixins e funções soltas que
+  recebem o dono e escrevem nos atributos privados dele: o arquivo encolhe e o
+  acoplamento continua igual. Como dividir direito: seção 4.2.
 
 ---
 
@@ -84,7 +91,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 3. **Zero Acesso a Atributos Privados**: A UI nunca acessa `_facade` ou `_native`. Toda comunicação é mediada por métodos canônicos em `EngineBackend`.
 4. **Fonte Única de Verdade (SSOT)**: O estado do documento reside em `Document` / `LocalLayerManager` (`ui/core/document/`). Painéis e widgets de UI são apenas **Views** reativas sincronizadas por sinais Qt.
 5. **Zero Hardcode de Cores**: Sempre utilize `ThemeManager.instance().get_color(...)` ou classes de estilo QSS.
-6. **Contratos e Mixins**: O `AladynBackend` é orquestrado por mixins especializados (`aladyn_color_mixin`, `aladyn_layer_mixin`, etc.). Nunca concentre código novo em uma classe monolítica.
+6. **Contratos e Mixins**: O `AladynBackend` é orquestrado por mixins especializados (`aladyn_color_mixin`, `aladyn_layer_mixin`, etc.) sobre `AladynBackendBase`, que declara todo o estado que eles compartilham (mixin não cria atributo que outro mixin lê). Fora do backend, prefira colaborador com estado próprio a mixin novo (seção 4.2). Nunca concentre código novo em uma classe monolítica.
 
 ---
 
@@ -141,6 +148,53 @@ prática neste projeto.
 
 ---
 
+## 🧭 4.2 CONTRATOS ENTRE COMPONENTES (COMO NÃO RECRIAR O ESPAGUETE)
+
+Registradas em 2026-09-24, depois de desfazer o espaguete de pincel,
+ferramentas, camadas, canvas e barra secundária. Guia completo, com os casos
+reais de antes/depois: `docs/02-arquitetura/06-contratos-entre-componentes.md`.
+
+**Quatro caminhos permitidos entre componentes** (qualquer outro é espaguete):
+
+1. **Estado compartilhado** (`ui/core/state`): quem edita chama o estado
+   (`BrushState.set_color`, `ToolState.update_options`); quem mostra escuta o
+   sinal. Valor igual não emite — nenhuma view precisa de guarda de reentrância.
+2. **Injeção pelo construtor**: o widget recebe o que usa
+   (`BrushSettingsPanel(brush_state, tool_state)`); o plugin obtém com
+   `require(context.service_registry, Tipo)`. Nenhum widget faz busca global.
+3. **Sinal para fora + dono que liga**: a peça emite (`commandRequested`,
+   `sizeChanged`) e quem a criou conecta. Nunca `self.parent().x`, nunca
+   `findChild`, nunca `hasattr(pai, "metodo")`.
+4. **Contrato do motor**: só `EngineRegistry.instance().get_backend()` e os
+   métodos de `EngineBackend`; um único escritor por assunto
+   (`BrushEngineSync`, `ToolEngineSync`, `layer_backend_sync`).
+
+**Proibido** (a catraca de acoplamento conta e não deixa subir):
+
+- `hasattr`/`getattr("literal")` em objeto que não é seu, para descobrir se ele
+  "tem" algo. Se o contrato garante, chame; se não garante, mude o contrato.
+- Ler ou escrever `obj._privado` de outra classe.
+- Mixin que lê atributo criado por outro mixin, e função solta
+  `montar_x(dono)` que pendura atributos no dono. Use um **colaborador com
+  estado próprio** (classe com construtor que recebe o que usa), como
+  `CanvasStrokePipeline`, `CanvasCursorController`, `LayerCommands`.
+- Duas cópias de um estado sincronizadas à mão (ex.: `slider_h`/`slider_v`
+  copiando um para o outro). Duas telas do mesmo dado são duas views do mesmo
+  estado e não se conhecem.
+- Publicar o dicionário inteiro de opções quando o usuário mexeu num campo:
+  publique só o campo (`ToolOptionsView.publish(campo=valor)`).
+- Regra entre estados implementada em cada tela que a conhece: ela mora num
+  lugar só (`ui/core/state/state_links.py`).
+- `except Exception: pass` (catraca `silent_except` está em 0).
+
+**Toda pasta tem README** com responsabilidade, porta de entrada, tabela de
+arquivos, regras e o bloco `arccc:deps` com as dependências internas medidas.
+Leia o README antes de mexer; arquivo novo ou import novo entre pastas atualiza
+o README no mesmo commit (o teste `tests/test_arccc_package_docs.py` falha
+se não).
+
+---
+
 ## 🔄 5. FLUXO DE TRABALHO PADRONIZADO PARA AGENTES (5 PASSOS)
 
 Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
@@ -150,6 +204,8 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
 ```
 
 1. **Passo 1: Diagnóstico e Leitura**:
+   - **Leia o `README.md` da pasta que vai mexer** (e o da pasta mãe): ele diz
+     a responsabilidade, a porta de entrada, as regras e a dívida conhecida.
    - **Consulte o ARCcC-Navigator ANTES de ler arquivos à mão.** `navigator_context`
      sobre o símbolo devolve contrato, consumidores e corpo relevante dentro de um
      orçamento de tokens. Se a mudança toca assinatura, contrato público ou `.pyi`,
@@ -161,7 +217,13 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
      rotineiramente mal lidas: `suspicious` é limitação da ferramenta, não defeito
      do código, e `declared_exception` é autorização deliberada que não se toca.
 2. **Passo 2: Edição Limpa e Fatiamento**:
-   - Ao criar ou editar arquivos, monitore a contagem de linhas. Se um arquivo estiver próximo de 400 LOC, fatie-o preventivamente em subcomponentes ou mixins.
+   - Ao criar ou editar arquivos, monitore a contagem de linhas. Se um arquivo
+     estiver perto de 400 linhas, divida-o **por responsabilidade**: extraia um
+     colaborador com estado próprio (seção 4.2). **Não** divida em mixins nem em
+     funções soltas que recebem o dono — isso só move o espaguete de arquivo.
+   - Arquivo novo: acrescente a linha dele no README da pasta. Import novo entre
+     pastas: atualize o bloco `arccc:deps` do README
+     (`python -m tests.arccc_package_docs --deps PASTA`).
 3. **Passo 3: Execução de Testes Direcionados**:
    - Execute o teste automatizado do módulo afetado:
      ```powershell
@@ -172,6 +234,14 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
    - Certifique-se de que **NENHUM** arquivo não-rastreado temporário, rascunho ou lixo foi deixado para trás.
 5. **Passo 5: Validação Global**:
    - Execute a suíte de testes completa ou relevante para garantir que todos os testes permaneçam **100% GREEN**.
+   - **Catracas locais (rodam dentro da suíte):**
+     - acoplamento (`tests/test_arccc_coupling_ratchet.py`): `hasattr`,
+       `getattr` literal, acesso privado alheio, `except` silencioso e núcleo
+       importando plugin, contados por arquivo. Subiu → você acoplou; caiu →
+       registre com `python -m tests.arccc_coupling_metrics --tighten`;
+     - documentação por pacote (`tests/test_arccc_package_docs.py`);
+     - cores literais (`tests/test_hardcoded_colors_ratchet.py`) e varreduras
+       cegas/leis do rio (`tests/test_river_ratchets.py`).
    - **Catraca arquitetural:** rode `navigator_verify` e compare a contagem de
      achados com a anterior. Ela pode cair ou ficar igual; **se subir, você
      introduziu algo** — investigue antes de entregar. Se a mudança tocou arquivos
@@ -203,6 +273,17 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
   python scripts/build_portable.py
   ```
   *(A compilação irá automaticamente para `../build/portable`)*
+- **Catraca de acoplamento (relatório e aperto)**:
+  ```powershell
+  python -m tests.arccc_coupling_metrics --top 20   # onde está o acoplamento
+  python -m tests.arccc_coupling_metrics --tighten  # registra uma melhoria
+  ```
+- **Documentação por pacote**:
+  ```powershell
+  python -m tests.arccc_package_docs                   # pendências
+  python -m tests.arccc_package_docs --deps PASTA      # dependências medidas
+  python -m tests.arccc_package_docs --scaffold PASTA  # esqueleto de README
+  ```
 - **Auditoria de Conformidade com o ARCcC Navigator**:
   ```powershell
   cd ../ARCcC-Navigator

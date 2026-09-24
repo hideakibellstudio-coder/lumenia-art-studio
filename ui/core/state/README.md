@@ -33,6 +33,17 @@ podem mudar sem aviso.
 | `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry` (devolve `AppState(brush, brush_sync, tools, tool_sync, shape_colors)`). Idempotente. Chamado pela casca. |
 | `require(registry, Tipo)` | Busca um serviço obrigatório com mensagem de erro clara. |
 
+## Arquivos
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `__init__.py` | Porta de entrada: `AppState`, `install_app_state`, `require` e os tipos públicos. |
+| `brush_params.py` | Enum `BrushParam`, tipos e valores padrão dos parâmetros rápidos; `quick_params_from_preset`. |
+| `brush_state.py` | `BrushState`: cor, parâmetros rápidos e preset lembrado por ferramenta. |
+| `brush_engine_sync.py` | `BrushEngineSync`: único escritor `BrushState → motor`; `resync()` após trocar de documento. |
+| `tool_state.py` | `ToolState`: ferramenta ativa e opções normalizadas por ferramenta; `options_key`, `is_shape_tool`. |
+| `state_links.py` | Regras entre estados: `ShapeColorLink` (formas usam a cor do pincel) e `ToolEngineSync` (Smudge → motor). |
+
 ## Fluxo
 
 ```
@@ -110,8 +121,15 @@ painel) e uma das cópias zerava a opacidade do fundo.
 `tests/test_state_links.py` (contratos dos estados e das regras), `tests/test_brush_panel_structure.py` (painel como view),
 `tests/test_tool_settings_contract.py` (opções chegando aos controladores).
 
-## Dependências permitidas
+## Dependências internas
 
-`PySide6.QtCore/QtGui`, `ui.core.engine.backend` (contrato do motor, só para
-tipo), `ui.core.plugins.registry` (ServiceRegistry). Nada de `plugins.*`,
-nada de widgets.
+`ui/core/engine` (contrato `EngineBackend`, só para tipo), `ui/core/plugins`
+(`ServiceRegistry`) e `ui/core` (`tool_settings`, `tools`). Nada de
+`plugins/*`, nada de widgets. Medidas pelo teste
+`tests/test_arccc_package_docs.py`:
+
+<!-- arccc:deps -->
+- `ui/core`
+- `ui/core/engine`
+- `ui/core/plugins`
+<!-- /arccc:deps -->

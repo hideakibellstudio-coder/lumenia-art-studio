@@ -29,6 +29,17 @@ A catraca `tests/test_arccc_coupling_ratchet.py` impede que qualquer arquivo
 piore e obriga a registrar cada melhoria. Os números atuais estão em
 `tests/arccc_coupling_baseline.json`.
 
+Evolução no mesmo dia, depois das correções (cada linha é um commit com a
+medição na mensagem):
+
+| Padrão | Início | Depois de estado/camadas | Depois do canvas | Hoje (barra secundária + limpeza) |
+|---|---:|---:|---:|---:|
+| `hasattr` | 781 | 637 | 572 | 465 |
+| `getattr` literal | 408 | 363 | 303 | 265 |
+| privado alheio | 349 | 236 | 166 | 71 |
+| `except` silencioso | 15 | 0 | 0 | 0 |
+| núcleo → plugin | 2 | 0 | 0 | 0 |
+
 ## Os quatro caminhos permitidos
 
 Todo fluxo de informação entre duas peças diferentes usa **um** destes:
@@ -125,6 +136,51 @@ miniatura nunca mudava. **Regra:** teste o contrato público com objetos reais
 (ou um fake com os métodos do contrato), nunca `MagicMock` genérico no lugar
 de um componente do próprio projeto.
 
+### ✗ Duas cópias da mesma tela sincronizadas à mão
+
+A barra secundária tinha cada controle duas vezes (`slider_bkt_tol_h` e
+`slider_bkt_tol_v`, para as orientações horizontal e vertical) e cada handler
+copiava o valor de uma para a outra com `getattr`. O painel de pincel tinha uma
+terceira cópia que nunca acompanhava as outras. **Correção:** cada tela é uma
+view do `ToolState` (`ToolOptionsView`): mostra em `show_options`, publica em
+`publish`. As três ficam iguais porque mostram o mesmo estado, sem se conhecer.
+
+### ✗ Publicar o dicionário inteiro
+
+A página de transformação do painel publicava todas as opções a cada clique:
+mudar o "Modo" reescrevia a interpolação com o valor velho da página (o
+usuário escolhia "Mais Próximo" na barra, mexia no modo no painel, e voltava a
+ser bicúbica). **Correção:** `publish(campo=valor)` só com o campo editado.
+
+### ✗ Regra entre estados em cada tela que a conhece
+
+"As formas usam a cor do pincel" estava implementada três vezes (canvas,
+barra, painel), e uma cópia zerava a transparência do fundo. **Correção:** uma
+regra, num lugar: `ui/core/state/state_links.py` (`ShapeColorLink`).
+
+### ✗ Botão que alcança o canvas pelo pai
+
+`self.parent().canvas_widget.commit_transform()` com `hasattr` para saber se o
+pai era o workspace. **Correção:** o botão emite um `ToolCommand` (enum
+canônico em `ui/core/tools.py`) e o workspace liga o sinal em
+`RenderWidget.run_tool_command`.
+
+### ✗ Vários caminhos para a mesma coisa
+
+A câmera era empurrada ao motor por cinco cópias de
+`bridge_client.update_view(...)`, e o zoom pelo menu nunca chegava ao
+Navigator. **Correção:** um método, `RenderWidget.publish_view()`, que atualiza
+motor, editor de texto, repintura e sinais — quem muda zoom/pan/rotação chama
+ele.
+
+### ✗ Janela Qt coletada pelo GC no meio de outra operação (testes)
+
+Criar diálogos sem pai e deixá-los para o coletor de lixo do Python derruba o
+PySide 6.11.1 se a coleta acontecer enquanto outra janela está sendo embrulhada
+(achado com gdb e valgrind). **Regra nos testes:** enumerar e apagar janelas
+com o GC desligado (`tests/qt_windows.py`); na aplicação, diálogo sempre com
+pai.
+
 ## Como dividir um arquivo que ficou grande (o jeito certo)
 
 1. Liste as **responsabilidades** do arquivo em frases ("mostra X", "valida
@@ -148,4 +204,8 @@ de um componente do próprio projeto.
 - [ ] Estado novo que duas telas mostram → está num estado compartilhado,
       não duplicado nos widgets.
 - [ ] Widget novo recebe suas dependências pelo construtor.
-- [ ] O `README.md` da pasta tocada continua verdadeiro.
+- [ ] O `README.md` da pasta tocada continua verdadeiro: arquivo novo na
+      tabela, import novo entre pastas no bloco `arccc:deps`
+      (`python -m pytest tests/test_arccc_package_docs.py`).
+- [ ] Duas telas do mesmo dado são views do mesmo estado; nenhuma copia valor
+      para a outra.

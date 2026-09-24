@@ -2,12 +2,59 @@
 
 > Documento vivo. Sintetiza e substitui `historico/estado-da-base-2026-09-15.md`
 > e a parte ainda acionável de `historico/auditoria-f017-f031-endurecimento-navigator.md`.
-> Atualizado com verificação ao vivo no terminal em 2026-09-21 (não é estimativa
+> Atualizado com verificação ao vivo no terminal em 2026-09-24 (não é estimativa
 > nem cópia do relatório anterior). Toda mudança de status aqui deve vir com uma
 > linha correspondente em `../README.md`.
 
 **Regra de ouro desta fase:** nenhuma feature nova. Cada item abaixo remove
 código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
+
+---
+
+## ✅ 2026-09-24 — Espaguete desfeito por contrato (sessão Claude Code)
+
+Medido no Linux (Python 3.11, offscreen): 835 testes passam, 5 pulados. CI do
+GitHub verde nos 5 jobs no commit `5046cec`. Detalhe e bugs corrigidos nas
+mensagens de commit do branch `claude/zealous-galileo-38k67d`; regras novas em
+`AGENTS.md` seção 4.2 e `../02-arquitetura/06-contratos-entre-componentes.md`.
+
+**Feito:** estado compartilhado (`ui/core/state`) no lugar de seis cópias da
+cor e dos parâmetros do pincel e de quatro caminhos para a ferramenta ativa;
+camadas com um caminho só até o motor; canvas, barra secundária e páginas de
+opções sem acesso a privados alheios; catraca de acoplamento; README com
+dependências medidas nas 62 pastas de código; CI verde.
+
+**Pendências de arquitetura, em ordem de retorno** (números de
+`python -m tests.arccc_coupling_metrics --top 8`):
+
+1. **Mixins que se leem por `self`** na `MainWindow` (6 mixins) e no
+   `WorkspaceContainer` (4). Virar colaboradores com estado próprio, como foi
+   feito no canvas. Maiores: `main_window.py` (22 `hasattr`),
+   `workspace_layout_manager.py` (20), `workspace_document_sync.py` (13 + 14
+   `getattr`; ainda alcança `_layers_panel.paper_widget`).
+2. **Painel avançado do pincel**: `advanced_panel/panel.py` (25 `hasattr`,
+   24 `getattr`) e as quatro funções `create_*_section(panel)` que penduram
+   widgets no painel (17 acessos privados somados). Mesmo tratamento da barra
+   secundária (views com estado próprio).
+3. **Docas**: `dock_system.py` (14 acessos privados alheios) e
+   `dock/dock_animator.py` (9; chega ao workspace por
+   `self.dock._workspace._update_pill_positions()`).
+4. **Menus**: `menu_bar.py` (27 `hasattr`).
+5. **Telemetria**: `telemetry_tracker.py` (37 `getattr`), `telemetry_dto.py`
+   (23), `telemetry_grid_window.py` (20) — leem structs nativas por nome.
+6. **Segundo caminho até o motor**: `BridgeClient`
+   (`ui/infrastructure/bridge_client`) e os comandos em dataclass
+   (`ui/core/engine/commands.py` + `aladyn_dispatch.py`). O backend ainda
+   importa `ui.core.document` para marcar o documento modificado.
+7. **Cinco arquivos na parede dos 450**: `test_report_dialog.py`,
+   `theme_dialog.py`, `new_document_dialog.py`, `recording_plugin/panel.py`,
+   `geometry_tool_controller.py`.
+8. **Textos sem `tr()`**: rótulos das views da barra secundária e mensagens de
+   status da `MainWindow` em português fixo.
+9. **Pastas sem porta de entrada** (`__init__.py`): `ui/core/geometry`,
+   `canvas/renderers`, `canvas/tools`, `canvas/viewport`, `dock`, entre
+   outras (cada README registra). `ui/utils` não tem consumidor;
+   `ui/boundary/public_api` está vazia.
 
 ---
 

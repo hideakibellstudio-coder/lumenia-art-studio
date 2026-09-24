@@ -1,7 +1,6 @@
-"""brush_presets.py — Categorias de Mini-Motores e Receitas Curadas.
+"""presets_data — junta as categorias de `presets/` e dá nomes traduzidos a presets e categorias.
 
-Pilar UI (PySide6) — Dados puros sem lógica de motor.
-Refatorado como Facade de agregação sob ARCcC v2 (< 80 LOC).
+Só dados (sem Qt de interface e sem motor).
 """
 
 from typing import Dict, Any

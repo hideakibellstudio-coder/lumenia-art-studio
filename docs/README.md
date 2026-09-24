@@ -27,6 +27,13 @@ Formato de arquivo `.lmn` e gestão de cor (LittleCMS/ICC).
 ### `05-visao-e-futuro/` — visão estratégica e evolução de produto
 Visão estratégica de produto, benchmark competitivo de mercado (`03-benchmark-competitivo-e-rotas-de-produto.md`) e roadmap do pipeline de cor 16-bit/float. Norteia as decisões de refinamento da branch `feature/evolucao-produto`.
 
+### READMEs por pasta de código — leia antes de mexer
+Cada pasta de `ui/` e `plugins/` tem um `README.md` com a responsabilidade,
+a porta de entrada, a tabela de arquivos, as regras, a dívida conhecida e as
+dependências internas medidas (bloco `arccc:deps`). O teste
+`tests/test_arccc_package_docs.py` falha se um arquivo ou import novo não
+estiver lá. Como as peças conversam: `02-arquitetura/06-contratos-entre-componentes.md`.
+
 ### `historico/` — encerrado, não numerado de propósito
 Auditorias já resolvidas (F-001 a F-031) e o panorama de estado de
 2026-09-15 que `01-correcao-da-base/01-pendencias-atuais.md` substituiu.
@@ -41,6 +48,29 @@ tarefas.
 > agora, em qual documento (deste `docs/` ou do Claude Project) isso estava
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
+
+### 2026-09-24 — Espaguete desfeito por contrato, catracas e README por pasta
+**Base:** pedido do usuário nesta sessão (Claude Code): pôr tudo o que já
+existe em conformidade com o ARCcC, sem espaguete, e documentado a ponto de
+outros agentes trabalharem sem recriá-lo. Documento de referência:
+`ARCcC - Atomic Recursive Componentization by Contract` (enviado pelo usuário).
+**Diagnóstico medido:** o teto de linhas era cumprido fatiando arquivos, não
+responsabilidades (mixins e funções soltas que recebem o dono e mexem nos
+privados dele). Catraca nova `tests/test_arccc_coupling_ratchet.py`.
+**O que mudou:** estado compartilhado em `ui/core/state` (pincel, ferramenta,
+regras entre estados) injetado pelo construtor; camadas com um caminho só até
+o motor; canvas com colaboradores de estado próprio e uma saída de câmera
+(`publish_view`); barra secundária e páginas de opções como views do
+`ToolState`; `ToolCommand`; CI verde (scipy no lock, testes de tempo pelo
+melhor de 5); limpeza de janelas dos testes com o GC desligado (crash do
+PySide achado com gdb/valgrind); README em todas as 62 pastas de código com
+teste que os mantém verdadeiros; AGENTS.md seção 4.2.
+**Números medidos** (Linux, Python 3.11, offscreen): 835 testes passam, 5
+pulados; acoplamento `hasattr` 781 → 465, `getattr` literal 408 → 265,
+privado alheio 349 → 71, `except` silencioso 15 → 0, núcleo → plugin 2 → 0;
+0 arquivos na Zona Vermelha, 5 na parede. CI do GitHub (Windows 3.11–3.14 e
+AVX2) verde no commit `5046cec`. Os bugs corrigidos, cada um medido antes e
+depois, estão nas mensagens de commit do branch `claude/zealous-galileo-38k67d`.
 
 ### 2026-09-23 — Decisões do usuário: promessas falsas viram funções reais
 **Base:** `claude/correcoes-e-decisoes-2026-09-22.md` (Claude Project), seção

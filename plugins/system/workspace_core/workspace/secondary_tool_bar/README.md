@@ -56,11 +56,17 @@ versão horizontal para a vertical com `getattr`/`hasattr`; o botão Desmarcar
 não parava a animação da seleção; o painel de pincel não acompanhava o que se
 mudava aqui; a barra não encolhia ao trocar estrela por elipse.
 
-## Dependências permitidas
+## Dependências internas
 
-`ui.core.state`, `ui.core.tools`, `ui.core.widgets.*`, `ui.core.i18n`,
-`ui.core.icons`, `ui.core.theme`, `ui.core.dialogs.floating_tool_window`.
-Nada de canvas, workspace ou outros plugins.
+Estado (`ui/core/state`), a base de views de opções (`ui/core/widgets/tool_options`),
+peças visuais do núcleo e a janela flutuante (`ui/core/dialogs`). Nada de canvas,
+workspace ou outros plugins. Medidas pelo teste `tests/test_arccc_package_docs.py`:
+
+<!-- arccc:deps -->
+- `plugins/system/workspace_core/workspace/secondary_tool_bar/views`
+- `ui/core/dialogs`
+- `ui/core/state`
+<!-- /arccc:deps -->
 
 ## Testes
 

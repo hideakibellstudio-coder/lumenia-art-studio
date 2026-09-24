@@ -1,5 +1,5 @@
 """
-BrushDropdown — Dropdown Personalizado de Presets / Ferramentas do ALADYN ENGINE
+BrushSelectorPopup — grade de presets do ALADYN ENGINE aberta pelo BrushDropdown
 ================================================================================
 Apresenta a seleção de receitas do ALADYN ENGINE agrupadas em 9 categorias por abas,
 com um grid de 3 colunas, ícones SVG e temas dinâmicos.

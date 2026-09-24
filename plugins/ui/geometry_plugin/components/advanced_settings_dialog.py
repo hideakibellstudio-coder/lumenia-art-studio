@@ -9,26 +9,30 @@ from typing import Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
-from ui.core.dialogs.floating_tool_window import FloatingToolWindow
+from ui.core.dialogs.floating_panel_window import CanvasAreaProvider, FloatingPanelWindow
 
 from .curvilinear_perspective_page import CurvilinearPerspectivePage
 from .snapping_guides_page import SnappingGuidesPage
 from .symmetry_settings_page import SymmetrySettingsPage
 
 
-class AdvancedGeometryDialog(FloatingToolWindow):
+class AdvancedGeometryDialog(FloatingPanelWindow):
     """Janela flutuante avançada padronizada com abas, aberturas colapsáveis e sliders compactos."""
 
     settingsChanged = QtCore.Signal(dict)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None, current_state: Optional[dict] = None) -> None:
-        super().__init__(parent, no_drop_shadow=True)
+    def __init__(
+        self,
+        parent: Optional[QtWidgets.QWidget] = None,
+        current_state: Optional[dict] = None,
+        canvas_area: Optional[CanvasAreaProvider] = None,
+    ) -> None:
+        super().__init__(canvas_area, parent)
         self.setWindowTitle("Configurações Avançadas de Geometria")
         self.setMinimumWidth(330)
         self.setMinimumHeight(460)
 
         self.state = current_state.copy() if current_state else {}
-        self._drag_pos = None
         self._build_ui()
 
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
@@ -111,58 +115,9 @@ class AdvancedGeometryDialog(FloatingToolWindow):
     @property
     def chk_lock(self): return self.sym_page.chk_lock
 
-    def mousePressEvent(self, e):
-        if e.button() == QtCore.Qt.LeftButton:
-            self._drag_pos = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
-
-    def mouseMoveEvent(self, e):
-        if self._drag_pos and e.buttons() & QtCore.Qt.LeftButton:
-            self.move(e.globalPosition().toPoint() - self._drag_pos)
-
-    def mouseReleaseEvent(self, e):
-        self._drag_pos = None
-
-    def show_near(self, anchor_widget: QtWidgets.QWidget):
-        top = anchor_widget.window()
-        workspace = getattr(top, "workspace", None) if top else None
-        left_dock = getattr(workspace, "left_dock", None) if workspace else None
-        right_dock = getattr(workspace, "right_dock", None) if workspace else None
-
-        scr = anchor_widget.screen().availableGeometry() if anchor_widget.screen() else QtCore.QRect(0, 0, 1920, 1080)
-        anchor_global = anchor_widget.mapToGlobal(QtCore.QPoint(0, 0))
-        is_on_right = anchor_global.x() > scr.center().x()
-
-        if workspace and (right_dock or left_dock):
-            workspace_global = workspace.workspace_area.mapToGlobal(QtCore.QPoint(0, 0))
-            target_h = max(440, workspace.workspace_area.height() - 20)
-            y = workspace_global.y() + 10
-
-            if is_on_right and right_dock:
-                dock_left = getattr(right_dock, "effective_left_x", right_dock.mapToGlobal(QtCore.QPoint(0, 0)).x())
-                x = dock_left - self.width() - 10
-            elif left_dock:
-                dock_right = getattr(left_dock, "effective_right_x", left_dock.mapToGlobal(QtCore.QPoint(left_dock.width(), 0)).x())
-                x = dock_right + 10
-            else:
-                x = anchor_global.x() - self.width() - 10 if is_on_right else anchor_global.x() + anchor_widget.width() + 10
-        else:
-            x = anchor_global.x() - self.width() - 10 if is_on_right else anchor_global.x() + anchor_widget.width() + 10
-            y = anchor_global.y()
-            target_h = 520
-
-        if x < scr.left() + 10:
-            x = scr.left() + 10
-        elif x + self.width() > scr.right() - 10:
-            x = scr.right() - self.width() - 10
-
-        self.setFixedHeight(min(target_h, scr.height() - 40))
-        if y + self.height() > scr.bottom():
-            y = max(scr.top() + 10, scr.bottom() - self.height() - 10)
-
-        self.move(QtCore.QPoint(x, y))
-        self.show()
-        self.raise_()
-        self.activateWindow()
+    def show_near(self, anchor_widget: QtWidgets.QWidget) -> None:
+        """Abre na borda do canvas do lado do botão (base FloatingPanelWindow)."""
+        self.show_beside_canvas(anchor_widget, min_height=440)
 
     def _build_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)

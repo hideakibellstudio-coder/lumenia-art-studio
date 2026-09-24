@@ -32,16 +32,15 @@ dependências medidas nas 62 pastas de código; CI verde.
    (porta `workspace_port.py`) e quatro no workspace (`WorkspaceLayout`,
    `DocumentViewSync`, `PanelConnections`); papel com fonte única no
    `Document`. Resta: `add_panel` conhece os ids `navigator`/`layers`/`geometry`.
-2. **Painel avançado do pincel**: `advanced_panel/panel.py` (25 `hasattr`,
-   24 `getattr`) e as quatro funções `create_*_section(panel)` que penduram
-   widgets no painel (17 acessos privados somados). Mesmo tratamento da barra
-   secundária (views com estado próprio).
+2. ~~**Painel avançado do pincel**~~ *(feito em 2026-09-24: cinco seções
+   com estado próprio sobre `AdvancedSection`, `BrushEngineWriter` no lugar
+   do mixin; comportamento caracterizado nos 23 controles antes e depois,
+   idêntico; `tests/test_brush_advanced_panel.py`.)*
 3. ~~**Docas**~~ *(feito em 2026-09-24: nenhum acesso a privado entre doca,
    animador, sidebar e gaveta; a doca recebe o widget onde flutua).* Resta:
-   o painel avançado do pincel e o diálogo avançado de geometria ainda leem
-   `workspace.left_dock` com `getattr` para se posicionar; a persistência do
-   estado das gavetas existe (`DockStateStore`) mas não está ligada ao app
-   (decisão do usuário).
+   a persistência do estado das gavetas existe (`DockStateStore`) mas não
+   está ligada ao app (decisão do usuário). *(Os dois painéis avançados agora
+   abrem pela `FloatingPanelWindow` com `WorkspaceService.canvas_area_rect`.)*
 4. **Menus**: `menu_bar.py` (27 `hasattr`).
 5. **Telemetria**: `telemetry_tracker.py` (37 `getattr`), `telemetry_dto.py`
    (23), `telemetry_grid_window.py` (20) — leem structs nativas por nome.

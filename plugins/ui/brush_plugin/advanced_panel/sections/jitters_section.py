@@ -1,28 +1,26 @@
-"""Section 3: Brush Jitters and Random Variations."""
+"""Seção 3 do painel avançado: variações aleatórias (jitter) de tamanho, rotação e posição.
 
-from PySide6 import QtWidgets
-from ui.core.widgets.slider import LabeledSlider
+Os sliders são 0–100 %; no motor os três jitters são 0.0–1.0 (o de rotação é
+multiplicado por 180° e o de posição por 2× o raio lá dentro).
+"""
+from __future__ import annotations
+
 from ui.core.i18n import tr
-from ui.core.widgets.collapsible_section import CollapsibleSection
+from ui.core.state import BrushState
 
-def create_jitters_section(panel) -> CollapsibleSection:
-    sec = CollapsibleSection(tr("brush.sec_jitters", "3. Jitters (Variações Aleatórias)"), expanded=True)
-    w = QtWidgets.QWidget()
-    lo = QtWidgets.QVBoxLayout(w)
-    lo.setContentsMargins(0, 0, 0, 0)
-    lo.setSpacing(6)
+from ..brush_engine_writer import BrushEngineWriter
+from .base import AdvancedSection
 
-    panel.sl_jit_size = LabeledSlider(f"{tr('brush.jitter_size', 'Jitter de Tamanho')}:", 0, 100, 0, "%")
-    panel.sl_jit_size.valueChanged.connect(panel._on_jit_size)
-    lo.addWidget(panel.sl_jit_size)
 
-    panel.sl_jit_angle = LabeledSlider(f"{tr('brush.jitter_angle', 'Jitter de Rotação')}:", 0, 100, 0, "%")
-    panel.sl_jit_angle.valueChanged.connect(panel._on_jit_angle)
-    lo.addWidget(panel.sl_jit_angle)
-
-    panel.sl_jit_pos = LabeledSlider(f"{tr('brush.jitter_pos', 'Jitter de Posição (Deslocamento)')}:", 0, 100, 0, "%")
-    panel.sl_jit_pos.valueChanged.connect(panel._on_jit_pos)
-    lo.addWidget(panel.sl_jit_pos)
-
-    sec.add_widget(w)
-    return sec
+class JittersSection(AdvancedSection):
+    def __init__(self, brush: BrushState, writer: BrushEngineWriter) -> None:
+        super().__init__(tr("brush.sec_jitters", "3. Jitters (Variações Aleatórias)"), brush, writer)
+        self.sl_jit_size = self.engine_slider(
+            tr("brush.jitter_size", "Jitter de Tamanho"), 0, 100, 0, "%",
+            "jitter_size", 100.0, lambda v: writer.tip("jitter_size", v))
+        self.sl_jit_angle = self.engine_slider(
+            tr("brush.jitter_angle", "Jitter de Rotação"), 0, 100, 0, "%",
+            "jitter_angle", 100.0, lambda v: writer.tip("jitter_angle", v))
+        self.sl_jit_pos = self.engine_slider(
+            tr("brush.jitter_pos", "Jitter de Posição (Deslocamento)"), 0, 100, 0, "%",
+            "jitter_position", 100.0, lambda v: writer.tip("jitter_position", v))

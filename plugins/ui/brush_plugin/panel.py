@@ -33,6 +33,8 @@ from ui.core.widgets.tool_options import (
     ShapesOptionsWidget,
 )
 
+from ui.core.dialogs.floating_panel_window import CanvasAreaProvider
+
 from .advanced_panel import AdvancedPanel
 from .brush_dropdown import BrushDropdown
 from .components import ToolSelectionColumn, QuickSlidersSection
@@ -50,11 +52,15 @@ class BrushSettingsPanel(QtWidgets.QWidget):
         brush_state: BrushState,
         tool_state: ToolState,
         parent: QtWidgets.QWidget | None = None,
+        canvas_area: Optional[CanvasAreaProvider] = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("BrushSettingsPanel")
         self._state = brush_state
         self._tools = tool_state
+        # Área livre do canvas (WorkspaceService.canvas_area_rect): onde o
+        # painel avançado abre.
+        self._canvas_area = canvas_area
         self._adv_panel: Optional[AdvancedPanel] = None
 
         self._build_ui()
@@ -147,7 +153,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
 
     def _toggle_advanced_panel(self) -> None:
         if self._adv_panel is None:
-            self._adv_panel = AdvancedPanel(self._state, self)
+            self._adv_panel = AdvancedPanel(self._state, self._canvas_area, self)
             self._adv_panel.pinToggled.connect(self.sliders_section.set_pinned_visible)
         if self._adv_panel.isVisible():
             self._adv_panel.hide()

@@ -13,8 +13,11 @@ from .components.advanced_settings_dialog import AdvancedGeometryDialog
 class GeometryPanel(QtWidgets.QWidget):
     """Painel de Réguas, Perspectiva e Simetria na gaveta de ferramentas."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, canvas_area=None):
         super().__init__(parent)
+        # Área livre do canvas (WorkspaceService.canvas_area_rect): onde o
+        # diálogo avançado abre.
+        self._canvas_area = canvas_area
         self.adv_dialog = None
         self._render_widget = None
         self.state = {
@@ -147,7 +150,7 @@ class GeometryPanel(QtWidgets.QWidget):
                     self.state[k] = rw.geometry_ctrl.sym_state[k]
 
         if not self.adv_dialog:
-            self.adv_dialog = AdvancedGeometryDialog(self.window(), self.state)
+            self.adv_dialog = AdvancedGeometryDialog(self.window(), self.state, self._canvas_area)
             self.adv_dialog.settingsChanged.connect(self._on_advanced_settings_changed)
         else:
             self.adv_dialog.sync_from_state(self.state)

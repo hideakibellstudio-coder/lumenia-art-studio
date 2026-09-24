@@ -1,23 +1,32 @@
 # `plugins/ui/brush_plugin/advanced_panel/sections/` — seções do painel avançado
 
-**Responsabilidade:** montam as seções do painel avançado (tamanho/opacidade, geometria da ponta, jitter, textura e espaçamento).
+**Responsabilidade:** as seções do painel avançado (tamanho/opacidade, geometria da ponta, jitter, textura e espaçamento), cada uma dona dos próprios widgets.
 
 ## Porta de entrada
 
-Funções `create_*_section(panel, ...)`, chamadas por `AdvancedPanel`.
+Classes `SizeOpacitySection`, `TipGeometrySection`, `JittersSection`, `BrushTextureSection` e `SpacingSection`, todas `AdvancedSection(brush_state, writer)`, criadas pelo `AdvancedPanel`.
 
 ## Arquivos
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `brush_texture_section.py` | Section 4 & 5: Brush Texture and Spacing. |
-| `jitters_section.py` | Section 3: Brush Jitters and Random Variations. |
-| `size_opacity_section.py` | Section 1: Brush Size, Opacity and Blending. |
-| `tip_geometry_section.py` | Section 2: Brush Tip Geometry. |
+| `base.py` | `AdvancedSection`: controles rápidos (→ `BrushState`) e do motor (→ `BrushEngineWriter`), `show_param` e `show_profile`. |
+| `brush_texture_section.py` | Seções 4 e 5: textura (matéria) do pincel e espaçamento. |
+| `jitters_section.py` | Seção 3: jitter de tamanho, rotação e posição. |
+| `size_opacity_section.py` | Seção 1: tamanho, opacidade, mesclagem e estabilizador. |
+| `tip_geometry_section.py` | Seção 2: forma, dureza, ângulo e proporção da ponta. |
+
+## Regras
+
+- Controle novo usa os construtores da base (`quick_slider`, `engine_slider`,
+  `engine_check`...): a seção já sabe mostrá-lo a partir do estado ou do
+  perfil do motor.
+- Parâmetro que passar a ter uma segunda tela vira `BrushParam` (controle
+  rápido), nunca cópia sincronizada à mão.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-Decomposição por tamanho de arquivo, não por responsabilidade: cada função recebe o `AdvancedPanel` e cria atributos nele (`panel.slider_x = ...`). O caminho é virar widgets com estado próprio, como a barra secundária em 2026-09-24. Pasta sem `__init__.py`.
+Pasta sem `__init__.py`.
 
 ## Dependências internas
 

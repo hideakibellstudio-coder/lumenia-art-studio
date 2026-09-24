@@ -273,6 +273,13 @@ class WorkspaceContainer(QtWidgets.QWidget):
 
     # ── Contrato com a janela principal (ui/boundary/orchestrator/workspace_port.py) ──
 
+    def canvas_area_rect(self) -> QtCore.QRect:
+        """Área do canvas entre as docas (gavetas abertas incluídas), em coordenadas globais."""
+        top = self.workspace_area.mapToGlobal(QtCore.QPoint(0, 0)).y()
+        left = self.left_dock.effective_right_x
+        right = self.right_dock.effective_left_x
+        return QtCore.QRect(left, top, max(0, right - left), self.workspace_area.height())
+
     def show_status(self, message: str, timeout_ms: int = 3500) -> None:
         """Mensagem curta para a barra de status (ver sinal `statusMessage`)."""
         self.statusMessage.emit(message, timeout_ms)

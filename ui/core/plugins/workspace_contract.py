@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from PySide6.QtCore import QRect
     from PySide6.QtWidgets import QWidget
     from PySide6.QtGui import QPainter
 
@@ -90,6 +91,15 @@ class WorkspaceService(ABC):
         `QApplication.activeWindow().statusBar()`).
         """
         ...
+
+    def canvas_area_rect(self) -> "QRect | None":
+        """
+        Área livre do canvas entre as docas, em coordenadas globais (ou None).
+        Janelas flutuantes de plugins usam para abrir encostadas no canvas
+        (ver `ui/core/dialogs/floating_panel_window.py`) em vez de procurar as
+        docas na janela principal.
+        """
+        return None
 
     def request_canvas_repaint(self) -> None:
         """

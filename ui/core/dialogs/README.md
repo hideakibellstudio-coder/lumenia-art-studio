@@ -16,6 +16,7 @@ Importados por módulo: `base_dialog.BaseFramelessDialog`,
 | `base_dialog.py` | BaseFramelessDialog — Janela e Diálogo Base Padronizado com Design System Lumenia V2. |
 | `canvas_size_dialog.py` | Canvas & Image Size Dialog — Redimensionamento de Canvas e Imagem. |
 | `diagnostics_dialog.py` | Diagnostics & Telemetry Dialog — Diagnósticos e Desempenho do Motor ALADYN. |
+| `floating_panel_window.py` | `FloatingPanelWindow`: janela de ajustes avançados que arrasta pela própria janela e abre ao lado do canvas (área vinda de `WorkspaceService.canvas_area_rect`). |
 | `floating_tool_window.py` | FloatingToolWindow — Base compartilhada para janelas-ferramenta flutuantes sobre o canvas. |
 | `layer_properties_dialog.py` | Layer Properties Dialog — Diálogo de Propriedades e Ajuste da Camada. |
 | `modify_selection_dialog.py` | Modify Selection Dialog — Diálogo para Expandir, Contrair e Suavizar Seleção (ARCcC i18n). |

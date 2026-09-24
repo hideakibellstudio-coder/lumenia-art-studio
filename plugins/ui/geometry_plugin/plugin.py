@@ -37,7 +37,7 @@ class GeometryPlugin(BasePlugin):
         if ws is None:
             raise RuntimeError("[GeometryPlugin] WorkspaceService não encontrado.")
 
-        self._panel = GeometryPanel()
+        self._panel = GeometryPanel(canvas_area=ws.canvas_area_rect)
 
         ws.add_panel(
             panel_id="geometry",

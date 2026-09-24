@@ -44,7 +44,9 @@ class BrushPlugin(BasePlugin):
             raise RuntimeError("[BrushPlugin] WorkspaceService não encontrado.")
 
         registry = self.context.service_registry
-        self._panel = BrushSettingsPanel(require(registry, BrushState), require(registry, ToolState))
+        self._panel = BrushSettingsPanel(
+            require(registry, BrushState), require(registry, ToolState), canvas_area=ws.canvas_area_rect,
+        )
 
         ws.add_panel(
             panel_id="brush_settings",

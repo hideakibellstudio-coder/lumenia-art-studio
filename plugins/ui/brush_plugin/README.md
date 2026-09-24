@@ -31,6 +31,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `plugins/ui/brush_plugin/components`
 - `plugins/ui/brush_plugin/presets`
 - `ui/core`
+- `ui/core/dialogs`
 - `ui/core/engine`
 - `ui/core/i18n`
 - `ui/core/plugins`

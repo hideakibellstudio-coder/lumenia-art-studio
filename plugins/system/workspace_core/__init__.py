@@ -130,6 +130,10 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
         self._container.remove_panel(panel_id)
         logger.debug(f"[WorkspaceCore] Painel '{panel_id}' removido.")
 
+    def canvas_area_rect(self):
+        """Área livre do canvas entre as docas (delegado ao WorkspaceContainer)."""
+        return self._container.canvas_area_rect()
+
     def show_status(self, message: str, timeout_ms: int = 3000) -> None:
         """Delega ao WorkspaceContainer (a janela principal liga o sinal dele à barra de status)."""
         self._container.show_status(message, timeout_ms)

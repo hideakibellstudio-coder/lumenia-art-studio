@@ -1,80 +1,58 @@
-"""Section 4 & 5: Brush Texture and Spacing."""
+"""Seções 4 e 5 do painel avançado: textura (matéria) do pincel e espaçamento."""
+from __future__ import annotations
 
-from PySide6 import QtWidgets, QtCore
-from ui.core.state import BrushParam
-from ui.core.widgets.slider import LabeledSlider
 from ui.core.i18n import tr
-from typing import TYPE_CHECKING
-from ui.core.widgets.collapsible_section import CollapsibleSection
-from ..non_scroll_combo_box import NonScrollComboBox
+from ui.core.state import BrushParam, BrushState
 
-if TYPE_CHECKING:
-    from ..panel import AdvancedPanel
+from ..brush_engine_writer import BrushEngineWriter
+from ..panel_thumbnails import create_default_grain_pixmap
+from .base import AdvancedSection
 
-def create_brush_texture_section(panel: "AdvancedPanel") -> CollapsibleSection:
-    sec = CollapsibleSection(tr("brush.sec_texture", "4. Textura do Pincel (Matéria)"), expanded=True)
-    w = QtWidgets.QWidget()
-    lo = QtWidgets.QVBoxLayout(w)
-    lo.setContentsMargins(0, 0, 0, 0)
-    lo.setSpacing(6)
 
-    tex_header = QtWidgets.QHBoxLayout()
-    panel.preview_b_grain = QtWidgets.QLabel()
-    panel.preview_b_grain.setFixedSize(46, 46)
-    panel.preview_b_grain.setObjectName("BTexPreview")
-    panel.preview_b_grain.setAlignment(QtCore.Qt.AlignCenter)
-    tex_header.addWidget(panel.preview_b_grain)
+class BrushTextureSection(AdvancedSection):
+    def __init__(self, brush: BrushState, writer: BrushEngineWriter) -> None:
+        super().__init__(tr("brush.sec_texture", "4. Textura do Pincel (Matéria)"), brush, writer)
+        self.cmb_b_grain = self.engine_combo([
+            tr("brush.grain_fine", "Grão Fino"),
+            tr("brush.grain_watercolor", "Papel Aquarela"),
+            tr("brush.grain_oil_canvas", "Tela de Óleo"),
+            tr("brush.grain_pure_noise", "Ruído Puro"),
+        ], self._on_height_preset)
+        self.preview_b_grain = self.preview_header(
+            self.cmb_b_grain, tr("brush.load_texture_png", "Carregar PNG da Textura"), self._load_height)
+        self.preview_b_grain.setPixmap(create_default_grain_pixmap())
+        self.chk_b_grain = self.engine_check(
+            tr("brush.enable_brush_texture", "Ativar Textura no Pincel"),
+            "brush_grain_enabled", writer.grain_enabled, checked=True)
+        self.sl_b_scale = self.engine_slider(
+            tr("brush.texture_scale", "Escala da Textura"), 10, 500, 100, "%",
+            "brush_grain_scale", 100.0, writer.grain_scale, profile_default=1.0)
+        self.slider_contrast = self.quick_slider(
+            BrushParam.CONTRAST, tr("brush.texture_contrast", "Contraste da Textura (Dureza)"),
+            10, 300, 100, "%", 100.0, "contrast", False)
+        self.chk_invert = self.quick_check(BrushParam.INVERT_HEIGHT, tr("brush.invert_height", "Inverter Topografia"))
 
-    tex_info = QtWidgets.QWidget()
-    tex_info_lo = QtWidgets.QVBoxLayout(tex_info)
-    tex_info_lo.setContentsMargins(4, 0, 0, 0)
-    tex_info_lo.setSpacing(4)
+    def _on_height_preset(self, index: int) -> None:
+        self._writer.height_preset(index)
+        self.refresh_preview()
 
-    panel.cmb_b_grain = NonScrollComboBox()
-    panel.cmb_b_grain.addItems([
-        tr("brush.grain_fine", "Grão Fino"),
-        tr("brush.grain_watercolor", "Papel Aquarela"),
-        tr("brush.grain_oil_canvas", "Tela de Óleo"),
-        tr("brush.grain_pure_noise", "Ruído Puro")
-    ])
-    panel.cmb_b_grain.currentIndexChanged.connect(panel._on_b_grain_preset_changed)
+    def _load_height(self) -> None:
+        # Carregar uma topografia liga o grão no motor; a caixa acompanha.
+        if self._writer.load_texture(self, is_shape=False):
+            self.chk_b_grain.blockSignals(True)
+            self.chk_b_grain.setChecked(True)
+            self.chk_b_grain.blockSignals(False)
+            self.refresh_preview()
 
-    btn_load_height = QtWidgets.QPushButton(tr("brush.load_texture_png", "Carregar PNG da Textura"))
-    btn_load_height.setObjectName("BTexBtn")
-    btn_load_height.setFixedHeight(22)
-    btn_load_height.setCursor(QtCore.Qt.PointingHandCursor)
-    btn_load_height.clicked.connect(lambda: panel.load_texture_from_disk(is_shape=False))
+    def refresh_preview(self) -> None:
+        pixmap = self._writer.height_preview()
+        if pixmap is not None:
+            self.preview_b_grain.setPixmap(pixmap)
 
-    tex_info_lo.addWidget(panel.cmb_b_grain)
-    tex_info_lo.addWidget(btn_load_height)
-    tex_header.addWidget(tex_info, 1)
-    lo.addLayout(tex_header)
 
-    panel.chk_b_grain = QtWidgets.QCheckBox(tr("brush.enable_brush_texture", "Ativar Textura no Pincel"))
-    panel.chk_b_grain.setChecked(True)
-    panel.chk_b_grain.stateChanged.connect(panel._on_b_grain_enabled)
-    lo.addWidget(panel.chk_b_grain)
-
-    panel.sl_b_scale = LabeledSlider(f"{tr('brush.texture_scale', 'Escala da Textura')}:", 10, 500, 100, "%")
-    panel.sl_b_scale.valueChanged.connect(panel._on_b_grain_scale)
-    lo.addWidget(panel.sl_b_scale)
-
-    panel.slider_contrast = LabeledSlider(f"{tr('brush.texture_contrast', 'Contraste da Textura (Dureza)')}:", 10, 300, 100, "%", param_name="contrast", show_pin=True, default_pinned=False)
-    panel.slider_contrast.valueChanged.connect(lambda v: panel.edit_param(BrushParam.CONTRAST, v / 100.0))
-    panel.slider_contrast.pinToggled.connect(panel.pinToggled.emit)
-    lo.addWidget(panel.slider_contrast)
-
-    panel.chk_invert = QtWidgets.QCheckBox(tr("brush.invert_height", "Inverter Topografia"))
-    panel.chk_invert.toggled.connect(lambda checked: panel.edit_param(BrushParam.INVERT_HEIGHT, bool(checked)))
-    lo.addWidget(panel.chk_invert)
-
-    sec.add_widget(w)
-    return sec
-
-def create_spacing_section(panel) -> CollapsibleSection:
-    sec = CollapsibleSection(tr("brush.sec_spacing", "5. Espaçamento do Traço"), expanded=True)
-    panel.slider_spacing = LabeledSlider(f"{tr('brush.dab_spacing', 'Espaçamento entre Dabs')}:", 1, 100, 10, "%", param_name="spacing", show_pin=True, default_pinned=False)
-    panel.slider_spacing.valueChanged.connect(lambda v: panel.edit_param(BrushParam.SPACING, v / 100.0))
-    panel.slider_spacing.pinToggled.connect(panel.pinToggled.emit)
-    sec.add_widget(panel.slider_spacing)
-    return sec
+class SpacingSection(AdvancedSection):
+    def __init__(self, brush: BrushState, writer: BrushEngineWriter) -> None:
+        super().__init__(tr("brush.sec_spacing", "5. Espaçamento do Traço"), brush, writer)
+        self.slider_spacing = self.quick_slider(
+            BrushParam.SPACING, tr("brush.dab_spacing", "Espaçamento entre Dabs"),
+            1, 100, 10, "%", 100.0, "spacing", False)

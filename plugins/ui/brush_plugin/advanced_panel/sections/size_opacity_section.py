@@ -1,65 +1,42 @@
-"""Section 1: Brush Size, Opacity and Blending."""
+"""Seção 1 do painel avançado: tamanho, opacidade, mesclagem e estabilizador."""
+from __future__ import annotations
 
 from PySide6 import QtWidgets
-from ui.core.state import BrushParam
-from ui.core.widgets.slider import LabeledSlider
+
 from ui.core.i18n import tr
-from typing import TYPE_CHECKING
-from ui.core.widgets.collapsible_section import CollapsibleSection
-from ..non_scroll_combo_box import NonScrollComboBox
+from ui.core.state import BrushParam, BrushState
 
-if TYPE_CHECKING:
-    from ..panel import AdvancedPanel
+from ..brush_engine_writer import BrushEngineWriter
+from .base import AdvancedSection
 
-def create_size_opacity_section(panel: "AdvancedPanel") -> CollapsibleSection:
-    sec = CollapsibleSection(tr("brush.sec_size_opacity", "1. Tamanho, Opacidade & Mesclagem"), expanded=True)
-    w = QtWidgets.QWidget()
-    lo = QtWidgets.QVBoxLayout(w)
-    lo.setContentsMargins(0, 0, 0, 0)
-    lo.setSpacing(6)
 
-    panel.slider_size = LabeledSlider(f"{tr('brush.size', 'Tamanho')}:", 1, 500, 24, "px", param_name="size", show_pin=True, default_pinned=True)
-    panel.slider_size.valueChanged.connect(lambda v: panel.edit_param(BrushParam.SIZE, float(v)))
-    panel.slider_size.pinToggled.connect(panel.pinToggled.emit)
-    lo.addWidget(panel.slider_size)
-
-    panel.sl_min_size = LabeledSlider(f"{tr('brush.min_size', 'Tamanho Mínimo (Pressão)')}:", 0, 100, 0, "%")
-    panel.sl_min_size.valueChanged.connect(panel._on_min_size)
-    lo.addWidget(panel.sl_min_size)
-
-    panel.slider_opacity = LabeledSlider(f"{tr('brush.opacity', 'Opacidade')}:", 1, 100, 100, "%", param_name="opacity", show_pin=True, default_pinned=True)
-    panel.slider_opacity.valueChanged.connect(lambda v: panel.edit_param(BrushParam.OPACITY, v / 100.0))
-    panel.slider_opacity.pinToggled.connect(panel.pinToggled.emit)
-    lo.addWidget(panel.slider_opacity)
-
-    panel.sl_min_op = LabeledSlider(f"{tr('brush.min_opacity', 'Opacidade Mínima (Pressão)')}:", 0, 100, 0, "%")
-    panel.sl_min_op.valueChanged.connect(panel._on_min_opacity)
-    lo.addWidget(panel.sl_min_op)
-
-    lo.addWidget(QtWidgets.QLabel(f"{tr('brush.blend_mode', 'Modo de Mesclagem')} (DabBlendMode):"))
-    panel.cmb_blend = NonScrollComboBox()
-    panel.cmb_blend.addItems([
-        f"{tr('blend_mode.normal', 'Normal')} (Alpha Over)",
-        f"{tr('blend_mode.multiply', 'Multiplicação')} (Marcador/Feltro)",
-        f"{tr('blend_mode.additive', 'Aditivo')} (Luz / Glow)",
-        f"{tr('blend_mode.erase', 'Borracha')} (Alpha Erase)"
-    ])
-    panel.cmb_blend.currentIndexChanged.connect(panel._on_blend_mode)
-    lo.addWidget(panel.cmb_blend)
-
-    panel.chk_vel_size = QtWidgets.QCheckBox(tr("brush.velocity_size", "Variação por Velocidade (Velocity Size)"))
-    panel.chk_vel_size.stateChanged.connect(panel._on_vel_size)
-    lo.addWidget(panel.chk_vel_size)
-
-    panel.slider_stabilizer = LabeledSlider(f"{tr('brush.stabilizer_label', 'Suavização (Estabilizador)')}:", 0, 98, 40, "%", param_name="stabilizer", show_pin=True, default_pinned=False)
-    panel.slider_stabilizer.valueChanged.connect(lambda v: panel.edit_param(BrushParam.STABILIZER, v / 100.0))
-    panel.slider_stabilizer.pinToggled.connect(panel.pinToggled.emit)
-    lo.addWidget(panel.slider_stabilizer)
-
-    panel.chk_stroke_taper = QtWidgets.QCheckBox(tr("brush.stroke_taper", "Afunilamento na Soltura (Tapering no Pen Up)"))
-    panel.chk_stroke_taper.setChecked(True)
-    panel.chk_stroke_taper.stateChanged.connect(panel._on_stroke_taper_changed)
-    lo.addWidget(panel.chk_stroke_taper)
-
-    sec.add_widget(w)
-    return sec
+class SizeOpacitySection(AdvancedSection):
+    def __init__(self, brush: BrushState, writer: BrushEngineWriter) -> None:
+        super().__init__(tr("brush.sec_size_opacity", "1. Tamanho, Opacidade & Mesclagem"), brush, writer)
+        self.slider_size = self.quick_slider(
+            BrushParam.SIZE, tr("brush.size", "Tamanho"), 1, 500, 24, "px", 1.0, "size", True)
+        self.sl_min_size = self.engine_slider(
+            tr("brush.min_size", "Tamanho Mínimo (Pressão)"), 0, 100, 0, "%",
+            "min_size_percent", 100.0, lambda v: writer.root("min_size_percent", v))
+        self.slider_opacity = self.quick_slider(
+            BrushParam.OPACITY, tr("brush.opacity", "Opacidade"), 1, 100, 100, "%", 100.0, "opacity", True)
+        self.sl_min_op = self.engine_slider(
+            tr("brush.min_opacity", "Opacidade Mínima (Pressão)"), 0, 100, 0, "%",
+            "min_opacity_percent", 100.0, lambda v: writer.root("min_opacity_percent", v))
+        self.body.addWidget(QtWidgets.QLabel(f"{tr('brush.blend_mode', 'Modo de Mesclagem')} (DabBlendMode):"))
+        self.cmb_blend = self.engine_combo([
+            f"{tr('blend_mode.normal', 'Normal')} (Alpha Over)",
+            f"{tr('blend_mode.multiply', 'Multiplicação')} (Marcador/Feltro)",
+            f"{tr('blend_mode.additive', 'Aditivo')} (Luz / Glow)",
+            f"{tr('blend_mode.erase', 'Borracha')} (Alpha Erase)",
+        ], lambda idx: writer.root("blend_mode", int(idx)), profile_key="blend_mode")
+        self.body.addWidget(self.cmb_blend)
+        self.chk_vel_size = self.engine_check(
+            tr("brush.velocity_size", "Variação por Velocidade (Velocity Size)"),
+            "velocity_size_enabled", lambda on: writer.root("velocity_size_enabled", on))
+        self.slider_stabilizer = self.quick_slider(
+            BrushParam.STABILIZER, tr("brush.stabilizer_label", "Suavização (Estabilizador)"),
+            0, 98, 40, "%", 100.0, "stabilizer", False)
+        self.chk_stroke_taper = self.engine_check(
+            tr("brush.stroke_taper", "Afunilamento na Soltura (Tapering no Pen Up)"),
+            "stroke_taper_enabled", lambda on: writer.root("stroke_taper_enabled", on), checked=True)

@@ -9,9 +9,9 @@ if SIMD_MODE not in {"scalar", "avx2"}:
     raise RuntimeError("LUMENIA_SIMD deve ser 'scalar' ou 'avx2'")
 
 compile_args = ["/EHsc", "/bigobj", "/std:c++20", "/openmp", "/O2"]
-# Um módulo CPython compilado globalmente para AVX2 pode falhar ao carregar em
-# máquinas x64 sem essa extensão. O caminho base é escalar/SSE2 do x64; builds
-# de laboratório podem pedir AVX2 explicitamente e devem ser distribuídos como
+# Um mÃ³dulo CPython compilado globalmente para AVX2 pode falhar ao carregar em
+# mÃ¡quinas x64 sem essa extensÃ£o. O caminho base Ã© escalar/SSE2 do x64; builds
+# de laboratÃ³rio podem pedir AVX2 explicitamente e devem ser distribuÃ­dos como
 # artefatos separados.
 if SIMD_MODE == "avx2":
     compile_args.append("/arch:AVX2")
@@ -29,10 +29,15 @@ cpp_sources = [
     "engine/core/stroke/DynamicStabilizer.cpp",
     "engine/core/brush/DynamicMapper.cpp",
     "engine/core/raster/DabInterpolator.cpp",
+    "engine/core/raster/LargeBrushOptimizer.cpp",
     "engine/core/raster/DabRenderer.cpp",
     "engine/core/raster/FloodFill.cpp",
     "engine/core/raster/SelectionEngine.cpp",
+    "engine/core/raster/SelectionShapeMasks.cpp",
+    "engine/core/raster/SelectionMorphology.cpp",
     "engine/core/raster/TransformEngine.cpp",
+    "engine/core/raster/TransformEngineCommit.cpp",
+    "engine/core/raster/TransformEngineDistort.cpp",
     "engine/core/canvas/SpatialCuller.cpp",
     "engine/core/canvas/Tile.cpp",
     "engine/core/canvas/TileGrid.cpp",
@@ -61,6 +66,8 @@ cpp_sources = [
     "engine/core/engines/OilImpastoEngine.cpp",
     "engine/core/color/ColorProfile.cpp",
     "engine/boundary/public-api/internal/StrokeOrchestrator.cpp",
+    "engine/boundary/public-api/internal/StrokeOrchestratorEnd.cpp",
+    "engine/boundary/public-api/internal/StrokePreviewRenderer.cpp",
     "engine/boundary/public-api/internal/SelectionOrchestrator.cpp",
     "engine/boundary/public-api/internal/TransformOrchestrator.cpp",
     "engine/boundary/public-api/internal/BufferPasteOrchestrator.cpp",

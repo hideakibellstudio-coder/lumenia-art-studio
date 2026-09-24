@@ -33,6 +33,7 @@ from .viewport.viewport_renderer import ViewportRenderer
 from .viewport.cursor_controller import CanvasCursorController
 from .viewport.canvas_stroke_pipeline import CanvasStrokePipeline
 from .renderers.canvas_background_renderer import CanvasBackgroundRenderer
+from .renderers.tool_cursor_renderer import ToolCursorRenderer
 from .tools.tool_manager import ToolManager
 from .text_overlay_editor import TextOverlayEditor
 
@@ -71,7 +72,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
 
         self.active_tool, self.drawing, self._brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
         self._cached_brush_radius = 30.0
-        self.is_panning, self.is_zoom_dragging = False, False
+        self.is_panning, self.is_zoom_dragging, self.is_space_held = False, False, False
         self.last_mouse_pos, self.zoom_drag_start_pos = QtCore.QPointF(), QtCore.QPointF()
         self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
         self._last_tablet_time, self._tablet_in_use = 0.0, False
@@ -79,10 +80,14 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self._active_draw_color = QtGui.QColor(0, 0, 0, 255)
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
         self._last_rendered_cursor_rect = QtCore.QRect()
+        self._last_stroke_end_screen: Optional[QtCore.QPointF] = None
         self._bucket_settings = default_tool_settings("bucket")
 
         from ui.core.i18n import I18nManager
-        I18nManager.instance().languageChanged.connect(lambda *_: self.update())
+        # Método ligado (não lambda): o PySide desconecta sozinho quando o widget
+        # é destruído. Um lambda num sinal de singleton ficava vivo e chamava
+        # update() num RenderWidget já deletado (ex.: após fechar um documento).
+        I18nManager.instance().languageChanged.connect(self._on_language_changed)
 
         RenderWidget._active_instance = self
         from ui.core.engine.registry import EngineRegistry
@@ -138,6 +143,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     def clear_selection(self): self.selection_ctrl.clear_selection()
     def select_all(self): self.selection_ctrl.select_all()
     def invert_selection(self): self.selection_ctrl.invert_selection()
+    def modify_selection(self, mode: str, radius_px: int) -> bool: return self.selection_ctrl.modify_selection(mode, radius_px)
 
     @property
     def active_color(self) -> QtGui.QColor:
@@ -146,6 +152,9 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     @active_color.setter
     def active_color(self, color: QtGui.QColor) -> None:
         self._active_draw_color = color
+
+    def _on_language_changed(self, *_args) -> None:
+        self.update()
 
     def set_paper_state(self, visible: bool, color: QtGui.QColor = None) -> None:
         self.paper_visible = bool(visible)
@@ -176,7 +185,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self._cached_brush_radius = new_radius
         if getattr(self, "_cursor_in_viewport", False) and hasattr(self, "_mouse_pos") and hasattr(self, "zoom"):
             pos = self._mouse_pos
-            from ..renderers.tool_cursor_renderer import ToolCursorRenderer
             r_old = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), old_radius, self.zoom)
             r_new = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), new_radius, self.zoom)
             self.update(r_old.united(r_new))
@@ -259,10 +267,14 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         return self._tablet_in_use or (e.source() == QtCore.Qt.MouseEventSource.MouseEventSynthesizedBySystem)
 
     def enterEvent(self, e: QtGui.QEnterEvent):
+        focused = QtWidgets.QApplication.focusWidget()
+        if not isinstance(focused, (QtWidgets.QLineEdit, QtWidgets.QTextEdit, QtWidgets.QPlainTextEdit)):
+            self.setFocus(QtCore.Qt.FocusReason.MouseFocusReason)
         self.cursor_ctrl.handle_enter(e)
         super().enterEvent(e)
 
     def leaveEvent(self, e: QtCore.QEvent):
+        self.input_router.handle_focus_out()
         dirty = self.cursor_ctrl.handle_leave(e)
         if dirty: self.update(dirty)
         super().leaveEvent(e)
@@ -271,7 +283,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         if self._is_synthesized_or_tablet_active(e): e.accept(); return
-        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
         self.input_router.handle_pointer_press(e.position(), e.button(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseMoveEvent(self, e: QtGui.QMouseEvent):
@@ -279,7 +291,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         if not self.drawing:
             dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
             if dirty: self.update(dirty)
-        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
         self.input_router.handle_pointer_move(e.position(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseReleaseEvent(self, e: QtGui.QMouseEvent):
@@ -302,7 +314,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         elif hasattr(e, "pointerType"):
             is_er = (e.pointerType() == QtGui.QPointingDevice.PointerType.Eraser)
         et, btn = e.type(), e.button() if e.button() != QtCore.Qt.NoButton else QtCore.Qt.LeftButton
-        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
         tilt_x = float(e.xTilt()) if hasattr(e, "xTilt") else 0.0
         tilt_y = float(e.yTilt()) if hasattr(e, "yTilt") else 0.0
         twist = float(e.rotation()) if hasattr(e, "rotation") else 0.0
@@ -355,6 +367,14 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     def keyPressEvent(self, e: QtGui.QKeyEvent):
         if not self.input_router.handle_key_press(e):
             super().keyPressEvent(e)
+
+    def keyReleaseEvent(self, e: QtGui.QKeyEvent):
+        if not self.input_router.handle_key_release(e):
+            super().keyReleaseEvent(e)
+
+    def focusOutEvent(self, e: QtGui.QFocusEvent):
+        self.input_router.handle_focus_out()
+        super().focusOutEvent(e)
 
 
 CanvasWidget = RenderWidget

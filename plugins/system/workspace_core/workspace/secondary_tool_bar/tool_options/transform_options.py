@@ -65,6 +65,13 @@ def build_transform_panels(toolbar: "SecondaryToolBar"):
     toolbar.btn_trans_aspect_h.toggled.connect(lambda v: toolbar._on_trans_aspect_changed(v, "h"))
     l_h.addWidget(toolbar.btn_trans_aspect_h)
 
+    toolbar.btn_trans_distort_h = QtWidgets.QToolButton()
+    toolbar.btn_trans_distort_h.setText("Distorcer")
+    toolbar.btn_trans_distort_h.setCheckable(True)
+    toolbar.btn_trans_distort_h.setFixedHeight(24)
+    toolbar.btn_trans_distort_h.toggled.connect(lambda v: toolbar._on_trans_distort_changed(v, "h"))
+    l_h.addWidget(toolbar.btn_trans_distort_h)
+
     # Vertical
     p_v = QtWidgets.QWidget()
     l_v = QtWidgets.QVBoxLayout(p_v)
@@ -119,6 +126,13 @@ def build_transform_panels(toolbar: "SecondaryToolBar"):
     toolbar.btn_trans_aspect_v.setFixedHeight(24)
     toolbar.btn_trans_aspect_v.toggled.connect(lambda v: toolbar._on_trans_aspect_changed(v, "v"))
     r3.addWidget(toolbar.btn_trans_aspect_v)
+
+    toolbar.btn_trans_distort_v = QtWidgets.QToolButton()
+    toolbar.btn_trans_distort_v.setText("Distorcer")
+    toolbar.btn_trans_distort_v.setCheckable(True)
+    toolbar.btn_trans_distort_v.setFixedHeight(24)
+    toolbar.btn_trans_distort_v.toggled.connect(lambda v: toolbar._on_trans_distort_changed(v, "v"))
+    r3.addWidget(toolbar.btn_trans_distort_v)
     l_v.addLayout(r3)
 
     toolbar.cbo_trans_interp_v = QtWidgets.QComboBox()

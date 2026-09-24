@@ -88,7 +88,7 @@ TOOL_SETTING_DEFAULTS: dict[str, dict[str, Any]] = {
     "rect_select": {"feather_px": 0, "aa": True, "mode": 0},
     "ellipse_select": {"feather_px": 0, "aa": True, "mode": 0},
     "lasso": {"lasso_type": "freehand", "feather_px": 0, "aa": True, "mode": 0},
-    "transform": {"interp_mode": 2, "lock_aspect": False},
+    "transform": {"interp_mode": 2, "lock_aspect": False, "distort": False},
     "smudge": {"smudge_stretch": 0.8, "color_pickup": 0.7, "mix_ratio": 0.5},
     "shapes": {
         "shape_type": "shape_line",
@@ -145,7 +145,7 @@ _TOOL_SETTING_VALIDATORS: dict[str, dict[str, Validator]] = {
         "aa": _bool,
         "mode": _choice(0, 1, 2, 3),
     },
-    "transform": {"interp_mode": _choice(0, 1, 2), "lock_aspect": _bool},
+    "transform": {"interp_mode": _choice(0, 1, 2), "lock_aspect": _bool, "distort": _bool},
     "smudge": {"smudge_stretch": _ratio, "color_pickup": _ratio, "mix_ratio": _ratio},
     "shapes": {
         "shape_type": lambda value: value if value in {

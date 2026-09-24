@@ -12,6 +12,7 @@ import logging
 from typing import Any
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from .aladyn_buffers import to_native_color_rgba
+from .native_fallback import nativo_tem
 
 logger = logging.getLogger(__name__)
 
@@ -83,20 +84,25 @@ class AladynStrokeMixin:
 
     def end_stroke(self, x: float | None = None, y: float | None = None) -> list[float]:
         res = []
+        rx = float(x) if x is not None else getattr(self, "_last_x", None)
+        ry = float(y) if y is not None else getattr(self, "_last_y", None)
         if self._facade:
             if hasattr(self._facade, "end_stroke_raw"):
-                res = self._facade.end_stroke_raw()
+                if rx is not None and ry is not None:
+                    res = self._facade.end_stroke_raw(rx, ry)
+                else:
+                    res = self._facade.end_stroke_raw()
             elif self._native:
-                rx = float(x) if x is not None else getattr(self, "_last_x", 0.0)
-                ry = float(y) if y is not None else getattr(self, "_last_y", 0.0)
-                pt = self._native.Point2D(rx, ry)
+                fx = rx if rx is not None else 0.0
+                fy = ry if ry is not None else 0.0
+                pt = self._native.Point2D(fx, fy)
                 evt = self._native.PointerEvent(
                     self._native.PointerEventType.Release, pt, 0.0, time.time()
                 )
                 self._facade.end_stroke(evt)
 
             # Emite log executivo sumarizado de 1 linha quando a telemetria estiver ativa
-            if hasattr(self._facade, "is_telemetry_enabled") and self._facade.is_telemetry_enabled():
+            if nativo_tem(self._facade, "is_telemetry_enabled", "sem resumo de telemetria por traço") and self._facade.is_telemetry_enabled():
                 snap = self._facade.get_telemetry_snapshot()
                 if snap and snap.total_dabs_in_stroke > 0:
                     breakdown = (
@@ -178,7 +184,7 @@ class AladynStrokeMixin:
         aa: bool = True, sample_all: bool = True,
     ) -> bool:
         """Executa Flood Fill ultra-rápido (<1ms) diretamente no motor nativo C++."""
-        if not self._facade or not self._native or not hasattr(self._facade, "flood_fill"):
+        if not self._facade or not self._native or not nativo_tem(self._facade, "flood_fill", "o balde de tinta não pinta"):
             return False
         native_color = to_native_color_rgba(self._native, fill_color)
         res = self._facade.flood_fill(

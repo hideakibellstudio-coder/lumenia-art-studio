@@ -1,5 +1,6 @@
 #include "BindingsCommon.hpp"
 #include "../../../engine/core/math/ViewportTransform.hpp"
+#include "../../../engine/boundary/public-api/internal/StrokePreviewRenderer.hpp"
 
 namespace aladyn::bridge {
 
@@ -173,12 +174,17 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def(py::init<double>(), py::arg("stabilization_percentage") = 40.0)
         .def("set_stabilization_percentage", &stroke::DynamicStabilizer::setStabilizationPercentage)
         .def("get_stabilization_percentage", &stroke::DynamicStabilizer::getStabilizationPercentage)
-        .def("reset", &stroke::DynamicStabilizer::reset)
+        .def("reset", [](stroke::DynamicStabilizer& self, math::Point2D initialPosition, double initialPressure) {
+            self.reset(initialPosition, initialPressure);
+        }, py::arg("initial_position"), py::arg("initial_pressure") = 1.0)
         .def("reanchor_initial_position", &stroke::DynamicStabilizer::reanchorInitialPosition, py::arg("new_initial_position"))
-        .def("update", &stroke::DynamicStabilizer::update, py::arg("raw_position"), py::arg("normalized_velocity") = 0.0)
+        .def("update", [](stroke::DynamicStabilizer& self, math::Point2D rawPosition, double rawPressure, double normalizedVelocity) {
+            return self.update(rawPosition, rawPressure, normalizedVelocity);
+        }, py::arg("raw_position"), py::arg("raw_pressure") = 1.0, py::arg("normalized_velocity") = 0.0)
         .def("flush", &stroke::DynamicStabilizer::flush, py::arg("end_position"), py::arg("steps") = 3)
         .def("get_taper_points", &stroke::DynamicStabilizer::getTaperPoints, py::arg("steps") = 4, py::arg("max_distance") = 30.0)
         .def("get_stabilized_position", &stroke::DynamicStabilizer::getStabilizedPosition)
+        .def("get_stabilized_pressure", &stroke::DynamicStabilizer::getStabilizedPressure)
         .def("get_last_movement_delta", &stroke::DynamicStabilizer::getLastMovementDelta);
 
     // ─── BRUSH TIP GEOMETRY ──────────────────────────────────────────────────
@@ -241,6 +247,9 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
     // ─── BRUSH PROFILE COMPLETO ───────────────────────────────────────────────
     py::class_<brush::BrushProfile>(m, "BrushProfile")
         .def(py::init<>())
+        // Cópia explícita: get_brush_profile() devolve REFERÊNCIA ao perfil vivo do
+        // documento; quem precisa experimentar valores (prévia do painel) copia antes.
+        .def(py::init<const brush::BrushProfile&>(), py::arg("other"))
         // Motor ativo
         .def_readwrite("engine_type",           &brush::BrushProfile::engineType)
         // Tamanho e opacidade
@@ -257,6 +266,7 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readwrite("pressure_flow_enabled", &brush::BrushProfile::pressureFlowEnabled)
         .def_readwrite("velocity_size_enabled", &brush::BrushProfile::velocitySizeEnabled)
         .def_readwrite("stroke_taper_enabled",  &brush::BrushProfile::strokeTaperEnabled)
+        .def_readwrite("stroke_taper_length",   &brush::BrushProfile::strokeTaperLength)
         // LUT Curves
         .def_readwrite("pressure_size_curve",   &brush::BrushProfile::pressureSizeCurve)
         .def_readwrite("pressure_flow_curve",   &brush::BrushProfile::pressureFlowCurve)
@@ -300,6 +310,17 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readonly("pressure",    &boundary::TelemetryData::pressure)
         .def_readonly("velocity",    &boundary::TelemetryData::velocity)
         .def_readonly("output_flow", &boundary::TelemetryData::outputFlow);
+
+    // ─── PRÉVIA DO TRAÇO (painel de pincel) ──────────────────────────────────
+    // Restaurado em 2026-09-22; ver StrokePreviewRenderer.hpp para o histórico.
+    m.def("render_stroke_preview", [](const brush::BrushProfile& profile, int width, int height) -> py::bytes {
+        std::vector<uint8_t> rgba;
+        {
+            py::gil_scoped_release release;
+            rgba = boundary::internal::renderStrokePreview(profile, width, height);
+        }
+        return py::bytes(reinterpret_cast<const char*>(rgba.data()), rgba.size());
+    }, py::arg("profile"), py::arg("width") = 260, py::arg("height") = 52);
 }
 
 } // namespace aladyn::bridge

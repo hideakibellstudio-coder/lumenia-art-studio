@@ -3,6 +3,7 @@
 Decoupled under ARCcC v2 (< 220 LOC).
 """
 
+import logging
 import random
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
@@ -168,7 +169,7 @@ class TexturePopup(QDialog):
                 if not pix.isNull():
                     self.preview_c_grain.setPixmap(pix.scaled(46, 46, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
             except Exception:
-                pass
+                logging.getLogger(__name__).warning("Falha ao carregar textura de papel %s", path, exc_info=True)
 
     def _update_preview(self, idx: int):
         from ui.core.engine.registry import EngineRegistry
@@ -185,7 +186,7 @@ class TexturePopup(QDialog):
                     self.preview_c_grain.setPixmap(pix)
                     return
             except Exception:
-                pass
+                logging.getLogger(__name__).debug("Preview de altura do papel indisponível.", exc_info=True)
 
         pix = QPixmap(46, 46)
         pix.fill(QColor(24, 24, 32))

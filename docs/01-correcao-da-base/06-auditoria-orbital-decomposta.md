@@ -215,7 +215,7 @@ Aprofundando a descida orbital na base primordial C++ e corrigindo satélites de
    - *Saneamento:* Inclusão sistemática de chamadas a `self._mark_document_dirty(...)` em todas as mutações nativas bem-sucedidas.
 
 4. **Suíte Dedicada de Integridade Primordial:**
-   - Criação de `tests/test_satellite_round12_primordial.py` cobrindo 100% dos novos casos e respeitando estritamente a governança de tamanho de arquivos ARCcC (<450 linhas).
+   - Criação de `tests/test_render_options_and_native_dirty_tracking.py` cobrindo 100% dos novos casos e respeitando estritamente a governança de tamanho de arquivos ARCcC (<450 linhas).
 
 ---
 
@@ -240,7 +240,7 @@ Avançando na descida orbital e fechando a paridade de estado entre os subsistem
    - *Saneamento:* Adição de chamadas a `_mark_document_dirty` em todos esses fluxos.
 
 5. **Suíte Dedicada de Integridade Primordial:**
-   - Criação de `tests/test_satellite_round13_primordial.py` (7 testes verdes) e governança estrita de linhas de código (<450 LOC em todos os arquivos).
+   - Criação de `tests/test_dirty_tracking_layers_and_navigator_flip.py` (7 testes verdes) e governança estrita de linhas de código (<450 LOC em todos os arquivos).
 
 ---
 
@@ -268,7 +268,7 @@ Atingindo a profundidade máxima da arquitetura (Camadas 5 e 6) e validando o re
    - *Rio 5 (Cor):* Canvas `active_color` $\to$ `to_native_color_rgba` $\to$ balde nativo $\to$ composição em Linear Gamma / Soft-Proofing.
 
 5. **Suíte Dedicada de Integridade Primordial e Ascendente:**
-   - Criação de `tests/test_satellite_round14_core_and_ascending_loop.py` e governança rigorosa de código (<450 LOC).
+   - Criação de `tests/test_native_core_invariants_and_rivers.py` e governança rigorosa de código (<450 LOC).
 
 ---
 

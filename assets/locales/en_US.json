@@ -90,7 +90,10 @@
       "toggle_grid": "Toggle Grid",
       "toggle_rulers": "Toggle Rulers",
       "toggle_guides": "Toggle Perspective Guides",
-      "toggle_symmetry": "Toggle Symmetry"
+      "toggle_symmetry": "Toggle Symmetry",
+      "fullscreen": "Full Screen Mode",
+      "soft_proof_toggle": "Soft Proofing (On/Off)",
+      "telemetry_grid": "Telemetry Grid Cockpit..."
     },
     "window": {
       "title": "Window",
@@ -107,7 +110,10 @@
       "expand_all": "Expand All Sidebars",
       "floating_toolbar": "Floating Toolbar Settings...",
       "dock_settings": "Docking & Drawer Settings...",
-      "reset_layout": "Reset Default Workspace"
+      "reset_layout": "Reset Default Workspace",
+      "fullscreen": "Toggle Full Screen (F11)",
+      "scale": "Interface Scale",
+      "telemetry_panel": "Telemetry Panel"
     },
     "settings": {
       "title": "Settings",
@@ -272,7 +278,8 @@
     "preset_category_blur": "Blurs",
     "preset_category_smudge": "Smudges",
     "preset_category_watercolor": "Watercolors",
-    "preset_category_paint": "Oils & Impasto"
+    "preset_category_paint": "Oils & Impasto",
+    "stroke_taper": "Taper on Pen Lift"
   },
   "brush_preset": {
     "round": "Round Brush",
@@ -361,7 +368,9 @@
     "add_filter": "Add Filter Layer",
     "paper_texture_title": "Canvas Texture (Background Paper)",
     "load_paper_png": "Load Paper PNG",
-    "enable_paper_relief": "Enable Paper Relief"
+    "enable_paper_relief": "Enable Paper Relief",
+    "create_clipping": "Create Clipping Mask",
+    "release_clipping": "Release Clipping Mask"
   },
   "geometry": {
     "advanced_settings": "Advanced Symmetry & Guide Settings",
@@ -476,7 +485,12 @@
     "log_level": "Log Level:",
     "engine_core": "Engine Core:",
     "simd_support": "Instruction Set:",
-    "active_engine": "Active Mini-Engine:"
+    "active_engine": "Active Mini-Engine:",
+    "bench_group": "Performance Tests & Technical Diagnostics",
+    "card_lag": "Stabilizer Lag",
+    "metric": "Metric",
+    "tab_pipeline": "Pipeline & Viewport",
+    "value": "Value"
   },
   "filter": {
     "choose_type": "Choose filter type:",
@@ -532,8 +546,13 @@
     "cursor_ring_only": "Outline Ring Only (Radius Circle)",
     "cursor_dot_only": "Precision Center Dot Only",
     "cursor_crosshair": "Precision Crosshair",
+    "cursor_chevron": "Precision Chevron Pointer",
     "cursor_system": "System OS Cursor",
     "cursor_behavior_title": "Behavior & Dynamics",
+    "cursor_invert_orientation": "Invert cursor pointer to Left Diagonal (Unobstructed View / Left-Handed)",
+    "cursor_invert_tooltip": "Tilts the arrow body to the left, freeing the line of sight for right-handed artists.",
+    "cursor_show_chevron": "Show precision chevron inside outline ring",
+    "cursor_show_chevron_tooltip": "Keeps the precision chevron tip visible at the center of the ring.",
     "cursor_hide_on_stroke": "Hide outline ring during brush stroke",
     "cursor_show_guides_crosshair": "Show precision crosshair on rulers and guides",
     "cursor_ring_opacity": "Ring Opacity",
@@ -640,7 +659,11 @@
     "theme_font_segoe": "Segoe UI (Windows Default)",
     "theme_font_roboto": "Roboto / System",
     "theme_font_inter": "Inter Display",
-    "theme_font_helvetica": "Helvetica / Arial"
+    "theme_font_helvetica": "Helvetica / Arial",
+    "coverage_col": "Coverage",
+    "module_col": "Module / Subsystem",
+    "status_col": "Status",
+    "theme_scale": "Interface Scale:"
   },
   "status": {
     "ready": "Ready.",
@@ -650,7 +673,12 @@
     "shortcuts_applied": "Keyboard shortcuts updated and applied.",
     "cursor_applied": "Cursor preferences updated.",
     "language_changed": "Language changed to English (US).",
-    "theme_applied": "Theme '{name}' applied."
+    "theme_applied": "Theme '{name}' applied.",
+    "fullscreen_on": "Full Screen Mode activated. Press F11 to exit.",
+    "fullscreen_off": "Normal mode restored.",
+    "no_selection_to_modify": "There is no selection to modify.",
+    "selection_modified": "Selection modified ({px} px).",
+    "selection_modify_failed": "Could not modify the selection."
   },
   "tool_options": {
     "sample_size": "Sample Size",
@@ -695,7 +723,8 @@
     "align_center": "Center",
     "align_right": "Right",
     "size": "Size:",
-    "color": "Color:"
+    "color": "Color:",
+    "distort_tip": "Drag each corner freely (perspective)"
   },
   "workspace": {
     "no_document": "No Document Open",
@@ -799,7 +828,8 @@
     "lock_aspect": "Lock Aspect",
     "interp_nearest": "Nearest Neighbor",
     "interp_bilinear": "Bilinear",
-    "interp_bicubic": "Bicubic"
+    "interp_bicubic": "Bicubic",
+    "interp": "Interp:"
   },
   "selection": {
     "new": "New Selection",
@@ -820,5 +850,26 @@
     "inspector_title": "FILTER PARAMETERS",
     "inspector_desc": "Adjust the parameters below to create the layer.",
     "create_adjustment_layer": "Create Adjustment Layer"
+  },
+  "common": {
+    "apply": "Apply",
+    "cancel": "Cancel"
+  },
+  "scale": {
+    "80": "80% (Compact)",
+    "100": "100% (Default)",
+    "125": "125% (Medium)",
+    "150": "150% (Large / HiDPI)",
+    "175": "175% (Extra Large)",
+    "200": "200% (Ultra HiDPI)"
+  },
+  "color": {
+    "harmony_label": "Harmony",
+    "harmony_none": "None",
+    "harmony_complementary": "Complementary",
+    "harmony_analogous": "Analogous",
+    "harmony_triadic": "Triadic",
+    "harmony_split_complementary": "Split complementary",
+    "harmony_square": "Square"
   }
 }

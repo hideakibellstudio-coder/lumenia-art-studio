@@ -42,18 +42,8 @@ def notify_canvas_repaint(action_name: str = "") -> None:
     """Dispara repaint do CanvasWidget quando há alteração visual de camadas."""
     if action_name in ("select", "lock", "alpha_lock"):
         return
-    try:
-        from PySide6.QtWidgets import QApplication
-        app = QApplication.instance()
-        if not app:
-            return
-        for top_w in QApplication.topLevelWidgets():
-            if hasattr(top_w, "workspace") and hasattr(top_w.workspace, "canvas_widget"):
-                top_w.workspace.canvas_widget.update()
-            elif hasattr(top_w, "canvas_widget"):
-                top_w.canvas_widget.update()
-    except Exception:
-        pass
+    from ui.core.plugins.canvas_access import request_canvas_repaint
+    request_canvas_repaint()
 
 
 def sync_backend_parents(manager) -> None:

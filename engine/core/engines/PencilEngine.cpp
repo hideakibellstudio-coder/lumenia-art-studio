@@ -1,6 +1,7 @@
 #include "PencilEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
 #include "../math/Rect2D.hpp"
+#include "../raster/LargeBrushOptimizer.hpp"
 #include "../math/MathUtils.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
@@ -116,7 +117,8 @@ void PencilEngine::renderDab(
                 } else {
                     const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeR;
                     if (dist > hardSpan) {
-                        shapeAlpha = std::clamp((safeR - dist) / std::max(0.001, safeR - hardSpan), 0.0, 1.0);
+                        const double t = (safeR - dist) / std::max(0.001, safeR - hardSpan);
+                        shapeAlpha = raster::LargeBrushOptimizer::smoothHermite(t);
                     }
                 }
                 if (shapeAlpha <= 0.0) continue;

@@ -1,4 +1,5 @@
 """PluginDetailsInspector component for PluginsWindow."""
+import logging
 
 import sys
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -198,7 +199,7 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         try:
             is_system = plugin.is_system_plugin()
         except Exception:
-            pass
+            logging.getLogger(__name__).debug("is_system_plugin() falhou.", exc_info=True)
 
         try:
             meta: PluginMetadata = plugin.get_metadata()

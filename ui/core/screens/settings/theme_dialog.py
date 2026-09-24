@@ -41,6 +41,7 @@ class ThemeDialog(BaseFramelessDialog):
         self._setup_ui()
         self._apply_theme()
         self.theme_manager.themeChanged.connect(self._apply_theme)
+        self.theme_manager.scaleChanged.connect(self._sync_scale_combo)
 
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
@@ -191,6 +192,20 @@ class ThemeDialog(BaseFramelessDialog):
         row_font.addWidget(self.combo_font)
         tweaks_layout.addLayout(row_font)
 
+        # Escala da Interface
+        row_scale = QtWidgets.QHBoxLayout()
+        self.lbl_scale = QtWidgets.QLabel()
+        self.lbl_scale.setStyleSheet("font-size: 12px;")
+        self.combo_scale = QtWidgets.QComboBox()
+        self.SCALE_VALUES = [0.8, 1.0, 1.25, 1.5, 1.75, 2.0]
+        self._populate_scale_combo()
+        self._sync_scale_combo()
+        self.combo_scale.currentIndexChanged.connect(self._on_scale_changed)
+        row_scale.addWidget(self.lbl_scale)
+        row_scale.addStretch()
+        row_scale.addWidget(self.combo_scale)
+        tweaks_layout.addLayout(row_scale)
+
         right_layout.addWidget(tweaks_group)
         right_layout.addStretch()
 
@@ -281,8 +296,49 @@ class ThemeDialog(BaseFramelessDialog):
             self.combo_font.setCurrentIndex(cur_f)
             self.combo_font.blockSignals(False)
 
+        if hasattr(self, "lbl_scale"):
+            self.lbl_scale.setText(tr("dialogs.theme_scale", "Escala da Interface:"))
+
+        if hasattr(self, "combo_scale"):
+            cur_idx = self.combo_scale.currentIndex()
+            self._populate_scale_combo()
+            self.combo_scale.blockSignals(True)
+            self.combo_scale.setCurrentIndex(cur_idx)
+            self.combo_scale.blockSignals(False)
+
         if hasattr(self, "_selected_theme_data"):
             self._select_theme(self._selected_theme_data)
+
+    def _populate_scale_combo(self) -> None:
+        from ui.core.i18n import tr
+        labels = [
+            tr("scale.80", "80% (Compacto)"),
+            tr("scale.100", "100% (Padrão)"),
+            tr("scale.125", "125% (Médio)"),
+            tr("scale.150", "150% (Grande / HiDPI)"),
+            tr("scale.175", "175% (Muito Grande)"),
+            tr("scale.200", "200% (Ultra HiDPI)"),
+        ]
+        self.combo_scale.blockSignals(True)
+        self.combo_scale.clear()
+        for val, lbl in zip(self.SCALE_VALUES, labels):
+            self.combo_scale.addItem(lbl, val)
+        self.combo_scale.blockSignals(False)
+
+    def _sync_scale_combo(self, *args) -> None:
+        cur_scale = self.theme_manager.ui_scale
+        idx = 1
+        for i, val in enumerate(self.SCALE_VALUES):
+            if abs(val - cur_scale) < 0.05:
+                idx = i
+                break
+        self.combo_scale.blockSignals(True)
+        self.combo_scale.setCurrentIndex(idx)
+        self.combo_scale.blockSignals(False)
+
+    def _on_scale_changed(self, idx: int) -> None:
+        if 0 <= idx < len(self.SCALE_VALUES):
+            self.theme_manager.set_ui_scale(self.SCALE_VALUES[idx])
 
     def _build_cards(self):
         for card in self._cards:

@@ -90,7 +90,10 @@
       "toggle_grid": "Alternar Grade Guia",
       "toggle_rulers": "Alternar Réguas",
       "toggle_guides": "Alternar Guias de Perspectiva",
-      "toggle_symmetry": "Alternar Simetria"
+      "toggle_symmetry": "Alternar Simetria",
+      "fullscreen": "Modo Tela Cheia",
+      "soft_proof_toggle": "Prova de Cores (Ativar/Desativar)",
+      "telemetry_grid": "Cockpit de Telemetria em Grid..."
     },
     "window": {
       "title": "Janela",
@@ -107,7 +110,10 @@
       "expand_all": "Expandir Todas as Barras",
       "floating_toolbar": "Barra Flutuante de Ferramentas…",
       "dock_settings": "Configurações de Gavetas & Docking…",
-      "reset_layout": "Resetar Layout Padrão"
+      "reset_layout": "Resetar Layout Padrão",
+      "fullscreen": "Alternar Tela Cheia (F11)",
+      "scale": "Escala da Interface",
+      "telemetry_panel": "Painel de Telemetria"
     },
     "settings": {
       "title": "Configurações",
@@ -272,7 +278,8 @@
     "preset_category_blur": "Desfoque",
     "preset_category_smudge": "Esfuminho",
     "preset_category_watercolor": "Aquarelas",
-    "preset_category_paint": "Óleos e Acrílicos"
+    "preset_category_paint": "Óleos e Acrílicos",
+    "stroke_taper": "Afunilamento na Soltura (Tapering no Pen Up)"
   },
   "brush_preset": {
     "round": "Pincel Redondo",
@@ -361,7 +368,9 @@
     "add_filter": "Adicionar Filtro",
     "paper_texture_title": "Textura da Tela (Papel Background)",
     "load_paper_png": "Carregar PNG do Papel",
-    "enable_paper_relief": "Ativar Relevo no Papel"
+    "enable_paper_relief": "Ativar Relevo no Papel",
+    "create_clipping": "Criar Máscara de Recorte",
+    "release_clipping": "Liberar Máscara de Recorte"
   },
   "geometry": {
     "advanced_settings": "Configurações Avançadas de Simetria e Réguas",
@@ -476,7 +485,12 @@
     "log_level": "Nível de Log:",
     "engine_core": "Núcleo do Motor:",
     "simd_support": "Conjunto de Instruções:",
-    "active_engine": "Mini-Motor Ativo:"
+    "active_engine": "Mini-Motor Ativo:",
+    "bench_group": "Testes de Desempenho & Diagnóstico Técnico",
+    "card_lag": "Lag do Estabilizador",
+    "metric": "Métrica",
+    "tab_pipeline": "Pipeline & Viewport",
+    "value": "Valor"
   },
   "filter": {
     "choose_type": "Escolha o tipo de efeito:",
@@ -532,8 +546,13 @@
     "cursor_ring_only": "Apenas Anel de Contorno (Círculo de Raio)",
     "cursor_dot_only": "Apenas Ponto Central de Precisão",
     "cursor_crosshair": "Mira de Precisão (Crosshair)",
+    "cursor_chevron": "Ponta Chevron de Precisão",
     "cursor_system": "Cursor Padrão do Sistema Operacional",
     "cursor_behavior_title": "Comportamento e Dinâmica",
+    "cursor_invert_orientation": "Inverter ponta do cursor para Diagonal Esquerda (Visão Desobstruída / Canhoto)",
+    "cursor_invert_tooltip": "Inclina o corpo da seta para a esquerda, liberando o campo de visão da mão de desenhistas destros.",
+    "cursor_show_chevron": "Exibir ponta de precisão junto ao anel de contorno",
+    "cursor_show_chevron_tooltip": "Mantém a ponta chevron visível no centro do anel.",
     "cursor_hide_on_stroke": "Ocultar anel de contorno durante o traço de pintura",
     "cursor_show_guides_crosshair": "Exibir mira de precisão em réguas e guias de perspectiva",
     "cursor_ring_opacity": "Opacidade do Anel",
@@ -640,7 +659,11 @@
     "theme_font_segoe": "Segoe UI (Padrão Windows)",
     "theme_font_roboto": "Roboto / System",
     "theme_font_inter": "Inter Display",
-    "theme_font_helvetica": "Helvetica / Arial"
+    "theme_font_helvetica": "Helvetica / Arial",
+    "coverage_col": "Cobertura",
+    "module_col": "Módulo / Subsistema",
+    "status_col": "Status",
+    "theme_scale": "Escala da Interface:"
   },
   "status": {
     "ready": "Pronto.",
@@ -650,7 +673,12 @@
     "shortcuts_applied": "Atalhos de teclado atualizados e aplicados.",
     "cursor_applied": "Preferências de cursor aplicadas.",
     "language_changed": "Idioma alterado para Português (Brasil).",
-    "theme_applied": "Tema '{name}' aplicado."
+    "theme_applied": "Tema '{name}' aplicado.",
+    "fullscreen_on": "Modo Tela Cheia ativado. Pressione F11 para sair.",
+    "fullscreen_off": "Modo normal restaurado.",
+    "no_selection_to_modify": "Não há seleção para modificar.",
+    "selection_modified": "Seleção modificada ({px} px).",
+    "selection_modify_failed": "Não foi possível modificar a seleção."
   },
   "tool_options": {
     "sample_size": "Tamanho da Amostra",
@@ -695,7 +723,8 @@
     "align_center": "Cen",
     "align_right": "Dir",
     "size": "Tam:",
-    "color": "Cor:"
+    "color": "Cor:",
+    "distort_tip": "Arraste cada canto livremente (perspectiva)"
   },
   "workspace": {
     "no_document": "Nenhum Documento Aberto",
@@ -799,7 +828,8 @@
     "lock_aspect": "Travar Proporção",
     "interp_nearest": "Mais Próximo",
     "interp_bilinear": "Bilinear",
-    "interp_bicubic": "Bicúbica"
+    "interp_bicubic": "Bicúbica",
+    "interp": "Interp:"
   },
   "selection": {
     "new": "Nova Seleção",
@@ -820,5 +850,26 @@
     "inspector_title": "PARÂMETROS DO FILTRO",
     "inspector_desc": "Ajuste os parâmetros abaixo para criar a camada.",
     "create_adjustment_layer": "Criar Camada de Ajuste"
+  },
+  "common": {
+    "apply": "Aplicar",
+    "cancel": "Cancelar"
+  },
+  "scale": {
+    "80": "80% (Compacto)",
+    "100": "100% (Padrão)",
+    "125": "125% (Médio)",
+    "150": "150% (Grande / HiDPI)",
+    "175": "175% (Muito Grande)",
+    "200": "200% (Ultra HiDPI)"
+  },
+  "color": {
+    "harmony_label": "Harmonia",
+    "harmony_none": "Nenhuma",
+    "harmony_complementary": "Complementar",
+    "harmony_analogous": "Análogas",
+    "harmony_triadic": "Tríade",
+    "harmony_split_complementary": "Complementar dividida",
+    "harmony_square": "Quadrado"
   }
 }

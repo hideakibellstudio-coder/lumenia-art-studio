@@ -4,6 +4,7 @@ from typing import Dict, Set
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.theme.manager import ThemeManager
 from .drawer_header import DrawerHeader
+from .dock_animator import DockAnimator
 
 
 class DrawerContentContainer(QtWidgets.QWidget):
@@ -31,6 +32,7 @@ class DrawerContentContainer(QtWidgets.QWidget):
 
         self.scroll_content = QtWidgets.QWidget()
         self.scroll_content.setAttribute(QtCore.Qt.WA_StyledBackground, True)
+        self.scroll_content.setMaximumWidth(DockAnimator.DRAWER_WIDTH)
         self.panels_layout   = QtWidgets.QVBoxLayout(self.scroll_content)
         self.panels_layout.setContentsMargins(0, 0, 0, 0)
         self.panels_layout.setSpacing(0)
@@ -50,11 +52,14 @@ class DrawerContentContainer(QtWidgets.QWidget):
         self._panels: Dict[str, QtWidgets.QWidget] = {}
 
         ThemeManager.instance().themeChanged.connect(self._apply_style)
+        ThemeManager.instance().scaleChanged.connect(self._apply_style)
         self._apply_style()
         self.ensurePolished()
 
     def _apply_style(self, *args) -> None:
         theme = ThemeManager.instance()
+        drawer_w = max(180, int(DockAnimator.DRAWER_WIDTH * theme.ui_scale))
+        self.scroll_content.setMaximumWidth(drawer_w)
         bg_panel = theme.get_color("bg_panel", "#1e1e24")
         border   = theme.get_color("border",   "#2e2e38")
 

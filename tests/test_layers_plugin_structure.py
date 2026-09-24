@@ -59,6 +59,12 @@ def test_paper_layer_widget_integration(qapp):
 
 
 def test_layers_panel_delegate_actions(qapp):
+    # O painel aqui tem gerenciador próprio; um documento ativo deixado por outro
+    # módulo faria layer_transaction recusar a ação (painel != documento ativo).
+    from ui.core.document.manager import DocumentManager
+    dm = DocumentManager.instance()
+    for doc in list(dm.documents()):
+        dm.close_document(doc.uid)
     panel = LayersPanel()
     assert panel.layer_manager is not None
 

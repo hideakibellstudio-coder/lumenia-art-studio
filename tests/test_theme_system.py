@@ -97,6 +97,65 @@ class TestThemeSystem(unittest.TestCase):
         self.assertIsNotNone(dlg.root_container.styleSheet())
         dlg.close()
 
+    def test_06_ui_scale_getter_setter_and_persistence(self):
+        from ui.core.config.manager import ConfigManager
+        cfg = ConfigManager.instance()
+
+        orig_scale = self.tm.ui_scale
+        scale_events = []
+        self.tm.scaleChanged.connect(scale_events.append)
+
+        try:
+            self.tm.set_ui_scale(0.8)
+            self.assertAlmostEqual(self.tm.ui_scale, 0.8)
+            self.assertIn(0.8, scale_events)
+            self.assertAlmostEqual(cfg.get("interface", "scale", 1.0), 0.8)
+
+            qss_80 = self.tm._compile_qss("QPushButton { font-size: 10px; min-height: 20px; }")
+            self.assertIn("8px", qss_80)
+            self.assertIn("16px", qss_80)
+
+            self.tm.set_ui_scale(1.5)
+            self.assertAlmostEqual(self.tm.ui_scale, 1.5)
+            self.assertIn(1.5, scale_events)
+            self.assertAlmostEqual(cfg.get("interface", "scale", 1.0), 1.5)
+
+            qss_150 = self.tm._compile_qss("QPushButton { font-size: 10px; min-height: 20px; }")
+            self.assertIn("15px", qss_150)
+            self.assertIn("30px", qss_150)
+        finally:
+            self.tm.set_ui_scale(orig_scale)
+
+    def test_07_bars_scale_reactivity(self):
+        from ui.core.components.tool_sidebar.sidebar import ToolSidebar
+        from plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
+
+        orig_scale = self.tm.ui_scale
+        try:
+            self.tm.set_ui_scale(1.0)
+            sidebar = ToolSidebar()
+            float_bar = FloatingToolbar()
+
+            self.assertEqual(sidebar.iconSize().width(), 20)
+            btn = next(iter(float_bar.buttons.values()))
+            self.assertEqual(btn.width(), 38)
+            self.assertEqual(btn.iconSize().width(), 22)
+
+            self.tm.set_ui_scale(0.8)
+            self.assertEqual(sidebar.iconSize().width(), 16)
+            self.assertEqual(btn.width(), int(38 * 0.8))
+            self.assertEqual(btn.iconSize().width(), int(22 * 0.8))
+
+            self.tm.set_ui_scale(1.5)
+            self.assertEqual(sidebar.iconSize().width(), 30)
+            self.assertEqual(btn.width(), int(38 * 1.5))
+            self.assertEqual(btn.iconSize().width(), int(22 * 1.5))
+
+            sidebar.deleteLater()
+            float_bar.deleteLater()
+        finally:
+            self.tm.set_ui_scale(orig_scale)
+
 
 if __name__ == '__main__':
     unittest.main()

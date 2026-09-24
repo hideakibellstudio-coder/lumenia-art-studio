@@ -282,12 +282,13 @@ def test_river_5_color_coercion_and_pipeline_loop():
 # ── 3. Governança ARCcC: Zona Verde (< 450 LOC) ──────────────────────────────
 
 def test_governance_round14_file_limits():
-    """Verifica que o arquivo de teste e os arquivos modificados estão na Zona Verde."""
+    """Verifica que este arquivo de teste está abaixo do teto de LOC.
+
+    (A antiga asserção sobre o SKILL.md de uma skill de agente foi removida: o
+    arquivo fica fora do repositório, em pasta ignorada, e o caminho absoluto
+    fazia este teste falhar em qualquer máquina que não a de desenvolvimento.)
+    """
     this_file = Path(__file__)
     loc = len(this_file.read_text(encoding="utf-8").splitlines())
     assert loc < 450, f"Arquivo {this_file.name} excede o limite com {loc} linhas!"
 
-    skill_file = Path(r"z:\DESENVOLVIMENTO\+ LUMENIA CLEAN\.agents\skills\lumenia-satellite-audit\SKILL.md")
-    assert skill_file.exists()
-    skill_loc = len(skill_file.read_text(encoding="utf-8").splitlines())
-    assert skill_loc < 450, f"SKILL.md excede o limite com {skill_loc} linhas!"

@@ -32,14 +32,13 @@ MAX_LINES_ERROR = 450  # Zona Vermelha: >= 450 linhas (violacao)
 # Excecoes formais, espelhando `declared_exceptions` do perfil `lumenia`.
 # Cada entrada precisa de uma razao explicita: uma excecao sem justificativa
 # escrita e indistinguivel de um teto simplesmente ignorado.
-DECLARED_LOC_EXCEPTIONS: dict[str, str] = {
-    "engine/boundary/public-api/internal/StrokeOrchestrator.cpp":
-        "Pipeline nativo de orquestracao de traco",
-    "engine/core/raster/SelectionEngine.cpp":
-        "Algoritmos nativos de mascara de selecao em raster",
-    "engine/core/raster/TransformEngine.cpp":
-        "Transformadas afins nativas de matriz em raster",
-}
+#
+# 2026-09-22: as tres ultimas excecoes (StrokeOrchestrator.cpp 484,
+# TransformEngine.cpp 478, SelectionEngine.cpp 454) foram removidas porque os
+# arquivos foram divididos por metodo inteiro (StrokeOrchestratorEnd.cpp,
+# TransformEngineCommit.cpp, SelectionShapeMasks.cpp). Nenhum arquivo precisa
+# mais de excecao; uma nova entrada aqui e uma decisao, nao um atalho.
+DECLARED_LOC_EXCEPTIONS: dict[str, str] = {}
 
 
 def normalize(rel_path: str) -> str:

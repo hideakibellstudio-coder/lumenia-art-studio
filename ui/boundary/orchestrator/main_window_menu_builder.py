@@ -92,9 +92,11 @@ def setup_menu_and_shortcuts(win: MainWindow) -> None:
     win.menu_bar.toggleGridRequested.connect(win.toggle_grid)
     win.menu_bar.toggleRulersRequested.connect(win.toggle_rulers)
     win.menu_bar.telemetryGridRequested.connect(win.open_telemetry_grid_window)
+    win.menu_bar.toggleFullscreenRequested.connect(win.toggle_fullscreen)
 
     # 8. Janela & Docks
     win.menu_bar.dockSettingsRequested.connect(win.open_dock_settings_dialog)
+    win.menu_bar.scaleRequested.connect(win.set_interface_scale)
 
     # 9. Configurações & Temas
     win.menu_bar.curvesLutRequested.connect(win.open_curve_window)

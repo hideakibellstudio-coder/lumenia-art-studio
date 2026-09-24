@@ -179,6 +179,7 @@ class OilParams:
     def __init__(self) -> None: ...
 
 class BrushProfile:
+    def __init__(self, other: "BrushProfile | None" = None) -> None: ...
     engine_type: int
     brush_size: float
     min_size_percent: float

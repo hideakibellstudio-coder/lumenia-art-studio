@@ -11,16 +11,92 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
+## ✅ 2026-09-23 — Decisões do usuário aplicadas (sessão Claude/Cowork)
+
+Relatório: `claude/correcoes-e-decisoes-2026-09-22.md` (Claude Project).
+Medido no Windows: suíte completa verde (796 testes), `navigator_verify`
+com 0 `confirmed_violation`.
+
+- **Promessas falsas viraram funções reais** (decisão: "deixar de prometer e
+  desenvolver a função real"):
+  - Seleção → Modificar (Expandir, Contrair, Suavizar Borda) no motor
+    (`SelectionMorphology.cpp`), com Desfazer.
+  - Transformar → Distorcer (4 cantos, homografia no motor; prévia e commit
+    coincidem) no painel e na barra secundária.
+  - Harmonias na roda de cores (5 regras, marcas no anel, amostras clicáveis).
+- **Guardas `hasattr` do grupo A** (11, funções que já existem no binário):
+  o plano B continua, mas registra um aviso no log (`native_fallback.nativo_tem`)
+  em vez de ficar calado. Grupos B (traço raw vs legado, 3) e C (detector de
+  capacidades, 1) mantidos. Travados em `tests/test_river_ratchets.py`.
+- Anotações de tipo que o Navigator pedia (`layer`, `doc`).
+- `backend_protocols.py` (434, na parede dos 450) dividido: o papel
+  SelectionTransform foi para `backend_protocols_selection.py`.
+- **Adiado por decisão:** pipeline de cor 16-bit (mexe em tile, compositor,
+  desfazer e formato de arquivo).
+
+**Ainda com decisão do usuário:** `Ctrl+E`, ffmpeg no instalador, critério do
+gate de sessão longa, processos antigos do Antigravity, `.venv`, remoto do
+Navigator.
+
+---
+
+## ✅ 2026-09-22 — Análise completa + correções (sessão Claude/Cowork)
+
+Relatório: `claude/analise-completa-projeto-2026-09-22.md` (Claude Project).
+Medido no Windows ao fim da sessão: suíte completa verde (762 testes), `navigator_verify`
+com 0 `confirmed_violation` e 0 arquivos na Zona Vermelha.
+
+**Afirmações anteriores corrigidas** (estavam neste documento e no benchmark):
+- "100% dos arquivos na Zona Verde (< 450)": falso até hoje -- havia 3 C++ ≥ 450
+  sob exceção e ~95 arquivos entre 251 e 449. Os 3 foram divididos hoje.
+- "Zero vazamentos" pelo gate P4: `scripts/run_soak_test.py` roda sem nenhum
+  widget, um documento, traços de 40 px e desfazer limitado a 30 passos -- o
+  platô de memória é garantido pelo próprio anel de desfazer. Continua útil
+  como smoke test do motor; o gate de sessão real é
+  `scripts/soak_full_session.py` (MainWindow real, camadas, salvar .lmn, MDI).
+- Contagens de teste "725"/"659"/"670+": a medida real hoje é a do pytest.
+
+**Corrigido nesta sessão:**
+- Binário `.pyd` de 2026-09-05 esquecido em `ui/engine_backends/` (138 vs 185
+  atributos) movido para `../build/obsoleto/`.
+- `WgpuRustBackend` removido (adaptador de um motor Rust inexistente); teste
+  dos Protocols passou a exigir implementação real fora de `EngineBackend`.
+- Teste com caminho absoluto `z:\...\.agents\...` (falhava fora desta máquina).
+- `render_stroke_preview` restaurado (sumiu do motor em 2026-08-25; o painel
+  de pincel mostrava aproximação vetorial) + a prévia agora copia o perfil em
+  vez de alterar o pincel em uso.
+- 5 varreduras `topLevelWidgets()` → `ui/core/plugins/canvas_access.py`.
+- 5 lambdas em sinais de singletons (vazamento + "C++ object already deleted").
+- Guardas `hasattr` sobre o motor: 19 → 16 pontos (15 entradas nomeadas) em
+  `tests/test_river_ratchets.py` (guarda nova falha o teste).
+- 25 chaves de tradução ausentes nos 4 idiomas + teste que impede regressão.
+- `except Exception: pass` que escondiam falha de plugin agora registram log.
+- CI com Python 3.14 (versão da máquina de desenvolvimento).
+- C++ Zona Vermelha: `StrokeOrchestrator.cpp`, `TransformEngine.cpp`,
+  `SelectionEngine.cpp` divididos por método; exceções de LOC removidas.
+- Suíte: janelas órfãs descartadas entre módulos (≈369 s → ≈110 s).
+- Navigator: `verifier.py` (777), `python_semantic.py` (752) e `context.py`
+  (512) divididos sem mudar saída (relatório byte a byte idêntico); bump do
+  extrator para `xl-contracts-v10` (faltou no commit `f1fa359`).
+
+**Abertos, com decisão do usuário** (ver o relatório no Project):
+promessas falsas da interface (Modificar Seleção, "Distorcer", "Harmonias"),
+lista final de guardas `hasattr`, faixa amarela 251 vs 300, `Ctrl+E`,
+ffmpeg no instalador, execução do gate de sessão longa com artista.
+*(Promessas falsas e guardas `hasattr` resolvidas em 2026-09-23, acima.)*
+
+---
+
 ## ✅ Resolvido nesta sessão (2026-09-21, rodadas 6 a 14)
 
 Itens de auditoria vertical, código morto, integridade de traço, cursor, fronteira C++ e subsistemas satélites concluídos e homologados:
 
 - **Auditoria Orbital Concêntrica de Subsistemas Satélites (Rodadas 9 a 14)**:
   - Criação e expansão da skill `lumenia-satellite-audit` e documento metodológico `06-auditoria-orbital-decomposta.md` para o modelo de 6 camadas concêntricas e verificação ascendente dos 5 Rios.
-  - *Rodada 14 (Descida ao Núcleo C++ e Laço Ascendente dos 5 Rios)*: validação de `BufferContract.hpp` (`checkedRasterBytes`, `validateRasterInput`, `pixelSnapshot`), `DocumentContext::touch()` monótono, invariantes de `TileGrid`, `TileUndoManager`, `Compositor` e `DabRenderer` SIMD. Homologação do fechamento ascendente completo nos 5 Rios (Traço, Câmera/Viewport, Camadas/Histórico, Seleção/Transformação e Cor/Perfis). Suíte dedicada `tests/test_satellite_round14_core_and_ascending_loop.py` (9/9 testes verdes).
-  - *Rodada 13 (Sincronização Viewport/Navigator e Dirty Tracking de Camadas)*: alinhamento dos ícones SVG de flip no painel Navigator (`flip-vertical` / `flip-horizontal`), emissão idempotente de `cameraChanged` nos setters `flip_x`/`flip_y` de `canvas_compat.py` para sincronização bidirecional, e cobertura completa de dirty tracking (`_mark_document_dirty`) nas 18 operações de camada de `AladynLayerMixin`, geometria, transações e recursos. Suíte dedicada `tests/test_satellite_round13_primordial.py` (7/7 testes verdes).
-  - *Rodada 12 (Saneamento dos Botões de Flip e Fronteira Primordial C++)*: alinhamento 1:1 de `btn_fliph`/`btn_flipv` $\to$ `flipHRequested`/`flipVRequested` no Navigator, guard defensivo resiliente em MDI com `hasattr(facade, "set_render_options")` e fallbacks granulares, e dirty tracking em operações nativas (`clear_canvas`, `clear_layer`, `undo`, `redo`, `flood_fill`, `fill_area`, `end_stroke`). Suíte dedicada `tests/test_satellite_round12_primordial.py` (6/6 testes verdes).
-  - *Rodada 11 (Borda Primordial C++ e Paridade de Menu)*: função canônica `to_native_color_rgba` para coerção polimórfica resiliente de cores, marcação dirty em mutações de raster (fill, delete, transform, paste, flip, rotate), paridade de sinais `strokeStarted`/`strokeFinished` no menu principal com helper `_emit_stroke_wrap` e resolução canônica de cor. Suíte dedicada `tests/test_engine_boundary_round11.py` (4/4 testes verdes).
+  - *Rodada 14 (Descida ao Núcleo C++ e Laço Ascendente dos 5 Rios)*: validação de `BufferContract.hpp` (`checkedRasterBytes`, `validateRasterInput`, `pixelSnapshot`), `DocumentContext::touch()` monótono, invariantes de `TileGrid`, `TileUndoManager`, `Compositor` e `DabRenderer` SIMD. Homologação do fechamento ascendente completo nos 5 Rios (Traço, Câmera/Viewport, Camadas/Histórico, Seleção/Transformação e Cor/Perfis). Suíte dedicada `tests/test_native_core_invariants_and_rivers.py` (9/9 testes verdes).
+  - *Rodada 13 (Sincronização Viewport/Navigator e Dirty Tracking de Camadas)*: alinhamento dos ícones SVG de flip no painel Navigator (`flip-vertical` / `flip-horizontal`), emissão idempotente de `cameraChanged` nos setters `flip_x`/`flip_y` de `canvas_compat.py` para sincronização bidirecional, e cobertura completa de dirty tracking (`_mark_document_dirty`) nas 18 operações de camada de `AladynLayerMixin`, geometria, transações e recursos. Suíte dedicada `tests/test_dirty_tracking_layers_and_navigator_flip.py` (7/7 testes verdes).
+  - *Rodada 12 (Saneamento dos Botões de Flip e Fronteira Primordial C++)*: alinhamento 1:1 de `btn_fliph`/`btn_flipv` $\to$ `flipHRequested`/`flipVRequested` no Navigator, guard defensivo resiliente em MDI com `hasattr(facade, "set_render_options")` e fallbacks granulares, e dirty tracking em operações nativas (`clear_canvas`, `clear_layer`, `undo`, `redo`, `flood_fill`, `fill_area`, `end_stroke`). Suíte dedicada `tests/test_render_options_and_native_dirty_tracking.py` (6/6 testes verdes).
+  - *Rodada 11 (Borda Primordial C++ e Paridade de Menu)*: função canônica `to_native_color_rgba` para coerção polimórfica resiliente de cores, marcação dirty em mutações de raster (fill, delete, transform, paste, flip, rotate), paridade de sinais `strokeStarted`/`strokeFinished` no menu principal com helper `_emit_stroke_wrap` e resolução canônica de cor. Suíte dedicada `tests/test_engine_boundary_color_and_signals.py` (4/4 testes verdes).
   - *Rodadas 9 e 10 (Subsistemas Satélites, Ferramentas e Docks)*: balde de tinta com `active_color` e paridade de sinais `try ... finally`, ciclo de vida simétrico do `TextToolController`, sincronização de previews em Delete e `clear_canvas`, desacoplamento de `PaperLayerWidget` com sinal `paperChanged`, réguas/grade com alias `geometry_controller`, marching ants dinâmicas unificadas no `SelectionToolController` e eliminação do shim `color_wheel.py`.
   - *Salvaguarda ARCcC Invariants*: 100% de conformidade com o teto de 450 LOC por arquivo (Zona Verde) em todos os arquivos modificados. 100% de testes verdes em toda a base (**725 testes passando** com zero falhas).
 

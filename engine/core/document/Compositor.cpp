@@ -83,7 +83,7 @@ void Compositor::compositeRegion(
         region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, /*snapToBlockSize=*/true);
     if (bounds.empty) return;
 
-    internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/256);
+    internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/32);
 
     internal::GroupBlender blender(outputBuffer, bounds, m_linearGamma, m_deepColor);
     const Layer* activeGroup = nullptr;

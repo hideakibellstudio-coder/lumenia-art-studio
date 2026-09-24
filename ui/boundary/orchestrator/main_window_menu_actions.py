@@ -1,6 +1,7 @@
 """MainWindowMenuActionsMixin — Handlers de Ações da MenuBar para MainWindow."""
 
 from __future__ import annotations
+from ui.core.i18n import tr
 import os
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
@@ -115,10 +116,19 @@ class MainWindowMenuActionsMixin(
 
 
     def open_modify_selection_dialog(self, mode: str) -> None:
+        backend = EngineRegistry.instance().get_backend()
+        cw = getattr(self.workspace, "canvas_widget", None) if self.workspace else None
+        if not backend or not backend.has_selection() or cw is None:
+            self.status_bar.showMessage(tr("status.no_selection_to_modify", "Não há seleção para modificar."), 2500)
+            return
         dialog = ModifySelectionDialog(mode=mode, parent=self)
-        if dialog.exec() == QtWidgets.QDialog.Accepted:
-            px = dialog.get_pixels()
-            self.status_bar.showMessage(f"Seleção modificada ({mode}: {px} px).", 2000)
+        if dialog.exec() != QtWidgets.QDialog.Accepted:
+            return
+        px = dialog.get_pixels()
+        if cw.modify_selection(mode, px):
+            self.status_bar.showMessage(tr("status.selection_modified", "Seleção modificada ({px} px).").format(px=px), 2000)
+        else:
+            self.status_bar.showMessage(tr("status.selection_modify_failed", "Não foi possível modificar a seleção."), 2500)
 
     # ── 3. Camadas ────────────────────────────────────────────────────────
 

@@ -27,6 +27,25 @@ def qapp():
     return app
 
 
+@pytest.fixture(autouse=True)
+def _documento_proprio(qapp):
+    """Cada teste pinta num contexto de documento novo e limpo.
+
+    O backend é global: sem isto, o teste herdava o documento ativo deixado por
+    módulos anteriores (camada de grupo ativa, camada travada...) e o traço não
+    pintava -- falha que só aparecia dependendo da ordem da suíte.
+    """
+    backend = EngineRegistry.instance().get_backend()
+    anterior = backend.get_active_document_context() if backend else None
+    if backend is not None:
+        backend.set_active_document_context("stroke_pipeline_integrity", 1000, 1000)
+    yield
+    if backend is not None:
+        backend.close_document_context("stroke_pipeline_integrity")
+        if anterior and anterior in getattr(backend, "_doc_facades", {}):
+            backend.set_active_document_context(anterior, 1, 1)  # já existe: dimensões ignoradas
+
+
 def test_stroke_pipeline_isolated_tap_dirty_rect(qapp):
     """Garante que um toque único (tap/clique sem arrasto) gere dirty rect analítico válido."""
     rw = RenderWidget()
@@ -140,6 +159,7 @@ def test_stroke_stabilizer_varied_scales(qapp):
 
     scales = [0.0, 0.25, 0.50, 0.75, 0.98]
     catchup_widths = []
+    backend._facade.get_brush_profile().stroke_taper_enabled = False
 
     for s in scales:
         backend.set_stabilizer_weight(s)

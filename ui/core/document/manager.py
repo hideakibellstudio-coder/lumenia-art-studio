@@ -35,7 +35,7 @@ class DocumentManager(QtCore.QObject):
         height: int = 1080,
         name: str = None,
         bg_color: tuple[int, int, int, int] | None = None,
-        paper_texture_id: int = 0,
+        dpi: int = 300,
         activate: bool = True
     ) -> Document:
         self._counter += 1
@@ -44,6 +44,7 @@ class DocumentManager(QtCore.QObject):
             name = f"Sem Título {self._counter}"
             
         doc: Document = Document(uid, name, width, height)
+        doc.dpi = int(dpi)
 
         if bg_color is not None:
             from PySide6.QtGui import QColor
@@ -51,10 +52,6 @@ class DocumentManager(QtCore.QObject):
             if bg_color[3] == 0:  # Transparente
                 doc.paper_visible = False
 
-        if paper_texture_id > 0:
-            doc.paper_texture_id = paper_texture_id
-            doc.paper_texture_enabled = True
-        
         # Garante exatamente uma camada padrão inicial (Camada 1)
         if len(doc.layer_manager.layers) == 0:
             doc.layer_manager.add_layer("Camada 1")

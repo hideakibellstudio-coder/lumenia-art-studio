@@ -68,6 +68,10 @@ def _number(value):
 
 
 def validate_auxiliary(manifest):
+    # "dpi" é opcional: arquivos anteriores a 2026-09-24 não têm (restaura 300).
+    dpi = manifest.get("dpi", 300)
+    if type(dpi) is not int or not 1 <= dpi <= 100000:
+        raise DocumentFormatError("resolução (DPI) inválida")
     profile = manifest.get("color_profile_id", 0)
     if type(profile) is not int or type(profile) is bool:
         raise DocumentFormatError("perfil de cor não suportado")

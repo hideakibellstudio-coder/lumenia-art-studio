@@ -95,6 +95,7 @@ class DocumentSerializer:
             "name": str(document.name),
             "width": int(document.width),
             "height": int(document.height),
+            "dpi": int(document.dpi),
             "file_path": str(target),
             "paper": {
                 "color": cls._color_tuple(document.paper_color),

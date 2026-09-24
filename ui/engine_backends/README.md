@@ -37,10 +37,14 @@
   avisa no log — nunca `hasattr` calado.
 - Parâmetro de pincel novo: uma linha em `brush_param_table.TABELA`
   (chave, onde mora no motor, conversão).
+- Estado que é de cada documento fica por contexto e volta na troca
+  (`set_active_document_context`): o perfil de cor mora em `_doc_profiles`.
+  Até 2026-09-24 era um valor só para todos os documentos.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-O backend importa `ui.core.document` (`DocumentManager` para marcar o documento modificado e `LayerBlendMode`): o adaptador do motor conhece o modelo de documento.
+O backend importa `ui.core.document.layer_blend_mode` (o enum canônico `LayerBlendMode`). Marcar o documento modificado já passa pelo `EngineRegistry.notify_document_modified`, sem importar o modelo.
+A Prova de Cores (`set_soft_proofing`) é uma só para todos os documentos e suja o documento ativo, mas não vai no arquivo.
 
 ## Dependências internas
 

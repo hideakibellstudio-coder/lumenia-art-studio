@@ -81,6 +81,20 @@ dependências medidas nas 62 pastas de código; CI verde.
    `ui/core/geometry`, `canvas/renderers`, `canvas/tools`, `canvas/viewport`,
    `dock` e mais 4; saíram `ui/utils` (sem consumidor) e
    `ui/boundary/public_api` (vazia).)*
+10. ~~**Papel, DPI e perfil do documento novo**~~ *(feito em 2026-09-24: a
+   ação "Novo documento" escrevia o papel direto no motor (segundo escritor,
+   além da ativação) e limpava a tela nova — o documento nascia sujo e fechá-lo
+   sem mexer pedia para salvar. Agora a ativação leva o papel, o relevo vai
+   por `Document.set_paper` e o resultado é o estado inicial. O DPI é campo do
+   `Document` e vai no `.lmn` (opcional; arquivo antigo abre com 300). Bug
+   medido e corrigido: o backend guardava um perfil de cor só para todos os
+   documentos — voltar ao documento A depois de configurar o B mostrava e
+   gravava o perfil do B; agora o perfil é por contexto. Abrir o diálogo de
+   renderização aplicava o último perfil das preferências ao documento em
+   sRGB; agora só mostra. `tests/test_document_profile_and_dpi.py`.)*
+   Resta: títulos e filtros dos diálogos de arquivo (`QFileDialog`, 10
+   lugares) em português fixo; a Prova de Cores é uma só para todos os
+   documentos e não vai no arquivo.
 
 ---
 

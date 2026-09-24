@@ -51,23 +51,25 @@ class DocumentActions(ShellActions):
             return
         params = dialog.get_document_params()
         name, w, h = params["name"], params["width"], params["height"]
-        # O DPI é coletado mas ainda não é guardado no Document (pendência).
         dpi = params.get("dpi", 300)
         color_prof = params.get("color_profile_id", 0)
         bg_color = params.get("bg_color", (255, 255, 255, 255))
         paper_tex = params.get("paper_texture_id", 0)
 
-        doc = self._dm.new_document(width=w, height=h, name=name, bg_color=bg_color, paper_texture_id=paper_tex)
+        # Ativar o documento abre o contexto dele no motor e leva o papel
+        # (DocumentViewSync). Até 2026-09-24 esta ação também escrevia o papel
+        # direto no motor e limpava a tela nova, e o documento nascia sujo.
+        doc = self._dm.new_document(width=w, height=h, name=name, bg_color=bg_color, dpi=dpi)
+        if paper_tex > 0:
+            doc.set_paper(texture_id=paper_tex, texture_enabled=True)  # carrega o relevo do preset
         backend = self._backend()
-        if backend:
-            backend.set_active_document_context(doc.uid, w, h)
+        if backend_ready(backend):
             backend.set_color_profile(color_prof)
-            backend.clear_canvas()
-            r, g, b, a = bg_color
-            backend.set_canvas_paper_state(QtGui.QColor(r, g, b, a), a > 0, paper_tex, paper_tex > 0)
             # A facade nova começa com o pincel padrão do motor: reenvia o
             # pincel do usuário (preset, parâmetros e cor).
             self._brush_sync.resync()
+        # Papel e perfil escolhidos no diálogo são o estado inicial, não edição.
+        doc.mark_saved()
         self._reset_view()
         prof_name = backend.get_color_profile_name(color_prof) if backend else "sRGB"
         self._say(tr("status.doc_created", "Novo documento '{name}' ({w}×{h} px, {dpi} DPI, {profile}) criado.",
@@ -96,7 +98,8 @@ class DocumentActions(ShellActions):
             return
         name = os.path.splitext(os.path.basename(filename))[0]
         width, height = qimg.width(), qimg.height()
-        doc = self._dm.new_document(width=width, height=height, name=name)
+        dpi = max(1, round(qimg.dotsPerMeterX() * 0.0254))  # a resolução gravada na imagem
+        doc = self._dm.new_document(width=width, height=height, name=name, dpi=dpi)
         rgba = qimg.convertToFormat(QtGui.QImage.Format_RGBA8888)
         raw_bytes = bytes(rgba.constBits()[: width * height * 4])
         backend = self._backend()

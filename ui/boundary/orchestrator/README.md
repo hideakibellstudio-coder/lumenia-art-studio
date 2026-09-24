@@ -38,12 +38,14 @@
   (`ui.core.document.layer_commands.LayerCommands`): um caminho só.
 - Edição de pixels vinda do menu roda por `canvas.run_as_stroke(...)`.
 - Ferramentas passam pelo `ToolState`; cor de preenchimento vem do `BrushState`.
+- Documento novo: quem abre o contexto no motor e leva o papel é a ativação
+  (`DocumentViewSync`); a ação só aplica o perfil de cor e o relevo do papel
+  (`Document.set_paper`) e marca o resultado como estado inicial (não sujo).
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-- Mensagens de status em português fixo (sem `tr()`) na maioria das ações.
-- O DPI do diálogo de novo documento é coletado mas não é guardado no
-  `Document` (aparece só na mensagem).
+- Títulos e filtros dos diálogos de arquivo (`QFileDialog`) ainda em
+  português fixo. As mensagens de status passam por `tr()` desde 2026-09-24.
 
 ## Dependências internas
 

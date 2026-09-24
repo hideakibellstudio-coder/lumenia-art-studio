@@ -44,6 +44,11 @@
 - Papel: só `Document.set_paper(campo=valor)` altera (suja, sincroniza o
   motor, emite `paper_changed`); views do papel leem do documento.
 - Lei nº 5 do rio: pixel que não está no `TileGrid` do motor não é salvo.
+- `Document.dpi` guarda a resolução de impressão e vai no `.lmn` (campo
+  opcional `dpi`; arquivo antigo abre com 300). O id do perfil de cor não é
+  campo do documento: é estado do motor por contexto
+  (`EngineBackend.get_color_profile` no documento ativo); o documento guarda
+  só os bytes ICC embutidos no arquivo.
 - Nada de aparência aqui: a miniatura da camada (`LocalLayer.thumb`) é a
   imagem que o motor devolve; quem desenha marcadores é o delegate do painel.
 

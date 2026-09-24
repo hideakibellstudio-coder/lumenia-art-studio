@@ -47,6 +47,9 @@ class AladynBackendBase:
     _view_state: tuple[float, float, float, float]
     _soft_proof_config: SoftProofConfig
     _color_profile_id: int
+    # Perfil de cor de cada contexto de documento: o de `_color_profile_id` é
+    # o do contexto ativo e volta daqui na troca de documento.
+    _doc_profiles: dict[str, int]
     last_telemetry: tuple[float, float, float]
 
     def _init_backend_state(self) -> None:
@@ -73,6 +76,7 @@ class AladynBackendBase:
         self._view_state = (0.0, 0.0, 1.0, 0.0)
         self._soft_proof_config = SoftProofConfig()
         self._color_profile_id = 0
+        self._doc_profiles = {}
         self.last_telemetry = (0.0, 0.0, 0.0)
 
     def _mark_document_dirty(self, reason: str) -> None:

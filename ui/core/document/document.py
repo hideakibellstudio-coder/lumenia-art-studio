@@ -70,6 +70,8 @@ class Document(QtCore.QObject):
         self.format_version: int = CURRENT_VERSION
         self.width = max(1, width)
         self.height = max(1, height)
+        # Resolução de impressão (pontos por polegada); vai no arquivo .lmn.
+        self.dpi: int = 300
 
         # Gerenciador de camadas local do documento
         self.layer_manager = LocalLayerManager()
@@ -102,11 +104,11 @@ class Document(QtCore.QObject):
         self.guide_state: dict = {}
         self.sym_state: dict = {}
 
-        # Perfil de cor e Prova de Impressão (F-006)
-        self.color_profile_id: int = 0
+        # Perfil ICC embutido no arquivo (F-006), para regravar os mesmos bytes.
+        # O id do perfil é estado do motor por documento
+        # (`EngineBackend.get_color_profile` no contexto ativo).
         self.color_profile_icc_bytes: bytes | None = None
         self.color_profile_name: str | None = None
-        self.soft_proof_state: dict = {}
 
         # Qualquer mutação de camada invalida o estado salvo do documento.
         self.layer_manager.content_changed.connect(self._on_content_changed)

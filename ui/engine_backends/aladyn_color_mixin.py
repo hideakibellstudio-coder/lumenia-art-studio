@@ -39,6 +39,8 @@ class AladynColorMixin(AladynBackendBase):
             raise ValueError("perfil de cor desconhecido")
         old_profile_id = self.get_color_profile()
         self._color_profile_id = profile_id
+        if self._active_doc_uid is not None:
+            self._doc_profiles[self._active_doc_uid] = profile_id
         if self._facade:
             # Para perfis nativos (0-13), sincroniza com a facade C++
             if profile_id <= 13:

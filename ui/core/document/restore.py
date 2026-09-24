@@ -57,6 +57,7 @@ def restore_document(document: Document, backend, manifest, payloads):
     active = manifest.get("active_uid") or records[0]["uid"]
     document.layer_manager.set_active_layer(active)
     backend.select_layer(indices[active])
+    document.dpi = manifest.get("dpi", document.dpi)
     paper = manifest.get("paper", {})
     document.paper_color = QColor(*paper.get("color", document.paper_color.getRgb()))
     document.paper_visible = paper.get("visible", document.paper_visible)
@@ -93,7 +94,6 @@ def restore_document(document: Document, backend, manifest, payloads):
     backend.set_color_profile(profile)
     if backend.get_color_profile() != profile:
         raise DocumentFormatError("perfil de cor não foi restaurado")
-    document.color_profile_id = profile
     document.guide_state = decode_guides(manifest.get("guide_state", {}))
     document.sym_state = dict(manifest.get("sym_state", {}))
     document.format_version = CURRENT_VERSION

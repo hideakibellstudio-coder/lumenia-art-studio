@@ -98,14 +98,20 @@ class AladynMdiMixin(AladynBackendBase):
         self._facade = self._doc_facades[uid]
         self._width = self._facade.get_width()
         self._height = self._facade.get_height()
+        # O perfil é de cada documento (a facade já guarda o nativo). Até
+        # 2026-09-24 o valor do último documento configurado valia para todos:
+        # salvar outro documento gravava o perfil errado no arquivo.
+        self._color_profile_id = self._doc_profiles.get(uid, 0)
         self._push_render_options(self._facade)
         if self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)
         if uid != PLACEHOLDER_CONTEXT:
             self._doc_facades.pop(PLACEHOLDER_CONTEXT, None)
+            self._doc_profiles.pop(PLACEHOLDER_CONTEXT, None)
 
     def close_document_context(self, uid: str) -> None:
         """Libera a memória C++ e deleta a PaintEngineFacade do documento fechado."""
+        self._doc_profiles.pop(uid, None)
         if uid in self._doc_facades:
             del self._doc_facades[uid]
             logger.info(f"[AladynBackend] PaintEngineFacade C++ liberada para doc '{uid}'.")
@@ -116,7 +122,9 @@ class AladynMdiMixin(AladynBackendBase):
                 first_uid = next(iter(self._doc_facades))
                 self._facade = self._doc_facades[first_uid]
                 self._active_doc_uid = first_uid
+                self._color_profile_id = self._doc_profiles.get(first_uid, 0)
                 self._width = self._facade.get_width()
                 self._height = self._facade.get_height()
             else:
                 self._facade = None
+                self._color_profile_id = 0

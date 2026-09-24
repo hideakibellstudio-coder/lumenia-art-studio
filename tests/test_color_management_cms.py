@@ -203,7 +203,6 @@ def test_08_lmn_roundtrip_with_embedded_icc_profile(tmp_path, srgb_icc_bytes):
         doc = Document(doc_uid, "Arte com ICC", width=w, height=h)
         doc.layer_manager.add_layer("Pintura")
         backend.set_active_document_context(doc_uid, w, h)
-        doc.color_profile_id = 150
         doc.color_profile_icc_bytes = srgb_icc_bytes
         doc.color_profile_name = "Studio Wide Gamut ICC"
 
@@ -236,7 +235,6 @@ def test_08_lmn_roundtrip_with_embedded_icc_profile(tmp_path, srgb_icc_bytes):
         backend.set_active_document_context(restored_doc.uid, w, h)
         restore_document(restored_doc, backend, manifest, payloads)
 
-        assert restored_doc.color_profile_id == 150
         assert restored_doc.color_profile_icc_bytes == srgb_icc_bytes
         assert restored_doc.color_profile_name == "Studio Wide Gamut ICC"
         assert backend.get_color_profile() == 150

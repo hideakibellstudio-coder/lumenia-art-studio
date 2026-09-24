@@ -72,10 +72,11 @@ class RenderSettingsDialog(BaseFramelessDialog):
         if backend and self._capabilities.get("color_profiles", False):
             self._all_profiles = backend.get_available_color_profiles()
 
-        # Prioriza o perfil ativo salvo no backend ou nas preferências persistentes
+        # O perfil é do documento ativo: abrir o diálogo só o mostra. Até
+        # 2026-09-24 um documento em sRGB recebia aqui o último perfil salvo
+        # nas preferências (e ficava sujo) só por abrir o diálogo.
         if backend and self._capabilities.get("color_profiles", False):
-            backend_pid = backend.get_color_profile()
-            self._active_profile_id = backend_pid if backend_pid != 0 else self._saved_cfg.get("profile_id", 0)
+            self._active_profile_id = backend.get_color_profile()
         else:
             self._active_profile_id = 0
 
@@ -83,9 +84,6 @@ class RenderSettingsDialog(BaseFramelessDialog):
         if self._active_profile_id not in profile_ids:
             self._active_profile_id = 0
 
-        # Sincroniza o backend se necessário
-        if backend and self._capabilities.get("color_profiles", False):
-            backend.set_color_profile(self._active_profile_id)
         if backend and self._capabilities.get("history", False):
             backend.set_undo_memory_limit_mb(int(self._saved_cfg.get("undo_limit_mb", 512)))
         if backend and self._capabilities.get("history", False):

@@ -18,12 +18,7 @@ Cada script roda sozinho (`python scripts/<nome>.py`); os de build estão em AGE
 | `run_soak_test.py` | Bateria rápida só do pincel nativo, sem widgets. |
 | `soak_full_session.py` | Gate de sessão longa: MainWindow real com traço, camadas, salvar e MDI. |
 | `monitor_sessao.ps1` | Amostra memória e handles do Lumenia durante uma sessão real de pintura. |
-| `generate_github_dashboard.py` | Gera `github_project_dashboard.html` a partir de `dashboard_template.html` e do log do git. |
-| `bisect_layers_crash.py` | Diagnóstico do crash de teardown do painel de camadas. |
-| `bisect_layers_crash2.py` | Diagnóstico refinado do mesmo crash. |
-| `bisect_panel_crash.py` | Qual painel causa crash no teardown offscreen. |
-| `bisect_view_attrs.py` | Qual atributo do `LayerTreeView` causa o crash. |
-| `bisect_view_cumulative.py` | Reproduz o `LayerTreeView` passo a passo. |
+| `generate_github_dashboard.py` | Gera `github_project_dashboard.html` (ignorado pelo git) a partir de `dashboard_template.html` e do log do git. |
 
 ## Regras
 
@@ -31,6 +26,4 @@ Cada script roda sozinho (`python scripts/<nome>.py`); os de build estão em AGE
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-- Os cinco `bisect_*.py` são diagnósticos pontuais de um crash de teardown; candidatos a virar teste ou sair.
-- `github_project_dashboard.html` é saída gerada por `generate_github_dashboard.py` e está versionada; `dashboard_template.html` é o modelo.
 - `monitor_sessao.ps1` tem nome em português (seção 14 do ARCcC).

@@ -47,3 +47,6 @@ diag_*.txt
 .pytest_cache/
 theme_icon_cache/
 uv.lock
+
+# Saída de scripts/generate_github_dashboard.py (gerada)
+github_project_dashboard.html

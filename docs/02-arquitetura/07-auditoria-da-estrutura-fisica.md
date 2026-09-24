@@ -78,15 +78,15 @@ A raiz tem os três pilares (`ui/`, `bridge/`, `engine/`) e também:
 - Pastas Python usam `snake_case`, não `kebab-case`: é a convenção nativa do
   Python (pacote com hífen não é importável), permitida pela seção 14.3.
 
-### 2.6 Arquivos sem consumidor ou gerados
+### 2.6 Arquivos sem consumidor ou gerados — resolvido (passo 1)
 
-- `assets/icons/`: 158 dos 160 SVG sem nenhum consumidor no código (os ícones
-  vêm de `ui/core/icon_svg_catalog.py`); `assets/icons/geometry/` é cópia byte a
-  byte de `plugins/ui/geometry_plugin/assets/`.
-- `plugins/plugins_config.json.bak`: cópia de segurança gerada em execução,
-  idêntica ao `plugins_config.json`, versionada.
-- `scripts/github_project_dashboard.html`: saída gerada, versionada.
-- `scripts/bisect_*.py` (5): diagnósticos pontuais de um crash de teardown.
+Saíram: 158 SVG de `assets/icons/` sem consumidor (os ícones vêm de
+`ui/core/icon_svg_catalog.py`; ficaram `close.svg` e `maximize.svg`, fallback
+do QSS), a cópia `assets/icons/geometry/` dos ícones do plugin de geometria,
+o índice `icon_index.json`, `plugins/plugins_config.json.bak` (cópia de
+segurança gerada em execução), `scripts/github_project_dashboard.html` (saída
+gerada, agora no `.gitignore`) e os cinco `scripts/bisect_*.py` (diagnósticos
+de um crash de encerramento, do primeiro commit, sem referência).
 
 ## 3. Plano proposto (por risco, do menor para o maior)
 

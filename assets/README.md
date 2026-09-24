@@ -13,12 +13,12 @@
 | `locales/` | Traduções da interface (4 idiomas). |
 | `docs/` | Guia do usuário por idioma (diálogo de ajuda). |
 | `images/` | Ícone da aplicação. |
-| `icons/` | Ícones SVG (ver dívida). |
+| `icons/` | Os dois SVG de fallback do QSS (fechar e maximizar). |
 
 ## Regras
 
 - Recurso novo é carregado por `resource_path`, nunca por caminho relativo ao diretório atual.
 
-## Dívida conhecida (medida em 2026-09-24)
-
-Os ícones da interface vêm do catálogo em código (`ui/core/icon_svg_catalog.py`); de `icons/` só `close.svg` e `maximize.svg` são usados (fallback do QSS). Medido em 2026-09-24: 158 dos 160 SVG de `icons/` não têm consumidor.
+Os ícones da interface vêm do catálogo em código (`ui/core/icon_svg_catalog.py`).
+Até 2026-09-24 `icons/` tinha 160 SVG, 158 sem nenhum consumidor (e 15 cópias
+dos ícones do plugin de geometria); saíram.

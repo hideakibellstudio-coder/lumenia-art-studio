@@ -5,9 +5,10 @@ selection, shape, transform, eyedropper, geometry, and text tools.
 Strictly decoupled in compliance with ARCcC v2 (< 200 LOC).
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from ui.core.engine.registry import EngineRegistry
+from ui.core.state import GeometryState
 from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
 from ui.core.tools import ToolCommand
 
@@ -25,14 +26,14 @@ if TYPE_CHECKING:
 class ToolManager:
     """Coordinates canvas tool controllers, settings, and command dispatch."""
 
-    def __init__(self, widget: 'RenderWidget') -> None:
+    def __init__(self, widget: 'RenderWidget', geometry_state: Optional[GeometryState] = None) -> None:
         self.widget = widget
 
         self.selection_ctrl = SelectionToolController(widget)
         self.shape_ctrl = ShapeToolController(widget)
         self.transform_ctrl = TransformToolController(widget)
         self.eyedrop_ctrl = EyedropToolController(widget)
-        self.geometry_ctrl = GeometryToolController(widget)
+        self.geometry_ctrl = GeometryToolController(widget, geometry_state)
         self.text_ctrl = TextToolController(widget)
         # O balde não tem controlador próprio: as opções dele moram aqui.
         self.bucket_settings = default_tool_settings("bucket")

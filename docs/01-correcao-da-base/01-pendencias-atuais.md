@@ -31,7 +31,8 @@ dependências medidas nas 62 pastas de código; CI verde.
    `WorkspaceContainer`.~~ *Feito em 2026-09-24:* seis colaboradores na casca
    (porta `workspace_port.py`) e quatro no workspace (`WorkspaceLayout`,
    `DocumentViewSync`, `PanelConnections`); papel com fonte única no
-   `Document`. Resta: `add_panel` conhece os ids `navigator`/`layers`/`geometry`.
+   `Document`. Resta: `add_panel` conhece os ids `navigator`/`layers` (o de
+   `geometry` saiu com a pendência 11).
 2. ~~**Painel avançado do pincel**~~ *(feito em 2026-09-24: cinco seções
    com estado próprio sobre `AdvancedSection`, `BrushEngineWriter` no lugar
    do mixin; comportamento caracterizado nos 23 controles antes e depois,
@@ -95,6 +96,17 @@ dependências medidas nas 62 pastas de código; CI verde.
    Resta: títulos e filtros dos diálogos de arquivo (`QFileDialog`, 10
    lugares) em português fixo; a Prova de Cores é uma só para todos os
    documentos e não vai no arquivo.
+11. ~~**Painel de geometria com cópia própria do estado**~~ *(feito em
+   2026-09-24: guias e simetria moram no `GeometryState` (`ui/core/state`);
+   canvas, menu, painel e diálogo avançado são views dele, e o controlador do
+   canvas é o escritor único no motor e no documento. O painel não recebe mais
+   o canvas (`set_render_widget` e 7 `hasattr` saíram) e o diálogo publica só
+   o campo editado. Defeitos medidos e corrigidos: a simetria do documento A
+   vazava para o B ao escolher uma régua no B; o painel mostrava o documento
+   anterior; mudar os segmentos no diálogo desfazia o ângulo arrastado no
+   canvas (30° → 90°); ângulo 0 no diálogo era ignorado; quando o diálogo
+   ligava a simetria radial e a perspectiva 6P, o painel continuava dizendo
+   "Selecione um modo...". `tests/test_geometry_state.py`, 12 testes.)*
 
 ---
 

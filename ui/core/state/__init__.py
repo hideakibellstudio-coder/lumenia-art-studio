@@ -2,8 +2,8 @@
 ui.core.state — Estado de aplicação compartilhado entre componentes (fonte única).
 
 Hoje: pincel (BrushState + BrushEngineSync), ferramenta ativa/opções
-(ToolState + ToolEngineSync) e a regra "formas usam a cor do pincel"
-(ShapeColorLink).
+(ToolState + ToolEngineSync), guias e simetria do documento ativo
+(GeometryState) e a regra "formas usam a cor do pincel" (ShapeColorLink).
 
 Porta de entrada pública da pasta. Tudo que outro módulo precisa daqui é
 importado deste arquivo; os módulos internos podem mudar sem aviso.
@@ -25,6 +25,7 @@ from ui.core.plugins.registry import ServiceRegistry
 from .brush_engine_sync import BackendProvider, BrushEngineSync
 from .brush_params import BRUSH_PARAM_DEFAULTS, BrushParam, quick_params_from_preset
 from .brush_state import BrushState
+from .geometry_state import GeometryState
 from .state_links import ShapeColorLink, ToolEngineSync
 from .tool_state import ToolState, is_shape_tool, options_key
 
@@ -35,6 +36,7 @@ class AppState:
     brush_sync: BrushEngineSync
     tools: ToolState
     tool_sync: ToolEngineSync
+    geometry: GeometryState
     shape_colors: ShapeColorLink
 
 
@@ -59,6 +61,7 @@ def install_app_state(registry: ServiceRegistry, backend_provider: BackendProvid
         brush_sync=get_or_register(BrushEngineSync, lambda: BrushEngineSync(brush, backend_provider)),
         tools=tools,
         tool_sync=get_or_register(ToolEngineSync, lambda: ToolEngineSync(tools, backend_provider)),
+        geometry=get_or_register(GeometryState, GeometryState),
         # Registrados para ficarem vivos junto do registry (ninguém os busca).
         shape_colors=get_or_register(ShapeColorLink, lambda: ShapeColorLink(brush, tools)),
     )
@@ -82,6 +85,7 @@ __all__ = [
     "BrushEngineSync",
     "BrushParam",
     "BrushState",
+    "GeometryState",
     "ShapeColorLink",
     "ToolEngineSync",
     "ToolState",

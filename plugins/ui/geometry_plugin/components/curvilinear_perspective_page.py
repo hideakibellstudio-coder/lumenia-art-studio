@@ -10,6 +10,13 @@ from ui.core.widgets.compact_slider import CompactSlider
 from ui.core.widgets.collapsible_section import CollapsibleSection
 from ui.core.i18n import tr
 
+# Itens do combo de densidade, em graus entre linhas da grade.
+_DENSITIES = (15.0, 30.0, 45.0)
+
+
+def _density_index(density) -> int:
+    return _DENSITIES.index(density) if density in _DENSITIES else 1
+
 
 class CurvilinearPerspectivePage(QtWidgets.QScrollArea):
     """Scrollable tab page configuring 3D camera distortion and curvilinear grid."""
@@ -60,7 +67,7 @@ class CurvilinearPerspectivePage(QtWidgets.QScrollArea):
         row_d.addWidget(self.lbl_d)
         self.combo_density = QtWidgets.QComboBox()
         self.combo_density.addItems(["Fina (15°)", "Média (30°)", "Esparsa (45°)"])
-        self.combo_density.setCurrentIndex(self._state.get("density_idx", 1))
+        self.combo_density.setCurrentIndex(_density_index(self._state.get("density", 30.0)))
         self.combo_density.currentIndexChanged.connect(self._emit_changed)
         row_d.addWidget(self.combo_density, 1)
         self.sec_grid.add_layout(row_d)
@@ -123,9 +130,7 @@ class CurvilinearPerspectivePage(QtWidgets.QScrollArea):
         state["yaw"] = float(self.slider_yaw.value())
         state["pitch"] = float(self.slider_pitch.value())
         state["fov"] = float(self.slider_fov.value())
-        state["density_idx"] = self.combo_density.currentIndex()
-        density_map = {0: 15.0, 1: 30.0, 2: 45.0}
-        state["density"] = density_map.get(self.combo_density.currentIndex(), 30.0)
+        state["density"] = _DENSITIES[max(0, self.combo_density.currentIndex())]
 
         state["show_ring"] = self.chk_ring.isChecked()
         state["show_straight_verticals"] = self.chk_straight_v.isChecked()
@@ -145,7 +150,7 @@ class CurvilinearPerspectivePage(QtWidgets.QScrollArea):
         self.slider_yaw.setValue(int(state.get("yaw", 0)))
         self.slider_pitch.setValue(int(state.get("pitch", 0)))
         self.slider_fov.setValue(int(state.get("fov", 130)))
-        self.combo_density.setCurrentIndex(state.get("density_idx", 1))
+        self.combo_density.setCurrentIndex(_density_index(state.get("density", 30.0)))
         self.chk_ring.setChecked(state.get("show_ring", True))
         self.chk_straight_v.setChecked(state.get("show_straight_verticals", False))
         self.chk_v.setChecked(state.get("show_v", True))

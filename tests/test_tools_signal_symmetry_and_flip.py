@@ -15,6 +15,7 @@ import pytest
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui.core.engine.registry import EngineRegistry
+from ui.core.i18n import tr  # mensagens seguem o idioma ativo: compara com a tradução
 from ui.core.engine.backend import EngineBackend
 from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 from plugins.system.workspace_core.workspace.canvas.viewport.camera_controller import CameraController
@@ -134,7 +135,7 @@ def test_main_window_image_actions_flip(app):
     actions.flip_view_horizontal()
     assert canvas.flip_x is True
     assert canvas.camera.flip_horizontal is True
-    assert "espelhada horizontalmente" in status.last_msg
+    assert status.last_msg == tr("status.view_flipped_h")
 
     actions.flip_view_horizontal()
     assert canvas.flip_x is False
@@ -142,7 +143,7 @@ def test_main_window_image_actions_flip(app):
     actions.flip_view_vertical()
     assert canvas.flip_y is True
     assert canvas.camera.flip_vertical is True
-    assert "espelhada verticalmente" in status.last_msg
+    assert status.last_msg == tr("status.view_flipped_v")
 
 
 def test_navigator_flip_signal_emission(app):
@@ -174,14 +175,14 @@ def test_main_window_toggle_grid_and_rulers(app):
     initial_v = rw.geometry_ctrl.guide_state.get("show_v", True)
     actions.toggle_grid()
     assert rw.geometry_ctrl.guide_state["show_v"] == (not initial_v)
-    assert "Grade magnética" in status.last_msg
+    assert status.last_msg in (tr("status.grid_on"), tr("status.grid_off"))
 
     # Toggle réguas
     initial_type = rw.geometry_ctrl.guide_state.get("type", "none")
     actions.toggle_rulers()
     expected_type = "straight" if initial_type == "none" else "none"
     assert rw.geometry_ctrl.guide_state["type"] == expected_type
-    assert "Réguas" in status.last_msg
+    assert status.last_msg in (tr("status.rulers_on"), tr("status.rulers_off"))
 
 
 # ── 3. Seleção e Marching Ants ────────────────────────────────────────────────
@@ -221,12 +222,12 @@ def test_menu_actions_select_all_and_invert(app, clean_engine):
     actions.select_all()
     assert clean_engine.has_selection()
     assert rw.selection_ctrl.selection_timer.isActive()
-    assert "Tudo selecionado" in status.last_msg
+    assert status.last_msg == tr("status.select_all")
 
     actions.invert_selection()
     assert not clean_engine.has_selection()
     assert not rw.selection_ctrl.selection_timer.isActive()
-    assert "Seleção invertida" in status.last_msg
+    assert status.last_msg == tr("status.selection_inverted")
 
 
 def test_canvas_clear_selection_stops_marching_ants(app, clean_engine):

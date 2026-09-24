@@ -9,25 +9,33 @@ Colaboradores (2026-09-24, o arquivo estava na parede dos 450 linhas):
   o próprio estado de trava e âncoras;
 - `geometry_engine_sync.push_guides/push_symmetry`: escritor único no motor;
 - o documento ativo guarda guias e simetria por `Document.store_*_state`.
+
+O estado (guias e simetria) é o `GeometryState` compartilhado
+(`ui/core/state`): o painel de geometria e o menu editam o mesmo objeto;
+`guide_state`/`sym_state` são os dois dicionários dele. Este controlador é o
+escritor único no motor e no documento: escuta o estado e sincroniza.
 """
 
-import copy
 import math
+from typing import Optional
+
 from PySide6 import QtCore
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
+from ui.core.state import GeometryState
 from ..math.camera_3d_projector import closest_point_on_curve
 from .geometry_engine_sync import push_guides, push_symmetry
 from .geometry_native_snap import NativeGeometrySnap, first_not_none
 from .geometry_snapping_engine import GeometrySnappingEngine
-from ui.core.geometry.synced_dict import SyncedDict
 
 
 class GeometryToolController:
     """Unified UI controller for symmetry, rulers, and 6P curvilinear perspective."""
 
-    def __init__(self, widget):
+    def __init__(self, widget, state: Optional[GeometryState] = None):
         self.widget = widget
+        # Sem estado injetado (testes do controlador isolado), um próprio.
+        self.state = state if state is not None else GeometryState()
         self.active_handle = None
         self.curv_drag_rotate = False
         self.curv_rotate_start = QtCore.QPointF()
@@ -51,58 +59,24 @@ class GeometryToolController:
         # Durante load_document_state o documento não é reescrito com o que
         # ele mesmo acabou de entregar.
         self._loading_document = False
+        self.state.guideChanged.connect(self.sync_guides_to_engine)
+        self.state.symmetryChanged.connect(self.sync_symmetry_to_engine)
 
-        self.sym_state = SyncedDict({
-            "mode": "none", "cx": 400.0, "cy": 300.0, "angle": 90.0,
-            "segments": 6, "stop_at_center": False, "locked": False,
-            "hidden": False, "snap_increment": 15
-        }, on_change=self.sync_symmetry_to_engine)
+    @property
+    def guide_state(self):
+        return self.state.guide
 
-        self.guide_state = SyncedDict({
-            "type": "none",
-            "p0": QtCore.QPointF(100, 300), "p1": QtCore.QPointF(700, 300),
-            "p2": QtCore.QPointF(300, 150), "p3": QtCore.QPointF(500, 450),
-            "vpA": QtCore.QPointF(100, 300), "vpB": QtCore.QPointF(700, 300),
-            "vpC": QtCore.QPointF(400, 50),
-            "cx": 400.0, "cy": 300.0, "base_radius": 350.0,
-            "yaw": 0.0, "pitch": 0.0, "fov": 130.0, "density": 30.0,
-            "show_ring": True, "show_v": True, "show_h": True, "show_d": True,
-            "show_vps": False, "show_cube": False, "show_ground": False, "show_ground_verticals": False,
-            "show_ceiling": False, "show_ceiling_verticals": False, "show_straight_verticals": False,
-            "show_letterbox": False, "aspect_ratio": "16:9", "snap_mode": "auto",
-            "hidden": False, "snap_radius": 32.0, "snap_dynamic": True, "show_hint": True,
-            "snap_sensitivity": 3.0
-        }, on_change=self.sync_guides_to_engine)
+    @property
+    def sym_state(self):
+        return self.state.symmetry
 
     def center_on_document(self, doc_w: float, doc_h: float):
-        doc_w, doc_h = max(1.0, float(doc_w)), max(1.0, float(doc_h))
-        cx, cy, base_r = doc_w / 2.0, doc_h / 2.0, min(doc_w, doc_h) * 0.42
-        self.sym_state.update({"cx": cx, "cy": cy}, sync=False)
-        self.guide_state.update({
-            "cx": cx, "cy": cy, "base_radius": base_r,
-            "p0": QtCore.QPointF(cx - doc_w * 0.35, cy), "p1": QtCore.QPointF(cx + doc_w * 0.35, cy),
-            "p2": QtCore.QPointF(cx - doc_w * 0.15, cy - doc_h * 0.18), "p3": QtCore.QPointF(cx + doc_w * 0.15, cy - doc_h * 0.18),
-            "vpA": QtCore.QPointF(cx - doc_w * 0.55, cy), "vpB": QtCore.QPointF(cx + doc_w * 0.55, cy),
-            "vpC": QtCore.QPointF(cx, cy - doc_h * 0.65)
-        }, sync=False)
-        self.sync_symmetry_to_engine()
-        self.sync_guides_to_engine()
+        self.state.center_on_document(doc_w, doc_h)
 
     def load_document_state(self, document):
-        # Reset defaults first so omitted fields never leak from another tab.
-        # `reset()` preserva a identidade do SyncedDict (e o on_change ja
-        # vinculado a `self`) -- reatribuir o atributo trocaria pelo
-        # SyncedDict de `defaults`, vinculado ao controller errado.
-        defaults = type(self)(self.widget)
-        self.guide_state.reset(dict(defaults.guide_state), sync=False)
-        self.sym_state.reset(dict(defaults.sym_state), sync=False)
         self._loading_document = True
         try:
-            self.center_on_document(document.width, document.height)
-            self.guide_state.update(copy.deepcopy(document.guide_state), sync=False)
-            self.sym_state.update(copy.deepcopy(document.sym_state), sync=False)
-            self.sync_guides_to_engine()
-            self.sync_symmetry_to_engine()
+            self.state.load(document.width, document.height, document.guide_state, document.sym_state)
         finally:
             self._loading_document = False
 

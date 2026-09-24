@@ -20,7 +20,7 @@ from ui.core.config import ConfigManager
 from ui.core.i18n import I18nManager
 from plugins.system.workspace_core.workspace.secondary_tool_bar.toolbar import SecondaryToolBar
 from ui.core.plugins.registry import ServiceRegistry
-from ui.core.state import install_app_state
+from ui.core.state import GeometryState, install_app_state
 from plugins.ui.geometry_plugin.panel import GeometryPanel
 from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 
@@ -102,7 +102,7 @@ class TestToolbarsGeometryI18nRetranslation(unittest.TestCase):
 
     def test_03_geometry_panel_icon_and_retranslation(self):
         """Valida que o GeometryPanel possui icone SVG na engrenagem e re-traduz o status idle dinamicamente."""
-        panel = GeometryPanel()
+        panel = GeometryPanel(GeometryState())
         try:
             # Verifica que o botao de configuracoes possui icone SVG valido
             self.assertFalse(panel.btn_advanced.icon().isNull())

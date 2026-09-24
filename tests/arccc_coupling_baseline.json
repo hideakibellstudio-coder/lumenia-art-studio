@@ -58,9 +58,6 @@
  "plugins/ui/geometry_plugin/components/geometry_selector.py": {
   "hasattr": 2
  },
- "plugins/ui/geometry_plugin/panel.py": {
-  "hasattr": 7
- },
  "plugins/ui/layers_plugin/delegate.py": {
   "hasattr": 1
  },

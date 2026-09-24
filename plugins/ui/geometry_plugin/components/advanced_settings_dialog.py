@@ -19,6 +19,7 @@ from .symmetry_settings_page import SymmetrySettingsPage
 class AdvancedGeometryDialog(FloatingPanelWindow):
     """Janela flutuante avançada padronizada com abas, aberturas colapsáveis e sliders compactos."""
 
+    # Só os campos editados (ver `_on_changed`).
     settingsChanged = QtCore.Signal(dict)
 
     def __init__(
@@ -34,6 +35,7 @@ class AdvancedGeometryDialog(FloatingPanelWindow):
 
         self.state = current_state.copy() if current_state else {}
         self._build_ui()
+        self._shown = self._collect()
 
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme("")
@@ -246,49 +248,60 @@ class AdvancedGeometryDialog(FloatingPanelWindow):
     def _on_tab(self, idx: int) -> None:
         self.stack.setCurrentIndex(idx)
 
-    def _on_changed(self) -> None:
-        self.curv_page.collect_state(self.state)
-        self.snap_page.collect_state(self.state)
-        self.sym_page.collect_state(self.state)
+    def _pages(self):
+        return (self.curv_page, self.snap_page, self.sym_page)
 
-        # Auto-ativação se nenhuma régua / simetria estiver ativa
-        if self.stack.currentIndex() == 0 and self.state.get("ruler_type") == "none":
-            self.state["ruler_type"] = "curvilinear"
-            self.state["ruler_idx"] = 6
+    def _collect(self) -> dict:
+        values: dict = {}
+        for page in self._pages():
+            page.collect_state(values)
+        return values
 
-        if self.stack.currentIndex() == 2 and self.state.get("sym_type") == "none":
-            self.state["sym_type"] = "radial"
-            self.state["sym_idx"] = 4
-
-        self.settingsChanged.emit(self.state)
-
-    def sync_from_state(self, state: dict) -> None:
-        self.state.update(state)
-        all_widgets = (
-            self.curv_page.all_input_widgets()
-            + self.snap_page.all_input_widgets()
-            + self.sym_page.all_input_widgets()
-        )
-        for w in all_widgets:
+    def _show(self, state: dict) -> None:
+        """Põe `state` nos widgets sem emitir e lembra o que ficou na tela."""
+        widgets = [w for page in self._pages() for w in page.all_input_widgets()]
+        for w in widgets:
             w.blockSignals(True)
         try:
-            self.curv_page.sync_from_state(self.state)
-            self.snap_page.sync_from_state(self.state)
-            self.sym_page.sync_from_state(self.state)
+            for page in self._pages():
+                page.sync_from_state(state)
         finally:
-            for w in all_widgets:
+            for w in widgets:
                 w.blockSignals(False)
+        self._shown = self._collect()
+
+    def _on_changed(self) -> None:
+        """Publica só os campos cujo widget o usuário mudou.
+
+        Até 2026-09-24 publicava o dicionário inteiro: mudar os segmentos
+        reescrevia o ângulo com o valor de quando o diálogo abriu, desfazendo o
+        arrasto da alça no canvas. Quem liga uma régua ou simetria quando a aba
+        editada não teria efeito é o `GeometryState.apply_advanced`.
+        """
+        now = self._collect()
+        changed = {key: value for key, value in now.items() if self._shown.get(key) != value}
+        self._shown = now
+        if changed:
+            self.state.update(changed)
+            self.settingsChanged.emit(changed)
+
+    def sync_from_state(self, state: dict) -> None:
+        """Mostra o estado atual (não emite)."""
+        self.state.update(state)
+        self._show(self.state)
 
     def _on_reset(self) -> None:
-        self.sync_from_state({
-            "yaw": 0.0, "pitch": 0.0, "fov": 130.0, "density_idx": 1, "density": 30.0,
+        before = self._shown
+        self._show({**self.state, **{
+            "yaw": 0.0, "pitch": 0.0, "fov": 130.0, "density": 30.0,
             "show_ring": True, "show_straight_verticals": False, "show_v": True, "show_vps": False,
             "show_h": True, "show_letterbox": False, "show_d": True, "show_cube": False,
             "show_ground": False, "show_ceiling": False, "show_ground_verticals": False,
             "show_ceiling_verticals": False, "aspect_ratio": "16:9", "snap_mode": "auto",
             "snap_sensitivity": 3.0, "snap_dynamic": True, "show_hint": True, "hidden": False,
-            "segments": 6, "angle": 0.0, "stop_at_center": False, "locked": False
-        })
+            "segments": 6, "angle": 90.0, "stop_at_center": False, "locked": False
+        }})
+        self._shown = before  # o que o reset mudou na tela conta como editado
         self._on_changed()
 
     def _apply_theme(self, _="") -> None:

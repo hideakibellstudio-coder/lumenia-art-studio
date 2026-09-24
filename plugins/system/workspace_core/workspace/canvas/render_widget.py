@@ -28,6 +28,7 @@ _BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.backend import PointerEvent
+from ui.core.state import GeometryState
 
 from .viewport.camera_controller import CameraController
 from .viewport.input_router import CanvasInputRouter
@@ -52,7 +53,8 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
     strokeFinished = QtCore.Signal()
     colorPicked = QtCore.Signal(QtGui.QColor)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None,
+                 geometry_state: Optional[GeometryState] = None):
         super().__init__(parent)
         if _OPENGL_ENABLED:
             fmt = QtGui.QSurfaceFormat()
@@ -69,7 +71,10 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         self.camera = CameraController(self)
         self.input_router = CanvasInputRouter(self)
         self.cursor_ctrl = CanvasCursorController(self)
-        self.tool_mgr = ToolManager(self)
+        self.tool_mgr = ToolManager(self, geometry_state)
+        # Guias e simetria editadas fora do canvas (painel, menu) redesenham.
+        self.geometry_ctrl.state.guideChanged.connect(self.update)
+        self.geometry_ctrl.state.symmetryChanged.connect(self.update)
 
         self.stroke = CanvasStrokePipeline(self)
         self.viewport_renderer = ViewportRenderer(self)
@@ -152,9 +157,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         """Liga/desliga as linhas da grade de guias; devolve o novo estado."""
         guides = self.geometry_ctrl.guide_state
         visible = not guides.get("show_v", True)
-        guides["show_v"] = guides["show_h"] = guides["show_d"] = visible
-        self.geometry_ctrl.sync_guides_to_engine()
-        self.update()
+        guides.update({"show_v": visible, "show_h": visible, "show_d": visible})  # motor e tela: pelo estado
         return visible
 
     def toggle_rulers(self) -> bool:
@@ -162,8 +165,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         guides = self.geometry_ctrl.guide_state
         visible = guides.get("type", "none") == "none"
         guides["type"] = "straight" if visible else "none"
-        self.geometry_ctrl.sync_guides_to_engine()
-        self.update()
         return visible
     def clear_selection(self): self.selection_ctrl.clear_selection()
     def select_all(self): self.selection_ctrl.select_all()

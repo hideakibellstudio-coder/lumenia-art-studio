@@ -47,9 +47,9 @@
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-- `add_panel` conhece três ids de painéis de plugins (`navigator`, `layers`,
-  `geometry`) e a forma de ligar cada um (contrato implícito do
-  `WorkspaceService`).
+- `add_panel` conhece dois ids de painéis de plugins (`navigator`, `layers`)
+  e a forma de ligar cada um (contrato implícito do `WorkspaceService`). O de
+  geometria saiu em 2026-09-24: o painel recebe o `GeometryState` do plugin.
 - `floating_toolbar.py` (366 linhas) guarda animações e arrasto no mesmo
   widget.
 

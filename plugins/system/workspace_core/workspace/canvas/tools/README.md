@@ -15,7 +15,7 @@
 | `geometry_engine_sync.py` | `push_guides`/`push_symmetry`: escritor único de guias e simetria no motor (contrato `EngineBackend`, sem `hasattr`). |
 | `geometry_native_snap.py` | `NativeGeometrySnap`: snap de perspectiva e curvilíneo pelo motor C++ (toggle `LUMENIA_SNAP_NATIVE_*`), com o próprio estado de trava e âncoras. |
 | `geometry_snapping_engine.py` | Pure Analytical Geometry Snapping Engine. |
-| `geometry_tool_controller.py` | `GeometryToolController`: alças, arrasto e snap das guias e da simetria; guarda o estado no documento ativo (`Document.store_*_state`). |
+| `geometry_tool_controller.py` | `GeometryToolController`: alças, arrasto e snap das guias e da simetria sobre o `GeometryState` compartilhado; escritor único no motor e no documento ativo (`Document.store_*_state`). |
 | `selection_tool_controller.py` | Selection Tool Controller (Magic Wand, Rect, Ellipse, Lasso). |
 | `shape_tool_controller.py` | Vector and Geometric Shape Tool Controller. |
 | `text_tool_controller.py` | TextToolController — Controlador de Edição e Inserção de Texto no Canvas. |
@@ -30,6 +30,10 @@
   quem está de fora.
 - Comando pontual (Aplicar, Desmarcar...): valor em `ui.core.tools.ToolCommand`
   e um caso em `run_command`.
+- Guias e simetria moram no `GeometryState` (`ui/core/state`); `guide_state` e
+  `sym_state` do controlador são os dois dicionários dele. Quem escreve neles
+  (alças, menu, painel de geometria) não chama sync: o controlador escuta o
+  estado e leva ao motor e ao documento.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
@@ -47,4 +51,5 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/document`
 - `ui/core/engine`
 - `ui/core/geometry`
+- `ui/core/state`
 <!-- /arccc:deps -->

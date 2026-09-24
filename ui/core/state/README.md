@@ -1,9 +1,9 @@
 # `ui/core/state/` — estado de aplicação compartilhado
 
 **Em uma frase:** guarda o estado que mais de um componente mostra ou edita
-(hoje: o pincel — cor, parâmetros rápidos, preset por ferramenta — e a
-ferramenta ativa com as opções de cada ferramenta) e avisa todo mundo por
-sinal quando ele muda.
+(hoje: o pincel — cor, parâmetros rápidos, preset por ferramenta —, a
+ferramenta ativa com as opções de cada ferramenta e as guias/simetria do
+documento ativo) e avisa todo mundo por sinal quando ele muda.
 
 ## Por que existe
 
@@ -28,9 +28,10 @@ podem mudar sem aviso.
 | `BrushEngineSync` | Único caminho `BrushState → motor`. Também `resync()` após trocar a facade nativa. |
 | `ToolState` | QObject com a ferramenta ativa e as opções normalizadas de cada ferramenta (`ui.core.tool_settings`). |
 | `ToolEngineSync` | Único caminho `ToolState → motor` para opções que o motor consome (hoje: Smudge). |
+| `GeometryState` | QObject com as guias (`guide`) e a simetria (`symmetry`) do documento ativo, dois `SyncedDict` que emitem `guideChanged`/`symmetryChanged` a cada escrita. Escritor único no motor e no documento: o `GeometryToolController` do canvas. |
 | `ShapeColorLink` | Regra "as formas usam a cor do pincel": contorno = cor nova; fundo = cor nova com a opacidade de fundo atual. |
 | `options_key(tool)` / `is_shape_tool(tool)` | `shape_*` compartilham as opções de `"shapes"`. |
-| `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry` (devolve `AppState(brush, brush_sync, tools, tool_sync, shape_colors)`). Idempotente. Chamado pela casca. |
+| `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry` (devolve `AppState(brush, brush_sync, tools, tool_sync, geometry, shape_colors)`). Idempotente. Chamado pela casca. |
 | `require(registry, Tipo)` | Busca um serviço obrigatório com mensagem de erro clara. |
 
 ## Arquivos
@@ -41,6 +42,7 @@ podem mudar sem aviso.
 | `brush_params.py` | Enum `BrushParam`, tipos e valores padrão dos parâmetros rápidos; `quick_params_from_preset`. |
 | `brush_state.py` | `BrushState`: cor, parâmetros rápidos e preset lembrado por ferramenta. |
 | `brush_engine_sync.py` | `BrushEngineSync`: único escritor `BrushState → motor`; `resync()` após trocar de documento. |
+| `geometry_state.py` | `GeometryState`: guias e simetria do documento ativo; regras de ângulo por modo, campos do diálogo avançado (`apply_advanced`), centro no documento e troca de documento (`load`). |
 | `tool_state.py` | `ToolState`: ferramenta ativa e opções normalizadas por ferramenta; `options_key`, `is_shape_tool`. |
 | `state_links.py` | Regras entre estados: `ShapeColorLink` (formas usam a cor do pincel) e `ToolEngineSync` (Smudge → motor). |
 
@@ -74,6 +76,19 @@ lia e mandava opções de forma ao canvas por dois caminhos.
 Telas de opções (páginas do painel de pincel e views da barra secundária)
 herdam `ui.core.widgets.tool_options.ToolOptionsView`: mostram o estado em
 `show_options`, publicam só o campo editado e nunca republicam ao mostrar.
+
+### Guias e simetria
+
+```
+alças do canvas ─┐                                           ┌─► GeometryToolController ──► motor + Document.store_*_state
+menu Grade/Réguas├── guide[...] / set_symmetry_mode / ──► GeometryState ─┤     (escritor único)
+painel, diálogo ─┘   apply_advanced                          ├─► canvas redesenha
+                                                             └─► painel de geometria e diálogo aberto mostram
+```
+
+Antes de 2026-09-24 o painel guardava uma cópia própria e a empurrava inteira
+para o canvas: a simetria de um documento vazava para o outro e o diálogo
+desfazia o ângulo arrastado no canvas (`tests/test_geometry_state.py`).
 
 ### Regras entre estados (`state_links.py`)
 
@@ -131,5 +146,6 @@ painel) e uma das cópias zerava a opacidade do fundo.
 <!-- arccc:deps -->
 - `ui/core`
 - `ui/core/engine`
+- `ui/core/geometry`
 - `ui/core/plugins`
 <!-- /arccc:deps -->

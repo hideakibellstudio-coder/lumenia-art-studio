@@ -217,6 +217,12 @@ class GeometrySelectorButton(QtWidgets.QPushButton):
             self.setText(f"{r_name} | {s_name}  ▾")
             self.setIcon(get_icon("compass"))
 
+    def set_selection(self, ruler_idx: int, sym_idx: int) -> None:
+        """Mostra a régua e a simetria atuais (não emite)."""
+        if (ruler_idx, sym_idx) != (self.active_ruler_idx, self.active_sym_idx):
+            self.active_ruler_idx, self.active_sym_idx = ruler_idx, sym_idx
+            self._update_text()
+
     def _open_popup(self):
         if not self.popup:
             self.popup = GeometrySelectorPopup(self.window())

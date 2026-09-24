@@ -39,7 +39,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.plugins.panel_ids import PanelId
-from ui.core.state import BrushEngineSync, BrushState, ToolState
+from ui.core.state import BrushEngineSync, BrushState, GeometryState, ToolState
 
 from .canvas.render_widget import CanvasWidget
 from .canvas_brush_binding import CanvasBrushBinding
@@ -107,6 +107,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
         brush_state: BrushState,
         brush_sync: BrushEngineSync,
         tool_state: ToolState,
+        geometry_state: GeometryState,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -119,7 +120,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        self.canvas_widget = CanvasWidget(self)
+        self.canvas_widget = CanvasWidget(self, geometry_state)
         self.viewport_container = TabbedViewportContainer(self.canvas_widget, self)
         main_layout.addWidget(self.viewport_container.header_widget)
         self.workspace_area = QtWidgets.QWidget(self)
@@ -264,8 +265,6 @@ class WorkspaceContainer(QtWidgets.QWidget):
             bind(sync.layerManagerChanged, widget.set_layer_manager)
             if doc is not None:
                 widget.set_layer_manager(doc.layer_manager)
-        elif panel_id == PanelId.GEOMETRY:
-            widget.set_render_widget(self.canvas_widget)
 
     def remove_panel(self, panel_id: str) -> None:
         """Desfaz as conexões do painel e o tira das duas docas."""

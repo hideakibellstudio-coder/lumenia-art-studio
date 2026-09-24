@@ -62,7 +62,7 @@ class RecordingFloatingBar(FloatingToolWindow):
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if watched is self.canvas and event.type() in (QtCore.QEvent.Resize, QtCore.QEvent.Move):
             if self.isVisible() and not self._user_dragged:
-                QtCore.QTimer.singleShot(10, self.reposition_to_top_anchor)
+                QtCore.QTimer.singleShot(10, self, self.reposition_to_top_anchor)
         return super().eventFilter(watched, event)
 
     def _setup_ui(self) -> None:

@@ -16,13 +16,6 @@ from ui.core.icon_svg_catalog import ALIASES
 from ui.core.icons import get_icon
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 def test_tool_cursor_renderer_hotspots_and_icons(qapp):
     """Verifica resolução de cursores customizados SVG, catálogo e hotspots."""

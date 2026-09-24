@@ -19,13 +19,6 @@ from ui.core.screens.floating_toolbar_settings_dialog import (
 )
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 def test_toolbar_live_preview_contract(qapp):
     """Valida o componente isolado ToolbarLivePreview."""

@@ -20,7 +20,7 @@ class MainWindowRecoveryMixin:
         self.recovery_timer.timeout.connect(self._capture_recovery)
         if not config.is_test_mode:
             self.recovery_timer.start()
-            QtCore.QTimer.singleShot(0, self._offer_recovery)
+            QtCore.QTimer.singleShot(0, self, self._offer_recovery)
 
     def _mark_canvas_changed(self):
         document = self.dm.active_document()

@@ -10,13 +10,6 @@ from plugins.ui.layers_plugin.panel_actions import handle_delegate_action
 from ui.core.document.local_layer import LocalLayer
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 def test_texture_popup_standalone_and_export(qapp):
     # Test identical class export

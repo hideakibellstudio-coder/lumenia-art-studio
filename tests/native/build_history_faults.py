@@ -4,12 +4,20 @@ import hashlib
 import os
 import shutil
 import subprocess
+import sys
 
 from setuptools._distutils.ccompiler import new_compiler
 from setuptools._distutils.sysconfig import customize_compiler
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "build" / "history-faults"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+# Mesma regra de pasta do build nativo (AGENTS.md: compilação out-of-tree).
+from scripts.build_native import DEFAULT_BUILD_DIR  # noqa: E402
+
+OUT = DEFAULT_BUILD_DIR / "history-faults"
+BINARY = OUT / ("history_faults.exe" if os.name == "nt" else "history_faults")
 SOURCES = [
     "tests/native/history_faults.cpp",
     "engine/core/canvas/Tile.cpp", "engine/core/canvas/TileGrid.cpp",
@@ -30,7 +38,7 @@ def build():
     inputs = [Path(__file__)] + [ROOT / name for name in SOURCES] + sorted((ROOT / "engine").rglob("*.hpp"))
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in inputs)).hexdigest()
     stamp = OUT / "source.sha256"
-    binary = OUT / ("history_faults.exe" if os.name == "nt" else "history_faults")
+    binary = BINARY
     if binary.exists() and stamp.exists() and stamp.read_text() == digest:
         return
     if os.name == "nt" and not shutil.which("cl.exe"):
@@ -57,7 +65,9 @@ def build():
     if os.environ.get("LUMENIA_SIMD", "scalar").strip().lower() == "avx2" and os.name == "nt":
         flags.append("/arch:AVX2")
     objects = compiler.compile(SOURCES, output_dir=str(OUT), include_dirs=[str(ROOT)], extra_postargs=flags)
-    compiler.link_executable(objects, str(OUT / "history_faults"))
+    # target_lang="c++": no Linux/macOS o linker padrão do distutils é o de C,
+    # que não traz a libstdc++ (falhava com dezenas de símbolos indefinidos).
+    compiler.link_executable(objects, str(OUT / "history_faults"), target_lang="c++")
     stamp.write_text(digest)
 
 

@@ -77,7 +77,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         super().showEvent(event)
         if self._first_show:
             self._first_show = False
-            QtCore.QTimer.singleShot(0, self.reset_view)
+            QtCore.QTimer.singleShot(0, self, self.reset_view)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         # Nunca encerra a janela enquanto existir um documento sujo sem uma

@@ -20,13 +20,6 @@ from ui.core.dialogs.telemetry_grid_window import (
 )
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 def test_grid_metric_card_contract(qapp):
     """Valida o funcionamento isolado do componente GridMetricCard."""

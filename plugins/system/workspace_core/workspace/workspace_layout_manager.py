@@ -61,7 +61,7 @@ class WorkspaceLayoutMixin:
         wa_h = self.workspace_area.height()
 
         if wa_w < 50 or wa_h < 50:
-            QtCore.QTimer.singleShot(100, self.update_toolbar_position)
+            QtCore.QTimer.singleShot(100, self, self.update_toolbar_position)
             return
 
         self.floating_toolbar.adjustSize()
@@ -177,7 +177,7 @@ class WorkspaceLayoutMixin:
         if cfg.get("active", True):
             self.floating_toolbar.show()
             self.floating_toolbar.raise_()
-            QtCore.QTimer.singleShot(30, self.update_toolbar_position)
+            QtCore.QTimer.singleShot(30, self, self.update_toolbar_position)
         else:
             self.floating_toolbar.hide()
 

@@ -156,7 +156,7 @@ class WorkspaceContainer(
 
         # ── Configurações de gavetas (persistidas via QSettings) ───────────
         from ui.core.screens.dock_settings_dialog import load_dock_settings
-        QtCore.QTimer.singleShot(0, lambda: self.apply_dock_settings(load_dock_settings()))
+        QtCore.QTimer.singleShot(0, self, lambda: self.apply_dock_settings(load_dock_settings()))
 
         # ── Barra Flutuante (FloatingToolbar - Janela Nativa Qt.Tool) ───────
         from .floating_toolbar import FloatingToolbar
@@ -165,7 +165,7 @@ class WorkspaceContainer(
         self.floating_toolbar = FloatingToolbar(parent=self)
         self.floating_toolbar.drag_finished.connect(self._on_floating_toolbar_dropped)
         self.floating_toolbar.status_notification.connect(self._on_status_notification)
-        QtCore.QTimer.singleShot(0, lambda: self.apply_floating_toolbar_settings(load_floating_toolbar_settings()))
+        QtCore.QTimer.singleShot(0, self, lambda: self.apply_floating_toolbar_settings(load_floating_toolbar_settings()))
 
         # ── Barra Secundária Contextual de Ferramentas ───────────────────────
         self.secondary_toolbar = SecondaryToolBar(parent=self)
@@ -224,7 +224,7 @@ class WorkspaceContainer(
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
-        QtCore.QTimer.singleShot(50, self.update_toolbar_position)
+        QtCore.QTimer.singleShot(50, self, self.update_toolbar_position)
 
     def retranslate_ui(self) -> None:
         """Propaga a re-tradução aos subsistemas do workspace."""

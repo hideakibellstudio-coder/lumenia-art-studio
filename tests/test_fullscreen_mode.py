@@ -16,13 +16,6 @@ from ui.core.shortcut_registry import ShortcutRegistry
 from ui.core.shortcut_catalog import DEFAULT_SHORTCUTS
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 def test_fullscreen_actions_and_shortcuts_in_menus(qapp):
     """Valida que ViewMenu e WindowMenu possuem as ações de Tela Cheia com atalho F11."""

@@ -22,7 +22,8 @@ def fault_harness():
     result = subprocess.run([sys.executable, str(ROOT / "tests/native/build_history_faults.py")],
                             cwd=ROOT, capture_output=True, text=True, timeout=180)
     assert result.returncode == 0, result.stdout + result.stderr
-    return ROOT / "build/history-faults" / ("history_faults.exe" if os.name == "nt" else "history_faults")
+    from tests.native.build_history_faults import BINARY
+    return BINARY
 
 
 @pytest.mark.parametrize("scenario", [

@@ -9,13 +9,6 @@ from plugins.ui.brush_plugin.components.quick_sliders_section import QuickSlider
 from ui.core.widgets.compact_slider import CompactSlider
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 def test_tool_selection_column(qapp):
     col = ToolSelectionColumn()

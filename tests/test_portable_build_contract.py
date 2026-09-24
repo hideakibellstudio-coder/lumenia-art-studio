@@ -1,8 +1,12 @@
 import json
+import sys
+
+import pytest
 
 from scripts import build_portable
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="o bundle Nuitka exige o .pyd do Windows na raiz")
 def test_portable_command_includes_native_engine_and_runtime_data():
     command = build_portable.nuitka_command()
     joined = "\n".join(command)

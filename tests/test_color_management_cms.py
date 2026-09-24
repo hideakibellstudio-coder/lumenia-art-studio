@@ -174,6 +174,15 @@ def test_07_backend_soft_proofing_and_custom_profiles():
         assert retrieved.enabled is True
         assert retrieved.proof_profile_id == 4
 
+        # A prova CMYK precisa de um perfil CMYK instalado (no Windows, o
+        # RSWOP.icm do sistema). Sem ele o backend cai no caminho nativo, que
+        # é identidade para sRGB -- não há o que comparar nesta máquina.
+        swop = Path(r"C:\Windows\System32\spool\drivers\color\RSWOP.icm")
+        proof_info = get_color_catalog().get_profile(4)
+        has_proof_profile = swop.is_file() or bool(proof_info and (proof_info.file_path or proof_info.icc_bytes))
+        if not has_proof_profile:
+            pytest.skip("sem perfil CMYK de prova instalado nesta máquina")
+
         # Testa transformação de buffer com soft-proofing ativo
         src_buf = bytes([200, 100, 50, 255] * 10)
         transformed = backend.transform_rgba_for_profile(src_buf, profile_id=0)

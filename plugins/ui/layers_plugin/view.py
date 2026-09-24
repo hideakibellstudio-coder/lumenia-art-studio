@@ -147,7 +147,7 @@ class LayerTreeView(QTreeView):
             self._expanded_uids_backup = []
             
         from PySide6.QtCore import QTimer
-        QTimer.singleShot(0, deferred_restore)
+        QTimer.singleShot(0, self, deferred_restore)
 
     def keyPressEvent(self, event):
         mods = event.modifiers()

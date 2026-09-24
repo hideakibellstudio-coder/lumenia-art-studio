@@ -11,13 +11,6 @@ from ui.boundary.orchestrator.main_window_dialog_actions import MainWindowDialog
 from ui.boundary.orchestrator.main_window_menu_actions import MainWindowMenuActionsMixin
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 class DummyHost(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
     """Host falso simulando a MainWindow para testar o mixin desacoplado."""
@@ -69,9 +62,13 @@ def test_main_window_menu_actions_mixin_inheritance(qapp):
         assert host.shortcut_undo.shortcut().toString() == "Ctrl+Z"
         assert host.shortcut_tool_b.shortcut().toString() == "B"
 
-        # Testa troca de idioma
+        # Testa troca de idioma. "auto" segue o idioma do sistema operacional,
+        # então a mensagem esperada é a do idioma que ficou ativo -- não uma
+        # frase fixa em português (o teste falhava em máquinas não pt-BR).
+        from ui.core.i18n import tr
         host.set_application_language("auto")
-        assert "Idioma" in host.status_bar.currentMessage()
+        expected = tr("status.language_changed", "Idioma sincronizado com o sistema operacional.")
+        assert host.status_bar.currentMessage() == expected
     finally:
         host.shortcut_registry.cleanup()
         host.deleteLater()

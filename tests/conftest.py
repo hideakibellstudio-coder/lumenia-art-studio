@@ -16,6 +16,22 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.setdefault("OMP_NUM_THREADS", "2")
 
 
+@pytest.fixture(scope="session")
+def qapp():
+    """QApplication única da sessão de testes.
+
+    Fonte única do fixture: antes existiam nove cópias idênticas espalhadas
+    pelos módulos e um módulo (test_tools_signal_symmetry_and_flip.py) que
+    dependia do `qapp` do pytest-qt, que não está no requirements-dev.lock.
+    """
+    from PySide6 import QtWidgets
+
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication([])
+    return app
+
+
 @pytest.fixture(autouse=True, scope="module")
 def _descartar_janelas_criadas_pelo_modulo():
     """Destroi as janelas de topo que um módulo de teste deixou vivas.

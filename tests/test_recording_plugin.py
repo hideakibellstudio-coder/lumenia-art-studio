@@ -17,13 +17,6 @@ from plugins.ui.recording_plugin import RecordingPlugin
 from ui.core.plugins.workspace_contract import WorkspaceService
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 class DummyBackend:
     def __init__(self, w=100, h=100):

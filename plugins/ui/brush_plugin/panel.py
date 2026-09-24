@@ -64,7 +64,7 @@ class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, Brus
         self.retranslate_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme_style)
         self._apply_theme_style()
-        QtCore.QTimer.singleShot(0, self.sync_initial_state)
+        QtCore.QTimer.singleShot(0, self, self.sync_initial_state)
 
 
     def sync_initial_state(self) -> None:

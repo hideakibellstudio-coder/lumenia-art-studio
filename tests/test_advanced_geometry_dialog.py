@@ -9,13 +9,6 @@ from plugins.ui.geometry_plugin.components.snapping_guides_page import SnappingG
 from plugins.ui.geometry_plugin.components.symmetry_settings_page import SymmetrySettingsPage
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
 
 def test_curvilinear_perspective_page_standalone(qapp):
     init_state = {"yaw": 45.0, "pitch": -15.0, "fov": 100.0, "show_cube": True}

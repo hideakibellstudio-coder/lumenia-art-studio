@@ -1,0 +1,20 @@
+# Finais de linha uniformes (2026-09-24). Antes: 138 arquivos CRLF, 563 LF e
+# 26 misturados, o que tornava diffs ilegíveis e fazia edições de agentes
+# reescreverem arquivos inteiros. Tudo é LF no repositório e na cópia de
+# trabalho -- Python, MSVC e Qt leem LF sem problema no Windows.
+* text=auto eol=lf
+
+# Scripts do Windows precisam de CRLF para o interpretador.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.vbs text eol=crlf
+*.ps1 text eol=crlf
+*.iss text eol=crlf
+
+# Binários (explícitos para não depender da detecção automática).
+*.png binary
+*.ico binary
+*.pyd binary
+*.so binary
+*.dll binary
+*.exe binary

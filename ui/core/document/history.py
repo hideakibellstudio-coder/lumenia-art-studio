@@ -262,17 +262,25 @@ class DocumentHistory:
 
 
 def layer_transaction(function):
-    """Wrap an entire UI action, including both model and backend mutations."""
+    """Envolve uma ação de camadas inteira (modelo e motor) num passo de histórico.
+
+    Contrato do dono (`host`), sem descoberta por `hasattr`:
+    - `host.layer_manager`: o gerenciador que a ação altera (None = nada a
+      fazer); tem de ser o do documento ativo;
+    - `host.show_status(mensagem)`: onde a falha é relatada ao usuário.
+    Hoje o único dono é `ui.core.document.layer_commands.LayerCommands`.
+    """
     @wraps(function)
     def run(host, *args, **kwargs):
         from .manager import DocumentManager
         from ui.core.engine.registry import EngineRegistry
-        dm = getattr(host, "dm", None) or DocumentManager.instance()
-        document = dm.active_document()
+        manager = host.layer_manager
+        if manager is None:
+            return None
+        document = DocumentManager.instance().active_document()
         backend = EngineRegistry.instance().get_backend()
         if document is None or backend is None or not backend.available:
             return function(host, *args, **kwargs)
-        manager = getattr(host, "layer_manager", getattr(host, "manager", document.layer_manager))
         if manager is not document.layer_manager:
             raise RuntimeError("O painel não corresponde ao documento ativo.")
         if manager.backend_projection_restoring:
@@ -281,13 +289,6 @@ def layer_transaction(function):
             with document.history.transaction(backend):
                 return function(host, *args, **kwargs)
         except Exception as exc:
-            # Quem usa o decorador relata a falha na própria interface:
-            # a janela principal (status_bar) ou um colaborador (show_status).
-            if hasattr(host, "status_bar"):
-                host.status_bar.showMessage(str(exc), 5000)
-            elif hasattr(host, "show_status"):
-                host.show_status(str(exc))
-            else:
-                raise
+            host.show_status(str(exc))
             return False
     return run

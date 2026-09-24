@@ -50,6 +50,9 @@ class MockWorkspaceService(WorkspaceService):
     def remove_panel(self, panel_id):
         self.panels.pop(panel_id, None)
 
+    def show_status(self, message, timeout_ms=3000):
+        self.last_status = message
+
     @property
     def canvas(self):
         return self._canvas

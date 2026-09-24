@@ -266,6 +266,15 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     def get_panel_order(self) -> List[str]:
         return self.sidebar.get_panel_order()
 
+    def set_panel_order(self, order: List[str]) -> None:
+        """Reordena os botões e as gavetas (ids ausentes ficam onde estão)."""
+        self.sidebar.reorder_panels([pid for pid in order if pid in self._panels_info])
+        self.sync_panel_order_from_sidebar()
+
+    def panel_titles(self) -> List[tuple]:
+        """[(id, título)] na ordem visual; lido pelo diálogo de configuração das docas."""
+        return [(pid, self._panels_info.get(pid, {}).get("title", pid)) for pid in self.get_panel_order()]
+
     @property
     def panel_data(self) -> Dict[str, dict]:
         return self._panels_info

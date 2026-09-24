@@ -167,20 +167,20 @@ def janela_com_documento():
 
 
 def test_menu_expandir_aplica_no_motor(janela_com_documento, monkeypatch):
-    import ui.boundary.orchestrator.main_window_menu_actions as acoes
+    import ui.boundary.orchestrator.edit_actions as acoes
     from ui.core.engine.registry import EngineRegistry
 
     win = janela_com_documento
     backend = EngineRegistry.instance().get_backend()
     backend.select_rect(50, 50, 20, 20)
     monkeypatch.setattr(acoes, "ModifySelectionDialog", _DialogoFalso)
-    win.open_modify_selection_dialog("expand")
+    win.edit_actions.modify_selection("expand")
     assert list(backend.get_selection_bounds()) == [46, 46, 28, 28]
     assert "4 px" in win.status_bar.currentMessage()
 
 
 def test_menu_sem_selecao_avisa_e_nao_abre_dialogo(janela_com_documento, monkeypatch):
-    import ui.boundary.orchestrator.main_window_menu_actions as acoes
+    import ui.boundary.orchestrator.edit_actions as acoes
     from ui.core.engine.registry import EngineRegistry
 
     EngineRegistry.instance().get_backend().clear_selection()
@@ -189,7 +189,7 @@ def test_menu_sem_selecao_avisa_e_nao_abre_dialogo(janela_com_documento, monkeyp
         raise AssertionError("o diálogo não deveria abrir sem seleção")
 
     monkeypatch.setattr(acoes, "ModifySelectionDialog", _nao_abrir)
-    janela_com_documento.open_modify_selection_dialog("contract")
+    janela_com_documento.edit_actions.modify_selection("contract")
     assert janela_com_documento.status_bar.currentMessage()
 
 

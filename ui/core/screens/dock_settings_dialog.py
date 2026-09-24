@@ -37,12 +37,18 @@ def save_dock_settings(settings_dict: dict) -> None:
 class DockBarsSettingsDialog(BaseFramelessDialog):
     """Diálogo de configurações das Barras de Gavetas laterais."""
 
-    settings_applied = QtCore.Signal(dict)  # emite cfg dict quando o usuário aplica
+    # Emite a configuração salva + "panel_order" ({"left": [ids], "right": [ids]}).
+    settings_applied = QtCore.Signal(dict)
 
-    def __init__(self, workspace=None, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(self, panels: dict | None = None, parent: QtWidgets.QWidget | None = None) -> None:
+        """`panels`: {"left": [(id, título), ...], "right": [...]} na ordem atual.
+
+        Recebe os dados, não o workspace: até 2026-09-24 o diálogo lia
+        `workspace.left_dock.panel_data` e a nova ordem nunca era aplicada.
+        """
         from ui.core.i18n import tr, I18nManager
         super().__init__(title=tr("dialogs.dock_title", "Configurações: Barra de Gavetas"), icon_name="settings", parent=parent, modal=True)
-        self._workspace = workspace
+        self._panels = panels or {}
         self.resize(660, 540)
 
         self._build_ui()
@@ -271,26 +277,13 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         self._populate_panel_lists()
 
     def _populate_panel_lists(self) -> None:
-        """Carrega os painéis de cada gaveta a partir do workspace."""
-        self.list_left.clear()
-        self.list_right.clear()
-
-        if not self._workspace:
-            return
-
-        if hasattr(self._workspace, "left_dock"):
-            for pid in self._workspace.left_dock.get_panel_order():
-                title = self._workspace.left_dock.panel_data.get(pid, {}).get("title", pid)
+        """Mostra os painéis de cada gaveta na ordem recebida."""
+        for widget, side in ((self.list_left, "left"), (self.list_right, "right")):
+            widget.clear()
+            for pid, title in self._panels.get(side, []):
                 item = QtWidgets.QListWidgetItem(title)
                 item.setData(QtCore.Qt.UserRole, pid)
-                self.list_left.addItem(item)
-
-        if hasattr(self._workspace, "right_dock"):
-            for pid in self._workspace.right_dock.get_panel_order():
-                title = self._workspace.right_dock.panel_data.get(pid, {}).get("title", pid)
-                item = QtWidgets.QListWidgetItem(title)
-                item.setData(QtCore.Qt.UserRole, pid)
-                self.list_right.addItem(item)
+                widget.addItem(item)
 
     def _collect_config(self) -> dict:
         return {
@@ -307,7 +300,7 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
     def _on_apply(self) -> None:
         cfg = self._collect_config()
         save_dock_settings(cfg)
-        self.settings_applied.emit(cfg)
+        self.settings_applied.emit({**cfg, "panel_order": self._collect_order()})
 
     def accept(self) -> None:
         self._on_apply()

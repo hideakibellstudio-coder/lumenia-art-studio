@@ -1,11 +1,16 @@
 """Selection Tool Controller (Magic Wand, Rect, Ellipse, Lasso)."""
 
+import logging
 from typing import Optional, List
 from PySide6 import QtCore, QtWidgets, QtGui
 from ui.core.engine.backend import EngineBackend
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings
 from ui.core.document.history import layer_transaction
+from ui.core.document.manager import DocumentManager
+
+logger = logging.getLogger(__name__)
+
 
 class SelectionToolController:
     """Controlador de ferramentas de seleção e confinamento da máscara nativa C++."""
@@ -216,6 +221,18 @@ class SelectionToolController:
         if backend and hasattr(backend, "invert_selection"):
             backend.invert_selection()
         self._sincronizar_formigas(backend)
+
+    # ── Contrato de `layer_transaction` (modify_selection é uma transação) ──
+
+    @property
+    def layer_manager(self):
+        """A transação é do documento ativo (a máscara de seleção é dele)."""
+        doc = DocumentManager.instance().active_document()
+        return doc.layer_manager if doc is not None else None
+
+    def show_status(self, message: str) -> None:
+        # Quem chama (menu Seleção) recebe False e avisa o usuário.
+        logger.warning("Modificar seleção falhou: %s", message)
 
     @layer_transaction
     def modify_selection(self, mode: str, radius_px: int) -> bool:

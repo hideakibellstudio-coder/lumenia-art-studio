@@ -168,15 +168,15 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
         dlg_shortcuts = KeyboardShortcutsDialog(self.win)
         self.assertIsNotNone(dlg_shortcuts)
 
-        # Testa aplicação direta do callback no MainWindow
+        # Testa aplicação direta do callback (DialogActions.apply_shortcuts)
         test_map = {
             "tool_brush": "B",
             "tool_eraser": "E",
             "edit_undo": "Ctrl+Z",
             "edit_redo": "Ctrl+Y"
         }
-        self.win._on_shortcuts_applied(test_map)
-        self.assertEqual(self.win.shortcut_tool_b.key().toString(), "B")
+        self.win.dialogs.apply_shortcuts(test_map)
+        self.assertEqual(self.win.shortcut_registry.targets["tool_brush"].key().toString(), "B")
 
     def test_10_telemetry_grid_window_and_shortcut(self):
         """Verifica a abertura e funcionamento do Cockpit de Telemetria em Grid (F12)."""
@@ -199,13 +199,13 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
 
         # 4. Acionamento via sinal do menu_bar
         self.win.menu_bar.telemetryGridRequested.emit()
-        self.assertIsNotNone(self.win._telemetry_grid_win)
-        self.assertTrue(self.win._telemetry_grid_win.isVisible())
+        telemetry = self.win.dialogs.telemetry_window
+        self.assertIsNotNone(telemetry)
+        self.assertTrue(telemetry.isVisible())
 
         # Limpeza
         grid_win.deleteLater()
-        if hasattr(self.win, "_telemetry_grid_win") and self.win._telemetry_grid_win:
-            self.win._telemetry_grid_win.close()
+        telemetry.close()
 
 
 if __name__ == "__main__":

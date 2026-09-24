@@ -1,6 +1,6 @@
 # `ui/boundary/orchestrator/` — boot e janela principal
 
-**Responsabilidade:** inicializa a aplicação (logging, splash, ícones, estado compartilhado, motor, plugins) e monta a `MainWindow`, que liga menus e atalhos às ações.
+**Responsabilidade:** inicializa a aplicação (logging, splash, ícones, estado compartilhado, motor, plugins) e monta a `MainWindow`, que liga menus e atalhos a colaboradores de ação.
 
 ## Porta de entrada
 
@@ -12,32 +12,38 @@
 |---|---|
 | `__init__.py` | Reexporta `MainWindow`. |
 | `app_runner.py` | Boot: logging, splash, ícones e troca para a `MainWindow`. |
-| `main_window.py` | `MainWindow`: instala o estado compartilhado (`install_app_state`) antes dos plugins, descobre os plugins e compõe os mixins de ações. |
-| `main_window_dialog_actions.py` | Mixin: abre diálogos (filtros, guia, relatório de testes, preferências de cursor, atalhos). |
-| `main_window_document_actions.py` | Mixin: novo, abrir, salvar e fechar documento. |
-| `main_window_image_actions.py` | Mixin: tamanho do canvas/imagem, recorte, rotação e espelhamento da vista, grade e réguas. |
-| `main_window_menu_actions.py` | Mixin: handlers dos itens de menu (editar, camada, seleção, preenchimento...). |
-| `main_window_menu_builder.py` | Monta a MenuBar e registra atalhos de teclado. |
-| `main_window_recovery.py` | Mixin: recuperação periódica e escolha de recuperação no início. |
-| `main_window_tool_camera_actions.py` | Mixin: seleção de ferramenta (via `ToolState`), zoom/reset de câmera e tela cheia. |
+| `main_window.py` | `MainWindow`: cria MenuBar, ToolSidebar e StatusBar, instala o estado compartilhado antes dos plugins, recebe o workspace, cria os colaboradores e cuida de Desfazer/Refazer, câmera, tela cheia e eventos de janela. |
+| `workspace_port.py` | Contrato (`ShellWorkspace`, `ShellCanvas`): tudo que a casca usa do workspace e do canvas, conferido por teste. |
+| `shell_actions.py` | `ShellActions`: base dos colaboradores (sinal `statusMessage`) e `backend_ready`. |
+| `document_actions.py` | `DocumentActions`: novo, abrir (imagem ou `.lmn`), salvar, salvar como, fechar com confirmação, fechar tudo ao sair. |
+| `edit_actions.py` | `EditActions`: copiar, recortar, colar, preencher, selecionar tudo, inverter, desmarcar, modificar seleção. |
+| `layer_actions.py` | `LayerActions`: menu Camada sobre o `LayerCommands` do documento ativo + diálogo de propriedades. |
+| `image_actions.py` | `ImageActions`: exportar, tamanho do canvas/imagem, recorte, rotação da camada, rotação/espelho da vista, grade, réguas, prova de cores. |
+| `dialog_actions.py` | `DialogActions`: diálogos e janelas auxiliares (filtros, atalhos, cursor, idioma, escala, tema, plugins, renderização, docas, barra flutuante, curvas, telemetria, ajuda). |
+| `recovery_controller.py` | `RecoveryController`: cópias periódicas de recuperação e a oferta de reabri-las no início. |
+| `menu_wiring.py` | Liga os sinais da MenuBar e da ToolSidebar aos colaboradores (só conecta). |
 
 ## Regras
 
 - A casca chama `ui.core.state.install_app_state(...)` antes de descobrir
   os plugins: eles recebem o estado pelo `ServiceRegistry`.
-- Ações de ferramenta passam pelo `ToolState` (`app_state.tools.set_active_tool`);
-  cor de preenchimento vem do `BrushState`. A janela não escreve em widgets de
-  plugins.
-- O canvas é alcançado por `self.canvas_widget` (público, pode ser `None` sem
-  plugins); nunca por `workspace._alguma_coisa`.
+- Cada colaborador recebe pelo construtor o que usa e fala com a barra de
+  status pelo sinal `statusMessage`; nenhum lê atributo de outro nem da
+  janela. Ação nova entra no colaborador do assunto; assunto novo vira
+  colaborador novo (nunca mixin da `MainWindow`).
+- Workspace e canvas só pelo contrato de `workspace_port.py`; método novo que
+  a casca precise entra lá e no teste `tests/test_main_window_actions.py`.
+  Nada de `hasattr`/`getattr` nesta pasta (o mesmo teste confere).
+- Comandos de camada são os do painel de camadas
+  (`ui.core.document.layer_commands.LayerCommands`): um caminho só.
+- Edição de pixels vinda do menu roda por `canvas.run_as_stroke(...)`.
+- Ferramentas passam pelo `ToolState`; cor de preenchimento vem do `BrushState`.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-- `MainWindow` ainda é composta por seis mixins que se leem uns aos outros por
-  `self` (decomposição por tamanho de arquivo, não por responsabilidade).
-- `main_window_menu_actions.py` está perto da parede dos 450 linhas e é o que
-  mais usa `hasattr` no pacote (ver `tests/arccc_coupling_baseline.json`).
-- Mensagens de status em português fixo (sem `tr()`) em várias ações.
+- Mensagens de status em português fixo (sem `tr()`) na maioria das ações.
+- O DPI do diálogo de novo documento é coletado mas não é guardado no
+  `Document` (aparece só na mensagem).
 
 ## Dependências internas
 

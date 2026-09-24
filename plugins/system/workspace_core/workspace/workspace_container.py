@@ -71,12 +71,16 @@ class WorkspaceContainer(
         newDocumentRequested()  — usuário clicou "+" na tab bar
         documentCloseRequested(uid: str) — usuário fechou uma aba
         zoomChanged(zoom: float) — zoom do canvas mudou (para StatusBar)
+        statusMessage(texto: str, ms: int) — mensagem para a barra de status
+            (a janela principal liga; antes o workspace procurava
+            `self.window().statusBar()` com hasattr)
     """
 
     # ── Sinais ────────────────────────────────────────────────────────────
     newDocumentRequested  = QtCore.Signal()
     documentCloseRequested = QtCore.Signal(str)
     zoomChanged           = QtCore.Signal(float)
+    statusMessage         = QtCore.Signal(str, int)
 
     # ── Inicialização ─────────────────────────────────────────────────────
 
@@ -186,7 +190,7 @@ class WorkspaceContainer(
         tool_state.activeToolChanged.connect(self._on_active_tool_changed_layout)
 
         # ── Ferramenta: estado → canvas (texto, cursor, transformar, opções) ─
-        self._canvas_tools = CanvasToolBinding(tool_state, self.canvas_widget, self._on_status_notification, self)
+        self._canvas_tools = CanvasToolBinding(tool_state, self.canvas_widget, self.show_status, self)
 
         # ── Pincel: estado → canvas; conta-gotas → estado ──────────────────
         self._canvas_brush = CanvasBrushBinding(brush_state, self.canvas_widget, self)
@@ -257,6 +261,18 @@ class WorkspaceContainer(
         if hasattr(self, "floating_toolbar") and self.floating_toolbar:
             self.floating_toolbar.retranslate_ui()
         # A barra secundária se traduz sozinha (cada view escuta o idioma).
+
+    def show_status(self, message: str, timeout_ms: int = 3500) -> None:
+        """Mensagem curta para a barra de status (ver sinal `statusMessage`)."""
+        self.statusMessage.emit(message, timeout_ms)
+
+    def refresh_previews(self) -> None:
+        """Refaz as miniaturas (navegador e camadas) a partir do motor.
+
+        Para mudanças que alteram a imagem mostrada sem ser traço, como trocar
+        o perfil de cor.
+        """
+        self._preview_sync.schedule()
 
     # ── Engine ────────────────────────────────────────────────────────────
 

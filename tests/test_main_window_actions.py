@@ -1,74 +1,82 @@
+"""Contrato da casca: colaboradores da MainWindow e a porta do workspace.
+
+Até 2026-09-24 a MainWindow era a soma de seis mixins que se liam por `self`
+(este arquivo testava que `MainWindowMenuActionsMixin` herdava os outros).
+Agora cada ação mora num colaborador com construtor próprio, e a casca só
+fala com o workspace e o canvas pelo que `workspace_port.py` declara.
 """
-Testes de Regressão e Contrato para a Decomposição da Fase 4 da Camada 5 (ARCcC v2)
-====================================================================================
-Valida o desacoplamento de MainWindowDialogActionsMixin e MainWindowMenuActionsMixin.
-"""
+
+import ast
+from pathlib import Path
 
 import pytest
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets
 
-from ui.boundary.orchestrator.main_window_dialog_actions import MainWindowDialogActionsMixin
-from ui.boundary.orchestrator.main_window_menu_actions import MainWindowMenuActionsMixin
+from ui.boundary.orchestrator.dialog_actions import DialogActions
+from ui.boundary.orchestrator.shell_actions import ShellActions
+from ui.boundary.orchestrator.workspace_port import SHELL_CANVAS_MEMBERS, SHELL_WORKSPACE_MEMBERS
 
-
-
-class DummyHost(QtWidgets.QMainWindow, MainWindowMenuActionsMixin):
-    """Host falso simulando a MainWindow para testar o mixin desacoplado."""
-
-    def __init__(self):
-        super().__init__()
-        from ui.core.components.menu_bar import MenuBar
-        from ui.core.shortcut_registry import ShortcutRegistry
-        self.status_bar = QtWidgets.QStatusBar()
-        self.workspace = None
-        self.menu_bar = MenuBar(self)
-        self.shortcut_undo = self.menu_bar.edit_menu.act_undo
-        self.shortcut_tool_b = QtGui.QAction("Brush", self)
-        for suffix in ("e", "u", "t"):
-            setattr(self, f"shortcut_tool_{suffix}", QtGui.QShortcut(self))
-        self.shortcut_registry = ShortcutRegistry(self)
+_ORCHESTRATOR = Path("ui/boundary/orchestrator")
 
 
-def test_main_window_dialog_actions_mixin_contract():
-    """Valida a presença de todos os métodos esperados em MainWindowDialogActionsMixin."""
-    expected_dialog_methods = [
-        "open_filter_gallery",
-        "open_filter_dialog",
-        "open_diagnostics_dialog",
-        "open_user_guide",
-        "open_test_report_dialog",
-        "open_shortcuts_dialog",
-        "_on_shortcuts_applied",
-        "open_cursor_settings_dialog",
-        "_on_cursor_settings_changed",
-        "open_feedback_form",
-        "open_about_dialog",
-        "load_custom_texture",
-        "set_application_language",
-        "open_telemetry_grid_window",
-    ]
-    for method_name in expected_dialog_methods:
-        assert hasattr(MainWindowDialogActionsMixin, method_name), f"Método {method_name} ausente em MainWindowDialogActionsMixin"
+def test_workspace_container_fulfils_shell_port():
+    """O WorkspaceContainer e o RenderWidget têm tudo que a casca usa."""
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+    from plugins.system.workspace_core.workspace.workspace_container import WorkspaceContainer
+
+    class_members = {"canvas_widget"}  # atributo de instância criado no __init__
+    missing = [m for m in SHELL_WORKSPACE_MEMBERS if m not in class_members and not hasattr(WorkspaceContainer, m)]
+    assert missing == [], f"WorkspaceContainer não cumpre a porta da casca: {missing}"
+    instance_members = {"rotation", "flip_x", "flip_y"}  # propriedades da câmera
+    missing = [m for m in SHELL_CANVAS_MEMBERS if not hasattr(RenderWidget, m) and m not in instance_members]
+    assert missing == [], f"RenderWidget não cumpre a porta da casca: {missing}"
 
 
-def test_main_window_menu_actions_mixin_inheritance(qapp):
-    """Valida que MainWindowMenuActionsMixin herda e mantém 100% dos métodos."""
-    assert issubclass(MainWindowMenuActionsMixin, MainWindowDialogActionsMixin)
+def test_collaborators_do_not_read_each_other_through_self():
+    """Nenhum colaborador herda de outro nem usa hasattr/getattr para descobrir o dono."""
+    for path in sorted(_ORCHESTRATOR.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                assert node.func.id not in ("hasattr", "getattr"), f"{path}:{node.lineno} usa {node.func.id}"
+            if isinstance(node, ast.ClassDef) and node.name.endswith("Mixin"):
+                pytest.fail(f"{path}: mixin {node.name} voltou para a casca")
 
-    host = DummyHost()
+
+def test_dialog_actions_apply_shortcuts_and_language(qapp):
+    from ui.core.components.menu_bar import MenuBar
+    from ui.core.i18n import tr
+    from ui.core.shortcut_registry import ShortcutRegistry
+
+    window = QtWidgets.QMainWindow()
+    menu = MenuBar(window)
+    registry = ShortcutRegistry(window, menu, lambda tool: None)
+    dialogs = DialogActions(window, lambda: None, None, registry)
+    messages = []
+    dialogs.statusMessage.connect(lambda text, _ms: messages.append(text))
     try:
-        # Testa aplicação de atalhos pelo mixin
-        host._on_shortcuts_applied({"edit_undo": "Ctrl+Z", "tool_brush": "B"})
-        assert host.shortcut_undo.shortcut().toString() == "Ctrl+Z"
-        assert host.shortcut_tool_b.shortcut().toString() == "B"
+        assert isinstance(dialogs, ShellActions)
+        dialogs.apply_shortcuts({"edit_undo": "Ctrl+Z", "tool_brush": "B"})
+        assert menu.edit_menu.act_undo.shortcut().toString() == "Ctrl+Z"
+        assert registry.targets["tool_brush"].key().toString() == "B"
 
-        # Testa troca de idioma. "auto" segue o idioma do sistema operacional,
-        # então a mensagem esperada é a do idioma que ficou ativo -- não uma
-        # frase fixa em português (o teste falhava em máquinas não pt-BR).
-        from ui.core.i18n import tr
-        host.set_application_language("auto")
-        expected = tr("status.language_changed", "Idioma sincronizado com o sistema operacional.")
-        assert host.status_bar.currentMessage() == expected
+        # "auto" segue o idioma do sistema: a mensagem esperada é a do idioma
+        # que ficou ativo, não uma frase fixa em português.
+        dialogs.set_language("auto")
+        assert messages[-1] == tr("status.language_changed", "Idioma sincronizado com o sistema operacional.")
     finally:
-        host.shortcut_registry.cleanup()
-        host.deleteLater()
+        from tests.qt_windows import destroy_now
+        registry.cleanup()
+        destroy_now(window)
+
+
+def test_main_window_exposes_collaborators(qapp):
+    from tests.main_window_fixture import main_window_com_workspace
+
+    win = main_window_com_workspace()
+    for name in ("documents", "edit_actions", "layer_actions", "image_actions", "dialogs", "recovery"):
+        assert isinstance(getattr(win, name), ShellActions), name
+    # O LayerCommands do menu Camada age sempre no documento ativo.
+    doc = win.dm.active_document()
+    expected = doc.layer_manager if doc is not None else None
+    assert win.layer_actions.commands.layer_manager is expected

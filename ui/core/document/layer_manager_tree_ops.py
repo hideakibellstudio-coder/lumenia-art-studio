@@ -10,6 +10,7 @@ from .local_layer import LocalLayer
 from .layer_blend_mode import LayerBlendMode
 from .layer_backend_sync import (
     perform_reorder_and_reparent,
+    sync_backend_flatten_group,
     sync_backend_parents,
     sync_backend_reorder_all,
     sync_backend_select,
@@ -38,7 +39,7 @@ class LayerTreeOpsMixin:
         self.layers = [layer for layer in self.layers if layer.uid == group.uid or layer.uid not in descendants]
         if self._active_uid in descendants:
             self.set_active_layer(group.uid)
-        sync_backend_parents(self)
+        sync_backend_flatten_group(self, idx)
         self.order_changed.emit()
         self._validate_clipping_masks()
         self.content_changed.emit("flatten_group")
@@ -46,19 +47,23 @@ class LayerTreeOpsMixin:
         return True
 
     def flatten_image(self) -> bool:
-        if len(self.layers) > 1:
-            base = self.layers[0]
-            base.is_group = False
-            base.parent_uid = None
-            self.layers = [base]
-            self.set_active_layer(base.uid)
-            sync_backend_parents(self)
-            self.order_changed.emit()
-            self._validate_clipping_masks()
-            self.content_changed.emit("flatten_image")
-            self.validate_integrity()
-            return True
-        return False
+        """Achata todos os grupos e mescla a pilha inteira numa camada só.
+
+        Cada passo é uma operação do modelo, que sincroniza o motor. Até
+        2026-09-24 este método descartava as camadas só no modelo (o motor
+        continuava com todas) e o menu fazia a operação real por outro caminho.
+        Quem chama envolve numa `layer_transaction`: um erro no meio desfaz tudo.
+        """
+        if len(self.layers) <= 1:
+            return False
+        while any(layer.is_group for layer in self.layers):
+            idx = next(i for i, layer in enumerate(self.layers) if layer.is_group)
+            self.flatten_group(idx)
+        while len(self.layers) > 1:
+            before = len(self.layers)
+            if not self.merge_down(self.layers[-1].uid) or len(self.layers) >= before:
+                raise RuntimeError("A operação de achatar não avançou.")
+        return True
 
     def reorder_and_reparent(self, new_order_uids, parent_map):
         old_uids = [layer.uid for layer in self.layers]

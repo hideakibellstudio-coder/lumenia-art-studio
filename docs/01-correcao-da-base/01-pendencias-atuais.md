@@ -27,11 +27,12 @@ dependências medidas nas 62 pastas de código; CI verde.
 **Pendências de arquitetura, em ordem de retorno** (números de
 `python -m tests.arccc_coupling_metrics --top 8`):
 
-1. **Mixins que se leem por `self`** na `MainWindow` (6 mixins) e no
-   `WorkspaceContainer` (4). Virar colaboradores com estado próprio, como foi
-   feito no canvas. Maiores: `main_window.py` (22 `hasattr`),
-   `workspace_layout_manager.py` (20), `workspace_document_sync.py` (13 + 14
-   `getattr`; ainda alcança `_layers_panel.paper_widget`).
+1. **Mixins que se leem por `self`** no `WorkspaceContainer` (4). Virar
+   colaboradores com estado próprio, como foi feito no canvas e na
+   `MainWindow`. Maiores: `workspace_layout_manager.py` (20 `hasattr`),
+   `workspace_document_sync.py` (13 + 14 `getattr`; ainda alcança
+   `_layers_panel.paper_widget`). *(MainWindow: feito — seis colaboradores e
+   a porta `workspace_port.py`, ver `ui/boundary/orchestrator/README.md`.)*
 2. **Painel avançado do pincel**: `advanced_panel/panel.py` (25 `hasattr`,
    24 `getattr`) e as quatro funções `create_*_section(panel)` que penduram
    widgets no painel (17 acessos privados somados). Mesmo tratamento da barra

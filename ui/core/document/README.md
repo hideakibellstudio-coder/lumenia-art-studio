@@ -5,7 +5,7 @@
 ## Porta de entrada
 
 `from ui.core.document import Document, DocumentManager`. Também usados:
-`history.layer_transaction`, `layer_blend_mode.LayerBlendMode`,
+`history.layer_transaction`, `layer_commands.LayerCommands`, `layer_blend_mode.LayerBlendMode`,
 `serializer.DocumentSerializer`, `restore.restore_document`,
 `recovery.RecoveryStore`, `geometry.change_geometry`.
 
@@ -18,6 +18,7 @@
 | `geometry.py` | Atomic geometry changes: prepare all pixels before committing the new context. |
 | `history.py` | One timeline for native pixels and the document's layer metadata. |
 | `layer_backend_sync.py` | layer_backend_sync — Sincronizador de Estado e Projeção C++ para LocalLayerManager. |
+| `layer_commands.py` | `LayerCommands`: comandos de camada iniciados pela interface (painel de camadas e menu Camada), cada um uma `layer_transaction`. |
 | `layer_blend_mode.py` | LayerBlendMode -- enum canonico para o modo de mesclagem de camadas. |
 | `layer_manager.py` | `LocalLayerManager`: pilha de camadas do documento; toda alteração passa por aqui e é espelhada no motor por `layer_backend_sync`. |
 | `layer_manager_tree_ops.py` | Operações estruturais da pilha de camadas: achatar grupo/imagem, reordenar com reparentamento e substituir a lista inteira (restauração). |
@@ -33,7 +34,12 @@
 - Lei nº 4 (SSOT): painéis são views do `LocalLayerManager`; nenhum painel
   sincroniza o motor por conta própria (ver `plugins/ui/layers_plugin`).
 - Operação de camada iniciada pela interface roda dentro de
-  `layer_transaction` (um passo de histórico, mensagem de status).
+  `layer_transaction` (um passo de histórico, mensagem de status). Contrato
+  do dono: `layer_manager` e `show_status(msg)` (sem descoberta por
+  `hasattr`). Donos hoje: `LayerCommands`, `FilterLayerFlow`, `LayerModel`
+  (arrastar e soltar) e `SelectionToolController.modify_selection`.
+- Comando de camada novo entra em `LayerCommands`, não no painel nem no menu.
+- `Document.modified(motivo)` avisa toda alteração que suja o documento.
 - Lei nº 5 do rio: pixel que não está no `TileGrid` do motor não é salvo.
 - Nada de aparência aqui: a miniatura da camada (`LocalLayer.thumb`) é a
   imagem que o motor devolve; quem desenha marcadores é o delegate do painel.

@@ -142,6 +142,12 @@ class ToolSidebar(QtWidgets.QToolBar):
         self.action_shapes.setChecked(True)
         self.shapesSelected.emit()
 
+    def show_active_tool(self, tool_id: str) -> None:
+        """Marca o botão da ferramenta ativa (a janela liga ao ToolState)."""
+        self.action_brush.setChecked(tool_id == "brush")
+        self.action_eraser.setChecked(tool_id == "eraser")
+        self.action_shapes.setChecked(tool_id == "shapes" or tool_id.startswith("shape_"))
+
     def _on_theme_changed(self, theme_name: str):
         self.setup_actions()
         self.retranslate_ui()

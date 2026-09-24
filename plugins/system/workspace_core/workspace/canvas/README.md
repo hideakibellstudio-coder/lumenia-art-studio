@@ -22,6 +22,9 @@
   ferramenta e opções do `ToolState` (via `CanvasToolBinding`).
 - Colaboradores leem o widget por atributos públicos; nenhum escreve atributo
   privado dele.
+- A janela principal usa o canvas só pelo contrato `ShellCanvas`
+  (`ui/boundary/orchestrator/workspace_port.py`): `run_as_stroke`,
+  `forward_key`, `is_busy`, `toggle_grid`, `toggle_rulers`, seleção e câmera.
 
 ## Dívida conhecida (medida em 2026-09-24)
 

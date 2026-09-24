@@ -35,6 +35,12 @@
 - Barras flutuantes pedem reposicionamento por sinal (`sizeChanged`), nunca
   procurando `update_toolbar_position` no pai.
 - Câmera: quem muda zoom/pan/rotação chama `canvas.publish_view()`.
+- A janela principal usa o `WorkspaceContainer` só pelo contrato
+  `ui/boundary/orchestrator/workspace_port.py` (`ShellWorkspace`); método que
+  a casca passe a usar entra lá e no teste da porta.
+- Mensagens para a barra de status: `show_status(...)` emite `statusMessage`,
+  que a janela liga (nada de `self.window().statusBar()`). Painéis de plugin
+  usam `WorkspaceService.show_status`.
 
 ## Dívida conhecida (medida em 2026-09-24)
 

@@ -1,9 +1,9 @@
 """Testes automatizados cobrindo a integridade dos subsistemas satélites (Rodada 9).
 
 Cobre:
-1. Flip de Câmera (Menu MainWindowImageActionsMixin + NavigatorPanel + CanvasCompatMixin).
-2. Grade e Réguas (MainWindowImageActionsMixin + geometry_ctrl / geometry_controller).
-3. Seleção e Marching Ants (select_all, invert_selection, clear_selection em MainWindowMenuActions, WorkspaceActions e SelectionToolController).
+1. Flip de Câmera (menu: ImageActions + NavigatorPanel + camera_proxies).
+2. Grade e Réguas (ImageActions → RenderWidget.toggle_grid/toggle_rulers).
+3. Seleção e Marching Ants (select_all, invert_selection, clear_selection em EditActions, WorkspaceActions e SelectionToolController).
 4. Guards de Fallback do AladynBackend (set_render_options e render).
 5. Remoção do Shim Nível 2 em color_plugin (importação canônica de ColorWheelWidget).
 6. Simetria de Ciclo de Vida de Sinais strokeStarted/strokeFinished (ShapeTool e TransformTool).
@@ -20,8 +20,8 @@ from plugins.system.workspace_core.workspace.canvas.render_widget import RenderW
 from plugins.system.workspace_core.workspace.canvas.viewport.camera_controller import CameraController
 from plugins.ui.navigator_plugin.panel import NavigatorPanel
 from plugins.ui.color_plugin.panel import ColorWheelPanel
-from ui.boundary.orchestrator.main_window_image_actions import MainWindowImageActionsMixin
-from ui.boundary.orchestrator.main_window_menu_actions import MainWindowMenuActionsMixin
+from ui.boundary.orchestrator.edit_actions import EditActions
+from ui.boundary.orchestrator.image_actions import ImageActions
 from ui.engine_backends.aladyn import AladynBackend
 
 
@@ -62,26 +62,33 @@ class _MockBackend(EngineBackend):
         self._clear_called = True
 
 
-class _MockStatusBar:
-    def __init__(self):
+class _Status:
+    """Guarda a última mensagem emitida por um colaborador (sinal statusMessage)."""
+
+    def __init__(self, collaborator):
         self.last_msg = ""
-    def showMessage(self, msg, timeout=0):
-        self.last_msg = msg
+        collaborator.statusMessage.connect(self._on_message)
+
+    def _on_message(self, text, _timeout):
+        self.last_msg = text
 
 
-class _MockImageActionsWindow(MainWindowImageActionsMixin):
-    def __init__(self, workspace):
-        self.workspace = workspace
-        self.canvas_widget = workspace.canvas_widget  # como o MainWindow expõe
-        self.status_bar = _MockStatusBar()
-        self.dm = None
+class _MockWS:
+    def __init__(self, canvas):
+        self.canvas_widget = canvas
+
+    def reset_view(self):
+        pass
 
 
-class _MockMenuActionsWindow(MainWindowMenuActionsMixin):
-    def __init__(self, workspace):
-        self.workspace = workspace
-        self.status_bar = _MockStatusBar()
-        self.dm = None
+def _image_actions(canvas):
+    actions = ImageActions(None, None, EngineRegistry.instance().get_backend, _MockWS(canvas))
+    return actions, _Status(actions)
+
+
+def _edit_actions(canvas):
+    actions = EditActions(None, EngineRegistry.instance().get_backend, None, canvas, None)
+    return actions, _Status(actions)
 
 
 @pytest.fixture
@@ -121,25 +128,21 @@ def test_camera_flip_properties(app):
 
 
 def test_main_window_image_actions_flip(app):
-    class MockWS:
-        def __init__(self):
-            self.canvas_widget = RenderWidget()
+    canvas = RenderWidget()
+    actions, status = _image_actions(canvas)
 
-    ws = MockWS()
-    win = _MockImageActionsWindow(ws)
+    actions.flip_view_horizontal()
+    assert canvas.flip_x is True
+    assert canvas.camera.flip_horizontal is True
+    assert "espelhada horizontalmente" in status.last_msg
 
-    win.flip_horizontal()
-    assert ws.canvas_widget.flip_x is True
-    assert ws.canvas_widget.camera.flip_horizontal is True
-    assert "espelhada horizontalmente" in win.status_bar.last_msg
+    actions.flip_view_horizontal()
+    assert canvas.flip_x is False
 
-    win.flip_horizontal()
-    assert ws.canvas_widget.flip_x is False
-
-    win.flip_vertical()
-    assert ws.canvas_widget.flip_y is True
-    assert ws.canvas_widget.camera.flip_vertical is True
-    assert "espelhada verticalmente" in win.status_bar.last_msg
+    actions.flip_view_vertical()
+    assert canvas.flip_y is True
+    assert canvas.camera.flip_vertical is True
+    assert "espelhada verticalmente" in status.last_msg
 
 
 def test_navigator_flip_signal_emission(app):
@@ -165,26 +168,20 @@ def test_navigator_flip_signal_emission(app):
 def test_main_window_toggle_grid_and_rulers(app):
     rw = RenderWidget()
     assert rw.geometry_ctrl is rw.tool_mgr.geometry_ctrl
-
-    class MockWS:
-        def __init__(self):
-            self.canvas_widget = rw
-
-    ws = MockWS()
-    win = _MockImageActionsWindow(ws)
+    actions, status = _image_actions(rw)
 
     # Toggle grade
     initial_v = rw.geometry_ctrl.guide_state.get("show_v", True)
-    win.toggle_grid()
+    actions.toggle_grid()
     assert rw.geometry_ctrl.guide_state["show_v"] == (not initial_v)
-    assert "Grade magnética" in win.status_bar.last_msg
+    assert "Grade magnética" in status.last_msg
 
     # Toggle réguas
     initial_type = rw.geometry_ctrl.guide_state.get("type", "none")
-    win.toggle_rulers()
+    actions.toggle_rulers()
     expected_type = "straight" if initial_type == "none" else "none"
     assert rw.geometry_ctrl.guide_state["type"] == expected_type
-    assert "Réguas" in win.status_bar.last_msg
+    assert "Réguas" in status.last_msg
 
 
 # ── 3. Seleção e Marching Ants ────────────────────────────────────────────────
@@ -219,22 +216,17 @@ def test_selection_controller_timer_lifecycle(app, clean_engine):
 
 def test_menu_actions_select_all_and_invert(app, clean_engine):
     rw = RenderWidget()
-    class MockWS:
-        def __init__(self):
-            self.canvas_widget = rw
+    actions, status = _edit_actions(rw)
 
-    ws = MockWS()
-    win = _MockMenuActionsWindow(ws)
-
-    win.select_all()
+    actions.select_all()
     assert clean_engine.has_selection()
     assert rw.selection_ctrl.selection_timer.isActive()
-    assert "Tudo selecionado" in win.status_bar.last_msg
+    assert "Tudo selecionado" in status.last_msg
 
-    win.invert_selection()
+    actions.invert_selection()
     assert not clean_engine.has_selection()
     assert not rw.selection_ctrl.selection_timer.isActive()
-    assert "Seleção invertida" in win.status_bar.last_msg
+    assert "Seleção invertida" in status.last_msg
 
 
 def test_workspace_actions_clear_selection(app, clean_engine):
@@ -246,7 +238,7 @@ def test_workspace_actions_clear_selection(app, clean_engine):
 
     wa = WorkspaceActionsMixin.__new__(WorkspaceActionsMixin)
     wa.canvas_widget = rw
-    wa._on_status_notification = lambda msg: setattr(wa, "status_msg", msg)
+    wa.show_status = lambda msg: setattr(wa, "status_msg", msg)
 
 
     wa.clear_selection()

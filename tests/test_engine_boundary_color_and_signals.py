@@ -4,8 +4,9 @@ Test Engine Boundary Round 11 — Validação da Fronteira Nativa C++ / Python.
 Testa o saneamento orbital da Rodada 11:
 - Coerção resiliente e canônica de cores em to_native_color_rgba.
 - Marcação dirty em mutações de raster (fill, delete, transform, paste, flip, rotate).
-- Paridade estrita de strokeStarted/strokeFinished no MainWindowMenuActionsMixin.
-- Resolução canônica de active_color no menu de preenchimento.
+- Edições de pixels do menu passam por `canvas.run_as_stroke` (EditActions),
+  que emite strokeStarted/strokeFinished em par mesmo com erro.
+- Resolução canônica da cor ativa (BrushState) no menu de preenchimento.
 - Governança ARCcC: ausência de resíduos 'if True:' e teto < 450 LOC.
 """
 
@@ -18,7 +19,7 @@ from typing import Any
 from ui.engine_backends.aladyn_buffers import to_native_color_rgba
 from ui.engine_backends.aladyn_selection_mixin import AladynSelectionMixin
 from ui.engine_backends.aladyn_transform_mixin import AladynTransformMixin
-from ui.boundary.orchestrator.main_window_menu_actions import MainWindowMenuActionsMixin
+from ui.boundary.orchestrator.edit_actions import EditActions
 
 # Garante instância de QApplication offscreen para o pytest
 app = QtWidgets.QApplication.instance()
@@ -43,29 +44,27 @@ class _MockNative:
     ColorRGBA = _MockNativeColorRGBA
 
 
-class _MockSignal:
+class _MockCanvasWidget:
+    """Canvas falso: conta as edições feitas "como traço"."""
+
     def __init__(self):
-        self.count = 0
-
-    def emit(self):
-        self.count += 1
-
-
-class _MockCanvasWidget(QtCore.QObject):
-    def __init__(self):
-        super().__init__()
-        self.strokeStarted = _MockSignal()
-        self.strokeFinished = _MockSignal()
-        self.active_color = QtGui.QColor(12, 34, 56, 255)
+        self.stroke_runs = 0
         self.updated = False
+
+    def run_as_stroke(self, action):
+        self.stroke_runs += 1
+        return action()
 
     def update(self):
         self.updated = True
 
 
-class _MockWorkspace:
-    def __init__(self, cw: _MockCanvasWidget):
-        self.canvas_widget = cw
+class _MockLayerCommands:
+    def __init__(self):
+        self.cleared = 0
+
+    def clear_active_pixels(self):
+        self.cleared += 1
 
 
 class _MockFacade:
@@ -194,75 +193,80 @@ def test_selection_and_transform_dirty_tracking():
 
 
 def test_menu_actions_signal_symmetry_and_active_color(monkeypatch):
-    """Verifica paridade de sinais e active_color em ações do MainWindowMenuActionsMixin."""
+    """Edições do menu rodam como traço e o preenchimento usa a cor do BrushState."""
     cw = _MockCanvasWidget()
-    ws = _MockWorkspace(cw)
-
+    layers = _MockLayerCommands()
     backend = _MockBackend()
-    from ui.core.engine.registry import EngineRegistry
-    monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
 
     from ui.core.plugins.registry import ServiceRegistry
     from ui.core.state import install_app_state
     app_state = install_app_state(ServiceRegistry(), lambda: None)
     app_state.brush.set_color(QtGui.QColor(12, 34, 56, 255))
 
-    class _Host(MainWindowMenuActionsMixin):
-        def __init__(self):
-            self.workspace = ws
-            self.status_bar = QtWidgets.QStatusBar()
-            self.app_state = app_state
+    window = QtWidgets.QWidget()
+    edit = EditActions(window, lambda: backend, app_state.brush, cw, layers)
+    messages = []
+    edit.statusMessage.connect(lambda text, _ms: messages.append(text))
 
-    host = _Host()
-
-    # 1. Fill com seleção ativa: usa a cor ativa do usuário (BrushState) e emite sinais 1:1
-    host.fill_active_selection_or_canvas()
-    assert cw.strokeStarted.count == 1
-    assert cw.strokeFinished.count == 1
+    # 1. Fill com seleção ativa: cor do usuário (BrushState), uma edição como traço
+    edit.fill()
+    assert cw.stroke_runs == 1
     assert backend._facade.last_fill_color == _MockNativeColorRGBA(12, 34, 56, 255)
 
     # 2. Fill sem seleção ativa
     backend._facade._has_sel = False
-    host.fill_active_selection_or_canvas()
-    assert cw.strokeStarted.count == 2
-    assert cw.strokeFinished.count == 2
+    edit.fill()
+    assert cw.stroke_runs == 2
 
-    # 3. Cut com seleção ativa
+    # 3. Cut com seleção ativa apaga a seleção como traço
     backend._facade._has_sel = True
-    host.cut_selection_or_layer_to_clipboard()
-    assert cw.strokeStarted.count == 3
-    assert cw.strokeFinished.count == 3
+    edit.cut()
+    assert cw.stroke_runs == 3
     assert backend._facade.deleted_selection is True
+    assert layers.cleared == 0
 
-    # 4. Paste da Área de Transferência
+    # 4. Cut sem seleção limpa a camada pelo comando de camadas (transação)
+    backend._facade._has_sel = False
+    edit.cut()
+    assert layers.cleared == 1
+
+    # 5. Paste da Área de Transferência
     qimg = QtGui.QImage(10, 10, QtGui.QImage.Format_RGBA8888)
     qimg.fill(QtGui.QColor(255, 0, 0, 255))
     QtWidgets.QApplication.clipboard().setImage(qimg)
-    host.paste_clipboard()
-    assert cw.strokeStarted.count == 4
-    assert cw.strokeFinished.count == 4
+    edit.paste()
+    assert cw.stroke_runs == 4
     assert backend._facade.last_pasted is not None
+    assert messages[-1].startswith("Imagem (10×10)")
+    window.deleteLater()
 
-    # 5. Envelopamento simétrico genérico (_emit_stroke_wrap)
-    called = []
-    host._emit_stroke_wrap(lambda: called.append(True))
-    assert cw.strokeStarted.count == 5
-    assert cw.strokeFinished.count == 5
-    assert called == [True]
+
+def test_render_widget_run_as_stroke_emits_pair_even_on_error():
+    """O canvas emite início e fim do traço em par, mesmo se a edição falhar."""
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+
+    class _Signal:
+        def __init__(self):
+            self.count = 0
+
+        def emit(self):
+            self.count += 1
+
+    class _Canvas:
+        strokeStarted = _Signal()
+        strokeFinished = _Signal()
+
+    canvas = _Canvas()
+    assert RenderWidget.run_as_stroke(canvas, lambda: 7) == 7
+    with pytest.raises(RuntimeError):
+        RenderWidget.run_as_stroke(canvas, lambda: (_ for _ in ()).throw(RuntimeError("x")))
+    assert canvas.strokeStarted.count == canvas.strokeFinished.count == 2
 
 
 def test_menu_actions_clean_code_and_arccc_governance():
-    """Garante ausência de resíduos 'if True:' e teto rígido de LOC (<450)."""
-    menu_actions_file = pathlib.Path("ui/boundary/orchestrator/main_window_menu_actions.py")
-    assert menu_actions_file.exists()
-
-    content = menu_actions_file.read_text(encoding="utf-8")
-    lines = content.splitlines()
-
-    # Invariante 1: Ausência de 'if True:'
-    for idx, line in enumerate(lines, start=1):
-        stripped = line.strip()
-        assert stripped != "if True:", f"Linha {idx} contém resíduo de IA 'if True:'!"
-
-    # Invariante 2: Governança ARCcC v2 (< 450 LOC para ui/)
-    assert len(lines) < 450, f"Arquivo excede o teto de 450 LOC da governança ARCcC: {len(lines)} linhas"
+    """Casca sem resíduos 'if True:' e todo arquivo abaixo do teto de 450 linhas."""
+    for path in sorted(pathlib.Path("ui/boundary/orchestrator").glob("*.py")):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for idx, line in enumerate(lines, start=1):
+            assert line.strip() != "if True:", f"{path}:{idx} contém resíduo 'if True:'"
+        assert len(lines) < 450, f"{path} excede o teto de 450 linhas: {len(lines)}"

@@ -43,6 +43,7 @@ class LayersPlugin(BasePlugin):
             raise RuntimeError("[LayersPlugin] WorkspaceService não encontrado.")
 
         self._panel = LayersPanel()
+        self._panel.statusMessage.connect(ws.show_status)
 
         ws.add_panel(
             panel_id="layers",

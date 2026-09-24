@@ -181,22 +181,22 @@ class WorkspaceLayoutMixin:
         else:
             self.floating_toolbar.hide()
 
-    def _on_status_notification(self, message: str) -> None:
-        win = self.window()
-        if hasattr(win, "statusBar") and win.statusBar():
-            win.statusBar().showMessage(message, 3500)
-
     def apply_dock_settings(self, cfg: dict) -> None:
-        """Aplica configurações de auto-recolhimento a ambas as docas."""
+        """Aplica auto-recolhimento e, se vier do diálogo, a ordem dos painéis."""
         kw = dict(
             auto_collapse=cfg.get("auto_collapse", False),
             speed=cfg.get("speed", "Rápido"),
             delay=cfg.get("hover_delay", "Normal (350ms)"),
         )
-        if hasattr(self, "left_dock"):
-            self.left_dock.apply_settings(**kw)
-        if hasattr(self, "right_dock"):
-            self.right_dock.apply_settings(**kw)
+        order = cfg.get("panel_order", {})
+        for side, dock in (("left", self.left_dock), ("right", self.right_dock)):
+            dock.apply_settings(**kw)
+            if order.get(side):
+                dock.set_panel_order(order[side])
+
+    def dock_panels(self) -> dict:
+        """{"left"/"right": [(id, título)]} na ordem atual das gavetas."""
+        return {"left": self.left_dock.panel_titles(), "right": self.right_dock.panel_titles()}
 
     def toggle_panel_from_menu(self, panel_id: str, side: str) -> None:
         """Alterna um painel específico via Menu Janela."""

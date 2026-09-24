@@ -38,6 +38,20 @@ class ViewportPaintStats:
     dirty_rect: QtCore.QRect = field(default_factory=QtCore.QRect)
     timestamps: collections.deque = field(default_factory=lambda: collections.deque(maxlen=60))
 
+    def as_telemetry(self, gpu_accelerated: bool) -> dict:
+        """Dicionário lido pelo cockpit de telemetria (chaves `qt_*`)."""
+        return {
+            "is_gpu_accelerated": gpu_accelerated,
+            "renderer_type": "OpenGL" if gpu_accelerated else "Software Raster",
+            "qt_paint_total_ms": self.paint_total_ms,
+            "qt_draw_image_ms": self.draw_image_ms,
+            "qt_cursor_ms": self.cursor_ms,
+            "qt_fps": self.fps,
+            "qt_dirty_w": self.dirty_rect.width(),
+            "qt_dirty_h": self.dirty_rect.height(),
+            "qt_dirty_area": self.dirty_rect.width() * self.dirty_rect.height(),
+        }
+
 
 class ViewportRenderer:
     """Orquestrador de renderização da viewport (QOpenGLWidget / QWidget)."""

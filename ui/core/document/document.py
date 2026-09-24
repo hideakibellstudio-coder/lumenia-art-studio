@@ -9,6 +9,9 @@ class Document(QtCore.QObject):
     """Modelo de dados isolado de um documento MDI aberto."""
 
     geometry_changed = QtCore.Signal(int, int)
+    # Toda alteração que suja o documento (motivo). A janela principal usa
+    # para atualizar Desfazer/Refazer; antes só um traço atualizava.
+    modified = QtCore.Signal(str)
 
     def set_geometry(self, width: int, height: int) -> None:
         if width <= 0 or height <= 0:
@@ -87,6 +90,7 @@ class Document(QtCore.QObject):
         self.revision += 1
         self.is_dirty = True
         self.dirty_reason = str(reason)
+        self.modified.emit(self.dirty_reason)
 
     def mark_saved(self, file_path: str | None = None) -> None:
         if file_path is not None:

@@ -51,6 +51,7 @@ SUITE_TARGETS = {
         "test_config_manager.py",
         "test_config_schema.py",
         "test_dependency_lock_contract.py",
+        "test_layer_drop_plan.py",
         "test_layer_projection_divergence.py",
         "test_document_serializer_integrity.py",
         "test_document_v2.py",

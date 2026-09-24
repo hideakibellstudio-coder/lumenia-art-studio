@@ -8,9 +8,12 @@ Contrato (desde 2026-09-24):
 - O painel NÃO sincroniza o motor. Toda alteração passa pelo
   `LocalLayerManager` (fonte única), direto ou via `LayerModel.setData`, e o
   gerenciador sincroniza o motor e emite os sinais que atualizam a view.
-- Comandos (adicionar, excluir, mover, travas...) moram em `LayerCommands`;
+- Comandos (adicionar, excluir, mover, travas...) moram em
+  `ui.core.document.layer_commands.LayerCommands` (os mesmos do menu Camada);
   o fluxo de camada de ajuste com prévia, em `FilterLayerFlow`. Ambos têm
   estado próprio e não mexem em atributos deste painel.
+- Mensagens de status saem pelo sinal `statusMessage`; quem liga é o plugin
+  (antes o painel procurava a janela ativa e o `statusBar()` dela).
 - Os métodos públicos abaixo de "API das barras" são o contrato usado por
   `grid.py` (LayersPrimaryBox/LayersSecondaryBar) e pelos atalhos da view.
 """
@@ -20,10 +23,11 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from PySide6.QtCore import QItemSelectionModel, QRect, Qt
-from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtCore import QItemSelectionModel, QRect, Qt, Signal
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from ui.core.document.layer_blend_mode import LayerBlendMode
+from ui.core.document.layer_commands import LayerCommands
 from ui.core.document.layer_manager import LocalLayerManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.widgets.card_box import PanelCardBox
@@ -32,7 +36,6 @@ from .delegate import LayerItemDelegate
 from .filter_layer_flow import FilterLayerFlow
 from .grid import LayersPrimaryBox, LayersSecondaryBar
 from .header import LayersHeader
-from .layer_commands import LayerCommands
 from .model import ROLE_COLLAPSED, ROLE_UID, LayerModel
 from .panel_rename_popup import LayerRenamePopup
 from .paper import PaperLayerWidget
@@ -46,6 +49,8 @@ _THUMB_W, _THUMB_H = 38, 28
 class LayersPanel(QWidget):
     """Widget principal do Painel de Camadas."""
 
+    statusMessage = Signal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         # Sem documento até o workspace chamar set_layer_manager(...): o
@@ -56,7 +61,7 @@ class LayersPanel(QWidget):
         # escolheu outra camada".
         self._syncing_view = False
 
-        self._commands = LayerCommands(self.show_status)
+        self._commands = LayerCommands(self.show_status, lambda: self.layer_manager)
         self._filters = FilterLayerFlow(self, self.show_status)
 
         self._build_ui()
@@ -76,7 +81,6 @@ class LayersPanel(QWidget):
             self.layer_manager.thumbnail_updated.disconnect(self._refresh_thumbnail)
 
         self.layer_manager = manager
-        self._commands.layer_manager = manager
         self._filters.layer_manager = manager
         self.model.set_manager(manager)
 
@@ -148,11 +152,8 @@ class LayersPanel(QWidget):
         popup.input_edit.setFocus()
 
     def show_status(self, message: str) -> None:
-        win = QApplication.activeWindow()
-        if win is not None and hasattr(win, "statusBar"):
-            win.statusBar().showMessage(message, 3000)
-        else:
-            logger.info(f"[Layers] {message}")
+        logger.info("[Layers] %s", message)
+        self.statusMessage.emit(message)
 
     # ── Ações vindas da árvore e do cabeçalho ─────────────────────────────
 
@@ -291,6 +292,7 @@ class LayersPanel(QWidget):
         left_layout.addWidget(self.secondary_bar)
 
         self.model = LayerModel(None)
+        self.model.statusMessage.connect(self.show_status)
         self.model.modelAboutToBeReset.connect(self._on_model_about_to_rebuild)
         self.model.modelReset.connect(self._on_model_rebuilt)
         self.model.layoutAboutToBeChanged.connect(self._on_model_about_to_rebuild)

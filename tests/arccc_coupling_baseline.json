@@ -1,8 +1,7 @@
 {
  "plugins/system/workspace_core/workspace/canvas/render_widget.py": {
   "foreign_private": 1,
-  "getattr_literal": 1,
-  "hasattr": 8
+  "getattr_literal": 1
  },
  "plugins/system/workspace_core/workspace/canvas/renderers/geometry_overlay_renderer.py": {
   "hasattr": 2
@@ -80,7 +79,7 @@
  "plugins/system/workspace_core/workspace/workspace_layout_manager.py": {
   "foreign_private": 4,
   "getattr_literal": 2,
-  "hasattr": 20
+  "hasattr": 17
  },
  "plugins/ui/brush_plugin/advanced_panel/panel.py": {
   "getattr_literal": 24,
@@ -126,9 +125,6 @@
  "plugins/ui/layers_plugin/model.py": {
   "getattr_literal": 3
  },
- "plugins/ui/layers_plugin/panel.py": {
-  "hasattr": 1
- },
  "plugins/ui/layers_plugin/panel_theme.py": {
   "hasattr": 3
  },
@@ -162,36 +158,6 @@
  "plugins/ui/telemetry_plugin/panel.py": {
   "getattr_literal": 9,
   "hasattr": 8
- },
- "ui/boundary/orchestrator/app_runner.py": {
-  "hasattr": 2
- },
- "ui/boundary/orchestrator/main_window.py": {
-  "foreign_private": 1,
-  "getattr_literal": 2,
-  "hasattr": 22
- },
- "ui/boundary/orchestrator/main_window_dialog_actions.py": {
-  "foreign_private": 1,
-  "hasattr": 6
- },
- "ui/boundary/orchestrator/main_window_document_actions.py": {
-  "getattr_literal": 2,
-  "hasattr": 2
- },
- "ui/boundary/orchestrator/main_window_menu_actions.py": {
-  "getattr_literal": 13,
-  "hasattr": 12
- },
- "ui/boundary/orchestrator/main_window_menu_builder.py": {
-  "hasattr": 1
- },
- "ui/boundary/orchestrator/main_window_recovery.py": {
-  "getattr_literal": 2
- },
- "ui/boundary/orchestrator/main_window_tool_camera_actions.py": {
-  "getattr_literal": 4,
-  "hasattr": 1
  },
  "ui/core/color/cms_engine.py": {
   "getattr_literal": 4
@@ -252,8 +218,7 @@
  },
  "ui/core/document/history.py": {
   "foreign_private": 2,
-  "getattr_literal": 3,
-  "hasattr": 5
+  "hasattr": 3
  },
  "ui/core/document/layer_backend_sync.py": {
   "getattr_literal": 5,
@@ -302,7 +267,7 @@
   "hasattr": 4
  },
  "ui/core/screens/dock_settings_dialog.py": {
-  "hasattr": 4
+  "hasattr": 2
  },
  "ui/core/screens/filters/filter_adjustment_dialog.py": {
   "hasattr": 9
@@ -329,9 +294,6 @@
  },
  "ui/core/shortcut_bindings.py": {
   "foreign_private": 1
- },
- "ui/core/shortcut_registry.py": {
-  "getattr_literal": 1
  },
  "ui/core/theme/manager.py": {
   "getattr_literal": 2

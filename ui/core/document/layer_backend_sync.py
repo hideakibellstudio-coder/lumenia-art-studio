@@ -152,6 +152,23 @@ def sync_backend_merge_down(manager, c_idx: int) -> None:
     notify_canvas_repaint("merge_down")
 
 
+def sync_backend_flatten_group(manager, group_idx: int) -> None:
+    """Sincroniza "achatar grupo" com o motor C++.
+
+    `group_idx` é a posição do grupo ANTES de o modelo remover os filhos (a
+    mesma que o motor ainda tem). Até 2026-09-24 o modelo só reenviava os pais
+    e quem achatava no motor era o menu, por um segundo caminho.
+    """
+    backend = get_active_backend(manager)
+    if not backend:
+        return
+    if backend.get_drawing_layer_count() > len(manager.layers):
+        backend.flatten_group(group_idx)
+    sync_backend_parents(manager)
+    backend.select_layer(manager.active_index)
+    notify_canvas_repaint("flatten_group")
+
+
 def sync_backend_property(manager, idx: int, prop_name: str, value: Any) -> None:
     """Sincroniza propriedades individuais de camada com o motor C++."""
     backend = get_active_backend(manager)

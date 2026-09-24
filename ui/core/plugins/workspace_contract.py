@@ -81,6 +81,16 @@ class WorkspaceService(ABC):
         """
         ...
 
+    @abstractmethod
+    def show_status(self, message: str, timeout_ms: int = 3000) -> None:
+        """
+        Mostra uma mensagem curta na barra de status da janela principal.
+        Caminho de painéis de plugin para falar com o usuário: o painel emite
+        um sinal e o plugin liga esse sinal aqui (nunca procurar
+        `QApplication.activeWindow().statusBar()`).
+        """
+        ...
+
     def request_canvas_repaint(self) -> None:
         """
         Agenda o repaint do canvas ativo. Caminho canônico para painéis e para o

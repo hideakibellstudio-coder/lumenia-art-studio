@@ -1,17 +1,41 @@
-"""One application point for menu and tool shortcuts, with collision checks."""
+"""One application point for menu and tool shortcuts, with collision checks.
+
+Recebe o que usa (desde 2026-09-24): a janela (dona dos atalhos), a MenuBar,
+quem troca de ferramenta e, opcionalmente, o canvas (atalhos de contexto
+"canvas"). Antes lia `window.menu_bar`, `window.shortcut_tool_b` (montado com
+`getattr(window, f"shortcut_tool_{x}")`) e `window.canvas_widget`.
+"""
+
+from typing import Callable, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from .shortcut_catalog import DEFAULT_SHORTCUTS
 from .shortcut_bindings import ShortcutBindings
 from ui.core.components.menu_bar.menu_bar import MenuBar
 
+# Comando do catálogo -> id da ferramenta no ToolState.
+_TOOL_SHORTCUTS = {
+    "tool_brush": "brush",
+    "tool_eraser": "eraser",
+    "tool_shapes": "shapes",
+    "tool_text": "text",
+    "tool_eyedropper": "eyedrop",
+    "tool_fill": "bucket",
+}
+
 
 class ShortcutRegistry(QtCore.QObject):
-    def __init__(self, window):
+    def __init__(
+        self,
+        window: QtWidgets.QWidget,
+        menu: MenuBar,
+        select_tool: Callable[[str], None],
+        canvas: Optional[QtWidgets.QWidget] = None,
+    ):
         super().__init__(window)
         self.window = window
+        self._canvas = canvas
         self.contexts = {item["id"]: item.get("context", "window") for item in DEFAULT_SHORTCUTS}
-        menu: MenuBar = window.menu_bar
         self.targets = {}
         groups = {
             "file": (menu.file_menu, {"new": "action_new", "open": "action_open", "save": "action_save",
@@ -28,14 +52,12 @@ class ShortcutRegistry(QtCore.QObject):
         for prefix, (owner, names) in groups.items():
             for key, attribute in names.items():
                 self.targets[f"{prefix}_{key}"] = getattr(owner, attribute)
-        for key, attribute in {"brush": "b", "eraser": "e", "shapes": "u", "text": "t"}.items():
-            self.targets[f"tool_{key}"] = getattr(window, f"shortcut_tool_{attribute}")
         self.targets["tool_wand"] = menu.select_menu.act_wand
         self.targets["tool_transform"] = menu.edit_menu.act_transform
-        for key, tool in (("eyedropper", "eyedrop"), ("fill", "bucket")):
+        for command, tool in _TOOL_SHORTCUTS.items():
             shortcut = QtGui.QShortcut(window)
-            shortcut.activated.connect(lambda tool=tool: window.select_tool_by_id(tool))
-            self.targets[f"tool_{key}"] = shortcut
+            shortcut.activated.connect(lambda tool=tool: select_tool(tool))
+            self.targets[command] = shortcut
 
         application = QtWidgets.QApplication.instance()
         if application is not None:
@@ -127,5 +149,5 @@ class ShortcutRegistry(QtCore.QObject):
         return isinstance(widget, QtWidgets.QComboBox) and widget.isEditable()
 
     def _is_canvas_focus(self, widget) -> bool:
-        canvas = getattr(self.window, "canvas_widget", None)
+        canvas = self._canvas
         return bool(canvas and (widget is canvas or canvas.isAncestorOf(widget)))

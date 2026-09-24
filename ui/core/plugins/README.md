@@ -31,6 +31,8 @@ ServiceRegistry, PluginManager, PluginContext, WorkspaceService`.
   ou pelo `WorkspaceService`.
 - Serviço obrigatório: `ui.core.state.require(registry, Tipo)` (erro claro
   se a casca não instalou).
+- Painel de plugin fala com o usuário emitindo um sinal que o plugin liga a
+  `WorkspaceService.show_status` (nunca `QApplication.activeWindow()`).
 
 ## Dívida conhecida (medida em 2026-09-24)
 

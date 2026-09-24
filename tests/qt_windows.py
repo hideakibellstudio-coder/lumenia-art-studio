@@ -38,3 +38,23 @@ def top_level_widgets() -> Iterator[list]:
     finally:
         if was_enabled:
             gc.enable()
+
+
+def destroy_now(*widgets) -> None:
+    """Apaga janelas sem pai em C++ agora, com o GC desligado.
+
+    Para testes que criam uma janela própria (`QMainWindow()` sem pai): deixar
+    o wrapper para o coletor reabre o risco descrito no topo deste módulo.
+    """
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        for widget in widgets:
+            widget.close()
+            widget.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    finally:
+        if was_enabled:
+            gc.enable()

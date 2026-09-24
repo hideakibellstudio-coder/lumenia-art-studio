@@ -12,10 +12,10 @@
 |---|---|
 | `__init__.py` | `LayersPlugin`: registra o `LayersPanel` na doca direita. |
 | `delegate.py` | `LayerItemDelegate`: desenha cada linha da árvore (visibilidade, miniatura, nome, modo, trava) e devolve cliques como ações. |
+| `drop_plan.py` | `plan_layer_drop`: nova ordem e pais das camadas arrastadas e soltas na árvore (função pura). |
 | `filter_layer_flow.py` | FilterLayerFlow — criar e editar camadas de ajuste com prévia ao vivo. |
 | `grid.py` | Barras de botões de ação do painel (nova camada, grupo, duplicar, apagar, máscaras...). |
 | `header.py` | `LayersHeader`: opacidade e modo de mesclagem da camada ativa. |
-| `layer_commands.py` | LayerCommands — comandos que o painel de camadas dispara sobre o documento ativo. |
 | `model.py` | `LayerModel`: modelo Qt da árvore sobre o `LocalLayerManager`; `setData` delega ao gerenciador (nunca escreve na camada). |
 | `panel.py` | LayersPanel — painel de camadas do Lumenia. |
 | `panel_filter_dialogs.py` | panel_filter_dialogs — Diálogos de Seleção e Configuração de Filtros de Camada. |
@@ -29,12 +29,16 @@
 
 - O painel é view do `LocalLayerManager` do documento ativo: não sincroniza
   o motor (quem sincroniza é `ui/core/document/layer_backend_sync.py`).
-- Comandos de camada passam por `LayerCommands` (cada um é uma
-  `layer_transaction`); filtros com prévia ao vivo por `FilterLayerFlow`.
+- Comandos de camada passam por `ui.core.document.layer_commands.LayerCommands`
+  (os mesmos do menu Camada; cada um é uma `layer_transaction`); filtros com
+  prévia ao vivo por `FilterLayerFlow`.
+- Mensagens de status saem pelo sinal `LayersPanel.statusMessage`, ligado
+  pelo plugin ao `WorkspaceService.show_status`.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-`model.py` está perto da parede dos 450 linhas.
+Nenhuma registrada (o `model.py` desceu de 400 para 360 linhas com a
+extração de `drop_plan.py`).
 
 ## Dependências internas
 

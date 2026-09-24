@@ -24,7 +24,13 @@ ROLE_IS_FILTER  = Qt.UserRole + 14
 from ui.core.document.history import layer_transaction
 from ui.core.document.local_layer import LocalLayer
 
+from .drop_plan import plan_layer_drop
+
+
 class LayerModel(QAbstractItemModel):
+    # Falha de uma transação da árvore (arrastar e soltar); o painel repassa.
+    statusMessage = Signal(str)
+
     def __init__(self, layer_manager):
         super().__init__()
         self.manager = None
@@ -83,18 +89,9 @@ class LayerModel(QAbstractItemModel):
         """True enquanto linhas são inseridas (a view não deve tratar a seleção como do usuário)."""
         return self._is_modifying_structure
 
-    def row_to_child(self, parent_uid: Optional[int], row: int, layers_list: List = None) -> Optional[Any]:
-        if layers_list is None:
-            children = self._child_cache[parent_uid]
-            if 0 <= row < len(children):
-                return children[row]
-            return None
-        else:
-            children = [l for l in layers_list if l.parent_uid == parent_uid]
-            inverted_index = len(children) - 1 - row
-            if 0 <= inverted_index < len(children):
-                return children[inverted_index]
-            return None
+    def row_to_child(self, parent_uid: Optional[int], row: int) -> Optional[Any]:
+        children = self._child_cache[parent_uid]
+        return children[row] if 0 <= row < len(children) else None
 
     def child_to_row(self, child_uid: int) -> Optional[int]:
         return self._row_cache.get(child_uid)
@@ -265,59 +262,22 @@ class LayerModel(QAbstractItemModel):
             return True
         if not data.hasFormat('application/x-lumenia-layer-uid'):
             return False
-
         uids = [int(x) for x in data.data('application/x-lumenia-layer-uid').data().decode().split(",") if x]
         parent_uid = self.data(parent, ROLE_UID) if parent.isValid() else None
-        
-        if parent_uid in uids:
+        plan = plan_layer_drop(self.manager, uids, parent_uid, row)
+        if plan is None:
             return False
-
-        forced_insert_idx = None
-        if parent_uid is not None:
-            parent_layer = self.manager.get_layer_by_uid(parent_uid)
-            if parent_layer and not parent_layer.is_group:
-                all_layers_temp = [l for l in self.manager.layers if l.uid not in uids]
-                if parent_layer in all_layers_temp:
-                    forced_insert_idx = all_layers_temp.index(parent_layer) + 1
-                parent_uid = parent_layer.parent_uid
-
-        all_layers = [l for l in self.manager.layers if l.uid not in uids]
-        
-        if forced_insert_idx is not None:
-            insert_idx = forced_insert_idx
-        else:
-            children_before_drop = [l for l in all_layers if l.parent_uid == parent_uid]
-            if row == -1 or row >= len(children_before_drop):
-                if parent_uid is None:
-                    insert_idx = 0
-                else:
-                    parent_layer = self.manager.get_layer_by_uid(parent_uid)
-                    insert_idx = all_layers.index(parent_layer) + 1
-            else:
-                target_sibling = self.row_to_child(parent_uid, row, all_layers)
-                if target_sibling:
-                    insert_idx = all_layers.index(target_sibling) + 1
-                else:
-                    insert_idx = 0
-
-        moved_layers = []
-        for uid in uids:
-            l = self.manager.get_layer_by_uid(uid)
-            if l:
-                moved_layers.append(l)
-        
-        new_layers_list = all_layers[:insert_idx] + moved_layers + all_layers[insert_idx:]
-        
-        new_order_uids = [str(l.uid) for l in new_layers_list]
-        parent_map = {}
-        for l in new_layers_list:
-            if l in moved_layers:
-                parent_map[str(l.uid)] = str(parent_uid) if parent_uid is not None else None
-            else:
-                parent_map[str(l.uid)] = str(l.parent_uid) if l.parent_uid is not None else None
-        
-        self.manager.reorder_and_reparent(new_order_uids, parent_map)
+        self.manager.reorder_and_reparent(*plan)
         return True
+
+    # ── Contrato de `layer_transaction` (dropMimeData é uma transação) ──
+
+    @property
+    def layer_manager(self):
+        return self.manager
+
+    def show_status(self, message: str) -> None:
+        self.statusMessage.emit(message)
 
     def _on_layer_added(self, layer):
         self._is_modifying_structure = True

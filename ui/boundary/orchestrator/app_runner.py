@@ -29,10 +29,9 @@ def launch(args: list[str] | None = None) -> int:
     logger.info("🎨 Inicializando Lumenia Brush Engine 2.0 (ARCcC Runtime)...")
 
     # 2. Inicialização da Aplicação Qt (desativa compressão de eventos para preservar cadência real da caneta/mouse)
-    if hasattr(QtCore.Qt.ApplicationAttribute, "AA_CompressHighFrequencyEvents"):
-        QtCore.QCoreApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_CompressHighFrequencyEvents, False)
-    if hasattr(QtCore.Qt.ApplicationAttribute, "AA_CompressTabletEvents"):
-        QtCore.QCoreApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_CompressTabletEvents, False)
+    # (os dois atributos existem em todo Qt 6; o PySide6 é a versão mínima)
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_CompressHighFrequencyEvents, False)
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_CompressTabletEvents, False)
 
 
     app = QtWidgets.QApplication.instance()

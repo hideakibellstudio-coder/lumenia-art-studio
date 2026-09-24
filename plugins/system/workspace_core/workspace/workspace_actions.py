@@ -43,11 +43,11 @@ class WorkspaceActionsMixin:
             ok = document.history.undo(backend) if document else backend.undo()
             if ok:
                 cw.update()
-                self._on_status_notification("Desfazer executado com sucesso.")
+                self.show_status("Desfazer executado com sucesso.")
                 self._preview_sync.schedule()
             else:
                 error = backend.get_history_error()
-                self._on_status_notification(_history_failure_message("desfazer", error) if error else "Nada a desfazer.")
+                self.show_status(_history_failure_message("desfazer", error) if error else "Nada a desfazer.")
 
     def redo(self) -> None:
         """Executa a operação de refazer."""
@@ -60,11 +60,11 @@ class WorkspaceActionsMixin:
             ok = document.history.redo(backend) if document else backend.redo()
             if ok:
                 cw.update()
-                self._on_status_notification("Refazer executado com sucesso.")
+                self.show_status("Refazer executado com sucesso.")
                 self._preview_sync.schedule()
             else:
                 error = backend.get_history_error()
-                self._on_status_notification(_history_failure_message("refazer", error) if error else "Nada a refazer.")
+                self.show_status(_history_failure_message("refazer", error) if error else "Nada a refazer.")
 
     def reset_view(self) -> None:
         """Reposiciona o canvas para o centro e zoom 1:1."""
@@ -100,5 +100,5 @@ class WorkspaceActionsMixin:
             if hasattr(self.canvas_widget, "selection_ctrl"):
                 self.canvas_widget.selection_ctrl.selection_timer.stop()
             self.canvas_widget.update()
-        self._on_status_notification("Seleção cancelada.")
+        self.show_status("Seleção cancelada.")
 

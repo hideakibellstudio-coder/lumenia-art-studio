@@ -15,6 +15,7 @@ Criados pelo `RenderWidget` (`camera`, `input_router`, `cursor_ctrl`, `stroke`, 
 | `canvas_stroke_pipeline.py` | CanvasStrokePipeline — ciclo de vida do traço interativo e regiões sujas da tela. |
 | `cursor_controller.py` | CanvasCursorController — Controlador Modular do Cursor no Canvas (ARCcC). |
 | `input_router.py` | CanvasInputRouter — Routes mouse, tablet, touch and keyboard events to active tool controllers. |
+| `pointer_sample.py` | `PointerSample` e `event_time`: posição, pressão, botão, inclinação, rotação, borracha e instante lidos de um evento de mouse ou caneta. |
 | `viewport_renderer.py` | ViewportRenderer — pinta o canvas: papel, pixels do motor, overlays e cursor. |
 
 ## Regras

@@ -142,22 +142,42 @@ def test_reject_wrong_document_context(session):
 
 
 def test_menu_actions_use_the_transaction(session, monkeypatch):
-    from ui.boundary.orchestrator.main_window_menu_actions import MainWindowMenuActionsMixin
+    """Menu Camada (LayerCommands do documento ativo): um passo de histórico."""
+    from ui.core.document.layer_commands import LayerCommands
+    from ui.core.document.manager import DocumentManager
     from ui.core.engine.registry import EngineRegistry
-    from types import SimpleNamespace
     document, backend = session
     monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
-    class Host(MainWindowMenuActionsMixin):
-        dm = SimpleNamespace(active_document=lambda: document)
-        status_bar = SimpleNamespace(showMessage=lambda *args: None)
-        workspace = None
+    monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: document)
+    commands = LayerCommands(show_status=lambda message: None, manager=lambda: document.layer_manager)
     paint(backend, [120, 80, 40, 255])
     before = pixels(backend)
-    Host().duplicate_active_layer()
+    commands.duplicate_active()
     assert len(document.layer_manager.layers) == 2
     assert document.history.undo(backend)
     assert pixels(backend) == before
     assert len(document.layer_manager.layers) == 1
+
+
+def test_flatten_image_goes_through_the_model_in_one_step(session, monkeypatch):
+    """Achatar Imagem: grupos e mesclagens pelo modelo, motor junto, um passo só."""
+    from ui.core.document.layer_commands import LayerCommands
+    from ui.core.document.manager import DocumentManager
+    from ui.core.engine.registry import EngineRegistry
+    document, backend = session
+    manager = document.layer_manager
+    monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
+    monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: document)
+    commands = LayerCommands(show_status=lambda message: None, manager=lambda: manager)
+    commands.add_group()
+    commands.add_layer()
+    commands.add_layer()
+    count = len(manager.layers)
+    assert backend.get_drawing_layer_count() == count > 2
+    commands.flatten_image()
+    assert len(manager.layers) == backend.get_drawing_layer_count() == 1
+    assert document.history.undo(backend)
+    assert len(manager.layers) == backend.get_drawing_layer_count() == count
 
 
 def test_panel_restoration_does_not_reorder_native_twice(session, monkeypatch):

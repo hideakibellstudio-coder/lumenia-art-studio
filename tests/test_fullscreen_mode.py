@@ -48,12 +48,7 @@ def test_fullscreen_actions_and_shortcuts_in_menus(qapp):
 def test_fullscreen_registered_in_shortcut_catalog(qapp):
     """Valida presença de view_fullscreen no catálogo canônico e ShortcutRegistry."""
     win = QtWidgets.QMainWindow()
-    win.menu_bar = MenuBar(win)
-    win.select_tool_by_id = lambda tool: None
-    for suffix in ("b", "e", "u", "t"):
-        setattr(win, f"shortcut_tool_{suffix}", QtGui.QShortcut(win))
-
-    registry = ShortcutRegistry(win)
+    registry = ShortcutRegistry(win, MenuBar(win), lambda tool: None)
     try:
         assert "view_fullscreen" in registry.targets
         target = registry.targets["view_fullscreen"]
@@ -65,8 +60,9 @@ def test_fullscreen_registered_in_shortcut_catalog(qapp):
         assert catalog_entry["default"] == "F11"
         assert catalog_entry["category"] == "Exibir"
     finally:
+        from tests.qt_windows import destroy_now
         registry.cleanup()
-        win.deleteLater()
+        destroy_now(win)
 
 
 def test_main_window_toggle_fullscreen(qapp):

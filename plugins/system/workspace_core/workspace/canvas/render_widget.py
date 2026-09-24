@@ -35,6 +35,7 @@ from .viewport.camera_proxies import CanvasCameraProxies
 from .viewport.viewport_renderer import ViewportRenderer
 from .viewport.cursor_controller import CanvasCursorController
 from .viewport.canvas_stroke_pipeline import CanvasStrokePipeline
+from .viewport.pointer_sample import PointerSample, event_time
 from .renderers.tool_cursor_renderer import ToolCursorRenderer
 from .tools.tool_manager import ToolManager
 from .text_overlay_editor import TextOverlayEditor
@@ -125,6 +126,48 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
     def do_flood_fill(self, screen_x: float, screen_y: float): self.tool_mgr.do_flood_fill(screen_x, screen_y)
     def clear_canvas(self): self.tool_mgr.clear_canvas()
     def run_tool_command(self, command: str): self.tool_mgr.run_command(command)
+
+    # ── Contrato com a janela principal (ui/boundary/orchestrator/workspace_port.py) ──
+    def run_as_stroke(self, action):
+        """Roda uma edição de pixels vinda de fora (menu) como se fosse um traço.
+
+        Quem escuta strokeStarted/strokeFinished (documento sujo, miniaturas,
+        gavetas, desfazer) reage igual a um traço. O canvas é quem emite os
+        próprios sinais; antes a janela emitia os sinais do canvas por fora.
+        """
+        self.strokeStarted.emit()
+        try:
+            return action()
+        finally:
+            self.strokeFinished.emit()
+
+    @property
+    def is_busy(self) -> bool:
+        """Traço ou transformação em andamento (não é hora de capturar recuperação)."""
+        return bool(self.drawing or self.transform_ctrl.active)
+
+    def forward_key(self, event: QtGui.QKeyEvent, pressed: bool) -> bool:
+        """Tecla recebida pela janela (espaço = mão) quando o foco não está no canvas."""
+        router = self.input_router
+        return router.handle_key_press(event) if pressed else router.handle_key_release(event)
+
+    def toggle_grid(self) -> bool:
+        """Liga/desliga as linhas da grade de guias; devolve o novo estado."""
+        guides = self.geometry_ctrl.guide_state
+        visible = not guides.get("show_v", True)
+        guides["show_v"] = guides["show_h"] = guides["show_d"] = visible
+        self.geometry_ctrl.sync_guides_to_engine()
+        self.update()
+        return visible
+
+    def toggle_rulers(self) -> bool:
+        """Liga (régua reta) ou desliga as réguas; devolve o novo estado."""
+        guides = self.geometry_ctrl.guide_state
+        visible = guides.get("type", "none") == "none"
+        guides["type"] = "straight" if visible else "none"
+        self.geometry_ctrl.sync_guides_to_engine()
+        self.update()
+        return visible
     def clear_selection(self): self.selection_ctrl.clear_selection()
     def select_all(self): self.selection_ctrl.select_all()
     def invert_selection(self): self.selection_ctrl.invert_selection()
@@ -231,18 +274,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
     def paintEvent(self, event): self.viewport_renderer.render(event)
 
     def get_viewport_telemetry(self) -> dict:
-        stats = self.viewport_renderer.stats
-        return {
-            "is_gpu_accelerated": _OPENGL_ENABLED,
-            "renderer_type": "OpenGL" if _OPENGL_ENABLED else "Software Raster",
-            "qt_paint_total_ms": stats.paint_total_ms,
-            "qt_draw_image_ms": stats.draw_image_ms,
-            "qt_cursor_ms": stats.cursor_ms,
-            "qt_fps": stats.fps,
-            "qt_dirty_w": stats.dirty_rect.width(),
-            "qt_dirty_h": stats.dirty_rect.height(),
-            "qt_dirty_area": stats.dirty_rect.width() * stats.dirty_rect.height(),
-        }
+        return self.viewport_renderer.stats.as_telemetry(_OPENGL_ENABLED)
 
     @classmethod
     def get_active_viewport_telemetry(cls) -> dict:
@@ -273,7 +305,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         if self._is_synthesized_or_tablet_active(e): e.accept(); return
-        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
+        ts = event_time(e)
         self.input_router.handle_pointer_press(e.position(), e.button(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseMoveEvent(self, e: QtGui.QMouseEvent):
@@ -281,7 +313,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         if not self.drawing:
             dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
             if dirty: self.update(dirty)
-        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
+        ts = event_time(e)
         self.input_router.handle_pointer_move(e.position(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseReleaseEvent(self, e: QtGui.QMouseEvent):
@@ -298,26 +330,19 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         if not self.drawing:
             dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
             if dirty: self.update(dirty)
-        is_er = False
-        if hasattr(e, "pointingDevice") and e.pointingDevice():
-            is_er = (e.pointingDevice().pointerType() == QtGui.QPointingDevice.PointerType.Eraser)
-        elif hasattr(e, "pointerType"):
-            is_er = (e.pointerType() == QtGui.QPointingDevice.PointerType.Eraser)
-        et, btn = e.type(), e.button() if e.button() != QtCore.Qt.NoButton else QtCore.Qt.LeftButton
-        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
-        tilt_x = float(e.xTilt()) if hasattr(e, "xTilt") else 0.0
-        tilt_y = float(e.yTilt()) if hasattr(e, "yTilt") else 0.0
-        twist = float(e.rotation()) if hasattr(e, "rotation") else 0.0
+        p, et = PointerSample.from_tablet(e), e.type()
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        pen = dict(timestamp=p.timestamp, tilt_x=p.tilt_x, tilt_y=p.tilt_y, twist=p.twist)
         if et == QtCore.QEvent.TabletPress:
             self._tablet_in_use = True
-            self.input_router.handle_pointer_press(e.position(), btn, e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts, tilt_x=tilt_x, tilt_y=tilt_y, twist=twist)
+            self.input_router.handle_pointer_press(p.position, p.button, p.pressure, modifiers, p.is_eraser, **pen)
             e.accept()
         elif et == QtCore.QEvent.TabletMove:
-            self.input_router.handle_pointer_move(e.position(), e.pressure(), QtWidgets.QApplication.keyboardModifiers(), is_er, timestamp=ts, tilt_x=tilt_x, tilt_y=tilt_y, twist=twist)
+            self.input_router.handle_pointer_move(p.position, p.pressure, modifiers, p.is_eraser, **pen)
             e.accept()
         elif et == QtCore.QEvent.TabletRelease:
             self._tablet_in_use = False
-            self.input_router.handle_pointer_release(e.position(), btn, QtWidgets.QApplication.keyboardModifiers())
+            self.input_router.handle_pointer_release(p.position, p.button, modifiers)
             e.accept()
 
     def apply_anchored_zoom(self, factor: float, cursor_pos: QtCore.QPointF):

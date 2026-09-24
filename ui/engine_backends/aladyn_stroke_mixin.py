@@ -84,13 +84,18 @@ class AladynStrokeMixin:
 
     def end_stroke(self, x: float | None = None, y: float | None = None) -> list[float]:
         res = []
+        rx = float(x) if x is not None else getattr(self, "_last_x", None)
+        ry = float(y) if y is not None else getattr(self, "_last_y", None)
         if self._facade:
             if hasattr(self._facade, "end_stroke_raw"):
-                res = self._facade.end_stroke_raw()
+                if rx is not None and ry is not None:
+                    res = self._facade.end_stroke_raw(rx, ry)
+                else:
+                    res = self._facade.end_stroke_raw()
             elif self._native:
-                rx = float(x) if x is not None else getattr(self, "_last_x", 0.0)
-                ry = float(y) if y is not None else getattr(self, "_last_y", 0.0)
-                pt = self._native.Point2D(rx, ry)
+                fx = rx if rx is not None else 0.0
+                fy = ry if ry is not None else 0.0
+                pt = self._native.Point2D(fx, fy)
                 evt = self._native.PointerEvent(
                     self._native.PointerEventType.Release, pt, 0.0, time.time()
                 )

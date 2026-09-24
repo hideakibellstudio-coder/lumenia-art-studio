@@ -80,6 +80,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self._active_draw_color = QtGui.QColor(0, 0, 0, 255)
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
         self._last_rendered_cursor_rect = QtCore.QRect()
+        self._last_stroke_end_screen: Optional[QtCore.QPointF] = None
         self._bucket_settings = default_tool_settings("bucket")
 
         from ui.core.i18n import I18nManager
@@ -282,7 +283,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         if self._is_synthesized_or_tablet_active(e): e.accept(); return
-        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
         self.input_router.handle_pointer_press(e.position(), e.button(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseMoveEvent(self, e: QtGui.QMouseEvent):
@@ -290,7 +291,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         if not self.drawing:
             dirty = self.cursor_ctrl.handle_move(e.position(), self.current_brush_radius, self.zoom, self.drawing)
             if dirty: self.update(dirty)
-        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
         self.input_router.handle_pointer_move(e.position(), self.manual_pressure, QtWidgets.QApplication.keyboardModifiers(), timestamp=ts)
 
     def mouseReleaseEvent(self, e: QtGui.QMouseEvent):
@@ -313,7 +314,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         elif hasattr(e, "pointerType"):
             is_er = (e.pointerType() == QtGui.QPointingDevice.PointerType.Eraser)
         et, btn = e.type(), e.button() if e.button() != QtCore.Qt.NoButton else QtCore.Qt.LeftButton
-        ts = (e.timestamp() / 1000.0) if hasattr(e, "timestamp") and e.timestamp() > 0 else 0.0
+        ts = (e.timestamp() / 1000.0) if (hasattr(e, "timestamp") and e.timestamp() > 0) else time.perf_counter()
         tilt_x = float(e.xTilt()) if hasattr(e, "xTilt") else 0.0
         tilt_y = float(e.yTilt()) if hasattr(e, "yTilt") else 0.0
         twist = float(e.rotation()) if hasattr(e, "rotation") else 0.0

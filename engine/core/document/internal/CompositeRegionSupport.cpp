@@ -190,47 +190,52 @@ void GroupBlender::composeTileGrid(
     const int cSTy = std::clamp(m_bounds.startTileY, 0, maxTilesY - 1);
     const int cETy = std::clamp(m_bounds.endTileY,   0, maxTilesY - 1);
 
-    #pragma omp parallel for schedule(static) if((cETy - cSTy) >= 2)
-    for (int ty = cSTy; ty <= cETy; ++ty) {
-        for (int tx = cSTx; tx <= cETx; ++tx) {
-            const canvas::Tile* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
-            if (!tile) continue;
+    const int numTilesX = cETx - cSTx + 1;
+    const int numTilesY = cETy - cSTy + 1;
+    const int totalTiles = numTilesX * numTilesY;
 
-            const canvas::PixelBuffer& tileBuf = tile->getBuffer();
-            const int tilePixelX = tile->getPixelX();
-            const int tilePixelY = tile->getPixelY();
+    #pragma omp parallel for schedule(static) if(totalTiles >= 4)
+    for (int tIdx = 0; tIdx < totalTiles; ++tIdx) {
+        const int ty = cSTy + (tIdx / numTilesX);
+        const int tx = cSTx + (tIdx % numTilesX);
 
-            const int tileMinX = std::max(m_bounds.minX, tilePixelX);
-            const int tileMaxX = std::min(m_bounds.maxX, tilePixelX + canvas::Tile::TILE_SIZE - 1);
-            const int tileMinY = std::max(m_bounds.minY, tilePixelY);
-            const int tileMaxY = std::min(m_bounds.maxY, tilePixelY + canvas::Tile::TILE_SIZE - 1);
+        const canvas::Tile* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
+        if (!tile) continue;
 
-            for (int globalY = tileMinY; globalY <= tileMaxY; ++globalY) {
-                const int localY = globalY - tilePixelY;
-                const raster::ColorRGBA* srcRow = reinterpret_cast<const raster::ColorRGBA*>(tileBuf.getData()) + (localY * canvas::Tile::TILE_SIZE);
-                raster::ColorRGBA* dstRow = reinterpret_cast<raster::ColorRGBA*>(targetData) + static_cast<size_t>(globalY - targetOffsetY) * targetStride;
+        const canvas::PixelBuffer& tileBuf = tile->getBuffer();
+        const int tilePixelX = tile->getPixelX();
+        const int tilePixelY = tile->getPixelY();
 
-                for (int globalX = tileMinX; globalX <= tileMaxX; ++globalX) {
-                    const int localX = globalX - tilePixelX;
-                    const raster::ColorRGBA src = srcRow[localX];
-                    if (src.a == 0) continue;
+        const int tileMinX = std::max(m_bounds.minX, tilePixelX);
+        const int tileMaxX = std::min(m_bounds.maxX, tilePixelX + canvas::Tile::TILE_SIZE - 1);
+        const int tileMinY = std::max(m_bounds.minY, tilePixelY);
+        const int tileMaxY = std::min(m_bounds.maxY, tilePixelY + canvas::Tile::TILE_SIZE - 1);
 
-                    double curOpacity = opacity;
-                    if (clipBase) {
-                        const int bTx = globalX / canvas::Tile::TILE_SIZE;
-                        const int bTy = globalY / canvas::Tile::TILE_SIZE;
-                        const int bPx = globalX % canvas::Tile::TILE_SIZE;
-                        const int bPy = globalY % canvas::Tile::TILE_SIZE;
-                        const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(clipBase->getTileGrid()).getTile(bTx, bTy);
-                        if (!bTile) continue;
-                        const double baseA = (static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0) * clipBase->getEffectiveOpacity();
-                        if (baseA <= 0.0) continue;
-                        curOpacity *= baseA;
-                    }
+        for (int globalY = tileMinY; globalY <= tileMaxY; ++globalY) {
+            const int localY = globalY - tilePixelY;
+            const raster::ColorRGBA* srcRow = reinterpret_cast<const raster::ColorRGBA*>(tileBuf.getData()) + (localY * canvas::Tile::TILE_SIZE);
+            raster::ColorRGBA* dstRow = reinterpret_cast<raster::ColorRGBA*>(targetData) + static_cast<size_t>(globalY - targetOffsetY) * targetStride;
 
-                    const int dstX = globalX - targetOffsetX;
-                    dstRow[dstX] = blending::blendPixel(src, curOpacity, dstRow[dstX], mode, m_linearGamma, m_deepColor);
+            for (int globalX = tileMinX; globalX <= tileMaxX; ++globalX) {
+                const int localX = globalX - tilePixelX;
+                const raster::ColorRGBA src = srcRow[localX];
+                if (src.a == 0) continue;
+
+                double curOpacity = opacity;
+                if (clipBase) {
+                    const int bTx = globalX / canvas::Tile::TILE_SIZE;
+                    const int bTy = globalY / canvas::Tile::TILE_SIZE;
+                    const int bPx = globalX % canvas::Tile::TILE_SIZE;
+                    const int bPy = globalY % canvas::Tile::TILE_SIZE;
+                    const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(clipBase->getTileGrid()).getTile(bTx, bTy);
+                    if (!bTile) continue;
+                    const double baseA = (static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0) * clipBase->getEffectiveOpacity();
+                    if (baseA <= 0.0) continue;
+                    curOpacity *= baseA;
                 }
+
+                const int dstX = globalX - targetOffsetX;
+                dstRow[dstX] = blending::blendPixel(src, curOpacity, dstRow[dstX], mode, m_linearGamma, m_deepColor);
             }
         }
     }

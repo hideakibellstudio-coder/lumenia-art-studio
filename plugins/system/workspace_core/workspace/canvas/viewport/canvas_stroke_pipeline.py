@@ -6,6 +6,8 @@ and high-performance incremental dirty-region widget updating.
 Strictly decoupled in compliance with ARCcC v2 (< 160 LOC).
 """
 
+import time
+import math
 from typing import TYPE_CHECKING
 from PySide6 import QtCore
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
@@ -114,15 +116,25 @@ class CanvasStrokePipeline:
                     elif not widget._last_rendered_cursor_rect.isEmpty():
                         dirty_s = dirty_s.united(widget._last_rendered_cursor_rect)
                     widget.update(dirty_s)
+                    widget._last_rendered_cursor_rect = cur_cursor_rect
+                    widget._last_cursor_update_time = time.perf_counter()
+                    widget._last_cursor_update_pos = (screen_x, screen_y)
                 else:
-                    if cursor_visible:
-                        dirty_cursor = cur_cursor_rect
-                        if not widget._last_rendered_cursor_rect.isEmpty():
-                            dirty_cursor = dirty_cursor.united(widget._last_rendered_cursor_rect)
-                        widget.update(dirty_cursor)
-                    elif not widget._last_rendered_cursor_rect.isEmpty():
-                        widget.update(widget._last_rendered_cursor_rect)
-                widget._last_rendered_cursor_rect = cur_cursor_rect
+                    now_t = time.perf_counter()
+                    last_t = getattr(widget, "_last_cursor_update_time", 0.0)
+                    last_p = getattr(widget, "_last_cursor_update_pos", (screen_x, screen_y))
+                    dist_moved = math.hypot(screen_x - last_p[0], screen_y - last_p[1])
+                    if (now_t - last_t >= 0.008) or (dist_moved >= 2.0):
+                        if cursor_visible:
+                            dirty_cursor = cur_cursor_rect
+                            if not widget._last_rendered_cursor_rect.isEmpty():
+                                dirty_cursor = dirty_cursor.united(widget._last_rendered_cursor_rect)
+                            widget.update(dirty_cursor)
+                        elif not widget._last_rendered_cursor_rect.isEmpty():
+                            widget.update(widget._last_rendered_cursor_rect)
+                        widget._last_rendered_cursor_rect = cur_cursor_rect
+                        widget._last_cursor_update_time = now_t
+                        widget._last_cursor_update_pos = (screen_x, screen_y)
 
     @staticmethod
     def end_stroke(
@@ -147,6 +159,7 @@ class CanvasStrokePipeline:
 
                 widget.drawing = False
                 widget._mouse_pos = end_pos
+                widget._last_stroke_end_screen = end_pos
                 widget.cursor_ctrl.sync_position(end_pos, widget.current_brush_radius, widget.zoom)
                 widget.cursor_ctrl._is_over_canvas = widget.cursor_ctrl.is_over_canvas(end_pos)
 
@@ -158,7 +171,7 @@ class CanvasStrokePipeline:
                 else:
                     # Caso de tap isolado ou ausência de catch-up dirty bounds:
                     # Invalida a área analítica do dab renderizado sob end_pos
-                    rad = widget.current_brush_radius
+                    rad = widget.current_brush_radius * widget.zoom
                     spot_rect = QtCore.QRectF(
                         end_pos.x() - rad - 6.0,
                         end_pos.y() - rad - 6.0,

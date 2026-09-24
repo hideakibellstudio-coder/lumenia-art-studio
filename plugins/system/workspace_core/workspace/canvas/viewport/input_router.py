@@ -20,9 +20,9 @@ class CanvasInputRouter:
         w: "RenderWidget" = self.widget
         effective_tool = "eraser" if is_eraser_tip else w.active_tool
 
-        # ── Navegação de Câmera / Pan (Espaço + Clique Esquerdo, Botão do Meio, ou Shift + Clique Esquerdo) ──
+        # ── Navegação de Câmera / Pan (Espaço + Clique Esquerdo ou Botão do Meio) ──
         is_space = getattr(w, "is_space_held", False)
-        if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and (is_space or bool(modifiers & QtCore.Qt.ShiftModifier))):
+        if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and is_space):
             w.is_panning = True
             w.last_mouse_pos = pos
             w.setCursor(QtCore.Qt.ClosedHandCursor)
@@ -129,7 +129,18 @@ class CanvasInputRouter:
             if is_eraser_tip and w.backend and hasattr(w.backend, "set_engine_type") and hasattr(w.backend, "get_active_engine_type"):
                 self._previous_engine_type = w.backend.get_active_engine_type()
                 w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
-            w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+
+            if (modifiers & QtCore.Qt.ShiftModifier) and getattr(w, "_last_stroke_end_screen", None) is not None:
+                p0 = w._last_stroke_end_screen
+                w.start_stroke(p0.x(), p0.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+                steps = 10
+                for s in range(1, steps + 1):
+                    t = s / steps
+                    ix = p0.x() + (pos.x() - p0.x()) * t
+                    iy = p0.y() + (pos.y() - p0.y()) * t
+                    w.paint_stroke(ix, iy, max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+            else:
+                w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
 
     def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
         w: "RenderWidget" = self.widget

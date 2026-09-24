@@ -29,6 +29,7 @@ cpp_sources = [
     "engine/core/stroke/DynamicStabilizer.cpp",
     "engine/core/brush/DynamicMapper.cpp",
     "engine/core/raster/DabInterpolator.cpp",
+    "engine/core/raster/LargeBrushOptimizer.cpp",
     "engine/core/raster/DabRenderer.cpp",
     "engine/core/raster/FloodFill.cpp",
     "engine/core/raster/SelectionEngine.cpp",

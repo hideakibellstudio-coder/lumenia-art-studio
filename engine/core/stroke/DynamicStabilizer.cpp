@@ -11,17 +11,19 @@ void DynamicStabilizer::setStabilizationPercentage(double percentage) noexcept {
     m_stabilizationPercentage = std::clamp(percentage, 0.0, 99.0);
 }
 
-void DynamicStabilizer::reset(math::Point2D initialPosition) noexcept {
+void DynamicStabilizer::reset(math::Point2D initialPosition, double initialPressure) noexcept {
     m_stabilizedPosition = initialPosition;
+    m_stabilizedPressure = initialPressure;
     m_lastMovementDelta = {0.0, 0.0};
     m_historyCount = 1;
     m_historyHead = 0;
     m_historyBuffer[0] = initialPosition;
+    m_pressureHistoryBuffer[0] = initialPressure;
 }
 
 void DynamicStabilizer::reanchorInitialPosition(math::Point2D newInitialPosition) noexcept {
     if (m_historyCount == 0) {
-        reset(newInitialPosition);
+        reset(newInitialPosition, m_stabilizedPressure);
         return;
     }
     const size_t oldestIdx = (m_historyHead + MAX_WINDOW_SIZE + 1 - m_historyCount) % MAX_WINDOW_SIZE;
@@ -42,10 +44,11 @@ void DynamicStabilizer::reanchorInitialPosition(math::Point2D newInitialPosition
     }
 }
 
-math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normalizedVelocity) noexcept {
+math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double rawPressure, double normalizedVelocity) noexcept {
     if (m_stabilizationPercentage <= 0.5) {
         m_lastMovementDelta = rawPosition - m_stabilizedPosition;
         m_stabilizedPosition = rawPosition;
+        m_stabilizedPressure = rawPressure;
         return rawPosition;
     }
 
@@ -59,6 +62,7 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normal
     // 1. Atualiza buffer circular de histórico
     m_historyHead = (m_historyHead + 1) % MAX_WINDOW_SIZE;
     m_historyBuffer[m_historyHead] = rawPosition;
+    m_pressureHistoryBuffer[m_historyHead] = rawPressure;
     if (m_historyCount < maxWindow) {
         ++m_historyCount;
     } else {
@@ -66,8 +70,6 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normal
     }
 
     // 2. Expoente de peso WMA adaptativo com Velocity Bypass
-    // Suprimido nas primeiras 4 amostras para garantir entrada de traço perfeitamente uniforme e estável.
-    // Nas amostras subsequentes, usa fator suave (0.4) para evitar solavancos no centróide.
     double exponent = 2.4 - 1.3 * std::pow(norm, 0.85);
     if (m_historyCount > 4 && normalizedVelocity > 0.50) {
         const double vFactor = std::clamp((normalizedVelocity - 0.50) / 0.50, 0.0, 1.0);
@@ -75,14 +77,15 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normal
     }
 
     // 3. Média Ponderada Temporal Pura (WMA - Padrão Paint Tool SAI)
-    // Calcula o centróide ponderado diretamente sobre a janela de amostras.
-    // Garante C1-continuidade desde o primeiro frame, eliminando dead-bands e desvios no toque inicial.
-    double sumX = 0.0, sumY = 0.0, totalWeight = 0.0;
+    // Sincroniza tanto a posição quanto a pressão para que o alívio de pressão
+    // coincida exatamente com a posição estabilizada (Correção A5).
+    double sumX = 0.0, sumY = 0.0, sumPressure = 0.0, totalWeight = 0.0;
     for (size_t i = 0; i < m_historyCount; ++i) {
         const double w = std::pow(static_cast<double>(i + 1), exponent);
         const size_t idx = (m_historyHead + MAX_WINDOW_SIZE + 1 - (m_historyCount - i)) % MAX_WINDOW_SIZE;
         sumX += m_historyBuffer[idx].x * w;
         sumY += m_historyBuffer[idx].y * w;
+        sumPressure += m_pressureHistoryBuffer[idx] * w;
         totalWeight += w;
     }
 
@@ -90,6 +93,7 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normal
         totalWeight > 0.0 ? (sumX / totalWeight) : rawPosition.x,
         totalWeight > 0.0 ? (sumY / totalWeight) : rawPosition.y
     };
+    m_stabilizedPressure = totalWeight > 0.0 ? (sumPressure / totalWeight) : rawPressure;
 
     const math::Point2D delta = newPos - m_stabilizedPosition;
     if (delta.length() > 0.05) {
@@ -97,6 +101,10 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normal
     }
     m_stabilizedPosition = newPos;
     return m_stabilizedPosition;
+}
+
+math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normalizedVelocity) noexcept {
+    return update(rawPosition, m_stabilizedPressure, normalizedVelocity);
 }
 
 std::vector<math::Point2D> DynamicStabilizer::flush(math::Point2D endPosition, size_t steps) noexcept {

@@ -1,10 +1,10 @@
 {
-  "facade__latencia_off__estab_0": "9fff03ab193ef0a4558345f2d07f528bd07f5ee603f3bb2393e928bf603057c5",
-  "facade__latencia_off__estab_50": "6e77d5b3144857d65eb357e65068a53be2837f82ec6985eed0e76094afd976f2",
-  "facade__latencia_off__estab_98": "42fa9edbed456af3dc789363aa190d7bf196c2894a385921ac75350697d4945c",
-  "facade__latencia_on__estab_0": "9fff03ab193ef0a4558345f2d07f528bd07f5ee603f3bb2393e928bf603057c5",
-  "raw__latencia_off__estab_0": "adef084fc0bd6f12d51ea13f02b484858cde215c89adcaed0c3e1d20bd5ed7af",
-  "raw__latencia_off__estab_50": "4d665cfb4c2ab759b8b1de392f17ea3bf91ac715ef461974340c7928c39bbe2f",
-  "raw__latencia_off__estab_98": "a09c59c860f3bc3c59e4724c84a3647a22a2c20495a38b58119fd7e90861103e",
-  "raw__latencia_on__estab_0": "7da8d8b1eeca836903d8e590bdbebc06fc5e2f3f7f037e702c55547a58fc2994"
+  "facade__latencia_off__estab_0": "12bb2d127344b5c69563a2a804c3c96e43da98a30501a94e5b18a15ed3ab2e04",
+  "facade__latencia_off__estab_50": "585481a323375a0b9e152b1c5ed349513d7fb05aff7d1886942d3d53b0a51129",
+  "facade__latencia_off__estab_98": "65002bd4c078c18fff22bd5fcb269c84c0663b19f15736be21ab71cd97fdf144",
+  "facade__latencia_on__estab_0": "12bb2d127344b5c69563a2a804c3c96e43da98a30501a94e5b18a15ed3ab2e04",
+  "raw__latencia_off__estab_0": "ca9e9ccf409e6185a686145f867e6e2de8aa32bbe9cd3a7abf4651926a19d56c",
+  "raw__latencia_off__estab_50": "b06835e4140aa1dd6f992bf2b3ef9228a841aee62c72036cdbc6a8b8b9843543",
+  "raw__latencia_off__estab_98": "6542c93b3c590b3f7a180eef55d889bf099545ae638c84b18522d760f99b3577",
+  "raw__latencia_on__estab_0": "13abc56a336156d5fc8b5b789682838fa678d4ee3d8ac3c1c752a0b67962c32c"
 }

@@ -43,6 +43,8 @@ struct RawStrokeContext {
     double& lastRawPressure;
     bool& hasLastRawPoint;
     double& distanceCarryover;
+    double& timeCarryover;
+    double& lastTimestamp;
     raster::Dab& lastDab;
     stroke::VelocityTracker& velocityTracker;
     stroke::DynamicStabilizer& stabilizer;
@@ -57,6 +59,10 @@ struct RawStrokeContext {
     const math::SymmetryConfig& symmetryConfig;
     telemetry::EngineTelemetryManager& telemetryManager;
     bool lowLatency{false};
+    raster::Dab& splineP0;
+    raster::Dab& splineP1;
+    raster::Dab& splineP2;
+    uint32_t& splineCount;
 };
 
 class StrokeOrchestrator {
@@ -82,6 +88,19 @@ public:
         bool performComposite = true
     );
 
+    static void renderSplineSegment(
+        const raster::Dab& p0,
+        const raster::Dab& p1,
+        const raster::Dab& p2,
+        const raster::Dab& p3,
+        RawStrokeContext& ctx,
+        math::Rect2D* outDirtyBounds = nullptr,
+        uint32_t* outDabsRendered = nullptr,
+        telemetry::StageMetrics* outStages = nullptr,
+        bool performComposite = true
+    );
+
+
     static std::vector<double> updateStrokeRaw(
         RawStrokeContext& ctx,
         double x, double y, double pressure, double timestamp,
@@ -90,7 +109,8 @@ public:
 
     static std::vector<double> endStrokeRaw(
         RawStrokeContext& ctx,
-        std::function<void(const stroke::PointerEvent&)> endStrokeCallback
+        std::function<void(const stroke::PointerEvent&)> endStrokeCallback,
+        double endX = -1e9, double endY = -1e9
     );
 };
 

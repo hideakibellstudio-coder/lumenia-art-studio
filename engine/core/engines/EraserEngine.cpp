@@ -1,6 +1,7 @@
 #include "EraserEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
 #include "../math/Rect2D.hpp"
+#include "../raster/LargeBrushOptimizer.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -125,7 +126,8 @@ void EraserEngine::renderDab(
                     if (distSq > hardSpanSq || distSq > outerSubpixelThreshSq) {
                         const double dist = std::sqrt(distSq);
                         if (dist > hardSpan) {
-                            shapeAlpha = std::clamp((safeR - dist) * invSoftSpan, 0.0, 1.0);
+                            const double t = (safeR - dist) * invSoftSpan;
+                            shapeAlpha = raster::LargeBrushOptimizer::smoothHermite(t);
                         }
                         if (dist > outerSubpixelThresh) {
                             shapeAlpha *= std::clamp((safeR - dist) * 2.0, 0.0, 1.0);

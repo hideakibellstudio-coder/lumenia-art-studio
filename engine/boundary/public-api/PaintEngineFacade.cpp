@@ -79,12 +79,14 @@ internal::RawStrokeContext PaintEngineFacade::strokeContext() noexcept {
     return internal::RawStrokeContext{
         m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, *m_firstSample,
         m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
-        m_distanceCarryover, m_lastDab, m_velocityTracker, m_stabilizer,
+        m_distanceCarryover, m_timeCarryover, m_lastTimestamp, m_lastDab, m_velocityTracker, m_stabilizer,
         m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
         m_selectionMask, m_undoManager, m_compositor, m_outputBuffer,
-        m_symmetryConfig, m_telemetryManager, m_lowLatency
+        m_symmetryConfig, m_telemetryManager, m_lowLatency,
+        m_splineP0, m_splineP1, m_splineP2, m_splineCount
     };
 }
+
 
 // ─── TROCA DE MOTOR ───────────────────────────────────────────────────────
 
@@ -184,15 +186,21 @@ void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, doub
     m_hasLastRawPoint = true;
     m_lastRawPressure = pressure;
     m_pendingFirstSegment = false;
+    m_distanceCarryover = -1.0;
+    m_timeCarryover = 0.0;
     double t = timestamp;
     if (t <= 0.0) {
         auto now = std::chrono::high_resolution_clock::now();
         t = std::chrono::duration<double>(now.time_since_epoch()).count();
     }
+    m_lastTimestamp = t;
     stroke::PointerEvent ev{stroke::PointerEventType::Press, {x, y}, pressure, t, tiltX, tiltY, twist};
     ev.computeAltitudeAzimuthFromTilt();
     beginStroke(ev);
+    m_splineP0 = m_lastDab;
+    m_splineCount = 1;
 }
+
 
 std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure, double timestamp,
                                                        double tiltX, double tiltY, double twist) {
@@ -200,11 +208,11 @@ std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, doubl
     return internal::StrokeOrchestrator::updateStrokeRaw(ctx, x, y, pressure, timestamp, tiltX, tiltY, twist);
 }
 
-std::vector<double> PaintEngineFacade::endStrokeRaw() {
+std::vector<double> PaintEngineFacade::endStrokeRaw(double endX, double endY) {
     auto ctx = strokeContext();
     return internal::StrokeOrchestrator::endStrokeRaw(ctx, [this](const stroke::PointerEvent& ev) {
         this->endStroke(ev);
-    });
+    }, endX, endY);
 }
 
 telemetry::RealTimeStrokeMetrics PaintEngineFacade::getTelemetrySnapshot() const {

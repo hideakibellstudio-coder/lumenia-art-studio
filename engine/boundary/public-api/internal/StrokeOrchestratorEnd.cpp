@@ -17,34 +17,43 @@ using detail::usarAtalhoDeLatencia;
 
 std::vector<double> StrokeOrchestrator::endStrokeRaw(
     RawStrokeContext& ctx,
-    std::function<void(const stroke::PointerEvent&)> endStrokeCallback
+    std::function<void(const stroke::PointerEvent&)> endStrokeCallback,
+    double endX, double endY
 ) {
     math::Rect2D totalCatchupDirty{0, 0, 0, 0};
     telemetry::StageMetrics stagesCatchup{};
     const bool atalho = usarAtalhoDeLatencia(ctx);
 
     if (ctx.isDrawing) {
-        if (ctx.pendingFirstSegment) {
-            auto mapped1 = brush::DynamicMapper::map(
-                ctx.brushProfile, ctx.firstSample.stabilizedPos, ctx.firstSample.pressure,
-                ctx.firstSample.normVel, 0.0, ctx.firstSample.twist,
-                ctx.firstSample.altitude, ctx.firstSample.azimuth
-            );
-            raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, ctx.brushProfile.blendMode, mapped1.color, mapped1.aspectRatio);
+        // Correção C4: Repassa a posição de soltura da caneta se fornecida
+        if (endX > -1e8 && endY > -1e8) {
+            ctx.lastRawPoint = {endX, endY};
+            ctx.hasLastRawPoint = true;
+        }
+
+        if (ctx.splineCount == 2) {
+            // Apenas P0 e P1 foram capturados (1 único movimento): renderiza P0 -> P1 via Catmull-Rom centrípeta
+            raster::Dab dNeg1 = ctx.splineP0;
+            dNeg1.position = ctx.splineP0.position * 2.0 - ctx.splineP1.position;
+            raster::Dab dPlus2 = ctx.splineP1;
+            dPlus2.position = ctx.splineP1.position * 2.0 - ctx.splineP0.position;
+
             math::Rect2D dirty1{0, 0, 0, 0};
             uint32_t dabs1 = 0;
-            renderSegment(
-                ctx.lastDab, dab1, ctx.brushProfile, ctx.canvasTexture,
-                ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
-                ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
-                ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty1, &dabs1
-            );
+            telemetry::StageMetrics stages1{};
+            renderSplineSegment(dNeg1, ctx.splineP0, ctx.splineP1, dPlus2, ctx, &dirty1, &dabs1, &stages1);
             if (dirty1.width > 0 && dirty1.height > 0) {
                 totalCatchupDirty = dirty1;
             }
-            ctx.lastDab = dab1;
+            ctx.lastDab = ctx.splineP1;
+            ctx.splineCount = 0;
+            ctx.pendingFirstSegment = false;
+        } else {
+            // splineCount >= 3 ou 1: Todos os segmentos até o último ponto já foram renderizados durante updateStrokeRaw
+            ctx.splineCount = 0;
             ctx.pendingFirstSegment = false;
         }
+
 
         if (ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
             const math::Point2D stabPos = atalho ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
@@ -53,42 +62,38 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
             const math::Point2D toRaw = ctx.lastRawPoint - stabPos;
             const double distToRaw = toRaw.length();
 
-            bool isCollinear = false;
-            if (speed > 0.1 && distToRaw > 0.5) {
-                const double dot = (v.x * toRaw.x + v.y * toRaw.y) / (speed * distToRaw);
-                isCollinear = (dot > 0.4);
-            }
-
-            math::Point2D targetPt = stabPos;
-            bool shouldRenderCatchup = false;
-            double targetPressure = ctx.lastRawPressure;
-            double targetRadiusMult = 1.0;
-            double targetOpacityMult = 1.0;
-
-            if (!atalho && isCollinear) {
-                targetPt = ctx.lastRawPoint;
-                shouldRenderCatchup = (distToRaw > 1.0);
-                if (ctx.brushProfile.strokeTaperEnabled) {
-                    targetPressure = 0.0;
-                    targetRadiusMult = 0.1;
-                    targetOpacityMult = 0.0;
+            // 1. Catch-up para alcançar a posição real de soltura quando o estabilizador ficou para trás
+            if (!atalho && distToRaw > 1.0) {
+                auto mappedCatchup = brush::DynamicMapper::map(ctx.brushProfile, ctx.lastRawPoint, ctx.lastRawPressure, 0.0, 0.0);
+                raster::Dab catchupDab(mappedCatchup.position, mappedCatchup.radius, mappedCatchup.opacity, mappedCatchup.pressure, mappedCatchup.angle, ctx.brushProfile.blendMode, mappedCatchup.color, mappedCatchup.aspectRatio);
+                math::Rect2D dirty{0, 0, 0, 0};
+                uint32_t dabsRendered = 0;
+                renderSegment(
+                    ctx.lastDab, catchupDab, ctx.brushProfile, ctx.canvasTexture,
+                    ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
+                    ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
+                    ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered,
+                    &stagesCatchup
+                );
+                if (dirty.width > 0 && dirty.height > 0) {
+                    totalCatchupDirty = (totalCatchupDirty.width > 0) ? totalCatchupDirty.united(dirty) : dirty;
                 }
-            } else if (!atalho && ctx.brushProfile.strokeTaperEnabled && speed >= 0.3) {
-                // Desvio/gancho de levantamento da caneta detectado (pen-up hook off-axis).
-                // Projeta estritamente ao longo da tangente física do traço
-                const double taperDist = std::min(ctx.lastDab.radius * 1.5, 35.0);
-                const math::Point2D tangent = v * (1.0 / speed);
-                targetPt = stabPos + (tangent * taperDist);
-                targetPressure = 0.0;
-                targetRadiusMult = 0.1;
-                targetOpacityMult = 0.0;
-                shouldRenderCatchup = true;
+                ctx.lastDab = catchupDab;
             }
 
-            if (shouldRenderCatchup) {
-                auto mapped = brush::DynamicMapper::map(ctx.brushProfile, targetPt, targetPressure, 0.0, 0.0);
-                mapped.radius *= targetRadiusMult;
-                mapped.opacity *= targetOpacityMult;
+            // 2. Afunilamento final com comprimento fixo configurável (Decisão D3 / Correção B1)
+            // Funciona tanto com estabilização quanto no atalho de baixa latência, desde que a caneta
+            // estivesse em movimento no momento da soltura (speed > 0.1).
+            if (ctx.brushProfile.strokeTaperEnabled && speed > 0.1) {
+                const math::Point2D dir = v * (1.0 / speed);
+                const double taperLen = (ctx.brushProfile.strokeTaperLength > 0.0)
+                    ? ctx.brushProfile.strokeTaperLength
+                    : 20.0;
+                const math::Point2D targetPt = ctx.lastDab.position + (dir * taperLen);
+
+                auto mapped = brush::DynamicMapper::map(ctx.brushProfile, targetPt, 0.0, 0.0, 0.0);
+                mapped.radius *= 0.05;
+                mapped.opacity = 0.0;
                 raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
                 math::Rect2D dirty{0, 0, 0, 0};
                 uint32_t dabsRendered = 0;

@@ -126,7 +126,7 @@ public:
                         double tiltX = 0.0, double tiltY = 0.0, double twist = 0.0);
     std::vector<double> updateStrokeRaw(double x, double y, double pressure = 1.0, double timestamp = 0.0,
                                         double tiltX = 0.0, double tiltY = 0.0, double twist = 0.0);
-    std::vector<double> endStrokeRaw();
+    std::vector<double> endStrokeRaw(double endX = -1e9, double endY = -1e9);
 
     bool floodFill(int seedX, int seedY, const raster::ColorRGBA& fillColor,
                    int tolerance = 20, bool contiguous = true,
@@ -263,7 +263,15 @@ public:
 
     bool pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId = 0, double opacity = 1.0);
 
-    void setShapePreset(int presetId) { m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(presetId)); }
+    void setShapePreset(int presetId) {
+        if (presetId <= 1) {
+            m_brushProfile.shapeTexture = nullptr;
+            if (presetId == 0) m_brushProfile.hardness = 0.2;
+            else if (presetId == 1) m_brushProfile.hardness = 0.95;
+        } else {
+            m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(presetId));
+        }
+    }
     void setBrushHeightPreset(int presetId) { m_brushProfile.brushHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId)); }
     void setCanvasHeightPreset(int presetId) { m_canvasTexture.canvasHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId)); }
 
@@ -416,13 +424,21 @@ private:
     double               m_lastRawPressure{1.0};
     bool                 m_hasLastRawPoint{false};
     double               m_distanceCarryover{0.0};
+    double               m_timeCarryover{0.0};
+    double               m_lastTimestamp{0.0};
     uint32_t             m_segmentsRenderedInStroke{0};
 
     bool                                         m_pendingFirstSegment{false};
     std::unique_ptr<internal::TouchdownSample>   m_firstSample;
 
+    raster::Dab m_splineP0;
+    raster::Dab m_splineP1;
+    raster::Dab m_splineP2;
+    uint32_t    m_splineCount{0};
+
     telemetry::EngineTelemetryManager m_telemetryManager;
 };
+
 
 } // namespace aladyn::engine::boundary
 

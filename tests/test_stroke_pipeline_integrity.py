@@ -159,6 +159,7 @@ def test_stroke_stabilizer_varied_scales(qapp):
 
     scales = [0.0, 0.25, 0.50, 0.75, 0.98]
     catchup_widths = []
+    backend._facade.get_brush_profile().stroke_taper_enabled = False
 
     for s in scales:
         backend.set_stabilizer_weight(s)

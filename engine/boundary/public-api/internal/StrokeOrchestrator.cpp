@@ -3,6 +3,7 @@
 #include "../../../core/raster/DabRenderer.hpp"
 #include "../../../core/raster/PixelContext.hpp"
 #include "../../../core/brush/DynamicMapper.hpp"
+#include "../../../core/raster/LargeBrushOptimizer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <random>
@@ -16,9 +17,8 @@ using detail::usarAtalhoDeLatencia;
 // endStrokeRaw vive em StrokeOrchestratorEnd.cpp (divisão de 2026-09-22: o arquivo
 // tinha 484 linhas, acima do teto ARCcC de 450).
 
-void StrokeOrchestrator::renderSegment(
-    const raster::Dab& startDab,
-    const raster::Dab& endDab,
+static void renderDabsPipeline(
+    const std::vector<raster::Dab>& interpolatedDabs,
     const brush::BrushProfile& brushProfile,
     const canvas::CanvasTexture& canvasTexture,
     engines::IBrushEngine* activeEngine,
@@ -28,13 +28,13 @@ void StrokeOrchestrator::renderSegment(
     document::Compositor& compositor,
     canvas::PixelBuffer& outputBuffer,
     const raster::ColorRGBA& bgColor,
-    double& distanceCarryover,
     const math::SymmetryConfig& symmetryConfig,
     const math::Point2D* strokeStart,
     math::Rect2D* outDirtyBounds,
     uint32_t* outDabsRendered,
     telemetry::StageMetrics* outStages,
-    bool performComposite
+    bool performComposite,
+    double timeInterpolationUs
 ) {
     document::Layer* activeLayer = layerStack.getActiveLayer();
     if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) {
@@ -45,12 +45,6 @@ void StrokeOrchestrator::renderSegment(
     // Clipping Mask é 100% não-destrutivo: a grade de tiles armazena o traço completo.
     // O recorte é aplicado dinamicamente pelo Compositor durante a renderização.
     const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &selectionMask, nullptr };
-
-    auto tInterp0 = std::chrono::high_resolution_clock::now();
-    const auto interpolatedDabs = raster::DabInterpolator::interpolate(
-        startDab, endDab, brushProfile.spacingFactor, distanceCarryover
-    );
-
     auto& grid = activeLayer->getTileGrid();
     const int activeIdx = layerStack.getActiveIndex();
 
@@ -94,13 +88,12 @@ void StrokeOrchestrator::renderSegment(
             }
         }
     }
-    auto tInterp1 = std::chrono::high_resolution_clock::now();
 
     if (finalDabs.empty()) {
         if (outDabsRendered) *outDabsRendered = 0;
         if (outStages) {
             *outStages = telemetry::StageMetrics{};
-            outStages->timeInterpolationUs = std::chrono::duration<double, std::micro>(tInterp1 - tInterp0).count();
+            outStages->timeInterpolationUs = timeInterpolationUs;
         }
         return;
     }
@@ -159,7 +152,7 @@ void StrokeOrchestrator::renderSegment(
     }
 
     if (outStages) {
-        outStages->timeInterpolationUs = std::chrono::duration<double, std::micro>(tInterp1 - tInterp0).count();
+        outStages->timeInterpolationUs = timeInterpolationUs;
         outStages->timeUndoRecordUs = std::chrono::duration<double, std::micro>(tUndo1 - tUndo0).count();
         outStages->timeRasterDabUs = std::chrono::duration<double, std::micro>(tRaster1 - tRaster0).count();
         outStages->timeCompositeUs = timeCompUs;
@@ -170,6 +163,67 @@ void StrokeOrchestrator::renderSegment(
         outStages->tilesRecorded = tilesCount;
         outStages->tilesComposited = performComposite ? tilesCount : 0;
     }
+}
+
+void StrokeOrchestrator::renderSegment(
+    const raster::Dab& startDab,
+    const raster::Dab& endDab,
+    const brush::BrushProfile& brushProfile,
+    const canvas::CanvasTexture& canvasTexture,
+    engines::IBrushEngine* activeEngine,
+    document::LayerStack& layerStack,
+    const raster::SelectionMask& selectionMask,
+    canvas::TileUndoManager& undoManager,
+    document::Compositor& compositor,
+    canvas::PixelBuffer& outputBuffer,
+    const raster::ColorRGBA& bgColor,
+    double& distanceCarryover,
+    const math::SymmetryConfig& symmetryConfig,
+    const math::Point2D* strokeStart,
+    math::Rect2D* outDirtyBounds,
+    uint32_t* outDabsRendered,
+    telemetry::StageMetrics* outStages,
+    bool performComposite
+) {
+    auto tInterp0 = std::chrono::high_resolution_clock::now();
+    const auto interpolatedDabs = raster::DabInterpolator::interpolate(
+        startDab, endDab, brushProfile.spacingFactor, distanceCarryover, &brushProfile
+    );
+    auto tInterp1 = std::chrono::high_resolution_clock::now();
+    const double timeInterpUs = std::chrono::duration<double, std::micro>(tInterp1 - tInterp0).count();
+
+    renderDabsPipeline(
+        interpolatedDabs, brushProfile, canvasTexture, activeEngine, layerStack,
+        selectionMask, undoManager, compositor, outputBuffer, bgColor,
+        symmetryConfig, strokeStart, outDirtyBounds, outDabsRendered, outStages,
+        performComposite, timeInterpUs
+    );
+}
+
+void StrokeOrchestrator::renderSplineSegment(
+    const raster::Dab& p0,
+    const raster::Dab& p1,
+    const raster::Dab& p2,
+    const raster::Dab& p3,
+    RawStrokeContext& ctx,
+    math::Rect2D* outDirtyBounds,
+    uint32_t* outDabsRendered,
+    telemetry::StageMetrics* outStages,
+    bool performComposite
+) {
+    auto tInterp0 = std::chrono::high_resolution_clock::now();
+    const auto interpolatedDabs = raster::DabInterpolator::interpolateSpline(
+        p0, p1, p2, p3, ctx.brushProfile.spacingFactor, ctx.distanceCarryover, &ctx.brushProfile
+    );
+    auto tInterp1 = std::chrono::high_resolution_clock::now();
+    const double timeInterpUs = std::chrono::duration<double, std::micro>(tInterp1 - tInterp0).count();
+
+    renderDabsPipeline(
+        interpolatedDabs, ctx.brushProfile, ctx.canvasTexture, ctx.activeEngine, ctx.layerStack,
+        ctx.selectionMask, ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
+        ctx.symmetryConfig, &ctx.strokeStartPoint, outDirtyBounds, outDabsRendered, outStages,
+        performComposite, timeInterpUs
+    );
 }
 
 std::vector<double> StrokeOrchestrator::updateStrokeRaw(
@@ -192,11 +246,9 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
 
     const double vel = ctx.velocityTracker.update({x, y}, t);
     const double normVel = ctx.velocityTracker.getNormalizedVelocity(1500.0);
-    // Pelo atalho o ponto bruto vai direto ao mapeamento e ao raster; o
-    // rastreador de velocidade continua ativo para manter a dinâmica do
-    // pincel e a telemetria, mas o estabilizador deixa de inserir atraso.
     const bool atalho = usarAtalhoDeLatencia(ctx);
-    const math::Point2D pos = atalho ? math::Point2D{x, y} : ctx.stabilizer.update({x, y}, normVel);
+    const math::Point2D pos = atalho ? math::Point2D{x, y} : ctx.stabilizer.update({x, y}, pressure, normVel);
+    const double effectivePressure = atalho ? pressure : ctx.stabilizer.getStabilizedPressure();
 
     double altitude = 90.0;
     double azimuth = 0.0;
@@ -212,8 +264,22 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
         azimuth = az;
     }
 
+    double strokeAngle = 0.0;
+    const double dx = pos.x - ctx.lastDab.position.x;
+    const double dy = pos.y - ctx.lastDab.position.y;
+    if (dx * dx + dy * dy > 0.01) {
+        strokeAngle = std::atan2(dy, dx) * (180.0 / 3.14159265358979323846);
+        if (strokeAngle < 0.0) strokeAngle += 360.0;
+    }
+
+    auto mapped = brush::DynamicMapper::map(
+        ctx.brushProfile, pos, effectivePressure, normVel, strokeAngle, twist, altitude, azimuth
+    );
+    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
+
     // Amostra 1 do movimento (P1): Reter para confirmar alinhamento direcional com P2
-    if (ctx.segmentsRenderedInStroke == 0 && !ctx.pendingFirstSegment) {
+    if (ctx.splineCount <= 1) {
+        ctx.splineP1 = currentDab;
         ctx.firstSample.rawPoint = {x, y};
         ctx.firstSample.pressure = pressure;
         ctx.firstSample.timestamp = t;
@@ -225,7 +291,7 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
         ctx.firstSample.twist = twist;
         ctx.firstSample.altitude = altitude;
         ctx.firstSample.azimuth = azimuth;
-        ctx.pendingFirstSegment = true;
+        ctx.splineCount = 2;
         ctx.segmentsRenderedInStroke = 1;
         return { 0.0, 0.0, 0.0, 0.0, x, y, pressure, vel, ctx.lastDab.opacity };
     }
@@ -238,95 +304,115 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     auto tStart = std::chrono::high_resolution_clock::now();
     telemetry::StageMetrics totalStages{};
 
-    // Amostra 2 do movimento (P2 com P1 pendente):
-    // Avalia o alinhamento entre o pouso (P0 -> P1) e a trajetória da curva (P1 -> P2)
-    if (ctx.pendingFirstSegment) {
+    math::Rect2D dirtyCurrent{0, 0, 0, 0};
+    uint32_t dabsCurrent = 0;
+    telemetry::StageMetrics stagesCurrent{};
+
+    // Amostra 2 do movimento (P2 com P0 e P1 em buffer):
+    if (ctx.splineCount == 2) {
+        ctx.splineP2 = currentDab;
         const math::Point2D p0 = ctx.strokeStartPoint;
-        const math::Point2D p1 = ctx.firstSample.rawPoint;
-        const math::Point2D p2 = {x, y};
+        const math::Point2D p1 = ctx.splineP1.position;
+        const math::Point2D p2 = currentDab.position;
 
         const math::Point2D v01 = p1 - p0;
         const math::Point2D v12 = p2 - p1;
         const double len01 = v01.length();
         const double len12 = v12.length();
 
-        if (len01 > 0.5 && len12 > 0.5) {
+        // Correção A7: Restringe a correção de deflexão de impacto a deslizes minúsculos (<= 3px ou meio raio)
+        const double maxSlipDist = std::min(3.0, ctx.lastDab.radius * 0.5);
+        if (len01 > 0.5 && len01 <= maxSlipDist && len12 > 0.5) {
             const double dot = (v01.x * v12.x + v01.y * v12.y) / (len01 * len12);
             if (dot < 0.4) {
-                // Deflexão de impacto detectada no pouso do stylus:
-                // Realinha o ponto inicial P0 tangencialmente para trás na direção de v12
                 const math::Point2D u12 = v12 * (1.0 / len12);
                 const math::Point2D alignedP0 = p1 - (u12 * len01);
                 ctx.strokeStartPoint = alignedP0;
                 if (!atalho) ctx.stabilizer.reanchorInitialPosition(alignedP0);
 
                 auto mappedP0 = brush::DynamicMapper::map(ctx.brushProfile, alignedP0, ctx.lastDab.pressure, 0.0, 0.0);
-                ctx.lastDab = raster::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color, mappedP0.aspectRatio);
+                ctx.splineP0 = raster::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color, mappedP0.aspectRatio);
+                ctx.lastDab = ctx.splineP0;
             }
         }
 
-        double strokeAngle1 = 0.0;
-        const double dx1 = ctx.firstSample.stabilizedPos.x - ctx.lastDab.position.x;
-        const double dy1 = ctx.firstSample.stabilizedPos.y - ctx.lastDab.position.y;
-        if (dx1 * dx1 + dy1 * dy1 > 0.01) {
-            strokeAngle1 = std::atan2(dy1, dx1) * (180.0 / 3.14159265358979323846);
-            if (strokeAngle1 < 0.0) strokeAngle1 += 360.0;
+        // Renderiza segmento P0 -> P1 via Catmull-Rom centrípeta com currentDab (P2) como nó à frente
+        raster::Dab dNeg1 = ctx.splineP0;
+        dNeg1.position = ctx.splineP0.position * 2.0 - ctx.splineP1.position;
+        renderSplineSegment(dNeg1, ctx.splineP0, ctx.splineP1, currentDab, ctx, &dirtyCurrent, &dabsCurrent, &stagesCurrent);
+
+        // Renderiza segmento P1 -> P2 imediatamente via Catmull-Rom centrípeta com nó extrapolado
+        raster::Dab dForward2 = currentDab;
+        dForward2.position = currentDab.position * 2.0 - ctx.splineP1.position;
+        math::Rect2D dirtySeg2{0, 0, 0, 0};
+        uint32_t dabsSeg2 = 0;
+        telemetry::StageMetrics stagesSeg2{};
+        renderSplineSegment(ctx.splineP0, ctx.splineP1, currentDab, dForward2, ctx, &dirtySeg2, &dabsSeg2, &stagesSeg2);
+
+        if (dirtySeg2.width > 0 && dirtySeg2.height > 0) {
+            dirtyCurrent = (dirtyCurrent.width > 0 && dirtyCurrent.height > 0) ? dirtyCurrent.united(dirtySeg2) : dirtySeg2;
         }
+        dabsCurrent += dabsSeg2;
+        stagesCurrent.timeInterpolationUs += stagesSeg2.timeInterpolationUs;
+        stagesCurrent.timeRasterDabUs += stagesSeg2.timeRasterDabUs;
+        stagesCurrent.timeUndoRecordUs += stagesSeg2.timeUndoRecordUs;
+        stagesCurrent.timeCompositeUs += stagesSeg2.timeCompositeUs;
+        stagesCurrent.tilesRecorded += stagesSeg2.tilesRecorded;
+        stagesCurrent.tilesComposited += stagesSeg2.tilesComposited;
 
-        // Renderiza o segmento 1 (P0 -> P1 estabilizado)
-        auto mapped1 = brush::DynamicMapper::map(
-            ctx.brushProfile, ctx.firstSample.stabilizedPos, ctx.firstSample.pressure,
-            ctx.firstSample.normVel, strokeAngle1, ctx.firstSample.twist,
-            ctx.firstSample.altitude, ctx.firstSample.azimuth
-        );
-        raster::Dab dab1(mapped1.position, mapped1.radius, mapped1.opacity, mapped1.pressure, mapped1.angle, ctx.brushProfile.blendMode, mapped1.color, mapped1.aspectRatio);
-        math::Rect2D dirty1{0, 0, 0, 0};
-        uint32_t dabs1 = 0;
-        telemetry::StageMetrics stages1{};
-        renderSegment(
-            ctx.lastDab, dab1, ctx.brushProfile, ctx.canvasTexture,
-            ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
-            ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
-            ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty1, &dabs1,
-            &stages1
-        );
-        totalStages.timeInterpolationUs += stages1.timeInterpolationUs;
-        totalStages.timeRasterDabUs += stages1.timeRasterDabUs;
-        totalStages.timeUndoRecordUs += stages1.timeUndoRecordUs;
-        totalStages.timeCompositeUs += stages1.timeCompositeUs;
-        totalStages.tilesRecorded += stages1.tilesRecorded;
-        totalStages.tilesComposited += stages1.tilesComposited;
-
-        ctx.lastDab = dab1;
-        dirty = dirty1;
-        dabsRendered += dabs1;
+        ctx.splineP0 = ctx.splineP1;
+        ctx.splineP1 = currentDab;
+        ctx.lastDab = currentDab;
+        ctx.splineCount = 3;
         ctx.pendingFirstSegment = false;
-        ++ctx.segmentsRenderedInStroke;
+    } else {
+        // Amostras subsequentes (P3, P4, ...): renderiza splineP1 -> currentDab com controle (splineP0, splineP1, currentDab, dForward)
+        raster::Dab dForward = currentDab;
+        dForward.position = currentDab.position * 2.0 - ctx.splineP1.position;
+        renderSplineSegment(ctx.splineP0, ctx.splineP1, currentDab, dForward, ctx, &dirtyCurrent, &dabsCurrent, &stagesCurrent);
+
+        ctx.splineP0 = ctx.splineP1;
+        ctx.splineP1 = currentDab;
+        ctx.lastDab = currentDab;
     }
 
-    double strokeAngle = 0.0;
-    const double dx = pos.x - ctx.lastDab.position.x;
-    const double dy = pos.y - ctx.lastDab.position.y;
-    if (dx * dx + dy * dy > 0.01) {
-        strokeAngle = std::atan2(dy, dx) * (180.0 / 3.14159265358979323846);
-        if (strokeAngle < 0.0) strokeAngle += 360.0;
-    }
 
-    // Renderiza o segmento atual
-    auto mapped = brush::DynamicMapper::map(
-        ctx.brushProfile, pos, pressure, normVel, strokeAngle, twist, altitude, azimuth
-    );
-    raster::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
-    math::Rect2D dirtyCurrent{0, 0, 0, 0};
-    uint32_t dabsCurrent = 0;
-    telemetry::StageMetrics stagesCurrent{};
-    renderSegment(
-        ctx.lastDab, currentDab, ctx.brushProfile, ctx.canvasTexture,
-        ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
-        ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
-        ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirtyCurrent, &dabsCurrent,
-        &stagesCurrent
-    );
+    // Emissão temporal (Aerógrafo acumula tinta com a caneta parada - Correção B3 / Decisão D4)
+    if (ctx.brushProfile.timeSpacingEnabled && ctx.brushProfile.dabsPerSecond > 0.0) {
+        const double dt = (ctx.lastTimestamp > 0.0 && t > ctx.lastTimestamp) ? (t - ctx.lastTimestamp) : 0.0;
+        ctx.timeCarryover += dt;
+        const double interval = 1.0 / ctx.brushProfile.dabsPerSecond;
+        const double distFromLast = pos.distanceTo(ctx.lastDab.position);
+        // Caneta verdadeiramente imóvel: velocidade física residual (< 1.5 px/s) E sem avanço espacial
+        const bool isStationary = (vel < 1.5 && normVel < 0.002) && (distFromLast < 0.5);
+        if (isStationary) {
+            const uint32_t maxStationaryBatch = raster::LargeBrushOptimizer::isLargeBrush(currentDab.radius) ? 2 : 8;
+            uint32_t emittedInBatch = 0;
+            while (ctx.timeCarryover >= interval && emittedInBatch < maxStationaryBatch) {
+                ctx.timeCarryover -= interval;
+                ++emittedInBatch;
+                math::Rect2D dirtyStationary{0, 0, 0, 0};
+                uint32_t dabsStationary = 0;
+                double stationaryCarryover = -1.0;
+                renderSegment(
+                    currentDab, currentDab, ctx.brushProfile, ctx.canvasTexture,
+                    ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
+                    ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
+                    stationaryCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirtyStationary, &dabsStationary
+                );
+                if (dirtyStationary.width > 0 && dirtyStationary.height > 0) {
+                    dirtyCurrent = (dirtyCurrent.width > 0 && dirtyCurrent.height > 0) ? dirtyCurrent.united(dirtyStationary) : dirtyStationary;
+                }
+                dabsCurrent += dabsStationary;
+            }
+            if (ctx.timeCarryover >= interval) {
+                ctx.timeCarryover = std::fmod(ctx.timeCarryover, interval);
+            }
+        } else {
+            ctx.timeCarryover = std::fmod(ctx.timeCarryover, interval);
+        }
+    }
+    ctx.lastTimestamp = t;
     totalStages.timeInterpolationUs += stagesCurrent.timeInterpolationUs;
     totalStages.timeRasterDabUs += stagesCurrent.timeRasterDabUs;
     totalStages.timeUndoRecordUs += stagesCurrent.timeUndoRecordUs;

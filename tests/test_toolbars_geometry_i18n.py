@@ -19,6 +19,7 @@ if PROJECT_ROOT not in sys.path:
 from ui.core.config import ConfigManager
 from ui.core.i18n import I18nManager
 from plugins.system.workspace_core.workspace.secondary_tool_bar.toolbar import SecondaryToolBar
+from ui.core.state import ToolState
 from plugins.ui.geometry_plugin.panel import GeometryPanel
 from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 
@@ -39,7 +40,7 @@ class TestToolbarsGeometryI18nRetranslation(unittest.TestCase):
 
     def test_01_secondary_toolbar_retranslation(self):
         """Valida que a barra de ferramentas secundaria re-traduz opcoes dinamicamente."""
-        tb = SecondaryToolBar()
+        tb = SecondaryToolBar(ToolState())
         try:
             # en_US
             self.i18n.set_locale("en_US", is_auto=False)
@@ -66,7 +67,7 @@ class TestToolbarsGeometryI18nRetranslation(unittest.TestCase):
 
     def test_02_secondary_toolbar_shapes_transform_selection_retranslation(self):
         """Valida que formas, transformacao e selecoes da barra secundaria re-traduzem."""
-        tb = SecondaryToolBar()
+        tb = SecondaryToolBar(ToolState())
         try:
             # en_US
             self.i18n.set_locale("en_US", is_auto=False)

@@ -52,8 +52,7 @@ class BrushFillToolbarHandlersMixin:
             "color_pickup": self.slider_smudge_pickup_h.value() / 100.0,
             "mix_ratio": self.slider_smudge_mix_h.value() / 100.0,
         })
-        self._settings_cache["smudge"] = settings
-        self.settingsChanged.emit("smudge", settings)
+        self._tool_state.update_options("smudge", settings)
 
         from ui.core.engine.registry import EngineRegistry
         backend = EngineRegistry.instance().get_backend()
@@ -98,8 +97,7 @@ class BrushFillToolbarHandlersMixin:
             "sample_all": self.btn_eye_merged_h.isChecked(),
             "show_loupe": True,
         })
-        self._settings_cache["eyedrop"] = settings
-        self.settingsChanged.emit("eyedrop", settings)
+        self._tool_state.update_options("eyedrop", settings)
 
     # ── BUCKET HANDLERS ──
     def _on_bucket_tol_changed(self, val: int, src: str):
@@ -148,8 +146,7 @@ class BrushFillToolbarHandlersMixin:
             "contiguous": self.btn_bkt_contig_h.isChecked(),
             "sample_all": self.btn_bkt_merged_h.isChecked(),
         })
-        self._settings_cache["bucket"] = settings
-        self.settingsChanged.emit("bucket", settings)
+        self._tool_state.update_options("bucket", settings)
 
     # ── TRANSFORM HANDLERS ──
     def _on_trans_interp_changed(self, idx: int, src: str):
@@ -179,8 +176,7 @@ class BrushFillToolbarHandlersMixin:
             "lock_aspect": self.btn_trans_aspect_h.isChecked(),
             "distort": self.btn_trans_distort_h.isChecked(),
         })
-        self._settings_cache["transform"] = settings
-        self.settingsChanged.emit("transform", settings)
+        self._tool_state.update_options("transform", settings)
 
     def _on_transform_commit_clicked(self):
         parent = self.parent()

@@ -135,12 +135,7 @@ class ShapeTextToolbarHandlersMixin:
             "polygon_sides": self.slider_shape_extra_h.value() if shape_type == "shape_polygon" else 5,
             "star_points": self.slider_shape_extra_h.value() if shape_type == "shape_star" else 5,
         })
-        self._settings_cache["shapes"] = settings
-        self.settingsChanged.emit("shapes", settings)
-
-        parent = self.parent()
-        if parent and hasattr(parent, "canvas_widget") and hasattr(parent.canvas_widget, "set_shape_settings"):
-            parent.canvas_widget.set_shape_settings(settings)
+        self._tool_state.update_options("shapes", settings)
 
     # ── TEXT HANDLERS ──
     def _on_text_font_changed(self, font: QtGui.QFont, src: str):
@@ -231,8 +226,7 @@ class ShapeTextToolbarHandlersMixin:
             "align": align,
             "color": self._text_color,
         })
-        self._settings_cache["text"] = settings
-        self.settingsChanged.emit("text", settings)
+        self._tool_state.update_options("text", settings)
 
         parent = self.parent()
         if parent and hasattr(parent, "canvas_widget") and hasattr(parent.canvas_widget, "set_text_settings"):

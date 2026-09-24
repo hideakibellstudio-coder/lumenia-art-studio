@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from PySide6 import QtGui
 
 from ui.core.engine.registry import EngineRegistry
-from ui.core.tool_settings import normalize_tool_settings
+from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
 
 from .selection_tool_controller import SelectionToolController
 from .shape_tool_controller import ShapeToolController
@@ -34,6 +34,38 @@ class ToolManager:
         self.eyedrop_ctrl = EyedropToolController(widget)
         self.geometry_ctrl = GeometryToolController(widget)
         self.text_ctrl = TextToolController(widget)
+        # O balde não tem controlador próprio: as opções dele moram aqui.
+        self.bucket_settings = default_tool_settings("bucket")
+
+    # ── Opções de ferramenta (vindas do ToolState) ──
+    def apply_tool_settings(self, key: str, settings: dict) -> None:
+        """Entrega opções já normalizadas ao controlador que as consome.
+
+        `key` é a chave de opções do ToolState (`ui.core.state.options_key`).
+        Único ponto de entrada de opções no canvas: antes de 2026-09-24 o
+        workspace escrevia direto nos dicionários `canvas._bucket_settings`,
+        `canvas._wand_settings`...
+        """
+        if key == "eyedrop":
+            self.eyedrop_ctrl.settings.update(settings)
+        elif key == "bucket":
+            self.bucket_settings.update(settings)
+        elif key == "wand":
+            self.selection_ctrl.wand_settings.update(settings)
+        elif key in ("rect_select", "ellipse_select"):
+            self.selection_ctrl.geom_select_settings.update(settings)
+        elif key == "lasso":
+            self.selection_ctrl.lasso_settings.update(settings)
+        elif key == "shapes":
+            self.set_shape_settings(settings)
+        elif key == "text":
+            self.set_text_settings(settings)
+        elif key == "transform":
+            self.transform_ctrl.interp_mode = settings["interp_mode"]
+            self.transform_ctrl.lock_aspect = settings["lock_aspect"]
+            self.transform_ctrl.distort = settings["distort"]
+        # "smudge": parâmetros do perfil nativo do pincel, aplicados ao motor
+        # pela barra secundária; o canvas não os usa.
 
     # ── Transform Tool Commands ──
     def start_transform_mode(self) -> bool:
@@ -57,8 +89,6 @@ class ToolManager:
     # ── Shape Tool Commands ──
     def set_shape_settings(self, settings: dict) -> None:
         self.shape_ctrl.settings = normalize_tool_settings("shapes", settings, self.shape_ctrl.settings)
-        if self.widget.active_tool == "shapes" or self.widget.active_tool.startswith("shape_"):
-            self.widget.active_tool = "shapes"
         self.widget.update()
 
     def set_shape_color(self, color: QtGui.QColor) -> None:
@@ -102,17 +132,17 @@ class ToolManager:
         try:
             b = EngineRegistry.instance().get_backend()
             if b:
-                color = getattr(self.widget, "active_color", getattr(self.widget, "_active_draw_color", QtGui.QColor(0, 0, 0, 255)))
+                opts = self.bucket_settings
                 ok = b.fill_area(
                     seed_x=int(evt.x),
                     seed_y=int(evt.y),
-                    fill_color=color,
-                    tolerance=self.widget._bucket_settings.get("tolerance", 20),
-                    contiguous=self.widget._bucket_settings.get("contiguous", True),
-                    expand_px=self.widget._bucket_settings.get("expand_px", 1),
-                    gap_closing_px=self.widget._bucket_settings.get("gap_closing_px", 0),
-                    aa=self.widget._bucket_settings.get("aa", True),
-                    sample_all=self.widget._bucket_settings.get("sample_all", True)
+                    fill_color=self.widget.active_color,
+                    tolerance=opts["tolerance"],
+                    contiguous=opts["contiguous"],
+                    expand_px=opts["expand_px"],
+                    gap_closing_px=opts["gap_closing_px"],
+                    aa=opts["aa"],
+                    sample_all=opts["sample_all"],
                 )
                 if ok:
                     self.widget.update()

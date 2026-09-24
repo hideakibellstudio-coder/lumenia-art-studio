@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QApplication
 
-from plugins.system.workspace_core.workspace.workspace_brush_adapter import WorkspaceBrushMixin
 from plugins.system.workspace_core.workspace.canvas.tools.eyedrop_tool_controller import EyedropToolController
 from plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController
 from plugins.system.workspace_core.workspace.canvas.tools.tool_manager import ToolManager
@@ -58,39 +57,42 @@ def test_normalizer_rejects_invalid_values_without_corrupting_current_state():
     assert normalize_tool_settings("shapes", {"stroke_width": 0})["stroke_width"] == 4
 
 
-def test_workspace_routes_canonical_settings_to_the_controllers_that_consume_them():
-    captured = {}
-    canvas = SimpleNamespace(
-        _bucket_settings=default_tool_settings("bucket"),
-        _eyedrop_settings=default_tool_settings("eyedrop"),
-        _wand_settings=default_tool_settings("wand"),
-        _geom_select_settings=default_tool_settings("rect_select"),
-        _lasso_settings=default_tool_settings("lasso"),
-        _shape_settings=default_tool_settings("shapes"),
-        _text_settings=default_tool_settings("text"),
-        transform_ctrl=SimpleNamespace(interp_mode=2, lock_aspect=False, distort=False),
-    )
-    canvas.set_shape_settings = lambda settings: captured.setdefault("shapes", settings)
-    canvas.set_text_settings = lambda settings: captured.setdefault("text", settings)
-    workspace = WorkspaceBrushMixin()
-    workspace.canvas_widget = canvas
+def test_tool_state_routes_canonical_settings_to_the_controllers_that_consume_them():
+    """ToolState -> CanvasToolBinding -> ToolManager.apply_tool_settings -> controlador.
 
-    workspace._on_tool_settings_changed("bucket", {"expansion": -2})
-    workspace._on_tool_settings_changed("rect_select", {"feather": 9, "anti_alias": False})
-    workspace._on_tool_settings_changed("transform", {"interp_mode": 1, "lock_aspect": True})
-    workspace._on_tool_settings_changed("transform", {"distort": True})
-    workspace._on_tool_settings_changed("shapes", {"shape_type": "shape_star", "star_points": 7})
-    workspace._on_tool_settings_changed("text", {"font_size": 48, "align": "center"})
+    Antes de 2026-09-24 este teste chamava o roteador do workspace, que escrevia
+    nos dicionários privados do canvas; agora o caminho é o estado.
+    """
+    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+    from plugins.system.workspace_core.workspace.canvas_tool_binding import CanvasToolBinding
+    from ui.core.state import ToolState
 
-    assert canvas._bucket_settings["expand_px"] == -2
-    assert canvas._geom_select_settings["feather_px"] == 9
-    assert canvas._geom_select_settings["aa"] is False
-    assert canvas.transform_ctrl.interp_mode == 1
-    assert canvas.transform_ctrl.lock_aspect is True
-    assert canvas.transform_ctrl.distort is True, "chave ausente não pode resetar as outras"
-    assert captured["shapes"]["shape_type"] == "shape_star"
-    assert captured["shapes"]["star_points"] == 7
-    assert captured["text"]["font_size"] == 48 and captured["text"]["align"] == "center"
+    tools = ToolState()
+    canvas = RenderWidget()
+    binding = CanvasToolBinding(tools, canvas, notify=lambda _msg: None)  # noqa: F841
+    mgr = canvas.tool_mgr
+
+    tools.update_options("bucket", {"expansion": -2})
+    tools.update_options("rect_select", {"feather": 9, "anti_alias": False})
+    tools.update_options("transform", {"interp_mode": 1, "lock_aspect": True})
+    tools.update_options("transform", {"distort": True})
+    tools.update_options("shape_star", {"star_points": 7})
+    tools.update_options("text", {"font_size": 48, "align": "center"})
+
+    assert mgr.bucket_settings["expand_px"] == -2
+    assert mgr.selection_ctrl.geom_select_settings["feather_px"] == 9
+    assert mgr.selection_ctrl.geom_select_settings["aa"] is False
+    assert mgr.transform_ctrl.interp_mode == 1
+    assert mgr.transform_ctrl.lock_aspect is True
+    assert mgr.transform_ctrl.distort is True, "chave ausente não pode resetar as outras"
+    assert mgr.shape_ctrl.settings["star_points"] == 7
+    assert mgr.text_ctrl.settings["font_size"] == 48 and mgr.text_ctrl.settings["align"] == "center"
+
+    # Escolher a ferramenta de estrela define o tipo de forma para todos.
+    tools.set_active_tool("shape_star")
+    assert canvas.active_tool == "shape_star"
+    assert mgr.shape_ctrl.settings["shape_type"] == "shape_star"
+    canvas.deleteLater()
 
 
 def test_core_option_widgets_emit_canonical_values():
@@ -114,10 +116,11 @@ def test_core_option_widgets_emit_canonical_values():
 
 
 def test_brush_panel_forwards_wand_transform_and_active_selection_settings():
-    from ui.core.state import BrushState
-    panel = BrushSettingsPanel(BrushState())
+    from ui.core.state import BrushState, ToolState
+    tools = ToolState()
+    panel = BrushSettingsPanel(BrushState(), tools)  # noqa: F841
     events = []
-    panel.toolOptionsChanged.connect(lambda tool, settings: events.append((tool, settings)))
+    tools.optionsChanged.connect(lambda tool, settings: events.append((tool, settings)))
 
     panel.wand_options_widget.slider_tol.setValue(37)
     assert events[-1][0] == "wand"
@@ -127,7 +130,7 @@ def test_brush_panel_forwards_wand_transform_and_active_selection_settings():
     assert events[-1][0] == "transform"
     assert events[-1][1]["lock_aspect"] is True
 
-    panel.set_tool_active("ellipse_select")
+    tools.set_active_tool("ellipse_select")
     panel.selection_options_widget.chk_aa.setChecked(False)
     assert events[-1][0] == "ellipse_select"
     assert events[-1][1]["aa"] is False
@@ -192,14 +195,14 @@ def test_bucket_and_eyedrop_controls_reach_the_backend_with_canonical_values():
     try:
         color = QtGui.QColor(12, 34, 56, 255)
         widget = SimpleNamespace(
-            _active_draw_color=color,
-            _bucket_settings=normalize_tool_settings("bucket", {"expansion": -3}),
+            active_color=color,
             to_canvas=lambda *_: SimpleNamespace(x=12, y=18),
             strokeStarted=_Signal(),
             strokeFinished=_Signal(),
             update=lambda: None,
         )
-        ToolManager.do_flood_fill(SimpleNamespace(widget=widget), 0, 0)
+        manager = SimpleNamespace(widget=widget, bucket_settings=normalize_tool_settings("bucket", {"expansion": -3}))
+        ToolManager.do_flood_fill(manager, 0, 0)
         kind, fill = backend.calls[-1]
         assert kind == "fill"
         assert fill["fill_color"] == color and fill["expand_px"] == -3

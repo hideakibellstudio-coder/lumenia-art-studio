@@ -6,7 +6,7 @@ from typing import Optional, Dict
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.dialogs.floating_tool_window import FloatingToolWindow
 from ui.core.icons import get_icon
-from ui.core.tool_settings import default_tool_settings
+from ui.core.state import ToolState, is_shape_tool
 
 from .dynamic_stacked_widget import DynamicStackedWidget
 from .toolbar_handlers import SecondaryToolbarHandlersMixin
@@ -24,27 +24,21 @@ from .tool_options.text_options import build_text_panels
 class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
     """Barra flutuante secundária com suporte a orientação horizontal e vertical responsiva."""
 
-    settingsChanged = QtCore.Signal(str, dict)
     commitTextRequested = QtCore.Signal()
     cancelTextRequested = QtCore.Signal()
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, tool_state: ToolState, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent, transparent_stylesheet=True)
 
+        # Opções editadas aqui vão para o ToolState (fonte única); a barra
+        # troca de conteúdo quando o estado avisa que a ferramenta mudou.
+        self._tool_state = tool_state
         self._orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal
         self._active_tool_id: str = "shapes"
         self._current_color: QtGui.QColor = QtGui.QColor(0, 0, 0)
         self._shape_stroke_color: QtGui.QColor = QtGui.QColor(0, 0, 0, 255)
         self._shape_fill_color: QtGui.QColor = QtGui.QColor(0, 0, 0, 255)
         self._text_color: QtGui.QColor = QtGui.QColor(0, 0, 0, 255)
-
-        self._settings_cache: Dict[str, dict] = {
-            **{tool: default_tool_settings(tool) for tool in (
-                "eyedrop", "bucket", "wand", "rect_select", "ellipse_select", "lasso", "transform", "smudge"
-            )},
-            "shapes": default_tool_settings("shapes"),
-            "text": default_tool_settings("text"),
-        }
 
         self._build_ui()
         self._apply_theme()
@@ -54,6 +48,19 @@ class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
         from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
+
+        tool_state.activeToolChanged.connect(self._on_active_tool_changed)
+        tool_state.optionsChanged.connect(self._on_options_changed)
+
+    def _on_active_tool_changed(self, tool_id: str, _previous: str) -> None:
+        self.set_tool(tool_id)
+
+    def _on_options_changed(self, key: str, options: dict) -> None:
+        # O tipo de forma pode mudar por outro editor (painel de pincel, barra
+        # flutuante): os dois seletores desta barra acompanham.
+        if key == "shapes" and self.shape_dropdown_h.shape_id() != options["shape_type"]:
+            self.shape_dropdown_h.set_shape(options["shape_type"])
+            self._on_shape_type_changed(options["shape_type"], self.shape_dropdown_h.shape_label(), "h")
 
     def _build_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -148,14 +155,11 @@ class SecondaryToolBar(FloatingToolWindow, SecondaryToolbarHandlersMixin):
             self.shape_dropdown_v.set_shape(tool_id)
             self._on_shape_type_changed(tool_id, self.shape_dropdown_h.shape_label(), "h")
 
-        if tool_id in self._panels_h or tool_id.startswith("shape") or tool_id == "shapes":
+        if tool_id in self._panels_h or is_shape_tool(tool_id):
             self._sync_active_tool_view()
             self.show()
             self.adjustSize()
-            parent = self.parent()
-            if parent and hasattr(parent, "update_toolbar_position"):
-                parent.update_toolbar_position()
-            if tool_id.startswith("shape") or tool_id == "shapes":
+            if is_shape_tool(tool_id):
                 self._emit_shapes_settings()
             elif tool_id == "text":
                 self._emit_text_settings()

@@ -69,13 +69,14 @@ class WorkspaceCore(BasePlugin, WorkspaceService):
         (O widget não pode ser parented antes de setCentralWidget.)
         """
         super().initialize(context)
-        from ui.core.state import BrushEngineSync, BrushState, require
+        from ui.core.state import BrushEngineSync, BrushState, ToolState, require
         from .workspace.workspace_container import WorkspaceContainer
         registry = context.service_registry
         # Sem parent aqui — será passado via setCentralWidget abaixo
         self._container = WorkspaceContainer(
             brush_state=require(registry, BrushState),
             brush_sync=require(registry, BrushEngineSync),
+            tool_state=require(registry, ToolState),
         )
         logger.info("[WorkspaceCore] WorkspaceContainer criado.")
 

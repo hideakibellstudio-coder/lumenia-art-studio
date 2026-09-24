@@ -200,7 +200,7 @@ class WorkspaceDocSyncMixin:
         # reenvia o pincel inteiro (preset da ferramenta, parâmetros e cor).
         # Antes só o preset era reaplicado, e tamanho/opacidade ajustados à mão
         # voltavam aos do preset ao trocar de aba.
-        self._brush_sync.resync(getattr(self.canvas_widget, "active_tool", "brush"))
+        self._brush_sync.resync(self._tool_state.active_tool)
 
     def _on_document_closed_cleanup(self, uid: str) -> None:
         """Chamado quando um documento é fechado para liberar memória C++ imediatamente."""

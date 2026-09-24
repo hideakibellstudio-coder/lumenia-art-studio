@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.dialogs.floating_tool_window import FloatingToolWindow
 from ui.core.icons import get_icon
+from ui.core.state import ToolState
 from ui.core.theme.manager import ThemeManager
 from ui.core.tools import TOOL_META, DEFAULT_TOOLS
 from .floating_toolbar_button import FloatingToolbarButton  # noqa: F401 (reexportado)
@@ -11,17 +12,21 @@ logger = logging.getLogger(__name__)
 
 
 class FloatingToolbar(FloatingToolWindow):
-    """Barra de ferramentas flutuante em formato de cápsula escura estilo Lumenia 2.0."""
+    """Barra de ferramentas flutuante em formato de cápsula escura estilo Lumenia 2.0.
+
+    View do ToolState: clicar num botão pede a troca ao estado; o destaque do
+    botão muda quando o estado avisa (qualquer que seja a origem da troca).
+    """
 
     drag_finished = QtCore.Signal(QtCore.QPoint)
-    status_notification = QtCore.Signal(str)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, tool_state: ToolState, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent, transparent_stylesheet=True)
 
+        self._tool_state = tool_state
         self.dock_state: Optional[str] = "snapped_bottom"
         self.orientation = QtCore.Qt.Horizontal
-        self._active_tool_id: str = "brush"
+        self._active_tool_id: str = tool_state.active_tool
         self.visible_tool_ids: List[str] = list(DEFAULT_TOOLS)
         self.auto_collapse_speed: str = "Rápido"
         self.buttons: Dict[str, FloatingToolbarButton] = {}
@@ -46,6 +51,7 @@ class FloatingToolbar(FloatingToolWindow):
 
         self._build_ui()
         self._apply_theme()
+        tool_state.activeToolChanged.connect(self._on_active_tool_changed)
 
         # Conecta às alterações globais de tema, escala e idioma
         tm = ThemeManager.instance()
@@ -132,44 +138,22 @@ class FloatingToolbar(FloatingToolWindow):
             if tid not in TOOL_META:
                 continue
             btn = FloatingToolbarButton(tid, self.container)
-            btn.clicked.connect(lambda _, t=tid: self.select_tool(t))
+            btn.clicked.connect(lambda _, t=tid: self._tool_state.set_active_tool(t))
             self.box_layout.addWidget(btn)
             self.buttons[tid] = btn
 
-        self.select_tool(self._active_tool_id, notify=False)
+        self._show_active_tool(self._active_tool_id, animate=False)
         self._update_geometry(animate=False)
 
-    def select_tool(self, tool_id: str, notify: bool = True, animate: bool = False) -> None:
-        """Marca a ferramenta selecionada e notifica caso não tenha backend implementado."""
-        if tool_id not in TOOL_META:
-            return
+    def _on_active_tool_changed(self, tool_id: str, _previous: str) -> None:
+        self._show_active_tool(tool_id, animate=False)
 
-        if getattr(self, "_is_selecting_tool", False):
-            return
-
-        self._is_selecting_tool = True
-        try:
-            self._active_tool_id = tool_id
-            meta = TOOL_META[tool_id]
-
-            for tid, btn in self.buttons.items():
-                btn.set_active(tid == tool_id)
-
-            # Repassa seleção de ferramentas ao workspace sem gerar loop de chamadas
-            parent_ws = getattr(self, "_workspace", None) or self.parentWidget()
-            if parent_ws and hasattr(parent_ws, "select_tool"):
-                if getattr(parent_ws, "_current_tool", None) != tool_id:
-                    parent_ws.select_tool(tool_id)
-
-            if notify:
-                if meta["implemented"]:
-                    self.status_notification.emit(f"Ferramenta ativa: {meta['name']}")
-                else:
-                    self.status_notification.emit(f"Ferramenta '{meta['name']}' em desenvolvimento.")
-
-            self._update_geometry(animate=animate)
-        finally:
-            self._is_selecting_tool = False
+    def _show_active_tool(self, tool_id: str, animate: bool) -> None:
+        """Destaca o botão da ferramenta ativa (só visual; o estado é do ToolState)."""
+        self._active_tool_id = tool_id
+        for tid, btn in self.buttons.items():
+            btn.set_active(tid == tool_id)
+        self._update_geometry(animate=animate)
 
     def _on_scale_changed(self, scale: float) -> None:
         """Propaga a escala global para botões, drag handle e dimensões da barra flutuante."""

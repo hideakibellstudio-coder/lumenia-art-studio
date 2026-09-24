@@ -1,8 +1,9 @@
 # `ui/core/state/` — estado de aplicação compartilhado
 
 **Em uma frase:** guarda o estado que mais de um componente mostra ou edita
-(hoje: cor ativa, parâmetros rápidos e preset por ferramenta do pincel) e
-avisa todo mundo por sinal quando ele muda.
+(hoje: o pincel — cor, parâmetros rápidos, preset por ferramenta — e a
+ferramenta ativa com as opções de cada ferramenta) e avisa todo mundo por
+sinal quando ele muda.
 
 ## Por que existe
 
@@ -25,7 +26,9 @@ podem mudar sem aviso.
 | `BrushState` | QObject com a cor, os parâmetros rápidos e o preset lembrado por ferramenta. |
 | `BrushParam` | Enum canônico dos parâmetros rápidos (Lei do Rio nº 4). Unidades no docstring de `brush_params.py`. |
 | `BrushEngineSync` | Único caminho `BrushState → motor`. Também `resync(tool)` após trocar a facade nativa. |
-| `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry`. Chamado pela casca. |
+| `ToolState` | QObject com a ferramenta ativa e as opções normalizadas de cada ferramenta (`ui.core.tool_settings`). |
+| `options_key(tool)` / `is_shape_tool(tool)` | `shape_*` compartilham as opções de `"shapes"`. |
+| `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry` (devolve `AppState(brush, brush_sync, tools)`). Chamado pela casca. |
 | `require(registry, Tipo)` | Busca um serviço obrigatório com mensagem de erro clara. |
 
 ## Fluxo
@@ -39,6 +42,21 @@ widget que edita ──set_color / set_value / select_preset──► BrushState
        painel avançado, barra secundária)           (único escritor no motor)           (canvas: cursor, balde,
                                                                                          conta-gotas → estado)
 ```
+
+### Ferramenta ativa e opções
+
+```
+barra flutuante ─┐                                         ┌─► CanvasToolBinding (texto, cursor, transformar,
+painel de pincel ├─ set_active_tool / update_options ──► ToolState ─┤     opções → ToolManager.apply_tool_settings)
+barra secundária │                                         ├─► views: barra flutuante, painel, barra secundária,
+atalhos / menu ──┘                                         │   barra lateral da janela
+                                                           └─► mensagem de status (traduzida)
+```
+
+Antes de 2026-09-24: quatro caminhos escreviam a ferramenta em cada view à
+mão, dois com guarda de reentrância; o canvas trocava `shape_rect` por
+`shapes` sozinho; a barra secundária mantinha um cache de opções que ninguém
+lia e mandava opções de forma ao canvas por dois caminhos.
 
 ## Regras do contrato
 
@@ -66,14 +84,17 @@ widget que edita ──set_color / set_value / select_preset──► BrushState
 
 - `plugins/ui/brush_plugin/panel.py`, `brush_dropdown.py`, `advanced_panel/`
 - `plugins/ui/color_plugin/panel.py`
-- `plugins/system/workspace_core/workspace/canvas_brush_binding.py`
-- `plugins/system/workspace_core/workspace/workspace_document_sync.py`
-- `ui/boundary/orchestrator/main_window.py`, `main_window_menu_actions.py`
+- `plugins/system/workspace_core/workspace/canvas_brush_binding.py`,
+  `canvas_tool_binding.py`, `floating_toolbar.py`, `secondary_tool_bar/`,
+  `workspace_document_sync.py`
+- `ui/boundary/orchestrator/main_window.py`, `main_window_menu_actions.py`,
+  `main_window_tool_camera_actions.py`
 
 ## Testes
 
-`tests/test_brush_state.py` (contrato do estado e da sincronização com o
-motor) e `tests/test_brush_panel_structure.py` (painel como view do estado).
+`tests/test_brush_state.py` e `tests/test_tool_state.py` (contratos dos
+estados), `tests/test_brush_panel_structure.py` (painel como view),
+`tests/test_tool_settings_contract.py` (opções chegando aos controladores).
 
 ## Dependências permitidas
 

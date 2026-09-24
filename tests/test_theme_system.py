@@ -129,12 +129,13 @@ class TestThemeSystem(unittest.TestCase):
     def test_07_bars_scale_reactivity(self):
         from ui.core.components.tool_sidebar.sidebar import ToolSidebar
         from plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
+        from ui.core.state import ToolState
 
         orig_scale = self.tm.ui_scale
         try:
             self.tm.set_ui_scale(1.0)
             sidebar = ToolSidebar()
-            float_bar = FloatingToolbar()
+            float_bar = FloatingToolbar(ToolState())
 
             self.assertEqual(sidebar.iconSize().width(), 20)
             btn = next(iter(float_bar.buttons.values()))

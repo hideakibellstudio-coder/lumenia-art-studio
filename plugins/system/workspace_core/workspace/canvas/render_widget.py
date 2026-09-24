@@ -24,7 +24,6 @@ _BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 
 from ui.infrastructure.bridge_client import BridgeClient
 from ui.core.engine.backend import PointerEvent
-from ui.core.tool_settings import default_tool_settings
 
 from .viewport.camera_controller import CameraController
 from .viewport.input_router import CanvasInputRouter
@@ -81,7 +80,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
         self._last_rendered_cursor_rect = QtCore.QRect()
         self._last_stroke_end_screen: Optional[QtCore.QPointF] = None
-        self._bucket_settings = default_tool_settings("bucket")
 
         from ui.core.i18n import I18nManager
         # Método ligado (não lambda): o PySide desconecta sozinho quando o widget
@@ -279,7 +277,8 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         if dirty: self.update(dirty)
         super().leaveEvent(e)
 
-    def _update_cursor_shape(self): self.cursor_ctrl.update_cursor_shape()
+    def update_cursor_shape(self): self.cursor_ctrl.update_cursor_shape()
+    _update_cursor_shape = update_cursor_shape  # nome antigo, ainda usado pelo input_router
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         if self._is_synthesized_or_tablet_active(e): e.accept(); return

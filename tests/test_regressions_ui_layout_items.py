@@ -12,6 +12,7 @@ from ui.core.geometry.dpi_calculator import (
 )
 from plugins.ui.navigator_plugin.components.navigator_preview import NavigatorPreview
 from plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
+from ui.core.state import ToolState
 from plugins.ui.layers_plugin.header import LayersHeader
 from plugins.ui.geometry_plugin.panel import GeometryPanel
 from ui.core.components.tool_sidebar.sidebar import ToolSidebar
@@ -68,7 +69,7 @@ class TestAudit8Items(unittest.TestCase):
 
     def test_03_floating_toolbar_disable_auto_collapse(self):
         """Valida que desativar o auto-recolhimento expande e trava a barra aberta."""
-        tb = FloatingToolbar()
+        tb = FloatingToolbar(ToolState())
         tb._is_collapsed = True
         
         # Define preset Desativado

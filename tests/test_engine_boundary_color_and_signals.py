@@ -202,7 +202,7 @@ def test_menu_actions_signal_symmetry_and_active_color(monkeypatch):
     from ui.core.engine.registry import EngineRegistry
     monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
 
-    from ui.core.state import AppState, BrushEngineSync, BrushState
+    from ui.core.state import AppState, BrushEngineSync, BrushState, ToolState
     brush = BrushState()
     brush.set_color(QtGui.QColor(12, 34, 56, 255))
 
@@ -210,7 +210,7 @@ def test_menu_actions_signal_symmetry_and_active_color(monkeypatch):
         def __init__(self):
             self.workspace = ws
             self.status_bar = QtWidgets.QStatusBar()
-            self.app_state = AppState(brush=brush, brush_sync=BrushEngineSync(brush, lambda: None))
+            self.app_state = AppState(brush=brush, brush_sync=BrushEngineSync(brush, lambda: None), tools=ToolState())
 
     host = _Host()
 

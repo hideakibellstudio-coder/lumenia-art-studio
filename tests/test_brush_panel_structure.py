@@ -12,7 +12,7 @@ from PySide6 import QtGui
 from plugins.ui.brush_plugin.components.quick_sliders_section import QuickSlidersSection
 from plugins.ui.brush_plugin.components.tool_selection_column import ToolSelectionColumn
 from plugins.ui.brush_plugin.panel import BrushSettingsPanel
-from ui.core.state import BrushParam, BrushState
+from ui.core.state import BrushParam, BrushState, ToolState
 from ui.core.widgets.compact_slider import CompactSlider
 
 
@@ -60,7 +60,7 @@ def test_quick_sliders_section_edits_and_shows_in_engine_units(qapp):
 
 def test_panel_writes_to_state_and_follows_state(qapp):
     state = BrushState()
-    panel = BrushSettingsPanel(state)
+    panel = BrushSettingsPanel(state, ToolState())
     sliders = panel.sliders_section
 
     # Estado inicial aparece nos sliders.
@@ -77,7 +77,7 @@ def test_panel_writes_to_state_and_follows_state(qapp):
 
 def test_preset_choice_goes_through_state(qapp):
     state = BrushState()
-    panel = BrushSettingsPanel(state)
+    panel = BrushSettingsPanel(state, ToolState())
     selected = []
     state.presetSelected.connect(lambda tool, name, data: selected.append((tool, name)))
 
@@ -97,18 +97,19 @@ def test_preset_choice_goes_through_state(qapp):
 
 def test_tool_switch_restores_each_tools_preset(qapp):
     state = BrushState()
-    panel = BrushSettingsPanel(state)
-    panel.set_tool_active("brush")
+    tools = ToolState()
+    panel = BrushSettingsPanel(state, tools)
     state.select_preset("brush", "Meu Pincel", {"brush_size": 33})
-    panel.set_tool_active("eraser")
+    tools.set_active_tool("eraser")
     assert state.preset("eraser") is not None  # padrão da categoria borracha
-    panel.set_tool_active("brush")
+    assert panel.tool_column.tool_buttons["eraser"].isChecked()
+    tools.set_active_tool("brush")
     assert panel.preset_combo.active_preset == "Meu Pincel"
     assert state.value(BrushParam.SIZE) == 33.0
 
 
 def test_color_from_state_reaches_panel_widgets(qapp):
     state = BrushState()
-    panel = BrushSettingsPanel(state)
+    panel = BrushSettingsPanel(state, ToolState())
     state.set_color(QtGui.QColor(1, 2, 3))
     assert panel.stroke_preview._color == pytest.approx([1 / 255, 2 / 255, 3 / 255], abs=1e-6)

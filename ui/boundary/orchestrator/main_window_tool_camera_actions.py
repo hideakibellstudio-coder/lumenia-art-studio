@@ -10,14 +10,11 @@ class MainWindowToolCameraActionsMixin:
 
     # ── Ferramenta ────────────────────────────────────────────────────────
 
-    def _on_dock_tool_activated(self, tool_id: str) -> None:
-        """Sincroniza ToolSidebar quando a ferramenta muda via BrushDock."""
-        if tool_id == "brush":
-            self.tool_sidebar.action_brush.setChecked(True)
-            self.tool_sidebar.action_eraser.setChecked(False)
-        elif tool_id == "eraser":
-            self.tool_sidebar.action_brush.setChecked(False)
-            self.tool_sidebar.action_eraser.setChecked(True)
+    def _on_active_tool_changed(self, tool_id: str, _previous: str) -> None:
+        """Barra lateral de ferramentas é view do ToolState (qualquer origem da troca)."""
+        self.tool_sidebar.action_brush.setChecked(tool_id == "brush")
+        self.tool_sidebar.action_eraser.setChecked(tool_id == "eraser")
+        self.tool_sidebar.action_shapes.setChecked(tool_id == "shapes" or tool_id.startswith("shape_"))
 
     def select_brush_tool(self) -> None:
         self.select_tool_by_id("brush")
@@ -32,17 +29,9 @@ class MainWindowToolCameraActionsMixin:
         self.select_tool_by_id("text")
 
     def select_tool_by_id(self, tool_id: str) -> None:
-        if self.workspace:
-            self.workspace.select_tool(tool_id)
-        if hasattr(self, "tool_sidebar"):
-            self.tool_sidebar.action_brush.setChecked(tool_id == "brush")
-            self.tool_sidebar.action_eraser.setChecked(tool_id == "eraser")
-            if hasattr(self.tool_sidebar, "action_shapes"):
-                self.tool_sidebar.action_shapes.setChecked(tool_id.startswith("shape") or tool_id == "shapes")
-        
-        from ui.core.tools import TOOL_META
-        tool_name = TOOL_META.get(tool_id, {}).get("name", tool_id.capitalize())
-        self.status_bar.showMessage(f"Ferramenta {tool_name} selecionada.")
+        """Atalhos, menus e barra lateral pedem a troca ao ToolState; as views
+        (inclusive a barra lateral e a mensagem de status) reagem ao estado."""
+        self.app_state.tools.set_active_tool(tool_id)
 
     # ── Câmera ────────────────────────────────────────────────────────────
 

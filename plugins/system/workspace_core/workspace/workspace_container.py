@@ -36,13 +36,15 @@ import os
 import logging
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.state import BrushEngineSync, BrushState
+from ui.core.engine.registry import EngineRegistry
+from ui.core.state import BrushEngineSync, BrushState, ToolState
 
 from .canvas.render_widget import CanvasWidget
 from .canvas_brush_binding import CanvasBrushBinding
+from .canvas_tool_binding import CanvasToolBinding
+from .stroke_preview_sync import StrokePreviewSync
 from .workspace_layout_manager import WorkspaceLayoutMixin
 from .workspace_document_sync import WorkspaceDocSyncMixin
-from .workspace_brush_adapter import WorkspaceBrushMixin
 from .panel_bindings import WorkspacePanelBindingsMixin
 from .workspace_actions import WorkspaceActionsMixin, _history_failure_message
 
@@ -53,7 +55,6 @@ class WorkspaceContainer(
     WorkspaceLayoutMixin,
     WorkspacePanelBindingsMixin,
     WorkspaceDocSyncMixin,
-    WorkspaceBrushMixin,
     WorkspaceActionsMixin,
 ):
     """
@@ -83,6 +84,7 @@ class WorkspaceContainer(
         self,
         brush_state: BrushState,
         brush_sync: BrushEngineSync,
+        tool_state: ToolState,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -95,16 +97,15 @@ class WorkspaceContainer(
         # workspace só os mostra no canvas e reenvia ao motor ao trocar de aba.
         self._brush_state = brush_state
         self._brush_sync = brush_sync
-
-        # Ferramenta ativa: "brush" | "eraser"
-        self._current_tool: str = "brush"
+        # Ferramenta ativa e opções de ferramenta: fonte única no ToolState.
+        self._tool_state = tool_state
 
         # UID do último documento ativo (para salvar câmera ao trocar de aba)
         self._last_active_doc_uid: str | None = None
 
         # Painéis de outros plugins com que o workspace ainda conversa
-        # (registrados por add_panel). Cor/pincel não passam mais por aqui.
-        self._brush_dock: QtWidgets.QWidget | None = None
+        # (registrados por add_panel). Cor, pincel e ferramenta não passam
+        # mais por aqui: são estados compartilhados (ui/core/state).
         self._navigator_panel = None
         self._layers_panel = None
         self._geometry_panel = None
@@ -171,27 +172,37 @@ class WorkspaceContainer(
         from .floating_toolbar import FloatingToolbar
         from .secondary_tool_bar import SecondaryToolBar
         from ui.core.screens.floating_toolbar_settings_dialog import load_floating_toolbar_settings
-        self.floating_toolbar = FloatingToolbar(parent=self)
+        self.floating_toolbar = FloatingToolbar(tool_state, parent=self)
         self.floating_toolbar.drag_finished.connect(self._on_floating_toolbar_dropped)
-        self.floating_toolbar.status_notification.connect(self._on_status_notification)
         QtCore.QTimer.singleShot(0, self, lambda: self.apply_floating_toolbar_settings(load_floating_toolbar_settings()))
 
         # ── Barra Secundária Contextual de Ferramentas ───────────────────────
-        self.secondary_toolbar = SecondaryToolBar(parent=self)
-        self.secondary_toolbar.settingsChanged.connect(self._on_tool_settings_changed)
+        self.secondary_toolbar = SecondaryToolBar(tool_state, parent=self)
+        # A barra secundária troca de conteúdo com a ferramenta; o workspace só
+        # a reposiciona depois (conexão feita depois da dela, então roda depois).
+        tool_state.activeToolChanged.connect(self._on_active_tool_changed_layout)
+
+        # ── Ferramenta: estado → canvas (texto, cursor, transformar, opções) ─
+        self._canvas_tools = CanvasToolBinding(tool_state, self.canvas_widget, self._on_status_notification, self)
 
         # ── Pincel: estado → canvas/barra secundária; conta-gotas → estado ───
         self._canvas_brush = CanvasBrushBinding(brush_state, self.canvas_widget, self.secondary_toolbar, self)
 
+        # ── Miniaturas (navegador e camadas) depois de cada traço ───────────
+        self._preview_sync = StrokePreviewSync(
+            backend_provider=EngineRegistry.instance().get_backend,
+            document_provider=self._dm.active_document,
+            navigator_provider=lambda: self._navigator_panel,
+            parent=self,
+        )
+
         # ── Stroke Lock: suspende gavetas e pílulas durante pintura ────────
-        if hasattr(self.canvas_widget, "strokeStarted"):
-            self.canvas_widget.strokeStarted.connect(lambda: self.left_dock.set_painting_state(True))
-            self.canvas_widget.strokeStarted.connect(lambda: self.right_dock.set_painting_state(True))
-            self.canvas_widget.strokeStarted.connect(self._close_unpinned_drawers)
-        if hasattr(self.canvas_widget, "strokeFinished"):
-            self.canvas_widget.strokeFinished.connect(lambda: self.left_dock.set_painting_state(False))
-            self.canvas_widget.strokeFinished.connect(lambda: self.right_dock.set_painting_state(False))
-            self.canvas_widget.strokeFinished.connect(self._on_stroke_finished_sync_previews)
+        self.canvas_widget.strokeStarted.connect(lambda: self.left_dock.set_painting_state(True))
+        self.canvas_widget.strokeStarted.connect(lambda: self.right_dock.set_painting_state(True))
+        self.canvas_widget.strokeStarted.connect(self._close_unpinned_drawers)
+        self.canvas_widget.strokeFinished.connect(lambda: self.left_dock.set_painting_state(False))
+        self.canvas_widget.strokeFinished.connect(lambda: self.right_dock.set_painting_state(False))
+        self.canvas_widget.strokeFinished.connect(self._preview_sync.schedule)
 
         # ── Filtro de clique no canvas para fechar gavetas despinadas ───────
         self.canvas_widget.installEventFilter(self)
@@ -294,9 +305,7 @@ class WorkspaceContainer(
 
         # IDs pertencem ao contrato WorkspaceService; não inferimos mais por
         # atributos ocasionais de widgets de terceiros.
-        if panel_id == "brush_settings":
-            self.connect_brush_dock(widget, panel_id)
-        elif panel_id == "navigator":
+        if panel_id == "navigator":
             self._navigator_panel = widget
             self._bind_panel_signal(panel_id, widget.camera_changed_by_user, self._set_camera_from_navigator)
             if hasattr(widget, "flip_changed_by_user"):
@@ -333,10 +342,7 @@ class WorkspaceContainer(
     def _release_panel_binding(self, panel_id: str) -> None:
         """Desconecta slots e elimina referências somente do painel removido."""
         widget = self._panel_widgets.get(panel_id)
-        if widget is self._brush_dock:
-            self.disconnect_brush_dock(widget, panel_id)
-        else:
-            self._disconnect_panel_signals(panel_id)
+        self._disconnect_panel_signals(panel_id)
 
         self._take_panel_widget(panel_id)
         if widget is self._layers_panel:
@@ -365,5 +371,8 @@ class WorkspaceContainer(
 
     @property
     def current_tool(self) -> str:
-        return self._current_tool
+        return self._tool_state.active_tool
+
+    def _on_active_tool_changed_layout(self, _tool: str, _previous: str) -> None:
+        self.update_toolbar_position()
 

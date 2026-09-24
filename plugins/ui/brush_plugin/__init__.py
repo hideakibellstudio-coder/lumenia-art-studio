@@ -11,7 +11,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
-from ui.core.state import BrushState, require
+from ui.core.state import BrushState, ToolState, require
 from .panel import BrushSettingsPanel
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,8 @@ class BrushPlugin(BasePlugin):
         if ws is None:
             raise RuntimeError("[BrushPlugin] WorkspaceService não encontrado.")
 
-        self._panel = BrushSettingsPanel(require(self.context.service_registry, BrushState))
+        registry = self.context.service_registry
+        self._panel = BrushSettingsPanel(require(registry, BrushState), require(registry, ToolState))
 
         ws.add_panel(
             panel_id="brush_settings",

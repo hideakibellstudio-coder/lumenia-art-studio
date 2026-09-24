@@ -680,7 +680,9 @@
     "fullscreen_off": "Normal mode restored.",
     "no_selection_to_modify": "There is no selection to modify.",
     "selection_modified": "Selection modified ({px} px).",
-    "selection_modify_failed": "Could not modify the selection."
+    "selection_modify_failed": "Could not modify the selection.",
+    "tool_active": "Active tool: {name}",
+    "tool_in_development": "Tool {name} is under development."
   },
   "tool_options": {
     "sample_size": "Sample Size",

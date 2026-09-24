@@ -50,8 +50,7 @@ class SelectionToolbarHandlersMixin:
             "sample_all": self.btn_wand_merged_h.isChecked(),
             "mode": self.cbo_wand_mode_h.currentIndex(),
         })
-        self._settings_cache["wand"] = settings
-        self.settingsChanged.emit("wand", settings)
+        self._tool_state.update_options("wand", settings)
 
     # ── GEOM HANDLERS ──
     def _on_geom_feather_changed(self, val: int, src: str):
@@ -87,8 +86,7 @@ class SelectionToolbarHandlersMixin:
             "aa": self.btn_geom_aa_h.isChecked(),
             "mode": self.cbo_geom_mode_h.currentIndex(),
         })
-        self._settings_cache[tool] = settings
-        self.settingsChanged.emit(tool, settings)
+        self._tool_state.update_options(tool, settings)
 
     # ── LASSO HANDLERS ──
     def _on_lasso_feather_changed(self, val: int, src: str):
@@ -123,8 +121,7 @@ class SelectionToolbarHandlersMixin:
             "aa": self.btn_lasso_aa_h.isChecked(),
             "mode": self.cbo_lasso_mode_h.currentIndex(),
         })
-        self._settings_cache["lasso"] = settings
-        self.settingsChanged.emit("lasso", settings)
+        self._tool_state.update_options("lasso", settings)
 
     def _on_deselect_clicked(self):
         parent = self.parent()

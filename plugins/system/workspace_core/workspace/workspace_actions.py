@@ -45,7 +45,7 @@ class WorkspaceActionsMixin:
             if ok:
                 cw.update()
                 self._on_status_notification("Desfazer executado com sucesso.")
-                self._on_stroke_finished_sync_previews()
+                self._preview_sync.schedule()
             else:
                 error = backend.get_history_error()
                 self._on_status_notification(_history_failure_message("desfazer", error) if error else "Nada a desfazer.")
@@ -62,7 +62,7 @@ class WorkspaceActionsMixin:
             if ok:
                 cw.update()
                 self._on_status_notification("Refazer executado com sucesso.")
-                self._on_stroke_finished_sync_previews()
+                self._preview_sync.schedule()
             else:
                 error = backend.get_history_error()
                 self._on_status_notification(_history_failure_message("refazer", error) if error else "Nada a refazer.")

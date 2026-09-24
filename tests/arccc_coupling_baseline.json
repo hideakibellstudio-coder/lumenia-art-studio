@@ -42,8 +42,6 @@
   "hasattr": 4
  },
  "plugins/system/workspace_core/workspace/canvas/tools/tool_manager.py": {
-  "foreign_private": 6,
-  "getattr_literal": 2,
   "hasattr": 5
  },
  "plugins/system/workspace_core/workspace/canvas/tools/transform_tool_controller.py": {
@@ -93,8 +91,8 @@
  },
  "plugins/system/workspace_core/workspace/floating_toolbar.py": {
   "foreign_private": 1,
-  "getattr_literal": 6,
-  "hasattr": 6
+  "getattr_literal": 3,
+  "hasattr": 5
  },
  "plugins/system/workspace_core/workspace/secondary_tool_bar/dynamic_stacked_widget.py": {
   "hasattr": 1
@@ -109,7 +107,7 @@
  },
  "plugins/system/workspace_core/workspace/secondary_tool_bar/handlers/shape_text_toolbar_handlers.py": {
   "getattr_literal": 17,
-  "hasattr": 23
+  "hasattr": 21
  },
  "plugins/system/workspace_core/workspace/secondary_tool_bar/tool_options/bucket_options.py": {
   "foreign_private": 8
@@ -139,7 +137,7 @@
   "foreign_private": 8
  },
  "plugins/system/workspace_core/workspace/secondary_tool_bar/toolbar.py": {
-  "hasattr": 26
+  "hasattr": 25
  },
  "plugins/system/workspace_core/workspace/viewport_container.py": {
   "foreign_private": 1
@@ -148,16 +146,11 @@
   "getattr_literal": 2,
   "hasattr": 4
  },
- "plugins/system/workspace_core/workspace/workspace_brush_adapter.py": {
-  "foreign_private": 8,
-  "getattr_literal": 3,
-  "hasattr": 15
- },
  "plugins/system/workspace_core/workspace/workspace_container.py": {
-  "hasattr": 11
+  "hasattr": 9
  },
  "plugins/system/workspace_core/workspace/workspace_document_sync.py": {
-  "getattr_literal": 17,
+  "getattr_literal": 16,
   "hasattr": 13
  },
  "plugins/system/workspace_core/workspace/workspace_layout_manager.py": {
@@ -268,9 +261,9 @@
   "hasattr": 2
  },
  "ui/boundary/orchestrator/main_window.py": {
-  "foreign_private": 3,
+  "foreign_private": 1,
   "getattr_literal": 2,
-  "hasattr": 23
+  "hasattr": 22
  },
  "ui/boundary/orchestrator/main_window_dialog_actions.py": {
   "foreign_private": 3,
@@ -298,7 +291,7 @@
  },
  "ui/boundary/orchestrator/main_window_tool_camera_actions.py": {
   "getattr_literal": 4,
-  "hasattr": 3
+  "hasattr": 1
  },
  "ui/core/color/cms_engine.py": {
   "getattr_literal": 4

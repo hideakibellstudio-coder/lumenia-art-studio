@@ -680,7 +680,9 @@
     "fullscreen_off": "通常モードに戻りました。",
     "no_selection_to_modify": "変更する選択範囲がありません。",
     "selection_modified": "選択範囲を変更しました（{px} px）。",
-    "selection_modify_failed": "選択範囲を変更できませんでした。"
+    "selection_modify_failed": "選択範囲を変更できませんでした。",
+    "tool_active": "使用中のツール: {name}",
+    "tool_in_development": "ツール「{name}」は開発中です。"
   },
   "tool_options": {
     "sample_size": "サンプルサイズ",

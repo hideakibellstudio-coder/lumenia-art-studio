@@ -171,10 +171,8 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         if hasattr(self.workspace, "canvas_widget") and self.workspace.canvas_widget:
             self.workspace.canvas_widget.strokeFinished.connect(self.update_undo_redo_actions)
 
-        # Propriedades de compatibilidade para código que acessa main_window.brush_dock
-        if hasattr(self.workspace, "_brush_dock") and self.workspace._brush_dock:
-            self.brush_dock = self.workspace._brush_dock
-            self.brush_dock.toolActivated.connect(self._on_dock_tool_activated)
+        # Barra lateral de ferramentas acompanha o ToolState.
+        self.app_state.tools.activeToolChanged.connect(self._on_active_tool_changed)
 
         # ── Menu Janela: conecta sinais de controle de paineis e gavetas ───
         self.menu_bar.togglePanelRequested.connect(
@@ -337,8 +335,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
 
                 # A facade nova começa com o pincel padrão do motor: reenvia o
                 # pincel do usuário (preset, parâmetros e cor).
-                tool = self.workspace.current_tool if self.workspace else None
-                self.app_state.brush_sync.resync(tool)
+                self.app_state.brush_sync.resync(self.app_state.tools.active_tool)
 
             self.reset_view()
             prof_name = backend.get_color_profile_name(color_prof) if backend else "sRGB"

@@ -680,7 +680,9 @@
     "fullscreen_off": "Modo normal restaurado.",
     "no_selection_to_modify": "No hay selección para modificar.",
     "selection_modified": "Selección modificada ({px} px).",
-    "selection_modify_failed": "No se pudo modificar la selección."
+    "selection_modify_failed": "No se pudo modificar la selección.",
+    "tool_active": "Herramienta activa: {name}",
+    "tool_in_development": "Herramienta {name} en desarrollo."
   },
   "tool_options": {
     "sample_size": "Tamaño de Muestra",

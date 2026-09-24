@@ -44,8 +44,8 @@
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-- Títulos e filtros dos diálogos de arquivo (`QFileDialog`) ainda em
-  português fixo. As mensagens de status passam por `tr()` desde 2026-09-24.
+Nenhuma medida no momento (mensagens de status, diálogos de arquivo e caixas
+de mensagem passam por `tr()` desde 2026-09-24).
 
 ## Dependências internas
 

@@ -302,14 +302,15 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
             try:
                 registry.validate(self._shortcuts_map)
             except ValueError as exc:
-                QtWidgets.QMessageBox.warning(self, "Conflito de atalhos", str(exc))
+                QtWidgets.QMessageBox.warning(self, tr("messages.shortcut_conflict_title", "Conflito de atalhos"), str(exc))
                 return
         config = ConfigManager.instance()
         previous = config.get_section("shortcuts")
         config.set_section("shortcuts", self._shortcuts_map, auto_save=False)
         if not config.save():
             config.set_section("shortcuts", previous, auto_save=False)
-            QtWidgets.QMessageBox.warning(self, "Falha ao salvar", config.last_error or "Erro de persistência")
+            QtWidgets.QMessageBox.warning(self, tr("messages.save_failed_title", "Falha ao salvar"),
+                                          config.last_error or tr("messages.persistence_error", "Erro de persistência"))
             return
         self.shortcutsApplied.emit(self._shortcuts_map)
         self.accept()

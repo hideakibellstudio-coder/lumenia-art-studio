@@ -93,9 +93,10 @@ dependências medidas nas 62 pastas de código; CI verde.
    gravava o perfil do B; agora o perfil é por contexto. Abrir o diálogo de
    renderização aplicava o último perfil das preferências ao documento em
    sRGB; agora só mostra. `tests/test_document_profile_and_dpi.py`.)*
-   Resta: títulos e filtros dos diálogos de arquivo (`QFileDialog`, 10
-   lugares) em português fixo; a Prova de Cores é uma só para todos os
-   documentos e não vai no arquivo.
+   Resta: a Prova de Cores é uma só para todos os documentos e não vai no
+   arquivo. *(Diálogos de arquivo e caixas de mensagem: traduzidos em
+   2026-09-24, 47 chaves `file_dialogs.*`/`messages.*`; falta o plugin de
+   gravação, que não tem nenhuma tradução — ~70 textos.)*
 11. ~~**Painel de geometria com cópia própria do estado**~~ *(feito em
    2026-09-24: guias e simetria moram no `GeometryState` (`ui/core/state`);
    canvas, menu, painel e diálogo avançado são views dele, e o controlador do

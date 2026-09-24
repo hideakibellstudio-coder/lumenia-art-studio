@@ -3,6 +3,7 @@ import logging
 
 import sys
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.core.i18n import tr
 from ui.core.theme.manager import ThemeManager
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.metadata import PluginMetadata
@@ -299,8 +300,10 @@ class PluginDetailsInspector(QtWidgets.QFrame):
 
         reply = QtWidgets.QMessageBox.question(
             self,
-            "Confirmar Exclusão de Plugin",
-            f"Deseja realmente excluir e remover do disco o plugin '{p_name}'?\n\nEsta ação não poderá ser desfeita.",
+            tr("messages.plugin_delete_title", "Confirmar Exclusão de Plugin"),
+            tr("messages.plugin_delete_question",
+               "Deseja realmente excluir e remover do disco o plugin '{name}'?\n\nEsta ação não poderá ser desfeita.",
+               name=p_name),
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
             QtWidgets.QMessageBox.No,
         )

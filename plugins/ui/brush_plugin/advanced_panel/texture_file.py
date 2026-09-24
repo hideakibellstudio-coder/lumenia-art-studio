@@ -21,7 +21,7 @@ def read_texture_file(parent: Optional[QtWidgets.QWidget] = None) -> Optional[Te
         parent,
         tr("brush.select_texture_title", "Selecionar Imagem de Textura"),
         "",
-        "Imagens (*.png *.jpg *.jpeg *.bmp *.tga)",
+        f"{tr('file_dialogs.images', 'Imagens')} (*.png *.jpg *.jpeg *.bmp *.tga)",
     )
     if not file_path:
         return None

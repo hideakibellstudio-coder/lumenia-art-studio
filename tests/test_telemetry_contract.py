@@ -21,6 +21,7 @@ from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
+from ui.core.i18n import tr
 from ui.engine_backends.aladyn import AladynBackend
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
@@ -111,7 +112,7 @@ def test_limpar_undo_descarta_o_historico_do_documento(session):
 
 def test_limpar_undo_sem_documento_diz_a_verdade(monkeypatch):
     monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: None)
-    assert clear_active_history() == (False, "Nenhum documento aberto.")
+    assert clear_active_history() == (False, tr("status.no_document"))
 
 
 def test_benchmark_roda_fora_do_documento_do_usuario(session):

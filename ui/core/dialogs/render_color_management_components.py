@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.core.i18n import tr
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
@@ -148,16 +149,19 @@ class ColorManagementGroup(QtWidgets.QGroupBox):
         from ui.core.engine.registry import EngineRegistry
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
-            "Importar Perfil ICC / ICM",
+            tr("file_dialogs.import_icc", "Importar Perfil ICC / ICM"),
             "",
-            "Perfis ICC (*.icc *.icm);;Todos os Arquivos (*.*)"
+            f"{tr('file_dialogs.icc_profiles', 'Perfis ICC')} (*.icc *.icm);;"
+            f"{tr('file_dialogs.all_files', 'Todos os Arquivos')} (*.*)",
         )
         if not path:
             return
 
         backend = EngineRegistry.instance().get_backend()
         if not backend or not hasattr(backend, "register_custom_color_profile"):
-            QtWidgets.QMessageBox.warning(self, "Aviso", "O backend ativo não suporta importação dinâmica de perfis.")
+            QtWidgets.QMessageBox.warning(
+                self, tr("messages.warning", "Aviso"),
+                tr("messages.icc_import_unsupported", "O backend ativo não suporta importação dinâmica de perfis."))
             return
 
         try:
@@ -166,14 +170,14 @@ class ColorManagementGroup(QtWidgets.QGroupBox):
             self.profileImported.emit(new_id)
             QtWidgets.QMessageBox.information(
                 self,
-                "Perfil Importado",
-                f"Perfil '{Path(path).name}' carregado e registrado com sucesso!"
+                tr("messages.icc_imported_title", "Perfil Importado"),
+                tr("messages.icc_imported", "Perfil '{name}' carregado e registrado com sucesso!", name=Path(path).name),
             )
         except Exception as exc:
             QtWidgets.QMessageBox.critical(
                 self,
-                "Erro de Importação",
-                f"Falha ao carregar perfil ICC: {exc}"
+                tr("messages.icc_import_error_title", "Erro de Importação"),
+                tr("messages.icc_import_error", "Falha ao carregar perfil ICC: {error}", error=exc),
             )
 
     def _on_intent_changed(self):

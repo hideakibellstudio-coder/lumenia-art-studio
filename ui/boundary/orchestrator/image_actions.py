@@ -38,7 +38,9 @@ class ImageActions(ShellActions):
 
     def export_image(self) -> None:
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self._window, "Exportar Imagem", "", "Imagem PNG (*.png);;Imagem JPEG (*.jpg *.jpeg)"
+            self._window, tr("file_dialogs.export_image", "Exportar Imagem"), "",
+            f"{tr('file_dialogs.png_image', 'Imagem PNG')} (*.png);;"
+            f"{tr('file_dialogs.jpeg_image', 'Imagem JPEG')} (*.jpg *.jpeg)",
         )
         if not filename:
             return

@@ -83,8 +83,9 @@ class RecoveryController(ShellActions):
         if not candidates:
             return
         answer = QtWidgets.QMessageBox.question(
-            self._window, "Recuperação de documentos",
-            f"Encontradas {len(candidates)} cópias de recuperação. Deseja abri-las?",
+            self._window, tr("messages.recovery_title", "Recuperação de documentos"),
+            tr("messages.recovery_question", "Encontradas {count} cópias de recuperação. Deseja abri-las?",
+               count=len(candidates)),
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         if answer != QtWidgets.QMessageBox.Yes:
             return

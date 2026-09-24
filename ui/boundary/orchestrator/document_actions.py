@@ -80,9 +80,10 @@ class DocumentActions(ShellActions):
     def open_file(self) -> None:
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
             self._window,
-            "Abrir Imagem ou Documento",
+            tr("file_dialogs.open_image_or_document", "Abrir Imagem ou Documento"),
             "",
-            "Arquivos Lumenia (*.lmn);;Imagens (*.png *.jpg *.jpeg *.bmp *.webp)",
+            f"{tr('file_dialogs.lumenia_files', 'Arquivos Lumenia')} (*.lmn);;"
+            f"{tr('file_dialogs.images', 'Imagens')} (*.png *.jpg *.jpeg *.bmp *.webp)",
         )
         if not filename:
             return
@@ -112,7 +113,8 @@ class DocumentActions(ShellActions):
     def open_native_document(self, filename: str | None = None) -> bool:
         if not filename:
             filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self._window, "Abrir Documento Lumenia", "", "Documento Lumenia (*.lmn)"
+                self._window, tr("file_dialogs.open_document", "Abrir Documento Lumenia"), "",
+                f"{tr('file_dialogs.lumenia_document', 'Documento Lumenia')} (*.lmn)",
             )
         if not filename:
             return False
@@ -171,7 +173,8 @@ class DocumentActions(ShellActions):
             self._say(tr("status.no_doc_to_save", "Nenhum documento ativo para salvar."), 2000)
             return False
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self._window, "Salvar Documento Lumenia", f"{doc.name}.lmn", "Documento Lumenia (*.lmn)"
+            self._window, tr("file_dialogs.save_document", "Salvar Documento Lumenia"), f"{doc.name}.lmn",
+            f"{tr('file_dialogs.lumenia_document', 'Documento Lumenia')} (*.lmn)",
         )
         return bool(filename) and self._save_to_path(doc, filename)
 

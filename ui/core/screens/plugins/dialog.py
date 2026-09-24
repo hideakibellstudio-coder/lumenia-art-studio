@@ -15,6 +15,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.plugins.manager import PluginManager
+from ui.core.i18n import tr
 from ui.core.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .components.plugin_card import PluginCard
@@ -227,8 +228,10 @@ class PluginsWindow(BaseFramelessDialog):
             success = pm.enable_plugin(class_name)
             if not success:
                 QtWidgets.QMessageBox.warning(
-                    self, "Erro de Inicialização",
-                    f"Não foi possível ativar o plugin '{class_name}'. Verifique as dependências e os logs."
+                    self, tr("messages.plugin_enable_error_title", "Erro de Inicialização"),
+                    tr("messages.plugin_enable_error",
+                       "Não foi possível ativar o plugin '{name}'. Verifique as dependências e os logs.",
+                       name=class_name)
                 )
         else:
             pm.disable_plugin(class_name)
@@ -241,12 +244,14 @@ class PluginsWindow(BaseFramelessDialog):
         if success:
             self._selected_plugin = None
             QtWidgets.QMessageBox.information(
-                self, "Plugin Removido", f"O plugin '{class_name}' foi desinstalado com sucesso."
+                self, tr("messages.plugin_removed_title", "Plugin Removido"),
+                tr("messages.plugin_removed", "O plugin '{name}' foi desinstalado com sucesso.", name=class_name)
             )
             self.populate_list()
         else:
             QtWidgets.QMessageBox.warning(
-                self, "Erro de Exclusão", f"Não foi possível excluir o plugin '{class_name}'."
+                self, tr("messages.plugin_remove_error_title", "Erro de Exclusão"),
+                tr("messages.plugin_remove_error", "Não foi possível excluir o plugin '{name}'.", name=class_name)
             )
 
     def _open_plugin_settings(self, plugin) -> None:
@@ -292,19 +297,22 @@ class PluginsWindow(BaseFramelessDialog):
     def import_zip(self) -> None:
 
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Importar Pacote de Plugin", "", "Pacotes Zip (*.zip)"
+            self, tr("file_dialogs.import_plugin", "Importar Pacote de Plugin"), "",
+            f"{tr('file_dialogs.zip_packages', 'Pacotes Zip')} (*.zip)"
         )
         if file_path:
             pm = PluginManager.instance()
             res = pm.load_plugin_from_source(file_path)
             if res:
                 QtWidgets.QMessageBox.information(
-                    self, "Sucesso", "Plugin importado e instalado com sucesso!"
+                    self, tr("messages.plugin_installed_title", "Sucesso"),
+                    tr("messages.plugin_installed", "Plugin importado e instalado com sucesso!")
                 )
                 self.populate_list()
             else:
                 QtWidgets.QMessageBox.critical(
-                    self, "Erro de Instalação", "Falha ao extrair e validar o pacote .zip do plugin."
+                    self, tr("messages.plugin_install_error_title", "Erro de Instalação"),
+                    tr("messages.plugin_install_error", "Falha ao extrair e validar o pacote .zip do plugin.")
                 )
 
     def update_theme_style(self, *args) -> None:

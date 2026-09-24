@@ -21,6 +21,7 @@ from PySide6 import QtGui, QtWidgets
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_tracker import TelemetryTracker
+from ui.core.i18n import tr
 from ui.core.theme.manager import ThemeManager
 
 # Estado do pipeline -> token do tema (todos os temas têm os tokens)
@@ -58,9 +59,10 @@ def copy_report(parent: QtWidgets.QWidget, stay_on_top: Optional[bool] = None) -
     QtWidgets.QApplication.clipboard().setText(report)
     QtWidgets.QMessageBox.information(
         parent,
-        "Relatório de Telemetria Copiado",
-        "Relatório completo de telemetria (20 medidores, diagnóstico do pipeline, picos de "
-        "estresse e histórico de alterações de estado) copiado para a Área de Transferência.",
+        tr("messages.telemetry_copied_title", "Relatório de Telemetria Copiado"),
+        tr("messages.telemetry_copied",
+           "Relatório completo de telemetria (20 medidores, diagnóstico do pipeline, picos de "
+           "estresse e histórico de alterações de estado) copiado para a Área de Transferência."),
     )
     return report
 
@@ -69,32 +71,35 @@ def clear_active_history() -> tuple[bool, str]:
     """Descarta desfazer/refazer do documento ativo. Retorna (limpou?, mensagem)."""
     doc = DocumentManager.instance().active_document()
     if doc is None:
-        return False, "Nenhum documento aberto."
+        return False, tr("status.no_document", "Nenhum documento aberto.")
     backend = EngineRegistry.instance().get_backend()
     if backend is None:
-        return False, "Motor indisponível: o histórico não foi alterado."
+        return False, tr("messages.history_engine_unavailable", "Motor indisponível: o histórico não foi alterado.")
     try:
         cleared = doc.history.clear(backend)
     except RuntimeError as exc:  # motor apontando para outro documento
-        return False, f"O histórico não foi alterado: {exc}"
+        return False, tr("messages.history_not_changed", "O histórico não foi alterado: {error}", error=exc)
     if not cleared:
-        return False, "Não dá para limpar o histórico durante um traço ou uma operação de camadas."
-    return True, f"Histórico de desfazer e refazer de “{doc.name}” descartado."
+        return False, tr("messages.history_busy",
+                         "Não dá para limpar o histórico durante um traço ou uma operação de camadas.")
+    return True, tr("messages.history_cleared", "Histórico de desfazer e refazer de “{name}” descartado.",
+                    name=doc.name)
 
 
 def clear_undo_history(parent: QtWidgets.QWidget) -> bool:
     """O botão "Limpar Undo": confirma, limpa e mostra o resultado real."""
     answer = QtWidgets.QMessageBox.question(
         parent,
-        "Limpar Histórico",
-        "Descartar todo o histórico de desfazer e refazer do documento ativo?\n"
-        "Isso libera a memória do histórico e não pode ser desfeito.",
+        tr("messages.clear_history_title", "Limpar Histórico"),
+        tr("messages.clear_history_question",
+           "Descartar todo o histórico de desfazer e refazer do documento ativo?\n"
+           "Isso libera a memória do histórico e não pode ser desfeito."),
     )
     if answer != QtWidgets.QMessageBox.StandardButton.Yes:
         return False
     cleared, message = clear_active_history()
     if cleared:
-        QtWidgets.QMessageBox.information(parent, "Memória", message)
+        QtWidgets.QMessageBox.information(parent, tr("messages.memory_title", "Memória"), message)
     else:
-        QtWidgets.QMessageBox.warning(parent, "Memória", message)
+        QtWidgets.QMessageBox.warning(parent, tr("messages.memory_title", "Memória"), message)
     return cleared

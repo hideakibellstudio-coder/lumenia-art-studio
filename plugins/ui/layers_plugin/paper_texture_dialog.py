@@ -161,7 +161,8 @@ class TexturePopup(QDialog):
 
     def _on_load_paper_png(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Carregar PNG de Textura do Papel", "", "Imagens PNG (*.png *.jpg *.jpeg)"
+            self, tr("file_dialogs.load_paper_texture", "Carregar PNG de Textura do Papel"), "",
+            f"{tr('file_dialogs.images', 'Imagens')} (*.png *.jpg *.jpeg)"
         )
         if path:
             try:

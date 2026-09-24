@@ -84,7 +84,10 @@ class _MockMenuActionsWindow(MainWindowMenuActionsMixin):
 
 
 @pytest.fixture
-def app(qapp):
+def app():
+    qapp = QtWidgets.QApplication.instance()
+    if qapp is None:
+        qapp = QtWidgets.QApplication([])
     return qapp
 
 
@@ -337,4 +340,3 @@ def test_shape_controller_signal_symmetry(app):
     # Commit sem path (ex: clique isolado sem drag)
     rw.shape_ctrl.commit_to_layer()
     assert len(finished) == 1
-

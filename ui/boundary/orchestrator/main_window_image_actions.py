@@ -1,13 +1,9 @@
 """MainWindowImageActionsMixin — Handlers de Ações de Imagem, Canvas e Guias."""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
 from ui.core.dialogs.canvas_size_dialog import CanvasSizeDialog
-
-if TYPE_CHECKING:
-    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
 
 class MainWindowImageActionsMixin:
@@ -30,7 +26,7 @@ class MainWindowImageActionsMixin:
 
     def reset_rotation(self) -> None:
         if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw: "RenderWidget" = self.workspace.canvas_widget
+            cw = self.workspace.canvas_widget
             cw.rotation = 0.0
             cw.update()
             self.status_bar.showMessage("Rotação do canvas resetada para 0°.", 2000)
@@ -53,8 +49,9 @@ class MainWindowImageActionsMixin:
 
     def open_canvas_size_dialog(self, is_image_resize: bool = False) -> None:
         backend = EngineRegistry.instance().get_backend()
-        w = getattr(backend, "_width", 1920) if backend else 1920
-        h = getattr(backend, "_height", 1080) if backend else 1080
+        # Tamanho do documento: fonte única é o Document ativo.
+        doc = self.dm.active_document()
+        w, h = (doc.width, doc.height) if doc else (1920, 1080)
         dialog = CanvasSizeDialog(current_w=w, current_h=h, is_image_resize=is_image_resize, parent=self)
         if dialog.exec() == QtWidgets.QDialog.Accepted:
             res = dialog.get_results()

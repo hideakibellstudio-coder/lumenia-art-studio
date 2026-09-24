@@ -78,8 +78,8 @@ class TimelapseRecordingEngine(QtCore.QObject):
         if self._connected_canvas is not None and hasattr(self._connected_canvas, "strokeFinished"):
             try:
                 self._connected_canvas.strokeFinished.disconnect(self._on_canvas_stroke_finished)
-            except Exception:
-                pass
+            except (RuntimeError, TypeError):
+                pass  # já desconectado ou canvas destruído
 
         self._connected_canvas = canvas
         if canvas is not None and hasattr(canvas, "strokeFinished"):
@@ -91,8 +91,8 @@ class TimelapseRecordingEngine(QtCore.QObject):
         if self._connected_canvas is not None and hasattr(self._connected_canvas, "strokeFinished"):
             try:
                 self._connected_canvas.strokeFinished.disconnect(self._on_canvas_stroke_finished)
-            except Exception:
-                pass
+            except (RuntimeError, TypeError):
+                pass  # já desconectado ou canvas destruído
         self._connected_canvas = None
 
     def start_recording(self) -> bool:
@@ -287,12 +287,13 @@ class TimelapseRecordingEngine(QtCore.QObject):
         # 2. Dimensões do documento
         cw = int(getattr(canvas, "canvas_w", 0))
         ch = int(getattr(canvas, "canvas_h", 0))
-        if (cw <= 0 or ch <= 0) and backend and hasattr(backend, "get_width"):
-            try:
-                cw = int(backend.get_width())
-                ch = int(backend.get_height())
-            except Exception:
-                pass
+        if cw <= 0 or ch <= 0:
+            # O backend não expõe tamanho; a fonte única é o documento ativo.
+            # (O ramo antigo perguntava `backend.get_width`, que não existe.)
+            from ui.core.document.manager import DocumentManager
+            doc = DocumentManager.instance().active_document()
+            if doc is not None:
+                cw, ch = int(doc.width), int(doc.height)
         if cw <= 0 or ch <= 0:
             logger.debug("[TimelapseEngine] Dimensões inválidas para captura: %sx%s", cw, ch)
             return
@@ -355,14 +356,11 @@ class TimelapseRecordingEngine(QtCore.QObject):
 
         guides_renderer = self._guides_renderer or self._default_guides_renderer
         if guides_renderer is None and guides_data:
-            try:
-                from ui.core.plugins.registry import ServiceRegistry
-                from ui.core.plugins.workspace_contract import WorkspaceService
-                ws = ServiceRegistry.instance().get(WorkspaceService)
-                if ws and hasattr(ws, "render_geometry_overlay"):
-                    guides_renderer = ws.render_geometry_overlay
-            except Exception:
-                pass
+            from ui.core.plugins.registry import ServiceRegistry
+            from ui.core.plugins.workspace_contract import WorkspaceService
+            ws = ServiceRegistry.instance().get(WorkspaceService)
+            if ws is not None:
+                guides_renderer = ws.render_geometry_overlay
 
         task = FrameSaveTask(
             raw_bytes,
@@ -402,8 +400,8 @@ class TimelapseRecordingEngine(QtCore.QObject):
             try:
                 total_bytes = sum(os.path.getsize(os.path.join(self.temp_dir, f)) for f in os.listdir(self.temp_dir))
                 size_mb = total_bytes / (1024.0 * 1024.0)
-            except Exception:
-                pass
+            except OSError:
+                pass  # arquivo sumiu durante a contagem
         duration_secs = self.frame_count / float(max(1, self.fps))
         self.stats_updated.emit(self.frame_count, size_mb, duration_secs)
 

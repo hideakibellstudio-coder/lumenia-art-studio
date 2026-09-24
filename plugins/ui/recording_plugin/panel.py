@@ -286,14 +286,11 @@ class RecordingPanel(QtWidgets.QWidget):
         if not self.engine.is_recording:
             # Garante que o canvas está conectado caso tenha sido instanciado tardiamente
             if self.canvas is None:
-                try:
-                    from ui.core.plugins.registry import ServiceRegistry
-                    from ui.core.plugins.workspace_contract import WorkspaceService
-                    ws = ServiceRegistry.instance().get(WorkspaceService)
-                    if ws and hasattr(ws, "canvas") and ws.canvas:
-                        self.set_canvas(ws.canvas)
-                except Exception:
-                    pass
+                from ui.core.plugins.registry import ServiceRegistry
+                from ui.core.plugins.workspace_contract import WorkspaceService
+                ws = ServiceRegistry.instance().get(WorkspaceService)
+                if ws is not None and ws.canvas is not None:
+                    self.set_canvas(ws.canvas)
             elif self.engine._connected_canvas is None:
                 self.engine.attach_canvas(self.canvas)
 

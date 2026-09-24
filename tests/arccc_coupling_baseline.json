@@ -225,21 +225,15 @@
  "plugins/ui/recording_plugin/components/recording_floating_bar.py": {
   "foreign_private": 2,
   "getattr_literal": 2,
-  "hasattr": 3,
-  "silent_except": 1
- },
- "plugins/ui/recording_plugin/engine/export_worker.py": {
-  "silent_except": 1
+  "hasattr": 3
  },
  "plugins/ui/recording_plugin/engine/recording_engine.py": {
   "getattr_literal": 9,
-  "hasattr": 7,
-  "silent_except": 5
+  "hasattr": 5
  },
  "plugins/ui/recording_plugin/panel.py": {
   "foreign_private": 1,
-  "hasattr": 6,
-  "silent_except": 1
+  "hasattr": 5
  },
  "plugins/ui/telemetry_plugin/panel.py": {
   "getattr_literal": 9,
@@ -263,9 +257,8 @@
   "hasattr": 2
  },
  "ui/boundary/orchestrator/main_window_image_actions.py": {
-  "getattr_literal": 8,
-  "hasattr": 9,
-  "reverse_import": 1
+  "getattr_literal": 6,
+  "hasattr": 9
  },
  "ui/boundary/orchestrator/main_window_menu_actions.py": {
   "getattr_literal": 13,
@@ -299,7 +292,7 @@
   "hasattr": 11
  },
  "ui/core/dialogs/diagnostics_dialog.py": {
-  "getattr_literal": 6,
+  "getattr_literal": 4,
   "hasattr": 3
  },
  "ui/core/dialogs/layer_properties_dialog.py": {
@@ -321,8 +314,7 @@
  "ui/core/dialogs/telemetry_diagnostics_dialog.py": {
   "foreign_private": 2,
   "getattr_literal": 9,
-  "hasattr": 15,
-  "reverse_import": 1
+  "hasattr": 15
  },
  "ui/core/dialogs/telemetry_grid_report.py": {
   "getattr_literal": 11,
@@ -350,9 +342,6 @@
  },
  "ui/core/document/local_layer.py": {
   "foreign_private": 1
- },
- "ui/core/document/recovery.py": {
-  "silent_except": 1
  },
  "ui/core/document/restore.py": {
   "hasattr": 1
@@ -382,8 +371,7 @@
  },
  "ui/core/plugins/package_installer.py": {
   "foreign_private": 1,
-  "getattr_literal": 2,
-  "silent_except": 2
+  "getattr_literal": 2
  },
  "ui/core/runtime_paths.py": {
   "getattr_literal": 1
@@ -427,8 +415,7 @@
   "foreign_private": 1
  },
  "ui/core/shortcut_registry.py": {
-  "getattr_literal": 1,
-  "silent_except": 1
+  "getattr_literal": 1
  },
  "ui/core/theme/manager.py": {
   "getattr_literal": 2
@@ -471,7 +458,6 @@
   "hasattr": 1
  },
  "ui/infrastructure/logging/logger.py": {
-  "hasattr": 2,
-  "silent_except": 3
+  "hasattr": 2
  }
 }

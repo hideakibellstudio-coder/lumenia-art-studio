@@ -74,8 +74,9 @@ class DiagnosticsDialog(BaseFramelessDialog):
         self._add_item("Motor Gráfico", status_native)
 
         # 2. Resolução do Canvas
-        w = getattr(backend, "_width", 1920)
-        h = getattr(backend, "_height", 1080)
+        from ui.core.document.manager import DocumentManager
+        doc = DocumentManager.instance().active_document()
+        w, h = (doc.width, doc.height) if doc else (0, 0)
         self._add_item("Dimensões do Canvas", f"{w} × {h} pixels")
         self._add_item("Megapixels por Camada", f"{(w * h) / 1_000_000:.2f} MP")
 

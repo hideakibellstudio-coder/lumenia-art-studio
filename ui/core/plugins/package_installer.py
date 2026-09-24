@@ -176,8 +176,8 @@ def uninstall_plugin_package(
                 file_path = inspect.getfile(cls)
                 if file_path:
                     plugin_dir = os.path.dirname(file_path)
-            except Exception:
-                pass
+            except (TypeError, OSError):
+                pass  # classe sem arquivo de origem (embutida/compilada)
 
         logger.info(f"Desinstalando plugin '{name}' | Pasta identificada: {plugin_dir}")
 
@@ -203,8 +203,8 @@ def uninstall_plugin_package(
                     try:
                         os.chmod(path, stat.S_IWRITE)
                         func(path)
-                    except Exception:
-                        pass
+                    except OSError as exc:
+                        logging.getLogger(__name__).warning("Desinstalação: não foi possível remover %s (%s)", path, exc)
 
                 shutil.rmtree(plugin_dir, onerror=_on_rm_error)
                 logger.info(f"Diretório do plugin '{name}' excluído com sucesso do disco: {plugin_dir}")

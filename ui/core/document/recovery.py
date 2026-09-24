@@ -1,5 +1,6 @@
 """Session-scoped recovery snapshots, independent of the user's saved file."""
 
+import logging
 import hashlib
 import uuid
 import weakref
@@ -92,5 +93,5 @@ class RecoveryStore:
         # the temporary recovery profile in that case.
         try:
             self.close()
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001 -- destrutor: nunca propagar, mas deixar rastro
+            logging.getLogger(__name__).debug("RecoveryStore: falha ao fechar no destrutor", exc_info=True)

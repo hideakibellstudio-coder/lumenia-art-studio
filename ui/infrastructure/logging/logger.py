@@ -158,8 +158,8 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
             mode = ctypes.c_ulong()
             if kernel32.GetConsoleMode(h_stdout, ctypes.byref(mode)):
                 kernel32.SetConsoleMode(h_stdout, mode.value | 0x0004)
-        except Exception:
-            pass
+        except (AttributeError, OSError):
+            pass  # sem console do Windows (serviço, redirecionamento): cores ANSI ficam de fora
 
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
@@ -169,13 +169,13 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
     if sys.stdout is not None and hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
-        except Exception:
-            pass
+        except (ValueError, OSError):
+            pass  # fluxo já em uso ou não reconfigurável
     if sys.stderr is not None and hasattr(sys.stderr, "reconfigure"):
         try:
             sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
-        except Exception:
-            pass
+        except (ValueError, OSError):
+            pass  # fluxo já em uso ou não reconfigurável
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
     console_handler.setFormatter(SeniorConsoleFormatter())

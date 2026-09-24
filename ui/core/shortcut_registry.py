@@ -47,8 +47,8 @@ class ShortcutRegistry(QtCore.QObject):
         if app is not None:
             try:
                 app.removeEventFilter(self)
-            except Exception:
-                pass
+            except RuntimeError:
+                pass  # objeto C++ já destruído no encerramento do Qt
 
     def validate(self, overrides):
         defaults = {item["id"]: item["default"] for item in DEFAULT_SHORTCUTS}

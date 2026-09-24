@@ -51,8 +51,8 @@ class RecordingFloatingBar(FloatingToolWindow):
         if self.canvas and isinstance(self.canvas, QtWidgets.QWidget):
             try:
                 self.canvas.removeEventFilter(self)
-            except Exception:
-                pass
+            except RuntimeError:
+                pass  # canvas já destruído
         self.canvas = canvas
         if isinstance(self.canvas, QtWidgets.QWidget):
             self.canvas.installEventFilter(self)

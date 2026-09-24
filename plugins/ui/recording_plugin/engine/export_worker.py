@@ -103,8 +103,8 @@ class TimelapseExportWorker(QtCore.QObject):
                             "Codificando quadros em H.264...",
                             f"Quadro {cur_frame} de {self.total_frames} processado."
                         )
-            except Exception:
-                pass
+            except (ValueError, IndexError, ZeroDivisionError):
+                pass  # linha de progresso do ffmpeg fora do formato esperado
 
         def on_process_finished(exit_code: int, exit_status: QtCore.QProcess.ExitStatus):
             if self._is_cancelled:

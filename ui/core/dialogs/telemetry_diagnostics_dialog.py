@@ -325,8 +325,10 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.card_stroke_time.set_value(f"{snap.stroke_total_time_ms:.1f} ms")
 
         # 2. Pipeline Granular & Viewport
-        from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-        vp = RenderWidget.get_active_viewport_telemetry()
+        # Contrato do núcleo (o canvas registra o provedor); o núcleo nunca
+        # importa o plugin do workspace.
+        from ui.core.engine.registry import EngineRegistry
+        vp = EngineRegistry.get_viewport_telemetry()
         blit_ms = vp.get("qt_draw_image_ms", 0.0)
         vp_fps = vp.get("qt_fps", 0.0)
         dw = int(getattr(snap, "last_dirty_width", 0.0))

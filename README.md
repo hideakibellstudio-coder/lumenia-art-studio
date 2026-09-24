@@ -115,16 +115,30 @@ Lumenia/
 
 ### Opção A: Executar em Modo de Desenvolvimento (Python)
 
-**Pré-requisitos:** Python 3.11+ (recomendado Python 3.14).
+**Pré-requisitos:** Windows x64, Python 3.11+ (recomendado 3.14) e o Visual
+Studio Build Tools com a carga "Desenvolvimento para desktop com C++" (o
+script de build encontra o compilador sozinho).
 
 1. Instale as dependências:
    ```bash
    pip install -r requirements-dev.lock
    ```
-2. Inicie o aplicativo:
+2. Compile o motor C++ (gera `aladyn_engine_native.*.pyd` na raiz; os objetos
+   intermediários vão para `../build`):
+   ```bash
+   python scripts/build_native.py --simd scalar
+   ```
+   Em CPU com AVX2 dá para usar `--simd avx2`. O binário não vai para o
+   repositório: sem este passo o aplicativo abre, mas sem motor (canvas vazio).
+3. Inicie o aplicativo:
    ```bash
    python main.py
    ```
+   (ou `Iniciar_Lumenia.bat`). Para conferir a instalação:
+   `python tests/run_all_tests.py`.
+
+São os mesmos passos que o CI (`.github/workflows/ci.yml`) executa a partir de
+um clone limpo em cada commit.
 
 ### Opção B: Versão Portátil Autônoma (Sem Instalação)
 

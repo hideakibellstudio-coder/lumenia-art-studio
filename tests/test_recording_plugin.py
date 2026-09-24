@@ -12,6 +12,8 @@ from PySide6 import QtCore, QtWidgets, QtGui
 
 from plugins.ui.recording_plugin.engine.recording_engine import TimelapseRecordingEngine
 from plugins.ui.recording_plugin.engine.export_worker import TimelapseExportWorker
+from plugins.ui.recording_plugin.engine.frame_source import DocumentFrameSource, Frame
+from ui.core.document.document import Document
 from plugins.ui.recording_plugin.panel import RecordingPanel
 from plugins.ui.recording_plugin import RecordingPlugin
 from ui.core.plugins.workspace_contract import WorkspaceService
@@ -29,14 +31,17 @@ class DummyBackend:
 
 
 class DummyCanvas(QtCore.QObject):
+    """Só o que o plugin usa do canvas: o sinal de fim de traço."""
     strokeFinished = QtCore.Signal()
 
-    def __init__(self):
-        super().__init__()
-        self.canvas_w = 100
-        self.canvas_h = 100
-        self.backend = DummyBackend(100, 100)
-        self.engine_backend = self.backend
+
+def red_frames(include_guides: bool):
+    """Fonte de quadros de teste: 100×100 vermelho, sem guias."""
+    return Frame(b"\xff\x00\x00\xff" * (100 * 100), 100, 100, None)
+
+
+def make_engine():
+    return TimelapseRecordingEngine(red_frames)
 
 
 class MockWorkspaceService(WorkspaceService):
@@ -65,8 +70,8 @@ class MockWorkspaceService(WorkspaceService):
 def test_recording_engine_lifecycle(qapp):
     """Valida ciclo completo de sessão do motor de gravação (start, pause, resume, discard)."""
     canvas = DummyCanvas()
-    engine = TimelapseRecordingEngine()
-    engine.attach_canvas(canvas)
+    engine = make_engine()
+    canvas.strokeFinished.connect(engine.on_stroke_finished)
 
     assert not engine.is_recording
     assert not engine.is_paused
@@ -152,8 +157,7 @@ def test_timelapse_watermark_applied(qapp):
 
 def test_recording_panel_ui(qapp):
     """Valida que o RecordingPanel instancia todos os controles e responde a comandos."""
-    canvas = DummyCanvas()
-    panel = RecordingPanel(canvas=canvas)
+    panel = RecordingPanel(make_engine())
     panel.show()
 
     assert panel.engine.is_recording is False
@@ -200,17 +204,24 @@ def test_recording_plugin_activation(qapp):
         assert panel_info["title"] == "Timelapse"
         assert panel_info["area"] == "right"
 
+        # O plugin liga o fim do traço do canvas ao motor de gravação...
+        engine = panel_info["widget"].engine
+        engine.start_recording()
+        canvas.strokeFinished.emit()
+        assert engine.stroke_debounce_timer.isActive()
+        engine.discard_recording()
+
         plugin.deactivate()
         assert "recording" not in mock_ws.panels
+        # ...e desliga ao desativar.
+        assert canvas.receivers(QtCore.SIGNAL("strokeFinished()")) == 0
     finally:
         reg._registry[WorkspaceService] = old_impls
 
 
 def test_recording_fps_selection_and_duration_calculation(qapp):
     """Valida a seleção dinâmica de taxa de quadros (24, 30, 60 FPS) e o cálculo de duração."""
-    canvas = DummyCanvas()
-    panel = RecordingPanel()
-    panel.set_canvas(canvas)
+    panel = RecordingPanel(make_engine())
 
     assert panel.engine.fps == 30
     assert panel.combo_fps.currentText() == "30 FPS (Padrão)"
@@ -245,7 +256,7 @@ def test_recording_floating_bar_lifecycle_and_anchoring(qapp):
     canvas.resize(800, 600)
     canvas.show()
 
-    panel = RecordingPanel(canvas=canvas)
+    panel = RecordingPanel(make_engine(), anchor=canvas)
     panel.show()
 
     fbar = panel.floating_bar
@@ -293,17 +304,18 @@ def test_recording_stop_flow_dialog(qapp, monkeypatch):
     """Valida o fluxo de parada (Stop) com pergunta de salvar, descartar e cancelar."""
     canvas = QtWidgets.QWidget()
     canvas.resize(400, 300)
-    panel = RecordingPanel(canvas=canvas)
+    panel = RecordingPanel(make_engine(), anchor=canvas)
     panel.show()
+    stop = panel.actions.request_stop
 
     # 1. Parar sem gravação ativa retorna False
-    assert panel.request_stop_recording() is False
+    assert stop() is False
 
     # 2. Inicia gravação com 0 quadros -> parar descarta direto e avisa
     panel.btn_toggle.click()
     panel.engine.frame_count = 0
     monkeypatch.setattr(QtWidgets.QMessageBox, "information", lambda *args, **kwargs: None)
-    stopped = panel.request_stop_recording()
+    stopped = stop()
     assert stopped is True
     assert panel.engine.is_recording is False
 
@@ -321,14 +333,14 @@ def test_recording_stop_flow_dialog(qapp, monkeypatch):
         monkeypatch.setattr(QtWidgets.QMessageBox, "clickedButton", lambda self: getattr(self, "_mock_clicked", None))
 
     mock_msgbox_choice(QtWidgets.QMessageBox.ButtonRole.RejectRole)
-    res = panel.request_stop_recording()
+    res = stop()
     assert res is False
     assert panel.engine.is_recording is True
     assert panel.engine.is_paused is False
 
     # 4. Gravação com quadros -> Escolher "Descartar"
     mock_msgbox_choice(QtWidgets.QMessageBox.ButtonRole.DestructiveRole)
-    res = panel.request_stop_recording()
+    res = stop()
     assert res is True
     assert panel.engine.is_recording is False
 
@@ -340,7 +352,7 @@ def test_recording_stop_flow_dialog(qapp, monkeypatch):
     monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *a, **k: ("dummy_save.mp4", "mp4"))
     monkeypatch.setattr(TimelapseExportWorker, "export", lambda self, path, fmt=None, fps=None: None)
 
-    res = panel.request_stop_recording()
+    res = stop()
     assert res is True
     assert panel.engine.is_recording is False
     assert panel.floating_bar.isHidden() is True
@@ -353,14 +365,12 @@ def test_recording_include_guides_option(qapp, tmp_path):
     """Valida a opção de incluir guias ativas (simetria e perspectiva) na captura de timelapse."""
     from plugins.ui.recording_plugin.engine.recording_engine import FrameSaveTask
 
-    class DummyGeometryCtrl:
-        def __init__(self):
-            self.sym_state = {"mode": "mirror", "cx": 200.0, "cy": 150.0, "angle": 90.0}
-            self.guide_state = {"type": "straight", "p0": QtCore.QPointF(0, 150), "p1": QtCore.QPointF(400, 150), "hidden": False}
-
-    canvas = DummyCanvas()
-    canvas.geometry_ctrl = DummyGeometryCtrl()
-    panel = RecordingPanel(canvas=canvas)
+    # Guias e simetria vêm do documento ativo (fonte única), não do canvas.
+    doc = Document("rec-guides", "Guias", 400, 300)
+    doc.sym_state = {"mode": "mirror", "cx": 200.0, "cy": 150.0, "angle": 90.0}
+    doc.guide_state = {"type": "straight", "p0": QtCore.QPointF(0, 150), "p1": QtCore.QPointF(400, 150), "hidden": False}
+    source = DocumentFrameSource(backend=lambda: DummyBackend(400, 300), document=lambda: doc)
+    panel = RecordingPanel(TimelapseRecordingEngine(source))
     panel.show()
 
     assert panel.engine.include_guides is False
@@ -386,10 +396,9 @@ def test_recording_include_guides_option(qapp, tmp_path):
 
     out_file = str(tmp_path / "frame_with_guides.jpg")
     raw = b"\xff\xff\xff\xff" * (400 * 300)
-    guides_data = {
-        "sym": canvas.geometry_ctrl.sym_state,
-        "guide": canvas.geometry_ctrl.guide_state,
-    }
+    guides_data = source.grab(include_guides=True).guides
+    assert guides_data["sym"]["mode"] == "mirror" and guides_data["guide"]["type"] == "straight"
+    assert source.grab(include_guides=False).guides is None
     task = FrameSaveTask(raw, 400, 300, 400, 300, out_file, guides_data=guides_data, guides_renderer=dummy_renderer)
     task.run()
     assert os.path.exists(out_file)

@@ -4,6 +4,12 @@ ThemeDialog — Gerenciador & Customizador Completo de Aparência e Temas (Lumen
 Interface profissional de 2 colunas no padrão Lumenia V2:
   - Coluna da Esquerda: Filtros (Todos, Dark, Light), busca com ícone SVG e lista de ThemeCards.
   - Coluna da Direita: Inspector de Cores, visualização da paleta e ajustes de geometria e tipografia.
+
+Raio dos cantos e fonte são ajustes do usuário por cima de qualquer tema
+(`ThemeManager.set_interface_tweaks`, opções em `ui/core/theme/interface_tweaks.py`).
+Até 2026-09-24 os dois combos não estavam ligados a nada, e o filtro
+Escuros/Claros comparava o texto traduzido com o português (fora do pt-BR
+não filtrava).
 """
 
 from __future__ import annotations
@@ -13,8 +19,10 @@ from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.theme.manager import ThemeManager
+from ui.core.i18n import I18nManager, tr
 from ui.core.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
+from .components.interface_tweaks_group import InterfaceTweaksGroup
 from .components.theme_card import ColorDot, ThemeMiniSwatches, ThemeCard
 
 logger = logging.getLogger(__name__)
@@ -26,7 +34,6 @@ class ThemeDialog(BaseFramelessDialog):
     """Gerenciador Visual Completo de Temas e Customizações de Interface."""
 
     def __init__(self, parent=None):
-        from ui.core.i18n import tr, I18nManager
         super().__init__(title=tr("dialogs.theme_title", "Personalização de Interface & Temas"), icon_name="palette", parent=parent, modal=True)
         self.setObjectName("ThemeDialog")
         self.resize(820, 560)
@@ -41,7 +48,6 @@ class ThemeDialog(BaseFramelessDialog):
         self._setup_ui()
         self._apply_theme()
         self.theme_manager.themeChanged.connect(self._apply_theme)
-        self.theme_manager.scaleChanged.connect(self._sync_scale_combo)
 
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
@@ -163,50 +169,9 @@ class ThemeDialog(BaseFramelessDialog):
 
         right_layout.addWidget(self.palette_group)
 
-        # Ajustes Finos (Geometria & Tipografia)
-        tweaks_group = QtWidgets.QGroupBox()
-        self.tweaks_group = tweaks_group
-        tweaks_layout = QtWidgets.QVBoxLayout(tweaks_group)
-        tweaks_layout.setContentsMargins(14, 14, 14, 14)
-        tweaks_layout.setSpacing(10)
-
-        # Raio dos Cantos
-        row_radius = QtWidgets.QHBoxLayout()
-        self.lbl_rad = QtWidgets.QLabel()
-        self.lbl_rad.setStyleSheet("font-size: 12px;")
-        self.combo_radius = QtWidgets.QComboBox()
-        self.combo_radius.addItems(["Padrão do Tema", "Quadrado (0px)", "Suave (4px)", "Arredondado (8px)", "Cápsula (16px)"])
-        row_radius.addWidget(self.lbl_rad)
-        row_radius.addStretch()
-        row_radius.addWidget(self.combo_radius)
-        tweaks_layout.addLayout(row_radius)
-
-        # Família da Fonte
-        row_font = QtWidgets.QHBoxLayout()
-        self.lbl_fnt = QtWidgets.QLabel()
-        self.lbl_fnt.setStyleSheet("font-size: 12px;")
-        self.combo_font = QtWidgets.QComboBox()
-        self.combo_font.addItems(["Segoe UI (Padrão Windows)", "Roboto / System", "Inter Display", "Helvetica / Arial"])
-        row_font.addWidget(self.lbl_fnt)
-        row_font.addStretch()
-        row_font.addWidget(self.combo_font)
-        tweaks_layout.addLayout(row_font)
-
-        # Escala da Interface
-        row_scale = QtWidgets.QHBoxLayout()
-        self.lbl_scale = QtWidgets.QLabel()
-        self.lbl_scale.setStyleSheet("font-size: 12px;")
-        self.combo_scale = QtWidgets.QComboBox()
-        self.SCALE_VALUES = [0.8, 1.0, 1.25, 1.5, 1.75, 2.0]
-        self._populate_scale_combo()
-        self._sync_scale_combo()
-        self.combo_scale.currentIndexChanged.connect(self._on_scale_changed)
-        row_scale.addWidget(self.lbl_scale)
-        row_scale.addStretch()
-        row_scale.addWidget(self.combo_scale)
-        tweaks_layout.addLayout(row_scale)
-
-        right_layout.addWidget(tweaks_group)
+        # Ajustes Finos (raio, fonte e escala): componente próprio, view do ThemeManager
+        self.tweaks_group = InterfaceTweaksGroup(self.theme_manager)
+        right_layout.addWidget(self.tweaks_group)
         right_layout.addStretch()
 
         # Botões de Ação
@@ -232,113 +197,30 @@ class ThemeDialog(BaseFramelessDialog):
 
     def retranslate_ui(self) -> None:
         """Atualiza dinamicamente todos os textos deste diálogo quando o idioma muda."""
-        from ui.core.i18n import tr
-        if hasattr(self, "title_bar") and self.title_bar:
-            self.title_bar.set_title(tr("dialogs.theme_title", "Personalização de Interface & Temas"))
+        self.title_bar.set_title(tr("dialogs.theme_title", "Personalização de Interface & Temas"))
 
-        if hasattr(self, "search_box"):
-            self.search_box.setPlaceholderText(tr("dialogs.theme_search", "Buscar tema..."))
+        self.search_box.setPlaceholderText(tr("dialogs.theme_search", "Buscar tema..."))
 
-        if hasattr(self, "palette_group"):
-            self.palette_group.setTitle(tr("dialogs.theme_swatches", "Amostras da Paleta de Cores"))
-        if hasattr(self, "btn_apply"):
-            self.btn_apply.setText(tr("dialogs.theme_apply", "Aplicar este Tema"))
-        if hasattr(self, "btn_close"):
-            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self.palette_group.setTitle(tr("dialogs.theme_swatches", "Amostras da Paleta de Cores"))
+        self.btn_apply.setText(tr("dialogs.theme_apply", "Aplicar este Tema"))
+        self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
-        if hasattr(self, "combo_filter"):
-            cur_idx = max(0, self.combo_filter.currentIndex())
-            self.combo_filter.blockSignals(True)
-            self.combo_filter.clear()
-            items = [
-                tr("dialogs.theme_filter_all", "Todos os Temas"),
-                tr("dialogs.theme_filter_dark", "Temas Escuros (Dark)"),
-                tr("dialogs.theme_filter_light", "Temas Claros (Light)"),
-            ]
-            for label in items:
-                self.combo_filter.addItem(label)
-            self.combo_filter.setCurrentIndex(cur_idx)
-            self.combo_filter.blockSignals(False)
-
-        if hasattr(self, "tweaks_group"):
-            self.tweaks_group.setTitle(tr("dialogs.theme_tweaks", "Ajustes Finos (Geometria & Tipografia)"))
-
-        if hasattr(self, "lbl_rad"):
-            self.lbl_rad.setText(tr("dialogs.theme_radius", "Raio dos Cantos:"))
-
-        if hasattr(self, "lbl_fnt"):
-            self.lbl_fnt.setText(tr("dialogs.theme_font", "Família da Fonte:"))
-
-        if hasattr(self, "combo_radius"):
-            cur_r = max(0, self.combo_radius.currentIndex())
-            self.combo_radius.blockSignals(True)
-            self.combo_radius.clear()
-            self.combo_radius.addItems([
-                tr("dialogs.theme_rad_default", "Padrão do Tema"),
-                tr("dialogs.theme_rad_square", "Quadrado (0px)"),
-                tr("dialogs.theme_rad_soft", "Suave (4px)"),
-                tr("dialogs.theme_rad_rounded", "Arredondado (8px)"),
-                tr("dialogs.theme_rad_capsule", "Cápsula (16px)"),
-            ])
-            self.combo_radius.setCurrentIndex(cur_r)
-            self.combo_radius.blockSignals(False)
-
-        if hasattr(self, "combo_font"):
-            cur_f = max(0, self.combo_font.currentIndex())
-            self.combo_font.blockSignals(True)
-            self.combo_font.clear()
-            self.combo_font.addItems([
-                tr("dialogs.theme_font_segoe", "Segoe UI (Padrão Windows)"),
-                tr("dialogs.theme_font_roboto", "Roboto / System"),
-                tr("dialogs.theme_font_inter", "Inter Display"),
-                tr("dialogs.theme_font_helvetica", "Helvetica / Arial"),
-            ])
-            self.combo_font.setCurrentIndex(cur_f)
-            self.combo_font.blockSignals(False)
-
-        if hasattr(self, "lbl_scale"):
-            self.lbl_scale.setText(tr("dialogs.theme_scale", "Escala da Interface:"))
-
-        if hasattr(self, "combo_scale"):
-            cur_idx = self.combo_scale.currentIndex()
-            self._populate_scale_combo()
-            self.combo_scale.blockSignals(True)
-            self.combo_scale.setCurrentIndex(cur_idx)
-            self.combo_scale.blockSignals(False)
-
-        if hasattr(self, "_selected_theme_data"):
-            self._select_theme(self._selected_theme_data)
-
-    def _populate_scale_combo(self) -> None:
-        from ui.core.i18n import tr
-        labels = [
-            tr("scale.80", "80% (Compacto)"),
-            tr("scale.100", "100% (Padrão)"),
-            tr("scale.125", "125% (Médio)"),
-            tr("scale.150", "150% (Grande / HiDPI)"),
-            tr("scale.175", "175% (Muito Grande)"),
-            tr("scale.200", "200% (Ultra HiDPI)"),
+        cur_idx = max(0, self.combo_filter.currentIndex())
+        self.combo_filter.blockSignals(True)
+        self.combo_filter.clear()
+        items = [
+            tr("dialogs.theme_filter_all", "Todos os Temas"),
+            tr("dialogs.theme_filter_dark", "Temas Escuros (Dark)"),
+            tr("dialogs.theme_filter_light", "Temas Claros (Light)"),
         ]
-        self.combo_scale.blockSignals(True)
-        self.combo_scale.clear()
-        for val, lbl in zip(self.SCALE_VALUES, labels):
-            self.combo_scale.addItem(lbl, val)
-        self.combo_scale.blockSignals(False)
+        for label in items:
+            self.combo_filter.addItem(label)
+        self.combo_filter.setCurrentIndex(cur_idx)
+        self.combo_filter.blockSignals(False)
 
-    def _sync_scale_combo(self, *args) -> None:
-        cur_scale = self.theme_manager.ui_scale
-        idx = 1
-        for i, val in enumerate(self.SCALE_VALUES):
-            if abs(val - cur_scale) < 0.05:
-                idx = i
-                break
-        self.combo_scale.blockSignals(True)
-        self.combo_scale.setCurrentIndex(idx)
-        self.combo_scale.blockSignals(False)
+        self.tweaks_group.retranslate()
 
-    def _on_scale_changed(self, idx: int) -> None:
-        if 0 <= idx < len(self.SCALE_VALUES):
-            self.theme_manager.set_ui_scale(self.SCALE_VALUES[idx])
+        self._select_theme(self._selected_theme_data)
 
     def _build_cards(self):
         for card in self._cards:
@@ -360,7 +242,7 @@ class ThemeDialog(BaseFramelessDialog):
             self.cards_layout.insertWidget(self.cards_layout.count() - 1, card)
 
     def _filter_themes(self):
-        filter_text = self.combo_filter.currentText()
+        wanted_type = {1: "dark", 2: "light"}.get(self.combo_filter.currentIndex())  # 0 = todos
         query = self.search_box.text().strip().lower()
 
         for card in self._cards:
@@ -369,11 +251,7 @@ class ThemeDialog(BaseFramelessDialog):
             t_name = (meta.get("name") or card.theme_data.get("file", "")).lower()
             t_author = meta.get("author", "").lower()
 
-            match_type = True
-            if filter_text == "Temas Escuros (Dark)" and t_type != "dark":
-                match_type = False
-            elif filter_text == "Temas Claros (Light)" and t_type != "light":
-                match_type = False
+            match_type = wanted_type is None or t_type == wanted_type
 
             match_query = not query or (query in t_name) or (query in t_author)
             card.setVisible(match_type and match_query)
@@ -393,7 +271,9 @@ class ThemeDialog(BaseFramelessDialog):
         t_type = meta.get("type", "dark")
 
         self.lbl_insp_title.setText(t_name)
-        self.lbl_insp_meta.setText(f"TEMA {'ESCURO' if t_type == 'dark' else 'CLARO'} • por {t_author}")
+        meta_key, meta_default = (("dialogs.theme_meta_dark", "TEMA ESCURO • por {author}") if t_type == "dark"
+                                  else ("dialogs.theme_meta_light", "TEMA CLARO • por {author}"))
+        self.lbl_insp_meta.setText(tr(meta_key, meta_default).format(author=t_author))
         self.lbl_insp_icon.setIcon(get_icon("moon" if t_type == "dark" else "sun"))
 
         # Atualiza Chips de Cor
@@ -411,10 +291,10 @@ class ThemeDialog(BaseFramelessDialog):
 
         # Atualiza botão
         if t_key == self._active_theme_key:
-            self.btn_apply.setText("Tema Ativo")
+            self.btn_apply.setText(tr("dialogs.theme_active", "Tema Ativo"))
             self.btn_apply.setEnabled(False)
         else:
-            self.btn_apply.setText("Aplicar este Tema")
+            self.btn_apply.setText(tr("dialogs.theme_apply", "Aplicar este Tema"))
             self.btn_apply.setEnabled(True)
 
     def _on_apply_theme(self):
@@ -429,6 +309,7 @@ class ThemeDialog(BaseFramelessDialog):
             card.set_active_state(card.theme_data.get("file") == t_key)
 
         self._select_theme(self._selected_theme_data)
+
     def _apply_theme(self, *args):
         from .components.theme_dialog_styles import apply_theme_dialog_styles
         apply_theme_dialog_styles(self, self.theme_manager)

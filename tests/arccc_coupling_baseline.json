@@ -87,23 +87,6 @@
  "plugins/ui/navigator_plugin/panel.py": {
   "hasattr": 8
  },
- "plugins/ui/recording_plugin/__init__.py": {
-  "getattr_literal": 1,
-  "hasattr": 2
- },
- "plugins/ui/recording_plugin/components/recording_floating_bar.py": {
-  "foreign_private": 2,
-  "getattr_literal": 2,
-  "hasattr": 3
- },
- "plugins/ui/recording_plugin/engine/recording_engine.py": {
-  "getattr_literal": 9,
-  "hasattr": 5
- },
- "plugins/ui/recording_plugin/panel.py": {
-  "foreign_private": 1,
-  "hasattr": 5
- },
  "ui/core/color/cms_engine.py": {
   "getattr_literal": 4
  },
@@ -198,9 +181,6 @@
  },
  "ui/core/screens/plugins/dialog.py": {
   "hasattr": 12
- },
- "ui/core/screens/settings/theme_dialog.py": {
-  "hasattr": 14
  },
  "ui/core/shortcut_bindings.py": {
   "foreign_private": 1

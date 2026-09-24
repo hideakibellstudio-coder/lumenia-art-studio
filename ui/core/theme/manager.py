@@ -3,7 +3,10 @@ import os
 import json
 import logging
 import re
-from PySide6 import QtCore, QtGui, QtWidgets, QtSvg
+from PySide6 import QtCore, QtWidgets
+
+from .interface_tweaks import tweak_metrics, valid_font, valid_radius
+from .qss_icons import render_icon_png
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +98,8 @@ class ThemeManager(QtCore.QObject):
         from ui.core.config import ConfigManager
         saved_theme = ConfigManager.instance().get("theme", "active", "lumenia_purple")
         self._ui_scale = float(ConfigManager.instance().get("interface", "scale", 1.0))
+        self._corner_radius = valid_radius(ConfigManager.instance().get("interface", "corner_radius", None))
+        self._font_key = valid_font(ConfigManager.instance().get("interface", "font_family", None))
         if saved_theme in self._themes:
             self._current_theme = saved_theme
         elif "lumenia_purple" in self._themes:
@@ -172,6 +177,27 @@ class ThemeManager(QtCore.QObject):
     @property
     def ui_scale(self) -> float:
         return self._ui_scale
+
+    @property
+    def corner_radius(self) -> "int | None":
+        """Raio base escolhido pelo usuário (None = o do tema)."""
+        return self._corner_radius
+
+    @property
+    def font_key(self) -> "str | None":
+        """Fonte escolhida pelo usuário (chave de `interface_tweaks.FONT_STACKS`; None = a do tema)."""
+        return self._font_key
+
+    def set_interface_tweaks(self, corner_radius: "int | None", font_key: "str | None") -> None:
+        """Sobrepõe raio dos cantos e fonte do tema, guarda nas preferências e reaplica."""
+        corner_radius, font_key = valid_radius(corner_radius), valid_font(font_key)
+        if (corner_radius, font_key) == (self._corner_radius, self._font_key):
+            return
+        self._corner_radius, self._font_key = corner_radius, font_key
+        from ui.core.config import ConfigManager
+        ConfigManager.instance().set("interface", "corner_radius", corner_radius)
+        ConfigManager.instance().set("interface", "font_family", font_key)
+        self.apply_theme(self._current_theme, force=True)
 
     def set_ui_scale(self, scale: float) -> None:
         """Define a escala global da interface e reaplica a folha de estilos."""
@@ -252,6 +278,7 @@ class ThemeManager(QtCore.QObject):
         theme = self._themes.get(self._current_theme) or self._themes.get("dark_default") or self._themes.get("lumenia_purple") or {}
         colors = theme.get("colors", {}) if isinstance(theme, dict) else {}
         metrics = theme.get("metrics", {}) if isinstance(theme, dict) else {}
+        tweaks = tweak_metrics(self._corner_radius, self._font_key)
 
         def replace_token(match):
             token = match.group(1)
@@ -260,8 +287,10 @@ class ThemeManager(QtCore.QObject):
             elif token in ("ICON_CLOSE_PNG", "ICON_MAXIMIZE_PNG"):
                 icon_key = "close" if token == "ICON_CLOSE_PNG" else "maximize"
                 icon_color = self.resolve_color("text_main", colors)
-                rendered = self._render_dock_icon_png(icon_key, icon_color)
+                rendered = render_icon_png(icon_key, icon_color)
                 return rendered if rendered else f"{self.assets_dir}/icons/{icon_key}.svg"
+            elif token in tweaks:
+                return tweaks[token]
             elif token in metrics:
                 return metrics[token]
             elif token in self.DEFAULT_METRICS:
@@ -351,57 +380,6 @@ class ThemeManager(QtCore.QObject):
             return "#ff5252"
 
         return "#121212" if is_dark else "#ffffff"
-
-    def _render_dock_icon_png(self, icon_key: str, color: str, size: int = 24) -> str:
-        """Renderiza um ícone do catálogo central (mesmo pipeline de ui.core.icons.get_icon)
-        para um arquivo PNG em cache, para ser referenciado via QSS `image: url(...)`.
-
-        Necessário porque QSS não resolve `currentColor` em SVGs carregados via url() -- só o
-        pipeline Python de ui.core.icons faz essa substituição manualmente antes de renderizar.
-        Um SVG cru com fill/stroke="currentColor" carregado direto pelo QSS (como acontecia com
-        os botões close/float do QDockWidget) renderiza com a cor padrão do próprio arquivo (ou
-        nem renderiza, dependendo da disponibilidade do plugin de imagem SVG do Qt) -- nunca
-        reage ao tema. Ver claude/panorama-consistencia-visual-tema-2026-09-18.md (Achado #6).
-
-        A lógica de renderização espelha ui.core.icons.svg_to_icon() -- duplicada aqui de
-        propósito (não importada) para não criar um import de ui.core.icons em nível de módulo
-        neste arquivo, já que ui/core/__init__.py importa ThemeManager como primeiro passo da
-        inicialização do pacote `ui.core` (risco de import parcialmente circular).
-        """
-        import hashlib
-        from ui.core.icon_svg_catalog import SVG_ICONS, ALIASES
-        from ui.core.config import get_default_config_path
-
-        name = str(icon_key).replace("-", "_").replace(" ", "_")
-        resolved_name = ALIASES.get(name, name)
-        svg_template = SVG_ICONS.get(resolved_name)
-        if not svg_template:
-            return ""
-
-        cache_dir = os.path.join(os.path.dirname(get_default_config_path()), "theme_icon_cache")
-        try:
-            os.makedirs(cache_dir, exist_ok=True)
-        except OSError as e:
-            logger.warning(f"ThemeManager: Falha ao criar cache de ícones de tema: {e}")
-            return ""
-
-        cache_key = hashlib.md5(f"{resolved_name}:{color}:{size}".encode("utf-8")).hexdigest()[:16]
-        cache_path = os.path.join(cache_dir, f"{cache_key}.png").replace("\\", "/")
-
-        if not os.path.exists(cache_path):
-            svg_xml = svg_template.replace("currentColor", color)
-            byte_array = QtCore.QByteArray(svg_xml.encode("utf-8"))
-            renderer = QtSvg.QSvgRenderer(byte_array)
-            pixmap = QtGui.QPixmap(QtCore.QSize(size, size))
-            pixmap.fill(QtCore.Qt.transparent)
-            painter = QtGui.QPainter(pixmap)
-            renderer.render(painter)
-            painter.end()
-            if not pixmap.save(cache_path, "PNG"):
-                logger.warning(f"ThemeManager: Falha ao salvar PNG de ícone em cache: {cache_path}")
-                return ""
-
-        return cache_path
 
     def get_color(self, name: str, fallback: str = None) -> str:
         """Retorna a cor Hex correspondente ao token solicitado com fallback opcional inteligente."""

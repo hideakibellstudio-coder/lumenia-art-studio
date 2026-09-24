@@ -88,20 +88,36 @@ class TestNewDocumentDialog(unittest.TestCase):
     def test_dialog_category_and_card_selection(self):
         """Valida a navegação entre categorias de abas e seleção de cards."""
         dlg = NewDocumentDialog()
-        
+        gallery = dlg.gallery
+        self.assertEqual(gallery.selected_preset_id, "a4_print")
+
         # Alterna para categoria Web (índice 1)
-        dlg.tab_categories.setCurrentIndex(1)
-        self.assertEqual(dlg._selected_category, "web_screen")
-        self.assertGreater(len(dlg._preset_cards), 0)
+        gallery.tab_categories.setCurrentIndex(1)
+        self.assertEqual(gallery.category, "web_screen")
+        self.assertGreater(len(gallery.cards), 0)
 
         # Clica no card 4K UHD
-        card_4k: PresetCard = dlg._preset_cards[0]
+        card_4k: PresetCard = gallery.cards[0]
         card_4k.clicked.emit(card_4k.preset_id, card_4k.p_width, card_4k.p_height, card_4k.p_dpi)
 
         params = dlg.get_document_params()
         self.assertEqual(params["width"], 3840)
         self.assertEqual(params["height"], 2160)
         self.assertEqual(params["dpi"], 72)
+        self.assertEqual(gallery.selected_preset_id, "4k_uhd")
+
+    def test_medidas_digitadas_marcam_o_preset(self):
+        """Digitar as medidas de um preset (em qualquer orientação) marca o card dele."""
+        dlg = NewDocumentDialog()
+        gallery = dlg.gallery
+        gallery.tab_categories.setCurrentIndex(1)  # Web: Full HD 1920x1080 @ 72
+        dlg.spn_dpi.setValue(72)
+        dlg.spn_width.setValue(1080)
+        dlg.spn_height.setValue(1920)  # retrato
+        self.assertEqual(gallery.selected_preset_id, "full_hd")
+        dlg.spn_width.setValue(1000)
+        self.assertIsNone(gallery.selected_preset_id)
+        self.assertFalse(any(card.is_selected for card in gallery.cards))
 
 
 if __name__ == "__main__":

@@ -10,12 +10,15 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `__init__.py` | `RecordingPlugin`: cria o motor de gravação, o painel e a barra flutuante. |
-| `panel.py` | Timelapse Recording Panel — Painel Visual de Gravação & Timelapse (ARCcC). |
+| `__init__.py` | `RecordingPlugin`: cria o motor de gravação, liga o `strokeFinished` do canvas a ele e registra o painel. |
+| `panel.py` | `RecordingPanel`: estado, opções e diagnósticos da gravação (view do motor); dono da barra flutuante. |
+| `recording_actions.py` | `RecordingActions`: iniciar/pausar, parar, salvar e descartar com os diálogos, para o painel e a barra. |
 
-## Dívida conhecida (medida em 2026-09-24)
+## Regras
 
-`panel.py` está na parede dos 450 linhas: não recebe código novo sem antes ser dividido.
+Painel e barra flutuante são views do `TimelapseRecordingEngine`; as ações
+com o usuário ficam no `RecordingActions`. A barra não conhece o painel
+(emite sinais); o motor não conhece o canvas (o plugin liga o fim do traço).
 
 ## Dependências internas
 

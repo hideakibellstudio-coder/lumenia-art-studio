@@ -19,7 +19,7 @@
 | `floating_toolbar_components.py` | FloatingToolbarComponents — Componentes Visuais para Configurações da Barra Flutuante. |
 | `floating_toolbar_settings_dialog.py` | FloatingToolbarSettingsDialog — Central de Configurações da Barra Rápida Flutuante (Lumenia V2). |
 | `keyboard_shortcuts_dialog.py` | Keyboard Shortcuts Dialog — Diálogo de Gerenciamento e Personalização de Atalhos. |
-| `new_document_dialog.py` | NewDocumentDialog — Diálogo Moderno de Novo Documento (Lumenia V2). |
+| `new_document_dialog.py` | `NewDocumentDialog`: formulário do novo documento (nome, medidas, DPI, perfil, papel) ao lado do `PresetGallery`. |
 
 ## Regras
 
@@ -27,7 +27,7 @@ Tela devolve o resultado (sinal ou `exec()`); quem aplica é a casca ou o estado
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-`new_document_dialog.py` está a poucas linhas da parede dos 450. `NewDocumentDialog` criado sem pai e coletado pelo GC do Python junto com outro derruba o PySide 6.11.1 (ver `tests/qt_windows.py`); na aplicação ele é criado com pai.
+`NewDocumentDialog` criado sem pai e coletado pelo GC do Python junto com outro derruba o PySide 6.11.1 (ver `tests/qt_windows.py`); na aplicação ele é criado com pai.
 
 ## Dependências internas
 

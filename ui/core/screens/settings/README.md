@@ -11,11 +11,7 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Reexporta `ThemeDialog`. |
-| `theme_dialog.py` | ThemeDialog — Gerenciador & Customizador Completo de Aparência e Temas (Lumenia V2). |
-
-## Dívida conhecida (medida em 2026-09-24)
-
-`theme_dialog.py` está na parede dos 450 linhas: não recebe código novo sem antes ser dividido (regra do AGENTS.md).
+| `theme_dialog.py` | `ThemeDialog`: lista de temas com filtro e busca, inspetor da paleta e o grupo de ajustes finos. |
 
 ## Dependências internas
 

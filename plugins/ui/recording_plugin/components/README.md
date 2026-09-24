@@ -10,12 +10,9 @@ Importar por módulo.
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `export_dialog.py` | Timelapse Export Dialog — Diálogo de Progresso de Exportação (ARCcC). |
-| `recording_floating_bar.py` | RecordingFloatingBar — Barra de Controle Flutuante de Gravação (ARCcC). |
-
-## Dívida conhecida (medida em 2026-09-24)
-
-Pasta sem `__init__.py`.
+| `recording_floating_bar.py` | `RecordingFloatingBar`: barra flutuante ancorada no topo do canvas; os botões emitem sinais, o estado chega por `update_state`. |
 
 ## Dependências internas
 

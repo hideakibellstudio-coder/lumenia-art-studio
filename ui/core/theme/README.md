@@ -1,6 +1,6 @@
 # `ui/core/theme/` — tema e cores
 
-**Responsabilidade:** o `ThemeManager`: paletas de cor, escala da interface, folha de estilo global e os sinais `themeChanged`/`scaleChanged`.
+**Responsabilidade:** o `ThemeManager`: paletas de cor, escala da interface, ajustes de raio e fonte do usuário, folha de estilo global e os sinais `themeChanged`/`scaleChanged`.
 
 ## Porta de entrada
 
@@ -11,8 +11,10 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Reexporta `ThemeManager`. |
+| `interface_tweaks.py` | Ajustes do usuário por cima de qualquer tema: raio dos cantos e família da fonte (tokens `RADIUS_*`/`FONT_FAMILY` do QSS). |
 | `manager.py` | `ThemeManager` (singleton): tema atual, `get_color`, escala, aplicação da folha de estilo e sinais de mudança. |
 | `palettes.py` | Paletas de cor de cada tema embutido (tokens → cores). |
+| `qss_icons.py` | `render_icon_png`: ícone do catálogo em PNG (cache) para `image: url(...)` no QSS. |
 
 ## Regras
 

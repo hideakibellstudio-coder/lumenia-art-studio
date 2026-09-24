@@ -6,6 +6,10 @@ Gerencia o ciclo de vida da gravação de traços e timelapse do canvas:
   - Conversão direta de buffers de display em arquivos JPEG numerados em pasta temporária.
   - Suporte a gatilho por traço (debounce de strokeFinished) e por tempo (QTimer).
   - Controle de resolução (Original, 1080p, 720p) e contabilidade de diagnósticos em disco.
+
+Não conhece o canvas: o quadro vem da `frame_source` (padrão: documento ativo
++ motor, `frame_source.DocumentFrameSource`) e o fim de cada traço chega por
+`on_stroke_finished`, que o plugin liga ao `strokeFinished` do canvas.
 """
 
 from __future__ import annotations
@@ -19,6 +23,9 @@ from typing import Callable, Optional
 from PySide6 import QtCore, QtGui
 
 from .frame_save_task import FrameSaveTask
+from .frame_source import DocumentFrameSource, Frame
+
+FrameGrabber = Callable[[bool], Optional[Frame]]
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +37,9 @@ class TimelapseRecordingEngine(QtCore.QObject):
     stats_updated = QtCore.Signal(int, float, float)  # (frames, size_mb, duration_secs)
     frame_captured = QtCore.Signal(int)  # frame_count
 
-    _default_guides_renderer: Optional[Callable] = None
-
-    @classmethod
-    def set_default_guides_renderer(cls, renderer: Optional[Callable]) -> None:
-        cls._default_guides_renderer = renderer
-
-    def __init__(self, parent: Optional[QtCore.QObject] = None):
+    def __init__(self, frame_source: Optional[FrameGrabber] = None, parent: Optional[QtCore.QObject] = None):
         super().__init__(parent)
+        self._grab_frame: FrameGrabber = frame_source or DocumentFrameSource()
         self.is_recording: bool = False
         self.is_paused: bool = False
         self.frame_count: int = 0
@@ -49,8 +51,6 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.include_guides: bool = False
         self.fps: int = 30
         self._guides_renderer: Optional[Callable] = None
-
-        self._connected_canvas = None
         self._thread_pool = QtCore.QThreadPool.globalInstance()
 
         # Timers
@@ -68,32 +68,8 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.stroke_debounce_timer.timeout.connect(self._execute_debounced_capture)
 
     def set_guides_renderer(self, renderer: Optional[Callable]) -> None:
-        """Configura o renderizador de guias injetado (ex: WorkspaceService)."""
+        """Desenha guias e simetria no quadro (o plugin entrega `WorkspaceService.render_geometry_overlay`)."""
         self._guides_renderer = renderer
-
-    def attach_canvas(self, canvas: QtCore.QObject) -> None:
-        """Conecta o sinal strokeFinished do canvas ativo para captura automática."""
-        if self._connected_canvas == canvas:
-            return
-        if self._connected_canvas is not None and hasattr(self._connected_canvas, "strokeFinished"):
-            try:
-                self._connected_canvas.strokeFinished.disconnect(self._on_canvas_stroke_finished)
-            except (RuntimeError, TypeError):
-                pass  # já desconectado ou canvas destruído
-
-        self._connected_canvas = canvas
-        if canvas is not None and hasattr(canvas, "strokeFinished"):
-            canvas.strokeFinished.connect(self._on_canvas_stroke_finished)
-            logger.info("[TimelapseEngine] Conectado ao canvas com sucesso.")
-
-    def detach_canvas(self) -> None:
-        """Desconecta o canvas."""
-        if self._connected_canvas is not None and hasattr(self._connected_canvas, "strokeFinished"):
-            try:
-                self._connected_canvas.strokeFinished.disconnect(self._on_canvas_stroke_finished)
-            except (RuntimeError, TypeError):
-                pass  # já desconectado ou canvas destruído
-        self._connected_canvas = None
 
     def start_recording(self) -> bool:
         """Inicia uma nova sessão de gravação com pasta temporária limpa."""
@@ -267,119 +243,39 @@ class TimelapseRecordingEngine(QtCore.QObject):
         painter.end()
 
     def capture_current_frame(self) -> None:
-        """Extrai o buffer de pixels atual da engine e despacha para salvamento assíncrono."""
+        """Pega o quadro atual da fonte e despacha o salvamento assíncrono."""
         if not self.is_recording or self.is_paused or not self.temp_dir:
             return
-        if self._connected_canvas is None:
+        frame = self._grab_frame(self.include_guides)
+        if frame is None or frame.width <= 0 or frame.height <= 0:
             return
 
-        canvas = self._connected_canvas
-
-        # 1. Recupera o backend ativo (canvas.backend ou EngineRegistry)
-        backend = getattr(canvas, "backend", None) or getattr(canvas, "engine_backend", None)
-        if backend is None:
-            try:
-                from ui.core.engine.registry import EngineRegistry
-                backend = EngineRegistry.instance().get_backend()
-            except Exception:
-                backend = None
-
-        # 2. Dimensões do documento
-        cw = int(getattr(canvas, "canvas_w", 0))
-        ch = int(getattr(canvas, "canvas_h", 0))
-        if cw <= 0 or ch <= 0:
-            # O backend não expõe tamanho; a fonte única é o documento ativo.
-            # (O ramo antigo perguntava `backend.get_width`, que não existe.)
-            from ui.core.document.manager import DocumentManager
-            doc = DocumentManager.instance().active_document()
-            if doc is not None:
-                cw, ch = int(doc.width), int(doc.height)
-        if cw <= 0 or ch <= 0:
-            logger.debug("[TimelapseEngine] Dimensões inválidas para captura: %sx%s", cw, ch)
-            return
-
-        # 3. Extração dos pixels (prioriza get_display_pixel_buffer, depois get_qimage)
-        raw_bytes = None
-        if backend and hasattr(backend, "get_display_pixel_buffer"):
-            try:
-                raw_buf = backend.get_display_pixel_buffer()
-                if raw_buf:
-                    raw_bytes = bytes(raw_buf)
-            except Exception as e:
-                logger.debug("[TimelapseEngine] Falha em get_display_pixel_buffer: %s", e)
-
-        if not raw_bytes and backend and hasattr(backend, "get_qimage"):
-            try:
-                qimg = backend.get_qimage()
-                if qimg and not qimg.isNull():
-                    comp = QtGui.QImage(cw, ch, QtGui.QImage.Format.Format_RGBA8888)
-                    paper_col = getattr(canvas, "paper_color", QtGui.QColor(255, 255, 255))
-                    paper_vis = getattr(canvas, "paper_visible", True)
-                    comp.fill(paper_col if paper_vis else QtCore.Qt.GlobalColor.transparent)
-                    p = QtGui.QPainter(comp)
-                    p.drawImage(0, 0, qimg)
-                    p.end()
-                    raw_bytes = bytes(comp.constBits())
-            except Exception as e:
-                logger.debug("[TimelapseEngine] Falha na composição de frame: %s", e)
-
-        if not raw_bytes:
-            logger.warning("[TimelapseEngine] Nenhum pixel obtido da composição do canvas.")
-            return
-
-        # 4. Extração opcional dos estados de guias ativas
-        guides_data = None
-        if self.include_guides and self._connected_canvas:
-            geom_ctrl = getattr(self._connected_canvas, "geometry_ctrl", None)
-            if geom_ctrl:
-                import copy
-                sym = getattr(geom_ctrl, "sym_state", None)
-                guide = getattr(geom_ctrl, "guide_state", None)
-                has_sym = sym and sym.get("mode", "none") != "none"
-                has_guide = guide and guide.get("type", "none") != "none" and not guide.get("hidden", False)
-                if has_sym or has_guide:
-                    guides_data = {
-                        "sym": copy.deepcopy(sym) if has_sym else None,
-                        "guide": copy.deepcopy(guide) if has_guide else None,
-                    }
-
-        # 5. Resolução alvo calculada
-        tw, th = cw, ch
+        tw, th = frame.width, frame.height
         if "1080p" in self.target_resolution:
             tw, th = 1920, 1080
         elif "720p" in self.target_resolution:
             tw, th = 1280, 720
 
         self.frame_count += 1
-        frame_name = f"frame_{self.frame_count:06d}.jpg"
-        out_path = os.path.join(self.temp_dir, frame_name)
-
-        guides_renderer = self._guides_renderer or self._default_guides_renderer
-        if guides_renderer is None and guides_data:
-            from ui.core.plugins.registry import ServiceRegistry
-            from ui.core.plugins.workspace_contract import WorkspaceService
-            ws = ServiceRegistry.instance().get(WorkspaceService)
-            if ws is not None:
-                guides_renderer = ws.render_geometry_overlay
-
+        out_path = os.path.join(self.temp_dir, f"frame_{self.frame_count:06d}.jpg")
         task = FrameSaveTask(
-            raw_bytes,
-            cw,
-            ch,
+            frame.pixels,
+            frame.width,
+            frame.height,
             tw,
             th,
             out_path,
             watermark=self.add_watermark,
-            guides_data=guides_data,
-            guides_renderer=guides_renderer,
+            guides_data=frame.guides,
+            guides_renderer=self._guides_renderer if frame.guides else None,
         )
         self._thread_pool.start(task)
 
         self.frame_captured.emit(self.frame_count)
         self._emit_stats()
 
-    def _on_canvas_stroke_finished(self) -> None:
-        """Gatilho acionado ao término de cada traçado."""
+    def on_stroke_finished(self) -> None:
+        """Fim de um traço (o plugin liga ao `strokeFinished` do canvas)."""
         if self.is_recording and not self.is_paused and self.trigger_mode == "stroke":
             self.stroke_debounce_timer.start()
 
@@ -404,6 +300,13 @@ class TimelapseRecordingEngine(QtCore.QObject):
                 pass  # arquivo sumiu durante a contagem
         duration_secs = self.frame_count / float(max(1, self.fps))
         self.stats_updated.emit(self.frame_count, size_mb, duration_secs)
+
+    def finish_session(self) -> None:
+        """Depois de exportar: apaga os quadros temporários e zera os contadores."""
+        self.cleanup_temp_files()
+        self.frame_count = 0
+        self.elapsed_seconds = 0
+        self._emit_stats()
 
     def cleanup_temp_files(self) -> None:
         """Remove os arquivos de rascunho temporários da gravação."""

@@ -61,9 +61,12 @@ dependências medidas nas 62 pastas de código; CI verde.
    `DocumentManager` suja o documento, sem o backend importar o modelo. O
    contexto nativo provisório do boot (`default_doc`) passou a ser liberado
    quando o primeiro documento abre; antes ficava alocado a sessão toda.)*
-7. **Cinco arquivos na parede dos 450**: `test_report_dialog.py`,
-   `theme_dialog.py`, `new_document_dialog.py`, `recording_plugin/panel.py`,
-   `geometry_tool_controller.py`.
+7. **Arquivos na parede dos 450** — 3 de 5 feitos em 2026-09-24, divididos por
+   responsabilidade: gravação (`RecordingActions`, fonte de quadros do
+   documento, barra flutuante só com sinais), novo documento
+   (`PresetGallery`) e temas (`InterfaceTweaksGroup`; os combos de raio e
+   fonte agora funcionam e o filtro Escuros/Claros funciona fora do pt-BR).
+   Faltam `test_report_dialog.py` e `geometry_tool_controller.py`.
 8. **Textos sem `tr()`**: rótulos das views da barra secundária e mensagens de
    status da `MainWindow` em português fixo.
 9. **Pastas sem porta de entrada** (`__init__.py`): `ui/core/geometry`,

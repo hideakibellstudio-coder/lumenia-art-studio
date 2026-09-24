@@ -10,17 +10,19 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `__init__.py` | Marca o pacote. |
 | `export_worker.py` | Timelapse Export Worker — Compilador Assíncrono FFmpeg e Fallback ZIP (ARCcC). |
 | `frame_save_task.py` | FrameSaveTask — Tarefa Assíncrona de Salvamento de Frames de Gravação (ARCcC). |
-| `recording_engine.py` | Timelapse Recording Engine — Motor de Captura e Sessão de Gravação (ARCcC). |
+| `frame_source.py` | `DocumentFrameSource`: cada quadro = pixels do motor + tamanho, papel e guias do documento ativo. |
+| `recording_engine.py` | `TimelapseRecordingEngine`: sessão (iniciar, pausar, parar, descartar), gatilhos e captura assíncrona. |
 
 ## Regras
 
-Tamanho do quadro vem do documento ativo (`DocumentManager`), não de atributo privado do backend.
-
-## Dívida conhecida (medida em 2026-09-24)
-
-`recording_engine.py` passa de 400 linhas. Pasta sem `__init__.py`.
+O motor de gravação não conhece o canvas: o quadro vem da fonte
+(`DocumentFrameSource`, documento ativo + `EngineBackend`) e o fim do traço
+chega por `on_stroke_finished`, que o plugin liga ao `strokeFinished` do
+canvas. Até 2026-09-24 ele guardava o canvas e lia tamanho, papel e guias
+dele com `getattr`.
 
 ## Dependências internas
 
@@ -31,5 +33,4 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core`
 - `ui/core/document`
 - `ui/core/engine`
-- `ui/core/plugins`
 <!-- /arccc:deps -->

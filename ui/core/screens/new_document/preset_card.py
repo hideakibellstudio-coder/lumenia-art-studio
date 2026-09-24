@@ -75,6 +75,10 @@ class PresetCard(QtWidgets.QFrame):
 
         lay.addLayout(v_box, 1)
 
+    @property
+    def is_selected(self) -> bool:
+        return self._is_selected
+
     def set_selected(self, selected: bool):
         if self._is_selected != selected:
             self._is_selected = selected

@@ -5,10 +5,14 @@ Interface profissional de 2 colunas no padrão Lumenia V2:
   - Coluna da Esquerda: Abas de categorias (Ilustração, Web, Social, Cinema) com cards visuais interativos.
   - Coluna da Direita: Dimensões, inversão de orientação rápida, resolução DPI, perfis de cor e papel de fundo.
   - Rodapé: Estimativa dinâmica de consumo de memória RAM e botões de ação.
+
+A coluna de presets é o `PresetGallery` (new_document/preset_gallery.py):
+clicar num card preenche as medidas; medidas digitadas marcam o card que
+corresponde.
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.theme.manager import ThemeManager
@@ -16,12 +20,11 @@ from ui.core.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.i18n import tr
 from .new_document import (
-    PRESET_CATEGORIES,
     BACKGROUND_COLORS,
     PAPER_TEXTURES,
     COLOR_PROFILES,
     estimate_ram_usage_mb,
-    PresetCard,
+    PresetGallery,
 )
 
 
@@ -33,13 +36,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         self.resize(780, 540)
         self.setMinimumSize(720, 490)
 
-        self._selected_category = "illustration"
-        self._selected_preset_id: Optional[str] = "a4_print"
-        self._preset_cards: List[PresetCard] = []
-
         self._build_ui()
-        self._populate_category("illustration")
-        self._select_default_preset()
         self._update_ram_estimate()
 
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
@@ -51,37 +48,9 @@ class NewDocumentDialog(BaseFramelessDialog):
         content_split.setSpacing(14)
 
         # === COLUNA ESQUERDA: CATÁLOGO DE PRESETS ====================
-        left_col = QtWidgets.QVBoxLayout()
-        left_col.setSpacing(8)
-
-        lbl_cat = QtWidgets.QLabel(tr("dialogs.presets_title", "PRESETS DE PROJETO"))
-        lbl_cat.setStyleSheet("font-size: 10px; font-weight: bold;")
-        left_col.addWidget(lbl_cat)
-
-        self.tab_categories = QtWidgets.QTabBar()
-        self.tab_categories.setExpanding(False)
-        self.tab_categories.setCursor(QtCore.Qt.PointingHandCursor)
-        self._cat_keys = list(PRESET_CATEGORIES.keys())
-        for key in self._cat_keys:
-            cat = PRESET_CATEGORIES[key]
-            self.tab_categories.addTab(cat["name"])
-        self.tab_categories.currentChanged.connect(self._on_category_changed)
-        left_col.addWidget(self.tab_categories)
-
-        # Scroll com os Cards da Categoria Ativa
-        self.cards_scroll = QtWidgets.QScrollArea()
-        self.cards_scroll.setWidgetResizable(True)
-        self.cards_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.cards_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-
-        self.cards_container = QtWidgets.QWidget()
-        self.cards_layout = QtWidgets.QVBoxLayout(self.cards_container)
-        self.cards_layout.setContentsMargins(0, 4, 6, 4)
-        self.cards_layout.setSpacing(6)
-        self.cards_scroll.setWidget(self.cards_container)
-        left_col.addWidget(self.cards_scroll, 1)
-
-        content_split.addLayout(left_col, 11)
+        self.gallery = PresetGallery()
+        self.gallery.presetChosen.connect(self._on_preset_chosen)
+        content_split.addWidget(self.gallery, 11)
 
         # Divisor Vertical
         v_sep = QtWidgets.QFrame()
@@ -253,86 +222,20 @@ class NewDocumentDialog(BaseFramelessDialog):
         foot_row.addWidget(self.btn_create)
         self.content_layout.addLayout(foot_row)
 
-    def _on_category_changed(self, idx: int):
-        if 0 <= idx < len(self._cat_keys):
-            self._selected_category = self._cat_keys[idx]
-            self._populate_category(self._selected_category)
-
-    def _populate_category(self, cat_key: str):
-        # Limpa os cards anteriores
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-        self._preset_cards.clear()
-
-        cat = PRESET_CATEGORIES.get(cat_key, {})
-        presets = cat.get("presets", [])
-
-        for pid, name, w, h, dpi, icon_name, desc in presets:
-            card = PresetCard(
-                preset_id=pid,
-                name=name,
-                width=w,
-                height=h,
-                dpi=dpi,
-                icon_name=icon_name,
-                description=desc,
-                parent=self.cards_container,
-            )
-            card.clicked.connect(self._on_preset_card_clicked)
-            if pid == self._selected_preset_id:
-                card.set_selected(True)
-            self.cards_layout.addWidget(card)
-            self._preset_cards.append(card)
-
-        self.cards_layout.addStretch()
-
-    def _select_default_preset(self):
-        if self._preset_cards:
-            self._preset_cards[0].set_selected(True)
-            self._selected_preset_id = self._preset_cards[0].preset_id
-
-    def _on_preset_card_clicked(self, pid: str, w: int, h: int, dpi: int):
-        self._selected_preset_id = pid
-        for card in self._preset_cards:
-            card.set_selected(card.preset_id == pid)
-
-        self.spn_width.blockSignals(True)
-        self.spn_height.blockSignals(True)
-        self.spn_dpi.blockSignals(True)
-        try:
-            self.spn_width.setValue(w)
-            self.spn_height.setValue(h)
-            self.spn_dpi.setValue(dpi)
-        finally:
-            self.spn_width.blockSignals(False)
-            self.spn_height.blockSignals(False)
-            self.spn_dpi.blockSignals(False)
-
+    def _on_preset_chosen(self, width: int, height: int, dpi: int) -> None:
+        for spin, value in ((self.spn_width, width), (self.spn_height, height), (self.spn_dpi, dpi)):
+            spin.blockSignals(True)
+            spin.setValue(value)
+            spin.blockSignals(False)
         self._update_ram_estimate()
 
     def _on_dimension_changed(self):
-        # Se o usuário alterou valores manualmente, desmarca preset específico
-        self._unselect_cards_if_mismatched()
+        # Medidas digitadas: marca o preset que corresponde (ou nenhum).
+        self._on_dpi_changed()
         self._update_ram_estimate()
 
     def _on_dpi_changed(self):
-        self._unselect_cards_if_mismatched()
-
-    def _unselect_cards_if_mismatched(self):
-        cw, ch, cdpi = self.spn_width.value(), self.spn_height.value(), self.spn_dpi.value()
-        matched = False
-        card: PresetCard
-        for card in self._preset_cards:
-            if (card.p_width == cw and card.p_height == ch and card.p_dpi == cdpi) or                (card.p_width == ch and card.p_height == cw and card.p_dpi == cdpi):
-                card.set_selected(True)
-                self._selected_preset_id = card.preset_id
-                matched = True
-            else:
-                card.set_selected(False)
-        if not matched:
-            self._selected_preset_id = None
+        self.gallery.match(self.spn_width.value(), self.spn_height.value(), self.spn_dpi.value())
 
     def _on_swap_orientation(self):
         w = self.spn_width.value()

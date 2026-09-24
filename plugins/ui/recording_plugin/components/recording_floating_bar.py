@@ -7,6 +7,11 @@ no topo do viewport com controles rápidos de gravação:
   - Alternância de Pausar / Retomar.
   - Parada com solicitação de salvamento e seleção de destino.
   - Atalho de Salvamento Direto.
+
+Os botões emitem sinais (`pauseResumeRequested`, `stopRequested`,
+`saveRequested`) que o painel liga ao `RecordingActions`; o estado mostrado
+chega por `update_state`. Até 2026-09-24 a barra recebia o painel e chamava
+os métodos privados dele depois de conferir com `hasattr`.
 """
 
 from __future__ import annotations
@@ -26,41 +31,31 @@ logger = logging.getLogger(__name__)
 class RecordingFloatingBar(FloatingToolWindow):
     """Barra flutuante de gravação ancorada no topo do viewport."""
 
+    pauseResumeRequested = QtCore.Signal()
+    stopRequested = QtCore.Signal()
+    saveRequested = QtCore.Signal()
+
     def __init__(
         self,
+        anchor: Optional[QtWidgets.QWidget] = None,
         parent: Optional[QtWidgets.QWidget] = None,
-        panel: Optional[QtWidgets.QWidget] = None,
-        canvas: Optional[QtCore.QObject] = None,
     ):
         super().__init__(parent, transparent_stylesheet=True)
-        self.panel = panel
-        self.canvas = canvas
+        self._anchor = anchor  # widget em cujo topo a barra se centraliza (o canvas)
+        self._recording = False
+        self._paused = False
         self._user_dragged: bool = False
         self._drag_pos: Optional[QtCore.QPoint] = None
-        self._pulse_state: bool = True
 
         self._setup_ui()
         self._apply_theme()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
 
-        if isinstance(self.canvas, QtWidgets.QWidget):
-            self.canvas.installEventFilter(self)
-
-    def set_canvas(self, canvas: QtCore.QObject) -> None:
-        """Atualiza a referência do canvas e instala event filter para reposicionamento."""
-        if self.canvas and isinstance(self.canvas, QtWidgets.QWidget):
-            try:
-                self.canvas.removeEventFilter(self)
-            except RuntimeError:
-                pass  # canvas já destruído
-        self.canvas = canvas
-        if isinstance(self.canvas, QtWidgets.QWidget):
-            self.canvas.installEventFilter(self)
-        if self.isVisible() and not self._user_dragged:
-            self.reposition_to_top_anchor()
+        if self._anchor is not None:
+            self._anchor.installEventFilter(self)
 
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if watched is self.canvas and event.type() in (QtCore.QEvent.Resize, QtCore.QEvent.Move):
+        if watched is self._anchor and event.type() in (QtCore.QEvent.Resize, QtCore.QEvent.Move):
             if self.isVisible() and not self._user_dragged:
                 QtCore.QTimer.singleShot(10, self, self.reposition_to_top_anchor)
         return super().eventFilter(watched, event)
@@ -127,7 +122,7 @@ class RecordingFloatingBar(FloatingToolWindow):
         self.btn_pause_resume.setIconSize(QtCore.QSize(16, 16))
         self.btn_pause_resume.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_pause_resume.setToolTip("Pausar Gravação")
-        self.btn_pause_resume.clicked.connect(self._on_pause_resume_clicked)
+        self.btn_pause_resume.clicked.connect(self.pauseResumeRequested)
         self.box_layout.addWidget(self.btn_pause_resume)
 
         # 6. Botão Parar (Stop)
@@ -136,7 +131,7 @@ class RecordingFloatingBar(FloatingToolWindow):
         self.btn_stop.setIconSize(QtCore.QSize(16, 16))
         self.btn_stop.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_stop.setToolTip("Parar Gravação (Pergunta para Salvar)")
-        self.btn_stop.clicked.connect(self._on_stop_clicked)
+        self.btn_stop.clicked.connect(self.stopRequested)
         self.box_layout.addWidget(self.btn_stop)
 
         # 7. Botão Salvar Imediato
@@ -145,7 +140,7 @@ class RecordingFloatingBar(FloatingToolWindow):
         self.btn_save.setIconSize(QtCore.QSize(16, 16))
         self.btn_save.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_save.setToolTip("Salvar Vídeo...")
-        self.btn_save.clicked.connect(self._on_save_clicked)
+        self.btn_save.clicked.connect(self.saveRequested)
         self.box_layout.addWidget(self.btn_save)
 
     def _apply_theme(self) -> None:
@@ -189,24 +184,22 @@ class RecordingFloatingBar(FloatingToolWindow):
         self._update_icons()
 
     def _update_icons(self) -> None:
-        engine = getattr(self.panel, "engine", None)
-        is_paused = engine.is_paused if engine else False
-
-        if is_paused:
+        if self._paused:
             self.btn_pause_resume.setIcon(get_icon("play"))
             self.btn_pause_resume.setToolTip("Retomar Gravação")
         else:
             self.btn_pause_resume.setIcon(get_icon("pause"))
             self.btn_pause_resume.setToolTip("Pausar Gravação")
 
-        self.btn_stop.setIcon(get_icon("stop", color="#f85149"))
+        self.btn_stop.setIcon(get_icon("stop", color=ThemeManager.instance().get_color("DANGER", "#f85149")))
         self.btn_save.setIcon(get_icon("save"))
 
     def update_state(self, is_recording: bool, is_paused: bool) -> None:
         """Atualiza os indicadores visuais e botões conforme o estado da gravação."""
         theme = ThemeManager.instance()
-        danger = "#f85149"
-        warning = "#d29922"
+        danger = theme.get_color("DANGER", "#f85149")
+        warning = theme.get_color("WARNING", "#d29922")
+        self._recording, self._paused = is_recording, is_paused
 
         if is_recording and not is_paused:
             self.lbl_status.setText("REC")
@@ -223,11 +216,9 @@ class RecordingFloatingBar(FloatingToolWindow):
 
     def update_pulse(self, state: bool) -> None:
         """Sincroniza a animação de pulso do LED com o painel."""
-        engine = getattr(self.panel, "engine", None)
-        if engine and engine.is_recording and not engine.is_paused:
-            self.lbl_led.setStyleSheet(
-                "color: #f85149; font-size: 14px; background: transparent;" if state else "color: transparent; font-size: 14px; background: transparent;"
-            )
+        if self._recording and not self._paused:
+            color = ThemeManager.instance().get_color("DANGER", "#f85149") if state else "transparent"
+            self.lbl_led.setStyleSheet(f"color: {color}; font-size: 14px; background: transparent;")
 
     def update_stats(self, frames: int, elapsed_secs: int) -> None:
         """Atualiza a contagem de tempo e de quadros."""
@@ -239,7 +230,7 @@ class RecordingFloatingBar(FloatingToolWindow):
 
     def reposition_to_top_anchor(self) -> None:
         """Posiciona a barra flutuante centralizada na âncora do topo do viewport (canvas)."""
-        ref_widget = self.canvas if isinstance(self.canvas, QtWidgets.QWidget) else None
+        ref_widget = self._anchor
         if ref_widget is None or not ref_widget.isVisible():
             ref_widget = self.parentWidget()
 
@@ -287,15 +278,3 @@ class RecordingFloatingBar(FloatingToolWindow):
             self._drag_pos = None
             event.accept()
         super().mouseReleaseEvent(event)
-
-    def _on_pause_resume_clicked(self) -> None:
-        if self.panel and hasattr(self.panel, "_on_toggle_clicked"):
-            self.panel._on_toggle_clicked()
-
-    def _on_stop_clicked(self) -> None:
-        if self.panel and hasattr(self.panel, "request_stop_recording"):
-            self.panel.request_stop_recording()
-
-    def _on_save_clicked(self) -> None:
-        if self.panel and hasattr(self.panel, "_on_save_clicked"):
-            self.panel._on_save_clicked()

@@ -222,20 +222,20 @@ class TestDialogsI18nRetranslation(unittest.TestCase):
             # en_US
             self.i18n.set_locale("en_US", is_auto=False)
             self.assertEqual(dialog.tweaks_group.title(), "Fine Tuning (Geometry & Typography)")
-            self.assertEqual(dialog.lbl_rad.text(), "Corner Radius:")
-            self.assertEqual(dialog.lbl_fnt.text(), "Font Family:")
-            self.assertIn("Square", dialog.combo_radius.itemText(1))
+            self.assertEqual(dialog.tweaks_group.lbl_rad.text(), "Corner Radius:")
+            self.assertEqual(dialog.tweaks_group.lbl_fnt.text(), "Font Family:")
+            self.assertIn("Square", dialog.tweaks_group.combo_radius.itemText(1))
 
             # ja_JP
             self.i18n.set_locale("ja_JP", is_auto=False)
-            self.assertEqual(dialog.lbl_rad.text(), "角丸の半径:")
-            self.assertEqual(dialog.lbl_fnt.text(), "フォントファミリー:")
+            self.assertEqual(dialog.tweaks_group.lbl_rad.text(), "角丸の半径:")
+            self.assertEqual(dialog.tweaks_group.lbl_fnt.text(), "フォントファミリー:")
 
             # pt_BR
             self.i18n.set_locale("pt_BR", is_auto=False)
-            self.assertEqual(dialog.lbl_rad.text(), "Raio dos Cantos:")
-            self.assertEqual(dialog.lbl_fnt.text(), "Família da Fonte:")
-            self.assertIn("Quadrado", dialog.combo_radius.itemText(1))
+            self.assertEqual(dialog.tweaks_group.lbl_rad.text(), "Raio dos Cantos:")
+            self.assertEqual(dialog.tweaks_group.lbl_fnt.text(), "Família da Fonte:")
+            self.assertIn("Quadrado", dialog.tweaks_group.combo_radius.itemText(1))
         finally:
             dialog.deleteLater()
 

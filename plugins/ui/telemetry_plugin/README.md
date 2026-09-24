@@ -11,12 +11,14 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | `TelemetryPlugin`: registra o `TelemetryPanel` na doca direita. |
-| `panel.py` | TelemetryPanel — Painel Visual de Telemetria e Diagnóstico do ALADYN ENGINE. |
+| `panel.py` | `TelemetryPanel`: resumo compacto na doca; view do `TelemetryTracker` (liga/desliga a coleta, abre cockpit e diagnóstico). |
 | `panel_theme.py` | TelemetryPanelTheme — Estilização e Temas do Painel de Telemetria. |
 
-## Dívida conhecida (medida em 2026-09-24)
+## Regras
 
-`panel.py` passa de 420 linhas (perto da parede dos 450).
+O painel não guarda estado de telemetria: lê o motor, entrega ao
+`TelemetryTracker` e mostra. Banner, relatório e "Limpar Undo" vêm de
+`ui/core/dialogs/telemetry_common.py`, iguais nas três telas.
 
 ## Dependências internas
 

@@ -18,9 +18,21 @@ from ui.core.widgets.card_box import PanelCardBox
 from ui.core.theme.manager import ThemeManager
 from ui.core.icons import get_icon
 from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.telemetry_tracker import TelemetryTracker
+from ui.core.dialogs.telemetry_common import banner_style, copy_report
 from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
+from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
+from ui.core.i18n import I18nManager, tr
 from ui.core.widgets.pipeline_bar import PipelineBar
-from ui.core.engine.telemetry_dto import TelemetrySnapshot
+
+# Texto curto do banner (a doca é estreita) por estado do TelemetryTracker.
+_BANNER_TEXTS = {
+    "PIPELINE_EQUILIBRADO": "PIPELINE EQUILIBRADO (< 2ms)",
+    "GARGALO_BLIT": "GARGALO: BLIT QT (>16ms)",
+    "GARGALO_RASTER": "GARGALO: RASTER DAB (>15ms)",
+    "GARGALO_UNDO": "GARGALO: GRAVAÇÃO UNDO (>10ms)",
+    "GARGALO_COMPOSITOR": "GARGALO: COMPOSITOR (>10ms)",
+}
 
 
 class TelemetryPanel(QtWidgets.QWidget):
@@ -31,6 +43,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         self.setObjectName("TelemetryPanel")
         self.setMaximumWidth(int(280 * ThemeManager.instance().ui_scale))
         self._is_capturing = auto_start
+        self._grid_window: Optional[TelemetryGridWindow] = None
 
         self._timer = QtCore.QTimer(self)
         self._timer.setInterval(33)  # ~30 FPS polling desacoplado
@@ -40,6 +53,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         ThemeManager.instance().scaleChanged.connect(self._apply_theme)
         self._apply_theme()
+        self._show_state()
 
         if self._is_capturing:
             backend = EngineRegistry.instance().get_backend()
@@ -56,8 +70,6 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo = QtWidgets.QVBoxLayout(content)
         lo.setContentsMargins(8, 8, 8, 8)
         lo.setSpacing(6)
-
-        from ui.core.i18n import tr, I18nManager
 
         # Botão Destaque: Cockpit em Grid (Janela Flutuante)
         self.btn_open_grid = QtWidgets.QPushButton("Cockpit em Grid (F12)")
@@ -93,7 +105,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         lo.addWidget(self.lbl_status)
 
         # 2. Banner de Diagnóstico de Gargalos (Bottleneck Alert)
-        self.lbl_bottleneck = QtWidgets.QLabel("PIPELINE EQUILIBRADO")
+        self.lbl_bottleneck = QtWidgets.QLabel()
         self.lbl_bottleneck.setObjectName("BottleneckBanner")
         self.lbl_bottleneck.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_bottleneck.setFixedHeight(22)
@@ -214,7 +226,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         self.btn_copy_report.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_copy_report.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_copy_report.setToolTip("Copia o relatório completo com 20 medidores do grid e histórico de alterações de estado")
-        self.btn_copy_report.clicked.connect(self._on_copy_report)
+        self.btn_copy_report.clicked.connect(lambda: copy_report(self))
         btn_action_row.addWidget(self.btn_copy_report)
 
         lo.addLayout(btn_action_row)
@@ -227,29 +239,20 @@ class TelemetryPanel(QtWidgets.QWidget):
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
-        if hasattr(self, "btn_toggle_telemetry"):
-            tm_rt = ThemeManager.instance()
-            if self._is_capturing:
-                self.btn_toggle_telemetry.setText(tr('telemetry.disable_capture', 'Desativar Telemetria'))
-                self.btn_toggle_telemetry.setIcon(get_icon("check_circle", tm_rt.get_color("success")))
-            else:
-                self.btn_toggle_telemetry.setText(tr('telemetry.enable_capture', 'Ativar Telemetria'))
-                self.btn_toggle_telemetry.setIcon(get_icon("zap", tm_rt.get_color("text_sec")))
-            self.btn_toggle_telemetry.setToolTip(tr("telemetry.tooltip", "Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória."))
-        if hasattr(self, "lbl_status"):
-            if self._is_capturing:
-                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.capturing', 'Capturando (30 FPS)')}")
-            else:
-                self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% {tr('telemetry.overhead', 'Carga')})")
-        if hasattr(self, "lbl_hdr_pressure"):
-            self.lbl_hdr_pressure.setText(tr("telemetry.pen_pressure", "PRESSÃO DA CANETA"))
-        if hasattr(self, "lbl_hdr_velocity"):
-            self.lbl_hdr_velocity.setText(tr("telemetry.stroke_velocity", "VELOCIDADE DO TRAÇO"))
-        if hasattr(self, "lbl_hdr_ram"):
-            self.lbl_hdr_ram.setText(tr("telemetry.memory", "MEMÓRIA (CANVAS / UNDO)"))
-        if hasattr(self, "btn_open_dialog"):
-            self.btn_open_dialog.setText(tr('telemetry.advanced_dialog', 'Avançado'))
+        tm_rt = ThemeManager.instance()
+        if self._is_capturing:
+            self.btn_toggle_telemetry.setText(tr('telemetry.disable_capture', 'Desativar Telemetria'))
+            self.btn_toggle_telemetry.setIcon(get_icon("check_circle", tm_rt.get_color("success")))
+            self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.capturing', 'Capturando (30 FPS)')}")
+        else:
+            self.btn_toggle_telemetry.setText(tr('telemetry.enable_capture', 'Ativar Telemetria'))
+            self.btn_toggle_telemetry.setIcon(get_icon("zap", tm_rt.get_color("text_sec")))
+            self.lbl_status.setText(f"{tr('telemetry.status', 'Status')}: {tr('telemetry.idle', 'Em Espera')} (0% {tr('telemetry.overhead', 'Carga')})")
+        self.btn_toggle_telemetry.setToolTip(tr("telemetry.tooltip", "Ativa ou desativa a captura de métricas no motor C++ com liberação limpa de memória."))
+        self.lbl_hdr_pressure.setText(tr("telemetry.pen_pressure", "PRESSÃO DA CANETA"))
+        self.lbl_hdr_velocity.setText(tr("telemetry.stroke_velocity", "VELOCIDADE DO TRAÇO"))
+        self.lbl_hdr_ram.setText(tr("telemetry.memory", "MEMÓRIA (CANVAS / UNDO)"))
+        self.btn_open_dialog.setText(tr('telemetry.advanced_dialog', 'Avançado'))
 
     def _make_label(self, text: str) -> QtWidgets.QLabel:
         lbl = QtWidgets.QLabel(text)
@@ -284,90 +287,44 @@ class TelemetryPanel(QtWidgets.QWidget):
             self.lbl_geom_val.setText("0 dabs • 0×0 px (0 t)")
             self.lbl_ram_val.setText("Canvas: 0.0 MB • Undo: 0.0 MB")
             self.pipeline_bar.set_values_us(0, 0, 0, 0, 0, 0)
-            self._update_bottleneck_banner(0, 0, 0, 0)
+            self._show_state()
 
     def _update_telemetry(self) -> None:
         if not self._is_capturing:
             return
-
         backend = EngineRegistry.instance().get_backend()
-        if not backend:
+        if backend is None:
             return
 
-        # Snapshot da Viewport Qt
         vp = EngineRegistry.get_viewport_telemetry()
         blit_ms = vp.get("qt_draw_image_ms", 0.0)
-        vp_fps = vp.get("qt_fps", 0.0)
-        blit_us = blit_ms * 1000.0
+        snap = backend.get_telemetry_snapshot()
+        # O tracker primeiro: o banner mostra o estado desta leitura, não o da anterior.
+        TelemetryTracker.instance().update(snap, vp)
 
-        # Snapshot completo da estrutura do C++
-        if backend:
-            snap: TelemetrySnapshot = backend.get_telemetry_snapshot()
-            if snap:
-                press_pct = int(snap.raw_pressure * 100)
-                self.bar_pressure.setValue(min(100, max(0, press_pct)))
-                self.lbl_pressure_val.setText(f"{press_pct} %")
+        press_pct = int(snap.raw_pressure * 100)
+        self.bar_pressure.setValue(min(100, max(0, press_pct)))
+        self.lbl_pressure_val.setText(f"{press_pct} %")
+        vel_val = int(snap.stroke_velocity)
+        self.bar_velocity.setValue(min(1000, max(0, vel_val)))
+        self.lbl_velocity_val.setText(f"{vel_val} px/s")
 
-                vel_val = int(snap.stroke_velocity)
-                self.bar_velocity.setValue(min(1000, max(0, vel_val)))
-                self.lbl_velocity_val.setText(f"{vel_val} px/s")
+        self.pipeline_bar.set_values_us(
+            snap.time_kinematics_us, snap.time_interpolation_us, snap.time_raster_dab_us,
+            snap.time_undo_record_us, snap.time_composite_us, blit_ms * 1000.0)
+        self.lbl_motor_vs_blit.setText(f"C++: {snap.last_segment_latency_us:.1f} µs • Qt: {blit_ms:.2f} ms")
+        self.lbl_rates_val.setText(f"Mesa: {snap.input_event_rate_hz} Hz • Tela: {vp.get('qt_fps', 0.0):.0f} FPS")
+        self.lbl_geom_val.setText(
+            f"{snap.last_dabs_rendered} dabs • {int(snap.last_dirty_width)}×{int(snap.last_dirty_height)} px "
+            f"({snap.last_tiles_recorded} t)")
+        self.lbl_ram_val.setText(
+            f"Canvas: {snap.tile_grid_memory_mb:.1f} MB • Undo: {snap.undo_stack_memory_mb:.1f} MB")
+        self._show_state()
 
-                kin_us = getattr(snap, "time_kinematics_us", 0.0)
-                int_us = getattr(snap, "time_interpolation_us", 0.0)
-                dab_us = getattr(snap, "time_raster_dab_us", 0.0)
-                und_us = getattr(snap, "time_undo_record_us", 0.0)
-                cmp_us = getattr(snap, "time_composite_us", 0.0)
-
-                # Atualiza a barra de estágios
-                self.pipeline_bar.set_values_us(kin_us, int_us, dab_us, und_us, cmp_us, blit_us)
-
-                # Motor vs Blit
-                self.lbl_motor_vs_blit.setText(f"C++: {snap.last_segment_latency_us:.1f} µs • Qt: {blit_ms:.2f} ms")
-
-                # Frequências
-                self.lbl_rates_val.setText(f"Mesa: {snap.input_event_rate_hz} Hz • Tela: {vp_fps:.0f} FPS")
-
-                # Densidade e pegada
-                dabs_rendered = getattr(snap, "last_dabs_rendered", 0)
-                dw = int(getattr(snap, "last_dirty_width", 0.0))
-                dh = int(getattr(snap, "last_dirty_height", 0.0))
-                tiles_rec = getattr(snap, "last_tiles_recorded", 0)
-                self.lbl_geom_val.setText(f"{dabs_rendered} dabs • {dw}×{dh} px ({tiles_rec} t)")
-
-                # Memória
-                self.lbl_ram_val.setText(f"Canvas: {snap.tile_grid_memory_mb:.1f} MB • Undo: {snap.undo_stack_memory_mb:.1f} MB")
-
-                # Banner de diagnóstico de gargalos
-                self._update_bottleneck_banner(dab_us, und_us, cmp_us, blit_ms)
-
-                # Atualiza o TelemetryTracker global com o snapshot
-                from ui.core.engine.telemetry_tracker import TelemetryTracker
-                TelemetryTracker.instance().update(snap, vp)
-                return
-
-        # Fallback para tupla antiga
-        if hasattr(backend, "last_telemetry"):
-            p, v, f = backend.last_telemetry
-            press_pct = int(p * 100)
-            self.bar_pressure.setValue(min(100, max(0, press_pct)))
-            self.lbl_pressure_val.setText(f"{press_pct} %")
-
-            vel_val = int(v)
-            self.bar_velocity.setValue(min(1000, max(0, vel_val)))
-            self.lbl_velocity_val.setText(f"{vel_val} px/s")
-
-    @staticmethod
-    def _bottleneck_style(hex_color: str, bg_alpha: float = 0.2, text_color: str = None) -> str:
-        """Monta o QSS do banner de gargalo a partir de uma cor-base do tema (bg translúcido + borda sólida)."""
-        c = QtGui.QColor(hex_color)
-        bg = f"rgba({c.red()},{c.green()},{c.blue()},{bg_alpha})"
-        text = text_color if text_color else c.lighter(140).name()
-        return f"background-color: {bg}; color: {text}; border: 1px solid {hex_color}; border-radius: 4px; font-size: 9px; font-weight: bold;"
-
-    def _update_bottleneck_banner(self, dab_us: float, und_us: float, cmp_us: float, blit_ms: float) -> None:
-        """Atualiza a cor e o diagnóstico do banner conforme o estágio mais custoso."""
-        tm = ThemeManager.instance()
+    def _show_state(self) -> None:
+        """Banner de diagnóstico: estado do TelemetryTracker (ou pausado)."""
         if not self._is_capturing:
+            tm = ThemeManager.instance()
             self.lbl_bottleneck.setText("TELEMETRIA PAUSADA")
             idle_c = tm.get_color("FG_SECONDARY", "#9ca3af")
             idle_border = tm.get_color("BORDER", "#4b5563")
@@ -375,46 +332,14 @@ class TelemetryPanel(QtWidgets.QWidget):
             idle_bg = f"rgba({idle_qc.red()},{idle_qc.green()},{idle_qc.blue()},0.08)"
             self.lbl_bottleneck.setStyleSheet(f"background-color: {idle_bg}; color: {idle_c}; border: 1px solid {idle_border}; border-radius: 4px; font-size: 9px; font-weight: bold;")
             return
-
-        from ui.core.engine.telemetry_tracker import TelemetryTracker
         tracker = TelemetryTracker.instance()
-        state_key = tracker.current_state_key
-        state_str = tracker.current_state_str
-
-        if state_key == "GARGALO_BLIT":
-            self.lbl_bottleneck.setText("GARGALO: BLIT QT (>16ms)")
-            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("DANGER", "#ef4444"), 0.2))
-        elif state_key == "GARGALO_RASTER":
-            self.lbl_bottleneck.setText("GARGALO: RASTER DAB (>15ms)")
-            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("TELEMETRY_STAGE_RASTER", "#f97316"), 0.2))
-        elif state_key == "GARGALO_UNDO":
-            self.lbl_bottleneck.setText("GARGALO: GRAVAÇÃO UNDO (>10ms)")
-            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("TELEMETRY_STAGE_UNDO", "#a855f7"), 0.2))
-        elif state_key == "GARGALO_COMPOSITOR":
-            self.lbl_bottleneck.setText("GARGALO: COMPOSITOR (>10ms)")
-            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("TELEMETRY_STAGE_COMPOSITOR", "#22c55e"), 0.2))
-        else:
-            self.lbl_bottleneck.setText("PIPELINE EQUILIBRADO (< 2ms)")
-            self.lbl_bottleneck.setStyleSheet(self._bottleneck_style(tm.get_color("SUCCESS", "#10b981"), 0.15))
-
-        self.lbl_bottleneck.setToolTip(f"Estado Atual: {state_str}\nClique para ver o histórico no Cockpit (F12).")
-
-    def _on_copy_report(self) -> None:
-        """Copia o relatório completo com 20 medidores e histórico de transições."""
-        from ui.core.engine.telemetry_tracker import TelemetryTracker
-        report = TelemetryTracker.instance().generate_full_report()
-        QtWidgets.QApplication.clipboard().setText(report)
-        QtWidgets.QMessageBox.information(
-            self,
-            "Relatório de Telemetria Copiado",
-            "Relatório completo de telemetria (incluindo todos os 20 medidores do Grid, "
-            "diagnóstico do pipeline, picos de estresse e histórico de alterações de estado) "
-            "foi copiado para a Área de Transferência com sucesso!"
-        )
+        self.lbl_bottleneck.setText(_BANNER_TEXTS.get(tracker.current_state_key, tracker.current_state_str))
+        self.lbl_bottleneck.setStyleSheet(banner_style(tracker.current_state_key, font_px=9))
+        self.lbl_bottleneck.setToolTip(
+            f"Estado Atual: {tracker.current_state_str}\nClique para ver o histórico no Cockpit (F12).")
 
     def _open_grid_window(self) -> None:
-        from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
-        if not hasattr(self, "_grid_window") or self._grid_window is None or not self._grid_window.isVisible():
+        if self._grid_window is None or not self._grid_window.isVisible():
             self._grid_window = TelemetryGridWindow(self.window())
         self._grid_window.show()
         self._grid_window.raise_()
@@ -423,6 +348,7 @@ class TelemetryPanel(QtWidgets.QWidget):
     def _open_diagnostics_dialog(self) -> None:
         dlg = TelemetryDiagnosticsDialog(self.window())
         dlg.exec()
+
     def _apply_theme(self, *args) -> None:
         from .panel_theme import apply_telemetry_panel_theme
         apply_telemetry_panel_theme(self)

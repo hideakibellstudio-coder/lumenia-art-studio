@@ -9,7 +9,6 @@
 #include "../../core/canvas/CanvasTexture.hpp"
 #include "../../core/math/Rect2D.hpp"
 #include "../../core/canvas/PixelBuffer.hpp"
-#include "../../core/canvas/CanvasTexture.hpp"
 #include "../../core/canvas/TileUndoManager.hpp"
 #include "../../core/document/Layer.hpp"
 #include "../../core/document/LayerStack.hpp"
@@ -112,6 +111,13 @@ public:
     void setUndoMemoryLimitMB(size_t mb) noexcept { m_undoManager.setMaxMemoryMB(mb); }
     [[nodiscard]] size_t getUndoMemoryLimitMB() const noexcept { return m_undoManager.getMaxMemoryMB(); }
     void setUndoMaxSteps(size_t steps) noexcept { m_undoManager.setMaxSteps(steps); }
+    // Descarta todo o histórico (desfazer e refazer) e a paginação em disco.
+    // Recusa no meio de um traço ou de uma transação de camadas.
+    bool clearHistory() noexcept {
+        if (m_isDrawing || m_undoManager.recordingStructure()) return false;
+        m_undoManager.clear();
+        return !m_undoManager.canUndo() && !m_undoManager.canRedo();
+    }
     [[nodiscard]] size_t getUndoMaxSteps() const noexcept { return m_undoManager.getMaxSteps(); }
 
     [[nodiscard]] int getActiveLayerIndex() const noexcept { return m_layerStack.getActiveIndex(); }
@@ -339,43 +345,13 @@ public:
     [[nodiscard]] double getScratchDiskUsageMB() const noexcept {
         return static_cast<double>(m_undoManager.getScratchDiskBytes()) / (1024.0 * 1024.0);
     }
-    // ─── FASE 5: DIRTY TILE STREAMING & VIEWPORT ──────────────────────────────
-    [[nodiscard]] std::vector<std::pair<int, int>> getDirtyTileIndices() const {
-        if (const auto* layer = m_layerStack.getActiveLayer()) {
-            return layer->getTileGrid().getDirtyTileIndices();
-        }
-        return {};
-    }
-    void clearDirtyTiles() noexcept {
-        if (auto* layer = m_layerStack.getActiveLayer()) {
-            layer->getTileGrid().clearDirtyFlags();
-        }
-    }
-    // ─── VIEWPORT MIPMAPPING & LOD ANTI-ALIASING ──────────────────────────────
-    [[nodiscard]] uint8_t* getDisplayPixelBufferLOD(int level, int& outW, int& outH) noexcept {
-        uint8_t* baseData = getDisplayRawPixelData();
-        (void)baseData;
-        if (const auto* layer = m_layerStack.getActiveLayer()) {
-            if (!layer->getTileGrid().getDirtyTileIndices().empty()) {
-                m_mipmapPyramid.markDirty();
-            }
-        }
-        // Build from the same buffer returned to the display.  With the
-        // default sRGB profile getDisplayRawPixelData() aliases outputBuffer;
-        // using the untouched display scratch buffer would otherwise yield a
-        // stale white pyramid.
-        const auto& displayBase = (m_colorProfileId == 0) ? m_outputBuffer : m_displayBuffer;
-        return m_mipmapPyramid.getLODData(level, displayBase, outW, outH);
-    }
-    [[nodiscard]] static int getBestLODLevel(double zoom) noexcept {
-        return canvas::MipmapPyramid::getBestLODLevel(zoom);
-    }
-    [[nodiscard]] static double getLODScale(int level) noexcept {
-        return canvas::MipmapPyramid::getLODScale(level);
-    }
-    void markLODDirty() noexcept {
-        m_mipmapPyramid.markDirty();
-    }
+    // ─── SAIDA PARA A TELA: TILES SUJOS E LOD (PaintEngineFacadeDisplay.cpp) ──
+    [[nodiscard]] std::vector<std::pair<int, int>> getDirtyTileIndices() const;
+    void clearDirtyTiles() noexcept;
+    [[nodiscard]] uint8_t* getDisplayPixelBufferLOD(int level, int& outW, int& outH) noexcept;
+    [[nodiscard]] static int getBestLODLevel(double zoom) noexcept { return canvas::MipmapPyramid::getBestLODLevel(zoom); }
+    [[nodiscard]] static double getLODScale(int level) noexcept { return canvas::MipmapPyramid::getLODScale(level); }
+    void markLODDirty() noexcept { m_mipmapPyramid.markDirty(); }
 
 private:
     // Contextos agregados que este facade entrega aos orquestradores de

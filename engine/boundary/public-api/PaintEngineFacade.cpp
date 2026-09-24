@@ -334,39 +334,6 @@ void PaintEngineFacade::loadCanvasHeightTextureFromBuffer(int w, int h, const ui
     if (buf && w > 0 && h > 0) m_canvasTexture.canvasHeightTexture = std::make_shared<texture::Texture2D>(w, h, std::vector<uint8_t>(buf, buf + static_cast<size_t>(w * h)));
 }
 
-// ─── OPCOES DE RENDER E SAIDA RASTER ──────────────────────────────────────
-
-void PaintEngineFacade::setLowLatency(bool enabled) noexcept { m_lowLatency = enabled; }
-void PaintEngineFacade::setLinearGamma(bool enabled) { setRenderOptions(m_lowLatency, enabled, m_deepColor); }
-void PaintEngineFacade::setDeepColor(bool enabled) { setRenderOptions(m_lowLatency, m_linearGamma, enabled); }
-
-void PaintEngineFacade::setRenderOptions(bool lowLatency, bool linearGamma, bool deepColor) {
-    const bool compositionChanged = (m_linearGamma != linearGamma) || (m_deepColor != deepColor);
-    m_lowLatency = lowLatency;
-    m_linearGamma = linearGamma;
-    m_deepColor = deepColor;
-    m_compositor.setLinearGamma(linearGamma);
-    m_compositor.setDeepColor(deepColor);
-    if (compositionChanged) {
-        const auto ctx = docContext();
-        ctx.compositeAll();
-        ctx.touch();
-    }
-}
-
-uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
-    return internal::RasterExportOrchestrator::resolveDisplayBuffer(m_colorProfileId, m_outputBuffer, m_displayBuffer);
-}
-std::vector<uint8_t> PaintEngineFacade::getLayerPixelBuffer(int layerIndex) const {
-    return internal::RasterExportOrchestrator::getLayerPixelBuffer(m_layerStack, layerIndex, m_width, m_height);
-}
-std::vector<uint8_t> PaintEngineFacade::getLayerThumbnailBuffer(int layerIdx, int thumbW, int thumbH) const {
-    return internal::RasterExportOrchestrator::getLayerThumbnailBuffer(m_layerStack, layerIdx, thumbW, thumbH);
-}
-std::string PaintEngineFacade::transformRgbaForProfile(const std::string& buffer, int profileId) const {
-    return internal::RasterExportOrchestrator::transformRgbaForProfile(buffer, profileId);
-}
-
 // ─── GUIAS, SIMETRIA E SNAP ───────────────────────────────────────────────
 
 void PaintEngineFacade::setGuideConfig(

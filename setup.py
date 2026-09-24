@@ -77,6 +77,7 @@ cpp_sources = [
     "engine/boundary/public-api/internal/SnapOrchestrator.cpp",
     "engine/boundary/public-api/internal/RasterExportOrchestrator.cpp",
     "engine/boundary/public-api/PaintEngineFacade.cpp",
+    "engine/boundary/public-api/PaintEngineFacadeDisplay.cpp",
     "bridge/core/bindings/bind_math_brush.cpp",
     "bridge/core/bindings/bind_canvas.cpp",
     "bridge/core/bindings/bind_layers.cpp",

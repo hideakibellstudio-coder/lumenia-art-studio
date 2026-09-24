@@ -209,12 +209,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_undo_redo_actions()
 
     def _watch_document(self, doc: Optional[Document]) -> None:
-        """Escuta `modified` só do documento ativo (Desfazer/Refazer acompanham)."""
+        """Escuta `modified`/`history_cleared` só do documento ativo (Desfazer/Refazer acompanham)."""
         if self._watched_document is not None:
             self._watched_document.modified.disconnect(self._on_document_modified)
+            self._watched_document.history_cleared.disconnect(self.update_undo_redo_actions)
         self._watched_document = doc
         if doc is not None:
             doc.modified.connect(self._on_document_modified)
+            doc.history_cleared.connect(self.update_undo_redo_actions)
 
     def _on_document_modified(self, _reason: str) -> None:
         self.update_undo_redo_actions()

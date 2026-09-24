@@ -104,10 +104,6 @@
   "foreign_private": 1,
   "hasattr": 5
  },
- "plugins/ui/telemetry_plugin/panel.py": {
-  "getattr_literal": 9,
-  "hasattr": 8
- },
  "ui/core/color/cms_engine.py": {
   "getattr_literal": 4
  },
@@ -117,10 +113,6 @@
  "ui/core/dialogs/canvas_size_dialog.py": {
   "getattr_literal": 2,
   "hasattr": 11
- },
- "ui/core/dialogs/diagnostics_dialog.py": {
-  "getattr_literal": 4,
-  "hasattr": 3
  },
  "ui/core/dialogs/layer_properties_dialog.py": {
   "hasattr": 11
@@ -137,20 +129,6 @@
  },
  "ui/core/dialogs/render_settings_dialog.py": {
   "hasattr": 8
- },
- "ui/core/dialogs/telemetry_diagnostics_dialog.py": {
-  "foreign_private": 2,
-  "getattr_literal": 9,
-  "hasattr": 15
- },
- "ui/core/dialogs/telemetry_grid_report.py": {
-  "getattr_literal": 11,
-  "hasattr": 2
- },
- "ui/core/dialogs/telemetry_grid_window.py": {
-  "foreign_private": 2,
-  "getattr_literal": 20,
-  "hasattr": 5
  },
  "ui/core/dialogs/test_report_dialog.py": {
   "hasattr": 10
@@ -175,13 +153,6 @@
  },
  "ui/core/engine/registry.py": {
   "getattr_literal": 1
- },
- "ui/core/engine/telemetry_dto.py": {
-  "getattr_literal": 23
- },
- "ui/core/engine/telemetry_tracker.py": {
-  "getattr_literal": 37,
-  "hasattr": 1
  },
  "ui/core/plugins/discovery.py": {
   "foreign_private": 1

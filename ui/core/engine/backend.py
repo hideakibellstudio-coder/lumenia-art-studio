@@ -378,6 +378,7 @@ class EngineBackend(ABC):
     def get_undo_memory_limit_mb(self) -> int: return 512
     def set_undo_max_steps(self, steps: int) -> None: ...
     def get_undo_max_steps(self) -> int: return 50
+    def clear_history(self) -> bool: return False
 
     # ── Viewport / Câmera ────────────────────────────────────────────────
 

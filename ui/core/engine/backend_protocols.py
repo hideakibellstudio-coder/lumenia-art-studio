@@ -333,7 +333,7 @@ class RenderPipelineProtocol(Protocol):
 
 @runtime_checkable
 class HistoryProtocol(Protocol):
-    """Papel \"History\" extraido de EngineBackend (17 metodos)."""
+    """Papel \"History\" extraido de EngineBackend (18 metodos)."""
 
     def undo(self) -> bool:
         ...
@@ -354,6 +354,8 @@ class HistoryProtocol(Protocol):
     def redo(self) -> bool:
         ...
     def get_undo_count(self) -> int:
+        ...
+    def clear_history(self) -> bool:
         ...
     def get_redo_count(self) -> int:
         ...

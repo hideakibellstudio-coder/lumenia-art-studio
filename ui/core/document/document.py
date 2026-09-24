@@ -12,6 +12,9 @@ class Document(QtCore.QObject):
     # Toda alteração que suja o documento (motivo). A janela principal usa
     # para atualizar Desfazer/Refazer; antes só um traço atualizava.
     modified = QtCore.Signal(str)
+    # Histórico descartado ("Limpar Undo"): não suja o documento, mas muda
+    # Desfazer/Refazer.
+    history_cleared = QtCore.Signal()
     # Papel alterado por set_paper(): frozenset com os nomes dos campos.
     paper_changed = QtCore.Signal(object)
 

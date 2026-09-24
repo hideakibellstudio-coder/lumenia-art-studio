@@ -27,6 +27,7 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
         .def("get_undo_memory_limit_mb", &boundary::PaintEngineFacade::getUndoMemoryLimitMB)
         .def("set_undo_max_steps", &boundary::PaintEngineFacade::setUndoMaxSteps)
         .def("get_undo_max_steps", &boundary::PaintEngineFacade::getUndoMaxSteps)
+        .def("clear_history", &boundary::PaintEngineFacade::clearHistory)
         // Seleção & Varinha Mágica
         .def("magic_wand_select", &boundary::PaintEngineFacade::magicWandSelect,
              py::arg("seed_x"), py::arg("seed_y"),

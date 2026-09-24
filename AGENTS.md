@@ -73,7 +73,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 
 ### Censo Atual (medido em 2026-09-24 com `wc -l` em `ui/` e `plugins/`):
 - **0 arquivos na Zona Vermelha e nenhuma exceção de LOC declarada.** Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
-- 279 verdes, 37 amarelos e **5 na parede** (430–449): `test_report_dialog.py`,
+- 297 verdes, 31 amarelos e **5 na parede** (430–449): `test_report_dialog.py`,
   `theme_dialog.py`, `new_document_dialog.py`, `recording_plugin/panel.py`,
   `geometry_tool_controller.py`.
 - **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos.

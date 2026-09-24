@@ -44,8 +44,16 @@ dependências medidas nas 62 pastas de código; CI verde.
 4. ~~**Menus**~~ *(feito em 2026-09-24: `menu_bar.py` sem `hasattr`,
    `SettingsMenu` extraído; ids canônicos `PanelId` — o menu Janela pedia ids
    que nenhum plugin registrava e 4 dos 5 itens não faziam nada.)*
-5. **Telemetria**: `telemetry_tracker.py` (37 `getattr`), `telemetry_dto.py`
-   (23), `telemetry_grid_window.py` (20) — leem structs nativas por nome.
+5. ~~**Telemetria**~~ *(feito em 2026-09-24: `TelemetryTracker` é a fonte
+   única; cockpit, painel e diagnóstico são views dele; os 20 medidores e o
+   relatório existem uma vez (`telemetry_meters.py`, `telemetry_report.py`);
+   o DTO lê a struct nativa sem valor padrão, com teste de contrato. Bugs
+   medidos e corrigidos: "Limpar Undo" esvaziava listas privadas e dizia
+   "limpa" com a RAM do histórico intacta (agora `clearHistory` nativo via
+   `DocumentHistory.clear`); a tela afirmava "AVX2 / SSE2 Ativo" no build
+   escalar padrão; o relatório mostrava sempre o motor padrão; o benchmark
+   pintava 1000 carimbos na camada do usuário; o painel mostrava o estado do
+   quadro anterior.)*
 6. **Segundo caminho até o motor**: `BridgeClient`
    (`ui/infrastructure/bridge_client`) e os comandos em dataclass
    (`ui/core/engine/commands.py` + `aladyn_dispatch.py`). O backend ainda

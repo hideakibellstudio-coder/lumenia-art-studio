@@ -185,17 +185,17 @@ class TestMenuBarCompleteWiring(unittest.TestCase):
         # 1. Instanciação direta
         grid_win = TelemetryGridWindow(self.win)
         self.assertIsNotNone(grid_win)
-        self.assertEqual(len(grid_win._cards), 20)
-        self.assertTrue(grid_win._stay_on_top)
+        self.assertEqual(len(grid_win.cards), 20)
+        self.assertTrue(grid_win.stay_on_top)
 
         # 2. Toggle Stay-on-Top
-        grid_win._on_toggle_pin()
-        self.assertFalse(grid_win._stay_on_top)
-        grid_win._on_toggle_pin()
-        self.assertTrue(grid_win._stay_on_top)
+        grid_win.toggle_pin()
+        self.assertFalse(grid_win.stay_on_top)
+        grid_win.toggle_pin()
+        self.assertTrue(grid_win.stay_on_top)
 
         # 3. Refresh de métricas sem crash
-        grid_win._refresh_metrics()
+        grid_win.refresh()
 
         # 4. Acionamento via sinal do menu_bar
         self.win.menu_bar.telemetryGridRequested.emit()

@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 import sys
-import os
-from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
+
+import PySide6
+from PySide6 import QtCore, QtWidgets
+
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
+from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.telemetry_meters import simd_text
+from ui.core.i18n import I18nManager, tr
+from ui.core.theme.manager import ThemeManager
 
 
 class DiagnosticsDialog(BaseFramelessDialog):
@@ -27,7 +32,6 @@ class DiagnosticsDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
-        from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
 
@@ -50,57 +54,50 @@ class DiagnosticsDialog(BaseFramelessDialog):
         self.content_layout.addLayout(btn_box)
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
         title = tr("telemetry.dialog_title", "Diagnósticos & Telemetria do Motor")
         self.setWindowTitle(title)
-        if hasattr(self, "title_bar") and self.title_bar:
-            self.title_bar.set_title(title)
-        if hasattr(self, "tree"):
-            self.tree.setHeaderLabels([tr("telemetry.metric", "Métrica"), tr("telemetry.value", "Valor")])
-        if hasattr(self, "btn_close"):
-            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self.title_bar.set_title(title)
+        self.tree.setHeaderLabels([tr("telemetry.metric", "Métrica"), tr("telemetry.value", "Valor")])
+        self.btn_close.setText(tr("dialogs.close", "Fechar"))
         self._refresh_stats()
 
     def _refresh_stats(self):
+        """Só o que é lido do motor e do ambiente (até 2026-09-24 havia uma RAM
+        "estimada" por fórmula e linhas fixas dizendo "Ativo")."""
         self.tree.clear()
         backend = EngineRegistry.instance().get_backend()
-        
+        caps = backend.get_capabilities() if backend is not None else {}
+
         # 1. Motor Gráfico
-        has_native = getattr(backend, "available", False)
-        capabilities = backend.get_capabilities() if backend else {}
-        is_native = bool(capabilities.get("native_engine", has_native))
-        backend_name = getattr(backend, "name", "nativo").capitalize()
-        status_native = f"Ativo ({backend_name})" if is_native else "Emulação Python"
-        self._add_item("Motor Gráfico", status_native)
+        engine = f"Ativo ({backend.name.capitalize()})" if caps.get("native_engine") else "Indisponível"
+        self._add_item("Motor Gráfico", engine)
 
         # 2. Resolução do Canvas
-        from ui.core.document.manager import DocumentManager
         doc = DocumentManager.instance().active_document()
         w, h = (doc.width, doc.height) if doc else (0, 0)
         self._add_item("Dimensões do Canvas", f"{w} × {h} pixels")
         self._add_item("Megapixels por Camada", f"{(w * h) / 1_000_000:.2f} MP")
 
         # 3. Perfil de Cor Ativo
-        prof_id = getattr(backend, "get_color_profile", lambda: 0)()
-        prof_name = getattr(backend, "get_color_profile_name", lambda p: "sRGB")(prof_id)
-        self._add_item("Espaço de Cor & Pipeline", f"{prof_name} (ID: {prof_id})")
-        capabilities = backend.get_capabilities() if backend else {}
-        self._add_item("Formato de Pixel do Documento", str(capabilities.get("document_pixel_format", "indisponível")))
-        precision = "Composição de precisão estendida disponível" if capabilities.get("deep_color", False) else "RGBA8"
+        if backend is not None:
+            prof_id = backend.get_color_profile()
+            self._add_item("Espaço de Cor & Pipeline", f"{backend.get_color_profile_name(prof_id)} (ID: {prof_id})")
+        self._add_item("Formato de Pixel do Documento", str(caps.get("document_pixel_format", "indisponível")))
+        precision = "Composição de precisão estendida disponível" if caps.get("deep_color", False) else "RGBA8"
         self._add_item("Precisão de Composição", precision)
-        icc = "Suportado" if capabilities.get("embedded_icc_profiles", False) else "Não disponível neste backend"
+        icc = "Suportado" if caps.get("embedded_icc_profiles", False) else "Não disponível neste backend"
         self._add_item("Perfis ICC incorporados", icc)
 
-        # 4. Memória Estimada do Canvas
-        ram_mb = (w * h * 4 * 4) / (1024 * 1024)  # ~4 buffers RGBA
-        self._add_item("Consumo Estimado de VRAM/RAM", f"{ram_mb:.1f} MB")
+        # 4. Memória medida pelo motor (tiles alocados e histórico)
+        if backend is not None:
+            snap = backend.get_telemetry_snapshot()
+            self._add_item("RAM do Canvas (tiles)", f"{snap.tile_grid_memory_mb:.1f} MB ({snap.active_tile_count} tiles)")
+            self._add_item("RAM do Histórico", f"{snap.undo_stack_memory_mb:.1f} MB ({snap.undo_steps_count} passos)")
+            self._add_item("Instruções SIMD", simd_text(snap))
 
         # 5. Ambiente
         self._add_item("Interpretador Python", f"{sys.version.split()[0]} ({'64-bit' if sys.maxsize > 2**32 else '32-bit'})")
-        self._add_item("Framework UI", "PySide6 (Qt 6.8+)")
-        self._add_item("Estabilizador Dinâmico", "Ativo (Filtro Adaptativo de Média Móvel Exponencial)")
-        self._add_item("Motor de Simetria", "Ativo (Espelho, Radial, Caleidoscópio)")
-        self._add_item("Motor de Perspectiva", "Ativo (1P, 2P, 3P, Curvilíneo 6P Ironclad)")
+        self._add_item("Framework UI", f"PySide6 {PySide6.__version__} (Qt {QtCore.qVersion()})")
 
     def _add_item(self, key: str, val: str):
         item = QtWidgets.QTreeWidgetItem([key, val])

@@ -20,8 +20,10 @@
 | `commands.py` | ui.core.engine.commands — Comandos de Motor como Dataclasses Puras. |
 | `errors.py` | ui.core.engine.errors — Exceções padronizadas da camada de motor. |
 | `registry.py` | ui.core.engine.registry — EngineRegistry. |
-| `telemetry_dto.py` | ui.core.engine.telemetry_dto — DTO Canônico de Telemetria Universal. |
-| `telemetry_tracker.py` | TelemetryTracker — Centralizador Global de Diagnóstico, Transições de Estado e Relatórios. |
+| `telemetry_dto.py` | `TelemetrySnapshot`: DTO da telemetria; lê a struct nativa campo a campo sem valor padrão (contrato em `tests/test_telemetry_contract.py`). |
+| `telemetry_meters.py` | Os 20 medidores (chave, título, leitura com nível semântico), usados pelo cockpit e pelo relatório. |
+| `telemetry_report.py` | `build_report`: texto único do relatório de telemetria (os três botões "Copiar"). |
+| `telemetry_tracker.py` | `TelemetryTracker`: fonte única da sessão de telemetria (diagnóstico, transições, picos, última caneta). |
 
 ## Regras
 

@@ -144,97 +144,34 @@ class TestLowLevelTelemetryDiagnostics(unittest.TestCase):
         self.assertGreater(snap.last_tiles_recorded, 0, "Tiles gravados no undo deve ser > 0")
         self.assertGreater(snap.last_tiles_composited, 0, "Tiles compostos deve ser > 0")
 
-    # ── 6. Grid Window State Transitions & Comprehensive Report ───────────────
-    def test_06_grid_window_state_transitions_and_report(self):
-        """Valida que o TelemetryGridWindow rastreia transições de estado (gargalo vs equilibrado)
-        e gera o relatório completo com os 20 medidores do Grid."""
-        from PySide6 import QtWidgets
-        app = QtWidgets.QApplication.instance()
-        if not app:
-            app = QtWidgets.QApplication(sys.argv)
-
-        from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
-        grid_win: TelemetryGridWindow = TelemetryGridWindow()
-        self.assertIsNotNone(grid_win)
-        self.assertEqual(len(grid_win._cards), 20, "Deve conter exatamente 20 cards métricos no Grid")
-
-        # 1. Estado inicial equilibrado
-        self.assertEqual(grid_win._current_state_key, "PIPELINE_EQUILIBRADO")
-        self.assertIn("PIPELINE EQUILIBRADO", grid_win.lbl_bottleneck.text())
-
-        # 2. Simula detecção de gargalo em Raster (> 15000 µs)
-        grid_win._update_bottleneck_banner(dab_us=23574.7, und_us=5.2, cmp_us=1112.3, blit_ms=0.15)
-        self.assertEqual(grid_win._current_state_key, "GARGALO_RASTER")
-        self.assertIn("GARGALO EM RASTER", grid_win.lbl_bottleneck.text())
-        self.assertEqual(grid_win._state_counts["GARGALO_RASTER"], 1)
-
-        # 3. Simula retorno ao estado equilibrado (< 2ms)
-        grid_win._update_bottleneck_banner(dab_us=850.0, und_us=5.0, cmp_us=500.0, blit_ms=0.15)
-        self.assertEqual(grid_win._current_state_key, "PIPELINE_EQUILIBRADO")
-        self.assertIn("PIPELINE EQUILIBRADO", grid_win.lbl_bottleneck.text())
-        self.assertGreaterEqual(len(grid_win._state_history), 3, "Deve registrar histórico de transições")
-
-        # 4. Geração do relatório completo
-        report = grid_win.generate_full_report()
-        self.assertIn("COCKPIT DE TELEMETRIA & DIAGNÓSTICO EM GRID", report)
-        self.assertIn("DIAGNÓSTICO DO PIPELINE & ALTERAÇÕES DE ESTADO", report)
-        self.assertIn("GARGALO EM RASTER", report)
-        self.assertIn("Resumo de Ocorrências na Sessão de Teste:", report)
-        self.assertIn("Picos Máximos de Estresse Registrados na Sessão:", report)
-        self.assertIn("DECOMPOSIÇÃO PROPORCIONAL DO PIPELINE", report)
-        self.assertIn("PAINEL COMPLETO EM GRID (TODOS OS 20 MEDIDORES EM TEMPO REAL)", report)
-
-        # Verifica que todos os 20 títulos de cards estão presentes no relatório
-        for card in grid_win._cards:
-            self.assertIn(card.title, report)
-
-        # 5. Valida o reset de métricas e histórico
-        grid_win._on_reset_metrics()
-        self.assertEqual(grid_win._current_state_key, "PIPELINE_EQUILIBRADO")
-        self.assertEqual(grid_win._state_counts["GARGALO_RASTER"], 0)
-        grid_win.close()
-
-    # ── 7. Unified TelemetryTracker & All Copy Buttons ───────────────────────
-    def test_07_all_copy_buttons_generate_identical_full_report(self):
-        """Valida que o TelemetryTracker unifica todos os botões de cópia (Cockpit, Painel e Diálogo)
-        garantindo que todos copiem exatamente o relatório completo com 20 medidores e histórico de transições."""
-        from PySide6 import QtWidgets
-        app = QtWidgets.QApplication.instance()
-        if not app:
-            app = QtWidgets.QApplication(sys.argv)
-
+    # ── 6. Snapshot nativo → DTO → relatório único ───────────────────────────
+    def test_06_native_snapshot_feeds_tracker_and_report(self):
+        """O snapshot nativo de um traço real vira DTO, alimenta o TelemetryTracker
+        e aparece no relatório único (o mesmo dos três botões "Copiar")."""
+        from ui.core.engine.telemetry_dto import TelemetrySnapshot
+        from ui.core.engine.telemetry_report import build_report
         from ui.core.engine.telemetry_tracker import TelemetryTracker
-        from plugins.ui.telemetry_plugin.panel import TelemetryPanel
-        from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
+
+        self.facade.set_telemetry_enabled(True)
+        self.facade.begin_stroke_raw(50.0, 50.0, 1.0)
+        for i in range(1, 40):
+            self.facade.update_stroke_raw(50.0 + i * 4, 50.0 + i * 2, 0.9)
+        snap = TelemetrySnapshot.from_native(self.facade.get_telemetry_snapshot())
+        self.facade.end_stroke_raw()
+        self.assertGreater(snap.last_dabs_rendered, 0)
+        self.assertGreater(snap.raw_pressure, 0.0)
 
         tracker = TelemetryTracker.instance()
         tracker.reset()
-
-        # Simula transição para gargalo de raster
-        snap = self.facade.get_telemetry_snapshot()
-        tracker.update(snap, {"qt_draw_image_ms": 1.5, "qt_fps": 60.0})
-        tracker.record_state_transition(
-            new_state="⚠️ GARGALO EM RASTER: PINCEL GRANDE (> 15ms / CPU SATURADA)",
-            state_key="GARGALO_RASTER",
-            cause="Teste de Estresse com 1000 dabs",
-        )
-
-        # 1. Gera relatório a partir do TelemetryTracker
-        report_tracker = tracker.generate_full_report()
-        self.assertIn("DIAGNÓSTICO DO PIPELINE & ALTERAÇÕES DE ESTADO", report_tracker)
-        self.assertIn("GARGALO EM RASTER", report_tracker)
-        self.assertIn("DECOMPOSIÇÃO PROPORCIONAL DO PIPELINE", report_tracker)
-        self.assertIn("PAINEL COMPLETO EM GRID", report_tracker)
-
-        # 2. Testa botão de cópia do TelemetryPanel
-        panel = TelemetryPanel()
-        self.assertTrue(hasattr(panel, "btn_copy_report"), "TelemetryPanel deve possuir botão de copiar relatório")
-        self.assertTrue(hasattr(panel, "_on_copy_report"))
-
-        # 3. Testa diálogo avançado TelemetryDiagnosticsDialog
-        dlg = TelemetryDiagnosticsDialog()
-        self.assertTrue(hasattr(dlg, "_copy_diagnostic_report"))
-        dlg.close()
+        try:
+            tracker.update(snap, {"qt_draw_image_ms": 1.5, "qt_fps": 60.0})
+            self.assertGreater(tracker.peaks["motor_latency_us"], 0.0)
+            self.assertGreater(tracker.last_active_pen["raw_pressure"], 0.0)
+            report = build_report(tracker, snap, {"qt_draw_image_ms": 1.5, "qt_fps": 60.0})
+            self.assertIn(f"{snap.last_dabs_rendered} dabs", report)
+            self.assertIn("PAINEL COMPLETO EM GRID", report)
+        finally:
+            tracker.reset()
 
 
 if __name__ == "__main__":

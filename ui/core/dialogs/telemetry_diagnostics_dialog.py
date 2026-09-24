@@ -4,23 +4,26 @@ TelemetryDiagnosticsDialog — Diálogo Avançado de Diagnóstico & Telemetria d
 Janela frameless padronizada (Design System Lumenia V2) para auditoria de desempenho em tempo real:
 - Latência por segmento de traço (microssegundos)
 - Frequência de amostragem da mesa digitalizadora (Hz) e taxa de dabs/s
-- Memória de blocos raster (Tiles 64x64) e consumo da pilha de Undo/Redo
+- Memória de blocos raster (Tiles 128x128) e consumo da pilha de Undo/Redo
 - Curva cinemática da caneta (Pressão física vs Modulada, Lag do Estabilizador)
 - Configuração de verbosidade de logs do terminal e Benchmark sintético de renderização
 """
 
 from __future__ import annotations
 
-import time
-from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from ui.core.theme.manager import ThemeManager
-from ui.core.engine.registry import EngineRegistry
+from ui.core.dialogs.telemetry_benchmark import run_stroke_benchmark
+from ui.core.dialogs.telemetry_common import clear_undo_history, copy_report
 from ui.core.dialogs.telemetry_diagnostics_cards import StatCard
+from ui.core.document.manager import DocumentManager
+from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.telemetry_meters import ENGINE_NAMES, simd_text
+from ui.core.engine.telemetry_tracker import TelemetryTracker
+from ui.core.i18n import I18nManager, tr
 from ui.core.icons import get_icon
-from ui.core.engine.telemetry_dto import TelemetrySnapshot
+from ui.core.theme.manager import ThemeManager
 
 
 class TelemetryDiagnosticsDialog(BaseFramelessDialog):
@@ -40,7 +43,6 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self._timer.timeout.connect(self._refresh_metrics)
 
         self._build_content()
-        from ui.core.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
         self._timer.start()
@@ -76,10 +78,9 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_hw.setContentsMargins(12, 12, 12, 12)
         lo_hw.setSpacing(8)
 
-        self.lbl_simd_status = QtWidgets.QLabel("AVX2 / SSE2 Ativo (Vetorizado)")
-        succ_col = ThemeManager.instance().get_color("success", "#10b981")
-        self.lbl_simd_status.setStyleSheet(f"color: {succ_col}; font-weight: bold;")
-        self.lbl_engine_active = QtWidgets.QLabel("InkerEngine (Rasterizador SIMD)")
+        self.lbl_simd_status = QtWidgets.QLabel("—")
+        self.lbl_simd_status.setStyleSheet("font-weight: bold;")
+        self.lbl_engine_active = QtWidgets.QLabel("—")
         lo_hw.addRow("Conjunto de Instruções:", self.lbl_simd_status)
         lo_hw.addRow("Mini-Motor Ativo:", self.lbl_engine_active)
         lo_perf.addWidget(grp_hw)
@@ -96,7 +97,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         grid_mem = QtWidgets.QGridLayout()
         grid_mem.setSpacing(10)
 
-        self.card_tiles_count = StatCard("Tiles Alocados (64x64)", "0")
+        self.card_tiles_count = StatCard("Tiles Alocados (128x128)", "0")
         self.card_canvas_ram = StatCard("RAM do Documento", "0.00 MB")
         self.card_undo_ram = StatCard("RAM do Histórico (Undo)", "0.00 MB")
         self.card_undo_steps = StatCard("Passos de Desfazer", "0")
@@ -115,7 +116,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.btn_clear_undo = QtWidgets.QPushButton("Limpar Histórico de Desfazer")
         self.btn_clear_undo.setIcon(get_icon("trash"))
         self.btn_clear_undo.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_clear_undo.clicked.connect(self._on_clear_undo)
+        self.btn_clear_undo.clicked.connect(lambda: clear_undo_history(self))
         lo_opt.addWidget(self.btn_clear_undo)
         lo_mem.addWidget(grp_opt)
         lo_mem.addStretch()
@@ -201,11 +202,12 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_grp_logs.setSpacing(8)
 
         self.chk_stroke_summary = QtWidgets.QCheckBox("Log Sumarizado por Traço no Terminal (1 linha ao soltar a caneta)")
-        self.chk_stroke_summary.setChecked(True)
+        backend = EngineRegistry.instance().get_backend()
+        self.chk_stroke_summary.setChecked(bool(backend and backend.is_telemetry_enabled()))
         self.chk_stroke_summary.toggled.connect(self._on_toggle_stroke_summary)
 
         self.chk_detailed_log = QtWidgets.QCheckBox("Streaming de Telemetria Contínuo no Console (Amostragem Throttled 5Hz)")
-        self.chk_detailed_log.setChecked(False)
+        self.chk_detailed_log.setChecked(bool(backend and backend.is_detailed_logging_enabled()))
         self.chk_detailed_log.toggled.connect(self._on_toggle_detailed_log)
 
         lo_grp_logs.addWidget(self.chk_stroke_summary)
@@ -225,7 +227,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.btn_copy_report = QtWidgets.QPushButton("Copiar Relatório do Sistema")
         self.btn_copy_report.setIcon(get_icon("copy"))
         self.btn_copy_report.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_copy_report.clicked.connect(self._copy_diagnostic_report)
+        self.btn_copy_report.clicked.connect(lambda: copy_report(self))
 
         lo_btn_row.addWidget(self.btn_benchmark)
         lo_btn_row.addWidget(self.btn_copy_report)
@@ -256,97 +258,80 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.content_layout.addLayout(btn_row)
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
-        self.setWindowTitle(tr("telemetry.dialog_title", "Diagnóstico & Telemetria do Motor"))
-        if hasattr(self, "title_bar") and self.title_bar:
-            self.title_bar.set_title(tr("telemetry.dialog_title", "Diagnóstico & Telemetria do Motor"))
+        title = tr("telemetry.dialog_title", "Diagnóstico & Telemetria do Motor")
+        self.setWindowTitle(title)
+        self.title_bar.set_title(title)
 
-        if hasattr(self, "tabs"):
-            self.tabs.setTabText(0, tr("telemetry.tab_performance", "Desempenho"))
-            self.tabs.setTabText(1, tr("telemetry.tab_memory", "Memória & Tiles"))
-            self.tabs.setTabText(2, tr("telemetry.tab_pipeline", "Pipeline & Viewport"))
-            self.tabs.setTabText(3, tr("telemetry.tab_pen", "Sensor da Caneta"))
-            self.tabs.setTabText(4, tr("telemetry.tab_system", "Sistema & Logs"))
+        self.tabs.setTabText(0, tr("telemetry.tab_performance", "Desempenho"))
+        self.tabs.setTabText(1, tr("telemetry.tab_memory", "Memória & Tiles"))
+        self.tabs.setTabText(2, tr("telemetry.tab_pipeline", "Pipeline & Viewport"))
+        self.tabs.setTabText(3, tr("telemetry.tab_pen", "Sensor da Caneta"))
+        self.tabs.setTabText(4, tr("telemetry.tab_system", "Sistema & Logs"))
 
-        if hasattr(self, "card_latency"):
-            self.card_latency.set_label(tr("telemetry.card_latency", "Latência do Motor (C++)"))
-            self.card_dabs_sec.set_label(tr("telemetry.card_dabs", "Taxa de Carimbos"))
-            self.card_stylus_hz.set_label(tr("telemetry.card_stylus_hz", "Frequência da Mesa"))
-            self.card_stroke_time.set_label(tr("telemetry.card_stroke_time", "Duração do Traço"))
+        self.card_latency.set_label(tr("telemetry.card_latency", "Latência do Motor (C++)"))
+        self.card_dabs_sec.set_label(tr("telemetry.card_dabs", "Taxa de Carimbos"))
+        self.card_stylus_hz.set_label(tr("telemetry.card_stylus_hz", "Frequência da Mesa"))
+        self.card_stroke_time.set_label(tr("telemetry.card_stroke_time", "Duração do Traço"))
 
-            self.card_stage_kin.set_label("1. Cinemática / Dinâmica")
-            self.card_stage_int.set_label("2. Interpolação Dabs")
-            self.card_stage_dab.set_label("3. RasterDab (Shaders)")
-            self.card_stage_und.set_label("4. Undo Record (Tiles)")
-            self.card_stage_cmp.set_label("5. Compositor Camadas")
-            self.card_stage_blt.set_label("6. Apresentação Blit Qt")
+        self.card_stage_kin.set_label("1. Cinemática / Dinâmica")
+        self.card_stage_int.set_label("2. Interpolação Dabs")
+        self.card_stage_dab.set_label("3. RasterDab (Shaders)")
+        self.card_stage_und.set_label("4. Undo Record (Tiles)")
+        self.card_stage_cmp.set_label("5. Compositor Camadas")
+        self.card_stage_blt.set_label("6. Apresentação Blit Qt")
 
-            self.card_vp_fps.set_label("Taxa Real da Viewport")
-            self.card_vp_dirty.set_label("Região Repintada (Último Blit)")
-            self.card_vp_tiles.set_label("Tiles Gravados (Segmento)")
-            self.card_vp_dabs.set_label("Dabs Emitidos (Segmento)")
+        self.card_vp_fps.set_label("Taxa Real da Viewport")
+        self.card_vp_dirty.set_label("Região Repintada (Último Blit)")
+        self.card_vp_tiles.set_label("Tiles Gravados (Segmento)")
+        self.card_vp_dabs.set_label("Dabs Emitidos (Segmento)")
 
-            self.card_tiles_count.set_label(tr("telemetry.card_tiles", "Tiles Alocados (64x64)"))
-            self.card_canvas_ram.set_label(tr("telemetry.card_canvas_ram", "RAM do Documento"))
-            self.card_undo_ram.set_label(tr("telemetry.card_undo_ram", "RAM do Histórico (Undo)"))
-            self.card_undo_steps.set_label(tr("telemetry.card_undo_steps", "Passos de Desfazer"))
+        self.card_tiles_count.set_label(tr("telemetry.card_tiles", "Tiles Alocados (128x128)"))
+        self.card_canvas_ram.set_label(tr("telemetry.card_canvas_ram", "RAM do Documento"))
+        self.card_undo_ram.set_label(tr("telemetry.card_undo_ram", "RAM do Histórico (Undo)"))
+        self.card_undo_steps.set_label(tr("telemetry.card_undo_steps", "Passos de Desfazer"))
 
-            self.card_raw_press.set_label(tr("telemetry.card_raw_press", "Pressão Física"))
-            self.card_dyn_press.set_label(tr("telemetry.card_curve_press", "Pressão Curva/Modulada"))
-            self.card_velocity.set_label(tr("telemetry.stroke_velocity", "Velocidade do Traço"))
-            self.card_lag.set_label(tr("telemetry.card_lag", "Lag do Estabilizador"))
+        self.card_raw_press.set_label(tr("telemetry.card_raw_press", "Pressão Física"))
+        self.card_dyn_press.set_label(tr("telemetry.card_curve_press", "Pressão Curva/Modulada"))
+        self.card_velocity.set_label(tr("telemetry.stroke_velocity", "Velocidade do Traço"))
+        self.card_lag.set_label(tr("telemetry.card_lag", "Lag do Estabilizador"))
 
-        if hasattr(self, "grp_hw"):
-            self.grp_hw.setTitle(tr("telemetry.hw_acceleration", "Aceleração de Hardware & Motor"))
-        if hasattr(self, "grp_opt"):
-            self.grp_opt.setTitle(tr("telemetry.mem_management", "Gestão & Limpeza de Memória"))
-        if hasattr(self, "btn_clear_undo"):
-            self.btn_clear_undo.setText(tr("telemetry.clear_undo", "Limpar Histórico de Desfazer"))
-        if hasattr(self, "grp_logs"):
-            self.grp_logs.setTitle(tr("telemetry.sys_logs", "Logs do Sistema & Nível de Depuração"))
-        if hasattr(self, "grp_bench"):
-            self.grp_bench.setTitle(tr("telemetry.bench_group", "Testes de Desempenho & Diagnóstico Técnico"))
-        if hasattr(self, "btn_close"):
-            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self.grp_hw.setTitle(tr("telemetry.hw_acceleration", "Aceleração de Hardware & Motor"))
+        self.grp_opt.setTitle(tr("telemetry.mem_management", "Gestão & Limpeza de Memória"))
+        self.btn_clear_undo.setText(tr("telemetry.clear_undo", "Limpar Histórico de Desfazer"))
+        self.grp_logs.setTitle(tr("telemetry.sys_logs", "Logs do Sistema & Nível de Depuração"))
+        self.grp_bench.setTitle(tr("telemetry.bench_group", "Testes de Desempenho & Diagnóstico Técnico"))
+        self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
     def _refresh_metrics(self) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "get_telemetry_snapshot"):
+        if backend is None:
             return
-
-        snap: TelemetrySnapshot = backend.get_telemetry_snapshot()
-        if snap is None:
-            return
+        snap = backend.get_telemetry_snapshot()
+        # Contrato do núcleo (o canvas registra o provedor); o núcleo nunca
+        # importa o plugin do workspace.
+        vp = EngineRegistry.get_viewport_telemetry()
+        TelemetryTracker.instance().update(snap, vp)
 
         # 1. Desempenho Geral
         self.card_latency.set_value(f"{snap.last_segment_latency_us:.2f} µs")
         self.card_dabs_sec.set_value(f"{snap.total_dabs_per_second:,} dabs/s")
         self.card_stylus_hz.set_value(f"{snap.input_event_rate_hz} Hz")
         self.card_stroke_time.set_value(f"{snap.stroke_total_time_ms:.1f} ms")
+        self.lbl_simd_status.setText(simd_text(snap))
+        self.lbl_engine_active.setText(ENGINE_NAMES.get(snap.active_engine_id, "Motor Nativo C++"))
 
         # 2. Pipeline Granular & Viewport
-        # Contrato do núcleo (o canvas registra o provedor); o núcleo nunca
-        # importa o plugin do workspace.
-        from ui.core.engine.registry import EngineRegistry
-        vp = EngineRegistry.get_viewport_telemetry()
-        blit_ms = vp.get("qt_draw_image_ms", 0.0)
-        vp_fps = vp.get("qt_fps", 0.0)
-        dw = int(getattr(snap, "last_dirty_width", 0.0))
-        dh = int(getattr(snap, "last_dirty_height", 0.0))
-        tiles_rec = getattr(snap, "last_tiles_recorded", 0)
-        dabs_rendered = getattr(snap, "last_dabs_rendered", 0)
+        self.card_stage_kin.set_value(f"{snap.time_kinematics_us:.1f} µs")
+        self.card_stage_int.set_value(f"{snap.time_interpolation_us:.1f} µs")
+        self.card_stage_dab.set_value(f"{snap.time_raster_dab_us:.1f} µs")
+        self.card_stage_und.set_value(f"{snap.time_undo_record_us:.1f} µs")
+        self.card_stage_cmp.set_value(f"{snap.time_composite_us:.1f} µs")
+        self.card_stage_blt.set_value(f"{vp.get('qt_draw_image_ms', 0.0):.2f} ms")
 
-        self.card_stage_kin.set_value(f"{getattr(snap, 'time_kinematics_us', 0.0):.1f} µs")
-        self.card_stage_int.set_value(f"{getattr(snap, 'time_interpolation_us', 0.0):.1f} µs")
-        self.card_stage_dab.set_value(f"{getattr(snap, 'time_raster_dab_us', 0.0):.1f} µs")
-        self.card_stage_und.set_value(f"{getattr(snap, 'time_undo_record_us', 0.0):.1f} µs")
-        self.card_stage_cmp.set_value(f"{getattr(snap, 'time_composite_us', 0.0):.1f} µs")
-        self.card_stage_blt.set_value(f"{blit_ms:.2f} ms")
-
-        self.card_vp_fps.set_value(f"{vp_fps:.1f} FPS")
-        self.card_vp_dirty.set_value(f"{dw} × {dh} px")
-        self.card_vp_tiles.set_value(f"{tiles_rec} tiles")
-        self.card_vp_dabs.set_value(f"{dabs_rendered} dabs")
+        self.card_vp_fps.set_value(f"{vp.get('qt_fps', 0.0):.1f} FPS")
+        self.card_vp_dirty.set_value(f"{int(snap.last_dirty_width)} × {int(snap.last_dirty_height)} px")
+        self.card_vp_tiles.set_value(f"{snap.last_tiles_recorded} tiles")
+        self.card_vp_dabs.set_value(f"{snap.last_dabs_rendered} dabs")
 
         # 3. Memória & Tiles
         self.card_tiles_count.set_value(f"{snap.active_tile_count}")
@@ -360,32 +345,24 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.card_velocity.set_value(f"{int(snap.stroke_velocity)} px/s")
         self.card_lag.set_value(f"{snap.stabilizer_lag_px:.1f} px")
 
-        # Atualiza o TelemetryTracker global unificado
-        from ui.core.engine.telemetry_tracker import TelemetryTracker
-        TelemetryTracker.instance().update(snap, vp)
-
-    def _on_clear_undo(self) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "_redo_stack") and hasattr(backend, "_action_stack"):
-            backend._action_stack.clear()
-            backend._redo_stack.clear()
-        QtWidgets.QMessageBox.information(self, "Memória", "Pilha de histórico e desfazer limpa com sucesso.")
-
     def _on_toggle_stroke_summary(self, checked: bool) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_telemetry_enabled"):
+        if backend is not None:
             backend.set_telemetry_enabled(checked)
 
     def _on_toggle_detailed_log(self, checked: bool) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_detailed_logging_enabled"):
+        if backend is not None:
             backend.set_detailed_logging_enabled(checked)
 
     def _run_benchmark(self) -> None:
         backend = EngineRegistry.instance().get_backend()
         tm = ThemeManager.instance()
-        if not backend or not hasattr(backend, "paint_stroke"):
-            self.lbl_bench_result.setStyleSheet(f"font-size: 11px; font-style: italic; color: {tm.get_color('danger', '#ef4444')};")
+        # O benchmark precisa de um contexto de documento descartável (motor nativo).
+        if backend is None or not (backend.supports_capability("stroke")
+                                   and backend.supports_capability("multi_document")):
+            self.lbl_bench_result.setStyleSheet(
+                f"font-size: 11px; font-style: italic; color: {tm.get_color('danger', '#ef4444')};")
             self.lbl_bench_result.setText("Motor nativo não disponível para benchmark.")
             return
 
@@ -393,33 +370,13 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.lbl_bench_result.setText("Executando teste de estresse de 1.000 dabs...")
         QtWidgets.QApplication.processEvents()
 
-        t0 = time.perf_counter()
-        backend.start_stroke(100.0, 100.0, 1.0)
-        steps = 1000
-        for i in range(steps):
-            x = 100.0 + (i % 200)
-            y = 100.0 + (i // 5)
-            backend.paint_stroke(x, y, 0.8)
-        backend.end_stroke(300.0, 300.0)
-        dt = (time.perf_counter() - t0) * 1000.0
-
-        dabs_per_sec = int((steps / dt) * 1000.0) if dt > 0 else 0
-        self.lbl_bench_result.setStyleSheet(f"font-size: 11px; font-style: italic; color: {tm.get_color('success', '#10b981')};")
+        doc = DocumentManager.instance().active_document()
+        result = run_stroke_benchmark(backend, (doc.width, doc.height) if doc is not None else None)
+        self.lbl_bench_result.setStyleSheet(
+            f"font-size: 11px; font-style: italic; color: {tm.get_color('success', '#10b981')};")
         self.lbl_bench_result.setText(
-            f"Concluído em {dt:.2f} ms | Rendimento: {dabs_per_sec:,} dabs/s ({dt/steps:.3f} ms/dab)"
-        )
-
-    def _copy_diagnostic_report(self) -> None:
-        """Copia o relatório completo com 20 medidores do Grid e histórico de transições."""
-        from ui.core.engine.telemetry_tracker import TelemetryTracker
-        report = TelemetryTracker.instance().generate_full_report()
-        QtWidgets.QApplication.clipboard().setText(report)
-        QtWidgets.QMessageBox.information(
-            self,
-            "Relatório de Telemetria Copiado",
-            "Relatório completo de telemetria (incluindo todos os 20 medidores do Grid, "
-            "diagnóstico do pipeline, picos de estresse e histórico de alterações de estado) "
-            "foi copiado para a Área de Transferência com sucesso!"
+            f"Concluído em {result.elapsed_ms:.2f} ms | Rendimento: {result.dabs_per_second:,} dabs/s "
+            f"({result.ms_per_dab:.3f} ms/dab)"
         )
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:

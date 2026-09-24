@@ -232,6 +232,15 @@ class DocumentHistory:
         finally:
             manager.backend_projection_restoring = False
 
+    def clear(self, backend) -> bool:
+        """Descarta todo o histórico do documento (motor e metadados de camadas)."""
+        self._check_context(backend)
+        if self.recording or not backend.clear_history():
+            return False
+        self.entries.clear()
+        self.document.history_cleared.emit()
+        return True
+
     def undo(self, backend):
         return self._move(backend, False)
 

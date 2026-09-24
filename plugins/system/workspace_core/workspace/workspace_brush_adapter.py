@@ -1,4 +1,10 @@
-"""Brush and Tool synchronization mixin for WorkspaceContainer."""
+"""Ferramenta ativa e opções de ferramenta do WorkspaceContainer.
+
+Desde 2026-09-24 este mixin não trata mais de cor nem de parâmetros do
+pincel: isso é do BrushState (ui/core/state), aplicado ao motor pelo
+BrushEngineSync e ao canvas pelo CanvasBrushBinding. O que sobrou aqui é a
+seleção de ferramenta e o roteamento das opções de ferramenta para o canvas.
+"""
 
 import logging
 from typing import Any
@@ -9,190 +15,23 @@ logger = logging.getLogger("Workspace.BrushAdapter")
 
 
 class WorkspaceBrushMixin:
-    """Mixin para controle de ferramentas, cores e parâmetros de traço/brush."""
+    """Seleção de ferramenta e roteamento das opções de ferramenta."""
 
     def connect_brush_dock(self, dock: Any, panel_id: str = "brush_settings") -> None:
-        """
-        Conecta os sinais do BrushSettingsPanel ao renderer do canvas.
-        Deve ser chamado pelo plugin de UI após add_panel().
-        """
+        """Liga os sinais de ferramenta do painel de pincel ao workspace."""
         self._brush_dock = dock
-        if getattr(dock, "_lumenia_brush_connected", False):
-            return
-        dock._lumenia_brush_connected = True
-
-        if hasattr(dock, "colorChanged"):
-            self._bind_panel_signal(panel_id, dock.colorChanged, self._on_brush_color)
-        if hasattr(dock, "sizeChanged"):
-            self._bind_panel_signal(panel_id, dock.sizeChanged, self._on_brush_size)
-        if hasattr(dock, "opacityChanged"):
-            self._bind_panel_signal(panel_id, dock.opacityChanged, self._on_brush_opacity)
-        if hasattr(dock, "pressureChanged"):
-            self._bind_panel_signal(panel_id, dock.pressureChanged, self._on_brush_pressure)
-        if hasattr(dock, "pressureCurvePowerChanged"):
-            self._bind_panel_signal(panel_id, dock.pressureCurvePowerChanged, self._on_brush_pressure_curve)
-        if hasattr(dock, "stabilizerWeightChanged"):
-            self._bind_panel_signal(panel_id, dock.stabilizerWeightChanged, self._on_brush_stabilizer)
-        if hasattr(dock, "spacingChanged"):
-            self._bind_panel_signal(panel_id, dock.spacingChanged, self._on_brush_spacing)
-        if hasattr(dock, "minDensityActiveChanged"):
-            self._bind_panel_signal(panel_id, dock.minDensityActiveChanged, self._on_min_density_active)
-        if hasattr(dock, "minDensityValueChanged"):
-            self._bind_panel_signal(panel_id, dock.minDensityValueChanged, self._on_min_density_value)
-        if hasattr(dock, "contrastChanged"):
-            self._bind_panel_signal(panel_id, dock.contrastChanged, self._on_brush_contrast)
-        if hasattr(dock, "invertHeightChanged"):
-            self._bind_panel_signal(panel_id, dock.invertHeightChanged, self._on_brush_invert)
-        if hasattr(dock, "loadShapeRequested"):
-            self._bind_panel_signal(panel_id, dock.loadShapeRequested, lambda: self._load_custom_texture(is_shape=True))
-        if hasattr(dock, "loadHeightmapRequested"):
-            self._bind_panel_signal(panel_id, dock.loadHeightmapRequested, lambda: self._load_custom_texture(is_shape=False))
-
-        if hasattr(dock, "toolActivated"):
-            self._bind_panel_signal(panel_id, dock.toolActivated, self.select_tool, unique=True)
-        if hasattr(dock, "toolOptionsChanged"):
-            self._bind_panel_signal(panel_id, dock.toolOptionsChanged, self._on_tool_settings_changed)
+        self._bind_panel_signal(panel_id, dock.toolActivated, self.select_tool, unique=True)
+        self._bind_panel_signal(panel_id, dock.toolOptionsChanged, self._on_tool_settings_changed)
 
     def disconnect_brush_dock(self, dock: Any, panel_id: str = "brush_settings") -> None:
-        """Desfaz todas as conexões criadas para um BrushSettingsPanel."""
+        """Desfaz as conexões criadas por connect_brush_dock."""
         self._disconnect_panel_signals(panel_id)
-        try:
-            dock._lumenia_brush_connected = False
-        except RuntimeError:
-            pass
         if self._brush_dock is dock:
             self._brush_dock = None
 
     def _get_backend(self):
         from ui.core.engine.registry import EngineRegistry
         return EngineRegistry.instance().get_backend()
-
-    def _apply_brush_color(self, color: QtGui.QColor) -> None:
-        if hasattr(self.canvas_widget, "active_color"):
-            self.canvas_widget.active_color = color
-        else:
-            self.canvas_widget._active_draw_color = color
-        if hasattr(self.canvas_widget, "set_shape_color"):
-            self.canvas_widget.set_shape_color(color)
-        backend = self._get_backend()
-        if backend:
-            backend.set_brush_color(color.redF(), color.greenF(), color.blueF())
-        self.canvas_widget.update()
-
-    def _on_brush_color(self, color: QtGui.QColor) -> None:
-        self._saved_color = color
-        self._apply_brush_color(color)
-        if self._brush_dock and hasattr(self._brush_dock, "set_color"):
-            self._brush_dock.set_color(color)
-        if hasattr(self, "secondary_toolbar") and self.secondary_toolbar:
-            self.secondary_toolbar.set_captured_color(color)
-        if hasattr(self, "_color_panel") and self._color_panel and hasattr(self._color_panel, "set_color"):
-            self._color_panel.set_color(color)
-
-    def _on_brush_size(self, val: float) -> None:
-        cw = self.canvas_widget
-        cw.brush_size = val
-        backend = self._get_backend()
-        if backend:
-            backend.set_brush_size(val)
-        cw.update()
-        if self._brush_dock:
-            d = self._brush_dock
-            if hasattr(d, "qs_size"):
-                d.qs_size.blockSignals(True)
-                d.qs_size.setValue(int(val))
-                d.qs_size.blockSignals(False)
-            if hasattr(d, "_adv_panel") and d._adv_panel and hasattr(d._adv_panel, "slider_size"):
-                d._adv_panel.slider_size.blockSignals(True)
-                d._adv_panel.slider_size.setValue(val)
-                d._adv_panel.slider_size.blockSignals(False)
-            c = self._saved_color
-            if hasattr(d, "stroke_preview"):
-                opac_val = (d.qs_opacity.value() / 100.0) if hasattr(d, "qs_opacity") else 1.0
-                d.stroke_preview.update_brush_state(
-                    size=val,
-                    opacity=opac_val,
-                    color=[c.redF(), c.greenF(), c.blueF()],
-                )
-
-    def _on_brush_pressure(self, val: float) -> None:
-        cw = self.canvas_widget
-        cw.manual_pressure = val
-        backend = self._get_backend()
-        if backend:
-            backend.set_brush_pressure(val)
-        cw.update()
-        if self._brush_dock:
-            self._brush_dock.stroke_preview.update_brush_state(pressure=val)
-
-    def _on_brush_pressure_curve(self, val: float) -> None:
-        backend = self._get_backend()
-        if backend:
-            backend.set_pressure_curve_power(val)
-        self.canvas_widget.update()
-
-    def _on_brush_stabilizer(self, weight: float) -> None:
-        backend = self._get_backend()
-        if backend:
-            backend.set_stabilizer_weight(weight)
-        self.canvas_widget.update()
-
-    def _on_brush_spacing(self, factor: float) -> None:
-        backend = self._get_backend()
-        if backend:
-            backend.set_brush_spacing(factor)
-        self.canvas_widget.update()
-        if self._brush_dock:
-            self._brush_dock.stroke_preview.update_brush_state(spacing=factor)
-
-    def _on_brush_opacity(self, factor: float) -> None:
-        cw = self.canvas_widget
-        backend = self._get_backend()
-        if backend:
-            backend.set_brush_opacity(factor)
-        cw.update()
-        if self._brush_dock:
-            d = self._brush_dock
-            val = int(factor * 100.0)
-            d.qs_opacity.blockSignals(True)
-            d.qs_opacity.setValue(val)
-            d.qs_opacity.blockSignals(False)
-            if d._adv_panel:
-                d._adv_panel.slider_opacity.blockSignals(True)
-                d._adv_panel.slider_opacity.setValue(val)
-                d._adv_panel.slider_opacity.blockSignals(False)
-            d.stroke_preview.update_brush_state(opacity=factor)
-
-    def _on_min_density_active(self, active: bool) -> None:
-        backend = self._get_backend()
-        if backend:
-            backend.set_min_density_active(active)
-        self.canvas_widget.update()
-
-    def _on_min_density_value(self, weight: float) -> None:
-        backend = self._get_backend()
-        if backend:
-            backend.set_min_density_value(weight)
-        self.canvas_widget.update()
-
-    def _on_brush_contrast(self, val: float) -> None:
-        backend = self._get_backend()
-        if backend:
-            backend.set_brush_contrast(val)
-        self.canvas_widget.update()
-        if self._brush_dock:
-            hardness = min(0.99, max(0.01, val / 3.0))
-            self._brush_dock.stroke_preview.update_brush_state(hardness=hardness)
-
-    def _on_brush_invert(self, invert: bool) -> None:
-        backend = self._get_backend()
-        if backend:
-            backend.set_brush_invert_height(invert)
-        self.canvas_widget.update()
-
-    def _load_custom_texture(self, is_shape: bool) -> None:
-        from .brush_texture_io import BrushTextureIO
-        BrushTextureIO.load_and_apply_to_workspace(self, is_shape)
 
     def _on_stroke_finished_sync_previews(self) -> None:
         if not hasattr(self, "_preview_sync_timer"):
@@ -237,11 +76,6 @@ class WorkspaceBrushMixin:
                 if hasattr(self.canvas_widget, "_update_cursor_shape"):
                     self.canvas_widget._update_cursor_shape()
 
-            if tool in ("brush", "bucket"):
-                self._apply_brush_color(self._saved_color)
-            elif tool == "eraser":
-                self._apply_brush_color(QtGui.QColor("#ffffff"))
-
             if hasattr(self, "_brush_dock") and self._brush_dock:
                 self._brush_dock.set_tool_active(tool)
 
@@ -282,16 +116,6 @@ class WorkspaceBrushMixin:
                 self._on_status_notification(f"Ferramenta ativa: {meta['name']}")
         finally:
             self._is_selecting_tool = False
-
-    def _on_canvas_color_picked(self, color: QtGui.QColor) -> None:
-        self._saved_color = color
-        self._apply_brush_color(color)
-        if hasattr(self, "_brush_dock") and self._brush_dock:
-            self._brush_dock.set_color(color)
-        if hasattr(self, "_color_panel") and self._color_panel and hasattr(self._color_panel, "set_color"):
-            self._color_panel.set_color(color)
-        if hasattr(self, "secondary_toolbar") and self.secondary_toolbar:
-            self.secondary_toolbar.set_captured_color(color)
 
     def _on_tool_settings_changed(self, tool_id: str, settings: dict) -> None:
         if tool_id == "eyedrop":
@@ -337,21 +161,3 @@ class WorkspaceBrushMixin:
             self.canvas_widget.transform_ctrl.interp_mode = normalized["interp_mode"]
             self.canvas_widget.transform_ctrl.lock_aspect = normalized["lock_aspect"]
             self.canvas_widget.transform_ctrl.distort = normalized["distort"]
-
-    def sync_all_properties(self) -> None:
-        if not self._brush_dock:
-            return
-        d = self._brush_dock
-        if hasattr(d, "qs_size"):
-            self._on_brush_size(float(d.qs_size.value()))
-        if hasattr(d, "qs_opacity"):
-            self._on_brush_opacity(d.qs_opacity.value() / 100.0)
-        if hasattr(d, "qs_hardness"):
-            val = float(d.qs_hardness.value())
-            contrast = (val / 100.0) * 3.0
-            self._on_brush_contrast(contrast)
-        if hasattr(d, "qs_spacing"):
-            self._on_brush_spacing(d.qs_spacing.value() / 100.0)
-        if hasattr(d, "qs_stabilizer"):
-            self._on_brush_stabilizer(d.qs_stabilizer.value() / 100.0)
-        self._apply_brush_color(self._saved_color)

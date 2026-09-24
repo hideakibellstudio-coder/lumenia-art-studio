@@ -1,13 +1,19 @@
-"""Tests for Phase 2: BrushSettingsPanel ARCcC v2 decomposition."""
+"""BrushSettingsPanel e seus componentes como views do BrushState.
+
+Até 2026-09-24 este arquivo testava "retrocompatibilidade": que o painel
+expunha `qs_size`, `_quick_sliders`, `_tool_buttons`... para o workspace ler e
+escrever os sliders por dentro. Esses acessos eram o espaguete; o contrato
+agora é o BrushState, e é ele que se testa aqui.
+"""
 
 import pytest
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtGui
 
-from plugins.ui.brush_plugin.panel import BrushSettingsPanel
-from plugins.ui.brush_plugin.components.tool_selection_column import ToolSelectionColumn
 from plugins.ui.brush_plugin.components.quick_sliders_section import QuickSlidersSection
+from plugins.ui.brush_plugin.components.tool_selection_column import ToolSelectionColumn
+from plugins.ui.brush_plugin.panel import BrushSettingsPanel
+from ui.core.state import BrushParam, BrushState
 from ui.core.widgets.compact_slider import CompactSlider
-
 
 
 def test_tool_selection_column(qapp):
@@ -28,70 +34,81 @@ def test_tool_selection_column(qapp):
     assert col.tool_buttons["brush"].isChecked()
 
 
-def test_quick_sliders_section(qapp):
+def test_quick_sliders_section_edits_and_shows_in_engine_units(qapp):
     sec = QuickSlidersSection()
     assert len(sec.all_sliders) == 8
-    assert isinstance(sec.size_slider, CompactSlider)
-    assert isinstance(sec.opacity_slider, CompactSlider)
+    assert isinstance(sec.slider(BrushParam.SIZE), CompactSlider)
 
-    emitted_size = []
-    emitted_opacity = []
-    sec.sizeChanged.connect(emitted_size.append)
-    sec.opacityChanged.connect(emitted_opacity.append)
+    edited = []
+    sec.paramEdited.connect(lambda p, v: edited.append((p, v)))
 
-    sec.size_slider.setValue(120)
-    assert 120.0 in emitted_size
+    sec.slider(BrushParam.SIZE).setValue(120)
+    sec.slider(BrushParam.OPACITY).setValue(80)
+    assert (BrushParam.SIZE, 120.0) in edited
+    assert (BrushParam.OPACITY, 0.8) in edited
 
-    sec.opacity_slider.setValue(80)
-    assert 0.8 in emitted_opacity
+    # show_value não emite (é o caminho estado -> view).
+    edited.clear()
+    sec.show_value(BrushParam.CONTRAST, 1.5)
+    assert sec.slider(BrushParam.CONTRAST).value() == 15
+    assert edited == []
 
-    # Test pinned visibility
-    assert sec.contrast_slider.isHidden()
+    assert sec.slider(BrushParam.CONTRAST).isHidden()
     sec.set_pinned_visible("contrast", True)
-    assert not sec.contrast_slider.isHidden()
-
-    # Test sync helpers
-    sec.sync_size(250)
-    assert sec.size_slider.value() == 250
+    assert not sec.slider(BrushParam.CONTRAST).isHidden()
 
 
-def test_brush_settings_panel_backwards_compatibility(qapp):
-    panel = BrushSettingsPanel()
+def test_panel_writes_to_state_and_follows_state(qapp):
+    state = BrushState()
+    panel = BrushSettingsPanel(state)
+    sliders = panel.sliders_section
 
-    # Properties
-    assert panel.qs_size is panel.size_slider
-    assert panel.qs_opacity is panel.opacity_slider
-    assert panel.contrast_slider is not None
-    assert panel.pressure_slider is not None
-    assert panel.curve_slider is not None
-    assert panel.stabilizer_slider is not None
-    assert panel.spacing_slider is not None
-    assert panel.min_density_slider is not None
-    assert panel.lbl_quick is not None
-    assert len(panel._quick_sliders) == 8
-    assert "brush" in panel._tool_buttons
-    assert panel.tool_col_box is panel.tool_column
+    # Estado inicial aparece nos sliders.
+    assert sliders.slider(BrushParam.SIZE).value() == int(state.value(BrushParam.SIZE))
 
-    # Signals
-    emitted_sizes = []
-    panel.sizeChanged.connect(emitted_sizes.append)
-    panel.size_slider.setValue(45)
-    assert 45.0 in emitted_sizes
+    # Slider -> estado.
+    sliders.slider(BrushParam.SIZE).setValue(45)
+    assert state.value(BrushParam.SIZE) == 45.0
 
-    # Tool activation
-    emitted_tools = []
-    panel.toolActivated.connect(emitted_tools.append)
-    panel.set_tool_active("eraser")
-    assert panel.tool_column.tool_buttons["eraser"].isChecked()
+    # Estado (vindo de outro lugar) -> slider.
+    state.set_value(BrushParam.OPACITY, 0.25)
+    assert sliders.slider(BrushParam.OPACITY).value() == 25
 
-    # Preset application
-    preset_mock = {
+
+def test_preset_choice_goes_through_state(qapp):
+    state = BrushState()
+    panel = BrushSettingsPanel(state)
+    selected = []
+    state.presetSelected.connect(lambda tool, name, data: selected.append((tool, name)))
+
+    state.select_preset("brush", "Teste", {
         "brush_size": 99,
         "opacity": 0.75,
         "stabilizer_weight": 0.42,
         "spacing_factor": 0.15,
         "brush_grain_contrast": 1.5,
-    }
-    panel._on_preset_changed("test_preset", preset_mock)
-    assert panel.size_slider.value() == 99
-    assert panel.opacity_slider.value() == 75
+    })
+
+    assert selected == [("brush", "Teste")]
+    assert panel.sliders_section.slider(BrushParam.SIZE).value() == 99
+    assert panel.sliders_section.slider(BrushParam.OPACITY).value() == 75
+    assert panel.preset_combo.active_preset == "Teste"
+
+
+def test_tool_switch_restores_each_tools_preset(qapp):
+    state = BrushState()
+    panel = BrushSettingsPanel(state)
+    panel.set_tool_active("brush")
+    state.select_preset("brush", "Meu Pincel", {"brush_size": 33})
+    panel.set_tool_active("eraser")
+    assert state.preset("eraser") is not None  # padrão da categoria borracha
+    panel.set_tool_active("brush")
+    assert panel.preset_combo.active_preset == "Meu Pincel"
+    assert state.value(BrushParam.SIZE) == 33.0
+
+
+def test_color_from_state_reaches_panel_widgets(qapp):
+    state = BrushState()
+    panel = BrushSettingsPanel(state)
+    state.set_color(QtGui.QColor(1, 2, 3))
+    assert panel.stroke_preview._color == pytest.approx([1 / 255, 2 / 255, 3 / 255], abs=1e-6)

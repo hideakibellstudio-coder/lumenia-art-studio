@@ -166,7 +166,7 @@ class BrushSelectorPopup(QtWidgets.QDialog):
             btn.setToolTip(get_category_display_name(cat_key, meta["label"]))
             btn.setCursor(QtCore.Qt.PointingHandCursor)
             btn.setObjectName("TabButton")
-            btn.clicked.connect(lambda _, k=cat_key: self._on_tab_clicked(k))
+            btn.clicked.connect(lambda _, k=cat_key: self.show_category(k))
 
             self.tab_group.addButton(btn)
             self.tab_buttons[cat_key] = btn
@@ -206,7 +206,7 @@ class BrushSelectorPopup(QtWidgets.QDialog):
 
         container_layout.addWidget(self.stacked_widget, 1)
 
-    def _on_tab_clicked(self, cat_key: str) -> None:
+    def show_category(self, cat_key: str) -> None:
         if cat_key in self.categories_keys:
             idx = self.categories_keys.index(cat_key)
             self.stacked_widget.setCurrentIndex(idx)
@@ -266,7 +266,7 @@ class BrushSelectorPopup(QtWidgets.QDialog):
                     row += 1
 
         self._update_button_selection_states()
-        self._on_tab_clicked("brush")
+        self.show_category("brush")
 
     def _update_button_selection_states(self) -> None:
         for btn in getattr(self, "buttons_list", []):

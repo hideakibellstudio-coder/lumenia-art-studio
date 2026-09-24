@@ -279,7 +279,9 @@
     "preset_category_smudge": "指先・混色",
     "preset_category_watercolor": "リアル水彩",
     "preset_category_paint": "油彩・厚塗り",
-    "stroke_taper": "ペンアップ時の入り抜き"
+    "stroke_taper": "ペンアップ時の入り抜き",
+    "select_texture_title": "テクスチャ画像を選択",
+    "texture_load_failed": "選択した画像を読み込めませんでした。"
   },
   "brush_preset": {
     "round": "丸ブラシ",
@@ -853,7 +855,8 @@
   },
   "common": {
     "apply": "適用",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "error": "エラー"
   },
   "scale": {
     "80": "80% (コンパクト)",

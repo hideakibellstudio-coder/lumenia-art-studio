@@ -279,7 +279,9 @@
     "preset_category_smudge": "Smudges",
     "preset_category_watercolor": "Watercolors",
     "preset_category_paint": "Oils & Impasto",
-    "stroke_taper": "Taper on Pen Lift"
+    "stroke_taper": "Taper on Pen Lift",
+    "select_texture_title": "Select Texture Image",
+    "texture_load_failed": "Could not load the selected image."
   },
   "brush_preset": {
     "round": "Round Brush",
@@ -853,7 +855,8 @@
   },
   "common": {
     "apply": "Apply",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "error": "Error"
   },
   "scale": {
     "80": "80% (Compact)",

@@ -1,6 +1,7 @@
 """Section 4 & 5: Brush Texture and Spacing."""
 
 from PySide6 import QtWidgets, QtCore
+from ui.core.state import BrushParam
 from ui.core.widgets.slider import LabeledSlider
 from ui.core.i18n import tr
 from typing import TYPE_CHECKING
@@ -42,7 +43,7 @@ def create_brush_texture_section(panel: "AdvancedPanel") -> CollapsibleSection:
     btn_load_height.setObjectName("BTexBtn")
     btn_load_height.setFixedHeight(22)
     btn_load_height.setCursor(QtCore.Qt.PointingHandCursor)
-    btn_load_height.clicked.connect(panel.loadHeightmapRequested.emit)
+    btn_load_height.clicked.connect(lambda: panel.load_texture_from_disk(is_shape=False))
 
     tex_info_lo.addWidget(panel.cmb_b_grain)
     tex_info_lo.addWidget(btn_load_height)
@@ -59,15 +60,12 @@ def create_brush_texture_section(panel: "AdvancedPanel") -> CollapsibleSection:
     lo.addWidget(panel.sl_b_scale)
 
     panel.slider_contrast = LabeledSlider(f"{tr('brush.texture_contrast', 'Contraste da Textura (Dureza)')}:", 10, 300, 100, "%", param_name="contrast", show_pin=True, default_pinned=False)
-    panel.slider_contrast.valueChanged.connect(lambda v: panel.contrastChanged.emit(v / 100.0))
-    panel.slider_contrast.valueChanged.connect(panel._on_b_grain_contrast)
+    panel.slider_contrast.valueChanged.connect(lambda v: panel.edit_param(BrushParam.CONTRAST, v / 100.0))
     panel.slider_contrast.pinToggled.connect(panel.pinToggled.emit)
     lo.addWidget(panel.slider_contrast)
 
     panel.chk_invert = QtWidgets.QCheckBox(tr("brush.invert_height", "Inverter Topografia"))
-    panel.chk_invert.stateChanged.connect(
-        lambda _: panel.invertHeightChanged.emit(panel.chk_invert.isChecked())
-    )
+    panel.chk_invert.toggled.connect(lambda checked: panel.edit_param(BrushParam.INVERT_HEIGHT, bool(checked)))
     lo.addWidget(panel.chk_invert)
 
     sec.add_widget(w)
@@ -76,8 +74,7 @@ def create_brush_texture_section(panel: "AdvancedPanel") -> CollapsibleSection:
 def create_spacing_section(panel) -> CollapsibleSection:
     sec = CollapsibleSection(tr("brush.sec_spacing", "5. Espaçamento do Traço"), expanded=True)
     panel.slider_spacing = LabeledSlider(f"{tr('brush.dab_spacing', 'Espaçamento entre Dabs')}:", 1, 100, 10, "%", param_name="spacing", show_pin=True, default_pinned=False)
-    panel.slider_spacing.valueChanged.connect(lambda v: panel.spacingChanged.emit(v / 100.0))
-    panel.slider_spacing.valueChanged.connect(panel._on_spacing_changed)
+    panel.slider_spacing.valueChanged.connect(lambda v: panel.edit_param(BrushParam.SPACING, v / 100.0))
     panel.slider_spacing.pinToggled.connect(panel.pinToggled.emit)
     sec.add_widget(panel.slider_spacing)
     return sec

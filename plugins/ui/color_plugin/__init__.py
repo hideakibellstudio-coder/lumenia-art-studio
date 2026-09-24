@@ -13,6 +13,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.state import BrushState, require
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +44,9 @@ class ColorPlugin(BasePlugin):
         if ws is None:
             raise RuntimeError("[ColorPlugin] WorkspaceService não encontrado.")
 
-        initial_color = getattr(ws.workspace_container, "saved_color", None)
         from .panel import ColorWheelPanel
 
-
-        self._panel = ColorWheelPanel(initial_color=initial_color)
+        self._panel = ColorWheelPanel(require(self.context.service_registry, BrushState))
 
         ws.add_panel(
             panel_id="color_wheel",

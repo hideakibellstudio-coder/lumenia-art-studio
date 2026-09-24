@@ -15,30 +15,10 @@ class WorkspaceDocSyncMixin:
     def _on_document_geometry_changed(self, width, height):
         self.canvas_w, self.canvas_h = width, height
         self.canvas_widget.canvas_w, self.canvas_widget.canvas_h = width, height
-        if self._properties_dock:
-            self._properties_dock.navigator.set_canvas_size(width, height)
         if getattr(self, "_navigator_panel", None):
             self._navigator_panel.set_canvas_size(width, height)
         self._sync_navigator_to_canvas()
         self.canvas_widget.update()
-
-    def connect_properties_dock(self, dock: Any, panel_id: str = "properties") -> None:
-        """
-        Conecta os sinais do navigator (PropertiesDock) à câmera do canvas.
-        Deve ser chamado pelo plugin de UI após add_panel().
-        """
-        self._properties_dock = dock
-        self._bind_panel_signal(panel_id, dock.navigator.camera_changed_by_user, self._set_camera_from_navigator)
-        if hasattr(dock.navigator, "flip_changed_by_user"):
-            self._bind_panel_signal(panel_id, dock.navigator.flip_changed_by_user, self._set_flip_from_navigator)
-        self._bind_panel_signal(panel_id, dock.navigator.request_global_fit_view, self.reset_view)
-        self._bind_panel_signal(panel_id, self.canvas_widget.cameraChanged, self._on_canvas_camera_changed)
-
-    def disconnect_properties_dock(self, dock: Any, panel_id: str = "properties") -> None:
-        """Desfaz a sincronização de câmera antes de destruir o PropertiesDock."""
-        self._disconnect_panel_signals(panel_id)
-        if self._properties_dock is dock:
-            self._properties_dock = None
 
     def _sync_navigator_to_canvas(self) -> None:
         """Lê o estado atual da câmera do canvas e empurra para o navigator."""
@@ -92,10 +72,6 @@ class WorkspaceDocSyncMixin:
         flip_h = bool(getattr(self.canvas_widget, "flip_x", False))
         flip_v = bool(getattr(self.canvas_widget, "flip_y", False))
 
-        if self._properties_dock:
-            self._properties_dock.navigator.update_viewport(
-                zoom, norm_x, norm_y, rotation, flip_h, flip_v, ratio_w, ratio_h
-            )
         if hasattr(self, "_navigator_panel") and self._navigator_panel:
             self._navigator_panel.update_viewport(
                 zoom, norm_x, norm_y, rotation, flip_h, flip_v, ratio_w, ratio_h
@@ -131,7 +107,7 @@ class WorkspaceDocSyncMixin:
                 last_doc.pan_x       = self.canvas_widget.pan_x
                 last_doc.pan_y       = self.canvas_widget.pan_y
                 last_doc.rotation    = self.canvas_widget.rotation
-                last_doc.saved_color = self._saved_color
+                last_doc.saved_color = self._brush_state.color
                 last_doc.paper_color = getattr(self.canvas_widget, "paper_color", QtGui.QColor(255, 255, 255))
                 last_doc.paper_visible = getattr(self.canvas_widget, "paper_visible", True)
                 if hasattr(self.canvas_widget, "geometry_ctrl"):
@@ -142,9 +118,6 @@ class WorkspaceDocSyncMixin:
 
         if not doc:
             self.canvas_widget.setEnabled(False)
-            if self._properties_dock:
-                self._properties_dock.layers.set_layer_manager(None)
-                self._properties_dock.navigator.set_has_document(False)
             if hasattr(self, "_layers_panel") and self._layers_panel:
                 self._layers_panel.set_layer_manager(None)
             if hasattr(self, "_navigator_panel") and self._navigator_panel:
@@ -184,15 +157,10 @@ class WorkspaceDocSyncMixin:
             self.canvas_widget.pan_y    = doc.pan_y
             self.canvas_widget.rotation = doc.rotation
 
-        color = doc.saved_color if doc.saved_color else self._saved_color
-        self._saved_color = color
-        self._apply_brush_color(color)
-        if hasattr(self, "_color_panel") and self._color_panel and hasattr(self._color_panel, "set_color"):
-            self._color_panel.set_color(color)
-        elif self._brush_dock and hasattr(self._brush_dock, "set_color"):
-            self._brush_dock.set_color(color)
-        elif self._brush_dock and hasattr(self._brush_dock, "color_wheel"):
-            self._brush_dock.color_wheel.set_color(color)
+        # Cada documento lembra a última cor usada nele; os painéis de cor se
+        # atualizam sozinhos pelo sinal do BrushState.
+        if doc.saved_color:
+            self._brush_state.set_color(doc.saved_color)
 
         if self.canvas_widget.input_adapter:
             rot_rad = math.radians(doc.rotation)
@@ -204,10 +172,6 @@ class WorkspaceDocSyncMixin:
         self.zoomChanged.emit(doc.zoom)
         self._sync_navigator_to_canvas()
 
-        if self._properties_dock:
-            self._properties_dock.layers.set_layer_manager(doc.layer_manager)
-            self._properties_dock.navigator.set_canvas_size(doc.width, doc.height)
-            self._properties_dock.navigator.set_has_document(True)
         if hasattr(self, "_layers_panel") and self._layers_panel:
             self._layers_panel.set_layer_manager(doc.layer_manager)
             if hasattr(self._layers_panel, "paper_widget"):
@@ -232,15 +196,11 @@ class WorkspaceDocSyncMixin:
                 if b and hasattr(b, "select_layer"):
                     b.select_layer(act_idx)
 
-        active_color = getattr(self, "_saved_color", QtGui.QColor(0, 0, 0))
-        self._apply_brush_color(active_color)
-        if hasattr(self, "_brush_dock") and self._brush_dock and hasattr(self._brush_dock, "preset_combo"):
-            combo = self._brush_dock.preset_combo
-            active_tool = getattr(self.canvas_widget, "active_tool", "brush")
-            current_preset = getattr(combo, "_active_preset", "Pincel Redondo")
-            current_data = combo._tool_preset_state.get(active_tool) or combo._tool_preset_state.get("brush")
-            if current_data:
-                combo._apply_preset_backend(current_preset, current_data)
+        # A facade nativa deste documento tem o seu próprio perfil de pincel:
+        # reenvia o pincel inteiro (preset da ferramenta, parâmetros e cor).
+        # Antes só o preset era reaplicado, e tamanho/opacidade ajustados à mão
+        # voltavam aos do preset ao trocar de aba.
+        self._brush_sync.resync(getattr(self.canvas_widget, "active_tool", "brush"))
 
     def _on_document_closed_cleanup(self, uid: str) -> None:
         """Chamado quando um documento é fechado para liberar memória C++ imediatamente."""

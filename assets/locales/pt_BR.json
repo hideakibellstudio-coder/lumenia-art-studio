@@ -279,7 +279,9 @@
     "preset_category_smudge": "Esfuminho",
     "preset_category_watercolor": "Aquarelas",
     "preset_category_paint": "Óleos e Acrílicos",
-    "stroke_taper": "Afunilamento na Soltura (Tapering no Pen Up)"
+    "stroke_taper": "Afunilamento na Soltura (Tapering no Pen Up)",
+    "select_texture_title": "Selecionar Imagem de Textura",
+    "texture_load_failed": "Não foi possível carregar a imagem selecionada."
   },
   "brush_preset": {
     "round": "Pincel Redondo",
@@ -853,7 +855,8 @@
   },
   "common": {
     "apply": "Aplicar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "error": "Erro"
   },
   "scale": {
     "80": "80% (Compacto)",

@@ -42,7 +42,7 @@ def create_tip_geometry_section(panel: "AdvancedPanel") -> CollapsibleSection:
     btn_load_shape.setObjectName("BTexBtn")
     btn_load_shape.setFixedHeight(22)
     btn_load_shape.setCursor(QtCore.Qt.PointingHandCursor)
-    btn_load_shape.clicked.connect(panel.loadShapeRequested.emit)
+    btn_load_shape.clicked.connect(lambda: panel.load_texture_from_disk(is_shape=True))
 
     tip_info_lo.addWidget(panel.cmb_shape)
     tip_info_lo.addWidget(btn_load_shape)

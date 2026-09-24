@@ -1,7 +1,11 @@
 """
-PanelEngineBridgeMixin — Sincronização e Callbacks do Painel Avançado com o Motor
-===================================================================================
-Trata os sinais dos sliders, checkboxes e combos conectando-os diretamente ao backend Aladyn.
+PanelEngineBridgeMixin — parâmetros AVANÇADOS do pincel que vão direto ao motor
+===============================================================================
+Só os parâmetros que nenhuma outra tela mostra (jitter, ângulo, textura, ...).
+Os parâmetros rápidos (tamanho, opacidade, estabilizador, espaçamento,
+contraste, inverter topografia) NÃO passam por aqui: vão para o BrushState
+(`AdvancedPanel.edit_param`), e o BrushEngineSync é o único que os escreve no
+motor. Antes de 2026-09-24 eles eram escritos duas vezes (daqui e do workspace).
 """
 
 from __future__ import annotations
@@ -19,16 +23,6 @@ class PanelEngineBridgeMixin:
     def _backend(self):
         from ui.core.engine.registry import EngineRegistry
         return EngineRegistry.instance().get_backend()
-
-    def _on_brush_size_changed(self, v):
-        b = self._backend
-        if b:
-            b.set_brush_size(float(v))
-
-    def _on_brush_opacity_changed(self, v):
-        b = self._backend
-        if b:
-            b.set_brush_opacity(float(v / 100.0))
 
     def _on_min_size(self, v):
         b = self._backend
@@ -55,11 +49,6 @@ class PanelEngineBridgeMixin:
         if b and hasattr(self, "chk_stroke_taper"):
             b.set_brush_param("root", "stroke_taper_enabled", bool(self.chk_stroke_taper.isChecked()))
 
-    def _on_stabilizer_changed(self, v):
-        b = self._backend
-        if b:
-            b.set_stabilizer_weight(float(v) / 100.0)
-
     def _on_tip_hardness(self, v):
         b = self._backend
         if b:
@@ -77,16 +66,6 @@ class PanelEngineBridgeMixin:
         # cem vezes o raio.
         if b:
             b.set_brush_param("tip", "jitter_position", float(v / 100.0))
-
-    def _on_b_grain_contrast(self, v):
-        b = self._backend
-        if b:
-            b.set_brush_grain_contrast(float(v / 100.0))
-
-    def _on_spacing_changed(self, v):
-        b = self._backend
-        if b:
-            b.set_brush_spacing(float(v / 100.0))
 
     def update_shape_preview_from_engine(self):
         b = self._backend

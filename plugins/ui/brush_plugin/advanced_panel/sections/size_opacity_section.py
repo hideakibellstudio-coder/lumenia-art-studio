@@ -1,6 +1,7 @@
 """Section 1: Brush Size, Opacity and Blending."""
 
 from PySide6 import QtWidgets
+from ui.core.state import BrushParam
 from ui.core.widgets.slider import LabeledSlider
 from ui.core.i18n import tr
 from typing import TYPE_CHECKING
@@ -18,8 +19,7 @@ def create_size_opacity_section(panel: "AdvancedPanel") -> CollapsibleSection:
     lo.setSpacing(6)
 
     panel.slider_size = LabeledSlider(f"{tr('brush.size', 'Tamanho')}:", 1, 500, 24, "px", param_name="size", show_pin=True, default_pinned=True)
-    panel.slider_size.valueChanged.connect(panel.sizeChanged.emit)
-    panel.slider_size.valueChanged.connect(panel._on_brush_size_changed)
+    panel.slider_size.valueChanged.connect(lambda v: panel.edit_param(BrushParam.SIZE, float(v)))
     panel.slider_size.pinToggled.connect(panel.pinToggled.emit)
     lo.addWidget(panel.slider_size)
 
@@ -28,8 +28,7 @@ def create_size_opacity_section(panel: "AdvancedPanel") -> CollapsibleSection:
     lo.addWidget(panel.sl_min_size)
 
     panel.slider_opacity = LabeledSlider(f"{tr('brush.opacity', 'Opacidade')}:", 1, 100, 100, "%", param_name="opacity", show_pin=True, default_pinned=True)
-    panel.slider_opacity.valueChanged.connect(lambda v: panel.opacityChanged.emit(v / 100.0))
-    panel.slider_opacity.valueChanged.connect(panel._on_brush_opacity_changed)
+    panel.slider_opacity.valueChanged.connect(lambda v: panel.edit_param(BrushParam.OPACITY, v / 100.0))
     panel.slider_opacity.pinToggled.connect(panel.pinToggled.emit)
     lo.addWidget(panel.slider_opacity)
 
@@ -53,8 +52,7 @@ def create_size_opacity_section(panel: "AdvancedPanel") -> CollapsibleSection:
     lo.addWidget(panel.chk_vel_size)
 
     panel.slider_stabilizer = LabeledSlider(f"{tr('brush.stabilizer_label', 'Suavização (Estabilizador)')}:", 0, 98, 40, "%", param_name="stabilizer", show_pin=True, default_pinned=False)
-    panel.slider_stabilizer.valueChanged.connect(lambda v: panel.stabilizerWeightChanged.emit(v / 100.0))
-    panel.slider_stabilizer.valueChanged.connect(panel._on_stabilizer_changed)
+    panel.slider_stabilizer.valueChanged.connect(lambda v: panel.edit_param(BrushParam.STABILIZER, v / 100.0))
     panel.slider_stabilizer.pinToggled.connect(panel.pinToggled.emit)
     lo.addWidget(panel.slider_stabilizer)
 

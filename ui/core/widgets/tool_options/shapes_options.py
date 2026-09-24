@@ -55,7 +55,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
             tr("shapes.mode_fill", "Apenas Fundo")
         ])
         self.combo_mode.setFixedHeight(22)
-        self.combo_mode.currentIndexChanged.connect(self._emit_changes)
+        self.combo_mode.currentIndexChanged.connect(self.emit_current_settings)
         row_mode.addWidget(self.lbl_m)
         row_mode.addWidget(self.combo_mode, 1)
         layout.addLayout(row_mode)
@@ -71,7 +71,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         self.spin_width.setValue(4)
         self.spin_width.setSuffix("px")
         self.spin_width.setFixedHeight(22)
-        self.spin_width.valueChanged.connect(self._emit_changes)
+        self.spin_width.valueChanged.connect(self.emit_current_settings)
         row_stroke.addWidget(self.lbl_w)
         row_stroke.addWidget(self.spin_width, 1)
         layout.addLayout(row_stroke)
@@ -122,7 +122,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         self.spin_extra.setSuffix("px")
         self.spin_extra.setFixedHeight(22)
         self.spin_extra.setStyleSheet("font-size: 10px;")
-        self.spin_extra.valueChanged.connect(self._emit_changes)
+        self.spin_extra.valueChanged.connect(self.emit_current_settings)
         self.row_extra.addWidget(self.lbl_extra)
         self.row_extra.addWidget(self.spin_extra, 1)
         layout.addLayout(self.row_extra)
@@ -154,14 +154,14 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
     def _on_fill_opac_changed(self, val: int):
         alpha = int(val * 255 / 100)
         self._fill_color.setAlpha(alpha)
-        self._emit_changes()
+        self.emit_current_settings()
 
     def _pick_stroke_color(self):
         col = QtWidgets.QColorDialog.getColor(self._stroke_color, self, tr("shapes.stroke_color_title", "Cor da Borda"), QtWidgets.QColorDialog.ShowAlphaChannel)
         if col.isValid():
             self._stroke_color = col
             self._update_color_buttons()
-            self._emit_changes()
+            self.emit_current_settings()
 
     def _pick_fill_color(self):
         col = QtWidgets.QColorDialog.getColor(self._fill_color, self, tr("shapes.fill_color_title", "Cor do Preenchimento"), QtWidgets.QColorDialog.ShowAlphaChannel)
@@ -171,7 +171,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
             self.slider_fill_opac.setValue(int(col.alphaF() * 100))
             self.slider_fill_opac.blockSignals(False)
             self._update_color_buttons()
-            self._emit_changes()
+            self.emit_current_settings()
 
     def _on_shape_dropdown_changed(self, shape_id: str, label: str):
         if shape_id == "shape_rect":
@@ -198,7 +198,7 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
             self.spin_extra.setValue(5)
             self.lbl_extra.show()
             self.spin_extra.show()
-        self._emit_changes()
+        self.emit_current_settings()
 
     def set_active_shape_type(self, shape_id: str):
         self.shape_dropdown.set_shape(shape_id)
@@ -210,9 +210,10 @@ class ShapesOptionsWidget(QtWidgets.QWidget):
         alpha = int(opac_val * 255 / 100)
         self._fill_color = QtGui.QColor(color.red(), color.green(), color.blue(), alpha)
         self._update_color_buttons()
-        self._emit_changes()
+        self.emit_current_settings()
 
-    def _emit_changes(self):
+    def emit_current_settings(self) -> None:
+        """Reemite as opções atuais (usado quando a ferramenta de formas é reativada)."""
         draw_modes = ["both", "stroke", "fill"]
         st = self.shape_dropdown.shape_id()
         dm = draw_modes[self.combo_mode.currentIndex()]

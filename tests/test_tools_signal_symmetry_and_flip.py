@@ -299,10 +299,17 @@ def test_aladyn_backend_guards():
 # ── 5. Desacoplamento do ColorPlugin ──────────────────────────────────────────
 
 def test_color_plugin_panel_instantiation(app):
-    panel = ColorWheelPanel()
-    assert panel is not None
+    from ui.core.state import BrushState
+    state = BrushState()
+    panel = ColorWheelPanel(state)
     assert panel.color_wheel is not None
-    assert hasattr(panel.color_wheel, "set_color")
+
+    # A roda escreve no estado...
+    panel.color_wheel.colorChanged.emit(QtGui.QColor(10, 20, 30))
+    assert state.color == QtGui.QColor(10, 20, 30)
+    # ...e mostra o que o estado recebeu por outro caminho (conta-gotas, troca de aba).
+    state.set_color(QtGui.QColor(200, 100, 50))
+    assert panel.color_wheel.switcher.fg_color == QtGui.QColor(200, 100, 50)
 
 
 # ── 6. Simetria de strokeStarted / strokeFinished ─────────────────────────────

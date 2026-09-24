@@ -36,7 +36,10 @@ import os
 import logging
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.core.state import BrushEngineSync, BrushState
+
 from .canvas.render_widget import CanvasWidget
+from .canvas_brush_binding import CanvasBrushBinding
 from .workspace_layout_manager import WorkspaceLayoutMixin
 from .workspace_document_sync import WorkspaceDocSyncMixin
 from .workspace_brush_adapter import WorkspaceBrushMixin
@@ -76,15 +79,22 @@ class WorkspaceContainer(
 
     # ── Inicialização ─────────────────────────────────────────────────────
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(
+        self,
+        brush_state: BrushState,
+        brush_sync: BrushEngineSync,
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
 
         # ── Estado interno ────────────────────────────────────────────────
         self.canvas_w: int = 1920
         self.canvas_h: int = 1080
 
-        # Cor ativa salva ao alternar para borracha; restaurada ao voltar para pincel
-        self._saved_color: QtGui.QColor = QtGui.QColor("#000000")
+        # Cor e parâmetros do pincel vivem no BrushState (fonte única); o
+        # workspace só os mostra no canvas e reenvia ao motor ao trocar de aba.
+        self._brush_state = brush_state
+        self._brush_sync = brush_sync
 
         # Ferramenta ativa: "brush" | "eraser"
         self._current_tool: str = "brush"
@@ -92,12 +102,11 @@ class WorkspaceContainer(
         # UID do último documento ativo (para salvar câmera ao trocar de aba)
         self._last_active_doc_uid: str | None = None
 
-        # Referências opcionais aos painéis (injetadas via connect_brush_dock / connect_properties_dock)
-        self._brush_dock:      QtWidgets.QWidget | None = None
-        self._properties_dock: QtWidgets.QWidget | None = None
+        # Painéis de outros plugins com que o workspace ainda conversa
+        # (registrados por add_panel). Cor/pincel não passam mais por aqui.
+        self._brush_dock: QtWidgets.QWidget | None = None
         self._navigator_panel = None
         self._layers_panel = None
-        self._color_panel = None
         self._geometry_panel = None
         self._initialize_panel_bindings()
 
@@ -171,9 +180,8 @@ class WorkspaceContainer(
         self.secondary_toolbar = SecondaryToolBar(parent=self)
         self.secondary_toolbar.settingsChanged.connect(self._on_tool_settings_changed)
 
-        # ── Conexão do Sinal de Cor Capturada do Canvas (Conta-Gotas) ────────
-        if hasattr(self.canvas_widget, "colorPicked"):
-            self.canvas_widget.colorPicked.connect(self._on_canvas_color_picked)
+        # ── Pincel: estado → canvas/barra secundária; conta-gotas → estado ───
+        self._canvas_brush = CanvasBrushBinding(brush_state, self.canvas_widget, self.secondary_toolbar, self)
 
         # ── Stroke Lock: suspende gavetas e pílulas durante pintura ────────
         if hasattr(self.canvas_widget, "strokeStarted"):
@@ -288,8 +296,6 @@ class WorkspaceContainer(
         # atributos ocasionais de widgets de terceiros.
         if panel_id == "brush_settings":
             self.connect_brush_dock(widget, panel_id)
-        elif panel_id == "properties":
-            self.connect_properties_dock(widget, panel_id)
         elif panel_id == "navigator":
             self._navigator_panel = widget
             self._bind_panel_signal(panel_id, widget.camera_changed_by_user, self._set_camera_from_navigator)
@@ -305,11 +311,6 @@ class WorkspaceContainer(
             self._layers_panel = widget
             if self.active_document:
                 widget.set_layer_manager(self.active_document.layer_manager)
-        elif panel_id == "color_wheel":
-            self._color_panel = widget
-            self._bind_panel_signal(panel_id, widget.colorChanged, self._on_brush_color)
-            if self.active_document:
-                widget.set_color(getattr(self, "_saved_color", QtGui.QColor(0, 0, 0)))
         elif panel_id == "geometry":
             self._geometry_panel = widget
             if hasattr(widget, "set_render_widget"):
@@ -334,8 +335,6 @@ class WorkspaceContainer(
         widget = self._panel_widgets.get(panel_id)
         if widget is self._brush_dock:
             self.disconnect_brush_dock(widget, panel_id)
-        elif widget is self._properties_dock:
-            self.disconnect_properties_dock(widget, panel_id)
         else:
             self._disconnect_panel_signals(panel_id)
 
@@ -344,8 +343,6 @@ class WorkspaceContainer(
             self._layers_panel = None
         if widget is self._navigator_panel:
             self._navigator_panel = None
-        if widget is self._color_panel:
-            self._color_panel = None
         if widget is self._geometry_panel:
             self._geometry_panel = None
 
@@ -365,10 +362,6 @@ class WorkspaceContainer(
 
         """Referência read-only ao CanvasWidget ativo."""
         return self.canvas_widget
-
-    @property
-    def saved_color(self) -> QtGui.QColor:
-        return self._saved_color
 
     @property
     def current_tool(self) -> str:

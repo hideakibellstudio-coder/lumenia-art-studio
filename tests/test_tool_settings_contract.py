@@ -114,7 +114,8 @@ def test_core_option_widgets_emit_canonical_values():
 
 
 def test_brush_panel_forwards_wand_transform_and_active_selection_settings():
-    panel = BrushSettingsPanel()
+    from ui.core.state import BrushState
+    panel = BrushSettingsPanel(BrushState())
     events = []
     panel.toolOptionsChanged.connect(lambda tool, settings: events.append((tool, settings)))
 

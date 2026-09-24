@@ -1,8 +1,4 @@
 {
- "plugins/system/workspace_core/workspace/brush_texture_io.py": {
-  "getattr_literal": 3,
-  "hasattr": 1
- },
  "plugins/system/workspace_core/workspace/canvas/render_widget.py": {
   "foreign_private": 1,
   "getattr_literal": 6,
@@ -153,18 +149,16 @@
   "hasattr": 4
  },
  "plugins/system/workspace_core/workspace/workspace_brush_adapter.py": {
-  "foreign_private": 20,
-  "getattr_literal": 4,
-  "hasattr": 50
+  "foreign_private": 8,
+  "getattr_literal": 3,
+  "hasattr": 15
  },
  "plugins/system/workspace_core/workspace/workspace_container.py": {
-  "getattr_literal": 1,
-  "hasattr": 12
+  "hasattr": 11
  },
  "plugins/system/workspace_core/workspace/workspace_document_sync.py": {
-  "foreign_private": 3,
-  "getattr_literal": 19,
-  "hasattr": 20
+  "getattr_literal": 17,
+  "hasattr": 13
  },
  "plugins/system/workspace_core/workspace/workspace_layout_manager.py": {
   "foreign_private": 4,
@@ -179,39 +173,21 @@
   "hasattr": 5
  },
  "plugins/ui/brush_plugin/advanced_panel/sections/brush_texture_section.py": {
-  "foreign_private": 5
+  "foreign_private": 3
  },
  "plugins/ui/brush_plugin/advanced_panel/sections/jitters_section.py": {
   "foreign_private": 3
  },
  "plugins/ui/brush_plugin/advanced_panel/sections/size_opacity_section.py": {
-  "foreign_private": 8
+  "foreign_private": 5
  },
  "plugins/ui/brush_plugin/advanced_panel/sections/tip_geometry_section.py": {
   "foreign_private": 6
  },
- "plugins/ui/brush_plugin/brush_dropdown.py": {
-  "foreign_private": 2,
-  "getattr_literal": 1
- },
  "plugins/ui/brush_plugin/brush_selector_popup.py": {
   "getattr_literal": 4
  },
- "plugins/ui/brush_plugin/panel.py": {
-  "foreign_private": 1,
-  "getattr_literal": 7,
-  "hasattr": 24
- },
- "plugins/ui/brush_plugin/panel_advanced_sync.py": {
-  "hasattr": 2
- },
  "plugins/ui/brush_plugin/stroke_preview.py": {
-  "hasattr": 1
- },
- "plugins/ui/color_plugin/__init__.py": {
-  "getattr_literal": 1
- },
- "plugins/ui/color_plugin/panel.py": {
   "hasattr": 1
  },
  "plugins/ui/geometry_plugin/components/advanced_settings_dialog.py": {
@@ -292,9 +268,9 @@
   "hasattr": 2
  },
  "ui/boundary/orchestrator/main_window.py": {
-  "foreign_private": 6,
+  "foreign_private": 3,
   "getattr_literal": 2,
-  "hasattr": 25
+  "hasattr": 23
  },
  "ui/boundary/orchestrator/main_window_dialog_actions.py": {
   "foreign_private": 3,
@@ -311,7 +287,7 @@
   "reverse_import": 1
  },
  "ui/boundary/orchestrator/main_window_menu_actions.py": {
-  "getattr_literal": 16,
+  "getattr_literal": 13,
   "hasattr": 12
  },
  "ui/boundary/orchestrator/main_window_menu_builder.py": {

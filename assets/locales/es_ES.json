@@ -279,7 +279,9 @@
     "preset_category_smudge": "Difuminos",
     "preset_category_watercolor": "Acuarelas",
     "preset_category_paint": "Óleos y Empastes",
-    "stroke_taper": "Afinado al levantar el lápiz"
+    "stroke_taper": "Afinado al levantar el lápiz",
+    "select_texture_title": "Seleccionar imagen de textura",
+    "texture_load_failed": "No se pudo cargar la imagen seleccionada."
   },
   "brush_preset": {
     "round": "Pincel Redondo",
@@ -853,7 +855,8 @@
   },
   "common": {
     "apply": "Aplicar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "error": "Error"
   },
   "scale": {
     "80": "80% (Compacto)",

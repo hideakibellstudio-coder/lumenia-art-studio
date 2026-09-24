@@ -1,14 +1,15 @@
 """
 BrushDropdown — Botão Dropdown de Presets / Ferramentas do ALADYN ENGINE
 ========================================================================
-Exibe a receita ativa e dispara a troca no ALADYN ENGINE com suporte a persistência.
+Mostra o preset ativo da ferramenta e abre o seletor; a escolha vai para o BrushState.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Any
+from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.core.state import BrushState
 from ui.core.theme.manager import ThemeManager
 from ui.core.i18n import tr, I18nManager
 from .presets_data import get_preset_display_name
@@ -23,29 +24,28 @@ __all__ = ["BrushDropdown", "BrushSelectorPopup", "get_default_preset_for_catego
 
 class BrushDropdown(QtWidgets.QToolButton):
     """
-    Botão Dropdown Personalizado para o Painel de Pincéis da Lumenia UI.
-    Exibe a receita ativa e dispara a troca no ALADYN ENGINE com suporte a persistência por ferramenta.
+    Botão que mostra o preset ativo e abre o seletor de presets.
+
+    Não guarda qual preset cada ferramenta usa: isso é do `BrushState`
+    (`preset(tool)` / `select_preset(...)`). Escolher um preset aqui só pede ao
+    estado; o rótulo muda quando o estado avisa (`presetSelected`).
     """
 
-    preset_changed = QtCore.Signal(str, dict)
+    # Ferramentas que têm categoria de preset própria.
+    _PRESET_TOOLS = ("brush", "eraser", "smudge")
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, brush_state: BrushState, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName("BrushDropdown")
         self.setFixedHeight(26)
         self.setCursor(QtCore.Qt.PointingHandCursor)
 
+        self._state = brush_state
         self._popup: Optional[BrushSelectorPopup] = None
         self._active_preset: str = "Pincel Redondo"
-
-        # Estado de persistência isolado por ferramenta para evitar poluição cruzada
         self._current_tool_id: str = "brush"
-        self._tool_preset_state: Dict[str, Optional[Dict[str, Any]]] = {
-            "brush": None,
-            "eraser": None,
-            "smudge": None,
-        }
 
+        brush_state.presetSelected.connect(self._on_state_preset_selected)
         self.retranslate_ui()
         self.clicked.connect(self._open_popup)
 
@@ -53,44 +53,33 @@ class BrushDropdown(QtWidgets.QToolButton):
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self._apply_style()
 
+    @property
+    def active_preset(self) -> str:
+        return self._active_preset
+
     def retranslate_ui(self):
         disp = get_preset_display_name(self._active_preset)
         self.setText(f"{disp} ▾")
         self.setToolTip(f"{tr('tools.brush', 'Pincel')}: {disp}")
 
     def sync_to_tool(self, tool_id: str) -> None:
-        """
-        Sincroniza imediatamente o dropdown e a aba do popup quando a ferramenta ativa muda.
+        """Reaplica o preset da ferramenta que acabou de ficar ativa.
+
+        Se a ferramenta nunca teve preset escolhido, usa o primeiro da categoria.
+        Ferramentas sem categoria (balde, seleção...) não mudam o pincel.
         """
         self._current_tool_id = tool_id
-
-        # Recupera o estado persistido da ferramenta ou pega o primeiro padrão da categoria
-        preset_info = self._tool_preset_state.get(tool_id)
-
-        if not preset_info:
-            if tool_id == "eraser":
-                preset_info = get_default_preset_for_category("eraser")
-            elif tool_id == "smudge":
-                preset_info = get_default_preset_for_category("smudge")
-            elif tool_id == "brush":
-                preset_info = get_default_preset_for_category("brush")
-
-        if preset_info:
-            name = preset_info.get("label", "Pincel Redondo")
-            self.set_preset(name)
-
-            # Salva como ativo na persistência da ferramenta correspondente
-            self._tool_preset_state[tool_id] = preset_info
-
-            # Sincroniza aba do popup
-            cat_id = preset_info.get("category_id", tool_id if tool_id in ["eraser", "smudge"] else "brush")
-            if self._popup:
-                self._popup._on_tab_clicked(cat_id)
-                self._popup.set_active_recipe(name)
-
-            # Dispara aplicação no backend
-            self._apply_preset_backend(name, preset_info)
-            self.preset_changed.emit(name, preset_info)
+        if tool_id not in self._PRESET_TOOLS:
+            return
+        remembered = self._state.preset(tool_id)
+        if remembered is not None:
+            name, data = remembered
+        else:
+            data = get_default_preset_for_category(tool_id)
+            if data is None:
+                return
+            name = data.get("label", "Pincel Redondo")
+        self._state.select_preset(tool_id, name, data)
 
     def set_preset(self, name: str) -> None:
         self._active_preset = name
@@ -100,15 +89,24 @@ class BrushDropdown(QtWidgets.QToolButton):
         if self._popup:
             self._popup.set_active_recipe(name)
 
+    def _preset_tool(self) -> str:
+        return self._current_tool_id if self._current_tool_id in self._PRESET_TOOLS else "brush"
+
+    def _on_state_preset_selected(self, tool_id: str, name: str, data: dict) -> None:
+        if tool_id != self._preset_tool():
+            return
+        self.set_preset(name)
+        if self._popup:
+            self._popup.show_category(data.get("category_id", tool_id))
+
     def _open_popup(self) -> None:
         if self._popup is None:
             self._popup = BrushSelectorPopup(self.window())
             self._popup.preset_selected.connect(self._on_preset_selected)
 
-        # Sincroniza aba do popup com base no preset ativo ou ferramenta ativa
-        active_state = self._tool_preset_state.get(self._current_tool_id)
-        if active_state and "category_id" in active_state:
-            self._popup._on_tab_clicked(active_state["category_id"])
+        remembered = self._state.preset(self._preset_tool())
+        if remembered is not None and "category_id" in remembered[1]:
+            self._popup.show_category(remembered[1]["category_id"])
 
         self._popup.set_active_recipe(self._active_preset)
         pos = self.mapToGlobal(QtCore.QPoint(-12, self.height() - 8))
@@ -116,28 +114,9 @@ class BrushDropdown(QtWidgets.QToolButton):
         self._popup.show()
 
     def _on_preset_selected(self, name: str, data: dict) -> None:
-        self.set_preset(name)
-
-        # Atualiza a persistência ESTRITAMENTE da ferramenta atualmente ativa
-        current_tool = getattr(self, "_current_tool_id", "brush")
-        save_data = dict(data)
-        save_data["label"] = name
-        if current_tool in self._tool_preset_state:
-            self._tool_preset_state[current_tool] = save_data
-        else:
-            self._tool_preset_state["brush"] = save_data
-
-        self._apply_preset_backend(name, data)
-        self.preset_changed.emit(name, data)
-
-    def _apply_preset_backend(self, name: str, data: dict) -> None:
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if not backend:
-            return
-
-        if backend:
-            backend.apply_brush_preset_dict(data)
+        record = dict(data)
+        record["label"] = name
+        self._state.select_preset(self._preset_tool(), name, record)
 
     def _apply_style(self, *args) -> None:
         theme = ThemeManager.instance()

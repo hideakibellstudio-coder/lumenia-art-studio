@@ -34,6 +34,12 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         from ui.core.engine.registry import EngineRegistry
         EngineRegistry.instance().setup(create_backends())
 
+        # ── Estado compartilhado (fonte única) — antes dos plugins ────────
+        # Cor e parâmetros do pincel: ver ui/core/state/README.md.
+        from ui.core.plugins.registry import ServiceRegistry
+        from ui.core.state import install_app_state
+        self.app_state = install_app_state(ServiceRegistry.instance(), EngineRegistry.instance().get_backend)
+
         # ── Plugin Manager — injeta self ANTES de discover_plugins() ──────
         # O WorkspaceCore system plugin usa context.main_window para chamar
         # self.setCentralWidget(workspace_container) durante seu activate().
@@ -169,8 +175,6 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
         if hasattr(self.workspace, "_brush_dock") and self.workspace._brush_dock:
             self.brush_dock = self.workspace._brush_dock
             self.brush_dock.toolActivated.connect(self._on_dock_tool_activated)
-        if hasattr(self.workspace, "_properties_dock") and self.workspace._properties_dock:
-            self.properties_dock = self.workspace._properties_dock
 
         # ── Menu Janela: conecta sinais de controle de paineis e gavetas ───
         self.menu_bar.togglePanelRequested.connect(
@@ -331,10 +335,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
                 is_vis = (a > 0)
                 backend.set_canvas_paper_state(QtGui.QColor(r, g, b, a), is_vis, paper_tex, paper_tex > 0)
 
-                # Mantém e aplica a cor de tinta ativa do usuário
-                if self.workspace and hasattr(self.workspace, "_saved_color"):
-                    color = self.workspace._saved_color
-                    backend.set_brush_color(color.redF(), color.greenF(), color.blueF())
+                # A facade nova começa com o pincel padrão do motor: reenvia o
+                # pincel do usuário (preset, parâmetros e cor).
+                tool = self.workspace.current_tool if self.workspace else None
+                self.app_state.brush_sync.resync(tool)
 
             self.reset_view()
             prof_name = backend.get_color_profile_name(color_prof) if backend else "sRGB"

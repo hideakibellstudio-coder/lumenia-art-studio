@@ -68,8 +68,8 @@ class MainWindowMenuActionsMixin(
         backend = EngineRegistry.instance().get_backend()
         if not backend:
             return
-        cw = getattr(self.workspace, "canvas_widget", None) if self.workspace else None
-        color = getattr(cw, "active_color", getattr(self.workspace, "_saved_color", QtGui.QColor("#000000"))) if self.workspace else QtGui.QColor("#000000")
+        # Editar → Preencher usa a cor ativa do usuário (fonte única: BrushState).
+        color = self.app_state.brush.color
         def _fill():
             if backend.has_selection():
                 backend.fill_selection_on_active_layer(color)

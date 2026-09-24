@@ -1,18 +1,26 @@
 """
-BrushSettingsPanel — Painel Isolado de Configurações de Pincéis & Ferramentas
-=============================================================================
-Painel individual contendo seleção de presets, preview do traço, parâmetros rápidos
-e opções de ferramentas contextuais, envolvido na moldura padronizada PanelCardBox.
+BrushSettingsPanel — painel de pincel e ferramentas (plugin BrushPlugin)
+========================================================================
+Seleção de preset, prévia do traço, parâmetros rápidos e opções contextuais
+de cada ferramenta.
 
-Modularizado sob ARCcC v2 (< 300 LOC).
+Contrato (desde 2026-09-24):
+- recebe o `BrushState` pelo construtor e é uma VIEW dele: os sliders escrevem
+  no estado e se atualizam pelos sinais do estado. O painel não fala com o
+  motor sobre cor/tamanho/opacidade/... — quem faz isso é o BrushEngineSync.
+- nenhum outro componente lê ou escreve os widgets internos deste painel.
+  O que sai daqui para fora sai por sinal público (`toolActivated`,
+  `toolOptionsChanged`).
 """
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.core.i18n import I18nManager, tr
 from ui.core.icons import get_icon
+from ui.core.state import BrushParam, BrushState
 from ui.core.theme.manager import ThemeManager
 from ui.core.widgets.card_box import PanelCardBox
 from ui.core.widgets.tool_options_widgets import (
@@ -24,63 +32,139 @@ from ui.core.widgets.tool_options_widgets import (
     ShapesOptionsWidget,
 )
 
-from .stroke_preview import StrokePreview
-from ui.core.widgets.compact_slider import CompactSlider
 from .advanced_panel import AdvancedPanel
 from .brush_dropdown import BrushDropdown
 from .components import ToolSelectionColumn, QuickSlidersSection
-from .panel_advanced_sync import BrushPanelAdvancedSyncMixin
-from .panel_compat_accessors import BrushPanelCompatAccessorsMixin
+from .stroke_preview import StrokePreview
 
-class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, BrushPanelAdvancedSyncMixin):
+_BRUSH_PAGE_TOOLS = ("brush", "eraser", "smudge")
+_SELECTION_TOOLS = ("rect_select", "ellipse_select", "lasso")
+
+
+class BrushSettingsPanel(QtWidgets.QWidget):
     """Painel isolado contendo as Configurações do Pincel e Ferramentas."""
 
-    colorChanged              = QtCore.Signal(QtGui.QColor)
-    sizeChanged               = QtCore.Signal(float)
-    opacityChanged            = QtCore.Signal(float)
-    pressureChanged           = QtCore.Signal(float)
-    pressureCurvePowerChanged = QtCore.Signal(float)
-    stabilizerWeightChanged   = QtCore.Signal(float)
-    spacingChanged            = QtCore.Signal(float)
-    minDensityActiveChanged   = QtCore.Signal(bool)
-    minDensityValueChanged    = QtCore.Signal(float)
-    contrastChanged           = QtCore.Signal(float)
-    invertHeightChanged       = QtCore.Signal(bool)
-    loadShapeRequested        = QtCore.Signal()
-    loadHeightmapRequested    = QtCore.Signal()
-    toolActivated             = QtCore.Signal(str)
-    toolOptionsChanged        = QtCore.Signal(str, dict)
+    toolActivated = QtCore.Signal(str)
+    toolOptionsChanged = QtCore.Signal(str, dict)
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(self, brush_state: BrushState, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("BrushSettingsPanel")
-
+        self._state = brush_state
         self._adv_panel: Optional[AdvancedPanel] = None
+        self._active_tool_id = "brush"
 
-        self.setup_ui()
+        self._build_ui()
 
-        from ui.core.i18n import I18nManager
+        brush_state.paramChanged.connect(self._on_param_changed)
+        brush_state.colorChanged.connect(self._on_color_changed)
+        brush_state.presetSelected.connect(self._on_preset_selected)
+        for param, value in brush_state.snapshot().items():
+            self._on_param_changed(param, value)
+        self._on_color_changed(brush_state.color)
+
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
         ThemeManager.instance().themeChanged.connect(self._apply_theme_style)
         self._apply_theme_style()
+        # O preset inicial é aplicado depois do primeiro ciclo de eventos: o
+        # motor só existe depois que o workspace inicializa. O timer é preso ao
+        # painel para não disparar se ele for destruído antes.
         QtCore.QTimer.singleShot(0, self, self.sync_initial_state)
 
+    # ── Estado → view ─────────────────────────────────────────────────────
 
     def sync_initial_state(self) -> None:
-        if hasattr(self, "preset_combo") and self.preset_combo:
-            self.preset_combo.sync_to_tool("brush")
+        self.preset_combo.sync_to_tool("brush")
+
+    def _on_param_changed(self, param: BrushParam, value) -> None:
+        if isinstance(value, bool):
+            return  # parâmetros booleanos só aparecem no painel avançado
+        self.sliders_section.show_value(param, value)
+        if param is BrushParam.SIZE:
+            self.stroke_preview.update_brush_state(size=value)
+        elif param is BrushParam.OPACITY:
+            self.stroke_preview.update_brush_state(opacity=value)
+        elif param is BrushParam.SPACING:
+            self.stroke_preview.update_brush_state(spacing=value)
+        elif param is BrushParam.PRESSURE:
+            self.stroke_preview.update_brush_state(pressure=value)
+        elif param is BrushParam.CONTRAST:
+            self.stroke_preview.update_brush_state(hardness=min(0.99, max(0.01, value / 3.0)))
+
+    def _on_color_changed(self, color: QtGui.QColor) -> None:
+        self.stroke_preview.update_brush_state(color=[color.redF(), color.greenF(), color.blueF()])
+        self.eyedrop_options_widget.set_captured_color(color)
+        self.shapes_options_widget.set_active_color(color)
+
+    def _on_preset_selected(self, _tool_id: str, _name: str, data: dict) -> None:
+        self.stroke_preview.update_brush_state(
+            hardness=data.get("hardness", 0.85),
+            engine_type=data.get("engine_type", 0),
+        )
+        if self._adv_panel is not None:
+            self._adv_panel.sync_from_engine_profile()
+
+    # ── View → estado ─────────────────────────────────────────────────────
+
+    def _on_slider_edited(self, param: BrushParam, value: float) -> None:
+        self._state.set_value(param, value)
+
+    # ── Ferramentas ───────────────────────────────────────────────────────
+
+    def set_tool_active(self, tool_name: str) -> None:
+        self._active_tool_id = tool_name
+        self.tool_column.set_tool_active(tool_name)
+        self.preset_combo.sync_to_tool(tool_name)
+        if tool_name.startswith("shape_"):
+            self.shapes_options_widget.set_active_shape_type(tool_name)
+        self.stacked_tool_props.setCurrentWidget(self._options_page_for(tool_name))
+
+    def _options_page_for(self, tool_name: str) -> QtWidgets.QWidget:
+        if tool_name in _BRUSH_PAGE_TOOLS:
+            return self.brush_props_widget
+        if tool_name in _SELECTION_TOOLS:
+            return self.selection_options_widget
+        if tool_name == "shapes" or tool_name.startswith("shape_"):
+            return self.shapes_options_widget
+        pages = {
+            "eyedrop": self.eyedrop_options_widget,
+            "bucket": self.bucket_options_widget,
+            "wand": self.wand_options_widget,
+            "transform": self.transform_options_widget,
+        }
+        return pages.get(tool_name, self.brush_props_widget)
+
+    def _on_tool(self, tool_id: str) -> None:
+        self.set_tool_active(tool_id)
+        self.toolActivated.emit(tool_id)
+        if tool_id == "shapes":
+            self.shapes_options_widget.emit_current_settings()
+
+    def _on_selection_options_changed(self, settings: dict) -> None:
+        tool = self._active_tool_id if self._active_tool_id in _SELECTION_TOOLS else "rect_select"
+        self.toolOptionsChanged.emit(tool, settings)
+
+    # ── Painel avançado ───────────────────────────────────────────────────
+
+    def _toggle_advanced_panel(self) -> None:
+        if self._adv_panel is None:
+            self._adv_panel = AdvancedPanel(self._state, self)
+            self._adv_panel.pinToggled.connect(self.sliders_section.set_pinned_visible)
+        if self._adv_panel.isVisible():
+            self._adv_panel.hide()
+        else:
+            self._adv_panel.sync_from_engine_profile()
+            self._adv_panel.show_near(self.btn_adv)
+
+    # ── Construção ────────────────────────────────────────────────────────
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
-        if hasattr(self, "btn_adv"):
-            self.btn_adv.setToolTip(tr("brush.advanced_settings", "Configurações Avançadas do Pincel"))
-        if hasattr(self, "tool_column"):
-            self.tool_column.retranslate_ui()
-        if hasattr(self, "sliders_section"):
-            self.sliders_section.retranslate_ui()
+        self.btn_adv.setToolTip(tr("brush.advanced_settings", "Configurações Avançadas do Pincel"))
+        self.tool_column.retranslate_ui()
+        self.sliders_section.retranslate_ui()
 
-    def setup_ui(self) -> None:
+    def _build_ui(self) -> None:
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(4, 4, 4, 4)
@@ -92,18 +176,15 @@ class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, Brus
         settings_layout.setContentsMargins(0, 0, 0, 0)
         settings_layout.setSpacing(4)
 
-        # Coluna vertical de ferramentas modularizada
         self.tool_column = ToolSelectionColumn(self)
         self.tool_column.toolActivated.connect(self._on_tool)
         settings_layout.addWidget(self.tool_column)
 
-        # Divisor vertical
         self.vline = QtWidgets.QFrame()
         self.vline.setFrameShape(QtWidgets.QFrame.VLine)
         self.vline.setObjectName("DockVLine")
         settings_layout.addWidget(self.vline)
 
-        # Painel central de propriedades empilhadas por ferramenta
         props_col = QtWidgets.QWidget()
         props_col.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         col_layout = QtWidgets.QVBoxLayout(props_col)
@@ -112,8 +193,17 @@ class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, Brus
 
         self.stacked_tool_props = QtWidgets.QStackedWidget(props_col)
         self.stacked_tool_props.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.stacked_tool_props.addWidget(self._build_brush_page())
+        self._build_option_pages()
 
-        # ── 1. Página de Pincéis & Parâmetros Rápidos ────────────────────────
+        col_layout.addWidget(self.stacked_tool_props)
+        settings_layout.addWidget(props_col, 1)
+
+        card_box = PanelCardBox("", content_widget, self)
+        card_box.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        main_layout.addWidget(card_box, 1)
+
+    def _build_brush_page(self) -> QtWidgets.QWidget:
         self.brush_props_widget = QtWidgets.QWidget()
         props_layout = QtWidgets.QVBoxLayout(self.brush_props_widget)
         props_layout.setContentsMargins(0, 0, 0, 0)
@@ -123,19 +213,17 @@ class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, Brus
         row1.setContentsMargins(0, 0, 0, 0)
         row1.setSpacing(4)
 
-        self.preset_combo = BrushDropdown(self)
+        self.preset_combo = BrushDropdown(self._state, self)
         self.preset_combo.setObjectName("BPresetCombo")
         self.preset_combo.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.preset_combo.preset_changed.connect(self._on_preset_changed)
 
         self.btn_adv = QtWidgets.QToolButton(self)
         self.btn_adv.setObjectName("DockAdvBtn")
         self.btn_adv.setIcon(get_icon("settings"))
         self.btn_adv.setIconSize(QtCore.QSize(16, 16))
-        self.btn_adv.setToolTip("Configurações Avançadas do Pincel")
         self.btn_adv.setFixedSize(26, 26)
         self.btn_adv.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_adv.clicked.connect(self._open_advanced_dialog)
+        self.btn_adv.clicked.connect(self._toggle_advanced_panel)
 
         row1.addWidget(self.preset_combo, 1)
         row1.addWidget(self.btn_adv)
@@ -146,53 +234,37 @@ class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, Brus
         self.stroke_preview.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         props_layout.addWidget(self.stroke_preview)
 
-        # Seção modularizada de sliders rápidos e pináveis
         self.sliders_section = QuickSlidersSection(self)
-        self.sliders_section.sizeChanged.connect(self._on_size_changed)
-        self.sliders_section.opacityChanged.connect(self._on_opacity_changed)
-        self.sliders_section.contrastChanged.connect(self._on_contrast_changed)
-        self.sliders_section.pressureChanged.connect(self.pressureChanged.emit)
-        self.sliders_section.pressureCurvePowerChanged.connect(self.pressureCurvePowerChanged.emit)
-        self.sliders_section.stabilizerWeightChanged.connect(self._on_stabilizer_changed)
-        self.sliders_section.spacingChanged.connect(self._on_spacing_changed)
-        self.sliders_section.minDensityValueChanged.connect(self.minDensityValueChanged.emit)
+        self.sliders_section.paramEdited.connect(self._on_slider_edited)
         props_layout.addWidget(self.sliders_section)
+        return self.brush_props_widget
 
-        self.stacked_tool_props.addWidget(self.brush_props_widget)
-
-        # ── 2. Páginas de Opções de Ferramentas Específicas ─────────────────
+    def _build_option_pages(self) -> None:
         self.eyedrop_options_widget = EyedropOptionsWidget(self)
-        self.eyedrop_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("eyedrop", s))
-        self.stacked_tool_props.addWidget(self.eyedrop_options_widget)
-
         self.bucket_options_widget = BucketOptionsWidget(self)
-        self.bucket_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("bucket", s))
-        self.stacked_tool_props.addWidget(self.bucket_options_widget)
-
         self.wand_options_widget = WandOptionsWidget(self)
-        self.wand_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("wand", s))
-        self.stacked_tool_props.addWidget(self.wand_options_widget)
-
         self.transform_options_widget = TransformOptionsWidget(self)
-        self.transform_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("transform", s))
-        self.stacked_tool_props.addWidget(self.transform_options_widget)
-
         self.selection_options_widget = SelectionOptionsWidget(self)
-        self.selection_options_widget.settingsChanged.connect(self._on_selection_options_changed)
-        self.stacked_tool_props.addWidget(self.selection_options_widget)
-
         self.shapes_options_widget = ShapesOptionsWidget(self)
-        self.shapes_options_widget.settingsChanged.connect(lambda s: self.toolOptionsChanged.emit("shapes", s))
-        self.stacked_tool_props.addWidget(self.shapes_options_widget)
 
-        col_layout.addWidget(self.stacked_tool_props)
-        settings_layout.addWidget(props_col, 1)
+        forwarded = {
+            "eyedrop": self.eyedrop_options_widget,
+            "bucket": self.bucket_options_widget,
+            "wand": self.wand_options_widget,
+            "transform": self.transform_options_widget,
+            "shapes": self.shapes_options_widget,
+        }
+        for tool_id, widget in forwarded.items():
+            widget.settingsChanged.connect(lambda s, t=tool_id: self.toolOptionsChanged.emit(t, s))
+        self.selection_options_widget.settingsChanged.connect(self._on_selection_options_changed)
 
-        card_box = PanelCardBox("", content_widget, self)
-        card_box.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        main_layout.addWidget(card_box, 1)
+        for widget in (
+            self.eyedrop_options_widget, self.bucket_options_widget, self.wand_options_widget,
+            self.transform_options_widget, self.selection_options_widget, self.shapes_options_widget,
+        ):
+            self.stacked_tool_props.addWidget(widget)
 
-    def _apply_theme_style(self, *args) -> None:
+    def _apply_theme_style(self, *_args) -> None:
         theme = ThemeManager.instance()
         border = theme.get_color("border")
         text_primary = theme.get_color("text_main")
@@ -213,133 +285,5 @@ class BrushSettingsPanel(QtWidgets.QWidget, BrushPanelCompatAccessorsMixin, Brus
         """)
 
         self.vline.setStyleSheet(f"background-color: {border}; max-width: 1px;")
-        if hasattr(self, "tool_column"):
-            self.tool_column.apply_theme_style(theme)
-        if hasattr(self, "sliders_section"):
-            self.sliders_section.apply_theme_style(theme)
-
-    def set_tool_active(self, tool_name: str) -> None:
-        self._active_tool_id = tool_name
-        if hasattr(self, "tool_column"):
-            self.tool_column.set_tool_active(tool_name)
-
-        if hasattr(self, "preset_combo") and self.preset_combo:
-            self.preset_combo.sync_to_tool(tool_name)
-
-        if hasattr(self, "shapes_options_widget") and tool_name.startswith("shape_") and tool_name != "shapes":
-            self.shapes_options_widget.set_active_shape_type(tool_name)
-
-        if hasattr(self, "stacked_tool_props"):
-            tool_to_widget = {
-                "brush": self.brush_props_widget,
-                "eraser": self.brush_props_widget,
-                "smudge": self.brush_props_widget,
-                "eyedrop": self.eyedrop_options_widget,
-                "bucket": self.bucket_options_widget,
-                "wand": self.wand_options_widget,
-                "transform": self.transform_options_widget,
-                "rect_select": self.selection_options_widget,
-                "ellipse_select": self.selection_options_widget,
-                "lasso": self.selection_options_widget,
-                "shapes": getattr(self, "shapes_options_widget", self.brush_props_widget),
-                "shape_rect": getattr(self, "shapes_options_widget", self.brush_props_widget),
-                "shape_ellipse": getattr(self, "shapes_options_widget", self.brush_props_widget),
-                "shape_line": getattr(self, "shapes_options_widget", self.brush_props_widget),
-                "shape_polygon": getattr(self, "shapes_options_widget", self.brush_props_widget),
-                "shape_star": getattr(self, "shapes_options_widget", self.brush_props_widget),
-            }
-            target = tool_to_widget.get(tool_name, self.brush_props_widget)
-            self.stacked_tool_props.setCurrentWidget(target)
-
-    def _on_selection_options_changed(self, settings: dict) -> None:
-        tool = getattr(self, "_active_tool_id", "rect_select")
-        if tool not in ("rect_select", "ellipse_select", "lasso"):
-            tool = "rect_select"
-        self.toolOptionsChanged.emit(tool, settings)
-
-    def _on_tool(self, tool_id: str) -> None:
-        self.set_tool_active(tool_id)
-        self.toolActivated.emit(tool_id)
-        if tool_id == "shapes" and hasattr(self, "shapes_options_widget"):
-            self.shapes_options_widget._emit_changes()
-
-    def set_color(self, color: QtGui.QColor) -> None:
-        if hasattr(self, "color_wheel") and self.color_wheel:
-            self.color_wheel.set_color(color)
-        if hasattr(self, "stroke_preview") and self.stroke_preview:
-            self.stroke_preview.update_brush_state(color=[color.redF(), color.greenF(), color.blueF()])
-        if hasattr(self, "eyedrop_options_widget"):
-            self.eyedrop_options_widget.set_captured_color(color)
-        if hasattr(self, "shapes_options_widget"):
-            self.shapes_options_widget.set_active_color(color)
-
-    def _on_size_changed(self, val: float) -> None:
-        self.sizeChanged.emit(val)
-        if self._adv_panel and hasattr(self._adv_panel, "slider_size"):
-            self._adv_panel.slider_size.blockSignals(True)
-            self._adv_panel.slider_size.setValue(int(val))
-            self._adv_panel.slider_size.blockSignals(False)
-        if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_brush_state(size=val)
-
-    def _on_opacity_changed(self, val: float) -> None:
-        self.opacityChanged.emit(val)
-        if self._adv_panel and hasattr(self._adv_panel, "slider_opacity"):
-            self._adv_panel.slider_opacity.blockSignals(True)
-            self._adv_panel.slider_opacity.setValue(int(val * 100))
-            self._adv_panel.slider_opacity.blockSignals(False)
-        if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_brush_state(opacity=val)
-
-    def _on_stabilizer_changed(self, val: float) -> None:
-        self.stabilizerWeightChanged.emit(val)
-        if self._adv_panel and hasattr(self._adv_panel, "slider_stabilizer"):
-            self._adv_panel.slider_stabilizer.blockSignals(True)
-            self._adv_panel.slider_stabilizer.setValue(int(val * 100))
-            self._adv_panel.slider_stabilizer.blockSignals(False)
-
-    def _on_spacing_changed(self, val: float) -> None:
-        self.spacingChanged.emit(val)
-        if self._adv_panel and hasattr(self._adv_panel, "slider_spacing"):
-            self._adv_panel.slider_spacing.blockSignals(True)
-            self._adv_panel.slider_spacing.setValue(int(val * 100))
-            self._adv_panel.slider_spacing.blockSignals(False)
-        if hasattr(self, "stroke_preview"):
-            self.stroke_preview.update_brush_state(spacing=val)
-
-    def _on_contrast_changed(self, val: float) -> None:
-        self.contrastChanged.emit(val)
-        if self._adv_panel and hasattr(self._adv_panel, "slider_contrast"):
-            self._adv_panel.slider_contrast.blockSignals(True)
-            self._adv_panel.slider_contrast.setValue(int(val * 100))
-            self._adv_panel.slider_contrast.blockSignals(False)
-
-    def _on_preset_changed(self, name: str, data: dict) -> None:
-        self.sliders_section.sync_from_preset(data)
-        if "brush_size" in data:
-            self.sizeChanged.emit(float(data["brush_size"]))
-        if "opacity" in data:
-            self.opacityChanged.emit(float(data["opacity"]))
-        if "stabilizer_weight" in data or "stabilizer" in data:
-            sw = float(data.get("stabilizer_weight", data.get("stabilizer", 0.35)))
-            self.stabilizerWeightChanged.emit(sw)
-        if "spacing_factor" in data:
-            self.spacingChanged.emit(float(data["spacing_factor"]))
-        if "brush_grain_contrast" in data:
-            self.contrastChanged.emit(float(data["brush_grain_contrast"]))
-        elif "hardness" in data:
-            self.contrastChanged.emit(float(data["hardness"]))
-
-        if self._adv_panel:
-            self._adv_panel.sync_from_engine_profile()
-
-        if hasattr(self, "stroke_preview"):
-            eng_type = data.get("engine_type", 0)
-            sz = data.get("brush_size", self.size_slider.value())
-            op = data.get("opacity", self.opacity_slider.value() / 100.0)
-            hd = data.get("hardness", 0.85)
-            sp = data.get("spacing_factor", 0.10)
-            self.stroke_preview.update_brush_state(
-                size=sz, opacity=op, hardness=hd, spacing=sp, engine_type=eng_type
-            )
-
+        self.tool_column.apply_theme_style(theme)
+        self.sliders_section.apply_theme_style(theme)

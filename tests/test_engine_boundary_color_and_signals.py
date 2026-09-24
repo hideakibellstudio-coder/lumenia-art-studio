@@ -66,7 +66,6 @@ class _MockCanvasWidget(QtCore.QObject):
 class _MockWorkspace:
     def __init__(self, cw: _MockCanvasWidget):
         self.canvas_widget = cw
-        self._saved_color = QtGui.QColor(0, 0, 0, 255)
 
 
 class _MockFacade:
@@ -203,14 +202,19 @@ def test_menu_actions_signal_symmetry_and_active_color(monkeypatch):
     from ui.core.engine.registry import EngineRegistry
     monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
 
+    from ui.core.state import AppState, BrushEngineSync, BrushState
+    brush = BrushState()
+    brush.set_color(QtGui.QColor(12, 34, 56, 255))
+
     class _Host(MainWindowMenuActionsMixin):
         def __init__(self):
             self.workspace = ws
             self.status_bar = QtWidgets.QStatusBar()
+            self.app_state = AppState(brush=brush, brush_sync=BrushEngineSync(brush, lambda: None))
 
     host = _Host()
 
-    # 1. Fill com seleção ativa: deve usar active_color do canvas e emitir sinais 1:1
+    # 1. Fill com seleção ativa: usa a cor ativa do usuário (BrushState) e emite sinais 1:1
     host.fill_active_selection_or_canvas()
     assert cw.strokeStarted.count == 1
     assert cw.strokeFinished.count == 1

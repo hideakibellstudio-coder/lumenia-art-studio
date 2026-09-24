@@ -11,37 +11,94 @@ from .sections.tip_geometry_section import create_tip_geometry_section
 from .sections.jitters_section import create_jitters_section
 from .sections.brush_texture_section import create_brush_texture_section, create_spacing_section
 from .panel_engine_bridge import PanelEngineBridgeMixin
+from .texture_file import read_texture_file
+from ui.core.state import BrushParam, BrushState
 
 logger = logging.getLogger(__name__)
 
-class AdvancedPanel(FloatingToolWindow, PanelEngineBridgeMixin):
-    # Signals
-    pressureChanged           = QtCore.Signal(float)
-    pressureCurvePowerChanged = QtCore.Signal(float)
-    stabilizerWeightChanged   = QtCore.Signal(float)
-    spacingChanged            = QtCore.Signal(float)
-    minDensityActiveChanged   = QtCore.Signal(bool)
-    minDensityValueChanged    = QtCore.Signal(float)
-    contrastChanged           = QtCore.Signal(float)
-    invertHeightChanged       = QtCore.Signal(bool)
-    loadShapeRequested        = QtCore.Signal()
-    loadHeightmapRequested    = QtCore.Signal()
-    sizeChanged               = QtCore.Signal(float)
-    opacityChanged            = QtCore.Signal(float)
-    pinToggled                = QtCore.Signal(str, bool)
+# Parâmetro rápido -> (atributo do slider neste painel, fator unidade->slider).
+_QUICK_SLIDERS: dict[BrushParam, tuple[str, float]] = {
+    BrushParam.SIZE: ("slider_size", 1.0),
+    BrushParam.OPACITY: ("slider_opacity", 100.0),
+    BrushParam.STABILIZER: ("slider_stabilizer", 100.0),
+    BrushParam.CONTRAST: ("slider_contrast", 100.0),
+    BrushParam.SPACING: ("slider_spacing", 100.0),
+}
 
-    def __init__(self, parent=None):
+
+class AdvancedPanel(FloatingToolWindow, PanelEngineBridgeMixin):
+    """Janela flutuante com todos os parâmetros do pincel.
+
+    Os parâmetros rápidos (os mesmos dos sliders do painel principal) são
+    lidos e escritos no BrushState; os demais vão direto ao motor pelo
+    PanelEngineBridgeMixin, porque só esta janela os mostra.
+    """
+
+    # (nome do pin, fixado?) -> o painel principal mostra/esconde o slider rápido.
+    pinToggled = QtCore.Signal(str, bool)
+
+    def __init__(self, brush_state: BrushState, parent=None):
         super().__init__(parent, no_drop_shadow=True)
         self.setWindowTitle("Configurações Avançadas")
         self.setMinimumWidth(330)
         self.setMinimumHeight(440)
 
+        self._state = brush_state
         self._drag_pos = None
         self._build_ui()
+        brush_state.paramChanged.connect(self._on_state_param_changed)
+        for param, value in brush_state.snapshot().items():
+            self._on_state_param_changed(param, value)
 
         from ui.core.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme("")
+
+    # ── Parâmetros rápidos: estado <-> sliders ────────────────────────────
+
+    def edit_param(self, param: BrushParam, value) -> None:
+        """Chamado pelos sliders desta janela: o valor vai para o estado, não para o motor."""
+        self._state.set_value(param, value)
+
+    def _on_state_param_changed(self, param: BrushParam, value) -> None:
+        if param is BrushParam.INVERT_HEIGHT:
+            self.chk_invert.blockSignals(True)
+            self.chk_invert.setChecked(bool(value))
+            self.chk_invert.blockSignals(False)
+            return
+        spec = _QUICK_SLIDERS.get(param)
+        if spec is None:
+            return
+        slider = getattr(self, spec[0])
+        slider.blockSignals(True)
+        slider.setValue(int(round(float(value) * spec[1])))
+        slider.blockSignals(False)
+
+    # ── Texturas carregadas do disco ──────────────────────────────────────
+
+    def load_texture_from_disk(self, is_shape: bool) -> bool:
+        """Lê uma imagem, aplica como forma da ponta ou topografia, e atualiza as miniaturas.
+
+        Antes de 2026-09-24 isto morava no workspace, aplicava a textura duas
+        vezes no motor (via BridgeClient e direto) e chamava um
+        `update_thumbnail` que não existia -- a miniatura nunca mudava.
+        """
+        loaded = read_texture_file(self)
+        backend = self._backend
+        if loaded is None or backend is None:
+            return False
+        pixels, width, height, _path = loaded
+        if is_shape:
+            backend.set_shape_texture(pixels, width, height)
+            self.update_shape_preview_from_engine()
+        else:
+            backend.set_heightmap_texture(pixels, width, height)
+            backend.set_brush_grain_enabled(True)
+            self.chk_b_grain.blockSignals(True)
+            self.chk_b_grain.setChecked(True)
+            self.chk_b_grain.blockSignals(False)
+            self.update_brush_height_preview_from_engine()
+        return True
 
     def mousePressEvent(self, e):
         if e.button() == QtCore.Qt.LeftButton:
@@ -302,6 +359,11 @@ class AdvancedPanel(FloatingToolWindow, PanelEngineBridgeMixin):
             for w in widgets_to_block:
                 if w:
                     w.blockSignals(False)
+
+        # Os parâmetros rápidos seguem o BrushState (o perfil do motor não
+        # guarda o estabilizador, por exemplo).
+        for param, value in self._state.snapshot().items():
+            self._on_state_param_changed(param, value)
 
         self.update_shape_preview_from_engine()
         self.update_brush_height_preview_from_engine()

@@ -1,0 +1,26 @@
+# `bridge/` — pilar da ponte (PyBind11)
+
+**Responsabilidade:** transformar a `PaintEngineFacade` do motor C++ no módulo Python `aladyn_engine_native`, com o contrato tipado que a UI consome.
+
+Pilar 2 do ARCcC multi-pilar (`ui/` → `bridge/` → `engine/`): só serializa, converte tipos, valida buffers e expõe bindings — nenhuma regra de negócio.
+
+## Porta de entrada
+
+`core/bindings/engine_bindings.cpp` (`PYBIND11_MODULE(aladyn_engine_native, ...)`); contrato em `boundary/contracts/aladyn_engine_native.pyi`.
+
+## Conteúdo
+
+| Pasta | Responsabilidade |
+|---|---|
+| `boundary/` | Contrato tipado (`.pyi`) do módulo nativo. |
+| `core/` | Os bindings PyBind11. |
+
+## Regras
+
+- Função nova exposta ao Python: binding em `core/bindings/`, assinatura no `.pyi`, teste `tests/test_pyi_contract_matches_binary.py` verde.
+- A UI só alcança o módulo por `ui/engine_backends/` (Lei nº 2 do AGENTS.md).
+
+## Dívida conhecida (medida em 2026-09-24)
+
+- Falta `infrastructure/` (ex.: mapeamento de erros nativo ↔ Python), que o ARCcC multi-pilar prevê.
+- O lado Python da ponte (`ui/engine_backends/`) fica fora de `ui/infrastructure/`, onde o ARCcC coloca o cliente da ponte.

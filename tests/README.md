@@ -1,0 +1,137 @@
+# `tests/` — suíte automatizada
+
+**Responsabilidade:** provar o comportamento da aplicação e do motor e travar as regras de arquitetura (catracas ARCcC).
+
+## Porta de entrada
+
+`python -m pytest` (suíte completa) ou `python tests/run_all_tests.py` (runner com relatório e `--junit`).
+
+## Arquivos
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `__init__.py` | Marca o pacote da suíte. |
+| `conftest.py` | Keep application preferences and recovery files out of the real user profile. |
+| `main_window_fixture.py` | Acesso compartilhado à MainWindow dos testes de integração. |
+| `qt_windows.py` | Enumeração segura das janelas de topo do Qt nos testes. |
+| `run_all_tests.py` | Runner da suíte: executa tudo (ou uma suíte nomeada) com saída UTF-8 no Windows, cobertura e `--junit` para o relatório de testes. |
+| `arccc_coupling_metrics.py` | Mede, arquivo por arquivo, os padrões de acoplamento que transformaram a UI em espaguete, e mantém a catraca (`arccc_coupling_baseline.json`) usada por `tests/test_arccc_coupling_ratchet.py`. |
+| `arccc_governance_rules.py` | FONTE ÚNICA das regras quantitativas ARCcC usadas pelos testes de governança. |
+| `arccc_package_docs.py` | Documentação por pasta (ARCcC): TODA pasta do repositório tem README.md. |
+| `test_advanced_geometry_dialog.py` | Tests for Phase 3: AdvancedGeometryDialog ARCcC v2 decomposition. |
+| `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
+| `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ ou plugins/ pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `plugins.*` a partir do núcleo do que já tinha. |
+| `test_arccc_cpp_and_docs_governance.py` | Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++). |
+| `test_arccc_package_docs.py` | Toda pasta do repositório tem README com arquivos e dependências verdadeiros. |
+| `test_backend_capabilities.py` | Contrato de capacidades reais entre a UI e os backends de pintura. |
+| `test_brush_advanced_panel.py` | Painel avançado do pincel: seções com estado próprio e dois caminhos claros. |
+| `test_brush_panel_structure.py` | BrushSettingsPanel e seus componentes como views do BrushState. |
+| `test_brush_param_contract.py` | Contrato dos parâmetros de pincel — o motor define, a interface exibe. |
+| `test_brush_presets_catalog.py` | Unit tests for Camada 4 - Fase 1: Modularização do Catálogo de Presets de Pincéis. |
+| `test_brush_state.py` | Contrato de ui/core/state: BrushState (fonte única) e BrushEngineSync (único caminho ao motor). |
+| `test_buffer_contract.py` | Snapshots survive native mutations/destruction; malformed inputs never mutate. |
+| `test_canonical_enums_contract.py` | Contrato dos enums canonicos de Simetria e Reguas -- o motor define, a interface consome. |
+| `test_canvas_cursor_interactions.py` | Testes de Regressão e Contrato para o Sistema de Cursor do Canvas (ARCcC v2) Valida o comportamento dos cursores de viewport, renderizadores de ferramentas, feedback tátil de pan/zoom e sincronização reativa do raio de pincel. |
+| `test_color_harmony.py` | Harmonias no painel "Cores & Harmonias" -- 2026-09-23. |
+| `test_color_management_cms.py` | Test Suite: LittleCMS Professional Color Management, ICC Profiles, Soft-Proofing & LMN Persistence. |
+| `test_compositing_characterization.py` | Teste de caracterizacao da composicao: fixa o resultado ATUAL em pixels. |
+| `test_config_manager.py` | Unit Tests for ConfigManager (Lumenia V2 / ARCcC) Valida a persistência em arquivo JSON, isolamento em modo de testes (in-memory), atualização atômica, emissão de sinais e migração transparente do QSettings. |
+| `test_config_schema.py` | Config migration and preservation across incompatible application versions. |
+| `test_dependency_lock_contract.py` | O lock de dependências do Windows fixa cada pacote resolvido, com hash. |
+| `test_dialogs_i18n.py` | Test Suite: Dialogs & Configuration I18n Retranslation Valida se todos os diálogos de preferências e configurações de sistema acompanham a mudança de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP). |
+| `test_dialogs_theme_and_docs.py` | Diálogos principais reagem à troca de tema e de idioma; guia do usuário nos 4 idiomas. |
+| `test_dirty_tracking_layers_and_navigator_flip.py` | Sincronização viewport/navegador (incluindo espelhamento) e marcação de alterações nas camadas. |
+| `test_dock_system_structure.py` | Comprehensive unit tests for Camada 3 - Fase 3: Dock System Decomposition. |
+| `test_document_close_releases_memory.py` | Fechar um documento libera o documento e os widgets da aba. |
+| `test_document_format_fuzz.py` | Deterministic malformed-file fuzzing for the untrusted LMN reader. |
+| `test_document_history_integration.py` | Exercise native pixels and document UIDs in the same history timeline. |
+| `test_document_profile_and_dpi.py` | Perfil de cor por documento, DPI no Document e o fluxo "Novo documento". |
+| `test_document_serializer_integrity.py` | Regressões de integridade do formato editável .lmn. |
+| `test_document_v2.py` | Native LMN v2 persistence, migrations and recovery failure regressions. |
+| `test_engine_backend_protocols.py` | Prova, em runtime, que os Protocols de ui.core.engine.backend_protocols sao cortes fieis de EngineBackend E que o backend concreto (AladynBackend) implementa de fato cada papel. |
+| `test_engine_benchmark_runner.py` | O runner de benchmarks do motor exporta a linha de base em formato legível por máquina. |
+| `test_engine_boundary_color_and_signals.py` | Test Engine Boundary Round 11 — Validação da Fronteira Nativa C++ / Python. |
+| `test_engine_document_boundary.py` | Fronteira motor ↔ documento: um caminho só, sem o motor conhecer o modelo. |
+| `test_floating_toolbar_structure.py` | Testes de Regressão e Contrato para a Decomposição da Fase 2 da Camada 5 (ARCcC v2) Valida o desacoplamento de ToolbarLivePreview, ToolToggleCard e FloatingToolbarSettingsDialog. |
+| `test_fullscreen_mode.py` | Tela cheia pelo F11 e pelo menu: entrar, sair e restaurar o estado anterior da janela. |
+| `test_geometry_c35_native_anchor.py` | Regressao Fase C3.5 (refinamento) -- ver claude/fase-c3-consolidacao-snap-nativo.md no projeto Lumenia (Projects tool) para o diagnostico completo. |
+| `test_geometry_d0_snap_foundation.py` | Regressao Fase D0 (redesign do motor de snap) -- ver claude/proposta-redesign-motor-snap-guias.md no projeto Lumenia (Projects tool) para o diagnostico e desenho completos. |
+| `test_geometry_history.py` | Geometry must keep earlier native history, selection and MDI isolation. |
+| `test_geometry_state.py` | GeometryState: guias e simetria com uma cópia só (painel, diálogo e canvas são views). |
+| `test_geometry_structure.py` | Comprehensive unit tests for Camada 3 - Fase 1: Geometric Decomposition. |
+| `test_geometry_symmetry.py` | Modos de simetria, espelho vertical no traço, snap de régua reta e curvilínea, diálogos de geometria. |
+| `test_giant_brush_smoothness_and_throughput.py` | Pincéis gigantes: suavidade do falloff analítico e vazão do `LargeBrushOptimizer`. |
+| `test_hardcoded_colors_ratchet.py` | Catraca da Lei 5 (zero hardcode de cores). |
+| `test_history_io_failures.py` | Real C++ I/O, codec and multi-tile history failure scenarios (no Python mocks). |
+| `test_i18n_keys_exist.py` | Toda chave literal passada a tr(...) ou Text(...) em ui/ e plugins/ existe nos 4 locales. |
+| `test_i18n_localization.py` | Testes Unitários da Infraestrutura de Internacionalização (i18n) — Lumenia V2 (ARCcC). |
+| `test_i18n_system.py` | Unit Tests for I18nManager & Internationalization System (Lumenia V2 / ARCcC) Valida a detecção automática do idioma do SO, fallback universal para en_US, interpolação dinâmica de parâmetros e hot-swap em tempo real sem restart. |
+| `test_layer_blend_mode_contract.py` | Contrato do enum canonico de modo de mesclagem de camadas -- o motor define, a interface consome. |
+| `test_layer_drop_plan.py` | Arrastar e soltar na árvore de camadas: onde as camadas movidas ficam. |
+| `test_layer_manager_history.py` | Histórico estrutural do gerenciador de camadas: renomear/reordenar preservam uids; camada 0 nunca vira máscara de recorte. |
+| `test_layer_projection_divergence.py` | Deteccao de ordem divergente entre Document e motor (Achado #5). |
+| `test_layers_basic_operations.py` | Suite de Testes Padrão Ouro — Fase 1: Operações Básicas de Camadas Testa adição, exclusão, reordenação Drag & Drop C++, Alpha Lock, Clipping Mask e Merge Down. |
+| `test_layers_groups_hierarchy.py` | Suite de Testes Padrão Ouro — Fase 2: Grupos de Camadas e Estrutura Hierárquica Testa criação de grupos, aninhamento de sub-grupos, modo Atravessar (Pass-Through) e opacidade/visibilidade efetiva recursivas. |
+| `test_layers_plugin_structure.py` | Tests for Phase 4: Layers Plugin (paper & panel) ARCcC v2 decomposition. |
+| `test_lowlevel_blend_modes.py` | Precisão numérica dos modos de mesclagem, do Alpha Lock e da máscara de recorte. |
+| `test_lowlevel_brush_raster.py` | Mini-motores de pincel rasterizam na camada ativa: interpolação contínua, curvas de pressão, borracha. |
+| `test_lowlevel_color_dynamics.py` | Mesclagem em sRGB linear e dinâmicas estendidas da caneta. |
+| `test_lowlevel_color_profiles.py` | Low-Level Test Suite: Color Profiles, Display Buffer & Daltonism Proofing Math Validates C++ ColorProfile matrix calculations, display pixel buffers, and soft-proofing. |
+| `test_lowlevel_giant_brushes_simd.py` | Pincéis gigantes, mesclagem SIMD (AVX2) de trechos e LOD adaptativo. |
+| `test_lowlevel_memory_scalability.py` | Escala de formato e memória (canvas grande, 600 DPI). |
+| `test_lowlevel_render_options.py` | Verifica que os flags do pipeline alteram o processamento nativo. |
+| `test_lowlevel_selection_transform.py` | Low-Level Test Suite: Selection Bitmask, Flood Fill & Bicubic Transformation Math Validates SelectionEngine clipping, Magic Wand contouring, and TransformEngine affine matrix accuracy. |
+| `test_lowlevel_telemetry_diagnostics.py` | Telemetria nativa: captura sem custo, ligar/desligar, latência em µs, memória de tiles e do histórico. |
+| `test_lowlevel_undo_tile_stress.py` | Low-Level Test Suite: Tile Boundary Crossing, Multi-Step Undo/Redo & Memory Stress Validates dirty tile tracking across 64x64 boundaries, undo snapshot accuracy, and memory limits. |
+| `test_lowlevel_viewport_lod_antialiasing.py` | Nível de detalhe (LOD) do viewport e antisserrilhamento por filtro de caixa. |
+| `test_lowlevel_viewport_pipeline.py` | Pipeline do viewport para 120 FPS e aceleração de hardware. |
+| `test_main_window_actions.py` | Contrato da casca: colaboradores da MainWindow e a porta do workspace. |
+| `test_mdi_multidoc_lifecycle.py` | Test MDI Multi-Document Lifecycle & C++ Facade Isolation. |
+| `test_menu_bar_complete_wiring.py` | Test Menu Bar Complete Wiring & Dialogs — Validação de Todas as Ações do Menu. |
+| `test_native_build_contract.py` | Os metadados de build do módulo nativo descrevem o binário realmente carregado. |
+| `test_native_core_invariants_and_rivers.py` | Invariantes do núcleo C++ e as 5 Leis do Leito do Rio de ponta a ponta. |
+| `test_new_document_dialog.py` | Unit tests for NewDocumentDialog, PresetCatalog and memory estimation. |
+| `test_persistence_failures.py` | Failure injection and native round-trip regression coverage. |
+| `test_plugin_installation.py` | Instalação de plugin: exige manifesto, recusa path traversal, id repetido e manifesto incompleto. |
+| `test_plugin_lifecycle.py` | Ciclo de vida de plugins: ordem por dependência, limpeza em falha, conexões de painel removidas. |
+| `test_portable_build_contract.py` | Build portátil: inclui motor e dados, manifesto com hash de cada arquivo, caminho do instalador. |
+| `test_pyi_contract_matches_binary.py` | Regressao para F-024/3.3: garante que bridge/boundary/contracts/aladyn_engine_native.pyi descreve exatamente a superficie do modulo nativo compilado, nas duas direcoes. |
+| `test_recording_contracts.py` | Contratos do plugin de gravação: quadro vem do documento ativo e do motor; barra flutuante só emite sinais. |
+| `test_recording_plugin.py` | Testes de Unidade e Contrato para o Plugin de Gravação & Timelapse (ARCcC). |
+| `test_regressions_ui_layout_items.py` | Testes unitários abrangentes para validação dos 8 itens de observação e estabilidade. |
+| `test_regressions_undo_shortcuts_cursor.py` | Test suite for the 5 User Observations Audit and Verification in Lumenia V2. |
+| `test_render_options_and_native_dirty_tracking.py` | Opções de renderização e marcação nativa de regiões alteradas. |
+| `test_render_widget_structure.py` | Comprehensive unit tests for Camada 3 - Fase 2: RenderWidget Decomposition. |
+| `test_river_ratchets.py` | Catracas das Leis do Leito do Rio: a contagem pode cair, nunca subir sem que alguém decida conscientemente (editando a lista abaixo, com motivo). |
+| `test_runner_coverage_contract.py` | O runner grava a cobertura da fronteira de documento. |
+| `test_runner_suite_selection.py` | As suítes nomeadas do runner apontam para arquivos de teste existentes e únicos. |
+| `test_runtime_paths.py` | Raiz de recursos em desenvolvimento (repositório) e empacotado (pasta do executável). |
+| `test_secondary_toolbar_structure.py` | Contrato da barra secundária (plugins/system/workspace_core/workspace/secondary_tool_bar). |
+| `test_selection_modify.py` | Seleção -> Modificar (Expandir, Contrair, Suavizar Borda) -- 2026-09-23. |
+| `test_shortcut_registry.py` | Registro de atalhos: remapear/desativar/conflito atômicos, contexto do editor de texto e do canvas. |
+| `test_state_links.py` | Regras entre estados (ui/core/state/state_links.py). |
+| `test_stroke_characterization.py` | Caracterização do traço — fixa o comportamento ANTES de mexer no motor. |
+| `test_stroke_pipeline_integrity.py` | Pipeline do traço do canvas: toque isolado, atualização contínua, inclinação/rotação da caneta, direções variadas. |
+| `test_stroke_preview_native.py` | Prévia nativa do pincel (render_stroke_preview) -- regressão de 2026-08-25. |
+| `test_telemetry_contract.py` | Contrato da telemetria com o motor nativo e o "Limpar Undo" de verdade. |
+| `test_telemetry_views.py` | Telas de telemetria (cockpit, painel, diagnóstico) como views do `TelemetryTracker`. |
+| `test_test_report_measured.py` | Relatório de testes com números medidos (JUnit XML), não fixos. |
+| `test_theme_system.py` | Temas: arquivos válidos e completos, QSS sem tokens pendentes, resolução de cores e aliases. |
+| `test_theme_tweaks.py` | Ajustes finos do tema: raio dos cantos e fonte de verdade; filtro em qualquer idioma. |
+| `test_tool_lifecycles_and_paper.py` | Testes de Integridade dos Subsistemas Satélites — Rodada 10 (ARCcC v2) Validações de: - Cor do Balde de Tinta (do_flood_fill) e garantia de simetria de sinais via try/finally. |
+| `test_tool_settings_contract.py` | Contract tests for canonical canvas-tool settings and their workspace route. |
+| `test_tool_state.py` | Contrato do ToolState: ferramenta ativa e opções de ferramenta (fonte única). |
+| `test_toolbars_geometry_i18n.py` | Test Suite: Toolbars & Geometry I18n Retranslation Valida se as opcoes da barra de ferramentas secundaria e dos paineis/dialogos de geometria acompanham a mudanca de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP). |
+| `test_tools_signal_symmetry_and_flip.py` | Testes automatizados cobrindo a integridade dos subsistemas satélites (Rodada 9). |
+| `test_transform_distort.py` | Transformar -> Distorcer -- 2026-09-23. |
+| `test_window_menu_panels.py` | Menu Janela: cada item abre o painel registrado com o mesmo PanelId. |
+
+## Regras
+
+- Teste novo entra nesta tabela; mensagem de interface é comparada com `tr(...)`, nunca com o texto em português (o idioma do sistema muda o texto).
+- Catracas (acoplamento, cores, rios, documentação por pasta) só podem cair; subiu, você acoplou.
+- Nada de arquivo gerado aqui: saídas temporárias vão para `tmp_path` ou para o diretório de build fora da árvore.
+
+## Dívida conhecida (medida em 2026-09-24)
+
+O ARCcC prevê testes junto de cada pasta (`testes/`); aqui a suíte é central. Três arquivos de teste têm nome de fase em vez de assunto (`test_regressions_*`, `test_tools_signal_symmetry_and_flip.py`) e muitos nomes de função de teste estão em português.

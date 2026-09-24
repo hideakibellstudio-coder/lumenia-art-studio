@@ -185,11 +185,16 @@ reais de antes/depois: `docs/02-arquitetura/06-contratos-entre-componentes.md`.
   lugar só (`ui/core/state/state_links.py`).
 - `except Exception: pass` (catraca `silent_except` está em 0).
 
-**Toda pasta tem README** com responsabilidade, porta de entrada, tabela de
-arquivos, regras e o bloco `arccc:deps` com as dependências internas medidas.
-Leia o README antes de mexer; arquivo novo ou import novo entre pastas atualiza
-o README no mesmo commit (o teste `tests/test_arccc_package_docs.py` falha
-se não).
+**Toda pasta tem README** — todas mesmo: `ui/`, `plugins/`, o motor C++
+(`engine/`), a ponte (`bridge/`), `tests/`, `scripts/`, `docs/`, `assets/` —
+com responsabilidade, porta de entrada, tabela de arquivos, regras e, nas pastas
+de código dos pilares, o bloco `arccc:deps` com as dependências medidas
+(`import` no Python, `#include` no C++). Leia o README antes de mexer; pasta
+nova, arquivo novo ou dependência nova entre pastas atualiza o README no mesmo
+commit (o teste `tests/test_arccc_package_docs.py` falha se não). Até
+2026-09-24 o teste só via as pastas Python e 51 das 111 pastas não tinham
+README; divergências restantes da estrutura física em
+`docs/02-arquitetura/07-auditoria-da-estrutura-fisica.md`.
 
 ---
 

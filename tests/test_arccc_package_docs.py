@@ -1,4 +1,4 @@
-"""Todo pacote de ui/ e plugins/ tem README com arquivos e dependências verdadeiros.
+"""Toda pasta do repositório tem README com arquivos e dependências verdadeiros.
 
 Regras e linha de comando em tests/arccc_package_docs.py. Quando este teste
 falhar:

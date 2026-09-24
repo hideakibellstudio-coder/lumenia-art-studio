@@ -24,6 +24,10 @@ jobs:
           arch: x64
       - name: Install test and build dependencies
         run: python -m pip install -r requirements-dev.lock
+      - name: Verify scientific runtime dependencies
+        # scripts/build_portable.py empacota numpy e scipy; falhar aqui é mais
+        # claro que o RuntimeError do teste de contrato do build portátil.
+        run: python -c "import numpy, scipy; print(numpy.__version__, scipy.__version__)"
       - name: Build native engine (scalar)
         run: python scripts/build_native.py --simd scalar --force
       - name: Measure native engine baseline
@@ -56,6 +60,10 @@ jobs:
           arch: x64
       - name: Install test and build dependencies
         run: python -m pip install -r requirements-dev.lock
+      - name: Verify scientific runtime dependencies
+        # scripts/build_portable.py empacota numpy e scipy; falhar aqui é mais
+        # claro que o RuntimeError do teste de contrato do build portátil.
+        run: python -c "import numpy, scipy; print(numpy.__version__, scipy.__version__)"
       - name: Build native engine (AVX2)
         run: python scripts/build_native.py --simd avx2 --force
       - name: Verify AVX2 module loads

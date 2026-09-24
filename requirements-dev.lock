@@ -1,6 +1,9 @@
 # Windows x64 lock for the Python versions exercised by CI (3.11, 3.12, 3.13, 3.14).
 # 3.14 is the version used on the development machine (aladyn_engine_native.cp314);
 # its cp314 wheel hashes (coverage, numpy, pillow) were added on 2026-09-22.
+# scipy 1.17.1 (win_amd64, cp311-cp314) added on 2026-09-24: scripts/build_portable.py
+# ships numpy and scipy as runtime data and fails without them. 1.17.x is the last
+# scipy line with cp311 wheels; it accepts the pinned numpy 2.4.5 (>=1.26.4,<2.7).
 # Hashes were calculated from the resolved wheels for each supported CPython ABI.
 --require-hashes
 
@@ -42,6 +45,11 @@ pyside6-essentials==6.11.1 \
     --hash=sha256:63311bd48e32c584599ab04b9ef7c324082374cd2c9fa533f978fb893bb47e40
 pytest==9.0.3 \
     --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9
+scipy==1.17.1 \
+    --hash=sha256:d30e57c72013c2a4fe441c2fcb8e77b14e152ad48b5464858e07e2ad9fbfceff \
+    --hash=sha256:41b71f4a3a4cab9d366cd9065b288efc4d4f3c0b37a91a8e0947fb5bd7f31d87 \
+    --hash=sha256:37425bc9175607b0268f493d79a292c39f9d001a357bebb6b88fdfaff13f6448 \
+    --hash=sha256:3877ac408e14da24a6196de0ddcace62092bfc12a83823e92e49e40747e52c19
 setuptools==82.0.1 \
     --hash=sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb
 shiboken6==6.11.1 \

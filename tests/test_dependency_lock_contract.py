@@ -24,4 +24,6 @@ def test_windows_dependency_lock_pins_every_resolved_package_with_hashes():
         assert rest
         hashes = re.findall(r"--hash=sha256:([0-9a-f]{64})", requirement)
         assert hashes, requirement
-    assert {"pyside6", "pybind11", "numpy", "pillow", "pytest", "coverage"} <= names
+    # numpy e scipy: scripts/build_portable.py empacota os dois como dados de
+    # runtime e falha se não estiverem instalados (CI quebrou assim em 2026-09-24).
+    assert {"pyside6", "pybind11", "numpy", "scipy", "pillow", "pytest", "coverage"} <= names

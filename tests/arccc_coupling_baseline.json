@@ -469,45 +469,15 @@
  "ui/core/widgets/tool_options/transform_selection_options.py": {
   "hasattr": 4
  },
- "ui/engine_backends/aladyn.py": {
-  "hasattr": 3
- },
  "ui/engine_backends/aladyn_brush_mixin.py": {
   "hasattr": 3
- },
- "ui/engine_backends/aladyn_brush_profiles.py": {
-  "foreign_private": 2,
-  "getattr_literal": 1,
-  "hasattr": 1
  },
  "ui/engine_backends/aladyn_buffers.py": {
   "getattr_literal": 1,
   "hasattr": 7
  },
- "ui/engine_backends/aladyn_capabilities_mixin.py": {
-  "getattr_literal": 1
- },
- "ui/engine_backends/aladyn_color_mixin.py": {
-  "getattr_literal": 1,
-  "hasattr": 2
- },
- "ui/engine_backends/aladyn_layer_mixin.py": {
-  "getattr_literal": 2,
-  "hasattr": 24
- },
- "ui/engine_backends/aladyn_mdi_mixin.py": {
-  "getattr_literal": 3,
-  "hasattr": 5
- },
- "ui/engine_backends/aladyn_resources_mixin.py": {
-  "hasattr": 1
- },
- "ui/engine_backends/aladyn_selection_mixin.py": {
-  "hasattr": 1
- },
  "ui/engine_backends/aladyn_stroke_mixin.py": {
-  "getattr_literal": 10,
-  "hasattr": 6
+  "getattr_literal": 7
  },
  "ui/engine_backends/native_fallback.py": {
   "hasattr": 1

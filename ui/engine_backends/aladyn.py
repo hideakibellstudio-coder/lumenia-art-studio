@@ -60,22 +60,10 @@ class AladynBackend(
     name = "aladyn"
 
     def __init__(self) -> None:
-        self._native: Any = None
-        self._facade: Any = None
-        self._width: int = 800
-        self._height: int = 600
-        self.last_telemetry: tuple[float, float, float] = (0.0, 0.0, 0.0)
-        self._action_stack: list[tuple[str, int]] = []
-        self._redo_stack: list[tuple[str, int]] = []
-        self._is_filling: bool = False
-        self._view_state: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 0.0)
-        # Estado canônico das opções que afetam o pipeline nativo. Mantê-lo
-        # no backend permite reaplicar o mesmo perfil ao trocar de documento.
-        self._render_options: dict[str, bool] = {
-            "low_latency": True,
-            "linear_gamma": False,
-            "deep_color": False,
-        }
+        # Todo o estado compartilhado pelos mixins nasce aqui (ver aladyn_base.py).
+        # As opções de render ficam no backend para serem reaplicadas a cada
+        # facade nova ao trocar de documento.
+        self._init_backend_state()
         try:
             from ui.core.config.manager import ConfigManager
             saved_render = ConfigManager.instance().get_section("render")
@@ -86,7 +74,6 @@ class AladynBackend(
                     self._render_options[key] = bool(saved_render[key])
         except Exception:
             logger.debug("[AladynBackend] Configuração de renderização indisponível; usando padrões.", exc_info=True)
-        self.__init_mdi__()
 
         try:
             import aladyn_engine_native
@@ -144,8 +131,7 @@ class AladynBackend(
             self._width = max(1, width)
             self._height = max(1, height)
             self._facade.resize_canvas(self._width, self._height)
-            if hasattr(self, "_mark_document_dirty"):
-                self._mark_document_dirty("resize")
+            self._mark_document_dirty("resize")
 
     def render(self, pan_x: float, pan_y: float, zoom: float, rotation_rad: float) -> None:
         self._view_state = (float(pan_x), float(pan_y), max(1e-6, float(zoom)), float(rotation_rad))
@@ -214,13 +200,13 @@ class AladynBackend(
             return False
         result = self._facade.apply_prepared_geometry(prepared)
         self._width, self._height = self._facade.get_width(), self._facade.get_height()
-        if result and hasattr(self, "_mark_document_dirty"):
+        if result:
             self._mark_document_dirty("prepared_geometry")
         return bool(result)
 
     def commit_layer_transaction(self) -> int:
         res = int(self._facade.commit_layer_transaction()) if self._facade else 0
-        if res and hasattr(self, "_mark_document_dirty"):
+        if res:
             self._mark_document_dirty("layer_transaction")
         return res
 

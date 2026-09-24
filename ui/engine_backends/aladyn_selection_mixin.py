@@ -3,9 +3,10 @@
 from typing import Optional, Any
 from PySide6.QtGui import QImage, QColor
 from .aladyn_buffers import to_native_color_rgba
+from .aladyn_base import AladynBackendBase
 
 
-class AladynSelectionMixin:
+class AladynSelectionMixin(AladynBackendBase):
     """Mixin contendo operações de seleção raster e vetorial."""
 
     def magic_wand_select(
@@ -121,7 +122,7 @@ class AladynSelectionMixin:
     def set_selection_mask_buffer(self, pixels: bytes) -> bool:
         if self._facade:
             res = bool(self._facade.set_selection_mask_buffer(bytes(pixels)))
-            if res and hasattr(self, "_mark_document_dirty"):
+            if res:
                 self._mark_document_dirty("selection")
             return res
         return False

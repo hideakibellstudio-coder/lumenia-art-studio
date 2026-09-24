@@ -1,12 +1,13 @@
 """Document-owned canvas assets crossing the canonical backend boundary."""
 
 from typing import TYPE_CHECKING
+from .aladyn_base import AladynBackendBase
 
 if TYPE_CHECKING:
     from aladyn_engine_native import CanvasTexture
 
 
-class AladynResourcesMixin:
+class AladynResourcesMixin(AladynBackendBase):
     def get_canvas_resource(self):
         if not self._facade:
             return None
@@ -34,6 +35,6 @@ class AladynResourcesMixin:
         canvas.canvas_texture_curve.set_lut(state["curve"])
         canvas.invalidate_lut()
         ok = (self.get_canvas_resource() == state)
-        if ok and hasattr(self, "_mark_document_dirty"):
+        if ok:
             self._mark_document_dirty("canvas_resource")
         return ok

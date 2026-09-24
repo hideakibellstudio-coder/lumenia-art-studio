@@ -335,7 +335,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowMenuActionsMixin, MainWindowRe
 
                 # A facade nova começa com o pincel padrão do motor: reenvia o
                 # pincel do usuário (preset, parâmetros e cor).
-                self.app_state.brush_sync.resync(self.app_state.tools.active_tool)
+                self.app_state.brush_sync.resync()
 
             self.reset_view()
             prof_name = backend.get_color_profile_name(color_prof) if backend else "sRGB"

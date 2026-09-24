@@ -5,25 +5,16 @@ import logging
 from typing import Any
 
 from .native_fallback import nativo_tem
+from .aladyn_base import AladynBackendBase
 
 logger = logging.getLogger(__name__)
 
 
-class AladynMdiMixin:
+class AladynMdiMixin(AladynBackendBase):
     """Mixin para gerenciamento de múltiplas instâncias de PaintEngineFacade por documento."""
-
-    def __init_mdi__(self) -> None:
-        self._doc_facades: dict[str, Any] = {}
-        self._active_doc_uid: str | None = None
 
     def get_active_document_context(self):
         return self._active_doc_uid
-
-    def _mark_document_dirty(self, reason):
-        from ui.core.document.manager import DocumentManager
-        document = DocumentManager.instance().get_document(self._active_doc_uid)
-        if document is not None:
-            document.mark_dirty(reason)
 
     def _push_render_options(self, facade) -> None:
         """Aplica as opções de render guardadas numa facade (único ponto do fallback).
@@ -32,8 +23,8 @@ class AladynMdiMixin:
         `.pyd` compilado antes desse método existir (ver lista de fallbacks
         legítimos em tests/test_native_guard_ratchet.py).
         """
-        options = getattr(self, "_render_options", None)
-        if not facade or not options:
+        options = self._render_options
+        if not facade:
             return
         if nativo_tem(facade, "set_render_options", "opções de render aplicadas uma a uma"):
             facade.set_render_options(**options)
@@ -48,9 +39,6 @@ class AladynMdiMixin:
         Alterna o contexto ativo de execução C++ para o documento especificado em tempo O(1).
         Se a PaintEngineFacade para o documento ainda não existir, ela é alocada imediatamente.
         """
-        if not hasattr(self, "_doc_facades"):
-            self._doc_facades = {}
-
         if self._native is None:
             return
 
@@ -60,10 +48,8 @@ class AladynMdiMixin:
         if uid not in self._doc_facades:
             try:
                 facade = self._native.PaintEngineFacade(w, h)
-                if hasattr(self, "_undo_memory_limit_mb"):
-                    facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
-                if hasattr(self, "_undo_max_steps"):
-                    facade.set_undo_max_steps(self._undo_max_steps)
+                facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
+                facade.set_undo_max_steps(self._undo_max_steps)
                 self._push_render_options(facade)
                 if facade:
                     c_tex = facade.get_canvas_texture()
@@ -93,11 +79,11 @@ class AladynMdiMixin:
         # cosmetico: `get_brush_profile_dict` produz 42 das ~46 chaves, mas nao
         # produz `engine_type`, `shape_preset` nem `brush_height_preset`. Um
         # `replace` as perderia; o merge preserva o que o getter nao sabe ler.
-        if getattr(self, "_facade", None) is not None:
+        if self._facade is not None:
             try:
                 estado_vivo = self.get_brush_profile_dict()
                 if estado_vivo:
-                    atualizado = dict(getattr(self, "_last_brush_preset", None) or {})
+                    atualizado = dict(self._last_brush_preset)
                     atualizado.update(estado_vivo)
                     self._last_brush_preset = atualizado
             except Exception as exc:
@@ -108,14 +94,11 @@ class AladynMdiMixin:
         self._width = self._facade.get_width()
         self._height = self._facade.get_height()
         self._push_render_options(self._facade)
-        if hasattr(self, "_last_brush_preset") and self._last_brush_preset:
+        if self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)
 
     def close_document_context(self, uid: str) -> None:
         """Libera a memória C++ e deleta a PaintEngineFacade do documento fechado."""
-        if not hasattr(self, "_doc_facades"):
-            return
-
         if uid in self._doc_facades:
             del self._doc_facades[uid]
             logger.info(f"[AladynBackend] PaintEngineFacade C++ liberada para doc '{uid}'.")

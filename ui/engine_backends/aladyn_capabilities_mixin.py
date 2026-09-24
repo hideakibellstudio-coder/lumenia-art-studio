@@ -4,9 +4,10 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from .aladyn_base import AladynBackendBase
 
 
-class AladynCapabilitiesMixin:
+class AladynCapabilitiesMixin(AladynBackendBase):
     """Expõe suporte real sem fazer a UI inferir detalhes da fachada nativa."""
 
     def get_capabilities(self) -> dict[str, object]:
@@ -59,8 +60,7 @@ class AladynCapabilitiesMixin:
 
         # Exportação enriquecida com perfil ICC para PNG, JPEG, TIFF e WebP
         if embed_icc and ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp"}:
-            get_icc = getattr(self, "get_active_profile_icc_bytes", None)
-            icc_bytes = get_icc() if callable(get_icc) else None
+            icc_bytes = self.get_active_profile_icc_bytes()
             if icc_bytes:
                 image = self.get_qimage()
                 if image and not image.isNull():

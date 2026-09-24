@@ -85,7 +85,7 @@ def test_navigator_flip_button_clicks_aligned(app):
 
 class _MockMdiBackend(AladynMdiMixin):
     def __init__(self):
-        self._doc_facades = {}
+        self._init_backend_state()
         self._native = MagicMock()
         self._render_options = {"low_latency": True, "linear_gamma": True, "deep_color": False}
 
@@ -113,6 +113,8 @@ def test_aladyn_mdi_render_options_guard_granular_fallback():
         def set_low_latency(self, val): self.low_latency = val
         def set_linear_gamma(self, val): self.linear_gamma = val
         def set_deep_color(self, val): self.deep_color = val
+        def set_undo_memory_limit_mb(self, mb): pass
+        def set_undo_max_steps(self, steps): pass
         def get_canvas_texture(self): return None
         def get_width(self): return 800
         def get_height(self): return 600
@@ -130,6 +132,7 @@ def test_aladyn_mdi_render_options_guard_granular_fallback():
 
 class _MockLayerBackend(AladynLayerMixin):
     def __init__(self):
+        self._init_backend_state()
         self._facade = MagicMock()
         self.dirty_reasons = []
 
@@ -180,6 +183,7 @@ class _MockNative:
 
 class _MockStrokeBackend(AladynStrokeMixin):
     def __init__(self):
+        self._init_backend_state()
         self._facade = MagicMock()
         self._native = _MockNative()
         self.dirty_reasons = []

@@ -196,11 +196,11 @@ class WorkspaceDocSyncMixin:
                 if b and hasattr(b, "select_layer"):
                     b.select_layer(act_idx)
 
-        # A facade nativa deste documento tem o seu próprio perfil de pincel:
-        # reenvia o pincel inteiro (preset da ferramenta, parâmetros e cor).
-        # Antes só o preset era reaplicado, e tamanho/opacidade ajustados à mão
-        # voltavam aos do preset ao trocar de aba.
-        self._brush_sync.resync(self._tool_state.active_tool)
+        # A facade nativa deste documento recebeu do adaptador o perfil da aba
+        # anterior; reenviamos os valores do BrushState por cima (parâmetros
+        # rápidos e cor). Antes o preset era reaplicado aqui e os ajustes feitos
+        # à mão (tamanho, jitter, textura...) voltavam aos do preset.
+        self._brush_sync.resync()
 
     def _on_document_closed_cleanup(self, uid: str) -> None:
         """Chamado quando um documento é fechado para liberar memória C++ imediatamente."""

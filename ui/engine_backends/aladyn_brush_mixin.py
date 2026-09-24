@@ -10,6 +10,7 @@ import logging
 from typing import Any, Optional, TYPE_CHECKING
 
 from .native_fallback import nativo_tem
+from .aladyn_base import AladynBackendBase
 
 if TYPE_CHECKING:
     from aladyn_engine_native import BrushProfile, CanvasTexture
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AladynBrushMixin:
+class AladynBrushMixin(AladynBackendBase):
     """Mixin responsável pelo perfil, presets e parâmetros de pincéis no AladynBackend."""
 
     def set_canvas_paper_state(self, color: Any, visible: bool, preset_id: int = 0, enabled: bool = False, *, reset_texture: bool = True) -> None:
@@ -86,7 +87,12 @@ class AladynBrushMixin:
 
     def apply_brush_preset_dict(self, data: dict) -> None:
         from .aladyn_brush_profiles import apply_brush_preset_dict
-        apply_brush_preset_dict(self, self._facade, data)
+        if not data:
+            return
+        # O perfil aplicado acompanha o usuário ao trocar de documento
+        # (AladynMdiMixin.set_active_document_context).
+        self._last_brush_preset.update(data)
+        apply_brush_preset_dict(self, self._facade, self._native, data)
 
     def render_brush_preview(self, width: int, height: int, brush_state: Optional[dict] = None) -> Optional[bytes]:
         if not self._native or not nativo_tem(self._native, "render_stroke_preview", "o painel de pincel mostra uma prévia aproximada"):

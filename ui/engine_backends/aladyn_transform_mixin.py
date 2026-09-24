@@ -2,9 +2,10 @@
 
 from typing import Optional
 from PySide6.QtGui import QImage
+from .aladyn_base import AladynBackendBase
 
 
-class AladynTransformMixin:
+class AladynTransformMixin(AladynBackendBase):
     """Mixin contendo operações de transformação livre, rotação, espelhamento e colagem."""
 
     def begin_transform(self) -> bool:

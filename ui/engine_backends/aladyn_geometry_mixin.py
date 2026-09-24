@@ -4,9 +4,10 @@ from __future__ import annotations
 from typing import Any
 from PySide6 import QtGui
 from .native_fallback import nativo_tem
+from .aladyn_base import AladynBackendBase
 
 
-class AladynGeometryMixin:
+class AladynGeometryMixin(AladynBackendBase):
     """Mixin com chamadas nativas de simetria, guias e snap de régua para AladynBackend."""
 
     def set_symmetry_config(

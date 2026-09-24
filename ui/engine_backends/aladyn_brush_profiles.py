@@ -68,14 +68,14 @@ def get_brush_profile_dict(facade: Any) -> dict:
     return dados
 
 
-def apply_brush_preset_dict(backend: EngineBackend, facade: Any, data: dict) -> None:
-    """Aplica um dicionário de preset ao motor, campo a campo, pela tabela."""
+def apply_brush_preset_dict(backend: EngineBackend, facade: Any, native: Any, data: dict) -> None:
+    """Aplica um dicionário de preset ao motor, campo a campo, pela tabela.
+
+    Só usa a API pública do backend (métodos de PARAMS_POR_METODO) e a facade
+    e o módulo nativo recebidos; não lê nem escreve estado do backend.
+    """
     if not data:
         return
-
-    if not hasattr(backend, "_last_brush_preset"):
-        backend._last_brush_preset = {}
-    backend._last_brush_preset.update(data)
 
     # 1. Parâmetros que passam por um método do backend (não vivem no perfil).
     for entrada in PARAMS_POR_METODO:
@@ -101,7 +101,6 @@ def apply_brush_preset_dict(backend: EngineBackend, facade: Any, data: dict) -> 
     perfil = facade.get_brush_profile()
     if not perfil:
         return
-    native = getattr(backend, "_native", None)
 
     for linha in TABELA:
         if linha.chave not in data:

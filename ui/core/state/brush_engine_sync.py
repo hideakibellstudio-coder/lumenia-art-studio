@@ -10,7 +10,7 @@ motor de novo).
 O backend não é guardado: é pedido a cada escrita ao `backend_provider`,
 porque o documento ativo (e com ele a facade nativa) muda com as abas.
 Quando o documento ativo muda, quem trocou o contexto do motor chama
-`resync(tool_id)` para que a facade nova receba o pincel inteiro.
+`resync()` para que a facade nova receba os valores do estado.
 """
 from __future__ import annotations
 
@@ -53,22 +53,18 @@ class BrushEngineSync(QtCore.QObject):
         brush_state.paramChanged.connect(self._push_param)
         brush_state.presetSelected.connect(self._push_preset)
 
-    def resync(self, tool_id: str | None = None) -> None:
-        """Reenvia o pincel inteiro ao backend (usar após trocar o documento ativo).
+    def resync(self) -> None:
+        """Reenvia parâmetros rápidos e cor ao backend (usar após trocar o documento ativo).
 
-        Ordem: preset da ferramenta (perfil completo) → parâmetros rápidos →
-        cor. Os parâmetros vêm depois porque o usuário pode ter mexido nos
-        sliders depois de escolher o preset.
+        O preset NÃO é reaplicado: o adaptador do motor já leva o perfil
+        completo da facade que sai para a que entra (inclusive ajustes
+        avançados como jitter e textura, que só o motor conhece). Até
+        2026-09-24 o preset era reaplicado aqui e esses ajustes se perdiam a
+        cada troca de aba.
         """
         backend = self._backend_provider()
         if backend is None:
             return
-        if tool_id is not None:
-            # Ferramentas sem categoria de preset (balde, seleção...) herdam o
-            # preset do pincel, como o motor sempre fez.
-            preset = self._state.preset(tool_id) or self._state.preset("brush")
-            if preset is not None:
-                backend.apply_brush_preset_dict(preset[1])
         for param, value in self._state.snapshot().items():
             _SETTERS[param](backend, value)
         self._apply_color(backend, self._state.color)

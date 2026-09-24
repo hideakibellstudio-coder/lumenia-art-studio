@@ -13,11 +13,12 @@ from typing import Any
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from .aladyn_buffers import to_native_color_rgba
 from .native_fallback import nativo_tem
+from .aladyn_base import AladynBackendBase
 
 logger = logging.getLogger(__name__)
 
 
-class AladynStrokeMixin:
+class AladynStrokeMixin(AladynBackendBase):
     """Mixin responsável pelo ciclo de vida do traço e telemetria no AladynBackend."""
 
     def start_stroke(
@@ -84,8 +85,8 @@ class AladynStrokeMixin:
 
     def end_stroke(self, x: float | None = None, y: float | None = None) -> list[float]:
         res = []
-        rx = float(x) if x is not None else getattr(self, "_last_x", None)
-        ry = float(y) if y is not None else getattr(self, "_last_y", None)
+        rx = float(x) if x is not None else self._last_x
+        ry = float(y) if y is not None else self._last_y
         if self._facade:
             if hasattr(self._facade, "end_stroke_raw"):
                 if rx is not None and ry is not None:
@@ -116,16 +117,12 @@ class AladynStrokeMixin:
                         f"Taxa: {snap.total_dabs_per_second:.0f} dabs/s{breakdown}"
                     )
 
-        if not getattr(self, "_is_filling", False):
-            if hasattr(self, "_action_stack"):
-                self._action_stack.append(("stroke", 1))
-                max_steps = self.get_undo_max_steps() if hasattr(self, "get_undo_max_steps") else 50
-                if len(self._action_stack) > max_steps:
-                    self._action_stack.pop(0)
-            if hasattr(self, "_redo_stack"):
-                self._redo_stack.clear()
-            if hasattr(self, "_mark_document_dirty"):
-                self._mark_document_dirty("stroke")
+        if not self._is_filling:
+            self._action_stack.append(("stroke", 1))
+            if len(self._action_stack) > self._undo_max_steps:
+                self._action_stack.pop(0)
+            self._redo_stack.clear()
+            self._mark_document_dirty("stroke")
         return res or []
 
     def begin_stroke_raw(
@@ -173,7 +170,7 @@ class AladynStrokeMixin:
                 int(seed_x), int(seed_y), c, int(tolerance), bool(contiguous),
                 int(expand_px), int(gap_closing_px), bool(anti_aliasing), bool(sample_all_layers)
             )
-            if res and hasattr(self, "_mark_document_dirty"):
+            if res:
                 self._mark_document_dirty("flood_fill")
             return res
         return False
@@ -191,7 +188,7 @@ class AladynStrokeMixin:
             int(seed_x), int(seed_y), native_color, int(tolerance), bool(contiguous),
             int(expand_px), int(gap_closing_px), bool(aa), bool(sample_all)
         )
-        if res and hasattr(self, "_mark_document_dirty"):
+        if res:
             self._mark_document_dirty("flood_fill")
         return res
 

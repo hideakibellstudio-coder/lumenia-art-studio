@@ -14,18 +14,13 @@ from ui.core.color.icc_profile import ICCProfileInfo
 from ui.core.color.proofing import SoftProofConfig, RenderingIntent
 from ui.core.color.cms_engine import get_cms_engine
 from ui.core.color.catalog import get_color_catalog
+from .aladyn_base import AladynBackendBase
 
 logger = logging.getLogger(__name__)
 
 
-class AladynColorMixin:
+class AladynColorMixin(AladynBackendBase):
     """Mixin responsável pela amostragem de cores e perfis de cor no AladynBackend."""
-
-    def _init_color_mixin_state(self) -> None:
-        if not hasattr(self, "_soft_proof_config"):
-            self._soft_proof_config = SoftProofConfig()
-        if not hasattr(self, "_color_profile_id"):
-            self._color_profile_id = 0
 
     def pick_color_merged(self, x: int, y: int, sample_radius: int = 0) -> tuple:
         if self._facade:
@@ -38,7 +33,6 @@ class AladynColorMixin:
         return (0, 0, 0, 0)
 
     def set_color_profile(self, profile_id: int) -> None:
-        self._init_color_mixin_state()
         profile_id = int(profile_id)
         available_ids = {int(profile["id"]) for profile in self.get_available_color_profiles()}
         if profile_id not in available_ids:
@@ -58,8 +52,7 @@ class AladynColorMixin:
                     self._mark_document_dirty("color_profile")
 
     def get_color_profile(self) -> int:
-        self._init_color_mixin_state()
-        return getattr(self, "_color_profile_id", 0)
+        return self._color_profile_id
 
     def get_color_profile_name(self, profile_id: int) -> str:
         profiles = self.get_available_color_profiles()
@@ -95,7 +88,6 @@ class AladynColorMixin:
 
     def set_soft_proofing(self, config: SoftProofConfig | dict) -> None:
         """Configura a simulação de prova de cor para visualização."""
-        self._init_color_mixin_state()
         if isinstance(config, dict):
             self._soft_proof_config = SoftProofConfig.from_dict(config)
         elif isinstance(config, SoftProofConfig):
@@ -105,7 +97,6 @@ class AladynColorMixin:
         self._mark_document_dirty("soft_proof")
 
     def get_soft_proofing(self) -> SoftProofConfig:
-        self._init_color_mixin_state()
         return self._soft_proof_config
 
     def get_active_profile_icc_bytes(self) -> Optional[bytes]:
@@ -125,7 +116,6 @@ class AladynColorMixin:
 
     def transform_rgba_for_profile(self, pixels: bytes, profile_id: int) -> bytes:
         """Aplica a transformação colorimétrica ao buffer RGBA."""
-        self._init_color_mixin_state()
         raw = bytes(pixels)
         if len(raw) % 4:
             raise ValueError("pixels RGBA devem ter grupos de quatro bytes")

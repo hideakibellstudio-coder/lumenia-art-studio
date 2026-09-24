@@ -123,10 +123,12 @@ def test_sync_without_backend_is_silent():
     state = BrushState()
     sync = BrushEngineSync(state, lambda: None)
     state.set_value(BrushParam.SIZE, 20)
-    sync.resync("brush")
+    sync.resync()
 
 
-def test_resync_sends_preset_then_params_then_color():
+def test_resync_sends_params_then_color_but_never_the_preset():
+    """O adaptador já leva o perfil completo entre facades; reaplicar o preset
+    apagaria os ajustes avançados (jitter, textura...) feitos à mão."""
     state = BrushState()
     backend = _RecordingBackend()
     sync = BrushEngineSync(state, lambda: backend)
@@ -134,13 +136,13 @@ def test_resync_sends_preset_then_params_then_color():
     state.set_value(BrushParam.SIZE, 100)  # usuário mexeu depois do preset
     backend.calls.clear()
 
-    sync.resync("bucket")  # sem preset próprio: herda o do pincel
+    sync.resync()
 
     names = [c[0] for c in backend.calls]
-    assert names[0] == "apply_brush_preset_dict"
+    assert "apply_brush_preset_dict" not in names
     assert names[-1] == "set_brush_color"
     assert ("set_brush_size", 100.0) in backend.calls
-    assert len(names) == 1 + len(BrushParam) + 1
+    assert len(names) == len(BrushParam) + 1
 
 
 def test_install_app_state_is_idempotent_and_required_services_fail_loudly():

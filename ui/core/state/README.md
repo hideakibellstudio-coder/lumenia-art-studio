@@ -25,7 +25,7 @@ podem mudar sem aviso.
 |---|---|
 | `BrushState` | QObject com a cor, os parâmetros rápidos e o preset lembrado por ferramenta. |
 | `BrushParam` | Enum canônico dos parâmetros rápidos (Lei do Rio nº 4). Unidades no docstring de `brush_params.py`. |
-| `BrushEngineSync` | Único caminho `BrushState → motor`. Também `resync(tool)` após trocar a facade nativa. |
+| `BrushEngineSync` | Único caminho `BrushState → motor`. Também `resync()` após trocar a facade nativa. |
 | `ToolState` | QObject com a ferramenta ativa e as opções normalizadas de cada ferramenta (`ui.core.tool_settings`). |
 | `options_key(tool)` / `is_shape_tool(tool)` | `shape_*` compartilham as opções de `"shapes"`. |
 | `install_app_state(registry, backend_provider)` | Cria e registra os serviços acima no `ServiceRegistry` (devolve `AppState(brush, brush_sync, tools)`). Chamado pela casca. |
@@ -74,7 +74,7 @@ lia e mandava opções de forma ao canvas por dois caminhos.
    `require(self.context.service_registry, BrushState)`. Nenhum widget faz
    busca global.
 5. **Troca de documento:** quem troca o contexto do motor
-   (`set_active_document_context`) chama `brush_sync.resync(ferramenta)` em
+   (`set_active_document_context`) chama `brush_sync.resync()` em
    seguida. Hoje: `WorkspaceDocSyncMixin._on_active_document_changed` e
    `MainWindow` ao criar documento.
 6. A cor salva por documento (`Document.saved_color`) é gravada ao sair da aba

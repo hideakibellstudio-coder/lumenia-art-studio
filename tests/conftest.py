@@ -53,13 +53,23 @@ def _descartar_janelas_criadas_pelo_modulo():
     def _ptr(widget) -> int:
         return shiboken6.getCppPointer(widget)[0]
 
-    app = QtWidgets.QApplication.instance()
-    antes = {_ptr(w) for w in QtWidgets.QApplication.topLevelWidgets()} if app else set()
+    from tests.qt_windows import top_level_widgets
+
+    with top_level_widgets() as widgets:
+        antes = {_ptr(w) for w in widgets}
     yield
-    app = QtWidgets.QApplication.instance()
-    if app is None:
+    if QtWidgets.QApplication.instance() is None:
         return
-    for widget in QtWidgets.QApplication.topLevelWidgets():
+    with top_level_widgets() as widgets:
+        _descartar_orfas(widgets, antes, _ptr)
+        # Ainda com o GC desligado: as órfãs morrem em C++ antes de qualquer
+        # coleta dos wrappers (ver tests/qt_windows.py).
+        QtCore.QCoreApplication.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
+    QtWidgets.QApplication.processEvents()
+
+
+def _descartar_orfas(widgets, antes, _ptr):
+    for widget in widgets:
         try:
             # A MainWindow fica: o app real tem uma por processo e vários
             # singletons (PluginManager, ServiceRegistry) presumem isso.
@@ -75,8 +85,6 @@ def _descartar_janelas_criadas_pelo_modulo():
             widget.deleteLater()
         except RuntimeError:
             continue
-    QtCore.QCoreApplication.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
-    QtWidgets.QApplication.processEvents()
 
 
 def pytest_unconfigure(config):

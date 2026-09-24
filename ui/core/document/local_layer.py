@@ -6,13 +6,13 @@ Representa uma camada, grupo ou camada de filtro dentro do LocalLayerManager.
 
 from __future__ import annotations
 
-from PySide6 import QtCore, QtGui
+from PySide6 import QtGui
 
 from ui.core.document.layer_blend_mode import LayerBlendMode
 
 
 class LocalLayer:
-    """Representação local de camada/grupo com miniatura procedural e propriedades."""
+    """Uma camada, grupo ou camada de filtro: propriedades e a última miniatura do motor."""
 
     def __init__(self, uid: int, name: str, parent_uid=None, is_group=False, is_filter=False):
         self.uid = uid
@@ -30,38 +30,8 @@ class LocalLayer:
         self.clipping_mask = False
         self.collapsed = False
 
-        # Miniaturas procedurais simples (geradas somente se houver GUI ativa)
-        if QtGui.QGuiApplication.instance() is not None:
-            self.thumb = QtGui.QPixmap(38, 28)
-
-            from ui.core.theme.manager import ThemeManager
-            theme = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {})
-            colors = theme.get("colors", {})
-
-            bg_darker = QtGui.QColor(ThemeManager.instance().resolve_color("BG_DARKER", colors))
-            bg_dark = QtGui.QColor(ThemeManager.instance().resolve_color("BG_DARK", colors))
-            bg_mid = QtGui.QColor(ThemeManager.instance().resolve_color("BG_MID", colors))
-            border = QtGui.QColor(ThemeManager.instance().resolve_color("BORDER", colors))
-            accent = QtGui.QColor(ThemeManager.instance().resolve_color("ACCENT", colors))
-            accent_muted = QtGui.QColor(ThemeManager.instance().resolve_color("accent_bg", colors))
-            bg_light = QtGui.QColor(ThemeManager.instance().resolve_color("BG_LIGHT", colors))
-
-            self.thumb.fill(bg_darker if is_group else bg_dark)
-
-            painter = QtGui.QPainter(self.thumb)
-            painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            if is_group:
-                painter.setPen(QtGui.QPen(border, 1))
-                painter.setBrush(bg_mid)
-                painter.drawRoundedRect(4, 4, 30, 20, 2, 2)
-            elif is_filter:
-                painter.setPen(QtGui.QPen(accent, 1))
-                painter.setBrush(accent_muted)
-                painter.drawRoundedRect(4, 4, 30, 20, 2, 2)
-            else:
-                painter.setPen(QtGui.QPen(border, 1))
-                painter.setBrush(bg_light)
-                painter.drawRoundedRect(4, 4, 30, 20, 1, 1)
-            painter.end()
-        else:
-            self.thumb = None
+        # Miniatura com os pixels reais, vinda do motor (quem pede é o painel de
+        # camadas). Até 2026-09-24 o modelo pintava aqui um marcador com as cores
+        # do tema lendo `ThemeManager._themes` (privado): aparência é da view,
+        # e o delegate do painel já desenha grupo, filtro e camada sem miniatura.
+        self.thumb: QtGui.QPixmap | None = None

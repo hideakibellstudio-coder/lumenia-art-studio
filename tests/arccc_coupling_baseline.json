@@ -124,7 +124,7 @@
   "hasattr": 2
  },
  "plugins/ui/layers_plugin/model.py": {
-  "getattr_literal": 4
+  "getattr_literal": 3
  },
  "plugins/ui/layers_plugin/panel.py": {
   "hasattr": 1
@@ -258,9 +258,6 @@
  "ui/core/document/layer_backend_sync.py": {
   "getattr_literal": 5,
   "hasattr": 1
- },
- "ui/core/document/local_layer.py": {
-  "foreign_private": 1
  },
  "ui/core/document/restore.py": {
   "hasattr": 1

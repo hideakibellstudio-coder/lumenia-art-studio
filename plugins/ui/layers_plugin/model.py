@@ -160,7 +160,7 @@ class LayerModel(QAbstractItemModel):
         if role == Qt.DisplayRole or role == Qt.EditRole:
             return layer.name
         elif role == Qt.DecorationRole:
-            return getattr(layer, 'thumb', None)
+            return layer.thumb
         elif role == ROLE_UID:
             return layer.uid
         elif role == ROLE_ID:

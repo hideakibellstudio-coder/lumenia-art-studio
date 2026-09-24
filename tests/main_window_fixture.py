@@ -12,10 +12,12 @@ from __future__ import annotations
 
 
 def main_window_com_workspace():
-    from PySide6.QtWidgets import QApplication
     from ui.boundary.orchestrator.main_window import MainWindow
 
-    for widget in QApplication.topLevelWidgets():
-        if isinstance(widget, MainWindow) and getattr(widget, "workspace", None) is not None:
-            return widget
+    from tests.qt_windows import top_level_widgets
+
+    with top_level_widgets() as widgets:
+        for widget in widgets:
+            if isinstance(widget, MainWindow) and getattr(widget, "workspace", None) is not None:
+                return widget
     return MainWindow()

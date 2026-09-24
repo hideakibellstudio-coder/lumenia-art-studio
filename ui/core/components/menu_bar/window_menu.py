@@ -11,6 +11,17 @@ from __future__ import annotations
 from PySide6 import QtGui, QtWidgets, QtCore
 from ui.core.icons import get_icon
 from ui.core.i18n import tr
+from ui.core.plugins.panel_ids import PANEL_TITLES, PanelId
+
+# Painéis com item fixo no menu: (id canônico, lado da doca, atalho, ícone).
+_PANEL_ITEMS = (
+    (PanelId.BRUSH, "left", "Alt+B", "brush"),
+    (PanelId.COLOR, "left", "Alt+C", "palette"),
+    (PanelId.LAYERS, "right", "Alt+L", "layers"),
+    (PanelId.NAVIGATOR, "right", "Alt+N", "navigator"),
+    (PanelId.GEOMETRY, "right", None, "shapes"),
+    (PanelId.TELEMETRY, "right", None, "chart"),
+)
 
 
 class WindowMenu(QtWidgets.QMenu):
@@ -42,11 +53,8 @@ class WindowMenu(QtWidgets.QMenu):
         # ── Painéis ────────────────────────────────────────────────────
         self._section_panels = self.addSection("Painéis de Ferramentas")
 
-        self._add_panel_action("brush_plugin",    "Pincel & Ferramentas", "left",  "Alt+B", icon="brush")
-        self._add_panel_action("color_plugin",    "Cores & Harmonias",    "left",  "Alt+C", icon="palette")
-        self._add_panel_action("layers_plugin",   "Camadas",              "right", "Alt+L", icon="layers")
-        self._add_panel_action("navigator_plugin","Navegador do Canvas",  "right", "Alt+N", icon="navigator")
-        self._add_panel_action("telemetry",       "Painel de Telemetria", "right", icon="chart")
+        for panel_id, side, shortcut, icon in _PANEL_ITEMS:
+            self._add_panel_action(panel_id, PANEL_TITLES[panel_id][1], side, shortcut, icon=icon)
 
         # NOTA: sem QKeySequence("F12") aqui de proposito -- o atalho F12
         # já vive em ViewMenu.action_telemetry_grid (era um conflito de
@@ -130,50 +138,32 @@ class WindowMenu(QtWidgets.QMenu):
         if shortcut:
             act.setShortcut(shortcut)
         act.triggered.connect(
-            lambda checked, pid=panel_id, side=default_side:
+            lambda checked, pid=str(panel_id), side=default_side:
             self.toggle_panel_requested.emit(pid, side)
         )
-        self._panel_actions[panel_id] = act
+        self._panel_actions[str(panel_id)] = act
         self.addAction(act)
 
     def retranslate_ui(self) -> None:
         self.setTitle(tr("menu.window.title", "Janela"))
-        if hasattr(self, "_section_panels") and self._section_panels:
-            self._section_panels.setText(tr("menu.window.tool_panels", "Painéis de Ferramentas"))
-        if hasattr(self, "_section_sidebars") and self._section_sidebars:
-            self._section_sidebars.setText(tr("menu.window.sidebars", "Barras Laterais"))
-
-        if "brush_plugin" in self._panel_actions:
-            self._panel_actions["brush_plugin"].setText(tr("menu.window.brush_panel", "Pincel & Ferramentas"))
-        if "color_plugin" in self._panel_actions:
-            self._panel_actions["color_plugin"].setText(tr("menu.window.color_wheel", "Cores & Harmonias"))
-        if "layers_plugin" in self._panel_actions:
-            self._panel_actions["layers_plugin"].setText(tr("menu.window.layers_panel", "Camadas"))
-        if "navigator_plugin" in self._panel_actions:
-            self._panel_actions["navigator_plugin"].setText(tr("menu.window.navigator", "Navegador do Canvas"))
-        if "telemetry" in self._panel_actions:
-            self._panel_actions["telemetry"].setText(tr("menu.window.telemetry_panel", "Painel de Telemetria"))
-        if hasattr(self, "act_telemetry_grid"):
-            self.act_telemetry_grid.setText(tr("menu.view.telemetry_grid", "Cockpit de Telemetria em Grid..."))
-
-        if hasattr(self, "act_collapse"):
-            self.act_collapse.setText(tr("menu.window.collapse_all", "Recolher Todas as Barras"))
-        if hasattr(self, "act_expand"):
-            self.act_expand.setText(tr("menu.window.expand_all", "Expandir Todas as Barras"))
-        if hasattr(self, "act_ft_settings"):
-            self.act_ft_settings.setText(tr("menu.window.floating_toolbar", "Barra Flutuante de Ferramentas…"))
-        if hasattr(self, "act_settings"):
-            self.act_settings.setText(tr("menu.window.dock_settings", "Configurações de Gavetas & Docking…"))
-        if hasattr(self, "act_fullscreen"):
-            self.act_fullscreen.setText(tr("menu.window.fullscreen", "Alternar Tela Cheia (F11)"))
-        if hasattr(self, "menu_scale"):
-            self.menu_scale.setTitle(tr("menu.window.scale", "Escala da Interface"))
+        self._section_panels.setText(tr("menu.window.tool_panels", "Painéis de Ferramentas"))
+        self._section_sidebars.setText(tr("menu.window.sidebars", "Barras Laterais"))
+        for panel_id, act in self._panel_actions.items():
+            if panel_id in PANEL_TITLES:
+                act.setText(tr(*PANEL_TITLES[panel_id]))
+        self.act_telemetry_grid.setText(tr("menu.view.telemetry_grid", "Cockpit de Telemetria em Grid..."))
+        self.act_collapse.setText(tr("menu.window.collapse_all", "Recolher Todas as Barras"))
+        self.act_expand.setText(tr("menu.window.expand_all", "Expandir Todas as Barras"))
+        self.act_ft_settings.setText(tr("menu.window.floating_toolbar", "Barra Flutuante de Ferramentas…"))
+        self.act_settings.setText(tr("menu.window.dock_settings", "Configurações de Gavetas & Docking…"))
+        self.act_fullscreen.setText(tr("menu.window.fullscreen", "Alternar Tela Cheia (F11)"))
+        self.menu_scale.setTitle(tr("menu.window.scale", "Escala da Interface"))
 
     # ── API pública ────────────────────────────────────────────────────────
 
     def sync_scale_checked(self, current_scale: float) -> None:
         """Marca o item de escala ativo no submenu."""
-        for factor, act in getattr(self, "_scale_actions", {}).items():
+        for factor, act in self._scale_actions.items():
             act.blockSignals(True)
             act.setChecked(abs(factor - current_scale) < 0.05)
             act.blockSignals(False)

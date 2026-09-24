@@ -13,6 +13,7 @@ from typing import Optional
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.plugins.panel_ids import PanelId
 from .panel import RecordingPanel
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ class RecordingPlugin(BasePlugin):
             self._panel.engine.set_guides_renderer(ws.render_geometry_overlay)
 
         ws.add_panel(
-            panel_id="recording",
+            panel_id=PanelId.RECORDING,
             title="Timelapse",
             widget=self._panel,
             area="right",
@@ -64,7 +65,7 @@ class RecordingPlugin(BasePlugin):
     def deactivate(self) -> None:
         ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
         if ws and self._panel:
-            ws.remove_panel("recording")
+            ws.remove_panel(PanelId.RECORDING)
 
         if self._panel:
             if hasattr(self._panel, "floating_bar") and self._panel.floating_bar:

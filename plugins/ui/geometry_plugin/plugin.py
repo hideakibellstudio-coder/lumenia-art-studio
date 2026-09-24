@@ -7,6 +7,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.plugins.panel_ids import PanelId
 from .panel import GeometryPanel
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class GeometryPlugin(BasePlugin):
         self._panel = GeometryPanel(canvas_area=ws.canvas_area_rect)
 
         ws.add_panel(
-            panel_id="geometry",
+            panel_id=PanelId.GEOMETRY,
             title="Guias & Simetria",
             widget=self._panel,
             area="right",
@@ -51,5 +52,5 @@ class GeometryPlugin(BasePlugin):
     def deactivate(self) -> None:
         ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
         if ws and self._panel:
-            ws.remove_panel("geometry")
+            ws.remove_panel(PanelId.GEOMETRY)
         self._panel = None

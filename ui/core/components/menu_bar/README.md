@@ -18,17 +18,20 @@
 | `image_menu.py` | ImageMenu — Menu Imagem (Padrão Profissional da Indústria) — ARCcC i18n. |
 | `layer_menu.py` | LayerMenu — Menu Camada (Padrão Profissional da Indústria) — ARCcC i18n. |
 | `menu_bar.py` | MenuBar — Barra de Menus Principal Profissional da Lumenia UI. |
+| `settings_menu.py` | `SettingsMenu`: idioma, renderização, curvas, cursor, atalhos, tema e plugins. |
 | `select_menu.py` | SelectMenu — Menu Seleção (Padrão Profissional da Indústria) — ARCcC i18n. |
 | `view_menu.py` | ViewMenu — Menu Exibir (Padrão Profissional da Indústria) — ARCcC i18n. |
-| `window_menu.py` | WindowMenu — Menu Janela — ARCcC i18n. |
+| `window_menu.py` | `WindowMenu`: painéis (por `PanelId`), barras laterais, gavetas, barra flutuante, tela cheia e escala. |
 
 ## Regras
 
-Menu não executa ação nem conhece plugin: emite sinal ou expõe `QAction`. Textos por `tr()`.
+- Menu não executa ação nem conhece plugin: emite sinal ou expõe `QAction`. Textos por `tr()`.
+- Painel no menu Janela usa o id canônico (`ui.core.plugins.panel_ids.PanelId`) e o título de `PANEL_TITLES`;
+  a marca do item acompanha a gaveta (`MenuBar.set_panel_checked`, ligado pela janela principal).
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-`menu_bar.py` é o arquivo com mais `hasattr` do projeto (ver `tests/arccc_coupling_baseline.json`).
+`MenuBar` repassa ~70 sinais dos submenus um a um (fachada única para a janela principal).
 
 ## Dependências internas
 
@@ -38,5 +41,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 <!-- arccc:deps -->
 - `ui/core`
 - `ui/core/i18n`
+- `ui/core/plugins`
 - `ui/core/theme`
 <!-- /arccc:deps -->

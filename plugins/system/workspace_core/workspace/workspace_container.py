@@ -38,6 +38,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
+from ui.core.plugins.panel_ids import PanelId
 from ui.core.state import BrushEngineSync, BrushState, ToolState
 
 from .canvas.render_widget import CanvasWidget
@@ -91,12 +92,15 @@ class WorkspaceContainer(QtWidgets.QWidget):
         statusMessage(texto: str, ms: int) — mensagem para a barra de status
             (a janela principal liga; antes o workspace procurava
             `self.window().statusBar()` com hasattr)
+        panelVisibilityChanged(id: str, visível: bool) — painel apareceu ou
+            sumiu numa gaveta (o menu Janela marca o item)
     """
 
     newDocumentRequested  = QtCore.Signal()
     documentCloseRequested = QtCore.Signal(str)
     zoomChanged           = QtCore.Signal(float)
     statusMessage         = QtCore.Signal(str, int)
+    panelVisibilityChanged = QtCore.Signal(str, bool)
 
     def __init__(
         self,
@@ -129,6 +133,8 @@ class WorkspaceContainer(QtWidgets.QWidget):
         area_layout.addWidget(self.left_dock)
         area_layout.addWidget(self.viewport_container, 1)
         area_layout.addWidget(self.right_dock)
+        self.left_dock.panel_visibility_changed.connect(self.panelVisibilityChanged)
+        self.right_dock.panel_visibility_changed.connect(self.panelVisibilityChanged)
         # Pílulas: filhas do workspace_area, nunca do canvas.
         left_pill = PillHandle("left", self.workspace_area)
         right_pill = PillHandle("right", self.workspace_area)
@@ -242,7 +248,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
         bind = partial(self._panels.bind, panel_id)
         sync = self._view_sync
         doc = self._dm.active_document()
-        if panel_id == "navigator":
+        if panel_id == PanelId.NAVIGATOR:
             bind(widget.camera_changed_by_user, sync.set_camera_from_navigator)
             bind(widget.flip_changed_by_user, sync.set_flip_from_navigator)
             bind(widget.request_global_fit_view, self.reset_view)
@@ -254,11 +260,11 @@ class WorkspaceContainer(QtWidgets.QWidget):
                 widget.set_canvas_size(doc.width, doc.height)
                 widget.set_has_document(True)
                 sync.sync_navigator()
-        elif panel_id == "layers":
+        elif panel_id == PanelId.LAYERS:
             bind(sync.layerManagerChanged, widget.set_layer_manager)
             if doc is not None:
                 widget.set_layer_manager(doc.layer_manager)
-        elif panel_id == "geometry":
+        elif panel_id == PanelId.GEOMETRY:
             widget.set_render_widget(self.canvas_widget)
 
     def remove_panel(self, panel_id: str) -> None:

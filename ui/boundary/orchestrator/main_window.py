@@ -140,6 +140,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ws.documentCloseRequested.connect(self.documents.close_with_confirmation)
         ws.canvas_widget.strokeFinished.connect(self._on_canvas_stroke_finished)
         self.menu_bar.togglePanelRequested.connect(ws.toggle_panel_from_menu)
+        ws.panelVisibilityChanged.connect(self.menu_bar.set_panel_checked)
         self.menu_bar.collapseAllSidebarsRequested.connect(ws.collapse_all_sidebars)
         self.menu_bar.expandAllSidebarsRequested.connect(ws.expand_all_sidebars)
 

@@ -32,6 +32,8 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     drawer_closed = QtCore.Signal()
     pin_toggled = QtCore.Signal(bool)
     sidebar_resized = QtCore.Signal()
+    # Painel mostrado/escondido na gaveta (menu Janela marca o item).
+    panel_visibility_changed = QtCore.Signal(str, bool)
 
     SIDEBAR_EXPANDED = DockAnimator.SIDEBAR_EXPANDED
     DRAWER_WIDTH = DockAnimator.DRAWER_WIDTH
@@ -174,6 +176,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         except RuntimeError:
             self.active_panel_ids.discard(panel_id)
             return
+        self.panel_visibility_changed.emit(str(panel_id), panel_id in self.active_panel_ids)
 
         self.drawer_container.update_spacer(self.active_panel_ids)
         self._update_drawer_state()
@@ -207,6 +210,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self._cleanup_panels()
         self.is_open = False
         for pid in list(self.active_panel_ids):
+            self.panel_visibility_changed.emit(str(pid), False)
             self.sidebar.set_button_active(pid, False)
             widget = self.drawer_container.panel_widget(pid)
             if widget:

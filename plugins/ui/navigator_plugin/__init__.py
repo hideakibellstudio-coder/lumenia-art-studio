@@ -11,6 +11,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.plugins.panel_ids import PanelId
 from .panel import NavigatorPanel
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class NavigatorPlugin(BasePlugin):
         self._panel = NavigatorPanel()
 
         ws.add_panel(
-            panel_id="navigator",
+            panel_id=PanelId.NAVIGATOR,
             title="Navegador",
             widget=self._panel,
             area="right",
@@ -59,6 +60,6 @@ class NavigatorPlugin(BasePlugin):
     def deactivate(self) -> None:
         ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
         if ws and self._panel:
-            ws.remove_panel("navigator")
+            ws.remove_panel(PanelId.NAVIGATOR)
         self._panel = None
         logger.info("[NavigatorPlugin] Navegador removido.")

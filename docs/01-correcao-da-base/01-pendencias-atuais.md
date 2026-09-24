@@ -41,7 +41,9 @@ dependências medidas nas 62 pastas de código; CI verde.
    a persistência do estado das gavetas existe (`DockStateStore`) mas não
    está ligada ao app (decisão do usuário). *(Os dois painéis avançados agora
    abrem pela `FloatingPanelWindow` com `WorkspaceService.canvas_area_rect`.)*
-4. **Menus**: `menu_bar.py` (27 `hasattr`).
+4. ~~**Menus**~~ *(feito em 2026-09-24: `menu_bar.py` sem `hasattr`,
+   `SettingsMenu` extraído; ids canônicos `PanelId` — o menu Janela pedia ids
+   que nenhum plugin registrava e 4 dos 5 itens não faziam nada.)*
 5. **Telemetria**: `telemetry_tracker.py` (37 `getattr`), `telemetry_dto.py`
    (23), `telemetry_grid_window.py` (20) — leem structs nativas por nome.
 6. **Segundo caminho até o motor**: `BridgeClient`

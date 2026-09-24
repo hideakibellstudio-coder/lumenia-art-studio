@@ -47,6 +47,7 @@ class ShellWorkspace(Protocol):
     canvas_widget: ShellCanvas
     zoomChanged: QtCore.SignalInstance
     statusMessage: QtCore.SignalInstance
+    panelVisibilityChanged: QtCore.SignalInstance
     newDocumentRequested: QtCore.SignalInstance
     documentCloseRequested: QtCore.SignalInstance
 
@@ -75,7 +76,7 @@ SHELL_CANVAS_MEMBERS = (
     "apply_cursor_settings",
 )
 SHELL_WORKSPACE_MEMBERS = (
-    "canvas_widget", "zoomChanged", "statusMessage", "newDocumentRequested",
+    "canvas_widget", "zoomChanged", "statusMessage", "panelVisibilityChanged", "newDocumentRequested",
     "documentCloseRequested", "undo", "redo", "reset_view", "zoom_in", "zoom_out",
     "refresh_document_state", "refresh_previews", "retranslate_ui",
     "toggle_panel_from_menu", "collapse_all_sidebars", "expand_all_sidebars",

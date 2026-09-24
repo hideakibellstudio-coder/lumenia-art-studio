@@ -39,5 +39,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `plugins/system/workspace_core/workspace`
 - `ui/core`
 - `ui/core/i18n`
+- `ui/core/plugins`
 - `ui/core/theme`
 <!-- /arccc:deps -->

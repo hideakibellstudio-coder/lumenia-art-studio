@@ -11,6 +11,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.plugins.panel_ids import PanelId
 from .panel import LayersPanel
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class LayersPlugin(BasePlugin):
         self._panel.statusMessage.connect(ws.show_status)
 
         ws.add_panel(
-            panel_id="layers",
+            panel_id=PanelId.LAYERS,
             title="Camadas",
             widget=self._panel,
             area="right",
@@ -60,6 +61,6 @@ class LayersPlugin(BasePlugin):
     def deactivate(self) -> None:
         ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
         if ws and self._panel:
-            ws.remove_panel("layers")
+            ws.remove_panel(PanelId.LAYERS)
         self._panel = None
         logger.info("[LayersPlugin] Gerenciador de Camadas removido.")

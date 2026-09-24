@@ -111,13 +111,6 @@
  "ui/core/color/cms_engine.py": {
   "getattr_literal": 4
  },
- "ui/core/components/menu_bar/menu_bar.py": {
-  "hasattr": 27
- },
- "ui/core/components/menu_bar/window_menu.py": {
-  "getattr_literal": 1,
-  "hasattr": 9
- },
  "ui/core/components/tool_sidebar/sidebar.py": {
   "hasattr": 2
  },

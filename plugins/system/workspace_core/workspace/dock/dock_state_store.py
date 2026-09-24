@@ -9,20 +9,11 @@ nem restaura o estado das gavetas entre sessões (decisão pendente).
 
 from typing import TYPE_CHECKING
 from ui.core.i18n import tr
+from ui.core.plugins.panel_ids import PANEL_TITLES
 
 if TYPE_CHECKING:
     from ..dock_system import AdvancedDockSystem
 
-PANEL_I18N = {
-    "brush": ("menu.window.brush_panel", "Pincel & Ferramentas"),
-    "color_wheel": ("menu.window.color_wheel", "Cores & Harmonias"),
-    "navigator": ("menu.window.navigator", "Navegador do Canvas"),
-    "layers": ("menu.window.layers_panel", "Camadas"),
-    "geometry": ("menu.window.geometry_guides", "Guias de Perspectiva"),
-    "symmetry": ("menu.window.symmetry_panel", "Estúdio de Simetria"),
-    "palette": ("menu.window.palette_panel", "Paletas de Cores"),
-    "telemetry": ("help.diagnostics", "Diagnósticos & Telemetria"),
-}
 
 
 class DockStateStore:
@@ -72,8 +63,8 @@ class DockStateStore:
     def retranslate_panels(sidebar, panels_info: dict) -> None:
         """Updates tooltips and titles using current locale translations."""
         for panel_id, btn in sidebar.buttons().items():
-            if panel_id in PANEL_I18N:
-                key, def_val = PANEL_I18N[panel_id]
+            if panel_id in PANEL_TITLES:
+                key, def_val = PANEL_TITLES[panel_id]
                 trans = tr(key, def_val)
                 btn.setToolTip(trans)
                 if panel_id in panels_info:

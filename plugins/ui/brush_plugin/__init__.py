@@ -11,6 +11,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.plugins.panel_ids import PanelId
 from ui.core.state import BrushState, ToolState, require
 from .panel import BrushSettingsPanel
 
@@ -49,7 +50,7 @@ class BrushPlugin(BasePlugin):
         )
 
         ws.add_panel(
-            panel_id="brush_settings",
+            panel_id=PanelId.BRUSH,
             title="Pincel & Ferramentas",
             widget=self._panel,
             area="left",
@@ -61,6 +62,6 @@ class BrushPlugin(BasePlugin):
     def deactivate(self) -> None:
         ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
         if ws and self._panel:
-            ws.remove_panel("brush_settings")
+            ws.remove_panel(PanelId.BRUSH)
         self._panel = None
         logger.info("[BrushPlugin] BrushSettingsPanel removido.")

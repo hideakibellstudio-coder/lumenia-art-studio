@@ -11,6 +11,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.plugins.panel_ids import PanelId
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class TelemetryPlugin(BasePlugin):
         self._panel = TelemetryPanel()
 
         ws.add_panel(
-            panel_id="telemetry",
+            panel_id=PanelId.TELEMETRY,
             title="Telemetria",
             widget=self._panel,
             area="right",
@@ -58,6 +59,6 @@ class TelemetryPlugin(BasePlugin):
     def deactivate(self) -> None:
         ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
         if ws and self._panel:
-            ws.remove_panel("telemetry")
+            ws.remove_panel(PanelId.TELEMETRY)
         self._panel = None
         logger.info("[TelemetryPlugin] Painel de Telemetria removido.")

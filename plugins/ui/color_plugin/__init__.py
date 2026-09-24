@@ -13,6 +13,7 @@ import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.core.plugins.panel_ids import PanelId
 from ui.core.state import BrushState, require
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class ColorPlugin(BasePlugin):
         self._panel = ColorWheelPanel(require(self.context.service_registry, BrushState))
 
         ws.add_panel(
-            panel_id="color_wheel",
+            panel_id=PanelId.COLOR,
             title="Roda de Cores",
             widget=self._panel,
             area="left",
@@ -61,6 +62,6 @@ class ColorPlugin(BasePlugin):
     def deactivate(self) -> None:
         ws: WorkspaceService = self.context.service_registry.get(WorkspaceService)
         if ws and self._panel:
-            ws.remove_panel("color_wheel")
+            ws.remove_panel(PanelId.COLOR)
         self._panel = None
         logger.info("[ColorPlugin] Roda de Cores removida.")

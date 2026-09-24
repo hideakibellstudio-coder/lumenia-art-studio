@@ -18,7 +18,7 @@ from .filter_menu import FilterMenu
 from .view_menu import ViewMenu
 from .window_menu import WindowMenu
 from .help_menu import HelpMenu
-from ui.core.icons import get_icon
+from .settings_menu import SettingsMenu
 from ui.core.runtime_paths import resource_path
 
 
@@ -238,41 +238,14 @@ class MenuBar(QtWidgets.QMenuBar):
         self.addMenu(self.window_menu)
 
         # 9. [Configurações]
-        from ui.core.i18n import tr
-        self.settings_menu = QtWidgets.QMenu(tr("menu.settings.title", "Configurações"), self)
-
-        # Submenu de Idioma (Language)
-        self.language_menu = QtWidgets.QMenu(tr("menu.settings.language", "Idioma (Language)"), self.settings_menu)
-        self.language_menu.setIcon(get_icon("settings"))
-        self._language_group = QtGui.QActionGroup(self)
-        self._language_group.setExclusive(True)
-        self._rebuild_language_menu()
-        self.settings_menu.addMenu(self.language_menu)
-
-        self.act_render = QtGui.QAction(get_icon("display"), tr("menu.settings.render", "Renderização & Modos de Cor..."), self)
-        self.act_render.triggered.connect(self.renderSettingsRequested.emit)
-        self.settings_menu.addAction(self.act_render)
-
-        self.act_curves = QtGui.QAction(get_icon("curves"), tr("menu.settings.curves", "Curvas LUT (Perfis de Pincel)..."), self)
-        self.act_curves.triggered.connect(self.curvesLutRequested.emit)
-        self.settings_menu.addAction(self.act_curves)
-
-        self.act_cursor = QtGui.QAction(get_icon("cursor"), tr("menu.settings.cursor", "Configurações de Cursor e Ponteiro..."), self)
-        self.act_cursor.triggered.connect(self.cursorSettingsRequested.emit)
-        self.settings_menu.addAction(self.act_cursor)
-
-        self.act_shortcuts = QtGui.QAction(get_icon("keyboard"), tr("menu.settings.shortcuts", "Atalhos de Teclado..."), self)
-        self.act_shortcuts.triggered.connect(self.shortcutsRequested.emit)
-        self.settings_menu.addAction(self.act_shortcuts)
-
-        self.act_theme = QtGui.QAction(get_icon("palette"), tr("menu.settings.theme", "Personalização de Tema..."), self)
-        self.act_theme.triggered.connect(self.themeSettingsRequested.emit)
-        self.settings_menu.addAction(self.act_theme)
-
-        self.act_plugins = QtGui.QAction(get_icon("plugin"), tr("menu.settings.plugins", "Gerenciador de Plugins..."), self)
-        self.act_plugins.triggered.connect(self.managePluginsRequested.emit)
-        self.settings_menu.addAction(self.act_plugins)
-
+        self.settings_menu = SettingsMenu(self)
+        self.settings_menu.renderSettingsRequested.connect(self.renderSettingsRequested.emit)
+        self.settings_menu.curvesLutRequested.connect(self.curvesLutRequested.emit)
+        self.settings_menu.cursorSettingsRequested.connect(self.cursorSettingsRequested.emit)
+        self.settings_menu.shortcutsRequested.connect(self.shortcutsRequested.emit)
+        self.settings_menu.themeSettingsRequested.connect(self.themeSettingsRequested.emit)
+        self.settings_menu.managePluginsRequested.connect(self.managePluginsRequested.emit)
+        self.settings_menu.languageRequested.connect(self.languageRequested.emit)
         self.addMenu(self.settings_menu)
 
         # 10. [Ajuda]
@@ -285,75 +258,15 @@ class MenuBar(QtWidgets.QMenuBar):
         self.help_menu.aboutRequested.connect(self.aboutRequested.emit)
         self.addMenu(self.help_menu)
 
-    def _rebuild_language_menu(self):
-        from ui.core.i18n import I18nManager, tr
-        self.language_menu.clear()
-        mgr = I18nManager.instance()
-        is_auto = mgr.is_auto_mode()
-        current = mgr.get_current_locale()
-
-        # 1. Opção: Automático (Sistema)
-        act_auto = QtGui.QAction(tr("menu.settings.language_auto", "Automático (Sistema)"), self)
-        act_auto.setCheckable(True)
-        if is_auto:
-            act_auto.setChecked(True)
-        act_auto.setData("auto")
-        act_auto.triggered.connect(lambda checked=False: self.languageRequested.emit("auto"))
-        self._language_group.addAction(act_auto)
-        self.language_menu.addAction(act_auto)
-
-        self.language_menu.addSeparator()
-
-        # 2. Catálogo de Idiomas Específicos
-        for code, label in mgr.get_available_locales().items():
-            act = QtGui.QAction(label, self)
-            act.setCheckable(True)
-            if not is_auto and code == current:
-                act.setChecked(True)
-            act.setData(code)
-            act.triggered.connect(lambda checked=False, c=code: self.languageRequested.emit(c))
-            self._language_group.addAction(act)
-            self.language_menu.addAction(act)
-
     def retranslate_ui(self):
-        from ui.core.i18n import tr
-        if hasattr(self, "file_menu") and hasattr(self.file_menu, "retranslate_ui"):
-            self.file_menu.retranslate_ui()
-        if hasattr(self, "edit_menu") and hasattr(self.edit_menu, "retranslate_ui"):
-            self.edit_menu.retranslate_ui()
-        if hasattr(self, "image_menu") and hasattr(self.image_menu, "retranslate_ui"):
-            self.image_menu.retranslate_ui()
-        if hasattr(self, "layer_menu") and hasattr(self.layer_menu, "retranslate_ui"):
-            self.layer_menu.retranslate_ui()
-        if hasattr(self, "select_menu") and hasattr(self.select_menu, "retranslate_ui"):
-            self.select_menu.retranslate_ui()
-        if hasattr(self, "filter_menu") and hasattr(self.filter_menu, "retranslate_ui"):
-            self.filter_menu.retranslate_ui()
-        if hasattr(self, "view_menu") and hasattr(self.view_menu, "retranslate_ui"):
-            self.view_menu.retranslate_ui()
-        if hasattr(self, "window_menu") and hasattr(self.window_menu, "retranslate_ui"):
-            self.window_menu.retranslate_ui()
-        if hasattr(self, "settings_menu"):
-            self.settings_menu.setTitle(tr("menu.settings.title", "Configurações"))
-        if hasattr(self, "language_menu"):
-            self.language_menu.setTitle(tr("menu.settings.language", "Idioma (Language)"))
-            self._rebuild_language_menu()
-        if hasattr(self, "act_render"):
-            self.act_render.setText(tr("menu.settings.render", "Renderização & Modos de Cor..."))
-        if hasattr(self, "act_curves"):
-            self.act_curves.setText(tr("menu.settings.curves", "Curvas LUT (Perfis de Pincel)..."))
-        if hasattr(self, "act_cursor"):
-            self.act_cursor.setText(tr("menu.settings.cursor", "Configurações de Cursor e Ponteiro..."))
-        if hasattr(self, "act_shortcuts"):
-            self.act_shortcuts.setText(tr("menu.settings.shortcuts", "Atalhos de Teclado..."))
-        if hasattr(self, "act_theme"):
-            self.act_theme.setText(tr("menu.settings.theme", "Personalização de Tema..."))
-        if hasattr(self, "act_plugins"):
-            self.act_plugins.setText(tr("menu.settings.plugins", "Gerenciador de Plugins..."))
-        if hasattr(self, "help_menu") and hasattr(self.help_menu, "retranslate_ui"):
-            self.help_menu.retranslate_ui()
+        for menu in (self.file_menu, self.edit_menu, self.image_menu, self.layer_menu, self.select_menu,
+                     self.filter_menu, self.view_menu, self.window_menu, self.settings_menu, self.help_menu):
+            menu.retranslate_ui()
 
     def update_history_state(self, can_undo: bool, can_redo: bool) -> None:
         """Propaga o estado de histórico para o menu Editar."""
-        if hasattr(self, "edit_menu") and self.edit_menu:
-            self.edit_menu.update_history_state(can_undo, can_redo)
+        self.edit_menu.update_history_state(can_undo, can_redo)
+
+    def set_panel_checked(self, panel_id: str, visible: bool) -> None:
+        """Marca no menu Janela o painel que está aberto numa gaveta."""
+        self.window_menu.set_panel_checked(panel_id, visible)

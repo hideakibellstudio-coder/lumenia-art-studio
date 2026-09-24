@@ -1,6 +1,5 @@
 """Document and Camera synchronization mixin for WorkspaceContainer."""
 
-import math
 from typing import Any, TYPE_CHECKING
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.document.document import Document
@@ -33,19 +32,14 @@ class WorkspaceDocSyncMixin:
     ) -> None:
         """Recebe coordenadas normalizadas do navigator e aplica ao canvas."""
         cw: "RenderWidget" = self.canvas_widget
-        cw_w = float(getattr(cw, "canvas_w", self.canvas_w))
-        cw_h = float(getattr(cw, "canvas_h", self.canvas_h))
+        cw_w = float(cw.canvas_w)
+        cw_h = float(cw.canvas_h)
         cw.zoom     = zoom
         cw.pan_x    = (0.5 - norm_x) * zoom * cw_w
         cw.pan_y    = (0.5 - norm_y) * zoom * cw_h
         cw.rotation = rotation
-
-        if cw.input_adapter:
-            rot_rad = math.radians(rotation)
-            cw.input_adapter.update_view(cw.zoom, cw.pan_x, cw.pan_y, rot_rad)
-
-        self.zoomChanged.emit(cw.zoom)
-        cw.update()
+        # A mudança veio do Navigator: não devolve cameraChanged para ele.
+        cw.publish_view(zoom_changed=True, notify_camera=False)
 
     def _set_flip_from_navigator(self, flip_x: bool, flip_y: bool) -> None:
         """Recebe estado de espelhamento do navigator e aplica ao canvas."""
@@ -122,9 +116,7 @@ class WorkspaceDocSyncMixin:
                 self._layers_panel.set_layer_manager(None)
             if hasattr(self, "_navigator_panel") and self._navigator_panel:
                 self._navigator_panel.set_has_document(False)
-            if self.canvas_widget.renderer:
-                self.canvas_widget.renderer.clear_canvas()
-            self.canvas_widget.update()
+            self.canvas_widget.update()  # sem documento o renderer desenha a tela vazia
             return
 
         # Sincroniza o contexto C++ do motor nativo para a facade deste documento
@@ -156,20 +148,16 @@ class WorkspaceDocSyncMixin:
             self.canvas_widget.pan_x    = doc.pan_x
             self.canvas_widget.pan_y    = doc.pan_y
             self.canvas_widget.rotation = doc.rotation
+            self.canvas_widget.publish_view(zoom_changed=True)
 
         # Cada documento lembra a última cor usada nele; os painéis de cor se
         # atualizam sozinhos pelo sinal do BrushState.
         if doc.saved_color:
             self._brush_state.set_color(doc.saved_color)
 
-        if self.canvas_widget.input_adapter:
-            rot_rad = math.radians(doc.rotation)
-            self.canvas_widget.input_adapter.update_view(
-                doc.zoom, doc.pan_x, doc.pan_y, rot_rad
-            )
-        self.canvas_widget.update()
-
-        self.zoomChanged.emit(doc.zoom)
+        # A câmera já foi publicada acima (center_canvas ou publish_view). Até
+        # 2026-09-24 aqui o motor recebia doc.zoom mesmo depois de center_canvas
+        # ter calculado outro zoom.
         self._sync_navigator_to_canvas()
 
         if hasattr(self, "_layers_panel") and self._layers_panel:

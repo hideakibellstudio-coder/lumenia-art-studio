@@ -1,7 +1,5 @@
 """CanvasInputRouter — Routes mouse, tablet, touch and keyboard events to active tool controllers."""
 
-import time
-import math
 from typing import Optional, TYPE_CHECKING
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.backend import PointerEvent
@@ -21,21 +19,18 @@ class CanvasInputRouter:
         effective_tool = "eraser" if is_eraser_tip else w.active_tool
 
         # ── Navegação de Câmera / Pan (Espaço + Clique Esquerdo ou Botão do Meio) ──
-        is_space = getattr(w, "is_space_held", False)
-        if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and is_space):
+        if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and w.is_space_held):
             w.is_panning = True
             w.last_mouse_pos = pos
             w.setCursor(QtCore.Qt.ClosedHandCursor)
             w.update()
             return
 
-        if hasattr(w, "geometry_ctrl"):
-            world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-            pt = QtCore.QPointF(world_evt.x, world_evt.y)
-            is_right = (button == QtCore.Qt.RightButton)
-            if w.geometry_ctrl.mouse_press(pt, w.zoom, is_right):
-                w.update()
-                return
+        world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
+        pt = QtCore.QPointF(world_evt.x, world_evt.y)
+        if w.geometry_ctrl.mouse_press(pt, w.zoom, button == QtCore.Qt.RightButton):
+            w.update()
+            return
 
         if button == QtCore.Qt.LeftButton and (effective_tool == "eyedrop" or (modifiers & QtCore.Qt.AltModifier)):
             w.eyedrop_ctrl.active = True
@@ -47,8 +42,8 @@ class CanvasInputRouter:
 
         if button == QtCore.Qt.LeftButton and effective_tool == "text":
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-            if w._active_text_editor:
-                if not w._active_text_editor.geometry().contains(QtCore.QPoint(int(pos.x()), int(pos.y()))):
+            if w.active_text_editor:
+                if not w.active_text_editor.geometry().contains(QtCore.QPoint(int(pos.x()), int(pos.y()))):
                     w.commit_text_overlay()
                     w.open_text_editor(world_evt.x, world_evt.y)
             else:
@@ -76,8 +71,7 @@ class CanvasInputRouter:
             w.shape_ctrl.drag_active = True
             w.shape_ctrl.drag_start = QtCore.QPointF(world_evt.x, world_evt.y)
             w.shape_ctrl.drag_current = w.shape_ctrl.drag_start
-            if hasattr(w, "strokeStarted"):
-                w.strokeStarted.emit()
+            w.strokeStarted.emit()
             w.update()
             return
 
@@ -126,12 +120,12 @@ class CanvasInputRouter:
             return
 
         if button == QtCore.Qt.LeftButton:
-            if is_eraser_tip and w.backend and hasattr(w.backend, "set_engine_type") and hasattr(w.backend, "get_active_engine_type"):
+            if is_eraser_tip and w.backend:
                 self._previous_engine_type = w.backend.get_active_engine_type()
                 w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
 
-            if (modifiers & QtCore.Qt.ShiftModifier) and getattr(w, "_last_stroke_end_screen", None) is not None:
-                p0 = w._last_stroke_end_screen
+            p0 = w.stroke.last_end_screen
+            if (modifiers & QtCore.Qt.ShiftModifier) and p0 is not None:
                 w.start_stroke(p0.x(), p0.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
                 steps = 10
                 for s in range(1, steps + 1):
@@ -149,21 +143,17 @@ class CanvasInputRouter:
             w.pan_x += delta.x()
             w.pan_y += delta.y()
             w.last_mouse_pos = pos
-            rot_rad = math.radians(w.rotation)
-            w.bridge_client.update_view(w.zoom, w.pan_x, w.pan_y, rot_rad)
-            w.cameraChanged.emit(w.zoom, w.pan_x, w.pan_y, w.rotation, float(w.width()), float(w.height()))
-            if w._active_text_editor:
-                w._active_text_editor.update_screen_position()
-            w.update()
+            w.publish_view()
             return
 
         if w.drawing:
             w.paint_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
-            if hasattr(w, "geometry_ctrl") and hasattr(w, "_last_draw_pos"):
-                w.geometry_ctrl.hover_point = QtCore.QPointF(w._last_draw_pos[0], w._last_draw_pos[1])
+            last = w.stroke.last_draw_pos
+            if last is not None:
+                w.geometry_ctrl.hover_point = QtCore.QPointF(last[0], last[1])
             return
 
-        if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.active_handle or w.geometry_ctrl.curv_drag_rotate):
+        if w.geometry_ctrl.active_handle or w.geometry_ctrl.curv_drag_rotate:
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             pt = QtCore.QPointF(world_evt.x, world_evt.y)
             shift_pressed = bool(modifiers & QtCore.Qt.ShiftModifier)
@@ -218,11 +208,11 @@ class CanvasInputRouter:
             delta_y = w.zoom_drag_start_pos.y() - pos.y()
             delta = delta_x if abs(delta_x) > abs(delta_y) else delta_y
             factor = 1.0 + (delta * 0.02)
-            w._apply_anchored_zoom(factor, w.zoom_drag_start_pos)
+            w.apply_anchored_zoom(factor, w.zoom_drag_start_pos)
             w.zoom_drag_start_pos = pos
             return
 
-        if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.guide_state.get("type") != "none" or w.geometry_ctrl.sym_state.get("mode") != "none"):
+        if w.geometry_ctrl.guide_state.get("type") != "none" or w.geometry_ctrl.sym_state.get("mode") != "none":
             world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
             w.geometry_ctrl.handle_hover(QtCore.QPointF(world_evt.x, world_evt.y))
             w.update()
@@ -233,29 +223,21 @@ class CanvasInputRouter:
         # ── Liberação de Panning / Navegação ──
         if w.is_panning and button in (QtCore.Qt.MiddleButton, QtCore.Qt.LeftButton):
             w.is_panning = False
-            if getattr(w, "is_space_held", False):
+            if w.is_space_held:
                 w.setCursor(QtCore.Qt.OpenHandCursor)
             else:
-                w.unsetCursor()
-                if hasattr(w, "cursor_ctrl"):
-                    w.cursor_ctrl.invalidate_cursor_cache()
-                if hasattr(w, "_update_cursor_shape"):
-                    w._update_cursor_shape()
+                self._restore_tool_cursor()
             w.update()
             return
 
-        if hasattr(w, "geometry_ctrl") and (w.geometry_ctrl.active_handle or w.geometry_ctrl.curv_drag_rotate):
+        if w.geometry_ctrl.active_handle or w.geometry_ctrl.curv_drag_rotate:
             w.geometry_ctrl.mouse_release()
             w.update()
             return
 
         if w.is_zoom_dragging:
             w.is_zoom_dragging = False
-            w.unsetCursor()
-            if hasattr(w, "cursor_ctrl"):
-                w.cursor_ctrl.invalidate_cursor_cache()
-            if hasattr(w, "_update_cursor_shape"):
-                w._update_cursor_shape()
+            self._restore_tool_cursor()
             return
         if w.transform_ctrl.active and w.transform_ctrl.handle_dragged and button == QtCore.Qt.LeftButton:
             w.transform_ctrl.handle_dragged = None
@@ -287,7 +269,7 @@ class CanvasInputRouter:
         if button == QtCore.Qt.LeftButton and w.drawing:
             w.end_stroke(pos.x(), pos.y())
             if self._previous_engine_type is not None:
-                if w.backend and hasattr(w.backend, "set_engine_type"):
+                if w.backend:
                     w.backend.set_engine_type(self._previous_engine_type)
                 self._previous_engine_type = None
 
@@ -341,20 +323,20 @@ class CanvasInputRouter:
             w.start_transform_mode()
             return True
         if ShortcutBindings.matches("select_deselect", event):
-            if backend and hasattr(backend, "clear_selection"):
+            if backend:
                 backend.clear_selection()
                 w.selection_ctrl.selection_timer.stop()
                 w.update()
                 return True
         if ShortcutBindings.matches("select_invert", event):
-            if backend and hasattr(backend, "invert_selection"):
+            if backend:
                 backend.invert_selection()
                 if backend.has_selection():
                     w.selection_ctrl.selection_timer.start()
                 w.update()
                 return True
         if ShortcutBindings.matches("select_all", event):
-            if backend and hasattr(backend, "select_all"):
+            if backend:
                 backend.select_all()
                 w.selection_ctrl.selection_timer.start()
                 w.update()
@@ -362,7 +344,7 @@ class CanvasInputRouter:
 
         # ── Barra de Espaço: Ativa navegação de câmera (Mão Livre / Pan) ──
         if event.key() == QtCore.Qt.Key_Space:
-            if getattr(w, "_active_text_editor", None) and w._active_text_editor.isVisible():
+            if w.active_text_editor and w.active_text_editor.isVisible():
                 return False
             if event.isAutoRepeat():
                 return True
@@ -373,18 +355,14 @@ class CanvasInputRouter:
             return True
 
         if event.key() in (QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace):
-            if backend and hasattr(backend, "has_selection") and backend.has_selection():
-                if hasattr(backend, "delete_selection_on_active_layer"):
-                    if hasattr(w, "strokeStarted"):
-                        w.strokeStarted.emit()
-                    try:
-                        ok = backend.delete_selection_on_active_layer()
-                        if ok:
-                            w.update()
-                    finally:
-                        if hasattr(w, "strokeFinished"):
-                            w.strokeFinished.emit()
-                    return True
+            if backend and backend.has_selection():
+                w.strokeStarted.emit()
+                try:
+                    if backend.delete_selection_on_active_layer():
+                        w.update()
+                finally:
+                    w.strokeFinished.emit()
+                return True
         return False
 
     def handle_key_release(self, event: QtGui.QKeyEvent) -> bool:
@@ -395,11 +373,7 @@ class CanvasInputRouter:
                 return True
             w.is_space_held = False
             if not w.is_panning:
-                w.unsetCursor()
-                if hasattr(w, "cursor_ctrl"):
-                    w.cursor_ctrl.invalidate_cursor_cache()
-                if hasattr(w, "_update_cursor_shape"):
-                    w._update_cursor_shape()
+                self._restore_tool_cursor()
                 w.update()
             return True
         return False
@@ -407,12 +381,15 @@ class CanvasInputRouter:
     def handle_focus_out(self) -> None:
         """Chamado na perda de foco para evitar estados presos de teclas modificadoras."""
         w: "RenderWidget" = self.widget
-        if getattr(w, "is_space_held", False):
+        if w.is_space_held:
             w.is_space_held = False
             if not w.is_panning:
-                w.unsetCursor()
-                if hasattr(w, "cursor_ctrl"):
-                    w.cursor_ctrl.invalidate_cursor_cache()
-                if hasattr(w, "_update_cursor_shape"):
-                    w._update_cursor_shape()
+                self._restore_tool_cursor()
                 w.update()
+
+    def _restore_tool_cursor(self) -> None:
+        """Sai da navegação (pan/zoom): devolve o cursor da ferramenta ativa."""
+        w: "RenderWidget" = self.widget
+        w.unsetCursor()
+        w.cursor_ctrl.invalidate_cursor_cache()
+        w.update_cursor_shape()

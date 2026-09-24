@@ -6,7 +6,6 @@ Isola os comandos de Desfazer/Refazer, Zoom/Pan, Reset View e Clear do Workspace
 
 from __future__ import annotations
 
-import math
 import logging
 from typing import TYPE_CHECKING
 
@@ -71,36 +70,23 @@ class WorkspaceActionsMixin:
         """Reposiciona o canvas para o centro e zoom 1:1."""
         if not self._dm.active_document():
             return
+        # center_canvas publica a câmera: zoomChanged (repassado por este
+        # container) e cameraChanged (que sincroniza o Navigator).
         self.canvas_widget.center_canvas()
-        self.zoomChanged.emit(self.canvas_widget.zoom)
-        self.canvas_widget.update()
-        self._sync_navigator_to_canvas()
 
     def zoom_in(self) -> None:
         cw: "RenderWidget" = self.canvas_widget
         cw.zoom = min(50.0, cw.zoom * 1.2)
-        if cw.input_adapter:
-            rot_rad = math.radians(getattr(cw, "rotation", 0.0))
-            cw.input_adapter.update_view(cw.zoom, cw.pan_x, cw.pan_y, rot_rad)
-        self.zoomChanged.emit(cw.zoom)
-        cw.update()
+        cw.publish_view(zoom_changed=True)
 
     def zoom_out(self) -> None:
         cw = self.canvas_widget
         cw.zoom = max(0.05, cw.zoom / 1.2)
-        if cw.input_adapter:
-            rot_rad = math.radians(getattr(cw, "rotation", 0.0))
-            cw.input_adapter.update_view(cw.zoom, cw.pan_x, cw.pan_y, rot_rad)
-        self.zoomChanged.emit(cw.zoom)
-        cw.update()
+        cw.publish_view(zoom_changed=True)
 
     def clear_canvas(self) -> None:
         """Limpa o canvas (usado pelo MenuBar e ToolSidebar)."""
-        if hasattr(self, "canvas_widget") and self.canvas_widget:
-            self.canvas_widget.clear_canvas()
-        elif self.canvas_widget.renderer:
-            self.canvas_widget.renderer.clear_canvas()
-            self.canvas_widget.update()
+        self.canvas_widget.clear_canvas()
 
     def clear_selection(self) -> None:
         """Desmarca/limpa a seleção ativa do documento."""

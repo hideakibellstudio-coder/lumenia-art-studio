@@ -1,207 +1,155 @@
-"""Canvas Stroke Pipeline — Execution and Dirty-Rect Tracking for Interactive Painting.
+"""CanvasStrokePipeline — ciclo de vida do traço interativo e regiões sujas da tela.
 
-Coordinates pointer stroke dispatching to native C++ backend,
-snapping through geometry controllers, cursor position synchronization,
-and high-performance incremental dirty-region widget updating.
-Strictly decoupled in compliance with ARCcC v2 (< 160 LOC).
+Leva os eventos do ponteiro ao motor (com snap das guias), e decide o que
+repintar: a área dos dabs novos unida ao anel do cursor antigo e novo, sem
+repintar a tela inteira.
+
+Colaborador com estado próprio (desde 2026-09-24): `last_draw_pos` (último
+ponto no espaço do canvas) e `last_end_screen` (fim do último traço, usado
+pela linha reta com Shift). Antes era uma classe de métodos estáticos que
+recebia o widget e escrevia sete atributos privados dele; o anel do cursor
+agora é do `CanvasCursorController` (`painted_ring_rect`).
 """
 
-import time
+from __future__ import annotations
+
 import math
-from typing import TYPE_CHECKING
+import time
+from typing import TYPE_CHECKING, Optional
+
 from PySide6 import QtCore
+
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
 
 if TYPE_CHECKING:
     from ..render_widget import RenderWidget
 
+_MIN_PRESSURE = 0.02
+_DIRTY_MARGIN_PX = 6
+# Sem dabs novos, o anel só é redesenhado a cada 8 ms ou 2 px de movimento.
+_RING_REFRESH_S = 0.008
+_RING_REFRESH_PX = 2.0
+
 
 class CanvasStrokePipeline:
-    """Coordinates stroke lifecycles, incremental dab bounding box calculation, and updates."""
+    def __init__(self, widget: "RenderWidget") -> None:
+        self._w = widget
+        self.last_draw_pos: Optional[tuple[float, float]] = None
+        self.last_end_screen: Optional[QtCore.QPointF] = None
+        self._last_ring_refresh_time = 0.0
+        self._last_ring_refresh_pos: Optional[tuple[float, float]] = None
 
-    @staticmethod
-    def sync_brush_radius(widget: 'RenderWidget') -> None:
-        """Synchronizes cached brush radius from the active C++ backend profile."""
-        b = widget.backend
-        if b:
-            prof_data = b.get_brush_profile_dict()
-            sz = prof_data.get("brush_size", 0.0)
-            if sz > 0:
-                widget._cached_brush_radius = float(sz) / 2.0
-                return
-        widget._cached_brush_radius = getattr(widget, "brush_size", 24.0) / 2.0
-
-    @staticmethod
-    def get_current_brush_radius(widget: 'RenderWidget') -> float:
-        """Returns the current brush radius, updating the cache if needed."""
-        if not hasattr(widget, "_cached_brush_radius"):
-            CanvasStrokePipeline.sync_brush_radius(widget)
-        return widget._cached_brush_radius
-
-    @staticmethod
-    def start_stroke(
-        widget: 'RenderWidget',
-        screen_x: float,
-        screen_y: float,
-        pressure: float,
-        timestamp: float = 0.0,
-        tilt_x: float = 0.0,
-        tilt_y: float = 0.0,
-        twist: float = 0.0,
-    ) -> None:
-        """Initializes a new brush stroke, snaps origin point, and dispatches to backend."""
-        CanvasStrokePipeline.sync_brush_radius(widget)
-        widget.strokeStarted.emit()
-        widget._last_rendered_cursor_rect = QtCore.QRect()
-        b = widget.backend
-        if b is not None:
-            widget.drawing = True
-            safe_pressure = max(0.02, pressure)
-            evt = widget.to_canvas(screen_x, screen_y, safe_pressure, timestamp)
-            if hasattr(widget, "geometry_ctrl"):
-                widget.geometry_ctrl.start_stroke_snap((evt.x, evt.y))
-                cur_x, cur_y = widget.geometry_ctrl.snap_point(evt.x, evt.y, widget.zoom)
-            else:
-                cur_x, cur_y = evt.x, evt.y
-            widget._last_draw_pos = (cur_x, cur_y)
-            if hasattr(b, "start_stroke"):
-                try:
-                    b.start_stroke(cur_x, cur_y, safe_pressure, timestamp, tilt_x, tilt_y, twist)
-                except TypeError:
-                    b.start_stroke(cur_x, cur_y, safe_pressure, timestamp)
-            widget.update()
-
-    @staticmethod
-    def paint_stroke(
-        widget: 'RenderWidget',
-        screen_x: float,
-        screen_y: float,
-        pressure: float,
-        timestamp: float = 0.0,
-        tilt_x: float = 0.0,
-        tilt_y: float = 0.0,
-        twist: float = 0.0,
-    ) -> None:
-        """Feeds motion events to backend, calculating dirty rect union between dabs and cursor."""
-        if not widget.drawing:
+    def start(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0,
+              tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None:
+        """Começa um traço: snap da origem e envio ao motor."""
+        w = self._w
+        w.strokeStarted.emit()
+        w.cursor_ctrl.painted_ring_rect = QtCore.QRect()
+        backend = w.backend
+        if backend is None:
             return
-        b = widget.backend
-        if b is not None:
-            widget._mouse_pos = QtCore.QPointF(screen_x, screen_y)
-            widget.cursor_ctrl.sync_position(widget._mouse_pos, widget.current_brush_radius, widget.zoom)
-            safe_p = max(0.02, pressure)
-            evt = widget.to_canvas(screen_x, screen_y, safe_p, timestamp)
-            cur_x, cur_y = widget.geometry_ctrl.snap_point(evt.x, evt.y, widget.zoom) if hasattr(widget, "geometry_ctrl") else (evt.x, evt.y)
-            try:
-                res = b.paint_stroke(cur_x, cur_y, safe_p, timestamp, tilt_x, tilt_y, twist)
-            except TypeError:
-                res = b.paint_stroke(cur_x, cur_y, safe_p, timestamp)
-            widget._last_draw_pos = (cur_x, cur_y)
-            is_sym = hasattr(widget, "geometry_ctrl") and (widget.geometry_ctrl.sym_state.get("mode", "none") != "none")
-            has_rendered_dabs = bool(res and len(res) >= 6 and res[2] > 0 and res[3] > 0)
+        w.drawing = True
+        safe_pressure = max(_MIN_PRESSURE, pressure)
+        evt = w.to_canvas(screen_x, screen_y, safe_pressure, timestamp)
+        w.geometry_ctrl.start_stroke_snap((evt.x, evt.y))
+        cur_x, cur_y = w.geometry_ctrl.snap_point(evt.x, evt.y, w.zoom)
+        self.last_draw_pos = (cur_x, cur_y)
+        backend.start_stroke(cur_x, cur_y, safe_pressure, timestamp, tilt_x, tilt_y, twist)
+        w.update()
 
-            if is_sym:
-                widget.update()
-            else:
-                br_rad = widget.current_brush_radius
-                cursor_visible = widget._cursor_in_viewport and not widget._cursor_settings.get("hide_on_stroke", False)
-                cur_cursor_rect = ToolCursorRenderer.get_cursor_rect(screen_x, screen_y, br_rad, widget.zoom) if cursor_visible else QtCore.QRect()
+    def paint(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0,
+              tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None:
+        """Alimenta o motor e repinta só a união (dabs novos ∪ anel antigo ∪ anel novo)."""
+        w = self._w
+        if not w.drawing:
+            return
+        backend = w.backend
+        if backend is None:
+            return
+        cursor = w.cursor_ctrl
+        cursor.sync_position(QtCore.QPointF(screen_x, screen_y), w.current_brush_radius, w.zoom)
+        safe_p = max(_MIN_PRESSURE, pressure)
+        evt = w.to_canvas(screen_x, screen_y, safe_p, timestamp)
+        cur_x, cur_y = w.geometry_ctrl.snap_point(evt.x, evt.y, w.zoom)
+        res = backend.paint_stroke(cur_x, cur_y, safe_p, timestamp, tilt_x, tilt_y, twist)
+        self.last_draw_pos = (cur_x, cur_y)
 
-                if has_rendered_dabs:
-                    dirty_s = widget._get_canvas_transform().mapRect(QtCore.QRectF(res[0], res[1], res[2], res[3])).toAlignedRect().adjusted(-6, -6, 6, 6)
-                    if cursor_visible:
-                        if not widget._last_rendered_cursor_rect.isEmpty():
-                            dirty_s = dirty_s.united(widget._last_rendered_cursor_rect)
-                        dirty_s = dirty_s.united(cur_cursor_rect)
-                    elif not widget._last_rendered_cursor_rect.isEmpty():
-                        dirty_s = dirty_s.united(widget._last_rendered_cursor_rect)
-                    widget.update(dirty_s)
-                    widget._last_rendered_cursor_rect = cur_cursor_rect
-                    widget._last_cursor_update_time = time.perf_counter()
-                    widget._last_cursor_update_pos = (screen_x, screen_y)
-                else:
-                    now_t = time.perf_counter()
-                    last_t = getattr(widget, "_last_cursor_update_time", 0.0)
-                    last_p = getattr(widget, "_last_cursor_update_pos", (screen_x, screen_y))
-                    dist_moved = math.hypot(screen_x - last_p[0], screen_y - last_p[1])
-                    if (now_t - last_t >= 0.008) or (dist_moved >= 2.0):
-                        if cursor_visible:
-                            dirty_cursor = cur_cursor_rect
-                            if not widget._last_rendered_cursor_rect.isEmpty():
-                                dirty_cursor = dirty_cursor.united(widget._last_rendered_cursor_rect)
-                            widget.update(dirty_cursor)
-                        elif not widget._last_rendered_cursor_rect.isEmpty():
-                            widget.update(widget._last_rendered_cursor_rect)
-                        widget._last_rendered_cursor_rect = cur_cursor_rect
-                        widget._last_cursor_update_time = now_t
-                        widget._last_cursor_update_pos = (screen_x, screen_y)
+        if w.geometry_ctrl.sym_state.get("mode", "none") != "none":
+            w.update()  # simetria espalha dabs pela tela toda
+            return
 
-    @staticmethod
-    def end_stroke(
-        widget: 'RenderWidget',
-        screen_x: float | None = None,
-        screen_y: float | None = None
-    ) -> None:
-        """Finalizes an active brush stroke and updates dirty canvas region."""
-        if hasattr(widget, "geometry_ctrl"):
-            widget.geometry_ctrl.mouse_release()
-        if widget.drawing:
-            b = widget.backend
-            res = []
-            if b is not None:
-                if screen_x is not None and screen_y is not None:
-                    evt = widget.to_canvas(screen_x, screen_y, 0.0, 0.0)
-                    res = b.end_stroke(evt.x, evt.y)
-                    end_pos = QtCore.QPointF(screen_x, screen_y)
-                else:
-                    res = b.end_stroke()
-                    end_pos = widget._mouse_pos
+        has_rendered_dabs = bool(res and len(res) >= 6 and res[2] > 0 and res[3] > 0)
+        cursor_visible = cursor.cursor_in_viewport and not cursor.cursor_settings.get("hide_on_stroke", False)
+        new_ring = (
+            ToolCursorRenderer.get_cursor_rect(screen_x, screen_y, w.current_brush_radius, w.zoom)
+            if cursor_visible else QtCore.QRect()
+        )
+        old_ring = cursor.painted_ring_rect
 
-                widget.drawing = False
-                widget._mouse_pos = end_pos
-                widget._last_stroke_end_screen = end_pos
-                widget.cursor_ctrl.sync_position(end_pos, widget.current_brush_radius, widget.zoom)
-                widget.cursor_ctrl._is_over_canvas = widget.cursor_ctrl.is_over_canvas(end_pos)
+        if has_rendered_dabs:
+            m = _DIRTY_MARGIN_PX
+            dirty = w.canvas_transform().mapRect(QtCore.QRectF(res[0], res[1], res[2], res[3])).toAlignedRect().adjusted(-m, -m, m, m)
+            if not old_ring.isEmpty():
+                dirty = dirty.united(old_ring)
+            if cursor_visible:
+                dirty = dirty.united(new_ring)
+            w.update(dirty)
+            self._remember_ring(cursor, new_ring, screen_x, screen_y, time.perf_counter())
+            return
 
-                t = widget._get_canvas_transform()
-                dirty_to_update = QtCore.QRect()
-                if res and len(res) >= 4 and res[2] > 0 and res[3] > 0:
-                    dirty_c = QtCore.QRectF(res[0], res[1], res[2], res[3])
-                    dirty_to_update = t.mapRect(dirty_c).toAlignedRect()
-                else:
-                    # Caso de tap isolado ou ausência de catch-up dirty bounds:
-                    # Invalida a área analítica do dab renderizado sob end_pos
-                    rad = widget.current_brush_radius * widget.zoom
-                    spot_rect = QtCore.QRectF(
-                        end_pos.x() - rad - 6.0,
-                        end_pos.y() - rad - 6.0,
-                        (rad + 6.0) * 2.0,
-                        (rad + 6.0) * 2.0
-                    ).toAlignedRect()
-                    dirty_to_update = spot_rect
+        now = time.perf_counter()
+        last_pos = self._last_ring_refresh_pos or (screen_x, screen_y)
+        moved = math.hypot(screen_x - last_pos[0], screen_y - last_pos[1])
+        if (now - self._last_ring_refresh_time) >= _RING_REFRESH_S or moved >= _RING_REFRESH_PX:
+            if cursor_visible:
+                w.update(new_ring if old_ring.isEmpty() else new_ring.united(old_ring))
+            elif not old_ring.isEmpty():
+                w.update(old_ring)
+            self._remember_ring(cursor, new_ring, screen_x, screen_y, now)
 
-                cur_cursor_rect = ToolCursorRenderer.get_cursor_rect(
-                    end_pos.x(), end_pos.y(), widget.current_brush_radius, widget.zoom
-                )
+    def end(self, screen_x: float | None = None, screen_y: float | None = None) -> None:
+        """Termina o traço e repinta a área final (inclusive o toque isolado sem arrasto)."""
+        w = self._w
+        w.geometry_ctrl.mouse_release()
+        backend = w.backend
+        if not w.drawing or backend is None:
+            w.drawing = False
+            w.strokeFinished.emit()
+            return
 
-                if not widget._last_rendered_cursor_rect.isEmpty():
-                    if not dirty_to_update.isEmpty():
-                        dirty_to_update = dirty_to_update.united(widget._last_rendered_cursor_rect)
-                    else:
-                        dirty_to_update = widget._last_rendered_cursor_rect
+        cursor = w.cursor_ctrl
+        if screen_x is not None and screen_y is not None:
+            evt = w.to_canvas(screen_x, screen_y, 0.0, 0.0)
+            res = backend.end_stroke(evt.x, evt.y)
+            end_pos = QtCore.QPointF(screen_x, screen_y)
+        else:
+            res = backend.end_stroke()
+            end_pos = cursor.mouse_pos
 
-                if not dirty_to_update.isEmpty():
-                    dirty_to_update = dirty_to_update.united(cur_cursor_rect)
-                else:
-                    dirty_to_update = cur_cursor_rect
+        w.drawing = False
+        self.last_end_screen = end_pos
+        cursor.sync_position(end_pos, w.current_brush_radius, w.zoom, recheck_canvas=True)
 
-                widget._last_rendered_cursor_rect = cur_cursor_rect
-                widget.cursor_ctrl._last_cursor_rect = cur_cursor_rect
+        if res and len(res) >= 4 and res[2] > 0 and res[3] > 0:
+            dirty = w.canvas_transform().mapRect(QtCore.QRectF(res[0], res[1], res[2], res[3])).toAlignedRect()
+        else:
+            # Toque isolado (ou motor sem retângulo de catch-up): invalida a
+            # área analítica do dab sob o ponto final, senão a marca não aparece.
+            rad = w.current_brush_radius * w.zoom + _DIRTY_MARGIN_PX
+            dirty = QtCore.QRectF(end_pos.x() - rad, end_pos.y() - rad, rad * 2.0, rad * 2.0).toAlignedRect()
 
-                if not dirty_to_update.isEmpty():
-                    widget.update(dirty_to_update)
-                widget.strokeFinished.emit()
-                return
+        new_ring = ToolCursorRenderer.get_cursor_rect(end_pos.x(), end_pos.y(), w.current_brush_radius, w.zoom)
+        if not cursor.painted_ring_rect.isEmpty():
+            dirty = dirty.united(cursor.painted_ring_rect) if not dirty.isEmpty() else cursor.painted_ring_rect
+        dirty = dirty.united(new_ring) if not dirty.isEmpty() else new_ring
 
-        widget.drawing = False
-        widget.strokeFinished.emit()
+        cursor.painted_ring_rect = new_ring
+        cursor.hover_ring_rect = new_ring
+        if not dirty.isEmpty():
+            w.update(dirty)
+        w.strokeFinished.emit()
+
+    def _remember_ring(self, cursor, ring: QtCore.QRect, x: float, y: float, when: float) -> None:
+        cursor.painted_ring_rect = ring
+        self._last_ring_refresh_time = when
+        self._last_ring_refresh_pos = (x, y)

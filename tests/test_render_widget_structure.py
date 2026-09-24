@@ -17,6 +17,7 @@ from plugins.system.workspace_core.workspace.canvas.renderers.canvas_background_
 from plugins.system.workspace_core.workspace.canvas.viewport.canvas_stroke_pipeline import (
     CanvasStrokePipeline
 )
+from plugins.system.workspace_core.workspace.canvas.viewport.viewport_renderer import ViewportRenderer
 
 
 class TestCanvasBackgroundRenderer(unittest.TestCase):
@@ -86,20 +87,20 @@ class TestToolManagerAndDelegation(unittest.TestCase):
         self.widget.set_shape_settings({"fill_color": QtGui.QColor(255, 0, 0)})
         self.assertEqual(self.widget.shape_ctrl.settings.get("fill_color"), QtGui.QColor(255, 0, 0))
 
-    def test_stroke_pipeline_brush_radius(self):
-        """CanvasStrokePipeline syncs and returns brush radius properly."""
-        b = self.widget.backend
-        if b and hasattr(b, "set_brush_size"):
-            b.set_brush_size(80.0)
+    def test_stroke_and_render_collaborators_are_instances(self):
+        """Traço e pintura são colaboradores com estado próprio, não funções estáticas."""
+        self.assertIsInstance(self.widget.stroke, CanvasStrokePipeline)
+        self.assertIsInstance(self.widget.viewport_renderer, ViewportRenderer)
+        self.assertIsNone(self.widget.stroke.last_end_screen)
+
+    def test_brush_radius_follows_brush_size(self):
+        """O raio do anel vem do tamanho do pincel que o BrushState empurra ao canvas.
+
+        Antes havia um `_cached_brush_radius` sincronizado à mão (e relido do
+        perfil do motor); a cópia podia divergir do tamanho publicado.
+        """
         self.widget.brush_size = 80.0
-        CanvasStrokePipeline.sync_brush_radius(self.widget)
-        rad = CanvasStrokePipeline.get_current_brush_radius(self.widget)
-        if b and hasattr(b, "get_brush_profile_dict") and b.get_brush_profile_dict().get("brush_size", 0.0) > 0:
-            expected = float(b.get_brush_profile_dict()["brush_size"]) / 2.0
-        else:
-            expected = 40.0
-        self.assertEqual(rad, expected)
-        self.assertEqual(self.widget.current_brush_radius, expected)
+        self.assertEqual(self.widget.current_brush_radius, 40.0)
 
     def test_stroke_lifecycle_signals(self):
         """Starting and ending a stroke emits strokeStarted and strokeFinished."""

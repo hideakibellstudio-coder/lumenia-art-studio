@@ -254,7 +254,7 @@ def test_round13_loc_governance():
     base_dir = Path(__file__).resolve().parent.parent
     files_to_check = [
         base_dir / "plugins/ui/navigator_plugin/panel.py",
-        base_dir / "plugins/system/workspace_core/workspace/canvas/viewport/canvas_compat.py",
+        base_dir / "plugins/system/workspace_core/workspace/canvas/viewport/camera_proxies.py",
         base_dir / "ui/engine_backends/aladyn_layer_mixin.py",
         base_dir / "ui/engine_backends/aladyn.py",
         base_dir / "ui/engine_backends/aladyn_selection_mixin.py",

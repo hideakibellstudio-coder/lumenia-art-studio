@@ -95,7 +95,7 @@ class TextOverlayEditor(QtWidgets.QFrame):
         self._adjust_size()
 
     def update_screen_position(self):
-        transform = self.canvas_widget._get_canvas_transform()
+        transform = self.canvas_widget.canvas_transform()
         screen_pt = transform.map(self.canvas_pos)
         self.move(int(screen_pt.x()), int(screen_pt.y()))
 

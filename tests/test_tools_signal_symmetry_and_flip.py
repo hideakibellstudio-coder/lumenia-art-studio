@@ -72,6 +72,7 @@ class _MockStatusBar:
 class _MockImageActionsWindow(MainWindowImageActionsMixin):
     def __init__(self, workspace):
         self.workspace = workspace
+        self.canvas_widget = workspace.canvas_widget  # como o MainWindow expõe
         self.status_bar = _MockStatusBar()
         self.dm = None
 
@@ -163,9 +164,7 @@ def test_navigator_flip_signal_emission(app):
 
 def test_main_window_toggle_grid_and_rulers(app):
     rw = RenderWidget()
-    assert hasattr(rw, "geometry_ctrl")
-    assert hasattr(rw, "geometry_controller")
-    assert rw.geometry_ctrl is rw.geometry_controller
+    assert rw.geometry_ctrl is rw.tool_mgr.geometry_ctrl
 
     class MockWS:
         def __init__(self):

@@ -11,7 +11,6 @@ import pytest
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-from plugins.system.workspace_core.workspace.canvas.viewport.canvas_stroke_pipeline import CanvasStrokePipeline
 from ui.core.engine.registry import EngineRegistry
 from ui.engine_backends.aladyn import AladynBackend
 
@@ -61,32 +60,33 @@ def test_stroke_pipeline_isolated_tap_dirty_rect(qapp):
     rw.end_stroke(300.0, 300.0)
     assert rw.drawing is False
 
-    # Verifica se _last_rendered_cursor_rect e o dirty rect foram computados
-    assert not rw._last_rendered_cursor_rect.isEmpty()
-    assert rw._last_rendered_cursor_rect.width() > 0
-    assert rw._last_rendered_cursor_rect.height() > 0
+    # O anel do cursor no ponto final foi registrado (e entrou no dirty rect)
+    ring = rw.cursor_ctrl.painted_ring_rect
+    assert not ring.isEmpty()
+    assert ring.width() > 0 and ring.height() > 0
+    assert rw.stroke.last_end_screen == QtCore.QPointF(300.0, 300.0)
 
 
 def test_stroke_pipeline_cursor_history_invalidation(qapp):
-    """Garante que _last_rendered_cursor_rect é atualizado a cada etapa de paint_stroke."""
+    """Garante que o anel pintado (cursor_ctrl.painted_ring_rect) acompanha cada paint_stroke."""
     rw = RenderWidget()
     rw.canvas_w = 1000
     rw.canvas_h = 1000
     rw.brush_size = 30.0
-    rw._cursor_in_viewport = True
+    rw.cursor_ctrl.cursor_in_viewport = True
 
     rw.start_stroke(100.0, 100.0, pressure=0.7, timestamp=1.0)
-    assert rw._last_rendered_cursor_rect.isEmpty()
+    assert rw.cursor_ctrl.painted_ring_rect.isEmpty()
 
     # Move para (120, 100)
     rw.paint_stroke(120.0, 100.0, pressure=0.7, timestamp=1.016)
-    r1 = QtCore.QRect(rw._last_rendered_cursor_rect)
+    r1 = QtCore.QRect(rw.cursor_ctrl.painted_ring_rect)
     assert not r1.isEmpty()
     assert abs(r1.center().x() - 120) <= 2
 
     # Move para (150, 100)
     rw.paint_stroke(150.0, 100.0, pressure=0.7, timestamp=1.032)
-    r2 = QtCore.QRect(rw._last_rendered_cursor_rect)
+    r2 = QtCore.QRect(rw.cursor_ctrl.painted_ring_rect)
     assert not r2.isEmpty()
     assert abs(r2.center().x() - 150) <= 2
     assert r1 != r2

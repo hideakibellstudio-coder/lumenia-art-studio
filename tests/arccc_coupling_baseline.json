@@ -1,15 +1,11 @@
 {
  "plugins/system/workspace_core/workspace/canvas/render_widget.py": {
   "foreign_private": 1,
-  "getattr_literal": 6,
-  "hasattr": 10
+  "getattr_literal": 1,
+  "hasattr": 8
  },
  "plugins/system/workspace_core/workspace/canvas/renderers/geometry_overlay_renderer.py": {
   "hasattr": 2
- },
- "plugins/system/workspace_core/workspace/canvas/renderers/overlay_renderer.py": {
-  "getattr_literal": 8,
-  "hasattr": 3
  },
  "plugins/system/workspace_core/workspace/canvas/renderers/perspective_grid_renderer.py": {
   "getattr_literal": 4,
@@ -20,7 +16,6 @@
   "hasattr": 2
  },
  "plugins/system/workspace_core/workspace/canvas/text_overlay_editor.py": {
-  "foreign_private": 1,
   "getattr_literal": 1
  },
  "plugins/system/workspace_core/workspace/canvas/tools/eyedrop_tool_controller.py": {
@@ -46,29 +41,6 @@
  },
  "plugins/system/workspace_core/workspace/canvas/tools/transform_tool_controller.py": {
   "hasattr": 6
- },
- "plugins/system/workspace_core/workspace/canvas/viewport/canvas_compat.py": {
-  "getattr_literal": 14,
-  "hasattr": 8
- },
- "plugins/system/workspace_core/workspace/canvas/viewport/canvas_stroke_pipeline.py": {
-  "foreign_private": 35,
-  "getattr_literal": 3,
-  "hasattr": 6
- },
- "plugins/system/workspace_core/workspace/canvas/viewport/cursor_controller.py": {
-  "foreign_private": 1,
-  "getattr_literal": 14,
-  "hasattr": 5
- },
- "plugins/system/workspace_core/workspace/canvas/viewport/input_router.py": {
-  "foreign_private": 13,
-  "getattr_literal": 5,
-  "hasattr": 25
- },
- "plugins/system/workspace_core/workspace/canvas/viewport/viewport_renderer.py": {
-  "foreign_private": 18,
-  "hasattr": 5
  },
  "plugins/system/workspace_core/workspace/dock/dock_animator.py": {
   "foreign_private": 9,
@@ -143,14 +115,13 @@
   "foreign_private": 1
  },
  "plugins/system/workspace_core/workspace/workspace_actions.py": {
-  "getattr_literal": 2,
-  "hasattr": 4
+  "hasattr": 3
  },
  "plugins/system/workspace_core/workspace/workspace_container.py": {
   "hasattr": 9
  },
  "plugins/system/workspace_core/workspace/workspace_document_sync.py": {
-  "getattr_literal": 16,
+  "getattr_literal": 14,
   "hasattr": 13
  },
  "plugins/system/workspace_core/workspace/workspace_layout_manager.py": {
@@ -248,17 +219,12 @@
   "hasattr": 22
  },
  "ui/boundary/orchestrator/main_window_dialog_actions.py": {
-  "foreign_private": 3,
-  "getattr_literal": 1,
-  "hasattr": 7
+  "foreign_private": 1,
+  "hasattr": 6
  },
  "ui/boundary/orchestrator/main_window_document_actions.py": {
   "getattr_literal": 2,
   "hasattr": 2
- },
- "ui/boundary/orchestrator/main_window_image_actions.py": {
-  "getattr_literal": 6,
-  "hasattr": 9
  },
  "ui/boundary/orchestrator/main_window_menu_actions.py": {
   "getattr_literal": 13,

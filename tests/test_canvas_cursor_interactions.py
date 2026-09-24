@@ -16,6 +16,18 @@ from ui.core.icon_svg_catalog import ALIASES
 from ui.core.icons import get_icon
 
 
+def _fake_canvas(tool: str) -> QtWidgets.QWidget:
+    """Widget mínimo com o contrato que o CanvasCursorController lê do canvas."""
+    widget = QtWidgets.QWidget()
+    widget.active_tool = tool
+    widget.canvas_w = 800
+    widget.canvas_h = 600
+    widget.zoom = 1.0
+    widget.is_panning = False
+    widget.is_space_held = False
+    widget.canvas_transform = lambda: QtGui.QTransform()
+    return widget
+
 
 def test_tool_cursor_renderer_hotspots_and_icons(qapp):
     """Verifica resolução de cursores customizados SVG, catálogo e hotspots."""
@@ -51,10 +63,7 @@ def test_tool_cursor_renderer_precision_chevron(qapp):
 
 def test_canvas_cursor_controller_tool_shapes(qapp):
     """Verifica formas de cursor atribuídas para cada ferramenta ativa quando dentro e fora da viewport."""
-    widget = QtWidgets.QWidget()
-    widget.active_tool = "brush"
-    widget.canvas_w = 800
-    widget.canvas_h = 600
+    widget = _fake_canvas("brush")
     controller = CanvasCursorController(widget)
 
     # Fora da viewport: deve ser SEMPRE ArrowCursor
@@ -83,7 +92,7 @@ def test_canvas_cursor_controller_tool_shapes(qapp):
     controller.cursor_settings["mode"] = "ring_and_dot"
 
     # Permanece especializado mesmo no fundo neutro fora do documento (viewport-wide)
-    controller._is_over_canvas = False
+    controller.over_canvas = False
     controller.update_cursor_shape()
     assert widget.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 
@@ -112,13 +121,7 @@ def test_canvas_cursor_controller_tool_shapes(qapp):
 
 def test_canvas_cursor_controller_smudge_dirty_rects(qapp):
     """Verifica que smudge gera dirty rects para re-renderização do anel."""
-    widget = QtWidgets.QWidget()
-    widget.active_tool = "smudge"
-    widget.current_brush_radius = 25.0
-    widget.zoom = 1.0
-    widget.canvas_w = 800
-    widget.canvas_h = 600
-    widget._get_canvas_transform = lambda: QtGui.QTransform()
+    widget = _fake_canvas("smudge")
 
     controller = CanvasCursorController(widget)
     # Movendo o cursor dentro da área do canvas
@@ -128,22 +131,20 @@ def test_canvas_cursor_controller_smudge_dirty_rects(qapp):
 
 
 def test_render_widget_brush_size_reactive_radius(qapp):
-    """Verifica que RenderWidget.brush_size reage síncronamente atualizando _cached_brush_radius."""
+    """O raio do anel é derivado do tamanho do pincel (sem cópia em cache para dessincronizar)."""
     rw = RenderWidget()
     rw.brush_size = 40.0
     assert rw.brush_size == 40.0
-    assert rw._cached_brush_radius == 20.0
     assert rw.current_brush_radius == 20.0
 
     rw.brush_size = 150.0
     assert rw.brush_size == 150.0
-    assert rw._cached_brush_radius == 75.0
     assert rw.current_brush_radius == 75.0
 
     # Normalização de valor mínimo
     rw.brush_size = -10.0
     assert rw.brush_size == 0.5
-    assert rw._cached_brush_radius == 0.25
+    assert rw.current_brush_radius == 0.25
 
     # Reatividade do cursor quando o mouse ESTÁ ativo na viewport (regressão de ToolCursorRenderer)
     rw.cursor_ctrl.cursor_in_viewport = True
@@ -159,7 +160,7 @@ def test_input_router_pan_and_zoom_cursor_feedback(qapp):
     rw = RenderWidget()
     rw.active_tool = "brush"
     rw.cursor_ctrl.cursor_in_viewport = True
-    rw.cursor_ctrl._is_over_canvas = True
+    rw.cursor_ctrl.over_canvas = True
     rw.cursor_ctrl.update_cursor_shape()
     assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 
@@ -346,10 +347,7 @@ def test_chevron_left_diagonal_inversion(qapp):
 
 def test_cursor_controller_orientation_and_mode_cleanliness(qapp):
     """Valida que modos limpos não exibem ponteiro sobreposto e que inversão é aplicada."""
-    widget = QtWidgets.QWidget()
-    widget.active_tool = "brush"
-    widget.canvas_w = 800
-    widget.canvas_h = 600
+    widget = _fake_canvas("brush")
     controller = CanvasCursorController(widget)
     controller.cursor_in_viewport = True
 

@@ -25,27 +25,23 @@ class MainWindowImageActionsMixin:
                 self.status_bar.showMessage("O backend ativo não suporta exportação de imagem.", 5000)
 
     def reset_rotation(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
+        cw = self.canvas_widget
+        if cw is not None:
             cw.rotation = 0.0
-            cw.update()
+            cw.publish_view()  # antes só repintava: o Navigator ficava girado
             self.status_bar.showMessage("Rotação do canvas resetada para 0°.", 2000)
 
     def flip_horizontal(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
-            if hasattr(cw, "flip_x"):
-                cw.flip_x = not getattr(cw, "flip_x", False)
-                cw.update()
-                self.status_bar.showMessage("Visualização espelhada horizontalmente.", 2000)
+        cw = self.canvas_widget
+        if cw is not None:
+            cw.flip_x = not cw.flip_x
+            self.status_bar.showMessage("Visualização espelhada horizontalmente.", 2000)
 
     def flip_vertical(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
-            if hasattr(cw, "flip_y"):
-                cw.flip_y = not getattr(cw, "flip_y", False)
-                cw.update()
-                self.status_bar.showMessage("Visualização espelhada verticalmente.", 2000)
+        cw = self.canvas_widget
+        if cw is not None:
+            cw.flip_y = not cw.flip_y
+            self.status_bar.showMessage("Visualização espelhada verticalmente.", 2000)
 
     def open_canvas_size_dialog(self, is_image_resize: bool = False) -> None:
         backend = EngineRegistry.instance().get_backend()
@@ -120,28 +116,26 @@ class MainWindowImageActionsMixin:
     # ── Guias & Réguas ────────────────────────────────────────────────────
 
     def toggle_grid(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
-            geo_ctrl = getattr(cw, "geometry_ctrl", getattr(cw, "geometry_controller", None))
-            if geo_ctrl and hasattr(geo_ctrl, "guide_state"):
-                gs = geo_ctrl.guide_state
-                curr = gs.get("show_v", True)
-                gs["show_v"] = not curr
-                gs["show_h"] = not curr
-                gs["show_d"] = not curr
-                cw.update()
-                state = "ativada" if not curr else "oculta"
-                self.status_bar.showMessage(f"Grade magnética {state}.", 2000)
+        cw = self.canvas_widget
+        if cw is None:
+            return
+        gs = cw.geometry_ctrl.guide_state
+        curr = gs.get("show_v", True)
+        gs["show_v"] = not curr
+        gs["show_h"] = not curr
+        gs["show_d"] = not curr
+        cw.update()
+        state = "ativada" if not curr else "oculta"
+        self.status_bar.showMessage(f"Grade magnética {state}.", 2000)
 
     def toggle_rulers(self) -> None:
-        if self.workspace and hasattr(self.workspace, "canvas_widget"):
-            cw = self.workspace.canvas_widget
-            geo_ctrl = getattr(cw, "geometry_ctrl", getattr(cw, "geometry_controller", None))
-            if geo_ctrl and hasattr(geo_ctrl, "guide_state"):
-                gs = geo_ctrl.guide_state
-                curr = gs.get("type", "none") != "none"
-                gs["type"] = "straight" if not curr else "none"
-                cw.update()
-                state = "ativadas" if not curr else "ocultas"
-                self.status_bar.showMessage(f"Réguas {state}.", 2000)
+        cw = self.canvas_widget
+        if cw is None:
+            return
+        gs = cw.geometry_ctrl.guide_state
+        curr = gs.get("type", "none") != "none"
+        gs["type"] = "straight" if not curr else "none"
+        cw.update()
+        state = "ativadas" if not curr else "ocultas"
+        self.status_bar.showMessage(f"Réguas {state}.", 2000)
 

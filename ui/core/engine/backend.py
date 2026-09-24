@@ -145,8 +145,11 @@ class EngineBackend(ABC):
         """Continua um traço em andamento."""
 
     @abstractmethod
-    def end_stroke(self) -> Any:
-        """Finaliza o traço atual."""
+    def end_stroke(self, x: Optional[float] = None, y: Optional[float] = None) -> Any:
+        """Finaliza o traço atual (no ponto dado, ou no último ponto recebido).
+
+        Retorna o retângulo sujo [x, y, w, h] no espaço do canvas, ou vazio.
+        """
 
     def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None: pass
     def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> List[float]: return [0.0, 0.0, 0.0]

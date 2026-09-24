@@ -59,12 +59,8 @@ class MainWindowDialogActionsMixin:
         dialog.exec()
 
     def _on_cursor_settings_changed(self, cfg: dict) -> None:
-        cw = getattr(self.workspace, "canvas_widget", None)
-        if cw:
-            cw._cursor_settings = cfg
-            if hasattr(cw, "_update_cursor_shape"):
-                cw._update_cursor_shape()
-            cw.update()
+        if self.canvas_widget is not None:
+            self.canvas_widget.apply_cursor_settings(cfg)
         if hasattr(self, "status_bar") and self.status_bar:
             self.status_bar.showMessage("Preferências de cursor aplicadas.", 3000)
 

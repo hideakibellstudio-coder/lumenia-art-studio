@@ -127,8 +127,9 @@ class Test5ObservationsAudit(unittest.TestCase):
             pan_x = 0.0
             pan_y = 0.0
             rotation = 0.0
-            input_adapter = None
-            def update(self): pass
+            published = None
+            def publish_view(self, zoom_changed=False, notify_camera=True):
+                self.published = (zoom_changed, notify_camera)
 
         class MockSync(QtCore.QObject, WorkspaceDocSyncMixin):
             zoomChanged = QtCore.Signal(float)
@@ -148,6 +149,8 @@ class Test5ObservationsAudit(unittest.TestCase):
         expected_pan_y = (0.5 - 1.0) * 1.0 * 3508 # -1754.0
         self.assertEqual(sync.canvas_widget.pan_x, expected_pan_x)
         self.assertEqual(sync.canvas_widget.pan_y, expected_pan_y)
+        # Veio do Navigator: publica o zoom mas não devolve cameraChanged a ele.
+        self.assertEqual(sync.canvas_widget.published, (True, False))
 
 
 if __name__ == "__main__":

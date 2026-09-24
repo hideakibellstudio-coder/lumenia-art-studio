@@ -1,15 +1,19 @@
-"""RenderWidget — High-Performance Accelerated Canvas Presentation Widget.
+"""RenderWidget — o canvas: apresenta os pixels do motor e recebe o ponteiro.
 
-Maintains OpenGL viewport presentation, camera transformations, and hardware event routing.
-Delegates tool orchestration to ToolManager, background generation to CanvasBackgroundRenderer,
-and interactive stroke processing to CanvasStrokePipeline.
-Strictly decoupled in compliance with ARCcC v2 (< 270 LOC).
+Compõe colaboradores, cada um dono do próprio estado:
+  camera (CameraController) ........ zoom, pan, rotação, espelhamento
+  input_router (CanvasInputRouter) . eventos de ponteiro/teclado → ações
+  cursor_ctrl (CanvasCursorController) forma do cursor e anel do pincel
+  stroke (CanvasStrokePipeline) .... traço interativo e regiões sujas
+  viewport_renderer (ViewportRenderer) pintura e estatísticas de pintura
+  tool_mgr (ToolManager) ........... controladores das ferramentas
+O tamanho, a pressão manual e a cor do pincel chegam do BrushState pelo
+CanvasBrushBinding; a ferramenta ativa, do ToolState pelo CanvasToolBinding.
 """
 
 import os
 import time
 import math
-import collections
 from typing import Optional, ClassVar
 from PySide6 import QtWidgets, QtCore, QtGui
 
@@ -27,17 +31,16 @@ from ui.core.engine.backend import PointerEvent
 
 from .viewport.camera_controller import CameraController
 from .viewport.input_router import CanvasInputRouter
-from .viewport.canvas_compat import CanvasCompatMixin
+from .viewport.camera_proxies import CanvasCameraProxies
 from .viewport.viewport_renderer import ViewportRenderer
 from .viewport.cursor_controller import CanvasCursorController
 from .viewport.canvas_stroke_pipeline import CanvasStrokePipeline
-from .renderers.canvas_background_renderer import CanvasBackgroundRenderer
 from .renderers.tool_cursor_renderer import ToolCursorRenderer
 from .tools.tool_manager import ToolManager
 from .text_overlay_editor import TextOverlayEditor
 
 
-class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
+class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
     """Visualização e renderização de alta velocidade do canvas com aceleração gráfica."""
 
     _active_instance: ClassVar[Optional['RenderWidget']] = None
@@ -69,17 +72,16 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         self.cursor_ctrl = CanvasCursorController(self)
         self.tool_mgr = ToolManager(self)
 
+        self.stroke = CanvasStrokePipeline(self)
+        self.viewport_renderer = ViewportRenderer(self)
+
         self.active_tool, self.drawing, self._brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
-        self._cached_brush_radius = 30.0
         self.is_panning, self.is_zoom_dragging, self.is_space_held = False, False, False
         self.last_mouse_pos, self.zoom_drag_start_pos = QtCore.QPointF(), QtCore.QPointF()
         self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
         self._last_tablet_time, self._tablet_in_use = 0.0, False
         self.paper_visible, self.paper_color = True, QtGui.QColor(255, 255, 255)
         self._active_draw_color = QtGui.QColor(0, 0, 0, 255)
-        self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
-        self._last_rendered_cursor_rect = QtCore.QRect()
-        self._last_stroke_end_screen: Optional[QtCore.QPointF] = None
 
         from ui.core.i18n import I18nManager
         # Método ligado (não lambda): o PySide desconecta sozinho quando o widget
@@ -90,12 +92,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         RenderWidget._active_instance = self
         from ui.core.engine.registry import EngineRegistry
         EngineRegistry.register_viewport_telemetry_provider(RenderWidget.get_active_viewport_telemetry)
-        self._last_qt_paint_total_ms = 0.0
-        self._last_qt_draw_image_ms = 0.0
-        self._last_qt_cursor_ms = 0.0
-        self._last_qt_dirty_rect = QtCore.QRect()
-        self._paint_event_timestamps = collections.deque(maxlen=60)
-        self._current_viewport_fps = 0.0
 
     # ── Backward Compatibility Tool Properties ──
     @property
@@ -109,19 +105,10 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     @property
     def geometry_ctrl(self): return self.tool_mgr.geometry_ctrl
     @property
-    def geometry_controller(self): return self.tool_mgr.geometry_ctrl
-    @property
     def text_ctrl(self): return self.tool_mgr.text_ctrl
 
     @property
-    def _active_text_editor(self): return self.tool_mgr.active_text_editor
-    @_active_text_editor.setter
-    def _active_text_editor(self, val): self.tool_mgr.active_text_editor = val
-
-    @property
-    def _text_settings(self): return self.tool_mgr.text_settings
-    @_text_settings.setter
-    def _text_settings(self, val): self.tool_mgr.text_settings = val
+    def active_text_editor(self): return self.tool_mgr.active_text_editor
 
     # ── Tool Delegation Commands ──
     def start_transform_mode(self) -> bool: return self.tool_mgr.start_transform_mode()
@@ -145,7 +132,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
 
     @property
     def active_color(self) -> QtGui.QColor:
-        return getattr(self, "_active_draw_color", QtGui.QColor(0, 0, 0, 255))
+        return self._active_draw_color
 
     @active_color.setter
     def active_color(self, color: QtGui.QColor) -> None:
@@ -166,46 +153,36 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         from ui.core.engine.registry import EngineRegistry
         return EngineRegistry.instance().get_backend()
 
-    def sync_brush_radius(self): CanvasStrokePipeline.sync_brush_radius(self)
     @property
-    def current_brush_radius(self) -> float: return CanvasStrokePipeline.get_current_brush_radius(self)
+    def current_brush_radius(self) -> float:
+        # O tamanho chega do BrushState (CanvasBrushBinding). Até 2026-09-24 o
+        # raio era relido do perfil inteiro do motor a cada início de traço.
+        return self._brush_size / 2.0
+
     @property
     def brush_size(self) -> float:
-        return getattr(self, "_brush_size", 60.0)
+        return self._brush_size
+
     @brush_size.setter
     def brush_size(self, val: float) -> None:
         new_val = max(0.5, float(val))
-        if abs(getattr(self, "_brush_size", 0.0) - new_val) < 1e-4:
+        if abs(self._brush_size - new_val) < 1e-4:
             return
-        old_radius = getattr(self, "_cached_brush_radius", 12.0)
+        old_radius = self.current_brush_radius
         self._brush_size = new_val
-        new_radius = new_val / 2.0
-        self._cached_brush_radius = new_radius
-        if getattr(self, "_cursor_in_viewport", False) and hasattr(self, "_mouse_pos") and hasattr(self, "zoom"):
-            pos = self._mouse_pos
+        cursor = self.cursor_ctrl
+        if cursor.cursor_in_viewport:
+            pos = cursor.mouse_pos
             r_old = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), old_radius, self.zoom)
-            r_new = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), new_radius, self.zoom)
+            r_new = ToolCursorRenderer.get_cursor_rect(pos.x(), pos.y(), self.current_brush_radius, self.zoom)
             self.update(r_old.united(r_new))
-    def start_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
-        CanvasStrokePipeline.start_stroke(self, screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist)
-    def paint_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
-        CanvasStrokePipeline.paint_stroke(self, screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist)
-    def end_stroke(self, screen_x: float | None = None, screen_y: float | None = None):
-        CanvasStrokePipeline.end_stroke(self, screen_x, screen_y)
 
-    # ── Cursor Properties & Routing ──
-    @property
-    def _cursor_in_viewport(self): return self.cursor_ctrl.cursor_in_viewport
-    @_cursor_in_viewport.setter
-    def _cursor_in_viewport(self, v): self.cursor_ctrl.cursor_in_viewport = v
-    @property
-    def _mouse_pos(self): return self.cursor_ctrl.mouse_pos
-    @_mouse_pos.setter
-    def _mouse_pos(self, v): self.cursor_ctrl.mouse_pos = v
-    @property
-    def _cursor_settings(self): return self.cursor_ctrl.cursor_settings
-    @_cursor_settings.setter
-    def _cursor_settings(self, v): self.cursor_ctrl.cursor_settings = v
+    def start_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
+        self.stroke.start(screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist)
+    def paint_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
+        self.stroke.paint(screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist)
+    def end_stroke(self, screen_x: float | None = None, screen_y: float | None = None):
+        self.stroke.end(screen_x, screen_y)
 
     def init_engine(self, canvas_w=1920, canvas_h=1080):
         self.canvas_w, self.canvas_h = canvas_w, canvas_h
@@ -217,10 +194,20 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
 
     def center_canvas(self):
         self.camera.center_canvas(self.canvas_w, self.canvas_h)
-        self.bridge_client.update_view(self.zoom, self.pan_x, self.pan_y, 0.0)
-        self.zoomChanged.emit(self.zoom)
-        self.cameraChanged.emit(self.zoom, self.pan_x, self.pan_y, self.rotation, float(self.width()), float(self.height()))
+        self.publish_view(zoom_changed=True)
+
+    def publish_view(self, zoom_changed: bool = False, notify_camera: bool = True) -> None:
+        """Único caminho da câmera para fora: motor, editor de texto, repintura e sinais.
+
+        Quem muda zoom/pan/rotação chama isto depois. `notify_camera=False`
+        quando a mudança veio do próprio Navigator (evita o eco de volta).
+        """
+        self.bridge_client.update_view(self.zoom, self.pan_x, self.pan_y, math.radians(self.rotation))
+        if self.active_text_editor: self.active_text_editor.update_screen_position()
         self.update()
+        if zoom_changed: self.zoomChanged.emit(self.zoom)
+        if notify_camera:
+            self.cameraChanged.emit(self.zoom, self.pan_x, self.pan_y, self.rotation, float(self.width()), float(self.height()))
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -232,7 +219,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
             self.center_canvas()
         self.update()
 
-    def _get_canvas_transform(self) -> QtGui.QTransform:
+    def canvas_transform(self) -> QtGui.QTransform:
         return self.camera.get_canvas_transform(self.canvas_w, self.canvas_h)
 
     def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> PointerEvent:
@@ -241,19 +228,20 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
     def get_canvas_image(self, apply_proofing: bool = True) -> QtGui.QImage | None:
         return ViewportRenderer.get_canvas_image(self, apply_proofing)
 
-    def paintEvent(self, event): ViewportRenderer.render(self, event)
+    def paintEvent(self, event): self.viewport_renderer.render(event)
 
     def get_viewport_telemetry(self) -> dict:
+        stats = self.viewport_renderer.stats
         return {
             "is_gpu_accelerated": _OPENGL_ENABLED,
             "renderer_type": "OpenGL" if _OPENGL_ENABLED else "Software Raster",
-            "qt_paint_total_ms": self._last_qt_paint_total_ms,
-            "qt_draw_image_ms": self._last_qt_draw_image_ms,
-            "qt_cursor_ms": self._last_qt_cursor_ms,
-            "qt_fps": self._current_viewport_fps,
-            "qt_dirty_w": self._last_qt_dirty_rect.width(),
-            "qt_dirty_h": self._last_qt_dirty_rect.height(),
-            "qt_dirty_area": self._last_qt_dirty_rect.width() * self._last_qt_dirty_rect.height(),
+            "qt_paint_total_ms": stats.paint_total_ms,
+            "qt_draw_image_ms": stats.draw_image_ms,
+            "qt_cursor_ms": stats.cursor_ms,
+            "qt_fps": stats.fps,
+            "qt_dirty_w": stats.dirty_rect.width(),
+            "qt_dirty_h": stats.dirty_rect.height(),
+            "qt_dirty_area": stats.dirty_rect.width() * stats.dirty_rect.height(),
         }
 
     @classmethod
@@ -278,7 +266,10 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
         super().leaveEvent(e)
 
     def update_cursor_shape(self): self.cursor_ctrl.update_cursor_shape()
-    _update_cursor_shape = update_cursor_shape  # nome antigo, ainda usado pelo input_router
+
+    def apply_cursor_settings(self, settings: dict) -> None:
+        self.cursor_ctrl.apply_settings(settings)
+        self.update()
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         if self._is_synthesized_or_tablet_active(e): e.accept(); return
@@ -329,37 +320,29 @@ class RenderWidget(_BaseCanvasWidget, CanvasCompatMixin):
             self.input_router.handle_pointer_release(e.position(), btn, QtWidgets.QApplication.keyboardModifiers())
             e.accept()
 
-    def _apply_anchored_zoom(self, factor: float, cursor_pos: QtCore.QPointF):
+    def apply_anchored_zoom(self, factor: float, cursor_pos: QtCore.QPointF):
         self.camera.zoom_at(factor, cursor_pos.x(), cursor_pos.y(), self.canvas_w, self.canvas_h)
-        self.bridge_client.update_view(self.zoom, self.pan_x, self.pan_y, math.radians(self.rotation))
-        if self._active_text_editor: self._active_text_editor.update_screen_position()
-        self.update()
-        self.zoomChanged.emit(self.zoom)
-        self.cameraChanged.emit(self.zoom, self.pan_x, self.pan_y, self.rotation, float(self.width()), float(self.height()))
+        self.publish_view(zoom_changed=True)
 
     def wheelEvent(self, e: QtGui.QWheelEvent):
         angle = e.angleDelta().y() or e.angleDelta().x()
         if angle != 0:
-            self._apply_anchored_zoom(1.15 ** (angle / 120.0), e.position())
+            self.apply_anchored_zoom(1.15 ** (angle / 120.0), e.position())
             e.accept()
 
     def event(self, e: QtCore.QEvent) -> bool:
         if e.type() == QtCore.QEvent.NativeGesture:
             gt = getattr(e, "gestureType", lambda: None)()
             if gt == QtCore.Qt.NativeGestureType.ZoomNativeGesture:
-                self._apply_anchored_zoom(1.0 + e.value(), e.position())
+                self.apply_anchored_zoom(1.0 + e.value(), e.position())
                 return True
             elif gt == QtCore.Qt.NativeGestureType.RotateNativeGesture:
                 self.rotation = (self.rotation + e.value()) % 360.0
-                self.bridge_client.update_view(self.zoom, self.pan_x, self.pan_y, math.radians(self.rotation))
-                self.update()
-                self.cameraChanged.emit(self.zoom, self.pan_x, self.pan_y, self.rotation, float(self.width()), float(self.height()))
+                self.publish_view()
                 return True
             elif gt == QtCore.Qt.NativeGestureType.PanNativeGesture:
                 self.pan_x += e.delta().x(); self.pan_y += e.delta().y()
-                self.bridge_client.update_view(self.zoom, self.pan_x, self.pan_y, math.radians(self.rotation))
-                self.update()
-                self.cameraChanged.emit(self.zoom, self.pan_x, self.pan_y, self.rotation, float(self.width()), float(self.height()))
+                self.publish_view()
                 return True
         return super().event(e)
 

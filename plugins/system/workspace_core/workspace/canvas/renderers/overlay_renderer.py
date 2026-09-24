@@ -1,7 +1,6 @@
 """Canvas Overlays Renderer (Selection Marching Ants, Transform Gizmo, Shape Preview, Loupe HUD)."""
 
 import math
-from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
 from plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController
@@ -26,7 +25,7 @@ class OverlayRenderer:
         painter.drawEllipse(QtCore.QPointF(cx, cy + 4), r_outer + 2, r_outer + 2)
 
         # 2. Miniatura ampliada do canvas sob a retícula (Zoom 4x)
-        qimg = backend.get_qimage() if backend and hasattr(backend, "get_qimage") else None
+        qimg = backend.get_qimage() if backend else None
 
         painter.save()
         clip_path = QtGui.QPainterPath()
@@ -93,12 +92,12 @@ class OverlayRenderer:
 
     @staticmethod
     def render_selection_overlay(painter: QtGui.QPainter, backend, zoom: float, dash_offset: float, canvas_w: int, canvas_h: int):
-        bounds = backend.get_selection_bounds() if hasattr(backend, "get_selection_bounds") else (0, 0, canvas_w, canvas_h)
+        bounds = backend.get_selection_bounds()
         bx, by, bw, bh = bounds
         if bw <= 0 or bh <= 0:
             return
 
-        loops = backend.get_selection_contour_loops() if hasattr(backend, "get_selection_contour_loops") else []
+        loops = backend.get_selection_contour_loops()
 
         path = QtGui.QPainterPath()
         if loops:
@@ -154,14 +153,14 @@ class OverlayRenderer:
         is_shift = bool(modifiers & QtCore.Qt.ShiftModifier)
         is_alt = bool(modifiers & QtCore.Qt.AltModifier)
 
-        ctrl: Optional[SelectionToolController] = getattr(widget, "selection_ctrl", None)
-        active_tool = getattr(widget, "active_tool", "")
+        ctrl: SelectionToolController = widget.selection_ctrl
+        active_tool = widget.active_tool
 
         if active_tool in ("rect_select", "ellipse_select"):
-            drag_active = ctrl.drag_active if ctrl is not None else getattr(widget, "_sel_drag_active", False)
+            drag_active = ctrl.drag_active
             if drag_active:
-                p1 = ctrl.drag_start if ctrl is not None else getattr(widget, "_sel_drag_start", QtCore.QPointF(0, 0))
-                p2 = ctrl.drag_current if ctrl is not None else getattr(widget, "_sel_drag_current", QtCore.QPointF(0, 0))
+                p1 = ctrl.drag_start
+                p2 = ctrl.drag_current
                 dx = p2.x() - p1.x()
                 dy = p2.y() - p1.y()
 
@@ -189,15 +188,15 @@ class OverlayRenderer:
                     painter.drawEllipse(rect)
 
         elif active_tool == "lasso":
-            pts = ctrl.lasso_points if ctrl is not None else getattr(widget, "_lasso_points", [])
+            pts = ctrl.lasso_points
             if len(pts) >= 1:
                 path = QtGui.QPainterPath()
                 path.moveTo(pts[0])
                 for p in pts[1:]:
                     path.lineTo(p)
 
-                lasso_cfg = ctrl.lasso_settings if ctrl is not None else getattr(widget, "_lasso_settings", {})
-                hover_pt = ctrl.lasso_hover_pt if ctrl is not None else getattr(widget, "_lasso_hover_pt", None)
+                lasso_cfg = ctrl.lasso_settings
+                hover_pt = ctrl.lasso_hover_pt
                 if lasso_cfg.get("lasso_type") == "polygonal" and hover_pt:
                     path.lineTo(hover_pt)
 

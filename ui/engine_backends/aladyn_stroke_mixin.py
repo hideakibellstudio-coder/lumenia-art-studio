@@ -12,7 +12,7 @@ import logging
 from typing import Any
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from .aladyn_buffers import to_native_color_rgba
-from .native_fallback import nativo_tem
+from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class AladynStrokeMixin(AladynBackendBase):
                 self._facade.end_stroke(evt)
 
             # Emite log executivo sumarizado de 1 linha quando a telemetria estiver ativa
-            if nativo_tem(self._facade, "is_telemetry_enabled", "sem resumo de telemetria por traço") and self._facade.is_telemetry_enabled():
+            if native_has(self._facade, "is_telemetry_enabled", "sem resumo de telemetria por traço") and self._facade.is_telemetry_enabled():
                 snap = self._facade.get_telemetry_snapshot()
                 if snap and snap.total_dabs_in_stroke > 0:
                     breakdown = (
@@ -181,7 +181,7 @@ class AladynStrokeMixin(AladynBackendBase):
         aa: bool = True, sample_all: bool = True,
     ) -> bool:
         """Executa Flood Fill ultra-rápido (<1ms) diretamente no motor nativo C++."""
-        if not self._facade or not self._native or not nativo_tem(self._facade, "flood_fill", "o balde de tinta não pinta"):
+        if not self._facade or not self._native or not native_has(self._facade, "flood_fill", "o balde de tinta não pinta"):
             return False
         native_color = to_native_color_rgba(self._native, fill_color)
         res = self._facade.flood_fill(

@@ -98,16 +98,16 @@ python scripts/run_soak_test.py --cycles 1000 --warmup 200 --output-csv soak_rep
 ```
 *O script calcula automaticamente a regressão linear na fase pós-aquecimento e retorna código de saída `0` (Aprovado) ou `1` (Reprovado).*
 
-### 🎨 3.2 Monitoramento e Análise de Sessão Real com Artista (`monitor_sessao.ps1`)
+### 🎨 3.2 Monitoramento e Análise de Sessão Real com Artista (`monitor_session.ps1`)
 
 Para validação em sessões manuais de desenho:
 1. **Durante a pintura:** Deixe o monitor rodando em um terminal em segundo plano:
    ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts/monitor_sessao.ps1 -IntervaloSegundos 60
+   powershell -ExecutionPolicy Bypass -File scripts/monitor_session.ps1 -IntervalSeconds 60
    ```
 2. **Pós-sessão (Laudo Automático):** Avalie o arquivo CSV gerado contra os critérios do Gate:
    ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts/monitor_sessao.ps1 -Analisar "$env:USERPROFILE\lumenia_sessao.csv"
+   powershell -ExecutionPolicy Bypass -File scripts/monitor_session.ps1 -Analyze "$env:USERPROFILE\lumenia_session.csv"
    ```
    *O analisador descarta o primeiro quartil de tempo (aquecimento), calcula o drift de MB/hora e emite o veredicto formal de estabilidade.*
 \n

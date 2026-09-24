@@ -5,7 +5,7 @@ from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings
-from . import transform_distort as distorcao
+from . import transform_distort as distort_geometry
 
 class TransformToolController:
     """Controlador de Transformação Livre (Bounding Box, Escala, Rotação e Translação)."""
@@ -69,7 +69,7 @@ class TransformToolController:
             return
         backend = EngineRegistry.instance().get_backend()
         if backend and self.quad is not None:
-            backend.commit_transform_distort(distorcao.plano(self.quad), interp_mode=self.interp_mode)
+            backend.commit_transform_distort(distort_geometry.flatten(self.quad), interp_mode=self.interp_mode)
         elif backend and hasattr(backend, "commit_transform"):
             backend.commit_transform(
                 dx=self.dx,
@@ -107,7 +107,7 @@ class TransformToolController:
     def flip_horizontal(self):
         if self.active:
             if self.quad is not None:
-                self.quad = distorcao.espelhar(self.quad, horizontal=True)
+                self.quad = distort_geometry.mirror(self.quad, horizontal=True)
             else:
                 self.flip_h = not self.flip_h
             self.widget.update()
@@ -115,7 +115,7 @@ class TransformToolController:
     def flip_vertical(self):
         if self.active:
             if self.quad is not None:
-                self.quad = distorcao.espelhar(self.quad, horizontal=False)
+                self.quad = distort_geometry.mirror(self.quad, horizontal=False)
             else:
                 self.flip_v = not self.flip_v
             self.widget.update()
@@ -123,7 +123,7 @@ class TransformToolController:
     def rotate_90(self, clockwise: bool = True):
         if self.active:
             if self.quad is not None:
-                self.quad = distorcao.girar_90(self.quad, horario=clockwise)
+                self.quad = distort_geometry.rotate_90(self.quad, clockwise=clockwise)
             else:
                 delta = 90.0 if clockwise else -90.0
                 self.rotation = (self.rotation + delta) % 360.0
@@ -141,14 +141,14 @@ class TransformToolController:
             "rot": self.rotation,
             "pivot": QtCore.QPointF(self.pivot),
             "quad": ([QtCore.QPointF(p) for p in self.quad] if self.quad is not None
-                     else distorcao.quad_da_matriz(self.source_rect, self.get_transform_matrix())),
+                     else distort_geometry.quad_from_matrix(self.source_rect, self.get_transform_matrix())),
         }
 
     def get_transform_matrix(self) -> QtGui.QTransform:
         if self.quad is not None:
-            matriz = distorcao.matriz_do_quad(self.source_rect, self.quad)
-            if matriz is not None:
-                return matriz
+            matrix = distort_geometry.matrix_from_quad(self.source_rect, self.quad)
+            if matrix is not None:
+                return matrix
         t = QtGui.QTransform()
         pv = self.pivot
         t.translate(pv.x() + self.dx, pv.y() + self.dy)
@@ -208,10 +208,10 @@ class TransformToolController:
         init_p = self.press_params
         is_shift = bool(modifiers & QtCore.Qt.ShiftModifier)
 
-        if self.quad is not None or (self.distort and handle in distorcao.CANTOS + tuple(distorcao.LADOS)):
-            novo = distorcao.arrastar(init_p["quad"], handle, canvas_pt - start_pt)
-            if distorcao.quad_convexo(novo):  # nunca deixa o quad dobrar sobre si
-                self.quad = novo
+        if self.quad is not None or (self.distort and handle in distort_geometry.CORNERS + tuple(distort_geometry.EDGES)):
+            moved = distort_geometry.drag(init_p["quad"], handle, canvas_pt - start_pt)
+            if distort_geometry.is_convex_quad(moved):  # nunca deixa o quad dobrar sobre si
+                self.quad = moved
             return
 
         if handle == "move":

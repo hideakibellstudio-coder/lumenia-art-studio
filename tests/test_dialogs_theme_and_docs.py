@@ -177,16 +177,16 @@ class TestDialogsThemeAndDocs(unittest.TestCase):
         self.app.processEvents()
 
     def test_09_feedback_html_multilingual(self):
-        """Valida que Enviar_Feedback.html contém suporte a múltiplos idiomas e carrega locale ativo."""
+        """Valida que Send_Feedback.html contém suporte a múltiplos idiomas e carrega locale ativo."""
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        feedback_path = os.path.join(project_root, "Enviar_Feedback.html")
-        self.assertTrue(os.path.exists(feedback_path), "Enviar_Feedback.html não encontrado na raiz!")
+        feedback_path = os.path.join(project_root, "Send_Feedback.html")
+        self.assertTrue(os.path.exists(feedback_path), "Send_Feedback.html não encontrado na raiz!")
 
         with open(feedback_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         for lang in ["pt_BR", "en_US", "es_ES", "ja_JP"]:
-            self.assertTrue(f'{lang}:' in content or f'"{lang}":' in content, f"Configuração de idioma {lang} ausente no Enviar_Feedback.html!")
+            self.assertTrue(f'{lang}:' in content or f'"{lang}":' in content, f"Configuração de idioma {lang} ausente no Send_Feedback.html!")
 
         self.assertIn("changeLanguage", content)
         self.assertIn("generateComprehensiveReport", content)

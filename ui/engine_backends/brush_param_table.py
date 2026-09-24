@@ -26,19 +26,19 @@ from typing import Any, Callable
 # Todos recebem (valor, modulo_nativo) para que os que dependem de um tipo do
 # módulo — enums, structs — tenham acesso a ele sem import circular.
 
-def para_float(valor: Any, _native: Any) -> float:
-    return float(valor)
+def to_float(value: Any, _native: Any) -> float:
+    return float(value)
 
 
-def para_int(valor: Any, _native: Any) -> int:
-    return int(valor)
+def to_int(value: Any, _native: Any) -> int:
+    return int(value)
 
 
-def para_bool(valor: Any, _native: Any) -> bool:
-    return bool(valor)
+def to_bool(value: Any, _native: Any) -> bool:
+    return bool(value)
 
 
-def para_blend_mode(valor: Any, native: Any) -> Any:
+def to_blend_mode(value: Any, native: Any) -> Any:
     """A interface guarda o índice da combo; o motor exige o enum DabBlendMode.
 
     A faixa é validada aqui, contra `__members__`, ANTES de construir o enum.
@@ -47,32 +47,32 @@ def para_blend_mode(valor: Any, native: Any) -> Any:
     passar exatamente o tipo de lixo que esta tabela existe para barrar.
     """
     enum_cls = native.DabBlendMode
-    if isinstance(valor, enum_cls):
-        return valor
-    indice = int(valor)
-    membros = list(enum_cls.__members__.values())
-    if not 0 <= indice < len(membros):
+    if isinstance(value, enum_cls):
+        return value
+    index = int(value)
+    members = list(enum_cls.__members__.values())
+    if not 0 <= index < len(members):
         raise ValueError(
-            f"blend_mode fora da faixa: {indice} "
-            f"(o motor declara {len(membros)} modos: "
+            f"blend_mode fora da faixa: {index} "
+            f"(o motor declara {len(members)} modos: "
             f"{', '.join(enum_cls.__members__)})"
         )
-    return membros[indice]
+    return members[index]
 
 
-def de_enum(valor: Any) -> int:
-    return int(valor)
+def from_enum(value: Any) -> int:
+    return int(value)
 
 
-def identidade(valor: Any) -> Any:
-    return valor
+def identity(value: Any) -> Any:
+    return value
 
 
 # ── Onde cada grupo mora dentro do BrushProfile nativo ───────────────────────
 # "" é a raiz do perfil. "root" é aceito como sinônimo por compatibilidade com
 # as chamadas existentes da interface.
 
-ATRIBUTO_DO_GRUPO: dict[str, str | None] = {
+GROUP_ATTRIBUTES: dict[str, str | None] = {
     "": None,
     "root": None,
     "tip": "tip",
@@ -87,16 +87,16 @@ ATRIBUTO_DO_GRUPO: dict[str, str | None] = {
 
 
 @dataclass(frozen=True)
-class ParamDePincel:
+class BrushParamSpec:
     """Uma propriedade do pincel, declarada uma única vez."""
 
-    chave: str                                   # chave de preset / interface
-    grupo: str                                   # "" para a raiz do perfil
-    atributo: str                                # nome do campo no módulo nativo
-    para_motor: Callable[[Any, Any], Any] = para_float
-    para_preset: Callable[[Any], Any] = identidade
-    padrao: Any = 0.0
-    legivel: bool = True                         # entra em get_brush_profile_dict
+    key: str                                   # chave de preset / interface
+    group: str                                   # "" para a raiz do perfil
+    attribute: str                                # nome do campo no módulo nativo
+    to_engine: Callable[[Any, Any], Any] = to_float
+    to_preset: Callable[[Any], Any] = identity
+    default: Any = 0.0
+    readable: bool = True                         # entra em get_brush_profile_dict
 
 
 # ── A tabela ────────────────────────────────────────────────────────────────
@@ -104,71 +104,71 @@ class ParamDePincel:
 # interface pedia e o motor não tem (`scatter_radius`, `jitter_opacity`) foram
 # REMOVIDOS em vez de mantidos mortos — o motor define, a interface exibe.
 
-TABELA: tuple[ParamDePincel, ...] = (
+BRUSH_PARAMS: tuple[BrushParamSpec, ...] = (
     # ── Raiz do perfil ──────────────────────────────────────────────────────
-    ParamDePincel("brush_size", "", "brush_size", padrao=20.0),
-    ParamDePincel("opacity", "", "opacity", padrao=1.0),
-    ParamDePincel("hardness", "", "hardness", padrao=0.85),
-    ParamDePincel("spacing_factor", "", "spacing_factor", padrao=0.08),
-    ParamDePincel("min_size_percent", "", "min_size_percent", padrao=0.0),
-    ParamDePincel("min_opacity_percent", "", "min_opacity_percent", padrao=0.0),
-    ParamDePincel("pressure_size_enabled", "", "pressure_size_enabled",
-                  para_motor=para_bool, padrao=True),
-    ParamDePincel("pressure_flow_enabled", "", "pressure_flow_enabled",
-                  para_motor=para_bool, padrao=True),
-    ParamDePincel("velocity_size_enabled", "", "velocity_size_enabled",
-                  para_motor=para_bool, padrao=False),
-    ParamDePincel("stroke_taper_enabled", "", "stroke_taper_enabled",
-                  para_motor=para_bool, padrao=True),
-    ParamDePincel("stroke_taper_length", "", "stroke_taper_length", padrao=20.0),
-    ParamDePincel("time_spacing_enabled", "", "time_spacing_enabled",
-                  para_motor=para_bool, padrao=False),
-    ParamDePincel("dabs_per_second", "", "dabs_per_second", padrao=60.0),
-    ParamDePincel("blend_mode", "", "blend_mode",
-                  para_motor=para_blend_mode, para_preset=de_enum, padrao=0),
-    ParamDePincel("pressure_to_angle", "", "pressure_to_angle", padrao=0.0),
-    ParamDePincel("pressure_to_aspect", "", "pressure_to_aspect", padrao=0.0),
-    ParamDePincel("scatter_count", "", "scatter_count",
-                  para_motor=para_int, padrao=1),
-    ParamDePincel("brush_grain_enabled", "", "brush_grain_enabled",
-                  para_motor=para_bool, padrao=False),
-    ParamDePincel("brush_grain_scale", "", "brush_grain_scale", padrao=1.0),
-    ParamDePincel("brush_grain_contrast", "", "brush_grain_contrast", padrao=1.0),
-    ParamDePincel("brush_grain_invert", "", "brush_grain_invert",
-                  para_motor=para_bool, padrao=False),
+    BrushParamSpec("brush_size", "", "brush_size", default=20.0),
+    BrushParamSpec("opacity", "", "opacity", default=1.0),
+    BrushParamSpec("hardness", "", "hardness", default=0.85),
+    BrushParamSpec("spacing_factor", "", "spacing_factor", default=0.08),
+    BrushParamSpec("min_size_percent", "", "min_size_percent", default=0.0),
+    BrushParamSpec("min_opacity_percent", "", "min_opacity_percent", default=0.0),
+    BrushParamSpec("pressure_size_enabled", "", "pressure_size_enabled",
+                  to_engine=to_bool, default=True),
+    BrushParamSpec("pressure_flow_enabled", "", "pressure_flow_enabled",
+                  to_engine=to_bool, default=True),
+    BrushParamSpec("velocity_size_enabled", "", "velocity_size_enabled",
+                  to_engine=to_bool, default=False),
+    BrushParamSpec("stroke_taper_enabled", "", "stroke_taper_enabled",
+                  to_engine=to_bool, default=True),
+    BrushParamSpec("stroke_taper_length", "", "stroke_taper_length", default=20.0),
+    BrushParamSpec("time_spacing_enabled", "", "time_spacing_enabled",
+                  to_engine=to_bool, default=False),
+    BrushParamSpec("dabs_per_second", "", "dabs_per_second", default=60.0),
+    BrushParamSpec("blend_mode", "", "blend_mode",
+                  to_engine=to_blend_mode, to_preset=from_enum, default=0),
+    BrushParamSpec("pressure_to_angle", "", "pressure_to_angle", default=0.0),
+    BrushParamSpec("pressure_to_aspect", "", "pressure_to_aspect", default=0.0),
+    BrushParamSpec("scatter_count", "", "scatter_count",
+                  to_engine=to_int, default=1),
+    BrushParamSpec("brush_grain_enabled", "", "brush_grain_enabled",
+                  to_engine=to_bool, default=False),
+    BrushParamSpec("brush_grain_scale", "", "brush_grain_scale", default=1.0),
+    BrushParamSpec("brush_grain_contrast", "", "brush_grain_contrast", default=1.0),
+    BrushParamSpec("brush_grain_invert", "", "brush_grain_invert",
+                  to_engine=to_bool, default=False),
 
     # ── Geometria da ponta ──────────────────────────────────────────────────
     # Os jitters moram em BrushTip, não num grupo "dynamics". A interface
     # escrevia em "dynamics", que nunca existiu no módulo nativo.
-    ParamDePincel("tip_angle", "tip", "angle", padrao=0.0),
-    ParamDePincel("tip_aspect", "tip", "aspect_ratio", padrao=1.0),
-    ParamDePincel("follow_stroke", "tip", "follow_stroke",
-                  para_motor=para_bool, padrao=False),
-    ParamDePincel("jitter_size", "tip", "jitter_size", padrao=0.0),
-    ParamDePincel("jitter_angle", "tip", "jitter_angle", padrao=0.0),
-    ParamDePincel("jitter_position", "tip", "jitter_position", padrao=0.0),
+    BrushParamSpec("tip_angle", "tip", "angle", default=0.0),
+    BrushParamSpec("tip_aspect", "tip", "aspect_ratio", default=1.0),
+    BrushParamSpec("follow_stroke", "tip", "follow_stroke",
+                  to_engine=to_bool, default=False),
+    BrushParamSpec("jitter_size", "tip", "jitter_size", default=0.0),
+    BrushParamSpec("jitter_angle", "tip", "jitter_angle", default=0.0),
+    BrushParamSpec("jitter_position", "tip", "jitter_position", default=0.0),
 
     # ── Parâmetros por mini-motor ───────────────────────────────────────────
-    ParamDePincel("pencil_graphite_hardness", "pencil", "graphite_hardness", padrao=0.5),
-    ParamDePincel("pencil_tilt_shading", "pencil", "tilt_shading_enabled",
-                  para_motor=para_bool, padrao=False),
-    ParamDePincel("inker_flow_rate", "inker", "ink_flow_rate", padrao=0.8),
-    ParamDePincel("inker_taper_smoothing", "inker", "taper_smoothing", padrao=0.3),
-    ParamDePincel("marker_solvent_wetness", "marker", "solvent_wetness", padrao=0.5),
-    ParamDePincel("marker_edge_darkening", "marker", "edge_darkening", padrao=0.4),
-    ParamDePincel("blur_radius", "blur", "blur_radius", para_motor=para_int, padrao=5),
-    ParamDePincel("blur_strength", "blur", "blur_strength", padrao=0.5),
-    ParamDePincel("smudge_color_pickup", "smudge", "color_pickup", padrao=0.7),
-    ParamDePincel("smudge_mix_ratio", "smudge", "mix_ratio", padrao=0.5),
-    ParamDePincel("smudge_stretch", "smudge", "smudge_stretch", padrao=0.8),
-    ParamDePincel("watercolor_water_level", "watercolor", "water_level", padrao=0.5),
-    ParamDePincel("watercolor_pigment_bleed", "watercolor", "pigment_bleed", padrao=0.5),
-    ParamDePincel("watercolor_fringe_intensity", "watercolor", "fringe_intensity", padrao=0.4),
-    ParamDePincel("watercolor_granulation", "watercolor", "granulation", padrao=0.3),
-    ParamDePincel("oil_impasto_depth", "oil", "impasto_depth", padrao=0.7),
-    ParamDePincel("oil_bristle_grooves", "oil", "bristle_grooves", padrao=0.5),
-    ParamDePincel("oil_viscosity", "oil", "viscosity", padrao=0.6),
-    ParamDePincel("oil_specular_brilliance", "oil", "specular_brilliance", padrao=0.5),
+    BrushParamSpec("pencil_graphite_hardness", "pencil", "graphite_hardness", default=0.5),
+    BrushParamSpec("pencil_tilt_shading", "pencil", "tilt_shading_enabled",
+                  to_engine=to_bool, default=False),
+    BrushParamSpec("inker_flow_rate", "inker", "ink_flow_rate", default=0.8),
+    BrushParamSpec("inker_taper_smoothing", "inker", "taper_smoothing", default=0.3),
+    BrushParamSpec("marker_solvent_wetness", "marker", "solvent_wetness", default=0.5),
+    BrushParamSpec("marker_edge_darkening", "marker", "edge_darkening", default=0.4),
+    BrushParamSpec("blur_radius", "blur", "blur_radius", to_engine=to_int, default=5),
+    BrushParamSpec("blur_strength", "blur", "blur_strength", default=0.5),
+    BrushParamSpec("smudge_color_pickup", "smudge", "color_pickup", default=0.7),
+    BrushParamSpec("smudge_mix_ratio", "smudge", "mix_ratio", default=0.5),
+    BrushParamSpec("smudge_stretch", "smudge", "smudge_stretch", default=0.8),
+    BrushParamSpec("watercolor_water_level", "watercolor", "water_level", default=0.5),
+    BrushParamSpec("watercolor_pigment_bleed", "watercolor", "pigment_bleed", default=0.5),
+    BrushParamSpec("watercolor_fringe_intensity", "watercolor", "fringe_intensity", default=0.4),
+    BrushParamSpec("watercolor_granulation", "watercolor", "granulation", default=0.3),
+    BrushParamSpec("oil_impasto_depth", "oil", "impasto_depth", default=0.7),
+    BrushParamSpec("oil_bristle_grooves", "oil", "bristle_grooves", default=0.5),
+    BrushParamSpec("oil_viscosity", "oil", "viscosity", default=0.6),
+    BrushParamSpec("oil_specular_brilliance", "oil", "specular_brilliance", default=0.5),
 )
 
 
@@ -181,60 +181,60 @@ TABELA: tuple[ParamDePincel, ...] = (
 # não do perfil) — `get_brush_profile_dict` a trata explicitamente.
 
 @dataclass(frozen=True)
-class ParamPorMetodo:
-    chave: str
-    metodo: str
-    conversor: Callable[[Any], Any]
+class MethodParamSpec:
+    key: str
+    method: str
+    converter: Callable[[Any], Any]
 
 
-PARAMS_POR_METODO: tuple[ParamPorMetodo, ...] = (
-    ParamPorMetodo("engine_type", "set_engine_type", int),
-    ParamPorMetodo("shape_preset", "set_shape_preset", int),
-    ParamPorMetodo("brush_height_preset", "set_brush_height_preset", int),
-    ParamPorMetodo("stabilizer_weight", "set_stabilizer_weight", float),
+METHOD_PARAMS: tuple[MethodParamSpec, ...] = (
+    MethodParamSpec("engine_type", "set_engine_type", int),
+    MethodParamSpec("shape_preset", "set_shape_preset", int),
+    MethodParamSpec("brush_height_preset", "set_brush_height_preset", int),
+    MethodParamSpec("stabilizer_weight", "set_stabilizer_weight", float),
 )
 
 
 # ── Índices derivados ───────────────────────────────────────────────────────
 
-POR_CHAVE: dict[str, ParamDePincel] = {p.chave: p for p in TABELA}
+BY_KEY: dict[str, BrushParamSpec] = {p.key: p for p in BRUSH_PARAMS}
 
-POR_GRUPO_E_ATRIBUTO: dict[tuple[str, str], ParamDePincel] = {}
-for _p in TABELA:
-    POR_GRUPO_E_ATRIBUTO[(_p.grupo, _p.atributo)] = _p
-    if _p.grupo == "":                       # "root" é sinônimo da raiz
-        POR_GRUPO_E_ATRIBUTO[("root", _p.atributo)] = _p
+BY_GROUP_AND_ATTRIBUTE: dict[tuple[str, str], BrushParamSpec] = {}
+for _p in BRUSH_PARAMS:
+    BY_GROUP_AND_ATTRIBUTE[(_p.group, _p.attribute)] = _p
+    if _p.group == "":                       # "root" é sinônimo da raiz
+        BY_GROUP_AND_ATTRIBUTE[("root", _p.attribute)] = _p
 
-CHAVES_DE_PRESET: frozenset[str] = frozenset(
-    [p.chave for p in TABELA] + [p.chave for p in PARAMS_POR_METODO]
+PRESET_KEYS: frozenset[str] = frozenset(
+    [p.key for p in BRUSH_PARAMS] + [p.key for p in METHOD_PARAMS]
 )
 
 
-def alvo_nativo(perfil: Any, grupo: str) -> Any:
+def native_target(profile: Any, group: str) -> Any:
     """Objeto nativo onde o grupo mora. Lança se o grupo não for declarado."""
-    if grupo not in ATRIBUTO_DO_GRUPO:
+    if group not in GROUP_ATTRIBUTES:
         raise KeyError(
-            f"grupo de pincel desconhecido: {grupo!r}. "
-            f"Grupos declarados: {sorted(g for g in ATRIBUTO_DO_GRUPO if g)}"
+            f"grupo de pincel desconhecido: {group!r}. "
+            f"Grupos declarados: {sorted(g for g in GROUP_ATTRIBUTES if g)}"
         )
-    atributo = ATRIBUTO_DO_GRUPO[grupo]
-    if atributo is None:
-        return perfil
-    return getattr(perfil, atributo)
+    attribute = GROUP_ATTRIBUTES[group]
+    if attribute is None:
+        return profile
+    return getattr(profile, attribute)
 
 
-def resolver(grupo: str, parametro: str) -> ParamDePincel:
+def resolve_param(group: str, param: str) -> BrushParamSpec:
     """Encontra a linha da tabela para um par (grupo, parâmetro) da interface.
 
     Lança KeyError quando o par não existe — de propósito. O silêncio anterior
     (`hasattr` sem `else`) transformava "esqueci de ligar isso" em "parece que
     está ligado", e o custo aparecia meses depois, sem rastro.
     """
-    linha = POR_GRUPO_E_ATRIBUTO.get((grupo, parametro))
-    if linha is None:
+    spec = BY_GROUP_AND_ATTRIBUTE.get((group, param))
+    if spec is None:
         raise KeyError(
-            f"parâmetro de pincel não declarado: grupo={grupo!r} "
-            f"parâmetro={parametro!r}. O motor não expõe esse campo, ou a "
+            f"parâmetro de pincel não declarado: grupo={group!r} "
+            f"parâmetro={param!r}. O motor não expõe esse campo, ou a "
             f"tabela em brush_param_table.py precisa declará-lo."
         )
-    return linha
+    return spec

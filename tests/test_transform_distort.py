@@ -81,13 +81,13 @@ def test_trapezio_estreita_o_topo_e_alarga_a_base():
 def test_previa_e_commit_levam_o_mesmo_ponto_ao_mesmo_lugar():
     quad = [QtCore.QPointF(10, 6), QtCore.QPointF(40, 12), QtCore.QPointF(50, 52), QtCore.QPointF(4, 44)]
     fonte = QtCore.QRectF(8, 8, 16, 16)
-    previa: QtGui.QTransform | None = d.matriz_do_quad(fonte, quad)
+    previa: QtGui.QTransform | None = d.matrix_from_quad(fonte, quad)
     assert previa is not None
     esperado = previa.map(QtCore.QPointF(16.0, 16.0))  # centro do ponto verde
 
     f = _facade_com_bloco()
     assert f.begin_transform()
-    assert f.commit_transform_distort(d.plano(quad), 1)
+    assert f.commit_transform_distort(d.flatten(quad), 1)
     cx, cy = _centro_do_verde(_camada(f))
     assert abs(cx - esperado.x()) < 1.5 and abs(cy - esperado.y()) < 1.5, ((cx, cy), esperado)
 
@@ -119,25 +119,25 @@ def _quad(*coords):
 
 
 def test_convexidade_bate_com_o_motor():
-    assert d.quad_convexo(_quad(0, 0, 10, 0, 10, 10, 0, 10))
-    assert d.quad_convexo(_quad(0, 0, 10, 2, 8, 9, 1, 12))
-    assert not d.quad_convexo(_quad(0, 0, 10, 10, 10, 0, 0, 10))  # gravata
-    assert not d.quad_convexo(_quad(0, 0, 10, 0, 3, 3, 0, 10))    # côncavo
+    assert d.is_convex_quad(_quad(0, 0, 10, 0, 10, 10, 0, 10))
+    assert d.is_convex_quad(_quad(0, 0, 10, 2, 8, 9, 1, 12))
+    assert not d.is_convex_quad(_quad(0, 0, 10, 10, 10, 0, 0, 10))  # gravata
+    assert not d.is_convex_quad(_quad(0, 0, 10, 0, 3, 3, 0, 10))    # côncavo
 
 
 def test_arrastar_canto_lado_e_tudo():
     q = _quad(0, 0, 10, 0, 10, 10, 0, 10)
     delta = QtCore.QPointF(2, 3)
-    assert d.plano(d.arrastar(q, "tr", delta)) == [0, 0, 12, 3, 10, 10, 0, 10]
-    assert d.plano(d.arrastar(q, "mr", delta)) == [0, 0, 12, 3, 12, 13, 0, 10]
-    assert d.plano(d.arrastar(q, "move", delta)) == [2, 3, 12, 3, 12, 13, 2, 13]
-    assert d.plano(q) == [0, 0, 10, 0, 10, 10, 0, 10], "o original não pode mudar"
+    assert d.flatten(d.drag(q, "tr", delta)) == [0, 0, 12, 3, 10, 10, 0, 10]
+    assert d.flatten(d.drag(q, "mr", delta)) == [0, 0, 12, 3, 12, 13, 0, 10]
+    assert d.flatten(d.drag(q, "move", delta)) == [2, 3, 12, 3, 12, 13, 2, 13]
+    assert d.flatten(q) == [0, 0, 10, 0, 10, 10, 0, 10], "o original não pode mudar"
 
 
 def test_espelhar_e_girar_mantem_o_quad_no_lugar():
     q = _quad(0, 0, 10, 0, 10, 10, 0, 10)
-    assert d.plano(d.espelhar(q, horizontal=True)) == [10, 0, 0, 0, 0, 10, 10, 10]
-    girado = d.plano(d.girar_90(q, horario=True))
+    assert d.flatten(d.mirror(q, horizontal=True)) == [10, 0, 0, 0, 0, 10, 10, 10]
+    girado = d.flatten(d.rotate_90(q, clockwise=True))
     assert girado == [10, 0, 10, 10, 0, 10, 0, 0]
 
 
@@ -170,13 +170,13 @@ def test_controlador_no_modo_distorcer(monkeypatch):
     ctrl.begin_drag("br", QtCore.QPointF(100, 100))
     ctrl.apply_drag(QtCore.QPointF(140, 120), QtCore.Qt.NoModifier)
     esperado = [0, 0, 100, 0, 140, 120, 0, 100]
-    assert d.plano(ctrl.quad) == esperado
+    assert d.flatten(ctrl.quad) == esperado
     assert ctrl.get_transform_matrix().map(QtCore.QPointF(100, 100)) == QtCore.QPointF(140, 120)
 
     # Arrasto que dobraria o quad é recusado (fica o último válido).
     ctrl.begin_drag("br", QtCore.QPointF(140, 120))
     ctrl.apply_drag(QtCore.QPointF(-200, -200), QtCore.Qt.NoModifier)
-    assert d.plano(ctrl.quad) == esperado
+    assert d.flatten(ctrl.quad) == esperado
 
     # Sem pivô nem rotação enquanto distorce: o centro é "mover".
     assert ctrl.hit_test_handle(QtCore.QPointF(50, 50), 1.0) == "move"

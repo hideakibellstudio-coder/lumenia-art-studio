@@ -53,7 +53,7 @@ def test_roda_mostra_marca_e_amostras_e_lembra_a_regra():
     faixa.set_rule(HarmonyRule.TRIADIC)
     assert ConfigManager.instance().get("color", "harmony") == "triadic"
     assert _graus(roda.wheel.harmony_hues()) == [120, 240]
-    visiveis = [b for b in faixa.amostras if not b.isHidden()]
+    visiveis = [b for b in faixa.swatches if not b.isHidden()]
     assert len(visiveis) == 2
 
     recebidas = []
@@ -65,4 +65,4 @@ def test_roda_mostra_marca_e_amostras_e_lembra_a_regra():
 
     faixa.set_rule(HarmonyRule.NONE)
     assert roda.wheel.harmony_hues() == []
-    assert all(b.isHidden() for b in faixa.amostras)
+    assert all(b.isHidden() for b in faixa.swatches)

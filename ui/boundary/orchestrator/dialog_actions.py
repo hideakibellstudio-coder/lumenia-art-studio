@@ -61,7 +61,7 @@ class DialogActions(ShellActions):
 
     def open_feedback_form(self) -> None:
         current_locale = I18nManager.instance().get_current_locale()
-        feedback_path = resource_path("Enviar_Feedback.html")
+        feedback_path = resource_path("Send_Feedback.html")
         if feedback_path.is_file():
             url = QtCore.QUrl.fromLocalFile(str(feedback_path))
             url.setQuery(f"lang={current_locale}")

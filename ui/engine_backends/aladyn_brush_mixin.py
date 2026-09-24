@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional, TYPE_CHECKING
 
-from .native_fallback import nativo_tem
+from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase
 
 if TYPE_CHECKING:
@@ -62,7 +62,7 @@ class AladynBrushMixin(AladynBackendBase):
         """Escreve um campo do BrushProfile resolvido pela tabela de parâmetros.
 
         Lança KeyError quando o par (grupo, parâmetro) não é declarado em
-        `brush_param_table.TABELA`. A versão anterior descartava em silêncio —
+        `brush_param_table.BRUSH_PARAMS`. A versão anterior descartava em silêncio —
         era uma cadeia de `if hasattr(...)` sem `else` — e foi assim que dois
         sliders de jitter passaram meses escrevendo num grupo 'dynamics' que
         nunca existiu no módulo nativo, sem um único erro visível.
@@ -70,16 +70,16 @@ class AladynBrushMixin(AladynBackendBase):
         A resolução acontece ANTES da checagem do facade, de propósito: um par
         inválido é erro de programação e deve falhar mesmo sem documento aberto.
         """
-        from .brush_param_table import alvo_nativo, resolver
+        from .brush_param_table import native_target, resolve_param
 
-        linha = resolver(group, param)
+        spec = resolve_param(group, param)
         if not self._facade:
             return
         prof: "BrushProfile" = self._facade.get_brush_profile()
         if not prof:
             return
-        destino = alvo_nativo(prof, linha.grupo)
-        setattr(destino, linha.atributo, linha.para_motor(value, self._native))
+        target = native_target(prof, spec.group)
+        setattr(target, spec.attribute, spec.to_engine(value, self._native))
 
     def get_brush_profile_dict(self) -> dict:
         from .aladyn_brush_profiles import get_brush_profile_dict
@@ -95,7 +95,7 @@ class AladynBrushMixin(AladynBackendBase):
         apply_brush_preset_dict(self, self._facade, self._native, data)
 
     def render_brush_preview(self, width: int, height: int, brush_state: Optional[dict] = None) -> Optional[bytes]:
-        if not self._native or not nativo_tem(self._native, "render_stroke_preview", "o painel de pincel mostra uma prévia aproximada"):
+        if not self._native or not native_has(self._native, "render_stroke_preview", "o painel de pincel mostra uma prévia aproximada"):
             return None
         try:
             # get_brush_profile() devolve REFERÊNCIA ao perfil vivo do documento; a

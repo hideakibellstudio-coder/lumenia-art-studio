@@ -19,14 +19,14 @@ bool TransformEngine::commitTransformDistort(
     int activeLayerIndex,
     math::Rect2D& outDirtyBounds
 ) {
-    if (!m_state.active || !m_sourceBuffer || !activeLayer || !transform::quadConvexo(corners)) {
+    if (!m_state.active || !m_sourceBuffer || !activeLayer || !transform::isConvexQuad(corners)) {
         return false;
     }
 
     const int srcW = m_sourceBuffer->getWidth();
     const int srcH = m_sourceBuffer->getHeight();
-    transform::Homografia destParaUnitario;
-    if (srcW <= 0 || srcH <= 0 || !transform::inverter(transform::quadradoParaQuad(corners), destParaUnitario)) {
+    transform::Homography destToUnit;
+    if (srcW <= 0 || srcH <= 0 || !transform::invert(transform::unitSquareToQuad(corners), destToUnit)) {
         return false;
     }
 
@@ -52,7 +52,7 @@ bool TransformEngine::commitTransformDistort(
         interpMode, undoManager, activeLayerIndex,
         [&](int destX, int destY, double& u, double& v) {
             double un = 0.0, vn = 0.0;
-            if (!destParaUnitario.aplicar(destX, destY, un, vn)) return false;
+            if (!destToUnit.apply(destX, destY, un, vn)) return false;
             u = un * srcW;
             v = vn * srcH;
             return u >= -0.5 && u <= srcW + 0.5 && v >= -0.5 && v <= srcH + 0.5;

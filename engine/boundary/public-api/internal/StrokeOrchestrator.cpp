@@ -12,7 +12,7 @@
 
 namespace aladyn::engine::boundary::internal {
 
-using detail::usarAtalhoDeLatencia;
+using detail::useLatencyShortcut;
 
 // endStrokeRaw vive em StrokeOrchestratorEnd.cpp (divisão de 2026-09-22: o arquivo
 // tinha 484 linhas, acima do teto ARCcC de 450).
@@ -246,9 +246,9 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
 
     const double vel = ctx.velocityTracker.update({x, y}, t);
     const double normVel = ctx.velocityTracker.getNormalizedVelocity(1500.0);
-    const bool atalho = usarAtalhoDeLatencia(ctx);
-    const math::Point2D pos = atalho ? math::Point2D{x, y} : ctx.stabilizer.update({x, y}, pressure, normVel);
-    const double effectivePressure = atalho ? pressure : ctx.stabilizer.getStabilizedPressure();
+    const bool shortcut = useLatencyShortcut(ctx);
+    const math::Point2D pos = shortcut ? math::Point2D{x, y} : ctx.stabilizer.update({x, y}, pressure, normVel);
+    const double effectivePressure = shortcut ? pressure : ctx.stabilizer.getStabilizedPressure();
 
     double altitude = 90.0;
     double azimuth = 0.0;
@@ -328,7 +328,7 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
                 const math::Point2D u12 = v12 * (1.0 / len12);
                 const math::Point2D alignedP0 = p1 - (u12 * len01);
                 ctx.strokeStartPoint = alignedP0;
-                if (!atalho) ctx.stabilizer.reanchorInitialPosition(alignedP0);
+                if (!shortcut) ctx.stabilizer.reanchorInitialPosition(alignedP0);
 
                 auto mappedP0 = brush::DynamicMapper::map(ctx.brushProfile, alignedP0, ctx.lastDab.pressure, 0.0, 0.0);
                 ctx.splineP0 = raster::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color, mappedP0.aspectRatio);

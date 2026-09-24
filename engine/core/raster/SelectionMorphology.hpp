@@ -23,7 +23,7 @@
 namespace aladyn::engine::raster::SelectionMorphology {
 
 /// Raio máximo aceito (px). Valores acima são limitados.
-constexpr int kRaioMaximoPx = 500;
+constexpr int kMaxRadiusPx = 500;
 
 /// Devolvem false quando não há seleção ou o raio é <= 0 (nada muda).
 bool expand(SelectionMask& mask, int radiusPx);

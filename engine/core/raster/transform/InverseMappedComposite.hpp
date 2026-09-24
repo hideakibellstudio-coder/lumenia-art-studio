@@ -17,7 +17,7 @@ namespace aladyn::engine::raster::transform {
 
 /// inverso(destX, destY, u, v) -> bool: coordenada (u, v) no buffer-fonte;
 /// false quando o pixel de destino não recebe nada.
-template <class Inverso>
+template <class InverseFn>
 void compositeInverseMapped(
     canvas::TileGrid& grid,
     const canvas::PixelBuffer& source,
@@ -25,7 +25,7 @@ void compositeInverseMapped(
     int interpMode,
     canvas::TileUndoManager& undoManager,
     int activeLayerIndex,
-    Inverso&& inverso
+    InverseFn&& inverse
 ) {
     const int startTileX = minDx / canvas::Tile::TILE_SIZE;
     const int endTileX   = maxDx / canvas::Tile::TILE_SIZE;
@@ -62,7 +62,7 @@ void compositeInverseMapped(
                     if (destX > maxDx) break;
 
                     double u = 0.0, v = 0.0;
-                    if (inverso(destX, destY, u, v)) {
+                    if (inverse(destX, destY, u, v)) {
                         ColorRGBA sampled;
                         if (interpMode == static_cast<int>(InterpolationMode::Nearest)) {
                             sampled = sampleNearest(source, u, v);

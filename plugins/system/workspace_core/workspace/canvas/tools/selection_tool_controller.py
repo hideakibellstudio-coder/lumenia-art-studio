@@ -220,7 +220,7 @@ class SelectionToolController:
         backend = EngineRegistry.instance().get_backend()
         if backend and hasattr(backend, "invert_selection"):
             backend.invert_selection()
-        self._sincronizar_formigas(backend)
+        self._sync_marching_ants(backend)
 
     # ── Contrato de `layer_transaction` (modify_selection é uma transação) ──
 
@@ -242,17 +242,17 @@ class SelectionToolController:
         depois, então Desfazer/Refazer voltam a seleção anterior.
         """
         backend: Optional[EngineBackend] = EngineRegistry.instance().get_backend()
-        operacoes = {
+        operations = {
             "expand": backend.expand_selection,
             "contract": backend.contract_selection,
             "feather": backend.feather_selection,
         } if backend else {}
-        operacao = operacoes.get(mode)
-        ok = bool(operacao and operacao(int(radius_px)))
-        self._sincronizar_formigas(backend)
+        operation = operations.get(mode)
+        ok = bool(operation and operation(int(radius_px)))
+        self._sync_marching_ants(backend)
         return ok
 
-    def _sincronizar_formigas(self, backend) -> None:
+    def _sync_marching_ants(self, backend) -> None:
         """Liga/desliga o marching ants conforme a seleção existe e repinta."""
         if backend and hasattr(backend, "has_selection") and backend.has_selection():
             if not self.selection_timer.isActive():

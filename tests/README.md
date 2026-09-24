@@ -16,12 +16,14 @@
 | `qt_windows.py` | Enumeração segura das janelas de topo do Qt nos testes. |
 | `run_all_tests.py` | Runner da suíte: executa tudo (ou uma suíte nomeada) com saída UTF-8 no Windows, cobertura e `--junit` para o relatório de testes. |
 | `arccc_coupling_metrics.py` | Mede, arquivo por arquivo, os padrões de acoplamento que transformaram a UI em espaguete, e mantém a catraca (`arccc_coupling_baseline.json`) usada por `tests/test_arccc_coupling_ratchet.py`. |
+| `arccc_identifier_language.py` | Conta identificadores com palavra em português por arquivo e mantém a catraca `arccc_identifier_baseline.json` (seção 14 do ARCcC). |
 | `arccc_governance_rules.py` | FONTE ÚNICA das regras quantitativas ARCcC usadas pelos testes de governança. |
 | `arccc_package_docs.py` | Documentação por pasta (ARCcC): TODA pasta do repositório tem README.md. |
 | `test_advanced_geometry_dialog.py` | Tests for Phase 3: AdvancedGeometryDialog ARCcC v2 decomposition. |
 | `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
 | `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ ou plugins/ pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `plugins.*` a partir do núcleo do que já tinha. |
 | `test_arccc_cpp_and_docs_governance.py` | Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++). |
+| `test_arccc_identifier_language_ratchet.py` | Catraca de idioma: nenhum arquivo ganha identificador com palavra em português. |
 | `test_arccc_package_docs.py` | Toda pasta do repositório tem README com arquivos e dependências verdadeiros. |
 | `test_backend_capabilities.py` | Contrato de capacidades reais entre a UI e os backends de pintura. |
 | `test_brush_advanced_panel.py` | Painel avançado do pincel: seções com estado próprio e dois caminhos claros. |

@@ -172,8 +172,8 @@ def run_soak(total_cycles: int = 350, warmup_cycles: int = 180, sample_interval:
             ws, pv, hnd, gdi = get_process_metrics()
             samples.append((cycle, elapsed, ws, pv, hnd, gdi))
             delta_pv = pv - samples[0][3]
-            sinal = "+" if delta_pv >= 0 else ""
-            print(f"  [Ciclo {cycle:3d}] WS: {ws:6.1f} MB | Priv: {pv:6.1f} MB ({sinal}{delta_pv:5.1f} MB) | "
+            sign = "+" if delta_pv >= 0 else ""
+            print(f"  [Ciclo {cycle:3d}] WS: {ws:6.1f} MB | Priv: {pv:6.1f} MB ({sign}{delta_pv:5.1f} MB) | "
                   f"Handles: {hnd:5d} | GDI: {gdi:4d}")
 
     # 4. Grava CSV se solicitado
@@ -186,13 +186,13 @@ def run_soak(total_cycles: int = 350, warmup_cycles: int = 180, sample_interval:
         print(f"\n[+] Relatório CSV gravado em: {csv_path}")
 
     # 5. Avaliação Estatística e Portão de Aceitação
-    return analisar_plato(samples, warmup_cycles)
+    return analyze_plateau(samples, warmup_cycles)
 
 
-def analisar_plato(samples, warmup_cycles: int, titulo: str = "GATE P4") -> bool:
+def analyze_plateau(samples, warmup_cycles: int, title: str = "GATE P4") -> bool:
     """Julga o platô pós-aquecimento. `samples`: (ciclo, t, ws_mb, priv_mb, handles, gdi)."""
     print("\n" + "=" * 72)
-    print(f"  ANÁLISE ESTATÍSTICA DO PLATÔ DE ESTABILIDADE ({titulo})")
+    print(f"  ANÁLISE ESTATÍSTICA DO PLATÔ DE ESTABILIDADE ({title})")
     print("=" * 72)
 
     warmup_cutoff = warmup_cycles
@@ -226,24 +226,24 @@ def analisar_plato(samples, warmup_cycles: int, titulo: str = "GATE P4") -> bool
     # ruído. Vazamento = inclinação acima do teto E limite inferior do IC de 95%
     # acima de zero (crescimento estatisticamente sustentado). Critério revisado
     # em 2026-09-22; ver claude/analise-completa-projeto-2026-09-22.md.
-    residuos = [y - (mean_y + slope_per_cycle * (x - mean_x)) for x, y in zip(x_vals, y_vals)]
+    residuals = [y - (mean_y + slope_per_cycle * (x - mean_x)) for x, y in zip(x_vals, y_vals)]
     if n > 2 and denom > 0:
-        erro_padrao = (sum(r * r for r in residuos) / (n - 2) / denom) ** 0.5 * 100.0
+        standard_error = (sum(r * r for r in residuals) / (n - 2) / denom) ** 0.5 * 100.0
     else:
-        erro_padrao = 0.0
-    limite_inferior = drift_per_100_cycles - 2.0 * erro_padrao
+        standard_error = 0.0
+    lower_bound = drift_per_100_cycles - 2.0 * standard_error
 
     print(f"  Fase de Aquecimento: Ciclos 0 a {warmup_cutoff}")
     print(f"  Fase de Platô Analisada: Ciclos {first_steady[0]} a {last_steady[0]} ({n} amostras)")
     print(f"  Delta GDI Objects:       {delta_gdi:+d}  (Tolerância: 0)")
     print(f"  Delta OS Handles:        {delta_handles:+d}  (Tolerância: <= 5)")
     print(f"  Drift de Memória Privada: {drift_per_100_cycles:+.4f} MB / 100 ciclos  (Teto: <= 0.0500 MB)")
-    print(f"  Erro padrão da inclinação: ±{erro_padrao:.4f} MB / 100 ciclos (IC 95% inferior: {limite_inferior:+.4f})")
+    print(f"  Erro padrão da inclinação: ±{standard_error:.4f} MB / 100 ciclos (IC 95% inferior: {lower_bound:+.4f})")
 
     # Julgamento
     pass_gdi = (delta_gdi == 0)
     pass_handles = (delta_handles <= 5)  # queda de handles não é vazamento
-    pass_drift = (drift_per_100_cycles <= 0.0500) or (limite_inferior <= 0.0)
+    pass_drift = (drift_per_100_cycles <= 0.0500) or (lower_bound <= 0.0)
 
     print("-" * 72)
     print(f"  [1] GDI Objects sem vazamento:   [{'APROVADO' if pass_gdi else 'REPROVADO'}]")
@@ -252,8 +252,8 @@ def analisar_plato(samples, warmup_cycles: int, titulo: str = "GATE P4") -> bool
     print("-" * 72)
 
     passed_all = pass_gdi and pass_handles and pass_drift
-    veredicto = "APROVADO — SESSÃO ESTÁVEL SEM VAZAMENTOS" if passed_all else "REPROVADO — VAZAMENTO DETECTADO"
-    print(f"  VEREDICTO FINAL DO GATE: {veredicto}")
+    verdict = "APROVADO — SESSÃO ESTÁVEL SEM VAZAMENTOS" if passed_all else "REPROVADO — VAZAMENTO DETECTADO"
+    print(f"  VEREDICTO FINAL DO GATE: {verdict}")
     print("=" * 72 + "\n")
     return passed_all
 

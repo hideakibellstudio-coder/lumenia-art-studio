@@ -18,7 +18,7 @@ constexpr int kMaxPreviewSide = 4096;  // o painel usa ~260x52; teto defensivo d
 
 // Motores que ALTERAM pixels existentes (borracha, desfoque, borrar) precisam de
 // uma base pintada para que o efeito apareça na prévia.
-void pintarBaseDeDemonstracao(int width, int height, const canvas::CanvasTexture& tex, canvas::TileGrid& grid) {
+void paintDemoBase(int width, int height, const canvas::CanvasTexture& tex, canvas::TileGrid& grid) {
     brush::BrushProfile base;
     base.brushSize = static_cast<double>(height) * 0.7;
     base.opacity = 1.0;
@@ -33,7 +33,7 @@ void pintarBaseDeDemonstracao(int width, int height, const canvas::CanvasTexture
     }
 }
 
-void copiarGradeParaRGBA(canvas::TileGrid& grid, int width, int height, std::vector<uint8_t>& out) {
+void copyGridToRgba(canvas::TileGrid& grid, int width, int height, std::vector<uint8_t>& out) {
     for (int ty = 0; ty < grid.getTilesCountY(); ++ty) {
         for (int tx = 0; tx < grid.getTilesCountX(); ++tx) {
             const canvas::Tile* tile = grid.getTile(tx, ty);
@@ -75,7 +75,7 @@ std::vector<uint8_t> renderStrokePreview(const brush::BrushProfile& profile, int
     if (profile.engineType == brush::EngineType::Eraser ||
         profile.engineType == brush::EngineType::Blur ||
         profile.engineType == brush::EngineType::Smudge) {
-        pintarBaseDeDemonstracao(width, height, canvasTex, grid);
+        paintDemoBase(width, height, canvasTex, grid);
     }
 
     const double margin = 14.0;
@@ -121,7 +121,7 @@ std::vector<uint8_t> renderStrokePreview(const brush::BrushProfile& profile, int
         hasPrev = true;
     }
 
-    copiarGradeParaRGBA(grid, width, height, output);
+    copyGridToRgba(grid, width, height, output);
     return output;
 }
 

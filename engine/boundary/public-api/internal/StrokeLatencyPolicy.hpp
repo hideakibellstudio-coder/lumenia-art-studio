@@ -23,7 +23,7 @@ namespace aladyn::engine::boundary::internal::detail {
 /// O atalho também desliga o catch-up e o afunilamento do pen-up, e isso é
 /// deliberado: um traço estabilizado sem catch-up pára atrás de onde a caneta
 /// levantou — o "efeito elástico" que a suavização existe para evitar.
-[[nodiscard]] inline bool usarAtalhoDeLatencia(const RawStrokeContext& ctx) noexcept {
+[[nodiscard]] inline bool useLatencyShortcut(const RawStrokeContext& ctx) noexcept {
     return ctx.lowLatency && ctx.stabilizer.getStabilizationPercentage() <= 0.5;
 }
 

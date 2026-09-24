@@ -202,7 +202,7 @@ Itens de auditoria vertical, código morto, integridade de traço, cursor, front
 
 - **Auditoria de Código Morto & Sombra de Empacotamento (Níveis 1, 2 e 3)**:
   - Nível 1: Remoção de 4 arquivos mortos isolados com zero chamadores (`color_wheel.py`, `dialog.py`, `flood_fill.py`, `IRenderContext.hpp` — commit `c217811`).
-  - Nível 2 e 3: Eliminação de sombras geradas por subpacotes com `__init__.py` duplicando módulos de mesmo nome (`icon_svg_catalog`, `dialogs`, `presets` — commit `4d3f254`). Modernização dos inicializadores desktop `Iniciar_Lumenia.bat` e `Iniciar_Lumenia_Silencioso.vbs` para `main.py` (commit `db2b80f`) e remoção segura de shims legados (commit `3cba060`).
+  - Nível 2 e 3: Eliminação de sombras geradas por subpacotes com `__init__.py` duplicando módulos de mesmo nome (`icon_svg_catalog`, `dialogs`, `presets` — commit `4d3f254`). Modernização dos inicializadores desktop `Launch_Lumenia.bat` e `Launch_Lumenia_Silent.vbs` para `main.py` (commit `db2b80f`) e remoção segura de shims legados (commit `3cba060`).
 - **Desacoplamento de Arquitetura do Viewport (Nível 4)**:
   - Rastreamento pelo "curso do rio" revelou dependência do `OverlayRenderer` em atributos privados de `CanvasCompatMixin` (`_selection_path`, `_shape_preview_points`).
   - Refatorado para propriedades públicas limpas, prevenindo a quebra do desenho de seleções e formas na tela e eliminando o acoplamento espúrio (commit `f9980ae`).
@@ -368,7 +368,7 @@ Windows do usuário após a remoção.
     3. $\text{Drift} \le 0.05 \text{ MB} / 100 \text{ ciclos}$ na fase de platô (após aquecimento do anel de Undo e cache de tiles).
   - **Harness de estresse headless criado:** `scripts/run_soak_test.py` simula centenas de ciclos de pintura interpolada, variações de dinâmica e transações de histórico em modo offscreen com medição direta via `user32.dll!GetGuiResources` e `psapi.dll!GetProcessMemoryInfo`.
   - **Resultado da validação:** Bateria de 350 ciclos (180 warmup + 170 platô) executada e **100% APROVADA**: $\Delta \text{GDI} = 0$, $\Delta \text{Handles} = 0$, Drift de Memória Privada = $+0.0000 \text{ MB} / 100 \text{ ciclos}$.
-  - **Monitor de sessão com artista integrado:** `scripts/monitor_sessao.ps1` recebeu parâmetro `-Analisar <csv>` para processamento pós-sessão de desenho humano e emissão automática do laudo do Gate.
+  - **Monitor de sessão com artista integrado:** `scripts/monitor_session.ps1` recebeu parâmetro `-Analyze <csv>` para processamento pós-sessão de desenho humano e emissão automática do laudo do Gate.
 
 ---
 

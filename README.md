@@ -134,7 +134,7 @@ script de build encontra o compilador sozinho).
    ```bash
    python main.py
    ```
-   (ou `Iniciar_Lumenia.bat`). Para conferir a instalação:
+   (ou `Launch_Lumenia.bat`). Para conferir a instalação:
    `python tests/run_all_tests.py`.
 
 São os mesmos passos que o CI (`.github/workflows/ci.yml`) executa a partir de

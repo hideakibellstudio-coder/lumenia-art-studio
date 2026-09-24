@@ -242,7 +242,11 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
        `getattr` literal, acesso privado alheio, `except` silencioso e núcleo
        importando plugin, contados por arquivo. Subiu → você acoplou; caiu →
        registre com `python -m tests.arccc_coupling_metrics --tighten`;
-     - documentação por pacote (`tests/test_arccc_package_docs.py`);
+     - documentação por pasta (`tests/test_arccc_package_docs.py`);
+     - idioma dos nomes (`tests/test_arccc_identifier_language_ratchet.py`):
+       identificador com palavra em português não pode aumentar em nenhum
+       arquivo (código em inglês; português só em comentário, doc e `tr`).
+       Caiu → `python -m tests.arccc_identifier_language --tighten`;
      - cores literais (`tests/test_hardcoded_colors_ratchet.py`) e varreduras
        cegas/leis do rio (`tests/test_river_ratchets.py`).
    - **Catraca arquitetural:** rode `navigator_verify` e compare a contagem de

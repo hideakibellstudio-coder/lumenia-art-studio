@@ -147,23 +147,23 @@ class StrokePreview(QtWidgets.QWidget):
             ip = QtGui.QPainter(img)
             ip.setRenderHint(QtGui.QPainter.Antialiasing)
             ip.setPen(QtCore.Qt.NoPen)
-            passo_pixels = max(1.0, self._size * self._spacing)
-            x_atual = float(margin)
-            largura_util = float(w - 2 * margin)
-            while x_atual < (w - margin):
-                t = (x_atual - margin) / largura_util if largura_util > 0 else 0.0
+            step_px = max(1.0, self._size * self._spacing)
+            x_pos = float(margin)
+            usable_width = float(w - 2 * margin)
+            while x_pos < (w - margin):
+                t = (x_pos - margin) / usable_width if usable_width > 0 else 0.0
                 y = h / 2 + math.sin(t * math.pi * 2) * amp * 0.65
                 pressure_sim = self._pressure * (0.3 + 0.7 * math.sin(t * math.pi))
                 r = max(0.5, (self._size * pressure_sim) / 2.0)
-                grad = QtGui.QRadialGradient(QtCore.QPointF(x_atual, y), r)
+                grad = QtGui.QRadialGradient(QtCore.QPointF(x_pos, y), r)
                 alpha = int(self._opacity * 255)
                 stop = max(0.01, min(0.99, self._hardness))
                 grad.setColorAt(0, QtGui.QColor(base_color.red(), base_color.green(), base_color.blue(), alpha))
                 grad.setColorAt(stop, QtGui.QColor(base_color.red(), base_color.green(), base_color.blue(), alpha))
                 grad.setColorAt(1.0, QtGui.QColor(base_color.red(), base_color.green(), base_color.blue(), 0))
                 ip.setBrush(grad)
-                ip.drawEllipse(QtCore.QPointF(x_atual, y), r, r)
-                x_atual += passo_pixels
+                ip.drawEllipse(QtCore.QPointF(x_pos, y), r, r)
+                x_pos += step_px
             ip.end()
             p.drawImage(0, 0, img)
 

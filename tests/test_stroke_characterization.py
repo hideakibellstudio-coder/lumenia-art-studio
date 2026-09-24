@@ -23,7 +23,7 @@ Os dois desviam o estabilizador quando `lowLatency` está ligado, em lugares
 diferentes: StrokeOrchestrator.cpp (updateStrokeRaw) e StrokeOrchestratorEnd.cpp
 (endStrokeRaw) -- um arquivo só até a divisão de 2026-09-22 --, e
 PaintEngineFacade.cpp. A regra agora mora num lugar só:
-StrokeLatencyPolicy.hpp (usarAtalhoDeLatencia). Uma correção que toque só um dos arquivos
+StrokeLatencyPolicy.hpp (useLatencyShortcut). Uma correção que toque só um dos arquivos
 conserta só metade, e é por isso que os dois caminhos são medidos aqui.
 
 O QUE A CORREÇÃO DEVE PRODUZIR

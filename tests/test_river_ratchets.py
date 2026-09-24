@@ -36,9 +36,9 @@ NATIVE_GUARDS_PERMITIDOS: dict[tuple[str, str], str] = {
 }
 
 # Grupo A (decisão de 2026-09-23): o plano B continua, mas nunca em silêncio --
-# passa por ui/engine_backends/native_fallback.nativo_tem, que registra um
+# passa por ui/engine_backends/native_fallback.native_has, que registra um
 # WARNING dizendo o que o usuário perde. Chamada nova precisa entrar aqui.
-GUARDAS_COM_AVISO: dict[tuple[str, str], str] = {
+WARNED_GUARDS: dict[tuple[str, str], str] = {
     ("aladyn_stroke_mixin.py", "is_telemetry_enabled"): "telemetria por traço",
     ("aladyn_stroke_mixin.py", "flood_fill"): "balde de tinta",
     ("aladyn_geometry_mixin.py", "set_curvilinear_guide_config"): "snap curvilíneo",
@@ -56,7 +56,7 @@ _NATIVE_RECEIVERS = {"self._facade", "facade", "self._native", "native", "f"}
 
 
 def _guardas_nativas() -> Counter:
-    achados: Counter = Counter()
+    found: Counter = Counter()
     for path in (ROOT / "ui" / "engine_backends").glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -64,70 +64,70 @@ def _guardas_nativas() -> Counter:
                 continue
             if len(node.args) != 2 or ast.unparse(node.args[0]) not in _NATIVE_RECEIVERS:
                 continue
-            alvo = node.args[1]
-            nome = alvo.value if isinstance(alvo, ast.Constant) else "<dinâmico>"
+            target = node.args[1]
+            nome = target.value if isinstance(target, ast.Constant) else "<dinâmico>"
             if nome == "ColorRGBA":
                 continue
-            achados[(path.name, nome)] += 1
-    return achados
+            found[(path.name, nome)] += 1
+    return found
 
 
 def test_guardas_hasattr_no_motor_so_da_lista_aprovada():
-    achados = _guardas_nativas()
-    novos = sorted(set(achados) - set(NATIVE_GUARDS_PERMITIDOS))
-    assert not novos, (
+    found = _guardas_nativas()
+    new_guards = sorted(set(found) - set(NATIVE_GUARDS_PERMITIDOS))
+    assert not new_guards, (
         "Guarda hasattr nova sobre o motor nativo: "
-        f"{novos}. Se o método está no .pyi, chame direto (o teste .pyi x binário "
+        f"{new_guards}. Se o método está no .pyi, chame direto (o teste .pyi x binário "
         "garante que ele existe). Se é mesmo fallback para .pyd antigo, adicione "
         "em NATIVE_GUARDS_PERMITIDOS com o motivo."
     )
 
 
 def test_lista_de_guardas_nao_tem_entradas_mortas():
-    mortas = sorted(set(NATIVE_GUARDS_PERMITIDOS) - set(_guardas_nativas()))
-    assert not mortas, f"Remova da lista (a guarda já não existe no código): {mortas}"
+    dead_guards = sorted(set(NATIVE_GUARDS_PERMITIDOS) - set(_guardas_nativas()))
+    assert not dead_guards, f"Remova da lista (a guarda já não existe no código): {dead_guards}"
 
 
 def _guardas_com_aviso() -> Counter:
-    achados: Counter = Counter()
+    found: Counter = Counter()
     for path in (ROOT / "ui" / "engine_backends").glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "nativo_tem":
-                alvo = node.args[1] if len(node.args) > 1 else None
-                nome = alvo.value if isinstance(alvo, ast.Constant) else "<dinâmico>"
-                achados[(path.name, nome)] += 1
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "native_has":
+                target = node.args[1] if len(node.args) > 1 else None
+                nome = target.value if isinstance(target, ast.Constant) else "<dinâmico>"
+                found[(path.name, nome)] += 1
                 assert len(node.args) == 3 and isinstance(node.args[2], ast.Constant) and node.args[2].value.strip(), (
-                    f"{path.name}:{node.lineno}: nativo_tem precisa dizer a consequência para o usuário"
+                    f"{path.name}:{node.lineno}: native_has precisa dizer a consequência para o usuário"
                 )
-    return achados
+    return found
 
 
 def test_plano_b_com_aviso_so_da_lista_aprovada():
-    achados = _guardas_com_aviso()
-    novos = sorted(set(achados) - set(GUARDAS_COM_AVISO))
-    mortas = sorted(set(GUARDAS_COM_AVISO) - set(achados))
-    assert not novos, f"nativo_tem novo sem aprovação: {novos}. Se está no .pyi, chame direto."
-    assert not mortas, f"Remova de GUARDAS_COM_AVISO (já não existe no código): {mortas}"
+    found = _guardas_com_aviso()
+    new_guards = sorted(set(found) - set(WARNED_GUARDS))
+    dead_guards = sorted(set(WARNED_GUARDS) - set(found))
+    assert not new_guards, f"native_has novo sem aprovação: {new_guards}. Se está no .pyi, chame direto."
+    assert not dead_guards, f"Remova de GUARDAS_COM_AVISO (já não existe no código): {dead_guards}"
 
 
 def test_plano_b_avisa_uma_vez_e_devolve_false(caplog):
     from ui.engine_backends import native_fallback
 
-    class Velho:
+    class OldNative:
         def existe(self):
             return 1
 
-    native_fallback._esquecer_avisos()
+    native_fallback._forget_warnings()
     with caplog.at_level("WARNING", logger="ui.engine_backends.native"):
-        assert native_fallback.nativo_tem(Velho(), "existe", "x") is True
-        assert native_fallback.nativo_tem(Velho(), "sumiu", "a prévia fica aproximada") is False
-        assert native_fallback.nativo_tem(Velho(), "sumiu", "a prévia fica aproximada") is False
+        assert native_fallback.native_has(OldNative(), "existe", "x") is True
+        assert native_fallback.native_has(OldNative(), "sumiu", "a prévia fica aproximada") is False
+        assert native_fallback.native_has(OldNative(), "sumiu", "a prévia fica aproximada") is False
     avisos = [r for r in caplog.records if "sumiu" in r.getMessage()]
     assert len(avisos) == 1
     assert "a prévia fica aproximada" in avisos[0].getMessage()
     assert "build_native.py" in avisos[0].getMessage()
-    native_fallback._esquecer_avisos()
+    native_fallback._forget_warnings()
 
 
 # findChild/findChildren DENTRO do próprio widget (ex.: um diálogo instalando

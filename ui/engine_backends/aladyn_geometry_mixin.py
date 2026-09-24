@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Any
 from PySide6 import QtGui
-from .native_fallback import nativo_tem
+from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase
 
 
@@ -77,7 +77,7 @@ class AladynGeometryMixin(AladynBackendBase):
         snap_mode: int = 0, snap_sensitivity: float = 3.0,
     ) -> None:
         """Completa os campos de guia usados apenas pelo Curvilinear no motor C++."""
-        if self._facade and nativo_tem(self._facade, "set_curvilinear_guide_config", "a grade curvilínea ignora densidade/raio/visibilidade"):
+        if self._facade and native_has(self._facade, "set_curvilinear_guide_config", "a grade curvilínea ignora densidade/raio/visibilidade"):
             self._facade.set_curvilinear_guide_config(
                 float(base_radius), float(density),
                 bool(show_v), bool(show_h), bool(show_d),
@@ -89,7 +89,7 @@ class AladynGeometryMixin(AladynBackendBase):
 
     def get_curvilinear_candidates(self, click_x: float, click_y: float) -> list[float]:
         """Curvas candidatas (V/H/D) passando por (click_x, click_y), vindas do motor C++."""
-        if self._facade and nativo_tem(self._facade, "get_curvilinear_candidates", "o snap curvilíneo fica sem curvas candidatas"):
+        if self._facade and native_has(self._facade, "get_curvilinear_candidates", "o snap curvilíneo fica sem curvas candidatas"):
             res = self._facade.get_curvilinear_candidates(float(click_x), float(click_y))
             if res:
                 return [float(v) for v in res]
@@ -101,7 +101,7 @@ class AladynGeometryMixin(AladynBackendBase):
         is_stroking: bool = False, zoom: float = 1.0,
     ) -> tuple[float, float, int]:
         """Snap curvilíneo sem estado via C++: devolve (x, y, novo_locked_index)."""
-        if self._facade and nativo_tem(self._facade, "snap_curvilinear", "o traço não gruda na guia curvilínea"):
+        if self._facade and native_has(self._facade, "snap_curvilinear", "o traço não gruda na guia curvilínea"):
             res = self._facade.snap_curvilinear(
                 float(raw_x), float(raw_y), float(start_x), float(start_y),
                 list(candidates), int(locked_index), bool(is_stroking), float(zoom),
@@ -125,7 +125,7 @@ class AladynGeometryMixin(AladynBackendBase):
         Devolve (x, y, tem_trava, trava_x, trava_y) -- os 3 ultimos devem ser
         persistidos pelo chamador e devolvidos na proxima chamada.
         """
-        if self._facade and nativo_tem(self._facade, "snap_perspective", "o traço não gruda na perspectiva"):
+        if self._facade and native_has(self._facade, "snap_perspective", "o traço não gruda na perspectiva"):
             res = self._facade.snap_perspective(
                 float(raw_x), float(raw_y), float(start_x), float(start_y),
                 bool(has_locked_dir), float(locked_dir_x), float(locked_dir_y), float(zoom),

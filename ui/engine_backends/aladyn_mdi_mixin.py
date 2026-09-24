@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .native_fallback import nativo_tem
+from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class AladynMdiMixin(AladynBackendBase):
         options = self._render_options
         if not facade:
             return
-        if nativo_tem(facade, "set_render_options", "opções de render aplicadas uma a uma"):
+        if native_has(facade, "set_render_options", "opções de render aplicadas uma a uma"):
             facade.set_render_options(**options)
             return
         for key, value in options.items():
@@ -86,11 +86,11 @@ class AladynMdiMixin(AladynBackendBase):
         # `replace` as perderia; o merge preserva o que o getter nao sabe ler.
         if self._facade is not None:
             try:
-                estado_vivo = self.get_brush_profile_dict()
-                if estado_vivo:
-                    atualizado = dict(self._last_brush_preset)
-                    atualizado.update(estado_vivo)
-                    self._last_brush_preset = atualizado
+                live_state = self.get_brush_profile_dict()
+                if live_state:
+                    merged = dict(self._last_brush_preset)
+                    merged.update(live_state)
+                    self._last_brush_preset = merged
             except Exception as exc:
                 logger.warning(f"[AladynBackend] Nao foi possivel sincronizar o pincel: {exc}")
 

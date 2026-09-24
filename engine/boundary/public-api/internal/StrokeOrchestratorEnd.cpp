@@ -13,7 +13,7 @@
 
 namespace aladyn::engine::boundary::internal {
 
-using detail::usarAtalhoDeLatencia;
+using detail::useLatencyShortcut;
 
 std::vector<double> StrokeOrchestrator::endStrokeRaw(
     RawStrokeContext& ctx,
@@ -22,7 +22,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
 ) {
     math::Rect2D totalCatchupDirty{0, 0, 0, 0};
     telemetry::StageMetrics stagesCatchup{};
-    const bool atalho = usarAtalhoDeLatencia(ctx);
+    const bool shortcut = useLatencyShortcut(ctx);
 
     if (ctx.isDrawing) {
         // Correção C4: Repassa a posição de soltura da caneta se fornecida
@@ -56,14 +56,14 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
 
 
         if (ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
-            const math::Point2D stabPos = atalho ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
-            const math::Point2D v = atalho ? (ctx.lastRawPoint - ctx.lastDab.position) : ctx.stabilizer.getLastMovementDelta();
+            const math::Point2D stabPos = shortcut ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
+            const math::Point2D v = shortcut ? (ctx.lastRawPoint - ctx.lastDab.position) : ctx.stabilizer.getLastMovementDelta();
             const double speed = v.length();
             const math::Point2D toRaw = ctx.lastRawPoint - stabPos;
             const double distToRaw = toRaw.length();
 
             // 1. Catch-up para alcançar a posição real de soltura quando o estabilizador ficou para trás
-            if (!atalho && distToRaw > 1.0) {
+            if (!shortcut && distToRaw > 1.0) {
                 auto mappedCatchup = brush::DynamicMapper::map(ctx.brushProfile, ctx.lastRawPoint, ctx.lastRawPressure, 0.0, 0.0);
                 raster::Dab catchupDab(mappedCatchup.position, mappedCatchup.radius, mappedCatchup.opacity, mappedCatchup.pressure, mappedCatchup.angle, ctx.brushProfile.blendMode, mappedCatchup.color, mappedCatchup.aspectRatio);
                 math::Rect2D dirty{0, 0, 0, 0};
@@ -115,7 +115,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
     auto now = std::chrono::high_resolution_clock::now();
     double t = std::chrono::duration<double>(now.time_since_epoch()).count();
     if (endStrokeCallback) {
-        const math::Point2D releasePos = atalho ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
+        const math::Point2D releasePos = shortcut ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
         endStrokeCallback({stroke::PointerEventType::Release, releasePos, 0.0, t});
     }
     ctx.hasLastRawPoint = false;

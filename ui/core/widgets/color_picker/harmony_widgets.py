@@ -9,7 +9,7 @@ from ui.core.theme.manager import ThemeManager
 
 from .harmony import HarmonyRule, harmony_colors, harmony_hues
 
-_ROTULOS = {
+_LABELS = {
     HarmonyRule.NONE: ("color.harmony_none", "Nenhuma"),
     HarmonyRule.COMPLEMENTARY: ("color.harmony_complementary", "Complementar"),
     HarmonyRule.ANALOGOUS: ("color.harmony_analogous", "Análogas"),
@@ -17,7 +17,7 @@ _ROTULOS = {
     HarmonyRule.SPLIT_COMPLEMENTARY: ("color.harmony_split_complementary", "Complementar dividida"),
     HarmonyRule.SQUARE: ("color.harmony_square", "Quadrado"),
 }
-_MAX_AMOSTRAS = 3
+_MAX_SWATCHES = 3
 
 
 class HarmonyStrip(QtWidgets.QWidget):
@@ -29,7 +29,7 @@ class HarmonyStrip(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self._hsv = (0.0, 1.0, 1.0)
-        self._cores: list[QtGui.QColor] = []
+        self._colors: list[QtGui.QColor] = []
 
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -39,26 +39,26 @@ class HarmonyStrip(QtWidgets.QWidget):
         layout.addWidget(self.lbl)
         self.combo = QtWidgets.QComboBox()
         self.combo.setFixedHeight(22)
-        for regra in HarmonyRule:
-            self.combo.addItem("", str(regra))
+        for rule in HarmonyRule:
+            self.combo.addItem("", str(rule))
         self.set_rule(HarmonyRule.coerce(ConfigManager.instance().get("color", "harmony", str(HarmonyRule.NONE))))
-        self.combo.currentIndexChanged.connect(self._on_regra)
+        self.combo.currentIndexChanged.connect(self._on_rule_changed)
         layout.addWidget(self.combo, 1)
 
-        self.amostras: list[QtWidgets.QPushButton] = []
-        for i in range(_MAX_AMOSTRAS):
+        self.swatches: list[QtWidgets.QPushButton] = []
+        for i in range(_MAX_SWATCHES):
             btn = QtWidgets.QPushButton(self)
             btn.setFixedSize(22, 22)
             btn.setCursor(QtCore.Qt.PointingHandCursor)
-            btn.clicked.connect(self._on_amostra)
-            btn.setProperty("indice", i)
+            btn.clicked.connect(self._on_swatch_clicked)
+            btn.setProperty("swatch_index", i)
             layout.addWidget(btn)
-            self.amostras.append(btn)
+            self.swatches.append(btn)
 
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
-        ThemeManager.instance().themeChanged.connect(self._atualizar_amostras)
+        ThemeManager.instance().themeChanged.connect(self._refresh_swatches)
         self.retranslate_ui()
-        self._atualizar_amostras()
+        self._refresh_swatches()
 
     def rule(self) -> HarmonyRule:
         return HarmonyRule.coerce(self.combo.currentData())
@@ -70,36 +70,36 @@ class HarmonyStrip(QtWidgets.QWidget):
         return harmony_hues(self.rule(), self._hsv[0])
 
     def colors(self) -> list[QtGui.QColor]:
-        return list(self._cores)
+        return list(self._colors)
 
     def set_base(self, hue: float, saturation: float, value: float) -> None:
         self._hsv = (hue, saturation, value)
-        self._atualizar_amostras()
+        self._refresh_swatches()
 
     def retranslate_ui(self, *_args) -> None:
         self.lbl.setText(tr("color.harmony_label", "Harmonia"))
         for i in range(self.combo.count()):
-            chave, padrao = _ROTULOS[HarmonyRule.coerce(self.combo.itemData(i))]
-            self.combo.setItemText(i, tr(chave, padrao))
+            key, default = _LABELS[HarmonyRule.coerce(self.combo.itemData(i))]
+            self.combo.setItemText(i, tr(key, default))
 
-    def _on_regra(self, _idx: int) -> None:
+    def _on_rule_changed(self, _idx: int) -> None:
         ConfigManager.instance().set("color", "harmony", str(self.rule()))
-        self._atualizar_amostras()
+        self._refresh_swatches()
         self.ruleChanged.emit()
 
-    def _on_amostra(self) -> None:
-        i = int(self.sender().property("indice"))
-        if i < len(self._cores):
-            self.colorSelected.emit(QtGui.QColor(self._cores[i]))
+    def _on_swatch_clicked(self) -> None:
+        i = int(self.sender().property("swatch_index"))
+        if i < len(self._colors):
+            self.colorSelected.emit(QtGui.QColor(self._colors[i]))
 
-    def _atualizar_amostras(self, *_args) -> None:
-        self._cores = harmony_colors(self.rule(), *self._hsv)
-        borda = ThemeManager.instance().get_color("border")
-        for i, btn in enumerate(self.amostras):
-            if i < len(self._cores):
-                cor = self._cores[i]
-                btn.setStyleSheet(f"background-color: {cor.name()}; border: 1px solid {borda}; border-radius: 4px;")
-                btn.setToolTip(cor.name().upper())
+    def _refresh_swatches(self, *_args) -> None:
+        self._colors = harmony_colors(self.rule(), *self._hsv)
+        border = ThemeManager.instance().get_color("border")
+        for i, btn in enumerate(self.swatches):
+            if i < len(self._colors):
+                color = self._colors[i]
+                btn.setStyleSheet(f"background-color: {color.name()}; border: 1px solid {border}; border-radius: 4px;")
+                btn.setToolTip(color.name().upper())
                 btn.show()
             else:
                 btn.hide()

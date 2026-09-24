@@ -14,12 +14,12 @@ namespace aladyn::engine::raster::transform {
 
 using Quad = std::array<double, 8>;
 
-struct Homografia {
+struct Homography {
     // Linha-maior: [m0 m1 m2; m3 m4 m5; m6 m7 m8]
     std::array<double, 9> m{1, 0, 0, 0, 1, 0, 0, 0, 1};
 
     /// false quando o ponto cai na linha do horizonte (w ~ 0).
-    bool aplicar(double x, double y, double& ox, double& oy) const noexcept {
+    bool apply(double x, double y, double& ox, double& oy) const noexcept {
         const double w = m[6] * x + m[7] * y + m[8];
         if (std::abs(w) < 1e-12) return false;
         ox = (m[0] * x + m[1] * y + m[2]) / w;
@@ -29,12 +29,12 @@ struct Homografia {
 };
 
 /// Quadrado unitário (0,0),(1,0),(1,1),(0,1) -> quad (Heckbert, 1989).
-inline Homografia quadradoParaQuad(const Quad& q) noexcept {
+inline Homography unitSquareToQuad(const Quad& q) noexcept {
     const double x0 = q[0], y0 = q[1], x1 = q[2], y1 = q[3];
     const double x2 = q[4], y2 = q[5], x3 = q[6], y3 = q[7];
     const double sx = x0 - x1 + x2 - x3;
     const double sy = y0 - y1 + y2 - y3;
-    Homografia h;
+    Homography h;
     if (std::abs(sx) < 1e-12 && std::abs(sy) < 1e-12) {  // paralelogramo: afim
         h.m = {x1 - x0, x3 - x0, x0, y1 - y0, y3 - y0, y0, 0.0, 0.0, 1.0};
         return h;
@@ -50,7 +50,7 @@ inline Homografia quadradoParaQuad(const Quad& q) noexcept {
 }
 
 /// Inversa por adjunta; false se singular.
-inline bool inverter(const Homografia& h, Homografia& inv) noexcept {
+inline bool invert(const Homography& h, Homography& inv) noexcept {
     const auto& a = h.m;
     const double c0 = a[4] * a[8] - a[5] * a[7];
     const double c1 = a[5] * a[6] - a[3] * a[8];
@@ -66,20 +66,20 @@ inline bool inverter(const Homografia& h, Homografia& inv) noexcept {
 
 /// Quad estritamente convexo (sem auto-interseção nem canto colapsado).
 /// Só nesse caso o mapeamento é bem-comportado dentro do quadrilátero.
-inline bool quadConvexo(const Quad& q) noexcept {
+inline bool isConvexQuad(const Quad& q) noexcept {
     for (double v : q) {
         if (!std::isfinite(v)) return false;
     }
-    int sinal = 0;
+    int sign = 0;
     for (int i = 0; i < 4; ++i) {
         const int j = (i + 1) % 4, k = (i + 2) % 4;
         const double ex = q[2 * j] - q[2 * i], ey = q[2 * j + 1] - q[2 * i + 1];
         const double fx = q[2 * k] - q[2 * j], fy = q[2 * k + 1] - q[2 * j + 1];
-        const double cruz = ex * fy - ey * fx;
-        if (std::abs(cruz) < 1e-6) return false;
-        const int s = cruz > 0 ? 1 : -1;
-        if (sinal == 0) sinal = s;
-        else if (s != sinal) return false;
+        const double cross = ex * fy - ey * fx;
+        if (std::abs(cross) < 1e-6) return false;
+        const int s = cross > 0 ? 1 : -1;
+        if (sign == 0) sign = s;
+        else if (s != sign) return false;
     }
     return true;
 }

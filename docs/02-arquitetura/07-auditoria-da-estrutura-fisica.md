@@ -67,16 +67,22 @@ A raiz tem os três pilares (`ui/`, `bridge/`, `engine/`) e também:
   `engine/boundary/public-api/internal` diretamente, não só a API pública
   (seção 15.4, regra 2).
 
-### 2.5 Idioma e nomenclatura (seção 14)
+### 2.5 Idioma e nomenclatura (seção 14) — resolvido no código de produção (passo 2)
 
-- Nomes de arquivo em português: `Iniciar_Lumenia.bat`,
-  `Iniciar_Lumenia_Silencioso.vbs`, `Enviar_Feedback.html`,
-  `scripts/monitor_sessao.ps1`, e as pastas/arquivos de `docs/`.
-- Identificadores em português (contagem heurística por palavras comuns, piso
-  e não teto): 27 em `ui/`, 5 em `plugins/`, 131 em `tests/`, 6 em `scripts/`;
-  no C++, por exemplo `Homografia`, `pintarBaseDeDemonstracao`, `roiAoRedor`.
-- Pastas Python usam `snake_case`, não `kebab-case`: é a convenção nativa do
-  Python (pacote com hífen não é importável), permitida pela seção 14.3.
+- Arquivos renomeados: `Iniciar_Lumenia.bat` → `Launch_Lumenia.bat`,
+  `Iniciar_Lumenia_Silencioso.vbs` → `Launch_Lumenia_Silent.vbs`,
+  `Enviar_Feedback.html` → `Send_Feedback.html`, `scripts/monitor_sessao.ps1` →
+  `scripts/monitor_session.ps1` (parâmetros `-IntervalSeconds`, `-Analyze`;
+  lê CSV antigo com colunas em português).
+- Identificadores: catraca nova (`tests/test_arccc_identifier_language_ratchet.py`)
+  conta, por arquivo, nomes com palavra portuguesa de uma lista (piso, não
+  teto). Medido: 0 em `ui/`, `plugins/`, `scripts/`, `engine/` e `bridge/` depois
+  das renomeações (tabela de parâmetros do pincel, fallback nativo, distorção,
+  harmonias, scripts de sessão longa, morfologia da seleção, homografia...);
+  132 em 25 arquivos de `tests/`, que só podem cair.
+- Pastas Python seguem `snake_case` (convenção nativa, seção 14.3). As pastas e
+  arquivos de `docs/` ficam em português: `docs/` é exceção declarada da raiz e
+  documentação pode ser em português (seção 14.1).
 
 ### 2.6 Arquivos sem consumidor ou gerados — resolvido (passo 1)
 

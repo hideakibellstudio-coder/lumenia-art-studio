@@ -28,7 +28,7 @@ class HarmonyRule(StrEnum):
 
 
 # Deslocamentos de matiz (graus) das cores parceiras; a base é sempre 0°.
-_DESLOCAMENTOS: dict[HarmonyRule, tuple[int, ...]] = {
+_HUE_OFFSETS: dict[HarmonyRule, tuple[int, ...]] = {
     HarmonyRule.NONE: (),
     HarmonyRule.COMPLEMENTARY: (180,),
     HarmonyRule.ANALOGOUS: (-30, 30),
@@ -40,7 +40,7 @@ _DESLOCAMENTOS: dict[HarmonyRule, tuple[int, ...]] = {
 
 def harmony_hues(rule: HarmonyRule, hue: float) -> list[float]:
     """Matizes (0..1) das parceiras de `hue` segundo a regra."""
-    return [(hue + graus / 360.0) % 1.0 for graus in _DESLOCAMENTOS[HarmonyRule.coerce(rule)]]
+    return [(hue + degrees / 360.0) % 1.0 for degrees in _HUE_OFFSETS[HarmonyRule.coerce(rule)]]
 
 
 def harmony_colors(rule: HarmonyRule, hue: float, saturation: float, value: float) -> list[QtGui.QColor]:

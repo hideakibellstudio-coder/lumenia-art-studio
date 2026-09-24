@@ -24,12 +24,12 @@ import pathlib
 import pytest
 
 from ui.engine_backends.brush_param_table import (
-    ATRIBUTO_DO_GRUPO,
-    PARAMS_POR_METODO,
-    POR_GRUPO_E_ATRIBUTO,
-    TABELA,
-    alvo_nativo,
-    resolver,
+    GROUP_ATTRIBUTES,
+    METHOD_PARAMS,
+    BY_GROUP_AND_ATTRIBUTE,
+    BRUSH_PARAMS,
+    native_target,
+    resolve_param,
 )
 
 native = pytest.importorskip(
@@ -39,54 +39,54 @@ native = pytest.importorskip(
 RAIZ = pathlib.Path(__file__).resolve().parents[1]
 
 # Valor de teste por tipo de conversor, escolhido para diferir de qualquer padrão.
-VALORES_DE_TESTE = {
-    "para_float": 0.4271,
-    "para_int": 7,
-    "para_bool": True,
-    "para_blend_mode": 1,
+TEST_VALUES = {
+    "to_float": 0.4271,
+    "to_int": 7,
+    "to_bool": True,
+    "to_blend_mode": 1,
 }
 
 
 @pytest.fixture(scope="module")
-def perfil():
+def profile():
     return native.PaintEngineFacade(32, 32).get_brush_profile()
 
 
 # ── 1. Toda linha da tabela existe no módulo compilado ──────────────────────
 
-@pytest.mark.parametrize("linha", TABELA, ids=lambda p: p.chave)
-def test_campo_declarado_existe_no_motor(linha, perfil):
-    destino = alvo_nativo(perfil, linha.grupo)
-    assert destino is not None, (
-        f"o grupo '{linha.grupo}' não existe no módulo nativo"
+@pytest.mark.parametrize("spec", BRUSH_PARAMS, ids=lambda p: p.key)
+def test_campo_declarado_existe_no_motor(spec, profile):
+    target = native_target(profile, spec.group)
+    assert target is not None, (
+        f"o grupo '{spec.group}' não existe no módulo nativo"
     )
-    assert hasattr(destino, linha.atributo), (
-        f"'{linha.chave}' aponta para {linha.grupo or 'raiz'}.{linha.atributo}, "
+    assert hasattr(target, spec.attribute), (
+        f"'{spec.key}' aponta para {spec.group or 'raiz'}.{spec.attribute}, "
         f"que o motor não expõe"
     )
 
 
-@pytest.mark.parametrize("linha", TABELA, ids=lambda p: p.chave)
-def test_escrita_aterrissa_no_motor(linha, perfil):
+@pytest.mark.parametrize("spec", BRUSH_PARAMS, ids=lambda p: p.key)
+def test_escrita_aterrissa_no_motor(spec, profile):
     """Escreve pelo conversor declarado e confere que o motor guardou o valor."""
-    valor = VALORES_DE_TESTE[linha.para_motor.__name__]
-    convertido = linha.para_motor(valor, native)
-    destino = alvo_nativo(perfil, linha.grupo)
-    setattr(destino, linha.atributo, convertido)
-    lido = getattr(destino, linha.atributo)
-    assert linha.para_preset(lido) == linha.para_preset(convertido), (
-        f"'{linha.chave}' foi escrito como {convertido!r} e lido como {lido!r}"
+    value = TEST_VALUES[spec.to_engine.__name__]
+    converted = spec.to_engine(value, native)
+    target = native_target(profile, spec.group)
+    setattr(target, spec.attribute, converted)
+    read_back = getattr(target, spec.attribute)
+    assert spec.to_preset(read_back) == spec.to_preset(converted), (
+        f"'{spec.key}' foi escrito como {converted!r} e lido como {read_back!r}"
     )
 
 
 # ── 2. Os grupos declarados existem, e só eles ──────────────────────────────
 
-def test_todo_grupo_declarado_existe_no_perfil(perfil):
-    for grupo, atributo in ATRIBUTO_DO_GRUPO.items():
-        if atributo is None:
+def test_todo_grupo_declarado_existe_no_perfil(profile):
+    for group, attribute in GROUP_ATTRIBUTES.items():
+        if attribute is None:
             continue
-        assert hasattr(perfil, atributo), (
-            f"o grupo '{grupo}' mapeia para BrushProfile.{atributo}, "
+        assert hasattr(profile, attribute), (
+            f"o grupo '{group}' mapeia para BrushProfile.{attribute}, "
             f"que não existe no módulo nativo"
         )
 
@@ -94,9 +94,9 @@ def test_todo_grupo_declarado_existe_no_perfil(perfil):
 def test_metodos_por_metodo_existem_no_backend():
     from ui.engine_backends.aladyn import AladynBackend
 
-    for entrada in PARAMS_POR_METODO:
-        assert hasattr(AladynBackend, entrada.metodo), (
-            f"'{entrada.chave}' declara o método '{entrada.metodo}', "
+    for method_spec in METHOD_PARAMS:
+        assert hasattr(AladynBackend, method_spec.method), (
+            f"'{method_spec.key}' declara o método '{method_spec.method}', "
             f"ausente do AladynBackend"
         )
 
@@ -105,7 +105,7 @@ def test_metodos_por_metodo_existem_no_backend():
 
 def _chamadas_literais_a_set_brush_param() -> list[tuple[pathlib.Path, int, str, str]]:
     """Varre o repositório por set_brush_param("grupo", "param", ...) literais."""
-    achados: list[tuple[pathlib.Path, int, str, str]] = []
+    found: list[tuple[pathlib.Path, int, str, str]] = []
     for caminho in list(RAIZ.glob("ui/**/*.py")) + list(RAIZ.glob("plugins/**/*.py")):
         try:
             arvore = ast.parse(caminho.read_text(encoding="utf-8"))
@@ -114,14 +114,14 @@ def _chamadas_literais_a_set_brush_param() -> list[tuple[pathlib.Path, int, str,
         for no in ast.walk(arvore):
             if not isinstance(no, ast.Call):
                 continue
-            alvo = no.func
-            nome = alvo.attr if isinstance(alvo, ast.Attribute) else getattr(alvo, "id", None)
+            target = no.func
+            nome = target.attr if isinstance(target, ast.Attribute) else getattr(target, "id", None)
             if nome != "set_brush_param" or len(no.args) < 2:
                 continue
-            grupo, param = no.args[0], no.args[1]
-            if isinstance(grupo, ast.Constant) and isinstance(param, ast.Constant):
-                achados.append((caminho, no.lineno, grupo.value, param.value))
-    return achados
+            group, param = no.args[0], no.args[1]
+            if isinstance(group, ast.Constant) and isinstance(param, ast.Constant):
+                found.append((caminho, no.lineno, group.value, param.value))
+    return found
 
 
 def test_toda_chamada_da_interface_resolve():
@@ -129,12 +129,12 @@ def test_toda_chamada_da_interface_resolve():
     assert chamadas, "nenhuma chamada literal encontrada — a varredura quebrou"
 
     quebradas = []
-    for caminho, linha, grupo, param in chamadas:
+    for caminho, spec, group, param in chamadas:
         try:
-            resolver(grupo, param)
+            resolve_param(group, param)
         except KeyError as exc:
             rel = caminho.relative_to(RAIZ)
-            quebradas.append(f"{rel}:{linha}  set_brush_param({grupo!r}, {param!r})\n      {exc.args[0]}")
+            quebradas.append(f"{rel}:{spec}  set_brush_param({group!r}, {param!r})\n      {exc.args[0]}")
 
     assert not quebradas, (
         "chamadas da interface apontam para parâmetros não declarados:\n  "
@@ -159,9 +159,9 @@ def test_ida_e_volta_preserva_o_estado():
     chegada = backend.get_brush_profile_dict()
 
     divergentes = {
-        chave: (partida[chave], chegada.get(chave))
-        for chave in partida
-        if chave not in chegada or partida[chave] != chegada[chave]
+        key: (partida[key], chegada.get(key))
+        for key in partida
+        if key not in chegada or partida[key] != chegada[key]
     }
     assert not divergentes, f"a ida e volta perdeu ou alterou: {divergentes}"
 
@@ -173,10 +173,10 @@ def test_toda_chave_legivel_aparece_na_leitura():
     if not backend.available:
         pytest.skip("backend nativo indisponível")
 
-    lido = backend.get_brush_profile_dict()
-    faltando = [p.chave for p in TABELA if p.legivel and p.chave not in lido]
-    assert not faltando, (
-        f"declarados como legíveis mas ausentes de get_brush_profile_dict: {faltando}"
+    read_back = backend.get_brush_profile_dict()
+    missing = [p.key for p in BRUSH_PARAMS if p.readable and p.key not in read_back]
+    assert not missing, (
+        f"declarados como legíveis mas ausentes de get_brush_profile_dict: {missing}"
     )
 
 
@@ -200,9 +200,9 @@ def test_blend_mode_aceita_indice_da_combo():
         pytest.skip("backend nativo indisponível")
 
     quantidade = len(native.DabBlendMode.__members__)
-    for indice in range(quantidade):
-        backend.set_brush_param("root", "blend_mode", indice)
-        assert int(backend._facade.get_brush_profile().blend_mode) == indice
+    for index in range(quantidade):
+        backend.set_brush_param("root", "blend_mode", index)
+        assert int(backend._facade.get_brush_profile().blend_mode) == index
 
     with pytest.raises(ValueError):
         backend.set_brush_param("root", "blend_mode", quantidade + 5)
@@ -211,11 +211,11 @@ def test_blend_mode_aceita_indice_da_combo():
 # ── 5. A tabela é internamente consistente ──────────────────────────────────
 
 def test_chaves_sem_duplicata():
-    chaves = [p.chave for p in TABELA]
-    duplicadas = {c for c in chaves if chaves.count(c) > 1}
+    keys = [p.key for p in BRUSH_PARAMS]
+    duplicadas = {c for c in keys if keys.count(c) > 1}
     assert not duplicadas, f"chaves repetidas na tabela: {duplicadas}"
 
 
 def test_indice_cobre_a_tabela_inteira():
-    for linha in TABELA:
-        assert POR_GRUPO_E_ATRIBUTO[(linha.grupo, linha.atributo)] is linha
+    for spec in BRUSH_PARAMS:
+        assert BY_GROUP_AND_ATTRIBUTE[(spec.group, spec.attribute)] is spec

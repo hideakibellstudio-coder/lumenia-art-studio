@@ -248,10 +248,10 @@ class TabbedViewportContainer(QtWidgets.QWidget):
             if self.tab_bar.tabData(i) == uid:
                 # removeTab não destrói o botão de fechar: sem o deleteLater, cada
                 # documento fechado deixava um TabCloseButton (e o lambda dele) vivo.
-                botao = self.tab_bar.tabButton(i, QtWidgets.QTabBar.RightSide)
+                close_button = self.tab_bar.tabButton(i, QtWidgets.QTabBar.RightSide)
                 self.tab_bar.removeTab(i)
-                if botao is not None:
-                    botao.deleteLater()
+                if close_button is not None:
+                    close_button.deleteLater()
                 break
                 
         # Se fechar a última aba, desabilita a interação com o canvas e oculta a barra

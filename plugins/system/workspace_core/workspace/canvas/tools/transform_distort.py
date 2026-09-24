@@ -12,80 +12,80 @@ from typing import Optional
 
 from PySide6 import QtCore, QtGui
 
-CANTOS = ("tl", "tr", "br", "bl")
-LADOS = {"tc": ("tl", "tr"), "mr": ("tr", "br"), "bc": ("br", "bl"), "ml": ("bl", "tl")}
+CORNERS = ("tl", "tr", "br", "bl")
+EDGES = {"tc": ("tl", "tr"), "mr": ("tr", "br"), "bc": ("br", "bl"), "ml": ("bl", "tl")}
 
 Quad = list[QtCore.QPointF]
 
 
-def cantos_do_retangulo(rect: QtCore.QRectF) -> Quad:
+def rect_corners(rect: QtCore.QRectF) -> Quad:
     return [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
 
 
-def quad_da_matriz(rect: QtCore.QRectF, matriz: QtGui.QTransform) -> Quad:
+def quad_from_matrix(rect: QtCore.QRectF, matrix: QtGui.QTransform) -> Quad:
     """Onde a caixa está agora (depois de mover/escalar/girar no modo livre)."""
-    return [matriz.map(p) for p in cantos_do_retangulo(rect)]
+    return [matrix.map(p) for p in rect_corners(rect)]
 
 
-def matriz_do_quad(rect: QtCore.QRectF, quad: Quad) -> Optional[QtGui.QTransform]:
-    matriz = QtGui.QTransform()
-    if not QtGui.QTransform.quadToQuad(QtGui.QPolygonF(cantos_do_retangulo(rect)), QtGui.QPolygonF(quad), matriz):
+def matrix_from_quad(rect: QtCore.QRectF, quad: Quad) -> Optional[QtGui.QTransform]:
+    matrix = QtGui.QTransform()
+    if not QtGui.QTransform.quadToQuad(QtGui.QPolygonF(rect_corners(rect)), QtGui.QPolygonF(quad), matrix):
         return None
-    return matriz
+    return matrix
 
 
-def quad_convexo(quad: Quad) -> bool:
+def is_convex_quad(quad: Quad) -> bool:
     """Mesmo critério do motor (quadConvexo): 4 curvas no mesmo sentido."""
-    sinal = 0
+    sign = 0
     for i in range(4):
         a, b, c = quad[i], quad[(i + 1) % 4], quad[(i + 2) % 4]
-        cruz = (b.x() - a.x()) * (c.y() - b.y()) - (b.y() - a.y()) * (c.x() - b.x())
-        if abs(cruz) < 1e-6:
+        cross = (b.x() - a.x()) * (c.y() - b.y()) - (b.y() - a.y()) * (c.x() - b.x())
+        if abs(cross) < 1e-6:
             return False
-        s = 1 if cruz > 0 else -1
-        if sinal == 0:
-            sinal = s
-        elif s != sinal:
+        s = 1 if cross > 0 else -1
+        if sign == 0:
+            sign = s
+        elif s != sign:
             return False
     return True
 
 
-def arrastar(quad_inicial: Quad, alca: str, delta: QtCore.QPointF) -> Quad:
+def drag(start_quad: Quad, handle: str, delta: QtCore.QPointF) -> Quad:
     """Canto: move só ele. Lado: move os dois cantos do lado. "move": tudo."""
-    novo = [QtCore.QPointF(p) for p in quad_inicial]
-    if alca == "move":
-        alvos = CANTOS
-    elif alca in CANTOS:
-        alvos = (alca,)
+    moved = [QtCore.QPointF(p) for p in start_quad]
+    if handle == "move":
+        targets = CORNERS
+    elif handle in CORNERS:
+        targets = (handle,)
     else:
-        alvos = LADOS.get(alca, ())
-    for nome in alvos:
-        novo[CANTOS.index(nome)] += delta
-    return novo
+        targets = EDGES.get(handle, ())
+    for corner in targets:
+        moved[CORNERS.index(corner)] += delta
+    return moved
 
 
-def _centro(quad: Quad) -> QtCore.QPointF:
+def _center(quad: Quad) -> QtCore.QPointF:
     return QtCore.QPointF(sum(p.x() for p in quad) / 4.0, sum(p.y() for p in quad) / 4.0)
 
 
-def espelhar(quad: Quad, horizontal: bool) -> Quad:
+def mirror(quad: Quad, horizontal: bool) -> Quad:
     """Espelha o conteúdo dentro da mesma posição (reflete cada canto no centro)."""
-    c = _centro(quad)
+    c = _center(quad)
     if horizontal:
         return [QtCore.QPointF(2.0 * c.x() - p.x(), p.y()) for p in quad]
     return [QtCore.QPointF(p.x(), 2.0 * c.y() - p.y()) for p in quad]
 
 
-def girar_90(quad: Quad, horario: bool) -> Quad:
+def rotate_90(quad: Quad, clockwise: bool) -> Quad:
     """Gira o quadrilátero 90° em torno do centro (y cresce para baixo)."""
-    c = _centro(quad)
+    c = _center(quad)
     out = []
     for p in quad:
         dx, dy = p.x() - c.x(), p.y() - c.y()
-        out.append(QtCore.QPointF(c.x() - dy, c.y() + dx) if horario else QtCore.QPointF(c.x() + dy, c.y() - dx))
+        out.append(QtCore.QPointF(c.x() - dy, c.y() + dx) if clockwise else QtCore.QPointF(c.x() + dy, c.y() - dx))
     return out
 
 
-def plano(quad: Quad) -> list[float]:
+def flatten(quad: Quad) -> list[float]:
     """[x0, y0, ..., x3, y3] no formato de commit_transform_distort."""
     return [v for p in quad for v in (p.x(), p.y())]

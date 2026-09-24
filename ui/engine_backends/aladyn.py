@@ -37,7 +37,7 @@ from .aladyn_stroke_mixin import AladynStrokeMixin
 from .aladyn_color_mixin import AladynColorMixin
 from .aladyn_resources_mixin import AladynResourcesMixin
 from .aladyn_capabilities_mixin import AladynCapabilitiesMixin
-from .native_fallback import nativo_tem
+from .native_fallback import native_has
 
 logger = logging.getLogger(__name__)
 
@@ -137,9 +137,9 @@ class AladynBackend(
         self._view_state = (float(pan_x), float(pan_y), max(1e-6, float(zoom)), float(rotation_rad))
         # The native facade owns the raster; touching the display accessor here
         # makes the contract explicit and refreshes the generation-backed view.
-        if self._facade and nativo_tem(self._facade, "refresh_display", "a tela é atualizada pelo caminho lento"):
+        if self._facade and native_has(self._facade, "refresh_display", "a tela é atualizada pelo caminho lento"):
             self._facade.refresh_display()
-        elif self._facade and nativo_tem(self._facade, "get_display_pixel_buffer", "a tela mostra o buffer bruto, sem cache de exibição"):
+        elif self._facade and native_has(self._facade, "get_display_pixel_buffer", "a tela mostra o buffer bruto, sem cache de exibição"):
             self._facade.get_display_pixel_buffer()
 
 
@@ -160,7 +160,7 @@ class AladynBackend(
 
     def get_display_pixel_buffer(self) -> Optional[bytes]:
         if self._facade:
-            if nativo_tem(self._facade, "get_display_pixel_buffer", "a tela mostra o buffer bruto, sem cache de exibição"):
+            if native_has(self._facade, "get_display_pixel_buffer", "a tela mostra o buffer bruto, sem cache de exibição"):
                 return bytes(self._facade.get_display_pixel_buffer())
             return bytes(self._facade.get_pixel_buffer())
         return None
@@ -230,7 +230,7 @@ class AladynBackend(
         """Retorna QImage pré-filtrada por Box Filter correspondente ao nível LOD ideal para o zoom."""
         if not self._facade:
             return None, 1.0
-        if nativo_tem(self._facade, "get_best_lod_level", "zoom afastado desenha em resolução cheia (mais lento)"):
+        if native_has(self._facade, "get_best_lod_level", "zoom afastado desenha em resolução cheia (mais lento)"):
             level = self._facade.get_best_lod_level(zoom)
             if level > 0:
                 res = self._facade.get_display_pixel_buffer_lod(level)

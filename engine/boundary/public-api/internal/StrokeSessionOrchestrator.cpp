@@ -58,9 +58,9 @@ StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& 
     // quando nao ha estabilizacao pedida. `lowLatency` sozinho desviava o
     // estabilizador, e como low_latency=True e' o padrao do backend o slider de
     // suavizacao nao tinha efeito nenhum neste caminho tambem.
-    const bool atalho = ctx.lowLatency && ctx.stabilizer.getStabilizationPercentage() <= 0.5;
-    const math::Point2D pos = atalho ? event.position : ctx.stabilizer.update(event.position, event.pressure, normVel);
-    const double effectivePressure = atalho ? event.pressure : ctx.stabilizer.getStabilizedPressure();
+    const bool shortcut = ctx.lowLatency && ctx.stabilizer.getStabilizationPercentage() <= 0.5;
+    const math::Point2D pos = shortcut ? event.position : ctx.stabilizer.update(event.position, event.pressure, normVel);
+    const double effectivePressure = shortcut ? event.pressure : ctx.stabilizer.getStabilizedPressure();
 
     double strokeAngle = 0.0;
     const double dx = pos.x - ctx.lastDab.position.x;

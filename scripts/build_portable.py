@@ -77,7 +77,7 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
         "--nofollow-import-to=scipy",
         f"--include-data-dir={ROOT / 'assets'}=assets",
         f"--include-data-dir={theme_dir}=ui/core/theme/themes",
-        f"--include-data-files={ROOT / 'Enviar_Feedback.html'}=Enviar_Feedback.html",
+        f"--include-data-files={ROOT / 'Send_Feedback.html'}=Send_Feedback.html",
         f"--include-data-files={ROOT / 'TERMS_AND_LICENSE.txt'}=TERMS_AND_LICENSE.txt",
         str(ROOT / "main.py"),
     ]

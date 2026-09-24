@@ -14,24 +14,27 @@
 | `canvas_brush_binding.py` | CanvasBrushBinding — mostra o BrushState no canvas. |
 | `canvas_overlay.py` | CanvasOverlay — Overlay de Interceptação de Eventos (Totalmente Invisível). |
 | `canvas_tool_binding.py` | CanvasToolBinding — aplica o ToolState ao canvas. |
-| `dock_system.py` | AdvancedDockSystem — Sistema de Gavetas Dinâmicas com Auto-Recolhimento (ARCcC v2). |
+| `dock_system.py` | `AdvancedDockSystem`: doca lateral (sidebar de ícones + gaveta); recebe o widget onde a gaveta flutua e avisa `sidebar_resized`. |
+| `document_view_sync.py` | `DocumentViewSync`: mostra o documento ativo no canvas (contexto do motor, câmera, guias, papel, cor) e converte a câmera ↔ navegador; fala com os painéis por sinais. |
 | `floating_toolbar.py` | `FloatingToolbar`: barra de ferramentas flutuante e magnética; view do `ToolState`; emite `sizeChanged` para o workspace reposicionar. |
 | `floating_toolbar_button.py` | FloatingToolbarButton — botão de ferramenta da barra flutuante. |
-| `panel_bindings.py` | Registro reversível das conexões criadas por painéis dinâmicos. |
+| `panel_connections.py` | `PanelConnections`: painéis registrados por `add_panel` e as conexões que caem junto com eles. |
 | `pill_handle.py` | PillHandle — Indicador de Reativação de Sidebar. |
 | `stroke_preview_sync.py` | StrokePreviewSync — atualiza as miniaturas depois de cada traço. |
 | `viewport_container.py` | `TabbedViewportContainer`: abas de documento acima do canvas (trocar, fechar, reordenar). |
-| `workspace_actions.py` | WorkspaceActionsMixin — Ações de Visualização, Histórico e Limpeza do Canvas. |
-| `workspace_container.py` | WorkspaceContainer. |
-| `workspace_document_sync.py` | Document and Camera synchronization mixin for WorkspaceContainer. |
-| `workspace_layout_manager.py` | Layout and Dock management mixin for WorkspaceContainer. |
+| `workspace_container.py` | `WorkspaceContainer`: monta canvas, abas, docas e barras, liga os colaboradores e expõe o contrato do `WorkspaceService` e da janela principal (painéis, desfazer, zoom, status). |
+| `workspace_layout.py` | `WorkspaceLayout`: gavetas despinadas, pílulas, barra flutuante (encaixe magnético) e barra secundária; configurações das docas e da barra. |
 
 ## Regras
 
-- Ligações estado → canvas são colaboradores com estado próprio:
-  `CanvasBrushBinding` (cor, tamanho, pressão; cor capturada → estado) e
-  `CanvasToolBinding` (ferramenta ativa e opções → canvas). Nenhum mixin do
-  workspace escreve em widget de plugin.
+- O `WorkspaceContainer` não tem mixins: cada assunto é um colaborador com
+  estado próprio (`WorkspaceLayout`, `DocumentViewSync`, `PanelConnections`,
+  `CanvasBrushBinding`, `CanvasToolBinding`, `StrokePreviewSync`).
+- Painéis de plugins recebem dados por sinais ligados em `add_panel` (pelo
+  `PanelConnections`, que desfaz as conexões no `remove_panel`); o workspace
+  não guarda referência a painel nem escreve dentro dele.
+- O papel é do `Document` (`set_paper`); o canvas e o painel de camadas só o
+  mostram.
 - Barras flutuantes pedem reposicionamento por sinal (`sizeChanged`), nunca
   procurando `update_toolbar_position` no pai.
 - Câmera: quem muda zoom/pan/rotação chama `canvas.publish_view()`.
@@ -44,12 +47,11 @@
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-- `WorkspaceContainer` ainda é composto por mixins (`workspace_actions`,
-  `workspace_document_sync`, `workspace_layout_manager`, `panel_bindings`)
-  que leem e escrevem atributos uns dos outros por `self`.
-- `add_panel` conhece ids de painéis de plugins (navegador, camadas,
-  geometria) e `workspace_document_sync` alcança `_layers_panel.paper_widget`.
-- `dock_system.py` é o arquivo com mais acesso a privados alheios do pacote.
+- `add_panel` conhece três ids de painéis de plugins (`navigator`, `layers`,
+  `geometry`) e a forma de ligar cada um (contrato implícito do
+  `WorkspaceService`).
+- `floating_toolbar.py` (366 linhas) guarda animações e arrasto no mesmo
+  widget.
 
 ## Dependências internas
 

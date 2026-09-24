@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_history_error_status_message_is_not_empty_stack_message():
-    from plugins.system.workspace_core.workspace.workspace_container import _history_failure_message
+    from plugins.system.workspace_core.workspace.workspace_container import history_failure_message
 
-    message = _history_failure_message("desfazer", "scratch_read_failed")
+    message = history_failure_message("desfazer", "scratch_read_failed")
     assert message == "Falha ao desfazer: scratch disk do histórico indisponível. Documento preservado."
     assert "Nada a desfazer" not in message
 

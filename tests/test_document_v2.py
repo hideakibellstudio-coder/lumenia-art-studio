@@ -183,6 +183,8 @@ def test_recovery_falls_back_to_valid_previous_generation(drawing, tmp_path, mis
 
 
 def test_paper_ui_updates_model_without_replacing_embedded_texture(drawing, monkeypatch):
+    """Mostrar o papel não suja nada; editar muda o modelo e o motor, e só
+    escolher outro preset troca a textura embutida."""
     from ui.core.document.manager import DocumentManager
     from ui.core.engine.registry import EngineRegistry
     from plugins.ui.layers_plugin.paper import PaperLayerWidget
@@ -193,13 +195,13 @@ def test_paper_ui_updates_model_without_replacing_embedded_texture(drawing, monk
     canvas = backend.get_canvas_resource()
     try:
         document.mark_saved()
-        widget.set_paper_state(color=QColor(20, 30, 40, 50), visible=False, preset_id=2,
-                               enabled=True, scale=2.3, contrast=0.8, invert=True, sync=False)
+        widget.show_document(document)
         assert not document.is_dirty
         assert backend.get_canvas_resource() == canvas
-        widget._sync_state()
+        document.set_paper(color=QColor(20, 30, 40, 50), visible=False, texture_enabled=True,
+                           scale=2.3, contrast=0.8, invert=True)
         assert document.is_dirty
-        assert (document.paper_visible, document.paper_texture_id, document.paper_texture_enabled) == (False, 2, True)
+        assert (document.paper_visible, document.paper_texture_enabled) == (False, True)
         assert (document.paper_scale, document.paper_contrast, document.paper_invert) == (2.3, 0.8, True)
         assert document.paper_color == QColor(20, 30, 40, 50)
         assert backend.get_canvas_resource()["pixels"] == canvas["pixels"]

@@ -38,7 +38,7 @@ class TestPhase2Groups(unittest.TestCase):
 
     def setUp(self):
         self.mw.dm.set_active_document(self.doc.uid)
-        self.panel = self.mw.workspace._layers_panel
+        self.panel = self.mw.workspace.panel("layers")
         self.backend = EngineRegistry.instance().get_backend()
         if self.backend and (self.backend._facade is None):
             self.backend.set_active_document_context(self.doc.uid, 800, 600)

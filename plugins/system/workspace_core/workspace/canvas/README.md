@@ -17,7 +17,8 @@
 ## Regras
 
 - O canvas não guarda estado de documento (Lei do rio nº 1): pixels estão no
-  motor, camadas no `LocalLayerManager`.
+  motor, camadas no `LocalLayerManager`, papel no `Document` (as propriedades
+  `paper_color`/`paper_visible` leem o documento ativo).
 - Cor, tamanho e pressão chegam do `BrushState` (via `CanvasBrushBinding`);
   ferramenta e opções do `ToolState` (via `CanvasToolBinding`).
 - Colaboradores leem o widget por atributos públicos; nenhum escreve atributo
@@ -39,6 +40,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `plugins/system/workspace_core/workspace/canvas/renderers`
 - `plugins/system/workspace_core/workspace/canvas/tools`
 - `plugins/system/workspace_core/workspace/canvas/viewport`
+- `ui/core/document`
 - `ui/core/engine`
 - `ui/core/i18n`
 - `ui/core/theme`

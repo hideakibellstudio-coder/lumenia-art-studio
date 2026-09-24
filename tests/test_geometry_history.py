@@ -110,21 +110,38 @@ def test_two_geometry_steps_and_mdi(session):
         backend.close_document_context("other-geometry")
 
 
-def test_geometry_signal_updates_canvas_and_navigator(session):
-    from types import SimpleNamespace
-    from plugins.system.workspace_core.workspace.workspace_document_sync import WorkspaceDocSyncMixin
+def test_geometry_signal_updates_canvas_and_navigator(session, monkeypatch):
+    """Mudar o tamanho do documento atualiza o canvas e avisa o navegador (por sinal)."""
+    from PySide6 import QtCore
+    from ui.core.document.manager import DocumentManager
+    from ui.core.state import BrushEngineSync, BrushState
+    from plugins.system.workspace_core.workspace.document_view_sync import DocumentViewSync
     doc, backend = session
-    sizes = []
-    class Workspace(WorkspaceDocSyncMixin):
-        _properties_dock = None
-        _navigator_panel = SimpleNamespace(set_canvas_size=lambda w, h: sizes.append((w, h)))
-        canvas_widget = SimpleNamespace(update=lambda: None)
-        def _sync_navigator_to_canvas(self):
+
+    class _Canvas(QtCore.QObject):
+        cameraChanged = QtCore.Signal(float, float, float, float, float, float)
+        canvas_w, canvas_h = 8, 8
+        zoom, pan_x, pan_y, rotation, flip_x, flip_y = 1.0, 0.0, 0.0, 0.0, False, False
+
+        def update(self):
             pass
-    workspace = Workspace()
-    doc.geometry_changed.connect(workspace._on_document_geometry_changed)
+
+        def width(self):
+            return 100
+
+        def height(self):
+            return 100
+
+    dm = DocumentManager()
+    monkeypatch.setattr(dm, "active_document", lambda: doc)
+    canvas = _Canvas()
+    brush = BrushState()
+    sync = DocumentViewSync(canvas, lambda uid: None, dm, brush, BrushEngineSync(brush, lambda: None), lambda: backend)
+    sizes = []
+    sync.canvasSizeChanged.connect(lambda w, h: sizes.append((w, h)))
+    sync._watch_geometry(doc)
     change_geometry(doc, backend, 10, 9)
-    assert (workspace.canvas_widget.canvas_w, workspace.canvas_widget.canvas_h) == (10, 9)
+    assert (canvas.canvas_w, canvas.canvas_h) == (10, 9)
     assert doc.history.undo(backend)
-    assert (workspace.canvas_w, workspace.canvas_h) == (8, 8)
+    assert (canvas.canvas_w, canvas.canvas_h) == (8, 8)
     assert sizes == [(10, 9), (8, 8)]

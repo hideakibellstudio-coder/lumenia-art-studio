@@ -76,11 +76,10 @@ class TestMdiMultiDocLifecycle(unittest.TestCase):
 
     def test_02_paper_and_flood_isolation(self):
         """Valida que papel e camadas de preenchimento são isoladas por documento."""
+        # O papel é de cada documento (Document.set_paper); o canvas só o mostra.
         doc1 = self.dm.new_document(1000, 1000, "Doc A", bg_color=(255, 0, 0, 255))
-        self.win.workspace.canvas_widget.paper_color = QtGui.QColor(255, 0, 0)
-
-        doc2 = self.dm.new_document(500, 500, "Doc B", bg_color=(0, 255, 0, 255))
-        self.win.workspace.canvas_widget.paper_color = QtGui.QColor(0, 255, 0)
+        doc2 = self.dm.new_document(500, 500, "Doc B", bg_color=(0, 0, 255, 255))
+        doc2.set_paper(color=QtGui.QColor(0, 255, 0))
 
         # Volta para Doc 1
         self.dm.set_active_document(doc1.uid)

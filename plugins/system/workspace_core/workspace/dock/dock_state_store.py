@@ -2,7 +2,9 @@
 
 Handles serialization and restoration of panel order, pinned status,
 active panel lists, and dynamic internationalization translation.
-Strictly decoupled in compliance with ARCcC v2 (< 90 LOC).
+
+Nota (2026-09-24): serialize/restore têm teste, mas o app ainda não salva
+nem restaura o estado das gavetas entre sessões (decisão pendente).
 """
 
 from typing import TYPE_CHECKING
@@ -51,9 +53,8 @@ class DockStateStore:
 
         # 1. Panel order
         order = state.get("panel_order", [])
-        if order and hasattr(dock.sidebar, "reorder_panels"):
-            dock.sidebar.reorder_panels(order)
-            dock.sync_panel_order_from_sidebar()
+        if order:
+            dock.set_panel_order(order)
 
         # 2. Pin status
         is_pinned = state.get("is_pinned", False)
@@ -64,13 +65,13 @@ class DockStateStore:
         is_open = state.get("is_open", False)
         if is_open and active_ids:
             for pid in active_ids:
-                if pid in dock._panels_info and pid not in dock.active_panel_ids:
+                if dock.has_panel(pid) and pid not in dock.active_panel_ids:
                     dock.toggle_panel(pid)
 
     @staticmethod
     def retranslate_panels(sidebar, panels_info: dict) -> None:
         """Updates tooltips and titles using current locale translations."""
-        for panel_id, btn in getattr(sidebar, "_buttons", {}).items():
+        for panel_id, btn in sidebar.buttons().items():
             if panel_id in PANEL_I18N:
                 key, def_val = PANEL_I18N[panel_id]
                 trans = tr(key, def_val)

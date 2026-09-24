@@ -24,6 +24,7 @@
 | `layer_manager_tree_ops.py` | Operações estruturais da pilha de camadas: achatar grupo/imagem, reordenar com reparentamento e substituir a lista inteira (restauração). |
 | `local_layer.py` | ui.core.document.local_layer — Modelo de Camada Local do Lumenia. |
 | `manager.py` | `DocumentManager` (singleton): documentos abertos, documento ativo e sinais de troca. |
+| `paper_backend_sync.py` | `sync_paper_to_backend`: leva cor, visibilidade, textura e grão do papel do documento ao motor (único escritor fora da restauração). |
 | `recovery.py` | Session-scoped recovery snapshots, independent of the user's saved file. |
 | `restore.py` | Restore a validated document into a newly allocated backend context. |
 | `schema.py` | Explicit migrations and portable document state for the LMN container. |
@@ -40,6 +41,8 @@
   (arrastar e soltar) e `SelectionToolController.modify_selection`.
 - Comando de camada novo entra em `LayerCommands`, não no painel nem no menu.
 - `Document.modified(motivo)` avisa toda alteração que suja o documento.
+- Papel: só `Document.set_paper(campo=valor)` altera (suja, sincroniza o
+  motor, emite `paper_changed`); views do papel leem do documento.
 - Lei nº 5 do rio: pixel que não está no `TileGrid` do motor não é salvo.
 - Nada de aparência aqui: a miniatura da camada (`LocalLayer.thumb`) é a
   imagem que o motor devolve; quem desenha marcadores é o delegate do painel.

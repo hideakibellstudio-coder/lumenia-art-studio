@@ -13,6 +13,8 @@ class SidebarWidget(QtWidgets.QWidget):
     """Sidebar de ícones vertical animável (0px ↔ 54px) na borda externa."""
 
     button_clicked = QtCore.Signal(str)  # panel_id
+    # O usuário arrastou um botão para outra posição (a doca reordena as gavetas).
+    order_changed = QtCore.Signal()
 
     def __init__(self, side: str = "left", parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -84,9 +86,21 @@ class SidebarWidget(QtWidgets.QWidget):
         order = []
         for i in range(self._layout.count()):
             item = self._layout.itemAt(i)
-            if item and item.widget() and hasattr(item.widget(), "panel_id"):
+            if item and isinstance(item.widget(), SidebarButton):
                 order.append(item.widget().panel_id)
         return order
+
+    def buttons(self) -> Dict[str, SidebarButton]:
+        """Botões por panel_id (cópia do dicionário)."""
+        return dict(self._buttons)
+
+    def forget_dead_buttons(self) -> None:
+        """Esquece botões cujo objeto C++ já foi destruído."""
+        for pid, btn in list(self._buttons.items()):
+            try:
+                btn.parent()
+            except RuntimeError:
+                self._buttons.pop(pid, None)
 
     def reorder_panels(self, order: List[str]) -> None:
         """Reorganiza os botões no layout conforme a lista de panel_ids."""
@@ -133,7 +147,6 @@ class SidebarWidget(QtWidgets.QWidget):
         self._layout.insertWidget(target_idx, btn)
         event.acceptProposedAction()
 
-        if self.parent() and hasattr(self.parent(), "sync_panel_order_from_sidebar"):
-            self.parent().sync_panel_order_from_sidebar()
+        self.order_changed.emit()
 
         logger.info(f"Sidebar '{self.side}': reordenou '{pid}' para índice {target_idx}")

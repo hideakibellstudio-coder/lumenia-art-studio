@@ -118,9 +118,12 @@ class Test5ObservationsAudit(unittest.TestCase):
 
     # ── Item 5: Navigator Dynamic Dimensions Pan Sync ────────────────────────
     def test_navigator_pan_dynamic_sync(self):
-        from plugins.system.workspace_core.workspace.workspace_document_sync import WorkspaceDocSyncMixin
+        from plugins.system.workspace_core.workspace.document_view_sync import DocumentViewSync
+        from ui.core.document.manager import DocumentManager
+        from ui.core.state import BrushEngineSync, BrushState
 
-        class MockCanvas:
+        class MockCanvas(QtCore.QObject):
+            cameraChanged = QtCore.Signal(float, float, float, float, float, float)
             canvas_w = 2480 # Ex: A4 alta resolução
             canvas_h = 3508
             zoom = 1.0
@@ -131,19 +134,13 @@ class Test5ObservationsAudit(unittest.TestCase):
             def publish_view(self, zoom_changed=False, notify_camera=True):
                 self.published = (zoom_changed, notify_camera)
 
-        class MockSync(QtCore.QObject, WorkspaceDocSyncMixin):
-            zoomChanged = QtCore.Signal(float)
-
-            def __init__(self):
-                super().__init__()
-                self.canvas_widget = MockCanvas()
-                self.canvas_w = 1920 # Default antigo
-                self.canvas_h = 1080
-                self._properties_dock = None
-
-        sync = MockSync()
+        brush = BrushState()
+        canvas = MockCanvas()
+        sync = DocumentViewSync(canvas, lambda uid: None, DocumentManager(), brush,
+                                BrushEngineSync(brush, lambda: None), lambda: None)
+        sync.canvas_widget = canvas
         # Aplica quina exata (norm_x=1.0, norm_y=1.0)
-        sync._set_camera_from_navigator(1.0, 1.0, 1.0, 0.0)
+        sync.set_camera_from_navigator(1.0, 1.0, 1.0, 0.0)
         # Verifica se usou a largura real 2480x3508 e não o padrão estático 1920x1080
         expected_pan_x = (0.5 - 1.0) * 1.0 * 2480 # -1240.0
         expected_pan_y = (0.5 - 1.0) * 1.0 * 3508 # -1754.0

@@ -5,7 +5,7 @@ Validações de:
 - Cor do Balde de Tinta (do_flood_fill) e garantia de simetria de sinais via try/finally.
 - Simetria de ciclo de vida do TextToolController (strokeStarted/strokeFinished).
 - active_color e set_shape_color no RenderWidget e CanvasCompatMixin.
-- Método canônico set_paper_state no RenderWidget e sinal paperChanged em PaperLayerWidget.
+- Papel com fonte única no Document (set_paper): canvas e PaperLayerWidget são views.
 - Sincronização de previews em clear_canvas via strokeStarted/strokeFinished.
 """
 
@@ -127,30 +127,46 @@ def test_render_widget_active_color_and_brush_color_reaching_shapes(app):
     assert rw.shape_ctrl.settings["fill_color"] == test_color
 
 
-def test_render_widget_set_paper_state_canonical(app):
-    """Garante funcionamento do método canônico set_paper_state no RenderWidget."""
+def test_document_owns_paper_and_canvas_reads_it(app, monkeypatch):
+    """O papel mora no Document; o canvas lê do documento ativo (sem cópia própria)."""
+    from ui.core.document.document import Document
+    from ui.core.document.manager import DocumentManager
+    doc = Document("paper-doc", "Papel", 8, 8)
+    monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: doc)
     rw = RenderWidget()
+    changes = []
+    doc.paper_changed.connect(lambda changed: changes.append(set(changed)))
     paper_col = QtGui.QColor(240, 230, 210)
-    rw.set_paper_state(False, paper_col)
 
+    doc.set_paper(visible=False, color=paper_col)
+    assert changes == [{"visible", "color"}]
+    assert doc.is_dirty and doc.dirty_reason == "paper"
     assert rw.paper_visible is False
     assert rw.paper_color == paper_col
 
-    rw.set_paper_state(True)
-    assert rw.paper_visible is True
-    assert rw.paper_color == paper_col
+    doc.set_paper(color=paper_col)  # valor igual não emite
+    assert len(changes) == 1
+    with pytest.raises(ValueError):
+        doc.set_paper(cor=paper_col)
 
 
-def test_paper_layer_widget_emits_paper_changed(app):
-    """Garante emissão do sinal paperChanged no PaperLayerWidget."""
+def test_paper_layer_widget_is_a_view_of_the_document(app):
+    """O widget de papel edita pelo documento e se atualiza pelo sinal dele."""
     from plugins.ui.layers_plugin.paper import PaperLayerWidget
+    from ui.core.document.document import Document
+    doc = Document("paper-view", "Papel", 8, 8)
     widget = PaperLayerWidget()
-    emitted = []
-    widget.paperChanged.connect(lambda vis, col: emitted.append((vis, col)))
+    widget.show_document(doc)
 
     widget._toggle_visibility()
-    assert len(emitted) == 1
-    assert emitted[0][0] is False
+    assert doc.paper_visible is False
+
+    doc.set_paper(color=QtGui.QColor(10, 20, 30))
+    assert widget.color_btn.color == QtGui.QColor(10, 20, 30)
+
+    widget.show_document(None)
+    widget._toggle_visibility()  # sem documento: nada acontece
+    assert doc.paper_visible is False
 
 
 def test_clear_canvas_signal_symmetry(app, monkeypatch):

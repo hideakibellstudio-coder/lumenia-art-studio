@@ -27,6 +27,7 @@ _OPENGL_ENABLED = _HAS_OPENGL and os.environ.get("LUMENIA_DISABLE_OPENGL", "0") 
 _BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 
 from ui.infrastructure.bridge_client import BridgeClient
+from ui.core.document.manager import DocumentManager
 from ui.core.engine.backend import PointerEvent
 
 from .viewport.camera_controller import CameraController
@@ -81,7 +82,6 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         self.last_mouse_pos, self.zoom_drag_start_pos = QtCore.QPointF(), QtCore.QPointF()
         self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
         self._last_tablet_time, self._tablet_in_use = 0.0, False
-        self.paper_visible, self.paper_color = True, QtGui.QColor(255, 255, 255)
         self._active_draw_color = QtGui.QColor(0, 0, 0, 255)
 
         from ui.core.i18n import I18nManager
@@ -184,11 +184,18 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
     def _on_language_changed(self, *_args) -> None:
         self.update()
 
-    def set_paper_state(self, visible: bool, color: QtGui.QColor = None) -> None:
-        self.paper_visible = bool(visible)
-        if color is not None:
-            self.paper_color = color
-        self.update()
+    # Papel: lido do documento ativo (fonte única; ver Document.set_paper).
+    # Até 2026-09-24 o canvas tinha a própria cópia, escrita pelo widget de
+    # papel e pela troca de documento.
+    @property
+    def paper_visible(self) -> bool:
+        doc = DocumentManager.instance().active_document()
+        return doc.paper_visible if doc is not None else True
+
+    @property
+    def paper_color(self) -> QtGui.QColor:
+        doc = DocumentManager.instance().active_document()
+        return doc.paper_color if doc is not None else QtGui.QColor(255, 255, 255)
 
     # ── Stroke & Brush Radius Delegation ──
     @property

@@ -83,6 +83,27 @@ class DrawerContentContainer(QtWidgets.QWidget):
             }}
         """)
 
+    def panel_widget(self, panel_id: str) -> QtWidgets.QWidget | None:
+        return self._panels.get(panel_id)
+
+    def forget_dead_panels(self) -> list:
+        """Esquece painéis cujo objeto C++ já foi destruído; devolve os ids."""
+        dead = []
+        for pid, widget in list(self._panels.items()):
+            try:
+                widget.parent()
+            except RuntimeError:
+                dead.append(pid)
+                self._panels.pop(pid, None)
+        return dead
+
+    def hide_all_panels(self) -> None:
+        for widget in self._panels.values():
+            try:
+                widget.hide()
+            except RuntimeError:
+                pass
+
     def add_panel_widget(self, panel_id: str, title: str, widget: QtWidgets.QWidget) -> None:
         if panel_id in self._panels:
             return

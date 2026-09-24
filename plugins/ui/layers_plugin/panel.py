@@ -83,6 +83,8 @@ class LayersPanel(QWidget):
         self.layer_manager = manager
         self._filters.layer_manager = manager
         self.model.set_manager(manager)
+        # O papel é do documento dono destas camadas (o widget é view dele).
+        self.paper_widget.show_document(manager.document if manager is not None else None)
 
         enabled = manager is not None
         for widget in (self.view, self.header, self.secondary_bar, self.paper_widget, self.primary_box):
@@ -319,7 +321,7 @@ class LayersPanel(QWidget):
         self.view.renameRequested.connect(self.open_rename_popup)
         left_layout.addWidget(self.view)
 
-        self.paper_widget = PaperLayerWidget(None)
+        self.paper_widget = PaperLayerWidget()
         left_layout.addWidget(self.paper_widget)
         bottom_layout.addWidget(left_widget)
 

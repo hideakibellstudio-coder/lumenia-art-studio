@@ -41,45 +41,14 @@
  "plugins/system/workspace_core/workspace/canvas/tools/transform_tool_controller.py": {
   "hasattr": 6
  },
- "plugins/system/workspace_core/workspace/dock/dock_animator.py": {
-  "foreign_private": 9,
-  "hasattr": 2
- },
- "plugins/system/workspace_core/workspace/dock/dock_state_store.py": {
-  "foreign_private": 1,
-  "getattr_literal": 1,
-  "hasattr": 1
- },
  "plugins/system/workspace_core/workspace/dock/drawer_header.py": {
   "hasattr": 1
- },
- "plugins/system/workspace_core/workspace/dock/sidebar_widget.py": {
-  "hasattr": 2
- },
- "plugins/system/workspace_core/workspace/dock_system.py": {
-  "foreign_private": 14,
-  "getattr_literal": 2
  },
  "plugins/system/workspace_core/workspace/floating_toolbar.py": {
   "foreign_private": 1
  },
  "plugins/system/workspace_core/workspace/viewport_container.py": {
   "foreign_private": 1
- },
- "plugins/system/workspace_core/workspace/workspace_actions.py": {
-  "hasattr": 3
- },
- "plugins/system/workspace_core/workspace/workspace_container.py": {
-  "hasattr": 8
- },
- "plugins/system/workspace_core/workspace/workspace_document_sync.py": {
-  "getattr_literal": 14,
-  "hasattr": 13
- },
- "plugins/system/workspace_core/workspace/workspace_layout_manager.py": {
-  "foreign_private": 4,
-  "getattr_literal": 2,
-  "hasattr": 17
  },
  "plugins/ui/brush_plugin/advanced_panel/panel.py": {
   "getattr_literal": 24,

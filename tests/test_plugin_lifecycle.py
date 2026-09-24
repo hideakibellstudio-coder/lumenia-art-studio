@@ -1,6 +1,6 @@
 from PySide6.QtCore import QObject, Signal
 
-from plugins.system.workspace_core.workspace.panel_bindings import WorkspacePanelBindingsMixin
+from plugins.system.workspace_core.workspace.panel_connections import PanelConnections
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.metadata import PluginMetadata
@@ -117,9 +117,8 @@ class _SignalSource(QObject):
     changed = Signal()
 
 
-class _PanelBindingHarness(WorkspacePanelBindingsMixin):
+class _Counter:
     def __init__(self):
-        self._initialize_panel_bindings()
         self.calls = 0
 
     def on_changed(self):
@@ -127,20 +126,22 @@ class _PanelBindingHarness(WorkspacePanelBindingsMixin):
 
 
 def test_panel_connections_are_removed_before_panel_reuse():
-    harness = _PanelBindingHarness()
+    panels = PanelConnections()
+    counter = _Counter()
     source = _SignalSource()
     signal = source.changed
-    harness._register_panel_widget("panel", object())
-    harness._bind_panel_signal("panel", signal, harness.on_changed)
-    harness._bind_panel_signal("panel", signal, harness.on_changed)
+    panels.register("panel", object())
+    panels.bind("panel", signal, counter.on_changed)
+    panels.bind("panel", signal, counter.on_changed)
     signal.emit()
-    assert harness.calls == 1
+    assert counter.calls == 1
 
-    harness._take_panel_widget("panel")
+    panels.release("panel")
     signal.emit()
-    assert harness.calls == 1
+    assert counter.calls == 1
+    assert panels.widget("panel") is None
 
-    harness._register_panel_widget("panel", object())
-    harness._bind_panel_signal("panel", signal, harness.on_changed)
+    panels.register("panel", object())
+    panels.bind("panel", signal, counter.on_changed)
     signal.emit()
-    assert harness.calls == 2
+    assert counter.calls == 2

@@ -31,41 +31,58 @@ Por enquanto (Fase 2), é instanciável diretamente para validação visual.
 
 from __future__ import annotations
 
-import math
-import os
 import logging
+from functools import partial
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.state import BrushEngineSync, BrushState, ToolState
 
 from .canvas.render_widget import CanvasWidget
 from .canvas_brush_binding import CanvasBrushBinding
 from .canvas_tool_binding import CanvasToolBinding
+from .document_view_sync import DocumentViewSync
+from .dock_system import AdvancedDockSystem
+from .floating_toolbar import FloatingToolbar
+from .panel_connections import PanelConnections
+from .pill_handle import PillHandle
+from .secondary_tool_bar import SecondaryToolBar
 from .stroke_preview_sync import StrokePreviewSync
-from .workspace_layout_manager import WorkspaceLayoutMixin
-from .workspace_document_sync import WorkspaceDocSyncMixin
-from .panel_bindings import WorkspacePanelBindingsMixin
-from .workspace_actions import WorkspaceActionsMixin, _history_failure_message
+from .viewport_container import TabbedViewportContainer
+from .workspace_layout import WorkspaceLayout
 
 logger = logging.getLogger("Workspace.Container")
 
-class WorkspaceContainer(
-    QtWidgets.QWidget,
-    WorkspaceLayoutMixin,
-    WorkspacePanelBindingsMixin,
-    WorkspaceDocSyncMixin,
-    WorkspaceActionsMixin,
-):
-    """
-    Widget central do Lumenia.
+_HISTORY_ERROR_MESSAGES = {
+    "scratch_read_failed": "scratch disk do histórico indisponível",
+    "scratch_write_failed": "scratch disk do histórico não aceitou a gravação",
+    "history_corrupt_snapshot": "snapshot do histórico corrompido",
+    "history_invalid_snapshot": "snapshot do histórico inválido",
+    "history_busy": "histórico ocupado por outra operação",
+    "history_restore_failed": "falha ao restaurar o snapshot",
+}
 
-    Responsabilidades:
-    - Criar e hospedar o CanvasWidget e TabbedViewportContainer
-    - Conectar sinais do BrushDock e PropertiesDock ao renderer
-    - Sincronizar câmera canvas ↔ navigator
-    - Gerenciar troca de documento ativo (salvar/restaurar câmera e cor)
-    - Expor add_panel/remove_panel para o WorkspaceService (Fase 3+)
+
+def history_failure_message(action: str, error: str) -> str:
+    detail = _HISTORY_ERROR_MESSAGES.get(error, error)
+    return f"Falha ao {action}: {detail}. Documento preservado."
+
+
+class WorkspaceContainer(QtWidgets.QWidget):
+    """
+    Widget central do Lumenia: monta canvas, abas, docas e barras e liga as
+    peças. Cada assunto tem um colaborador com estado próprio:
+
+      layout_ctrl (WorkspaceLayout) ...... gavetas, pílulas, barras flutuantes
+      _view_sync (DocumentViewSync) ...... documento ativo no canvas; câmera ↔ navegador
+      _panels (PanelConnections) ......... painéis de plugins e suas conexões
+      _canvas_tools / _canvas_brush ...... estado de ferramenta e pincel → canvas
+      _preview_sync (StrokePreviewSync) .. miniaturas depois de cada traço
+
+    Até 2026-09-24 era composto por quatro mixins que leem e escrevem
+    atributos uns dos outros por `self`.
 
     Sinais emitidos:
         newDocumentRequested()  — usuário clicou "+" na tab bar
@@ -76,13 +93,10 @@ class WorkspaceContainer(
             `self.window().statusBar()` com hasattr)
     """
 
-    # ── Sinais ────────────────────────────────────────────────────────────
     newDocumentRequested  = QtCore.Signal()
     documentCloseRequested = QtCore.Signal(str)
     zoomChanged           = QtCore.Signal(float)
     statusMessage         = QtCore.Signal(str, int)
-
-    # ── Inicialização ─────────────────────────────────────────────────────
 
     def __init__(
         self,
@@ -92,175 +106,172 @@ class WorkspaceContainer(
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-
-        # ── Estado interno ────────────────────────────────────────────────
-        self.canvas_w: int = 1920
-        self.canvas_h: int = 1080
-
-        # Cor e parâmetros do pincel vivem no BrushState (fonte única); o
-        # workspace só os mostra no canvas e reenvia ao motor ao trocar de aba.
-        self._brush_state = brush_state
-        self._brush_sync = brush_sync
-        # Ferramenta ativa e opções de ferramenta: fonte única no ToolState.
         self._tool_state = tool_state
+        self._dm = DocumentManager.instance()
+        backend = EngineRegistry.instance().get_backend
+        self._panels = PanelConnections()
 
-        # UID do último documento ativo (para salvar câmera ao trocar de aba)
-        self._last_active_doc_uid: str | None = None
-
-        # Painéis de outros plugins com que o workspace ainda conversa
-        # (registrados por add_panel). Cor, pincel e ferramenta não passam
-        # mais por aqui: são estados compartilhados (ui/core/state).
-        self._navigator_panel = None
-        self._layers_panel = None
-        self._geometry_panel = None
-        self._initialize_panel_bindings()
-
-        # ── Layout Principal Vertical ─────────────────────────────────────
+        # ── Abas no topo; embaixo: doca esquerda | canvas | doca direita ──
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-
-        # ── Canvas + Viewport Container ───────────────────────────────────
         self.canvas_widget = CanvasWidget(self)
-
-        from .viewport_container import TabbedViewportContainer
         self.viewport_container = TabbedViewportContainer(self.canvas_widget, self)
-
-        # 1. Barra de Abas MDI no TOPO do Workspace (Largura Total abaixo do MenuBar)
         main_layout.addWidget(self.viewport_container.header_widget)
-
-        # 2. Área de Conteúdo do Workspace (Horizontal: Doca Esquerda | Canvas | Doca Direita)
         self.workspace_area = QtWidgets.QWidget(self)
-        workspace_layout = QtWidgets.QHBoxLayout(self.workspace_area)
-        workspace_layout.setContentsMargins(0, 0, 0, 0)
-        workspace_layout.setSpacing(0)
-
+        area_layout = QtWidgets.QHBoxLayout(self.workspace_area)
+        area_layout.setContentsMargins(0, 0, 0, 0)
+        area_layout.setSpacing(0)
         main_layout.addWidget(self.workspace_area, 1)
 
-        # ── Re-emite sinais do viewport_container para quem escutar o WorkspaceContainer
-        self.viewport_container.newDocumentRequested.connect(self.newDocumentRequested)
-        self.viewport_container.documentCloseRequested.connect(self.documentCloseRequested)
+        self.left_dock = AdvancedDockSystem("left", self.workspace_area, self)
+        self.right_dock = AdvancedDockSystem("right", self.workspace_area, self)
+        area_layout.addWidget(self.left_dock)
+        area_layout.addWidget(self.viewport_container, 1)
+        area_layout.addWidget(self.right_dock)
+        # Pílulas: filhas do workspace_area, nunca do canvas.
+        left_pill = PillHandle("left", self.workspace_area)
+        right_pill = PillHandle("right", self.workspace_area)
+        self.left_dock.inject_pill(left_pill)
+        self.right_dock.inject_pill(right_pill)
 
-        # ── Zoom → StatusBar (via sinal público) ──────────────────────────
-        self.canvas_widget.zoomChanged.connect(self.zoomChanged)
-
-        # ── DocumentManager ───────────────────────────────────────────────
-        from ui.core.document.manager import DocumentManager
-        self._dm = DocumentManager.instance()
-        self._dm.activeDocumentChanged.connect(self._on_active_document_changed)
-        self._dm.documentClosed.connect(self._on_document_closed_cleanup)
-
-        # ── AdvancedDockSystem (Docas Laterais Dinâmicas) ──────────────────
-        from .dock_system import AdvancedDockSystem
-        self.left_dock  = AdvancedDockSystem("left",  self)
-        self.right_dock = AdvancedDockSystem("right", self)
-
-        # Adiciona na ordem física estrita do workspace_layout:
-        # [left_dock] | [viewport_container (stretch 1)] | [right_dock]
-        workspace_layout.addWidget(self.left_dock)
-        workspace_layout.addWidget(self.viewport_container, 1)
-        workspace_layout.addWidget(self.right_dock)
-
-        # ── PillHandles (filhas do workspace_area — NUNCA do CanvasWidget) ──
-        from .pill_handle import PillHandle
-        self._pill_left  = PillHandle("left",  self.workspace_area)
-        self._pill_right = PillHandle("right", self.workspace_area)
-        self.left_dock.inject_pill(self._pill_left)
-        self.right_dock.inject_pill(self._pill_right)
-
-        # ── Configurações de gavetas (persistidas via QSettings) ───────────
-        from ui.core.screens.dock_settings_dialog import load_dock_settings
-        QtCore.QTimer.singleShot(0, self, lambda: self.apply_dock_settings(load_dock_settings()))
-
-        # ── Barra Flutuante (FloatingToolbar - Janela Nativa Qt.Tool) ───────
-        from .floating_toolbar import FloatingToolbar
-        from .secondary_tool_bar import SecondaryToolBar
-        from ui.core.screens.floating_toolbar_settings_dialog import load_floating_toolbar_settings
+        # ── Barras flutuantes (janelas Qt.Tool) ────────────────────────────
         self.floating_toolbar = FloatingToolbar(tool_state, parent=self)
-        self.floating_toolbar.drag_finished.connect(self._on_floating_toolbar_dropped)
-        self.floating_toolbar.sizeChanged.connect(self.update_toolbar_position)
-        QtCore.QTimer.singleShot(0, self, lambda: self.apply_floating_toolbar_settings(load_floating_toolbar_settings()))
-
-        # ── Barra Secundária Contextual de Ferramentas ───────────────────────
         self.secondary_toolbar = SecondaryToolBar(tool_state, brush_state, parent=self)
         self.secondary_toolbar.commandRequested.connect(self.canvas_widget.run_tool_command)
-        self.secondary_toolbar.sizeChanged.connect(self.update_toolbar_position)
-        # A barra flutuante também muda de tamanho com a ferramenta: o workspace
-        # reposiciona depois (conexão feita depois da dela, então roda depois).
-        tool_state.activeToolChanged.connect(self._on_active_tool_changed_layout)
+        self.layout_ctrl = WorkspaceLayout(
+            self.workspace_area, self.left_dock, self.right_dock, left_pill, right_pill,
+            self.floating_toolbar, self.secondary_toolbar, self,
+        )
+        # A barra flutuante muda de tamanho com a ferramenta: reposiciona depois
+        # (conexão feita depois da dela, então roda depois).
+        tool_state.activeToolChanged.connect(self._on_active_tool_changed)
+        from ui.core.screens.dock_settings_dialog import load_dock_settings
+        from ui.core.screens.floating_toolbar_settings_dialog import load_floating_toolbar_settings
+        QtCore.QTimer.singleShot(0, self, lambda: self.apply_dock_settings(load_dock_settings()))
+        QtCore.QTimer.singleShot(0, self, lambda: self.apply_floating_toolbar_settings(load_floating_toolbar_settings()))
 
-        # ── Ferramenta: estado → canvas (texto, cursor, transformar, opções) ─
+        # ── Sinais públicos ────────────────────────────────────────────────
+        self.viewport_container.newDocumentRequested.connect(self.newDocumentRequested)
+        self.viewport_container.documentCloseRequested.connect(self.documentCloseRequested)
+        self.canvas_widget.zoomChanged.connect(self.zoomChanged)
+
+        # ── Colaboradores ──────────────────────────────────────────────────
         self._canvas_tools = CanvasToolBinding(tool_state, self.canvas_widget, self.show_status, self)
-
-        # ── Pincel: estado → canvas; conta-gotas → estado ──────────────────
         self._canvas_brush = CanvasBrushBinding(brush_state, self.canvas_widget, self)
-
-        # ── Miniaturas (navegador e camadas) depois de cada traço ───────────
-        self._preview_sync = StrokePreviewSync(
-            backend_provider=EngineRegistry.instance().get_backend,
-            document_provider=self._dm.active_document,
-            navigator_provider=lambda: self._navigator_panel,
-            parent=self,
+        self._preview_sync = StrokePreviewSync(backend, self._dm.active_document, self)
+        self._view_sync = DocumentViewSync(
+            self.canvas_widget, self.viewport_container.sync_active_tab, self._dm,
+            brush_state, brush_sync, backend, self,
         )
 
-        # ── Stroke Lock: suspende gavetas e pílulas durante pintura ────────
-        self.canvas_widget.strokeStarted.connect(lambda: self.left_dock.set_painting_state(True))
-        self.canvas_widget.strokeStarted.connect(lambda: self.right_dock.set_painting_state(True))
-        self.canvas_widget.strokeStarted.connect(self._close_unpinned_drawers)
-        self.canvas_widget.strokeFinished.connect(lambda: self.left_dock.set_painting_state(False))
-        self.canvas_widget.strokeFinished.connect(lambda: self.right_dock.set_painting_state(False))
-        self.canvas_widget.strokeFinished.connect(self._preview_sync.schedule)
-
-        # ── Filtro de clique no canvas para fechar gavetas despinadas ───────
-        self.canvas_widget.installEventFilter(self)
-
-        self.left_dock.drawer_opened.connect(self._on_dock_state_changed)
-        self.left_dock.drawer_closed.connect(self._on_dock_state_changed)
-        self.left_dock.pin_toggled.connect(self._on_dock_state_changed)
-
-        self.right_dock.drawer_opened.connect(self._on_dock_state_changed)
-        self.right_dock.drawer_closed.connect(self._on_dock_state_changed)
-        self.right_dock.pin_toggled.connect(self._on_dock_state_changed)
+        # ── Durante o traço: gavetas quietas; depois, miniaturas ────────────
+        canvas = self.canvas_widget
+        canvas.strokeStarted.connect(lambda: self.layout_ctrl.set_painting(True))
+        canvas.strokeStarted.connect(self.layout_ctrl.close_unpinned_drawers)
+        canvas.strokeFinished.connect(lambda: self.layout_ctrl.set_painting(False))
+        canvas.strokeFinished.connect(self._preview_sync.schedule)
+        # Clique no canvas fecha gavetas despinadas (filtro de eventos).
+        canvas.installEventFilter(self)
 
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        """Filtro de eventos nativo no canvas para fechar gavetas flutuantes com 100% de confiabilidade."""
-        if watched is self.canvas_widget and event.type() == QtCore.QEvent.MouseButtonPress:
-            has_left_unpinned = self.left_dock.is_open and not self.left_dock.is_pinned
-            has_right_unpinned = self.right_dock.is_open and not self.right_dock.is_pinned
-            if has_left_unpinned or has_right_unpinned:
-                self._close_unpinned_drawers()
-                return True  # Intercepta o clique para não iniciar traço acidental no mesmo clique de fechar
+        if (watched is self.canvas_widget and event.type() == QtCore.QEvent.MouseButtonPress
+                and self.layout_ctrl.has_unpinned_open):
+            self.layout_ctrl.close_unpinned_drawers()
+            return True  # o clique que fecha a gaveta não começa um traço
         return super().eventFilter(watched, event)
-
-    def _close_unpinned_drawers(self) -> None:
-        """Fecha imediatamente todas as gavetas flutuantes não-pinadas."""
-        if self.left_dock.is_open and not self.left_dock.is_pinned:
-            self.left_dock.close_drawer()
-        if self.right_dock.is_open and not self.right_dock.is_pinned:
-            self.right_dock.close_drawer()
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         super().resizeEvent(event)
-        if hasattr(self, "left_dock"):
-            self.left_dock.update_unpinned_position()
-        if hasattr(self, "right_dock"):
-            self.right_dock.update_unpinned_position()
-        self._update_pill_positions()
-        self.update_toolbar_position()
+        self.layout_ctrl.refresh()
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
-        QtCore.QTimer.singleShot(50, self, self.update_toolbar_position)
+        QtCore.QTimer.singleShot(50, self, self.layout_ctrl.update_toolbar_position)
 
     def retranslate_ui(self) -> None:
-        """Propaga a re-tradução aos subsistemas do workspace."""
-        if hasattr(self, "left_dock") and self.left_dock:
-            self.left_dock.retranslate_ui()
-        if hasattr(self, "right_dock") and self.right_dock:
-            self.right_dock.retranslate_ui()
-        if hasattr(self, "floating_toolbar") and self.floating_toolbar:
-            self.floating_toolbar.retranslate_ui()
-        # A barra secundária se traduz sozinha (cada view escuta o idioma).
+        """Docas e barra flutuante; a barra secundária se traduz sozinha."""
+        self.layout_ctrl.retranslate()
+
+    def _on_active_tool_changed(self, _tool: str, _previous: str) -> None:
+        self.layout_ctrl.update_toolbar_position()
+
+    # ── Engine ────────────────────────────────────────────────────────────
+
+    def initialize_engine(self) -> None:
+        """
+        Inicializa o backend ativo (EngineRegistry). Chamado depois de o widget
+        entrar na hierarquia de janelas (setCentralWidget). Sem backend (ou com
+        falha de inicialização) a casca segue com o canvas vazio.
+        """
+        try:
+            self.canvas_widget.init_engine()
+        except BaseException as e:  # noqa: BLE001 — motores nativos podem levantar exceções fora da hierarquia padrão
+            logger.error(f"[WorkspaceContainer] Falha ao inicializar motor: {type(e).__name__}: {e}")
+
+    # ── Painéis de plugins (contrato WorkspaceService) ────────────────────
+
+    def add_panel(
+        self,
+        panel_id:  str,
+        title:     str,
+        widget:    QtWidgets.QWidget,
+        area:      str = "right",
+        icon_path: str | None = None,
+    ) -> None:
+        """Registra e monta um painel na doca `area` ("left" ou "right")."""
+        previous = self._panels.widget(panel_id)
+        if previous is widget:
+            return
+        if previous is not None:
+            self.remove_panel(panel_id)
+        self._panels.register(panel_id, widget)
+        self._bind_known_panel(panel_id, widget)
+        dock = self.left_dock if area == "left" else self.right_dock
+        try:
+            dock.add_panel(panel_id, title, widget, icon_path)
+        except Exception:
+            self._panels.release(panel_id)
+            raise
+
+    def _bind_known_panel(self, panel_id: str, widget) -> None:
+        """Painéis cujo id faz parte do contrato WorkspaceService.
+
+        As conexões ficam no `PanelConnections` e caem com `remove_panel`.
+        """
+        bind = partial(self._panels.bind, panel_id)
+        sync = self._view_sync
+        doc = self._dm.active_document()
+        if panel_id == "navigator":
+            bind(widget.camera_changed_by_user, sync.set_camera_from_navigator)
+            bind(widget.flip_changed_by_user, sync.set_flip_from_navigator)
+            bind(widget.request_global_fit_view, self.reset_view)
+            bind(sync.hasDocumentChanged, widget.set_has_document)
+            bind(sync.canvasSizeChanged, widget.set_canvas_size)
+            bind(sync.viewportChanged, widget.update_viewport)
+            bind(self._preview_sync.navigatorArtwork, widget.set_artwork)
+            if doc is not None:
+                widget.set_canvas_size(doc.width, doc.height)
+                widget.set_has_document(True)
+                sync.sync_navigator()
+        elif panel_id == "layers":
+            bind(sync.layerManagerChanged, widget.set_layer_manager)
+            if doc is not None:
+                widget.set_layer_manager(doc.layer_manager)
+        elif panel_id == "geometry":
+            widget.set_render_widget(self.canvas_widget)
+
+    def remove_panel(self, panel_id: str) -> None:
+        """Desfaz as conexões do painel e o tira das duas docas."""
+        self._panels.release(panel_id)
+        self.left_dock.remove_panel(panel_id)
+        self.right_dock.remove_panel(panel_id)
+
+    def panel(self, panel_id: str):
+        """Widget registrado por `add_panel` (None se não houver)."""
+        return self._panels.widget(panel_id)
+
+    # ── Contrato com a janela principal (ui/boundary/orchestrator/workspace_port.py) ──
 
     def show_status(self, message: str, timeout_ms: int = 3500) -> None:
         """Mensagem curta para a barra de status (ver sinal `statusMessage`)."""
@@ -274,123 +285,74 @@ class WorkspaceContainer(
         """
         self._preview_sync.schedule()
 
-    # ── Engine ────────────────────────────────────────────────────────────
+    def refresh_document_state(self, doc) -> None:
+        """Documento aberto de arquivo: mostra o estado dele sem capturar o anterior."""
+        self._view_sync.show_document(doc, capture_previous=False)
 
-    def initialize_engine(self) -> None:
-        """
-        Inicializa o backend de motor ativo (EngineRegistry). Deve ser chamado
-        após o widget ser adicionado à hierarquia de janelas (setCentralWidget).
+    def undo(self) -> None:
+        self._run_history("desfazer", "Desfazer executado com sucesso.", "Nada a desfazer.", redo=False)
 
-        NOTA: RenderWidget.init_engine() ainda calcula um HWND nativo
-        (self.winId()) e o repassa até aqui por compatibilidade de
-        assinatura com uma geração anterior do motor (Rust/wgpu, via PyO3),
-        que efetivamente usava esse HWND para criar a swapchain gráfica. O
-        motor atual (AladynBackend, C++) recebe esse parâmetro e o ignora
-        por completo — o Aladyn entrega um buffer de pixels e o Qt desenha
-        via QPainter.drawImage() normal. Mantido por não quebrar a
-        assinatura pública sem necessidade; pode ser removido com segurança
-        numa limpeza futura (ver ui/engine_backends/aladyn.py:init_renderer).
+    def redo(self) -> None:
+        self._run_history("refazer", "Refazer executado com sucesso.", "Nada a refazer.", redo=True)
 
-        Sem backend registrado (ou com falha de inicialização), a casca segue
-        em modo canvas vazio — nunca derruba a aplicação.
-        """
-        try:
-            self.canvas_widget.init_engine(self.canvas_w, self.canvas_h)
-        except BaseException as e:  # noqa: BLE001 — motores nativos podem levantar exceções fora da hierarquia padrão
-            logger.error(f"[WorkspaceContainer] Falha ao inicializar motor: {type(e).__name__}: {e}")
-
-
-    # ── API pública de painéis ──
-
-    def add_panel(
-        self,
-        panel_id:  str,
-        title:     str,
-        widget:    QtWidgets.QWidget,
-        area:      str = "right",
-        icon_path: str | None = None,
-    ) -> None:
-        """
-        Registra e monta um painel na doca dinâmica especificada (left ou right).
-        Delegado ao AdvancedDockSystem da doca correspondente.
-        """
-        previous_widget = self._panel_widgets.get(panel_id)
-        if previous_widget is widget:
+    def _run_history(self, action: str, done: str, nothing: str, *, redo: bool) -> None:
+        backend = EngineRegistry.instance().get_backend()
+        if backend is None:
             return
-        if previous_widget is not None:
-            self.remove_panel(panel_id)
-        self._register_panel_widget(panel_id, widget)
+        document = self._dm.active_document()
+        if document is not None:
+            ok = document.history.redo(backend) if redo else document.history.undo(backend)
+        else:
+            ok = backend.redo() if redo else backend.undo()
+        if ok:
+            self.canvas_widget.update()
+            self.show_status(done)
+            self._preview_sync.schedule()
+        else:
+            error = backend.get_history_error()
+            self.show_status(history_failure_message(action, error) if error else nothing)
 
-        # IDs pertencem ao contrato WorkspaceService; não inferimos mais por
-        # atributos ocasionais de widgets de terceiros.
-        if panel_id == "navigator":
-            self._navigator_panel = widget
-            self._bind_panel_signal(panel_id, widget.camera_changed_by_user, self._set_camera_from_navigator)
-            if hasattr(widget, "flip_changed_by_user"):
-                self._bind_panel_signal(panel_id, widget.flip_changed_by_user, self._set_flip_from_navigator)
-            self._bind_panel_signal(panel_id, widget.request_global_fit_view, self.reset_view)
-            self._bind_panel_signal(panel_id, self.canvas_widget.cameraChanged, self._on_canvas_camera_changed)
-            if self.active_document:
-                widget.set_has_document(True)
-                self._sync_navigator_to_canvas()
+    def reset_view(self) -> None:
+        """Centraliza o canvas (publica a câmera: zoom na barra de status e navegador)."""
+        if self._dm.active_document():
+            self.canvas_widget.center_canvas()
 
-        elif panel_id == "layers":
-            self._layers_panel = widget
-            if self.active_document:
-                widget.set_layer_manager(self.active_document.layer_manager)
-        elif panel_id == "geometry":
-            self._geometry_panel = widget
-            if hasattr(widget, "set_render_widget"):
-                widget.set_render_widget(self.canvas_widget)
+    def zoom_in(self) -> None:
+        self.canvas_widget.zoom = min(50.0, self.canvas_widget.zoom * 1.2)
+        self.canvas_widget.publish_view(zoom_changed=True)
 
-        dock_system = self.left_dock if area == "left" else self.right_dock
-        try:
-            dock_system.add_panel(panel_id, title, widget, icon_path)
-        except Exception:
-            self._release_panel_binding(panel_id)
-            raise
+    def zoom_out(self) -> None:
+        self.canvas_widget.zoom = max(0.05, self.canvas_widget.zoom / 1.2)
+        self.canvas_widget.publish_view(zoom_changed=True)
 
+    def toggle_panel_from_menu(self, panel_id: str, side: str) -> None:
+        self.layout_ctrl.toggle_panel(panel_id, side)
 
-    def remove_panel(self, panel_id: str) -> None:
-        """Remove o painel registrado de ambas as docas."""
-        self._release_panel_binding(panel_id)
-        self.left_dock.remove_panel(panel_id)
-        self.right_dock.remove_panel(panel_id)
+    def collapse_all_sidebars(self) -> None:
+        self.layout_ctrl.collapse_all()
 
-    def _release_panel_binding(self, panel_id: str) -> None:
-        """Desconecta slots e elimina referências somente do painel removido."""
-        widget = self._panel_widgets.get(panel_id)
-        self._disconnect_panel_signals(panel_id)
+    def expand_all_sidebars(self) -> None:
+        self.layout_ctrl.expand_all()
 
-        self._take_panel_widget(panel_id)
-        if widget is self._layers_panel:
-            self._layers_panel = None
-        if widget is self._navigator_panel:
-            self._navigator_panel = None
-        if widget is self._geometry_panel:
-            self._geometry_panel = None
+    def apply_dock_settings(self, cfg: dict) -> None:
+        self.layout_ctrl.apply_dock_settings(cfg)
 
+    def dock_panels(self) -> dict:
+        return self.layout_ctrl.dock_panels()
+
+    def apply_floating_toolbar_settings(self, cfg: dict) -> None:
+        self.layout_ctrl.apply_floating_toolbar_settings(cfg)
 
     # ── Propriedades de acesso público ────────────────────────────────────
 
     @property
     def active_document(self):
-        """Referência ao documento ativo do DocumentManager."""
-        if hasattr(self, "_dm") and self._dm:
-            return self._dm.active_document() if callable(self._dm.active_document) else self._dm.active_document
-        return None
-
+        return self._dm.active_document()
 
     @property
     def canvas(self) -> CanvasWidget:
-
-        """Referência read-only ao CanvasWidget ativo."""
         return self.canvas_widget
 
     @property
     def current_tool(self) -> str:
         return self._tool_state.active_tool
-
-    def _on_active_tool_changed_layout(self, _tool: str, _previous: str) -> None:
-        self.update_toolbar_position()
-

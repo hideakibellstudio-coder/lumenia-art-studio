@@ -229,22 +229,14 @@ def test_menu_actions_select_all_and_invert(app, clean_engine):
     assert "Seleção invertida" in status.last_msg
 
 
-def test_workspace_actions_clear_selection(app, clean_engine):
+def test_canvas_clear_selection_stops_marching_ants(app, clean_engine):
     rw = RenderWidget()
     rw.select_all()
     assert rw.selection_ctrl.selection_timer.isActive()
 
-    from plugins.system.workspace_core.workspace.workspace_actions import WorkspaceActionsMixin
-
-    wa = WorkspaceActionsMixin.__new__(WorkspaceActionsMixin)
-    wa.canvas_widget = rw
-    wa.show_status = lambda msg: setattr(wa, "status_msg", msg)
-
-
-    wa.clear_selection()
+    rw.clear_selection()
     assert not clean_engine.has_selection()
     assert not rw.selection_ctrl.selection_timer.isActive()
-    assert wa.status_msg == "Seleção cancelada."
 
 
 # ── 4. Guards do AladynBackend ────────────────────────────────────────────────

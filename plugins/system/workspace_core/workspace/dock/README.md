@@ -20,7 +20,15 @@ Importar por módulo; quem usa é `dock_system.py`.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-`dock_animator.py` e `dock_state_store.py` importam `AdvancedDockSystem` da pasta mãe (só para tipo) e leem atributos privados dele (`self.dock._is_painting`) — o animador chega ao workspace através da doca (`self.dock._workspace._update_pill_positions()`). Pasta sem `__init__.py`.
+- `dock_animator.py` e `dock_state_store.py` importam `AdvancedDockSystem` da
+  pasta mãe só para tipo. Desde 2026-09-24 nenhum lê privado da doca: a doca
+  expõe `is_painting`, `has_panel`, `set_panel_order`; o animador,
+  `schedule_collapse`/`cancel_collapse`/`auto_collapse`; a sidebar e a gaveta,
+  `buttons()`/`panel_widget()`; e o animador avisa mudança de largura por
+  callback (antes chamava `_workspace._update_pill_positions()`).
+- `DockStateStore.serialize_state/restore_state` têm teste, mas o app ainda
+  não salva nem restaura o estado das gavetas entre sessões (decisão pendente).
+- Pasta sem `__init__.py`.
 
 ## Dependências internas
 

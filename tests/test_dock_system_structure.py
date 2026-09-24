@@ -77,7 +77,7 @@ class TestAdvancedDockSystemIntegration(unittest.TestCase):
 
     def setUp(self):
         self.ws = DummyWorkspace()
-        self.dock = AdvancedDockSystem("right", self.ws)
+        self.dock = AdvancedDockSystem("right", self.ws.workspace_area, self.ws)
 
     def tearDown(self):
         self.dock.deleteLater()

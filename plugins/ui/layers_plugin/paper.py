@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (QWidget, QHBoxLayout, QLabel, QPushButton,
 from PySide6.QtGui import QColor, QPainter, QBrush, QPixmap, QIcon, QPen, QAction
 from PySide6.QtCore import Qt, QSize, Signal, QPoint
 from ui.core.icons import get_icon
-from ui.core.plugins.canvas_access import active_canvas
 
 logger = logging.getLogger(__name__)
 
@@ -86,21 +85,23 @@ class TextureCircleButton(CircleButton):
         self.has_texture = has_tex
         self.update()
 
+# Cor mostrada sem documento aberto (a mesma do papel padrão do Document).
+_DEFAULT_PAPER = QColor(255, 255, 255, 255)
+
+
 class PaperLayerWidget(QWidget):
-    paperChanged = Signal(bool, object)
+    """View do papel do documento (linha "Papel / Fundo" do painel de camadas).
 
-    def __init__(self, bridge=None, parent=None):
+    Mostra `Document.paper_*` e edita só por `Document.set_paper(...)`; o
+    documento sincroniza o motor e repinta o canvas. Até 2026-09-24 o widget
+    guardava a própria cópia do papel (cor, visível, textura, grão) e
+    escrevia no motor, no documento e no canvas (Lei do rio nº 1).
+    """
+
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.bridge = bridge
         self.setObjectName("PaperLayerWidget")
-
-        self.visible = True
-        self.color = QColor(255, 255, 255, 255)
-        self.depth = 1.0
-        self.scale = 1.0
-        self.preset_id = 0
-        self.enabled = False
-        self.invert = False
+        self._document = None
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
@@ -119,8 +120,8 @@ class PaperLayerWidget(QWidget):
 
         layout.addStretch()
 
-        self.color_btn = ColorCircleButton(self.color, self)
-        self.color_btn.colorChanged.connect(self._on_color_changed)
+        self.color_btn = ColorCircleButton(_DEFAULT_PAPER, self)
+        self.color_btn.colorChanged.connect(lambda color: self._edit(color=color))
         layout.addWidget(self.color_btn)
 
         self.tex_btn = TextureCircleButton(self)
@@ -128,51 +129,62 @@ class PaperLayerWidget(QWidget):
         layout.addWidget(self.tex_btn)
 
         self.setFixedHeight(36)
+        self._show()
+
+    # ── Documento ─────────────────────────────────────────────────────────
+
+    def show_document(self, document) -> None:
+        """Passa a mostrar o papel de `document` (None = sem documento)."""
+        if self._document is not None:
+            self._document.paper_changed.disconnect(self._on_paper_changed)
+        self._document = document
+        if document is not None:
+            document.paper_changed.connect(self._on_paper_changed)
+        self._show()
+
+    def _on_paper_changed(self, _changed) -> None:
+        self._show()
+
+    def _edit(self, **changes) -> None:
+        if self._document is not None:
+            self._document.set_paper(**changes)
+
+    def _show(self) -> None:
+        doc = self._document
+        self.color_btn.color = doc.paper_color if doc else _DEFAULT_PAPER
+        self.color_btn.update()
         self._update_vis_icon()
+        self.tex_btn.set_has_texture(bool(doc and doc.paper_texture_enabled and doc.paper_texture_id > 0))
 
     def _update_vis_icon(self):
-        icon_name = "eye" if self.visible else "eye-off"
-        icon = get_icon(icon_name, "FG_PRIMARY" if self.visible else "text_sec")
+        visible = self._document.paper_visible if self._document else True
+        icon = get_icon("eye" if visible else "eye-off", "FG_PRIMARY" if visible else "text_sec")
         self.vis_btn.setIcon(icon)
         self.vis_btn.setIconSize(QSize(16, 16))
 
-    def set_paper_state(self, color=None, visible=None, preset_id=None, enabled=None,
-                        scale=None, contrast=None, invert=None, sync=True):
-        if color is not None:
-            self.color = color
-            self.color_btn.color = color
-            self.color_btn.update()
-        if visible is not None:
-            self.visible = visible
-            self._update_vis_icon()
-        if preset_id is not None:
-            self.preset_id = preset_id
-        if enabled is not None:
-            self.enabled = enabled
-            self.tex_btn.set_has_texture(self.enabled and self.preset_id > 0)
-        if scale is not None:
-            self.scale = scale
-        if contrast is not None:
-            self.depth = contrast
-        if invert is not None:
-            self.invert = invert
-        if sync:
-            self._sync_state()
+    # ── Edição ────────────────────────────────────────────────────────────
+
+    def _toggle_visibility(self):
+        if self._document is not None:
+            self._edit(visible=not self._document.paper_visible)
 
     def _show_texture_popup(self):
+        doc = self._document
+        if doc is None:
+            return
         popup = TexturePopup(
             self,
-            preset_id=self.preset_id,
-            depth=self.depth,
-            scale=self.scale,
-            invert=self.invert,
-            enabled=self.enabled
+            preset_id=doc.paper_texture_id,
+            depth=doc.paper_contrast,
+            scale=doc.paper_scale,
+            invert=doc.paper_invert,
+            enabled=doc.paper_texture_enabled,
         )
-        popup.presetChanged.connect(self._on_preset_changed)
-        popup.depthChanged.connect(self._on_depth_changed)
-        popup.scaleChanged.connect(self._on_scale_changed)
-        popup.invertChanged.connect(self._on_invert_changed)
-        popup.enabledChanged.connect(self._on_enabled_changed)
+        popup.presetChanged.connect(lambda pid: self._edit(texture_id=pid))
+        popup.depthChanged.connect(lambda value: self._edit(contrast=value))
+        popup.scaleChanged.connect(lambda value: self._edit(scale=value))
+        popup.invertChanged.connect(lambda invert: self._edit(invert=invert))
+        popup.enabledChanged.connect(lambda enabled: self._edit(texture_enabled=enabled))
 
         btn_global = self.tex_btn.mapToGlobal(QPoint(0, 0))
         popup.adjustSize()
@@ -199,69 +211,6 @@ class PaperLayerWidget(QWidget):
 
         popup.move(x, y)
         popup.show()
-
-    def _on_color_changed(self, color):
-        self.color = color
-        self._sync_state()
-
-    def _on_preset_changed(self, pid: int):
-        self.preset_id = pid
-        self.tex_btn.set_has_texture(self.enabled and pid > 0)
-        self._sync_state(reset_texture=True)
-
-    def _on_depth_changed(self, val):
-        self.depth = val
-        self._sync_state()
-
-    def _on_scale_changed(self, val):
-        self.scale = val
-        self._sync_state()
-
-    def _on_invert_changed(self, invert: bool):
-        self.invert = invert
-        self._sync_state()
-
-    def _on_enabled_changed(self, enabled: bool):
-        self.enabled = enabled
-        self.tex_btn.set_has_texture(enabled and self.preset_id > 0)
-        self._sync_state()
-
-    def _toggle_visibility(self):
-        self.visible = not self.visible
-        self._update_vis_icon()
-        self._sync_state()
-
-    def _sync_state(self, *, reset_texture=False):
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if backend:
-            backend.set_canvas_paper_state(self.color, self.visible, self.preset_id, self.enabled,
-                                           reset_texture=reset_texture)
-            backend.set_canvas_grain_scale(float(self.scale))
-            backend.set_canvas_grain_contrast(float(self.depth))
-            backend.set_canvas_grain_invert(bool(self.invert))
-
-        # Atualiza documento ativo
-        from ui.core.document.manager import DocumentManager
-        from ui.core.document.document import Document
-        active_doc: Document = DocumentManager.instance().active_document()
-        if active_doc:
-            active_doc.paper_color = self.color
-            active_doc.paper_visible = self.visible
-            active_doc.paper_texture_id = self.preset_id
-            active_doc.paper_texture_enabled = self.enabled
-            active_doc.paper_scale = self.scale
-            active_doc.paper_contrast = self.depth
-            active_doc.paper_invert = self.invert
-            active_doc.mark_dirty("paper")
-
-        self.paperChanged.emit(self.visible, self.color)
-
-        # Atualiza o canvas ativo pelo contrato do WorkspaceService (sem varrer
-        # a árvore de widgets). RenderWidget.set_paper_state já agenda o repaint.
-        canvas = active_canvas()
-        if canvas is not None:
-            canvas.set_paper_state(self.visible, self.color)
 
     def update_theme(self, colors):
         from ui.core.theme.manager import ThemeManager

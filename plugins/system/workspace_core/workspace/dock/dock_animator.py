@@ -1,11 +1,15 @@
 """DockAnimator — Animation Orchestration and Auto-Collapse Timers for Docks.
 
 Controls smooth drawer transitions, sidebar auto-collapse timers, and PillHandle interactions.
-Strictly decoupled in compliance with ARCcC v2 (< 190 LOC).
+
+A doca é quem avisa o mundo: cada mudança de largura da sidebar chama
+`on_sidebar_resized` (a doca liga ao próprio sinal `sidebar_resized`, que o
+workspace usa para reposicionar as pílulas). Antes o animador chamava
+`self.dock._workspace._update_pill_positions()` com hasattr.
 """
 import logging
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 from PySide6 import QtCore
 
 if TYPE_CHECKING:
@@ -21,8 +25,9 @@ class DockAnimator:
     SIDEBAR_EXPANDED = 54
     DRAWER_WIDTH = 280
 
-    def __init__(self, dock: 'AdvancedDockSystem') -> None:
+    def __init__(self, dock: 'AdvancedDockSystem', on_sidebar_resized: Callable[[], None]) -> None:
         self.dock = dock
+        self._on_sidebar_resized = on_sidebar_resized
 
         self._auto_collapse: bool = False
         self._speed_ms: int = SPEED_MAP["Rápido"]
@@ -90,6 +95,20 @@ class DockAnimator:
             if self.dock.sidebar.maximumWidth() == 0:
                 self.do_expand()
 
+    @property
+    def auto_collapse(self) -> bool:
+        return self._auto_collapse
+
+    def schedule_collapse(self) -> None:
+        """Recolhe a sidebar depois do tempo da animação (mouse saiu, gaveta fechou)."""
+        self._collapse_timer.start(self._speed_ms)
+
+    def cancel_collapse(self) -> None:
+        self._collapse_timer.stop()
+
+    def cancel_expand(self) -> None:
+        self._expand_timer.stop()
+
     def update_anim_duration(self) -> None:
         self._sidebar_anim.setDuration(self._speed_ms)
         self._drawer_anim.setDuration(int(self._speed_ms * 1.2) + 40)
@@ -100,7 +119,7 @@ class DockAnimator:
         pill.left.connect(self._on_pill_left)
 
     def _on_pill_hovered(self) -> None:
-        if not self.dock._is_painting:
+        if not self.dock.is_painting:
             self._expand_timer.start(self._hover_delay_ms)
 
     def _on_pill_left(self) -> None:
@@ -135,7 +154,7 @@ class DockAnimator:
         self._sidebar_anim.start()
 
     def do_expand(self) -> None:
-        if self.dock._is_painting:
+        if self.dock.is_painting:
             return
         self._collapse_timer.stop()
         self.hide_pill()
@@ -152,8 +171,7 @@ class DockAnimator:
 
     def _on_sidebar_anim_value_changed(self, value: int) -> None:
         self.dock.sidebar.setFixedWidth(value)
-        if hasattr(self.dock._workspace, "_update_pill_positions"):
-            self.dock._workspace._update_pill_positions()
+        self._on_sidebar_resized()
 
     def _on_sidebar_anim_finished(self) -> None:
         if self.dock.sidebar.width() == 0:
@@ -162,8 +180,7 @@ class DockAnimator:
         else:
             self.dock.sidebar.setFixedWidth(self.SIDEBAR_EXPANDED)
             self.hide_pill()
-        if hasattr(self.dock._workspace, "_update_pill_positions"):
-            self.dock._workspace._update_pill_positions()
+        self._on_sidebar_resized()
 
     def open_drawer_anim(self) -> None:
         self.dock.drawer_container.show()
@@ -200,11 +217,7 @@ class DockAnimator:
     def _on_drawer_anim_finished(self) -> None:
         if self.dock.drawer_container.maximumWidth() == 0:
             self.dock.drawer_container.hide()
-            for widget in self.dock.drawer_container._panels.values():
-                try:
-                    widget.hide()
-                except RuntimeError:
-                    pass
+            self.dock.drawer_container.hide_all_panels()
         else:
             target_w = self.drawer_width
             self.dock.drawer_container.setMinimumWidth(target_w)

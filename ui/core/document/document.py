@@ -12,6 +12,41 @@ class Document(QtCore.QObject):
     # Toda alteração que suja o documento (motivo). A janela principal usa
     # para atualizar Desfazer/Refazer; antes só um traço atualizava.
     modified = QtCore.Signal(str)
+    # Papel alterado por set_paper(): frozenset com os nomes dos campos.
+    paper_changed = QtCore.Signal(object)
+
+    # Campos de set_paper() -> atributo do documento.
+    PAPER_FIELDS = {
+        "color": "paper_color",
+        "visible": "paper_visible",
+        "texture_id": "paper_texture_id",
+        "texture_enabled": "paper_texture_enabled",
+        "scale": "paper_scale",
+        "contrast": "paper_contrast",
+        "invert": "paper_invert",
+    }
+
+    def set_paper(self, **changes) -> None:
+        """Altera o papel (fonte única): suja o documento, sincroniza o motor e avisa.
+
+        Ex.: `doc.set_paper(color=QColor(...), visible=False)`. Valor igual não
+        emite. Views do papel (painel de camadas, canvas) leem daqui.
+        """
+        unknown = set(changes) - set(self.PAPER_FIELDS)
+        if unknown:
+            raise ValueError(f"campos de papel desconhecidos: {sorted(unknown)}")
+        changed = frozenset(
+            key for key, value in changes.items()
+            if getattr(self, self.PAPER_FIELDS[key]) != value
+        )
+        if not changed:
+            return
+        for key in changed:
+            setattr(self, self.PAPER_FIELDS[key], changes[key])
+        self.mark_dirty("paper")
+        from .paper_backend_sync import sync_paper_to_backend
+        sync_paper_to_backend(self, changed)
+        self.paper_changed.emit(changed)
 
     def set_geometry(self, width: int, height: int) -> None:
         if width <= 0 or height <= 0:

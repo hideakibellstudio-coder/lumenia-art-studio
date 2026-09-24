@@ -34,20 +34,16 @@ def test_texture_popup_standalone_and_export(qapp):
 
 
 def test_paper_layer_widget_integration(qapp):
-    paper = PaperLayerWidget(None)
-    assert paper.visible is True
-    assert paper.preset_id == 0
-
-    paper.set_paper_state(
-        color=QtGui.QColor(200, 100, 50),
-        visible=False,
-        preset_id=2,
-        enabled=True
-    )
-    assert paper.color.red() == 200
-    assert paper.visible is False
-    assert paper.preset_id == 2
-    assert paper.enabled is True
+    """O widget mostra o papel do documento e não guarda cópia dele."""
+    from ui.core.document.document import Document
+    paper = PaperLayerWidget()
+    doc = Document("paper-structure", "Papel", 8, 8)
+    doc.set_paper(color=QtGui.QColor(200, 100, 50), visible=False, texture_id=2, texture_enabled=True)
+    paper.show_document(doc)
+    assert paper.color_btn.color.red() == 200
+    assert paper.tex_btn.has_texture is True
+    for attribute in ("visible", "color", "preset_id", "enabled"):
+        assert not hasattr(paper, attribute), f"cópia de estado '{attribute}' voltou ao widget"
 
 
 def test_layers_panel_delegate_actions(qapp):

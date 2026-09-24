@@ -3,11 +3,16 @@
 Gerencia a apresentação e o ciclo de vida dos painéis laterais (esquerda e direita).
 Delega cálculos geométricos ao DockGeometryCalculator, persistência ao DockStateStore,
 e interpolações visuais ao DockAnimator.
-Strictly decoupled in compliance with ARCcC v2 (< 240 LOC).
+
+Recebe pelo construtor o widget onde a gaveta flutua quando despinada
+(`drawer_host`, a área do workspace) e avisa por `sidebar_resized` quando a
+largura da sidebar muda. Até 2026-09-24 guardava o workspace e lia
+`workspace.workspace_area` com getattr, e o animador chamava um método privado
+do workspace.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import Dict, List, Set
 from PySide6 import QtCore, QtWidgets
 
 from ui.core.logger import get_logger
@@ -16,9 +21,6 @@ from .dock.drawer_content_container import DrawerContentContainer
 from .dock.dock_geometry_calculator import DockGeometryCalculator
 from .dock.dock_state_store import DockStateStore
 from .dock.dock_animator import DockAnimator, SPEED_MAP, DELAY_MAP
-
-if TYPE_CHECKING:
-    from plugins.system.workspace_core.workspace.workspace_container import WorkspaceContainer
 
 logger = get_logger("Workspace.DockSystem")
 
@@ -29,15 +31,15 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     drawer_opened = QtCore.Signal(str)   # panel_id ou "stacked"
     drawer_closed = QtCore.Signal()
     pin_toggled = QtCore.Signal(bool)
-    layout_order_changed = QtCore.Signal(list)
+    sidebar_resized = QtCore.Signal()
 
     SIDEBAR_EXPANDED = DockAnimator.SIDEBAR_EXPANDED
     DRAWER_WIDTH = DockAnimator.DRAWER_WIDTH
 
-    def __init__(self, side: str, parent_workspace: WorkspaceContainer) -> None:
-        super().__init__(parent_workspace)
+    def __init__(self, side: str, drawer_host: QtWidgets.QWidget, parent: QtWidgets.QWidget | None = None) -> None:
+        super().__init__(parent)
         self.side = side
-        self._workspace = parent_workspace
+        self._drawer_host = drawer_host
 
         self._outer_layout = QtWidgets.QHBoxLayout(self)
         self._outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -55,13 +57,14 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self._panels_info: Dict[str, dict] = {}
 
         # Animator
-        self.animator = DockAnimator(self)
+        self.animator = DockAnimator(self, on_sidebar_resized=self.sidebar_resized.emit)
 
         # Hover da Sidebar
         self.sidebar.installEventFilter(self)
 
         # Conexões
         self.sidebar.button_clicked.connect(self.toggle_panel)
+        self.sidebar.order_changed.connect(self.sync_panel_order_from_sidebar)
         self.drawer_container.header.pin_toggled.connect(self.set_pinned)
         self.drawer_container.header.pin_toggled.connect(self.pin_toggled.emit)
 
@@ -88,9 +91,9 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     def update_unpinned_position(self) -> None:
         if self.is_pinned or (not self.is_open and self.drawer_container.maximumWidth() == 0):
             return
-        target_parent = getattr(self._workspace, "workspace_area", self._workspace)
+        host = self._drawer_host
         drawer_w = max(1, self.drawer_container.maximumWidth())
-        geo = DockGeometryCalculator.compute_unpinned_geometry(self.side, target_parent.width(), target_parent.height(), drawer_w)
+        geo = DockGeometryCalculator.compute_unpinned_geometry(self.side, host.width(), host.height(), drawer_w)
         self.drawer_container.setGeometry(geo)
         self.drawer_container.raise_()
 
@@ -101,10 +104,14 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     def inject_pill(self, pill: object) -> None:
         self.animator.inject_pill(pill)
 
-    def _do_collapse(self) -> None:
+    @property
+    def is_painting(self) -> bool:
+        return self._is_painting
+
+    def collapse_sidebar(self) -> None:
         self.animator.do_collapse()
 
-    def _do_expand(self) -> None:
+    def expand_sidebar(self) -> None:
         self.animator.do_expand()
 
     def open_drawer_anim(self) -> None:
@@ -117,11 +124,11 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if watched is self.sidebar:
             if event.type() == QtCore.QEvent.Leave:
-                if not (self.is_open and not self.is_pinned) and (self.animator._auto_collapse or self.is_pinned):
+                if not (self.is_open and not self.is_pinned) and (self.animator.auto_collapse or self.is_pinned):
                     if not self.sidebar.underMouse():
-                        self.animator._collapse_timer.start(self.animator._speed_ms)
+                        self.animator.schedule_collapse()
             elif event.type() == QtCore.QEvent.Enter:
-                self.animator._collapse_timer.stop()
+                self.animator.cancel_collapse()
         return super().eventFilter(watched, event)
 
     # ── Gestão de Painéis ──
@@ -140,25 +147,19 @@ class AdvancedDockSystem(QtWidgets.QWidget):
                 self.close_drawer()
 
     def _cleanup_panels(self) -> None:
-        dead_panels, dead_buttons = [], []
-        for pid, widget in list(self.drawer_container._panels.items()):
-            try: widget.parent()
-            except RuntimeError: dead_panels.append(pid)
-        for pid in dead_panels:
-            self.drawer_container._panels.pop(pid, None)
+        for pid in self.drawer_container.forget_dead_panels():
             self._panels_info.pop(pid, None)
             self.active_panel_ids.discard(pid)
-        for pid, btn in list(self.sidebar._buttons.items()):
-            try: btn.parent()
-            except RuntimeError: dead_buttons.append(pid)
-        for pid in dead_buttons:
-            self.sidebar._buttons.pop(pid, None)
+        self.sidebar.forget_dead_buttons()
+
+    def has_panel(self, panel_id: str) -> bool:
+        return panel_id in self._panels_info
 
     def toggle_panel(self, panel_id: str) -> None:
         self._cleanup_panels()
         if panel_id not in self._panels_info:
             return
-        widget = self.drawer_container._panels.get(panel_id)
+        widget = self.drawer_container.panel_widget(panel_id)
         if not widget:
             return
         try:
@@ -207,7 +208,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.is_open = False
         for pid in list(self.active_panel_ids):
             self.sidebar.set_button_active(pid, False)
-            widget = self.drawer_container._panels.get(pid)
+            widget = self.drawer_container.panel_widget(pid)
             if widget:
                 try: widget.hide()
                 except RuntimeError: pass
@@ -215,8 +216,8 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.drawer_container.update_spacer(self.active_panel_ids)
         self.resolve_state()
         self.drawer_closed.emit()
-        if (self.animator._auto_collapse or self.is_pinned) and not self.sidebar.underMouse():
-            self.animator._collapse_timer.start(self.animator._speed_ms)
+        if (self.animator.auto_collapse or self.is_pinned) and not self.sidebar.underMouse():
+            self.animator.schedule_collapse()
 
     def set_pinned(self, pinned: bool) -> None:
         self.is_pinned = pinned
@@ -224,15 +225,14 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         if self.is_open:
             self.resolve_state()
         if pinned and not self.sidebar.underMouse():
-            self._do_collapse()
+            self.collapse_sidebar()
         elif not pinned:
-            self._do_expand()
+            self.expand_sidebar()
 
     def resolve_state(self) -> None:
         if not self.is_open:
             self.close_drawer_anim()
             return
-        target_parent = getattr(self._workspace, "workspace_area", self._workspace)
         if self.is_pinned:
             if self._outer_layout.indexOf(self.drawer_container) == -1:
                 self.drawer_container.setParent(self)
@@ -243,7 +243,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         else:
             if self._outer_layout.indexOf(self.drawer_container) != -1:
                 self._outer_layout.removeWidget(self.drawer_container)
-            self.drawer_container.setParent(target_parent)
+            self.drawer_container.setParent(self._drawer_host)
             self.update_unpinned_position()
 
         self.open_drawer_anim()
@@ -254,14 +254,13 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         order = self.sidebar.get_panel_order()
         for idx, pid in enumerate(order):
             self.drawer_container.reorder_panel(pid, idx)
-        self.layout_order_changed.emit(order)
 
     def set_painting_state(self, is_painting: bool) -> None:
         self._is_painting = is_painting
         if is_painting and not self.is_pinned and self.is_open:
             self.close_drawer()
         if is_painting:
-            self.animator._expand_timer.stop()
+            self.animator.cancel_expand()
 
     def get_panel_order(self) -> List[str]:
         return self.sidebar.get_panel_order()
@@ -274,10 +273,6 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     def panel_titles(self) -> List[tuple]:
         """[(id, título)] na ordem visual; lido pelo diálogo de configuração das docas."""
         return [(pid, self._panels_info.get(pid, {}).get("title", pid)) for pid in self.get_panel_order()]
-
-    @property
-    def panel_data(self) -> Dict[str, dict]:
-        return self._panels_info
 
     def get_state(self) -> dict:
         return DockStateStore.serialize_state(

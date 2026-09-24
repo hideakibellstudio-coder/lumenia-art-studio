@@ -37,7 +37,7 @@ class TestPhase1Layers(unittest.TestCase):
     def setUp(self):
         self.doc = self.mw.dm.new_document(800, 600, "Doc Teste Phase 1")
         self.mw.dm.set_active_document(self.doc.uid)
-        self.panel = self.mw.workspace._layers_panel
+        self.panel = self.mw.workspace.panel("layers")
         self.panel.set_layer_manager(self.doc.layer_manager)
         self.backend = EngineRegistry.instance().get_backend()
         if self.backend:

@@ -281,10 +281,12 @@ def layer_transaction(function):
             with document.history.transaction(backend):
                 return function(host, *args, **kwargs)
         except Exception as exc:
+            # Quem usa o decorador relata a falha na própria interface:
+            # a janela principal (status_bar) ou um colaborador (show_status).
             if hasattr(host, "status_bar"):
                 host.status_bar.showMessage(str(exc), 5000)
-            elif hasattr(host, "_show_status"):
-                host._show_status(str(exc))
+            elif hasattr(host, "show_status"):
+                host.show_status(str(exc))
             else:
                 raise
             return False

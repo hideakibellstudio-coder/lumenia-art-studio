@@ -45,7 +45,7 @@ class LayersPrimaryBox(QWidget):
             layout.addWidget(line)
         
         # --- Grupo 1: Criação e Exclusão ---
-        self._add_btn(layout, "duplicate", tr("layers.duplicate", "Duplicar Camada"), self.controller.duplicate_selection)
+        self._add_btn(layout, "duplicate", tr("layers.duplicate", "Duplicar Camada"), self.controller.duplicate_layer)
         self._add_btn(layout, "clean-layer", tr("layers.clear_layer", "Limpar Camada"), self.controller.grid_clear)
         layout.addSpacing(2)
         add_separator()

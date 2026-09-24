@@ -8,6 +8,7 @@ from .local_layer import LocalLayer
 from .layer_blend_mode import LayerBlendMode
 from .layer_backend_sync import (
     sync_backend_add,
+    sync_backend_add_filter,
     sync_backend_remove,
     sync_backend_duplicate,
     sync_backend_reorder,
@@ -113,61 +114,64 @@ class LocalLayerManager(QtCore.QObject, LayerTreeOpsMixin):
         self._validate_clipping_masks()
         validate_layer_tree(self.layers, self._active_uid)
 
-    def add_layer(self, name=None) -> int:
+    def _new_uid(self) -> int:
         uid = self._next_uid
         self._next_uid += 1
+        return uid
 
-        if not name:
-            name = f"Camada {uid}"
-
-        layer = LocalLayer(uid, name)
-
+    def _insert_above_active(self, layer: LocalLayer) -> int:
+        """Insere logo acima da camada ativa (dentro dela, se for grupo); devolve o índice."""
         active = self.get_active_layer()
         if active:
             idx = self.layers.index(active) + 1
-            if active.is_group:
-                layer.parent_uid = active.uid
-            else:
-                layer.parent_uid = active.parent_uid
+            layer.parent_uid = active.uid if active.is_group else active.parent_uid
             self.layers.insert(idx, layer)
         else:
             idx = len(self.layers)
             self.layers.append(layer)
+        return idx
 
-        self.set_active_layer(uid)
-        sync_backend_add(self, layer, idx, is_group=False)
+    def _announce_added(self, layer: LocalLayer, reason: str) -> None:
         self.layer_added.emit(layer)
         self.order_changed.emit()
-        self.content_changed.emit("add_layer")
+        self.content_changed.emit(reason)
+
+    def add_layer(self, name=None) -> int:
+        uid = self._new_uid()
+        layer = LocalLayer(uid, name or f"Camada {uid}")
+        idx = self._insert_above_active(layer)
+        self.set_active_layer(uid)
+        sync_backend_add(self, layer, idx, is_group=False)
+        self._announce_added(layer, "add_layer")
         return uid
 
     def add_group(self, name="Novo Grupo") -> int:
-        uid = self._next_uid
-        self._next_uid += 1
-
-        if not name:
-            name = f"Grupo {uid}"
-
-        group = LocalLayer(uid, name, is_group=True)
-
-        active = self.get_active_layer()
-        if active:
-            idx = self.layers.index(active) + 1
-            if active.is_group:
-                group.parent_uid = active.uid
-            else:
-                group.parent_uid = active.parent_uid
-            self.layers.insert(idx, group)
-        else:
-            idx = len(self.layers)
-            self.layers.append(group)
-
+        uid = self._new_uid()
+        group = LocalLayer(uid, name or f"Grupo {uid}", is_group=True)
+        idx = self._insert_above_active(group)
         self.set_active_layer(uid)
         sync_backend_add(self, group, idx, is_group=True)
-        self.layer_added.emit(group)
-        self.order_changed.emit()
-        self.content_changed.emit("add_group")
+        self._announce_added(group, "add_group")
         return uid
+
+    def add_filter_layer(self, name: str, filter_type_id: int, params: list) -> int:
+        """Camada de ajuste: entra no modelo e no motor (com filtro e parâmetros) de uma vez.
+
+        Antes de 2026-09-24 o painel de camadas criava a camada no motor e
+        depois pedia ao modelo uma camada comum, marcando `is_filter` à mão.
+        """
+        uid = self._new_uid()
+        layer = LocalLayer(uid, name or f"Ajuste {uid}", is_filter=True)
+        idx = self._insert_above_active(layer)
+        self.set_active_layer(uid)
+        sync_backend_add_filter(self, layer, idx, filter_type_id, params)
+        self._announce_added(layer, "add_filter_layer")
+        return uid
+
+    def request_thumbnails(self, uids=None) -> None:
+        """Pede às views que releiam as miniaturas (os pixels mudaram no motor)."""
+        for uid in (uids if uids is not None else [layer.uid for layer in self.layers]):
+            self.thumbnail_updated.emit(uid)
 
     @property
     def active_index(self) -> int:

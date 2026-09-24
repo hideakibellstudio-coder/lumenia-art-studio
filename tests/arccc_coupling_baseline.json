@@ -200,21 +200,9 @@
   "hasattr": 2
  },
  "plugins/ui/layers_plugin/model.py": {
-  "getattr_literal": 5
+  "getattr_literal": 4
  },
  "plugins/ui/layers_plugin/panel.py": {
-  "foreign_private": 3,
-  "getattr_literal": 1,
-  "hasattr": 1
- },
- "plugins/ui/layers_plugin/panel_actions.py": {
-  "foreign_private": 51
- },
- "plugins/ui/layers_plugin/panel_grid_actions.py": {
-  "foreign_private": 3
- },
- "plugins/ui/layers_plugin/panel_sync.py": {
-  "foreign_private": 11,
   "hasattr": 1
  },
  "plugins/ui/layers_plugin/panel_theme.py": {
@@ -352,7 +340,7 @@
   "hasattr": 4
  },
  "ui/core/document/history.py": {
-  "foreign_private": 3,
+  "foreign_private": 2,
   "getattr_literal": 3,
   "hasattr": 5
  },

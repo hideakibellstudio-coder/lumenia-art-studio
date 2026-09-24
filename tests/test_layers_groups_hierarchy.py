@@ -53,7 +53,6 @@ class TestPhase2Groups(unittest.TestCase):
         self.panel.layer_manager._next_uid = 1
         self.panel.layer_manager._active_uid = None
         self.panel.layer_manager.add_layer("Camada 1")
-        self.panel._native_uids = [l.uid for l in self.panel.layer_manager.layers]
 
     def test_01_default_group_pass_through(self):
         """Valida se todo novo grupo nasce com o modo Atravessar (Pass-Through)."""

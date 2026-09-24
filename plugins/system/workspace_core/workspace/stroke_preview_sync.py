@@ -53,6 +53,4 @@ class StrokePreviewSync(QtCore.QObject):
                 ))
         document = self._document_provider()
         if document is not None:
-            manager = document.layer_manager
-            for layer in manager.layers:
-                manager.thumbnail_updated.emit(layer.uid)
+            document.layer_manager.request_thumbnails()

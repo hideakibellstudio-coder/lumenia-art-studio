@@ -6,7 +6,6 @@ from PySide6 import QtWidgets, QtGui
 from plugins.ui.layers_plugin.paper_texture_dialog import TexturePopup
 from plugins.ui.layers_plugin.paper import TexturePopup as PaperTexturePopup, PaperLayerWidget
 from plugins.ui.layers_plugin.panel import LayersPanel
-from plugins.ui.layers_plugin.panel_actions import handle_delegate_action
 from ui.core.document.local_layer import LocalLayer
 
 
@@ -58,10 +57,15 @@ def test_layers_panel_delegate_actions(qapp):
     dm = DocumentManager.instance()
     for doc in list(dm.documents()):
         dm.close_document(doc.uid)
+    from ui.core.document.layer_manager import LocalLayerManager
     panel = LayersPanel()
-    assert panel.layer_manager is not None
+    assert panel.layer_manager is None  # sem documento o painel não inventa um gerenciador
+    panel.set_layer_manager(LocalLayerManager())
 
-    # Add a test layer
+    # Duas camadas: a de baixo nunca pode ser máscara de recorte (regra do
+    # LocalLayerManager). O setData antigo escrevia direto na camada e este
+    # teste passava violando a regra.
+    panel.add_layer("Base")
     panel.add_layer("Test Layer")
     active: LocalLayer = panel.layer_manager.get_active_layer()
     assert active is not None
@@ -69,20 +73,24 @@ def test_layers_panel_delegate_actions(qapp):
 
     # Test toggle visibility via handle_delegate_action
     orig_vis = active.visible
-    handle_delegate_action(panel, "toggle_visibility", uid)
+    panel.delegate.actionRequested.emit("toggle_visibility", uid)
     assert active.visible != orig_vis
 
     # Test toggle lock
     orig_lock = active.locked
-    handle_delegate_action(panel, "toggle_lock", uid)
+    panel.delegate.actionRequested.emit("toggle_lock", uid)
     assert active.locked != orig_lock
 
     # Test toggle alpha lock
     orig_alpha = active.alpha_locked
-    handle_delegate_action(panel, "toggle_alpha", uid)
+    panel.delegate.actionRequested.emit("toggle_alpha", uid)
     assert active.alpha_locked != orig_alpha
 
     # Test toggle clipping mask
     orig_clip = active.clipping_mask
-    handle_delegate_action(panel, "toggle_clipping_mask", uid)
+    panel.delegate.actionRequested.emit("toggle_clipping_mask", uid)
     assert active.clipping_mask != orig_clip
+
+    base = panel.layer_manager.layers[0]
+    panel.delegate.actionRequested.emit("toggle_clipping_mask", base.uid)
+    assert base.clipping_mask is False

@@ -80,6 +80,20 @@ def sync_backend_add(manager, layer, target_idx: int, is_group: bool = False) ->
     notify_canvas_repaint("add")
 
 
+def sync_backend_add_filter(manager, layer, target_idx: int, filter_type_id: int, params) -> None:
+    """Sincroniza a criação de uma camada de ajuste (filtro + parâmetros) com o motor C++."""
+    backend = get_active_backend(manager)
+    if not backend:
+        return
+    if backend.get_drawing_layer_count() < len(manager.layers):
+        native_idx = backend.add_filter_layer(layer.name, filter_type_id, target_idx)
+        if native_idx >= 0:
+            backend.set_filter_params(native_idx, params)
+    sync_backend_parents(manager)
+    backend.select_layer(manager.active_index)
+    notify_canvas_repaint("add")
+
+
 def sync_backend_remove(manager, c_idx: int) -> None:
     """Sincroniza remoção de camada com o motor C++."""
     backend = get_active_backend(manager)

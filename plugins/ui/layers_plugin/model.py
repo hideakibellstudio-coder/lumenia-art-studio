@@ -28,6 +28,8 @@ class LayerModel(QAbstractItemModel):
     def __init__(self, layer_manager):
         super().__init__()
         self.manager = None
+        self._resetting = False
+        self._is_modifying_structure = False
         self._child_cache = defaultdict(list)
         self._row_cache = {}
         self._parent_uid_cache = {}
@@ -75,6 +77,11 @@ class LayerModel(QAbstractItemModel):
             children.reverse()
             for row, l in enumerate(children):
                 self._row_cache[l.uid] = row
+
+    @property
+    def is_modifying_structure(self) -> bool:
+        """True enquanto linhas são inseridas (a view não deve tratar a seleção como do usuário)."""
+        return self._is_modifying_structure
 
     def row_to_child(self, parent_uid: Optional[int], row: int, layers_list: List = None) -> Optional[Any]:
         if layers_list is None:
@@ -192,34 +199,31 @@ class LayerModel(QAbstractItemModel):
             return False
 
         layer = index.internalPointer()
-        
-        if role == Qt.EditRole:
-            # Renomeação é uma operação de domínio e deve passar pelo
-            # LayersPanel/open_rename_popup, que abre uma transação conjunta
-            # com o motor. O modelo não pode alterar a fonte de verdade
-            # diretamente via edição Qt.
-            return False
-        elif role == ROLE_VISIBLE:
-            layer.visible = value
-        elif role == ROLE_LOCKED:
-            layer.locked = value
-        elif role == ROLE_OPACITY:
-            layer.opacity = value
-        elif role == ROLE_BLEND:
-            layer.blend_mode = value
-        elif role == ROLE_ALPHA_LOCK:
-            layer.alpha_locked = value
-        elif role == ROLE_CLIPPING_MASK:
-            layer.clipping_mask = value
-        elif role == ROLE_COLLAPSED:
-            layer.collapsed = value
-        else:
-            return False
 
-        self.dataChanged.emit(index, index, [role])
-        if role in (ROLE_VISIBLE, ROLE_OPACITY, ROLE_LOCKED) and getattr(layer, 'is_group', False):
-            self._notify_descendants_changed(index)
-        self.manager.layer_property_changed.emit(layer.uid)
+        if role == ROLE_COLLAPSED:
+            # Estado de exibição da árvore: não vai ao motor.
+            layer.collapsed = bool(value)
+            self.dataChanged.emit(index, index, [role])
+            return True
+
+        # Propriedades do documento passam pelo LocalLayerManager (fonte única):
+        # ele sincroniza o motor, marca o documento como modificado e emite
+        # layer_property_changed, que volta aqui como dataChanged. Até
+        # 2026-09-24 este método escrevia direto nos campos da camada e o
+        # painel sincronizava o motor por um segundo caminho.
+        # Renomear (Qt.EditRole) também é domínio: passa pelo painel.
+        setters = {
+            ROLE_VISIBLE: self.manager.set_layer_visibility,
+            ROLE_LOCKED: self.manager.set_layer_lock,
+            ROLE_OPACITY: self.manager.set_layer_opacity,
+            ROLE_BLEND: self.manager.set_layer_blend_mode,
+            ROLE_ALPHA_LOCK: self.manager.set_alpha_lock,
+            ROLE_CLIPPING_MASK: self.manager.set_clipping_mask,
+        }
+        setter = setters.get(role)
+        if setter is None:
+            return False
+        setter(self.manager.layers.index(layer), value)
         return True
 
     def _notify_descendants_changed(self, parent_index):
@@ -324,7 +328,7 @@ class LayerModel(QAbstractItemModel):
                 self._rebuild_structure_cache()
                 self.endInsertRows()
             else:
-                parent_index = self._find_index_by_uid(parent_uid)
+                parent_index = self.find_index_by_uid(parent_uid)
                 if parent_index.isValid():
                     self.beginInsertRows(parent_index, 0, 0)
                     self._rebuild_structure_cache()
@@ -335,7 +339,7 @@ class LayerModel(QAbstractItemModel):
         finally:
             self._is_modifying_structure = False
 
-    def _find_index_by_uid(self, uid):
+    def find_index_by_uid(self, uid):
         if uid is None:
             return QModelIndex()
         
@@ -370,16 +374,27 @@ class LayerModel(QAbstractItemModel):
         return self.index(row, 0, parent_idx)
 
     def _on_order_about_to_change(self):
+        self._resetting = True
         self.beginResetModel()
 
     def _on_order_changed(self):
         self._rebuild_structure_cache()
-        self.endResetModel()
+        if self._resetting:
+            self._resetting = False
+            self.endResetModel()
+        else:
+            # add_layer/add_group avisam order_changed sem order_about_to_change
+            # (as linhas já entraram por layer_added): só a disposição mudou.
+            self.layoutChanged.emit()
 
     def _on_property_changed(self, uid):
-        idx = self._find_index_by_uid(uid)
+        idx = self.find_index_by_uid(uid)
         if idx.isValid():
             self.dataChanged.emit(idx, idx)
+            layer = idx.internalPointer()
+            if layer is not None and layer.is_group:
+                # Visibilidade/opacidade efetivas dos filhos dependem do grupo.
+                self._notify_descendants_changed(idx)
         else:
             self._rebuild_structure_cache()
             self.layoutChanged.emit()

@@ -43,7 +43,14 @@ class TestPhase1Layers(unittest.TestCase):
         if self.backend:
             self.backend.set_active_document_context(self.doc.uid, 800, 600)
         self.facade = self.backend._facade
-        self.panel._synced_uids = [l.uid for l in self.panel.layer_manager.layers]
+
+    def assert_engine_matches_document(self):
+        """Documento (LocalLayerManager) e motor: mesma ordem e mesma camada ativa."""
+        manager = self.panel.layer_manager
+        names = [layer.name for layer in manager.layers]
+        native = [self.facade.get_layer_info(i)["name"] for i in range(self.facade.get_drawing_layer_count())]
+        self.assertEqual(names, native)
+        self.assertEqual(manager.active_index, self.backend.get_active_layer_index())
 
     def tearDown(self):
         if hasattr(self, "doc") and self.doc:
@@ -60,28 +67,28 @@ class TestPhase1Layers(unittest.TestCase):
         self.assertEqual(len(self.panel.layer_manager.layers), initial_py_count + 1)
         self.assertEqual(self.facade.get_drawing_layer_count(), initial_cpp_count + 1)
 
-        # Deleta camada
-        active = self.panel.layer_manager.get_active_layer()
-        self.panel.layer_manager.remove_layer(active.uid)
-        self.panel._sync_to_native_engine("delete", active.uid)
+        self.assert_engine_matches_document()
+
+        # Deleta camada (pelo painel: um único caminho até o motor)
+        self.panel.delete_selection()
         self.assertEqual(len(self.panel.layer_manager.layers), initial_py_count)
         self.assertEqual(self.facade.get_drawing_layer_count(), initial_cpp_count)
+        self.assert_engine_matches_document()
 
     def test_02_alpha_lock_and_clipping_mask(self):
         """Testa alteração de Alpha Lock e Clipping Mask no C++."""
         self.panel.add_layer("Camada Alpha")
         active = self.panel.layer_manager.get_active_layer()
 
-        # Alpha Lock
-        active.alpha_locked = True
-        self.panel._sync_to_native_engine("alpha_lock", active.uid, True)
-        self.assertTrue(active.alpha_locked)
         c_idx = self.panel.layer_manager.layers.index(active)
+
+        # Alpha Lock (botão da grade)
+        self.panel.grid_toggle_alpha()
+        self.assertTrue(active.alpha_locked)
         self.assertTrue(self.facade.is_layer_alpha_locked(c_idx))
 
-        # Clipping Mask
-        active.clipping_mask = True
-        self.panel._sync_to_native_engine("clipping_mask", active.uid, True)
+        # Clipping Mask (ícone do item na árvore)
+        self.panel.delegate.actionRequested.emit("toggle_clipping_mask", active.uid)
         self.assertTrue(active.clipping_mask)
         self.assertTrue(self.facade.is_layer_clipping_mask(c_idx))
 
@@ -95,15 +102,18 @@ class TestPhase1Layers(unittest.TestCase):
         cpp_names_before = [self.facade.get_layer_info(i)["name"] for i in range(self.facade.get_drawing_layer_count())]
         self.assertEqual(py_names_before, cpp_names_before)
 
-        # Reordena no Python (inverte ordem)
+        # Reordena pelo documento (o caminho do arrastar-e-soltar). A ordem e a
+        # camada ativa chegam ao motor sem o painel fazer nada.
         new_uids = [l.uid for l in reversed(self.panel.layer_manager.layers)]
         parent_map = {str(l.uid): l.parent_uid for l in self.panel.layer_manager.layers}
         self.panel.layer_manager.reorder_and_reparent([str(u) for u in new_uids], parent_map)
-        self.panel._sync_to_native_engine("reorder_all")
+        self.assert_engine_matches_document()
 
-        py_names_after = [l.name for l in self.panel.layer_manager.layers]
-        cpp_names_after = [self.facade.get_layer_info(i)["name"] for i in range(self.facade.get_drawing_layer_count())]
-        self.assertEqual(py_names_after, cpp_names_after)
+        # Mover pelo painel também mantém os dois lados iguais.
+        self.panel.move_down()
+        self.assert_engine_matches_document()
+        self.panel.move_up()
+        self.assert_engine_matches_document()
 
     def test_04_merge_layer_down(self):
         """Testa a mesclagem de camadas para baixo C++."""
@@ -115,6 +125,7 @@ class TestPhase1Layers(unittest.TestCase):
         count_after = len(self.panel.layer_manager.layers)
         self.assertEqual(count_after, count_before - 1)
         self.assertEqual(self.facade.get_drawing_layer_count(), count_after)
+        self.assert_engine_matches_document()
 
     def test_05_duplicate_layer_cpp_sync(self):
         """Testa a duplicação de camadas sincronizando vetor nativo C++."""
@@ -130,9 +141,18 @@ class TestPhase1Layers(unittest.TestCase):
         self.assertEqual(py_count_after, py_count_before + 1)
         self.assertEqual(cpp_count_after, cpp_count_before + 1)
 
-        py_names = [l.name for l in self.panel.layer_manager.layers]
-        cpp_names = [self.facade.get_layer_info(i)["name"] for i in range(self.facade.get_drawing_layer_count())]
-        self.assertEqual(py_names, cpp_names)
+        self.assert_engine_matches_document()
+
+    def test_06_filter_layer_is_created_by_the_document(self):
+        """Camada de ajuste nasce no documento e no motor de uma vez, já marcada como filtro."""
+        manager = self.panel.layer_manager
+        uid = manager.add_filter_layer("Ajuste Teste", 1, [0.5, 0.5, 0.5, 0.5])
+        layer = manager.get_layer_by_uid(uid)
+        idx = manager.layers.index(layer)
+        self.assertTrue(layer.is_filter)
+        self.assertTrue(self.backend.is_filter_layer(idx))
+        self.assertEqual(self.backend.get_filter_type(idx), 1)
+        self.assert_engine_matches_document()
 
 
 if __name__ == "__main__":

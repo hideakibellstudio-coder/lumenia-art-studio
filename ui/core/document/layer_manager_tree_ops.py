@@ -8,7 +8,12 @@ import logging
 from typing import Optional
 from .local_layer import LocalLayer
 from .layer_blend_mode import LayerBlendMode
-from .layer_backend_sync import sync_backend_select, sync_backend_parents, perform_reorder_and_reparent
+from .layer_backend_sync import (
+    perform_reorder_and_reparent,
+    sync_backend_parents,
+    sync_backend_reorder_all,
+    sync_backend_select,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +61,19 @@ class LayerTreeOpsMixin:
         return False
 
     def reorder_and_reparent(self, new_order_uids, parent_map):
+        old_uids = [layer.uid for layer in self.layers]
         self.order_about_to_change.emit()
         self.layers = perform_reorder_and_reparent(self.layers, new_order_uids, parent_map)
-        sync_backend_parents(self)
-        sync_backend_select(self, self.active_index)
+        # A nova ordem vai ao motor aqui (fonte única). Até 2026-09-24 só o
+        # painel de camadas fazia isso, ao ouvir order_changed; sem o painel
+        # aberto a ordem de composição divergia do documento, e mesmo com ele
+        # a camada ativa no motor ficava apontando para a posição antiga.
+        permutation = [old_uids.index(layer.uid) for layer in self.layers]
+        if permutation != list(range(len(permutation))):
+            sync_backend_reorder_all(self, permutation)
+        else:
+            sync_backend_parents(self)
+            sync_backend_select(self, self.active_index)
         self.order_changed.emit()
         self._validate_clipping_masks()
         self.validate_integrity()

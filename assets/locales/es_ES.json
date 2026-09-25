@@ -351,6 +351,7 @@
   "layers": {
     "panel_title": "Capas",
     "new_layer": "Nueva Capa",
+    "default_name": "Capa {n}",
     "new_group": "Nuevo Grupo",
     "paper_layer": "Papel de Fondo",
     "opacity": "Opacidad",
@@ -578,6 +579,7 @@
     "presets_title": "PRESETS DE PROJETO",
     "doc_name": "Nombre",
     "untitled_doc": "Sin Título-1",
+    "untitled_name": "Sin Título {n}",
     "canvas_dimensions": "Dimensiones del Lienzo",
     "swap_orientation": "Cambiar Orientación (Horizontal ⤨ Vertical)",
     "resolution": "Resolución",

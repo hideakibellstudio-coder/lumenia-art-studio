@@ -351,6 +351,7 @@
   "layers": {
     "panel_title": "Layers",
     "new_layer": "New Layer",
+    "default_name": "Layer {n}",
     "new_group": "New Group",
     "paper_layer": "Paper Background",
     "opacity": "Opacity",
@@ -578,6 +579,7 @@
     "presets_title": "PROJECT PRESETS",
     "doc_name": "Name",
     "untitled_doc": "Untitled-1",
+    "untitled_name": "Untitled {n}",
     "canvas_dimensions": "Canvas Dimensions",
     "swap_orientation": "Swap Orientation (Landscape ⤨ Portrait)",
     "resolution": "Resolution",

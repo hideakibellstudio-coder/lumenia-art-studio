@@ -24,6 +24,7 @@ from ui.core.plugins.canvas_access import request_canvas_repaint
 from .history import layer_transaction
 from .layer_blend_mode import LayerBlendMode
 from .layer_manager import LocalLayerManager
+from .local_layer import default_layer_name
 
 
 class LayerCommands:
@@ -51,13 +52,13 @@ class LayerCommands:
     @layer_transaction
     def add_layer(self, name: Optional[str] = None) -> None:
         manager = self.layer_manager
-        layer_name = name or f"Camada {len(manager.layers) + 1}"
+        layer_name = name or default_layer_name(len(manager.layers) + 1)
         manager.add_layer(layer_name)
         self.show_status(tr("status.layer_created", "Camada '{name}' criada.", name=layer_name))
 
     @layer_transaction
     def add_group(self, name: Optional[str] = None) -> None:
-        group_name = name or "Novo Grupo"
+        group_name = name or tr("layers.new_group", "Novo Grupo")
         self.layer_manager.add_group(group_name)
         self.show_status(tr("status.group_created", "Grupo '{name}' criado com sucesso.", name=group_name))
 

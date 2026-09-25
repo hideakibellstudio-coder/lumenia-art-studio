@@ -168,7 +168,7 @@ class LayerPropertiesDialog(BaseFramelessDialog):
 
     def get_results(self) -> dict:
         return {
-            "name": self.name_edit.text().strip() or "Camada",
+            "name": self.name_edit.text().strip() or self._name,  # campo vazio mantém o nome atual
             "opacity": self.op_spin.value() / 100.0,
             "blend_mode": self.blend_combo.currentData(),
             "is_visible": self.check_vis.isChecked(),

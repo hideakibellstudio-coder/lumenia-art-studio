@@ -253,7 +253,7 @@ class NewDocumentDialog(BaseFramelessDialog):
     def get_document_params(self) -> Dict[str, Any]:
         """Retorna todos os parâmetros de criação do documento para inicialização do motor."""
         return {
-            "name": self.txt_name.text().strip() or "Sem Título",
+            "name": self.txt_name.text().strip(),  # vazio: o DocumentManager numera ("Sem Título 2")
             "width": self.spn_width.value(),
             "height": self.spn_height.value(),
             "dpi": self.spn_dpi.value(),

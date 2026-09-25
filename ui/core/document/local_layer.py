@@ -9,6 +9,12 @@ from __future__ import annotations
 from PySide6 import QtGui
 
 from ui.core.document.layer_blend_mode import LayerBlendMode
+from ui.infrastructure.i18n import tr
+
+
+def default_layer_name(number: int) -> str:
+    """Nome de camada nova sem nome dado pelo usuário, no idioma atual ("Camada 3", "Layer 3")."""
+    return tr("layers.default_name", "Camada {n}", n=number)
 
 
 class LocalLayer:

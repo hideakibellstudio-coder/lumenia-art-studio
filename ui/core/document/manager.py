@@ -1,5 +1,7 @@
 from PySide6 import QtCore
+from ui.infrastructure.i18n import tr
 from .document import Document
+from .local_layer import default_layer_name
 
 class DocumentManager(QtCore.QObject):
     activeDocumentChanged = QtCore.Signal(object)  # Emite o Document ativo (ou None se todos fechados)
@@ -41,7 +43,7 @@ class DocumentManager(QtCore.QObject):
         self._counter += 1
         uid = f"doc_{self._counter}"
         if not name:
-            name = f"Sem Título {self._counter}"
+            name = tr("dialogs.untitled_name", "Sem Título {n}", n=self._counter)
             
         doc: Document = Document(uid, name, width, height)
         doc.dpi = int(dpi)
@@ -54,7 +56,7 @@ class DocumentManager(QtCore.QObject):
 
         # Garante exatamente uma camada padrão inicial (Camada 1)
         if len(doc.layer_manager.layers) == 0:
-            doc.layer_manager.add_layer("Camada 1")
+            doc.layer_manager.add_layer(default_layer_name(1))
         # A camada criada pelo bootstrap faz parte do estado inicial, não de uma
         # alteração do usuário.
         doc.mark_saved()

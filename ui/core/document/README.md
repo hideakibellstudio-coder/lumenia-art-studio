@@ -22,7 +22,7 @@
 | `layer_blend_mode.py` | LayerBlendMode -- enum canonico para o modo de mesclagem de camadas. |
 | `layer_manager.py` | `LocalLayerManager`: pilha de camadas do documento; toda alteração passa por aqui e é espelhada no motor por `layer_backend_sync`. |
 | `layer_manager_tree_ops.py` | Operações estruturais da pilha de camadas: achatar grupo/imagem, reordenar com reparentamento e substituir a lista inteira (restauração). |
-| `local_layer.py` | ui.core.document.local_layer — Modelo de Camada Local do Lumenia. |
+| `local_layer.py` | `LocalLayer` (camada, grupo ou filtro) e `default_layer_name`, o nome padrão de camada no idioma atual — o mesmo que a ponte dá à camada inicial do motor. |
 | `manager.py` | `DocumentManager` (singleton): documentos abertos, documento ativo e sinais de troca. |
 | `paper_backend_sync.py` | `sync_paper_to_backend`: leva cor, visibilidade, textura e grão do papel do documento ao motor (único escritor fora da restauração). |
 | `recovery.py` | Session-scoped recovery snapshots, independent of the user's saved file. |

@@ -3,6 +3,8 @@
 from __future__ import annotations
 import logging
 
+from ui.core.document.local_layer import default_layer_name
+
 from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase
 
@@ -55,6 +57,12 @@ class AladynMdiMixin(AladynBackendBase):
                 facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
                 facade.set_undo_max_steps(self._undo_max_steps)
                 self._push_render_options(facade)
+                # O motor cria a camada inicial com nome fixo ("Camada 1",
+                # LayerStack.cpp); o documento dá à dele o nome padrão do
+                # idioma (DocumentManager.new_document). Direto na facade:
+                # batizar a camada inicial não é edição e não suja o
+                # documento. Arquivo aberto renomeia tudo em restore.py.
+                facade.set_layer_name(0, default_layer_name(1))
                 if facade:
                     c_tex = facade.get_canvas_texture()
                     if c_tex:

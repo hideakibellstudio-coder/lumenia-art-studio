@@ -351,6 +351,7 @@
   "layers": {
     "panel_title": "レイヤー",
     "new_layer": "新規レイヤー",
+    "default_name": "レイヤー {n}",
     "new_group": "新規グループ",
     "paper_layer": "背景用紙",
     "opacity": "不透明度",
@@ -578,6 +579,7 @@
     "presets_title": "プロジェクトプリセット",
     "doc_name": "名前",
     "untitled_doc": "名称未設定-1",
+    "untitled_name": "名称未設定 {n}",
     "canvas_dimensions": "キャンバスサイズ",
     "swap_orientation": "縦横を入れ替える (横 ⤨ 縦)",
     "resolution": "解像度",

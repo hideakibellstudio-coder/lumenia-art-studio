@@ -48,6 +48,7 @@
 | `test_compositing_characterization.py` | Teste de caracterizacao da composicao: fixa o resultado ATUAL em pixels. |
 | `test_config_manager.py` | Unit Tests for ConfigManager (Lumenia V2 / ARCcC) Valida a persistência em arquivo JSON, isolamento em modo de testes (in-memory), atualização atômica, emissão de sinais e migração transparente do QSettings. |
 | `test_config_schema.py` | Config migration and preservation across incompatible application versions. |
+| `test_default_layer_names.py` | Nome padrão de camada, grupo e documento no idioma da interface (`layers.default_name`, `layers.new_group`, `dialogs.untitled_name`), e a camada inicial do motor com o mesmo nome do documento. |
 | `test_dependency_lock_contract.py` | O lock de dependências do Windows fixa cada pacote resolvido, com hash. |
 | `test_dev_environment.py` | O ambiente da suíte é o do `requirements-dev`: o pytest-qt precisa estar ativo, senão exceção dentro de slot do Qt passa em silêncio (diferença entre o Linux do agente e o Windows do dono em 2026-09-25). |
 | `test_dialogs_i18n.py` | Test Suite: Dialogs & Configuration I18n Retranslation Valida se todos os diálogos de preferências e configurações de sistema acompanham a mudança de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP). |

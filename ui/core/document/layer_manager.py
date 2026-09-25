@@ -2,9 +2,11 @@ from PySide6 import QtCore
 import logging
 from typing import Optional
 
+from ui.infrastructure.i18n import tr
+
 logger = logging.getLogger(__name__)
 
-from .local_layer import LocalLayer
+from .local_layer import LocalLayer, default_layer_name
 from .layer_blend_mode import LayerBlendMode
 from .layer_backend_sync import (
     sync_backend_add,
@@ -136,16 +138,16 @@ class LocalLayerManager(QtCore.QObject, LayerTreeOpsMixin):
 
     def add_layer(self, name=None) -> int:
         uid = self._new_uid()
-        layer = LocalLayer(uid, name or f"Camada {uid}")
+        layer = LocalLayer(uid, name or default_layer_name(uid))
         idx = self._insert_above_active(layer)
         self.set_active_layer(uid)
         sync_backend_add(self, layer, idx, is_group=False)
         self._announce_added(layer, "add_layer")
         return uid
 
-    def add_group(self, name="Novo Grupo") -> int:
+    def add_group(self, name=None) -> int:
         uid = self._new_uid()
-        group = LocalLayer(uid, name or f"Grupo {uid}", is_group=True)
+        group = LocalLayer(uid, name or tr("layers.new_group", "Novo Grupo"), is_group=True)
         idx = self._insert_above_active(group)
         self.set_active_layer(uid)
         sync_backend_add(self, group, idx, is_group=True)

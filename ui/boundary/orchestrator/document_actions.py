@@ -73,7 +73,7 @@ class DocumentActions(ShellActions):
         self._reset_view()
         prof_name = backend.get_color_profile_name(color_prof) if backend else "sRGB"
         self._say(tr("status.doc_created", "Novo documento '{name}' ({w}×{h} px, {dpi} DPI, {profile}) criado.",
-                     name=name, w=w, h=h, dpi=dpi, profile=prof_name), 3000)
+                     name=doc.name, w=w, h=h, dpi=dpi, profile=prof_name), 3000)
 
     # ── Abrir ─────────────────────────────────────────────────────────────
 

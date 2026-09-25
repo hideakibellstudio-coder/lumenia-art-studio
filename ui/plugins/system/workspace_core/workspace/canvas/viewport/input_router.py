@@ -1,20 +1,70 @@
-"""CanvasInputRouter — Routes mouse, tablet, touch and keyboard events to active tool controllers."""
+"""CanvasInputRouter — leva mouse, caneta e toque às ferramentas do canvas.
 
-from typing import Optional, TYPE_CHECKING
-from PySide6 import QtCore, QtGui
+O teclado é do `CanvasKeyRouter` (`key_router.py`), separado em 2026-09-25.
+"""
 
-if TYPE_CHECKING:
-    from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+from typing import Any, Optional, Protocol, runtime_checkable
+from PySide6 import QtCore
+
+
+@runtime_checkable
+class RouterCanvas(Protocol):
+    """O que o roteador do ponteiro usa do canvas (34 membros; o teclado está em
+    `key_router.py`, com contrato próprio).
+
+    Até 2026-09-25 este arquivo importava o `RenderWidget` da pasta mãe só
+    para anotar tipo (o ciclo canvas ↔ viewport). Membro novo usado aqui entra
+    neste contrato; `tests/test_canvas_contracts.py` confere que o
+    `RenderWidget` o cumpre.
+    """
+    active_tool: str
+    drawing: bool
+    is_panning: bool
+    is_space_held: bool
+    is_zoom_dragging: bool
+    last_mouse_pos: QtCore.QPointF
+    zoom_drag_start_pos: QtCore.QPointF
+    pan_x: float
+    pan_y: float
+    zoom: float
+    active_text_editor: Any
+    backend: Any
+    stroke: Any
+    cursor_ctrl: Any
+    eyedrop_ctrl: Any
+    geometry_ctrl: Any
+    selection_ctrl: Any
+    shape_ctrl: Any
+    transform_ctrl: Any
+    strokeStarted: Any
+    strokeFinished: Any
+
+    def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> Any: ...
+    def start_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0,
+                     tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> Any: ...
+    def paint_stroke(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0,
+                     tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> Any: ...
+    def end_stroke(self, screen_x: Optional[float] = None, screen_y: Optional[float] = None) -> Any: ...
+    def publish_view(self, zoom_changed: bool = False, notify_camera: bool = True) -> None: ...
+    def apply_anchored_zoom(self, factor: float, cursor_pos: QtCore.QPointF) -> Any: ...
+    def start_transform_mode(self) -> bool: ...
+    def do_flood_fill(self, screen_x: float, screen_y: float) -> Any: ...
+    def open_text_editor(self, canvas_x: float, canvas_y: float) -> Any: ...
+    def commit_text_overlay(self) -> Any: ...
+    def setCursor(self, cursor: Any) -> None: ...
+    def unsetCursor(self) -> None: ...
+    def update(self) -> None: ...
+
 
 class CanvasInputRouter:
-    """Roteador modular de eventos de ponteiro e teclado para o RenderWidget."""
+    """Roteador dos eventos de ponteiro (apertar, arrastar, soltar) do canvas."""
 
-    def __init__(self, widget):
+    def __init__(self, widget: RouterCanvas):
         self.widget = widget
         self._previous_engine_type: Optional[int] = None
 
     def handle_pointer_press(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
-        w: "RenderWidget" = self.widget
+        w: RouterCanvas = self.widget
         effective_tool = "eraser" if is_eraser_tip else w.active_tool
 
         # ── Navegação de Câmera / Pan (Espaço + Clique Esquerdo ou Botão do Meio) ──
@@ -136,7 +186,7 @@ class CanvasInputRouter:
                 w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
 
     def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
-        w: "RenderWidget" = self.widget
+        w: RouterCanvas = self.widget
         if w.is_panning:
             delta = pos - w.last_mouse_pos
             w.pan_x += delta.x()
@@ -217,7 +267,7 @@ class CanvasInputRouter:
             w.update()
 
     def handle_pointer_release(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, modifiers: QtCore.Qt.KeyboardModifiers):
-        w: "RenderWidget" = self.widget
+        w: RouterCanvas = self.widget
 
         # ── Liberação de Panning / Navegação ──
         if w.is_panning and button in (QtCore.Qt.MiddleButton, QtCore.Qt.LeftButton):
@@ -225,7 +275,7 @@ class CanvasInputRouter:
             if w.is_space_held:
                 w.setCursor(QtCore.Qt.OpenHandCursor)
             else:
-                self._restore_tool_cursor()
+                w.cursor_ctrl.restore_tool_cursor()
             w.update()
             return
 
@@ -236,7 +286,7 @@ class CanvasInputRouter:
 
         if w.is_zoom_dragging:
             w.is_zoom_dragging = False
-            self._restore_tool_cursor()
+            w.cursor_ctrl.restore_tool_cursor()
             return
         if w.transform_ctrl.active and w.transform_ctrl.handle_dragged and button == QtCore.Qt.LeftButton:
             w.transform_ctrl.handle_dragged = None
@@ -273,7 +323,7 @@ class CanvasInputRouter:
                 self._previous_engine_type = None
 
     def update_transform_cursor(self, handle_name: Optional[str]):
-        w: "RenderWidget" = self.widget
+        w: RouterCanvas = self.widget
         if handle_name == "move":
             w.setCursor(QtCore.Qt.SizeAllCursor)
         elif handle_name == "pivot":
@@ -290,105 +340,3 @@ class CanvasInputRouter:
             w.setCursor(QtCore.Qt.SizeHorCursor)
         else:
             w.unsetCursor()
-
-    def handle_key_press(self, event: QtGui.QKeyEvent) -> bool:
-        w: "RenderWidget" = self.widget
-        modifiers = event.modifiers()
-        from ui.core.engine.registry import EngineRegistry
-        from ui.core.shortcut_bindings import ShortcutBindings
-        backend = EngineRegistry.instance().get_backend()
-
-        if w.transform_ctrl.active:
-            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
-                w.commit_transform()
-                return True
-            elif event.key() == QtCore.Qt.Key_Escape:
-                w.cancel_transform()
-                return True
-            elif event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right, QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
-                step = 10.0 if (modifiers & QtCore.Qt.ShiftModifier) else 1.0
-                if event.key() == QtCore.Qt.Key_Left:
-                    w.transform_ctrl.dx -= step
-                elif event.key() == QtCore.Qt.Key_Right:
-                    w.transform_ctrl.dx += step
-                elif event.key() == QtCore.Qt.Key_Up:
-                    w.transform_ctrl.dy -= step
-                elif event.key() == QtCore.Qt.Key_Down:
-                    w.transform_ctrl.dy += step
-                w.update()
-                return True
-
-        if ShortcutBindings.matches("tool_transform", event):
-            w.start_transform_mode()
-            return True
-        if ShortcutBindings.matches("select_deselect", event):
-            if backend:
-                backend.clear_selection()
-                w.selection_ctrl.selection_timer.stop()
-                w.update()
-                return True
-        if ShortcutBindings.matches("select_invert", event):
-            if backend:
-                backend.invert_selection()
-                if backend.has_selection():
-                    w.selection_ctrl.selection_timer.start()
-                w.update()
-                return True
-        if ShortcutBindings.matches("select_all", event):
-            if backend:
-                backend.select_all()
-                w.selection_ctrl.selection_timer.start()
-                w.update()
-                return True
-
-        # ── Barra de Espaço: Ativa navegação de câmera (Mão Livre / Pan) ──
-        if event.key() == QtCore.Qt.Key_Space:
-            if w.active_text_editor and w.active_text_editor.isVisible():
-                return False
-            if event.isAutoRepeat():
-                return True
-            w.is_space_held = True
-            if not w.is_panning and not w.drawing:
-                w.setCursor(QtCore.Qt.OpenHandCursor)
-                w.update()
-            return True
-
-        if event.key() in (QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace):
-            if backend and backend.has_selection():
-                w.strokeStarted.emit()
-                try:
-                    if backend.delete_selection_on_active_layer():
-                        w.update()
-                finally:
-                    w.strokeFinished.emit()
-                return True
-        return False
-
-    def handle_key_release(self, event: QtGui.QKeyEvent) -> bool:
-        """Chamado quando uma tecla é liberada na viewport."""
-        w: "RenderWidget" = self.widget
-        if event.key() == QtCore.Qt.Key_Space:
-            if event.isAutoRepeat():
-                return True
-            w.is_space_held = False
-            if not w.is_panning:
-                self._restore_tool_cursor()
-                w.update()
-            return True
-        return False
-
-    def handle_focus_out(self) -> None:
-        """Chamado na perda de foco para evitar estados presos de teclas modificadoras."""
-        w: "RenderWidget" = self.widget
-        if w.is_space_held:
-            w.is_space_held = False
-            if not w.is_panning:
-                self._restore_tool_cursor()
-                w.update()
-
-    def _restore_tool_cursor(self) -> None:
-        """Sai da navegação (pan/zoom): devolve o cursor da ferramenta ativa."""
-        w: "RenderWidget" = self.widget
-        w.unsetCursor()
-        w.cursor_ctrl.invalidate_cursor_cache()
-        w.update_cursor_shape()

@@ -2,7 +2,8 @@
 
 Compõe colaboradores, cada um dono do próprio estado:
   camera (CameraController) ........ zoom, pan, rotação, espelhamento
-  input_router (CanvasInputRouter) . eventos de ponteiro/teclado → ações
+  input_router (CanvasInputRouter) . eventos de ponteiro → ações
+  key_router (CanvasKeyRouter) ..... teclado → ações
   cursor_ctrl (CanvasCursorController) forma do cursor e anel do pincel
   stroke (CanvasStrokePipeline) .... traço interativo e regiões sujas
   viewport_renderer (ViewportRenderer) pintura e estatísticas de pintura
@@ -32,6 +33,7 @@ from ui.core.state import GeometryState
 
 from .viewport.camera_controller import CameraController
 from .viewport.input_router import CanvasInputRouter
+from .viewport.key_router import CanvasKeyRouter
 from .viewport.camera_proxies import CanvasCameraProxies
 from .viewport.viewport_renderer import ViewportRenderer
 from .viewport.cursor_controller import CanvasCursorController
@@ -69,6 +71,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
 
         self.camera = CameraController(self)
         self.input_router = CanvasInputRouter(self)
+        self.key_router = CanvasKeyRouter(self)
         self.cursor_ctrl = CanvasCursorController(self)
         self.tool_mgr = ToolManager(self, geometry_state)
         # Guias e simetria editadas fora do canvas (painel, menu) redesenham.
@@ -300,7 +303,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         super().enterEvent(e)
 
     def leaveEvent(self, e: QtCore.QEvent):
-        self.input_router.handle_focus_out()
+        self.key_router.handle_focus_out()
         dirty = self.cursor_ctrl.handle_leave(e)
         if dirty: self.update(dirty)
         super().leaveEvent(e)
@@ -380,15 +383,15 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         return super().event(e)
 
     def keyPressEvent(self, e: QtGui.QKeyEvent):
-        if not self.input_router.handle_key_press(e):
+        if not self.key_router.handle_key_press(e):
             super().keyPressEvent(e)
 
     def keyReleaseEvent(self, e: QtGui.QKeyEvent):
-        if not self.input_router.handle_key_release(e):
+        if not self.key_router.handle_key_release(e):
             super().keyReleaseEvent(e)
 
     def focusOutEvent(self, e: QtGui.QFocusEvent):
-        self.input_router.handle_focus_out()
+        self.key_router.handle_focus_out()
         super().focusOutEvent(e)
 
 

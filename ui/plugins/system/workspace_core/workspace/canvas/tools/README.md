@@ -26,6 +26,11 @@
 
 ## Regras
 
+- Não importa o `RenderWidget` (pasta mãe): cada colaborador declara no próprio
+  arquivo o contrato que usa do canvas (`TextCanvas`, `ToolCanvas`), e
+  `tests/test_canvas_contracts.py` confere que o `RenderWidget` cumpre. Membro
+  novo usado entra no contrato. Até 2026-09-25 a anotação de tipo importava a
+  pasta mãe: o ciclo canvas ↔ tools.
 - Opção nova: validada em `ui/core/tool_settings.py`, entregue por
   `apply_tool_settings` — nunca escrita direto no dicionário do controlador por
   quem está de fora.
@@ -38,7 +43,7 @@
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-Os controladores recebem o widget inteiro (dependência de mão dupla com `canvas/`).
+`ToolManager` e `TextToolController` recebem o canvas pelo contrato (`ToolCanvas`, `TextCanvas`); os demais controladores (seleção, forma, transformação, conta-gotas, geometria) recebem o mesmo objeto sem contrato declarado e usam o que precisam dele (sem ciclo de import).
 
 ## Dependências internas
 
@@ -52,6 +57,5 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/geometry`
 - `ui/core/state`
 - `ui/infrastructure/theme`
-- `ui/plugins/system/workspace_core/workspace/canvas`
 - `ui/plugins/system/workspace_core/workspace/canvas/math`
 <!-- /arccc:deps -->

@@ -15,14 +15,34 @@ from __future__ import annotations
 
 import math
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import Any, Optional, Protocol, runtime_checkable
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtGui
 
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
 
-if TYPE_CHECKING:
-    from ..render_widget import RenderWidget
+
+@runtime_checkable
+class StrokeCanvas(Protocol):
+    """O que o traço interativo usa do canvas.
+
+    Até 2026-09-25 este arquivo importava o `RenderWidget` da pasta mãe só
+    para anotar tipo (o ciclo canvas ↔ viewport). Membro novo usado aqui entra
+    neste contrato; `tests/test_canvas_contracts.py` confere que o
+    `RenderWidget` o cumpre.
+    """
+    drawing: bool
+    zoom: float
+    current_brush_radius: float
+    backend: Any
+    cursor_ctrl: Any
+    geometry_ctrl: Any
+    strokeStarted: Any
+    strokeFinished: Any
+
+    def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> Any: ...
+    def canvas_transform(self) -> QtGui.QTransform: ...
+    def update(self, *args: Any) -> None: ...
 
 _MIN_PRESSURE = 0.02
 _DIRTY_MARGIN_PX = 6
@@ -32,7 +52,7 @@ _RING_REFRESH_PX = 2.0
 
 
 class CanvasStrokePipeline:
-    def __init__(self, widget: "RenderWidget") -> None:
+    def __init__(self, widget: StrokeCanvas) -> None:
         self._w = widget
         self.last_draw_pos: Optional[tuple[float, float]] = None
         self.last_end_screen: Optional[QtCore.QPointF] = None

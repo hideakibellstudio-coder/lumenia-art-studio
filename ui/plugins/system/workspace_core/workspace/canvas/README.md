@@ -28,13 +28,12 @@
 
 ## Dívida conhecida (medida em 2026-09-25)
 
-`tools/` e `viewport/` importam o `RenderWidget` desta pasta só para anotar o
-tipo do dono (`if TYPE_CHECKING:` em `tool_manager.py`,
-`text_tool_controller.py`, `canvas_stroke_pipeline.py`, `cursor_controller.py`,
-`input_router.py`, `viewport_renderer.py`): são os dois ciclos pai ↔ filha que
-sobram no pilar Python. Um contrato (Protocol) por colaborador resolveria, mas o
-`input_router.py` usa 37 membros do widget — ele ainda é parte do widget, e o
-passo certo é dividir o `RenderWidget` por responsabilidade antes do contrato.
+Os dois ciclos pai ↔ filha (`tools/` e `viewport/` importavam o
+`RenderWidget` só para anotar tipo) acabaram em 2026-09-25: cada colaborador
+declara o contrato que usa (`tests/test_canvas_contracts.py`). O contrato do
+roteador de ponteiro (`RouterCanvas`) tem 34 membros — ele ainda conhece quase
+todo o widget; estreitá-lo é dividir o `RenderWidget` por responsabilidade, com a
+rede de `tests/test_canvas_input_router.py`.
 
 ## Dependências internas
 

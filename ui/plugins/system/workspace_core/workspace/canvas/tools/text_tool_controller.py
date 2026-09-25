@@ -7,22 +7,36 @@ composição na camada ativa via backend nativo C++ e renderização do texto em
 
 from __future__ import annotations
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui
 from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
-
-if TYPE_CHECKING:
-    from ..render_widget import RenderWidget
 
 from .text_overlay_editor import TextOverlayEditor
 
 logger = logging.getLogger("Workspace.TextTool")
 
 
+@runtime_checkable
+class TextCanvas(Protocol):
+    """O que a ferramenta de texto usa do canvas (que também é o pai do editor).
+
+    Até 2026-09-25 este arquivo importava o `RenderWidget` da pasta mãe só
+    para anotar tipo (o ciclo canvas ↔ tools). Membro novo usado aqui entra
+    neste contrato; `tests/test_canvas_contracts.py` confere que o
+    `RenderWidget` o cumpre.
+    """
+    canvas_w: int
+    canvas_h: int
+    strokeStarted: Any
+    strokeFinished: Any
+
+    def update(self) -> None: ...
+
+
 class TextToolController:
     """Controlador atômico responsável pela ferramenta de texto."""
 
-    def __init__(self, widget: RenderWidget) -> None:
+    def __init__(self, widget: TextCanvas) -> None:
         self.widget = widget
         self.settings = default_tool_settings("text")
         self.active_editor: Optional[TextOverlayEditor] = None
@@ -36,8 +50,7 @@ class TextToolController:
         if self.active_editor:
             self.commit()
         self.active_editor = TextOverlayEditor(self.widget, canvas_x, canvas_y, self.settings)
-        if hasattr(self.widget, "strokeStarted"):
-            self.widget.strokeStarted.emit()
+        self.widget.strokeStarted.emit()
         self.widget.update()
 
     def commit(self) -> None:
@@ -90,8 +103,7 @@ class TextToolController:
             self.active_editor = None
             self.widget.update()
         finally:
-            if hasattr(self.widget, "strokeFinished"):
-                self.widget.strokeFinished.emit()
+            self.widget.strokeFinished.emit()
 
     def cancel(self) -> None:
         if self.active_editor:
@@ -99,5 +111,4 @@ class TextToolController:
             self.active_editor.deleteLater()
             self.active_editor = None
             self.widget.update()
-            if hasattr(self.widget, "strokeFinished"):
-                self.widget.strokeFinished.emit()
+            self.widget.strokeFinished.emit()

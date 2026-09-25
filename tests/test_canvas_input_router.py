@@ -1,4 +1,4 @@
-"""Entrada da caneta e do teclado no canvas: `CanvasInputRouter`.
+"""Entrada da caneta e do teclado no canvas: `CanvasInputRouter` e `CanvasKeyRouter`.
 
 É o caminho mais sensível do produto e tinha 29% de cobertura em 2026-09-25.
 Estes testes usam o `RenderWidget` e o motor nativo reais e conferem, para
@@ -50,7 +50,7 @@ def release(w, x, y, button=Qt.MouseButton.LeftButton, modifiers=NO_MOD):
 def key(w, code, modifiers=NO_MOD, *, auto_repeat=False, release_event=False):
     kind = QtCore.QEvent.Type.KeyRelease if release_event else QtCore.QEvent.Type.KeyPress
     event = QtGui.QKeyEvent(kind, code, modifiers, "", auto_repeat)
-    router = w.input_router
+    router = w.key_router
     return router.handle_key_release(event) if release_event else router.handle_key_press(event)
 
 
@@ -86,7 +86,7 @@ def test_space_plus_left_button_pans_and_space_release_ends_the_mode(canvas):
 
 def test_focus_out_releases_a_stuck_space_key(canvas):
     key(canvas, Qt.Key.Key_Space)
-    canvas.input_router.handle_focus_out()
+    canvas.key_router.handle_focus_out()
     assert not canvas.is_space_held
 
 

@@ -231,6 +231,7 @@ def test_space_key_pan_navigation(qapp):
     rw.cursor_ctrl.handle_enter(QtGui.QEnterEvent(QtCore.QPointF(100, 100), QtCore.QPointF(100, 100), QtCore.QPointF(100, 100)))
 
     router = rw.input_router
+    keys = rw.key_router  # teclado separado do ponteiro em 2026-09-25
 
     # 1. Estado inicial: cursor de precisão
     assert rw.is_space_held is False
@@ -239,7 +240,7 @@ def test_space_key_pan_navigation(qapp):
 
     # 2. Pressiona tecla Espaço -> Ativa cursor de mão aberta (OpenHandCursor)
     press_space = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Space, QtCore.Qt.KeyboardModifier.NoModifier)
-    consumed = router.handle_key_press(press_space)
+    consumed = keys.handle_key_press(press_space)
     assert consumed is True
     assert rw.is_space_held is True
     assert rw.is_panning is False
@@ -278,13 +279,13 @@ def test_space_key_pan_navigation(qapp):
 
     # 6. Solta tecla Espaço -> Restaura cursor da ferramenta ativa
     release_space = QtGui.QKeyEvent(QtCore.QEvent.Type.KeyRelease, QtCore.Qt.Key.Key_Space, QtCore.Qt.KeyboardModifier.NoModifier)
-    consumed = router.handle_key_release(release_space)
+    consumed = keys.handle_key_release(release_space)
     assert consumed is True
     assert rw.is_space_held is False
     assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 
     # 7. Cenário: soltar Espaço DURANTE o arrasto mantém pan até soltar o mouse
-    router.handle_key_press(press_space)
+    keys.handle_key_press(press_space)
     router.handle_pointer_press(
         QtCore.QPointF(100, 100),
         QtCore.Qt.MouseButton.LeftButton,
@@ -292,7 +293,7 @@ def test_space_key_pan_navigation(qapp):
         modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
     )
     assert rw.is_panning is True
-    router.handle_key_release(release_space)  # Solta espaço enquanto ainda arrasta
+    keys.handle_key_release(release_space)  # Solta espaço enquanto ainda arrasta
     assert rw.is_space_held is False
     assert rw.is_panning is True  # Pan continua ativo!
 
@@ -305,9 +306,9 @@ def test_space_key_pan_navigation(qapp):
     assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 
     # 8. Focus out limpa estado de espaço
-    router.handle_key_press(press_space)
+    keys.handle_key_press(press_space)
     assert rw.is_space_held is True
-    router.handle_focus_out()
+    keys.handle_focus_out()
     assert rw.is_space_held is False
     assert rw.cursor().shape() == QtCore.Qt.CursorShape.BitmapCursor
 

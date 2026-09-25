@@ -189,10 +189,10 @@
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/text_tool_controller.py": {
   "getattr_literal": 1,
-  "hasattr": 4
+  "hasattr": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/tool_manager.py": {
-  "hasattr": 5
+  "hasattr": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/transform_tool_controller.py": {
   "hasattr": 6

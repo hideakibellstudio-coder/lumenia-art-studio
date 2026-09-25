@@ -37,6 +37,7 @@
 | `test_brush_state.py` | Contrato de ui/core/state: BrushState (fonte única) e BrushEngineSync (único caminho ao motor). |
 | `test_buffer_contract.py` | Snapshots survive native mutations/destruction; malformed inputs never mutate. |
 | `test_canonical_enums_contract.py` | Contrato dos enums canonicos de Simetria e Reguas -- o motor define, a interface consome. |
+| `test_canvas_contracts.py` | Contratos dos colaboradores do canvas (`RouterCanvas`, `ViewportCanvas`, `StrokeCanvas`, `CursorCanvas`, `TextCanvas`, `ToolCanvas`) cumpridos pelo `RenderWidget`, e catraca "subpasta não importa a mãe" no Python. |
 | `test_canvas_cursor_interactions.py` | Testes de Regressão e Contrato para o Sistema de Cursor do Canvas (ARCcC v2) Valida o comportamento dos cursores de viewport, renderizadores de ferramentas, feedback tátil de pan/zoom e sincronização reativa do raio de pincel. |
 | `test_canvas_input_router.py` | Entrada da caneta e do teclado no canvas (`CanvasInputRouter`) com o `RenderWidget` e o motor reais: pan, zoom por arraste, conta-gotas, balde, varinha, seleções, laço, formas, transformação, traço (ponta borracha, linha com Shift) e teclas. |
 | `test_canvas_overlay_renderer.py` | Sobreposições do canvas (`OverlayRenderer`) desenhadas num QImage: formigas da seleção, prévias de seleção e laço, alças da transformação e do Distorcer, prévia de formas e lupa do conta-gotas. |

@@ -11,7 +11,7 @@ from __future__ import annotations
 import collections
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import Any, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui
 
 from ui.infrastructure.theme.manager import ThemeManager
@@ -23,8 +23,34 @@ from ..renderers.geometry_overlay_renderer import GeometryOverlayRenderer
 from ..renderers.canvas_background_renderer import CanvasBackgroundRenderer
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
 
-if TYPE_CHECKING:
-    from ..render_widget import RenderWidget
+
+
+@runtime_checkable
+class ViewportCanvas(Protocol):
+    """O que a pintura da tela usa do canvas.
+
+    Até 2026-09-25 este arquivo importava o `RenderWidget` da pasta mãe só
+    para anotar tipo (o ciclo canvas ↔ viewport). Membro novo usado aqui entra
+    neste contrato; `tests/test_canvas_contracts.py` confere que o
+    `RenderWidget` o cumpre.
+    """
+    active_tool: str
+    drawing: bool
+    zoom: float
+    canvas_w: int
+    canvas_h: int
+    current_brush_radius: float
+    paper_color: QtGui.QColor
+    paper_visible: bool
+    cursor_ctrl: Any
+    eyedrop_ctrl: Any
+    geometry_ctrl: Any
+    selection_ctrl: Any
+    shape_ctrl: Any
+    transform_ctrl: Any
+
+    def canvas_transform(self) -> QtGui.QTransform: ...
+    def rect(self) -> QtCore.QRect: ...
 
 
 @dataclass
@@ -56,7 +82,7 @@ class ViewportPaintStats:
 class ViewportRenderer:
     """Orquestrador de renderização da viewport (QOpenGLWidget / QWidget)."""
 
-    def __init__(self, widget: "RenderWidget") -> None:
+    def __init__(self, widget: ViewportCanvas) -> None:
         self._w = widget
         self.stats = ViewportPaintStats()
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
@@ -174,7 +200,7 @@ class ViewportRenderer:
                     stats.fps = (len(stats.timestamps) - 1) / dt
 
     @staticmethod
-    def get_canvas_image(widget: "RenderWidget", apply_proofing: bool = True) -> QtGui.QImage | None:
+    def get_canvas_image(widget: ViewportCanvas, apply_proofing: bool = True) -> QtGui.QImage | None:
         composite = QtGui.QImage(widget.canvas_w, widget.canvas_h, QtGui.QImage.Format_RGBA8888)
         composite.fill(widget.paper_color if widget.paper_visible else QtCore.Qt.transparent)
 

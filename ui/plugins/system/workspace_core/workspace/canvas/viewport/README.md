@@ -15,17 +15,24 @@ Criados pelo `RenderWidget` (`camera`, `input_router`, `cursor_ctrl`, `stroke`, 
 | `camera_proxies.py` | CanvasCameraProxies — zoom/pan/rotação/espelhamento do canvas lidos da câmera. |
 | `canvas_stroke_pipeline.py` | CanvasStrokePipeline — ciclo de vida do traço interativo e regiões sujas da tela. |
 | `cursor_controller.py` | CanvasCursorController — Controlador Modular do Cursor no Canvas (ARCcC). |
-| `input_router.py` | CanvasInputRouter — Routes mouse, tablet, touch and keyboard events to active tool controllers. |
+| `input_router.py` | `CanvasInputRouter`: ponteiro (apertar, arrastar, soltar) → ferramentas; contrato `RouterCanvas`. |
+| `key_router.py` | `CanvasKeyRouter`: teclado (espaço, Delete, atalhos de seleção, teclas da transformação); contrato `KeyCanvas`. Separado de `input_router.py` em 2026-09-25. |
 | `pointer_sample.py` | `PointerSample` e `event_time`: posição, pressão, botão, inclinação, rotação, borracha e instante lidos de um evento de mouse ou caneta. |
 | `viewport_renderer.py` | ViewportRenderer — pinta o canvas: papel, pixels do motor, overlays e cursor. |
 
 ## Regras
 
+- Não importa o `RenderWidget` (pasta mãe): cada colaborador declara no próprio
+  arquivo o contrato que usa do canvas (`RouterCanvas`, `KeyCanvas`, `ViewportCanvas`, `StrokeCanvas`, `CursorCanvas`), e
+  `tests/test_canvas_contracts.py` confere que o `RenderWidget` cumpre. Membro
+  novo usado entra no contrato. Até 2026-09-25 a anotação de tipo importava a
+  pasta mãe: o ciclo canvas ↔ viewport.
+
 Cada colaborador é dono do que lê e escreve (ex.: o anel pintado é do `CanvasCursorController`, o fim do último traço é do `CanvasStrokePipeline`). Até 2026-09-24 eram classes de métodos estáticos que escreviam atributos privados do widget.
 
 ## Dívida conhecida (medida em 2026-09-24)
 
-`input_router.py` concentra o roteamento de todas as ferramentas num arquivo só (cadeia de `if`), perto de 400 linhas.
+`input_router.py` concentra o roteamento do ponteiro de todas as ferramentas num arquivo só (cadeia de `if`; `handle_pointer_press` com complexidade 47). O teclado saiu para `key_router.py` em 2026-09-25.
 
 ## Dependências internas
 
@@ -33,7 +40,6 @@ Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
 pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
-- `ui/plugins/system/workspace_core/workspace/canvas`
 - `ui/plugins/system/workspace_core/workspace/canvas/renderers`
 - `ui/core`
 - `ui/core/document`

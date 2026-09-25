@@ -85,9 +85,19 @@ Ordem = ordem recomendada.
     testes de teto passaram a barrar a parede (430–449) em Python e C++, e
     acharam mais um: `tests/test_recording_plugin.py` (434), dividido em motor
     e painel.)*
-11. **`RenderWidget` grande demais.** `input_router.py` usa 37 membros dele;
-    é a causa dos 2 ciclos Python que restam (`canvas` ↔ `tools`/`viewport`,
-    por anotação de tipo). *Pronto:* contrato estreito (`Protocol`) e 0 ciclos.
+11. ~~**`RenderWidget` grande demais.**~~ *(feito em 2026-09-25: cada
+    colaborador do canvas declara no próprio arquivo o contrato que usa —
+    `RouterCanvas` (34 membros), `KeyCanvas` (14), `ViewportCanvas` (16),
+    `StrokeCanvas` (11), `CursorCanvas` (11), `TextCanvas` (5), `ToolCanvas` (5)
+    — e nenhum importa mais o `RenderWidget`: 0 ciclos entre pastas Python do
+    canvas. Com o contrato, o roteador chegou a 443 linhas (parede) e o gancho
+    de pre-commit barrou o commit: o teclado foi para `key_router.py`.
+    `tests/test_canvas_contracts.py` confere que o `RenderWidget` cumpre os seis
+    e é a catraca "subpasta não importa a mãe" do Python; restam 5 pares de
+    módulo solto na pasta mãe (`ui/core/tools.py`, `ui/infrastructure/runtime_paths.py`
+    e afins), listados no teste. Sete `hasattr` de sinal saíram (205 → 198).)*
+    Resta: o contrato do roteador é largo; estreitá-lo é dividir o
+    `RenderWidget` por responsabilidade.
 12. **`hasattr` em telas e diálogos (205 no total).** Maiores: inspetor de
     plugins 17, diálogo de plugins 12, `selection_tool_controller` 11,
     `layer_properties_dialog` 11, `canvas_size_dialog` 11.

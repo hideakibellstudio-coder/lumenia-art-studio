@@ -18,19 +18,40 @@ por três módulos diferentes.
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui
 
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
 
-if TYPE_CHECKING:
-    from ..render_widget import CanvasWidget
+
+@runtime_checkable
+class CursorCanvas(Protocol):
+    """O que o cursor usa do canvas (`tests/test_canvas_cursor_interactions.py`
+    monta um QWidget com só estes campos).
+
+    Até 2026-09-25 este arquivo importava o `RenderWidget` da pasta mãe só
+    para anotar tipo (o ciclo canvas ↔ viewport). Membro novo usado aqui entra
+    neste contrato; `tests/test_canvas_contracts.py` confere que o
+    `RenderWidget` o cumpre.
+    """
+    active_tool: str
+    canvas_w: int
+    canvas_h: int
+    zoom: float
+    is_panning: bool
+    is_space_held: bool
+
+    def canvas_transform(self) -> QtGui.QTransform: ...
+    def cursor(self) -> QtGui.QCursor: ...
+    def setCursor(self, cursor: Any) -> None: ...
+    def unsetCursor(self) -> None: ...
+    def devicePixelRatioF(self) -> float: ...
 
 
 class CanvasCursorController:
     """Controlador atômico responsável pelo cursor do mouse e indicador geométrico de pincel."""
 
-    def __init__(self, widget: "CanvasWidget"):
+    def __init__(self, widget: CursorCanvas):
         self.widget = widget
         self.cursor_in_viewport: bool = False
         self.over_canvas: bool = False
@@ -67,6 +88,12 @@ class CanvasCursorController:
 
         canvas_pt = self._cached_inv_transform.map(pos)
         return (0.0 <= canvas_pt.x() <= float(cw)) and (0.0 <= canvas_pt.y() <= float(ch))
+
+    def restore_tool_cursor(self) -> None:
+        """Sai da navegação (pan/zoom): devolve o cursor da ferramenta ativa."""
+        self.widget.unsetCursor()
+        self.invalidate_cursor_cache()
+        self.update_cursor_shape()
 
     def invalidate_cursor_cache(self) -> None:
         """Invalida o cache de formato para forçar re-sincronização na próxima atualização."""

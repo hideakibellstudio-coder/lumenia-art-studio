@@ -5,7 +5,9 @@ selection, shape, transform, eyedropper, geometry, and text tools.
 Strictly decoupled in compliance with ARCcC v2 (< 200 LOC).
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import Any, Optional, Protocol, runtime_checkable
+
+from PySide6 import QtGui
 
 from ui.core.engine.registry import EngineRegistry
 from ui.core.state import GeometryState
@@ -19,14 +21,30 @@ from .eyedrop_tool_controller import EyedropToolController
 from .geometry_tool_controller import GeometryToolController
 from .text_tool_controller import TextToolController
 
-if TYPE_CHECKING:
-    from ..render_widget import RenderWidget
+
+
+@runtime_checkable
+class ToolCanvas(Protocol):
+    """O que o gerenciador de ferramentas usa do canvas (os controladores que ele
+    cria recebem o mesmo canvas).
+
+    Até 2026-09-25 este arquivo importava o `RenderWidget` da pasta mãe só
+    para anotar tipo (o ciclo canvas ↔ tools). Membro novo usado aqui entra
+    neste contrato; `tests/test_canvas_contracts.py` confere que o
+    `RenderWidget` o cumpre.
+    """
+    active_color: QtGui.QColor
+    strokeStarted: Any
+    strokeFinished: Any
+
+    def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> Any: ...
+    def update(self) -> None: ...
 
 
 class ToolManager:
     """Coordinates canvas tool controllers, settings, and command dispatch."""
 
-    def __init__(self, widget: 'RenderWidget', geometry_state: Optional[GeometryState] = None) -> None:
+    def __init__(self, widget: ToolCanvas, geometry_state: Optional[GeometryState] = None) -> None:
         self.widget = widget
 
         self.selection_ctrl = SelectionToolController(widget)
@@ -138,8 +156,7 @@ class ToolManager:
     # ── Bucket / Flood Fill Commands ──
     def do_flood_fill(self, screen_x: float, screen_y: float) -> None:
         evt = self.widget.to_canvas(screen_x, screen_y, 1.0, 0.0)
-        if hasattr(self.widget, "strokeStarted"):
-            self.widget.strokeStarted.emit()
+        self.widget.strokeStarted.emit()
         try:
             b = EngineRegistry.instance().get_backend()
             if b:
@@ -158,12 +175,10 @@ class ToolManager:
                 if ok:
                     self.widget.update()
         finally:
-            if hasattr(self.widget, "strokeFinished"):
-                self.widget.strokeFinished.emit()
+            self.widget.strokeFinished.emit()
 
     def clear_canvas(self) -> None:
-        if hasattr(self.widget, "strokeStarted"):
-            self.widget.strokeStarted.emit()
+        self.widget.strokeStarted.emit()
         try:
             b = EngineRegistry.instance().get_backend()
             if b and hasattr(b, "clear_canvas"):
@@ -171,5 +186,4 @@ class ToolManager:
             self.shape_ctrl.drag_active = False
             self.widget.update()
         finally:
-            if hasattr(self.widget, "strokeFinished"):
-                self.widget.strokeFinished.emit()
+            self.widget.strokeFinished.emit()

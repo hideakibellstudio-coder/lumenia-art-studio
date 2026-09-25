@@ -112,22 +112,14 @@ class NavigatorControls(QtWidgets.QWidget):
 
     def retranslate_ui(self):
         from ui.infrastructure.i18n import tr
-        if hasattr(self, "t_z"):
-            self.t_z.setText(tr("tools.zoom_in", "Zoom").split()[0])
-        if hasattr(self, "t_r"):
-            self.t_r.setText(tr("dialogs.angle", "Ângulo"))
-        if hasattr(self, "btn_z_minus"):
-            self.btn_z_minus.setToolTip(tr("tools.zoom_out", "Zoom Out"))
-        if hasattr(self, "btn_z_plus"):
-            self.btn_z_plus.setToolTip(tr("tools.zoom_in", "Zoom In"))
-        if hasattr(self, "btn_fit"):
-            self.btn_fit.setToolTip(tr("menu.view.fit_to_screen", "Enquadrar Tela"))
-        if hasattr(self, "btn_reset"):
-            self.btn_reset.setToolTip(tr("menu.image.reset_rotation", "Resetar Rotação"))
-        if hasattr(self, "btn_fliph"):
-            self.btn_fliph.setToolTip(tr("menu.image.flip_h", "Espelhar H"))
-        if hasattr(self, "btn_flipv"):
-            self.btn_flipv.setToolTip(tr("menu.image.flip_v", "Espelhar V"))
+        self.t_z.setText(tr("tools.zoom_in", "Zoom").split()[0])
+        self.t_r.setText(tr("dialogs.angle", "Ângulo"))
+        self.btn_z_minus.setToolTip(tr("tools.zoom_out", "Zoom Out"))
+        self.btn_z_plus.setToolTip(tr("tools.zoom_in", "Zoom In"))
+        self.btn_fit.setToolTip(tr("menu.view.fit_to_screen", "Enquadrar Tela"))
+        self.btn_reset.setToolTip(tr("menu.image.reset_rotation", "Resetar Rotação"))
+        self.btn_fliph.setToolTip(tr("menu.image.flip_h", "Espelhar H"))
+        self.btn_flipv.setToolTip(tr("menu.image.flip_v", "Espelhar V"))
 
     def update_theme(self, theme_name=None):
         from ui.infrastructure.theme.manager import ThemeManager

@@ -181,7 +181,7 @@ class ToolManager:
         self.widget.strokeStarted.emit()
         try:
             b = EngineRegistry.instance().get_backend()
-            if b and hasattr(b, "clear_canvas"):
+            if b:
                 b.clear_canvas()
             self.shape_ctrl.drag_active = False
             self.widget.update()

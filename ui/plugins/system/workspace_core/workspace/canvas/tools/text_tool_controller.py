@@ -90,7 +90,7 @@ class TextToolController:
                 px_bytes = text_rgba.constBits().tobytes()
                 from ui.core.engine.registry import EngineRegistry
                 b = EngineRegistry.instance().get_backend()
-                if b and hasattr(b, "paste_rgba_buffer_on_active_layer") and getattr(b, "available", False):
+                if b and getattr(b, "available", False):
                     b.paste_rgba_buffer_on_active_layer(0, 0, w, h, px_bytes)
                 else:
                     logger.warning(

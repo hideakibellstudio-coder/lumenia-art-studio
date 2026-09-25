@@ -37,7 +37,7 @@ class TransformToolController:
 
     def start_mode(self) -> bool:
         backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "begin_transform"):
+        if not backend:
             return False
 
         if not backend.begin_transform():
@@ -59,8 +59,7 @@ class TransformToolController:
         self.flip_v = False
         self.quad = None
         self.active = True
-        if hasattr(self.widget, "strokeStarted"):
-            self.widget.strokeStarted.emit()
+        self.widget.strokeStarted.emit()
         self.widget.update()
         return True
 
@@ -70,7 +69,7 @@ class TransformToolController:
         backend = EngineRegistry.instance().get_backend()
         if backend and self.quad is not None:
             backend.commit_transform_distort(distort_geometry.flatten(self.quad), interp_mode=self.interp_mode)
-        elif backend and hasattr(backend, "commit_transform"):
+        elif backend:
             backend.commit_transform(
                 dx=self.dx,
                 dy=self.dy,
@@ -87,21 +86,19 @@ class TransformToolController:
         self.source_qimage = None
         self.quad = None
         self.widget.update()
-        if hasattr(self.widget, "strokeFinished"):
-            self.widget.strokeFinished.emit()
+        self.widget.strokeFinished.emit()
 
     def cancel(self):
         if not self.active:
             return
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "cancel_transform"):
+        if backend:
             backend.cancel_transform()
         self.active = False
         self.source_qimage = None
         self.quad = None
         self.widget.update()
-        if hasattr(self.widget, "strokeFinished"):
-            self.widget.strokeFinished.emit()
+        self.widget.strokeFinished.emit()
 
 
     def flip_horizontal(self):

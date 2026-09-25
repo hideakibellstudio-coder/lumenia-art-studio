@@ -34,7 +34,7 @@ class SelectionToolController:
 
     def _on_timer_tick(self):
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "has_selection") and backend.has_selection():
+        if backend and backend.has_selection():
             self.selection_dash_offset = (self.selection_dash_offset + 1.0) % 16.0
             self.widget.update()
         else:
@@ -68,17 +68,16 @@ class SelectionToolController:
         sample_all = bool(self.wand_settings.get("sample_all", True))
 
         ok = False
-        if hasattr(backend, "magic_wand_select"):
-            ok = backend.magic_wand_select(
-                seed_x=wx,
-                seed_y=wy,
-                tolerance=tol,
-                contiguous=contig,
-                expand_px=exp,
-                anti_aliasing=aa,
-                mode=mode,
-                sample_all_layers=sample_all
-            )
+        ok = backend.magic_wand_select(
+            seed_x=wx,
+            seed_y=wy,
+            tolerance=tol,
+            contiguous=contig,
+            expand_px=exp,
+            anti_aliasing=aa,
+            mode=mode,
+            sample_all_layers=sample_all
+        )
 
         if ok and backend.has_selection():
             if not self.selection_timer.isActive():
@@ -144,13 +143,11 @@ class SelectionToolController:
         aa = bool(cfg.get("aa", True))
 
         if self.widget.active_tool == "rect_select":
-            if hasattr(backend, "select_rect"):
-                backend.select_rect(int(x), int(y), int(w), int(h), mode=mode, feather_px=feather_px)
+            backend.select_rect(int(x), int(y), int(w), int(h), mode=mode, feather_px=feather_px)
         elif self.widget.active_tool == "ellipse_select":
-            if hasattr(backend, "select_ellipse"):
-                backend.select_ellipse(int(cx), int(cy), int(rx), int(ry), mode=mode, anti_aliasing=aa, feather_px=feather_px)
+            backend.select_ellipse(int(cx), int(cy), int(rx), int(ry), mode=mode, anti_aliasing=aa, feather_px=feather_px)
 
-        if hasattr(backend, "has_selection") and backend.has_selection():
+        if backend.has_selection():
             if not self.selection_timer.isActive():
                 self.selection_timer.start()
         else:
@@ -186,10 +183,9 @@ class SelectionToolController:
         feather_px = int(cfg.get("feather_px", 0))
         aa = bool(cfg.get("aa", True))
 
-        if hasattr(backend, "select_polygon"):
-            backend.select_polygon(flat_pts, mode=mode, anti_aliasing=aa, feather_px=feather_px)
+        backend.select_polygon(flat_pts, mode=mode, anti_aliasing=aa, feather_px=feather_px)
 
-        if hasattr(backend, "has_selection") and backend.has_selection():
+        if backend.has_selection():
             if not self.selection_timer.isActive():
                 self.selection_timer.start()
         else:
@@ -200,7 +196,7 @@ class SelectionToolController:
     def clear_selection(self) -> None:
         """Limpa a seleção ativa e interrompe o timer de marching ants."""
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "clear_selection"):
+        if backend:
             backend.clear_selection()
         if self.selection_timer.isActive():
             self.selection_timer.stop()
@@ -209,7 +205,7 @@ class SelectionToolController:
     def select_all(self) -> None:
         """Seleciona todo o canvas e inicia a animação de marching ants."""
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "select_all"):
+        if backend:
             backend.select_all()
         if not self.selection_timer.isActive():
             self.selection_timer.start()
@@ -218,7 +214,7 @@ class SelectionToolController:
     def invert_selection(self) -> None:
         """Inverte a seleção ativa e sincroniza o timer de animação."""
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "invert_selection"):
+        if backend:
             backend.invert_selection()
         self._sync_marching_ants(backend)
 
@@ -254,7 +250,7 @@ class SelectionToolController:
 
     def _sync_marching_ants(self, backend) -> None:
         """Liga/desliga o marching ants conforme a seleção existe e repinta."""
-        if backend and hasattr(backend, "has_selection") and backend.has_selection():
+        if backend and backend.has_selection():
             if not self.selection_timer.isActive():
                 self.selection_timer.start()
         elif self.selection_timer.isActive():

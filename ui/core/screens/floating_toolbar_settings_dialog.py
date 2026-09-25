@@ -221,32 +221,29 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
         from ui.infrastructure.i18n import tr
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.floating_toolbar_title", "Configurações da Barra Flutuante"))
-        if hasattr(self, "search_box"):
-            self.search_box.setPlaceholderText(tr("dialogs.floating_toolbar_search", "Buscar ferramenta..."))
-        if hasattr(self, "lbl_insp_title"):
-            self.lbl_insp_title.setText(tr("dialogs.floating_toolbar_heading", "Barra Rápida Flutuante"))
-            self.lbl_insp_meta.setText(tr("dialogs.floating_toolbar_meta", "HUD CONTEXTUAL DE CRIAÇÃO"))
-            self.lbl_prev.setText(tr("dialogs.floating_toolbar_preview", "Pré-Visualização em Tempo Real da Barra:"))
-            self.behavior_group.setTitle(tr("dialogs.floating_toolbar_behavior", "Comportamento & Física Magnética"))
-            self.lbl_master.setText(tr("dialogs.floating_toolbar_show", "Exibir Barra Flutuante no Workspace"))
-            self.lbl_speed.setText(tr("dialogs.floating_toolbar_collapse", "Auto-Recolhimento por Inatividade:"))
-            self.btn_apply.setText(tr("dialogs.save_apply", "Salvar e Aplicar"))
-            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self.search_box.setPlaceholderText(tr("dialogs.floating_toolbar_search", "Buscar ferramenta..."))
+        self.lbl_insp_title.setText(tr("dialogs.floating_toolbar_heading", "Barra Rápida Flutuante"))
+        self.lbl_insp_meta.setText(tr("dialogs.floating_toolbar_meta", "HUD CONTEXTUAL DE CRIAÇÃO"))
+        self.lbl_prev.setText(tr("dialogs.floating_toolbar_preview", "Pré-Visualização em Tempo Real da Barra:"))
+        self.behavior_group.setTitle(tr("dialogs.floating_toolbar_behavior", "Comportamento & Física Magnética"))
+        self.lbl_master.setText(tr("dialogs.floating_toolbar_show", "Exibir Barra Flutuante no Workspace"))
+        self.lbl_speed.setText(tr("dialogs.floating_toolbar_collapse", "Auto-Recolhimento por Inatividade:"))
+        self.btn_apply.setText(tr("dialogs.save_apply", "Salvar e Aplicar"))
+        self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
-        if hasattr(self, "combo_speed"):
-            cur_idx = max(0, self.combo_speed.currentIndex())
-            self.combo_speed.blockSignals(True)
-            self.combo_speed.clear()
-            items = [
-                ("Desativado", tr("dialogs.floating_toolbar_speed_off", "Desativado (Sempre Visível)")),
-                ("Rápido", tr("dialogs.floating_toolbar_speed_fast", "Rápido (2 segundos)")),
-                ("Normal", tr("dialogs.floating_toolbar_speed_normal", "Normal (4 segundos)")),
-                ("Lento", tr("dialogs.floating_toolbar_speed_slow", "Lento (8 segundos)")),
-            ]
-            for canonical, label in items:
-                self.combo_speed.addItem(label, canonical)
-            self.combo_speed.setCurrentIndex(cur_idx)
-            self.combo_speed.blockSignals(False)
+        cur_idx = max(0, self.combo_speed.currentIndex())
+        self.combo_speed.blockSignals(True)
+        self.combo_speed.clear()
+        items = [
+            ("Desativado", tr("dialogs.floating_toolbar_speed_off", "Desativado (Sempre Visível)")),
+            ("Rápido", tr("dialogs.floating_toolbar_speed_fast", "Rápido (2 segundos)")),
+            ("Normal", tr("dialogs.floating_toolbar_speed_normal", "Normal (4 segundos)")),
+            ("Lento", tr("dialogs.floating_toolbar_speed_slow", "Lento (8 segundos)")),
+        ]
+        for canonical, label in items:
+            self.combo_speed.addItem(label, canonical)
+        self.combo_speed.setCurrentIndex(cur_idx)
+        self.combo_speed.blockSignals(False)
 
         for card in self._cards:
             card.retranslate_ui()

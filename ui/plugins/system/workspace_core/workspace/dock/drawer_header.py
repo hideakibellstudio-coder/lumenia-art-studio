@@ -49,8 +49,7 @@ class DrawerHeader(QtWidgets.QWidget):
 
     def retranslate_ui(self):
         from ui.infrastructure.i18n import tr
-        if hasattr(self, "btn_pin"):
-            self.btn_pin.setToolTip(tr("window.pin_dock", "Fixar Doca no Layout (Pin)"))
+        self.btn_pin.setToolTip(tr("window.pin_dock", "Fixar Doca no Layout (Pin)"))
 
     def set_title(self, title: str) -> None:
         self.title_label.setText(title.upper())

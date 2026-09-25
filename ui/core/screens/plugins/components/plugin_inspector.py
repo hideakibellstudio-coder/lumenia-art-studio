@@ -6,7 +6,7 @@ from PySide6 import QtCore, QtWidgets
 from ui.infrastructure.i18n import tr
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.plugins.manager import PluginManager
-from ui.core.plugins.metadata import PluginMetadata
+from ui.core.plugins.metadata import PluginMetadata, PluginType
 from ui.infrastructure.icons import get_icon
 
 
@@ -162,25 +162,16 @@ class PluginDetailsInspector(QtWidgets.QFrame):
 
     def retranslate_ui(self):
         from ui.infrastructure.i18n import tr
-        if hasattr(self, "empty_label"):
-            self.empty_label.setText(tr("plugins.select_plugin", "Selecione um plugin na lista ao lado para visualizar os detalhes."))
-        if hasattr(self, "btn_config"):
-            self.btn_config.setText(f" {tr('plugins.configure', 'Configurações')}")
-        if hasattr(self, "btn_delete"):
-            self.btn_delete.setText(f" {tr('plugins.uninstall', 'Desinstalar Plugin')}")
-        if hasattr(self, "lbl_id_title"):
-            self.lbl_id_title.setText(tr("plugins.id", "Identificador:"))
-        if hasattr(self, "lbl_path_title"):
-            self.lbl_path_title.setText(tr("plugins.path", "Caminho no Disco:"))
-        if hasattr(self, "lbl_type_title"):
-            self.lbl_type_title.setText(tr("plugins.type", "Tipo de Plugin:"))
-        if hasattr(self, "lbl_priority_title"):
-            self.lbl_priority_title.setText(tr("plugins.priority", "Prioridade:"))
-        if hasattr(self, "lbl_deps_title"):
-            self.lbl_deps_title.setText(tr("plugins.deps", "Dependências:"))
-        if hasattr(self, "lbl_desc_title"):
-            self.lbl_desc_title.setText(tr("plugins.desc", "Descrição:"))
-        if hasattr(self, "current_plugin") and self.current_plugin:
+        self.empty_label.setText(tr("plugins.select_plugin", "Selecione um plugin na lista ao lado para visualizar os detalhes."))
+        self.btn_config.setText(f" {tr('plugins.configure', 'Configurações')}")
+        self.btn_delete.setText(f" {tr('plugins.uninstall', 'Desinstalar Plugin')}")
+        self.lbl_id_title.setText(tr("plugins.id", "Identificador:"))
+        self.lbl_path_title.setText(tr("plugins.path", "Caminho no Disco:"))
+        self.lbl_type_title.setText(tr("plugins.type", "Tipo de Plugin:"))
+        self.lbl_priority_title.setText(tr("plugins.priority", "Prioridade:"))
+        self.lbl_deps_title.setText(tr("plugins.deps", "Dependências:"))
+        self.lbl_desc_title.setText(tr("plugins.desc", "Descrição:"))
+        if self.current_plugin:
             self.set_plugin(self.current_plugin, getattr(self, "_is_active", False))
 
     def set_plugin(self, plugin, is_active: bool) -> None:
@@ -204,21 +195,13 @@ class PluginDetailsInspector(QtWidgets.QFrame):
 
         try:
             meta: PluginMetadata = plugin.get_metadata()
-            p_id = meta.id if hasattr(meta, "id") and meta.id else class_name
+            p_id = meta.id or class_name
             p_name = meta.name
             p_version = meta.version
             p_author = meta.author
             p_desc = meta.description
-            if hasattr(meta, "plugin_type"):
-                pt = meta.plugin_type
-                if hasattr(pt, "name"):
-                    p_type = str(pt.name)
-                elif hasattr(pt, "value"):
-                    p_type = str(pt.value)
-                else:
-                    p_type = str(pt)
-            else:
-                p_type = "UI"
+            pt = meta.plugin_type
+            p_type = pt.name if isinstance(pt, PluginType) else str(pt)
             p_deps = ", ".join(meta.dependencies) if meta.dependencies else "Nenhuma"
         except Exception:
             p_id = class_name
@@ -229,11 +212,11 @@ class PluginDetailsInspector(QtWidgets.QFrame):
             p_type = "UI"
             p_deps = "Nenhuma"
 
-        priority = plugin.get_priority() if hasattr(plugin, "get_priority") else 50
+        priority = plugin.get_priority()
         mod = sys.modules.get(plugin.__module__)
         file_path = getattr(mod, "__file__", "Desconhecido") if mod else "Desconhecido"
 
-        icon = plugin.get_icon() if hasattr(plugin, "get_icon") else None
+        icon = plugin.get_icon()
         if icon and not icon.isNull():
             self.det_icon.setPixmap(icon.pixmap(48, 48))
         else:
@@ -272,7 +255,7 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         self.btn_toggle.style().unpolish(self.btn_toggle)
         self.btn_toggle.style().polish(self.btn_toggle)
 
-        self.btn_config.setVisible(hasattr(plugin, "has_settings_ui") and plugin.has_settings_ui())
+        self.btn_config.setVisible(plugin.has_settings_ui())
 
         if is_system:
             self.btn_delete.setEnabled(False)

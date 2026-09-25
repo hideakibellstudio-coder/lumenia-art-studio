@@ -175,25 +175,24 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.dock_title", "Configurações: Barra de Gavetas"))
 
-        if hasattr(self, "lbl_behavior"):
-            self.lbl_behavior.setText(tr("dialogs.dock_behavior", "Comportamento"))
-            self.lbl_collapse.setText(tr("dialogs.dock_collapse_label", "Auto-Recolhimento:"))
-            self.chk_collapse.setText(tr("dialogs.dock_collapse_check", "Recolher barra ao mover o mouse para fora"))
-            self.lbl_speed.setText(tr("dialogs.dock_speed_label", "Velocidade:"))
-            self.lbl_delay.setText(tr("dialogs.dock_delay_label", "Delay (Pílula Hover):"))
-            self.lbl_org.setText(tr("dialogs.dock_panels_org", "Organização dos Painéis"))
-            self.lbl_org_desc.setText(tr("dialogs.dock_panels_org_desc",
-                                         "Clique nas setas para alterar a ordem dos painéis em cada gaveta. "
-                                         "Ou arraste diretamente os botões na sidebar."))
-            self.lbl_left.setText(tr("dialogs.dock_left_drawer", "Gaveta Esquerda"))
-            self.lbl_right.setText(tr("dialogs.dock_right_drawer", "Gaveta Direita"))
-            self.btn_apply.setText(tr("dialogs.apply", "Aplicar"))
-            self.btn_ok.setText(tr("dialogs.ok", "OK"))
-            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
-            self.btn_up_left.setText("▲ " + tr("layers.move_up", "Mover Cima"))
-            self.btn_dn_left.setText("▼ " + tr("layers.move_down", "Mover Baixo"))
-            self.btn_up_right.setText("▲ " + tr("layers.move_up", "Mover Cima"))
-            self.btn_dn_right.setText("▼ " + tr("layers.move_down", "Mover Baixo"))
+        self.lbl_behavior.setText(tr("dialogs.dock_behavior", "Comportamento"))
+        self.lbl_collapse.setText(tr("dialogs.dock_collapse_label", "Auto-Recolhimento:"))
+        self.chk_collapse.setText(tr("dialogs.dock_collapse_check", "Recolher barra ao mover o mouse para fora"))
+        self.lbl_speed.setText(tr("dialogs.dock_speed_label", "Velocidade:"))
+        self.lbl_delay.setText(tr("dialogs.dock_delay_label", "Delay (Pílula Hover):"))
+        self.lbl_org.setText(tr("dialogs.dock_panels_org", "Organização dos Painéis"))
+        self.lbl_org_desc.setText(tr("dialogs.dock_panels_org_desc",
+                                     "Clique nas setas para alterar a ordem dos painéis em cada gaveta. "
+                                     "Ou arraste diretamente os botões na sidebar."))
+        self.lbl_left.setText(tr("dialogs.dock_left_drawer", "Gaveta Esquerda"))
+        self.lbl_right.setText(tr("dialogs.dock_right_drawer", "Gaveta Direita"))
+        self.btn_apply.setText(tr("dialogs.apply", "Aplicar"))
+        self.btn_ok.setText(tr("dialogs.ok", "OK"))
+        self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        self.btn_up_left.setText("▲ " + tr("layers.move_up", "Mover Cima"))
+        self.btn_dn_left.setText("▼ " + tr("layers.move_down", "Mover Baixo"))
+        self.btn_up_right.setText("▲ " + tr("layers.move_up", "Mover Cima"))
+        self.btn_dn_right.setText("▼ " + tr("layers.move_down", "Mover Baixo"))
 
         # Atualiza itens de velocidade preservando seleção
         cur_speed_idx = max(0, self.cbo_speed.currentIndex())

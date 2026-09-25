@@ -192,20 +192,15 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
         from ui.infrastructure.i18n import tr
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.shortcuts_title", "Configurações de Atalhos de Teclado"))
-        if hasattr(self, "txt_search"):
-            self.txt_search.setPlaceholderText(tr('dialogs.search_placeholder', 'Buscar ação ou atalho...'))
-        if hasattr(self, "btn_restore"):
-            self.btn_restore.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
-        if hasattr(self, "btn_cancel"):
-            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
-        if hasattr(self, "btn_save"):
-            self.btn_save.setText(tr("dialogs.save_apply", "Salvar e Aplicar"))
-        if hasattr(self, "table"):
-            self.table.setHorizontalHeaderLabels([
-                tr("dialogs.action_col", "Ação"),
-                tr("dialogs.category_col", "Categoria"),
-                tr("dialogs.shortcut_col", "Atalho")
-            ])
+        self.txt_search.setPlaceholderText(tr('dialogs.search_placeholder', 'Buscar ação ou atalho...'))
+        self.btn_restore.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
+        self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        self.btn_save.setText(tr("dialogs.save_apply", "Salvar e Aplicar"))
+        self.table.setHorizontalHeaderLabels([
+            tr("dialogs.action_col", "Ação"),
+            tr("dialogs.category_col", "Categoria"),
+            tr("dialogs.shortcut_col", "Atalho")
+        ])
         self.category_names = [
             ("Todas", tr("dialogs.tab_all", "Todas")),
             ("Ferramentas", tr("dialogs.tab_tools", "Ferramentas")),
@@ -215,9 +210,8 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
             ("Exibir", tr("menu.view.title", "Exibir")),
             ("Seleção", tr("menu.select.title", "Seleção")),
         ]
-        if hasattr(self, "tab_bar"):
-            for idx, (_, cat_label) in enumerate(self.category_names):
-                self.tab_bar.setTabText(idx, cat_label)
+        for idx, (_, cat_label) in enumerate(self.category_names):
+            self.tab_bar.setTabText(idx, cat_label)
         self._populate_table()
 
     def _populate_table(self):
@@ -366,12 +360,11 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
             }}
             QPushButton:hover {{ background-color: {accent}; color: {text_main}; border-color: {accent}; }}
         """)
-        if hasattr(self, "btn_save"):
-            self.btn_save.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {accent}; color: {text_main}; border: none;
-                    border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold;
-                }}
-                QPushButton:hover {{ background-color: {accent_hover}; }}
-            """)
+        self.btn_save.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {accent}; color: {text_main}; border: none;
+                border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background-color: {accent_hover}; }}
+        """)
         self._populate_table()

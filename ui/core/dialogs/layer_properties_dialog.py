@@ -145,36 +145,26 @@ class LayerPropertiesDialog(BaseFramelessDialog):
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(title)
 
-        if hasattr(self, "lbl_name"):
-            self.lbl_name.setText(f"{tr('dialogs.layer_name', 'Nome da Camada')}:")
-        if hasattr(self, "lbl_op"):
-            self.lbl_op.setText(f"{tr('layers.opacity', 'Opacidade')}:")
-        if hasattr(self, "lbl_blend"):
-            self.lbl_blend.setText(f"{tr('layers.blend_mode', 'Modo de Mesclagem')}:")
+        self.lbl_name.setText(f"{tr('dialogs.layer_name', 'Nome da Camada')}:")
+        self.lbl_op.setText(f"{tr('layers.opacity', 'Opacidade')}:")
+        self.lbl_blend.setText(f"{tr('layers.blend_mode', 'Modo de Mesclagem')}:")
 
-        if hasattr(self, "box_mod"):
-            self.box_mod.setTitle(tr("dialogs.layer_modifiers", "Modificadores Rápidos"))
-        if hasattr(self, "check_vis"):
-            self.check_vis.setText(tr("dialogs.layer_visible", "Camada Visível"))
-        if hasattr(self, "check_alock"):
-            self.check_alock.setText(tr("layers.alpha_lock", "Bloquear Transparência (Alpha Lock)"))
-        if hasattr(self, "check_clip"):
-            self.check_clip.setText(tr("layers.clipping_mask", "Máscara de Corte (Clipping Mask)"))
+        self.box_mod.setTitle(tr("dialogs.layer_modifiers", "Modificadores Rápidos"))
+        self.check_vis.setText(tr("dialogs.layer_visible", "Camada Visível"))
+        self.check_alock.setText(tr("layers.alpha_lock", "Bloquear Transparência (Alpha Lock)"))
+        self.check_clip.setText(tr("layers.clipping_mask", "Máscara de Corte (Clipping Mask)"))
 
-        if hasattr(self, "btn_cancel"):
-            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
-        if hasattr(self, "btn_ok"):
-            self.btn_ok.setText(tr("dialogs.apply", "Aplicar"))
+        self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        self.btn_ok.setText(tr("dialogs.apply", "Aplicar"))
 
-        if hasattr(self, "blend_combo"):
-            cur_data = self.blend_combo.currentData()
-            self.blend_combo.blockSignals(True)
-            self.blend_combo.clear()
-            for mode_id, mode_label in get_blend_modes():
-                self.blend_combo.addItem(mode_label, mode_id)
-                if mode_id == cur_data:
-                    self.blend_combo.setCurrentIndex(self.blend_combo.count() - 1)
-            self.blend_combo.blockSignals(False)
+        cur_data = self.blend_combo.currentData()
+        self.blend_combo.blockSignals(True)
+        self.blend_combo.clear()
+        for mode_id, mode_label in get_blend_modes():
+            self.blend_combo.addItem(mode_label, mode_id)
+            if mode_id == cur_data:
+                self.blend_combo.setCurrentIndex(self.blend_combo.count() - 1)
+        self.blend_combo.blockSignals(False)
 
     def get_results(self) -> dict:
         return {

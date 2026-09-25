@@ -155,14 +155,10 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
         self.setWindowTitle(title)
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(title)
-        if hasattr(self, "title_lbl"):
-            self.title_lbl.setText(tr("filters.gallery", "GALERIA DE FILTROS").upper())
-        if hasattr(self, "search_input"):
-            self.search_input.setPlaceholderText(tr("filters.search_placeholder", "Pesquisar ajuste..."))
-        if hasattr(self, "btn_cancel"):
-            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
-        if hasattr(self, "btn_apply"):
-            self.btn_apply.setText(tr("filters.create_adjustment_layer", "Criar Camada de Ajuste"))
+        self.title_lbl.setText(tr("filters.gallery", "GALERIA DE FILTROS").upper())
+        self.search_input.setPlaceholderText(tr("filters.search_placeholder", "Pesquisar ajuste..."))
+        self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        self.btn_apply.setText(tr("filters.create_adjustment_layer", "Criar Camada de Ajuste"))
 
     def _select_filter(self, fdef: dict) -> None:
         self._active_def = fdef
@@ -263,22 +259,19 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
                 border-color: {accent};
             }}
         """)
-        if hasattr(self, "title_lbl"):
-            self.title_lbl.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_sec};")
-        if hasattr(self, "v_line"):
-            self.v_line.setStyleSheet(f"border: none; background-color: {border}; max-width: 1px;")
-        if hasattr(self, "btn_apply"):
-            self.btn_apply.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {accent};
-                    color: {text_on_accent};
-                    border: none;
-                    border-radius: 6px;
-                    padding: 6px 14px;
-                    font-size: 11px;
-                    font-weight: bold;
-                }}
-                QPushButton:hover {{
-                    background-color: {accent_hover};
-                }}
-            """)
+        self.title_lbl.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_sec};")
+        self.v_line.setStyleSheet(f"border: none; background-color: {border}; max-width: 1px;")
+        self.btn_apply.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {accent};
+                color: {text_on_accent};
+                border: none;
+                border-radius: 6px;
+                padding: 6px 14px;
+                font-size: 11px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {accent_hover};
+            }}
+        """)

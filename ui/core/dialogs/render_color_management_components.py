@@ -157,7 +157,7 @@ class ColorManagementGroup(QtWidgets.QGroupBox):
             return
 
         backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "register_custom_color_profile"):
+        if not backend:
             QtWidgets.QMessageBox.warning(
                 self, tr("messages.warning", "Aviso"),
                 tr("messages.icc_import_unsupported", "O backend ativo não suporta importação dinâmica de perfis."))

@@ -160,11 +160,9 @@ class LayersHeader(QWidget):
 
     def retranslate_ui(self):
         from ui.infrastructure.i18n import tr
-        if hasattr(self, "combo_blend"):
-            self.combo_blend.setToolTip(tr("layers.blend_mode", "Modo de Mesclagem da Camada"))
-        if hasattr(self, "slider_op"):
-            self.slider_op.setToolTip(f"{tr('layers.opacity', 'Opacidade')} (0–100%)")
-            self.slider_op.update()
+        self.combo_blend.setToolTip(tr("layers.blend_mode", "Modo de Mesclagem da Camada"))
+        self.slider_op.setToolTip(f"{tr('layers.opacity', 'Opacidade')} (0–100%)")
+        self.slider_op.update()
 
         # Subscreve ao sistema de temas para auto-atualização
         from ui.infrastructure.theme.manager import ThemeManager

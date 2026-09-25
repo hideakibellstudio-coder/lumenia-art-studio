@@ -131,16 +131,11 @@ class CanvasSizeDialog(BaseFramelessDialog):
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(title)
 
-        if hasattr(self, "curr_lbl"):
-            self.curr_lbl.setText(f"{tr('dialogs.current_dimensions', 'Dimensões Atuais')}: {self.orig_w} × {self.orig_h} px")
-        if hasattr(self, "form_group"):
-            self.form_group.setTitle(tr("dialogs.new_dimensions", "Novas Dimensões"))
-        if hasattr(self, "lbl_w"):
-            self.lbl_w.setText(f"{tr('dialogs.width', 'Largura')}:")
-        if hasattr(self, "lbl_h"):
-            self.lbl_h.setText(f"{tr('dialogs.height', 'Altura')}:")
-        if hasattr(self, "ratio_check"):
-            self.ratio_check.setText(tr("dialogs.keep_proportions", "Manter proporções"))
+        self.curr_lbl.setText(f"{tr('dialogs.current_dimensions', 'Dimensões Atuais')}: {self.orig_w} × {self.orig_h} px")
+        self.form_group.setTitle(tr("dialogs.new_dimensions", "Novas Dimensões"))
+        self.lbl_w.setText(f"{tr('dialogs.width', 'Largura')}:")
+        self.lbl_h.setText(f"{tr('dialogs.height', 'Altura')}:")
+        self.ratio_check.setText(tr("dialogs.keep_proportions", "Manter proporções"))
 
         if hasattr(self, "anchor_group"):
             self.anchor_group.setTitle(tr("dialogs.anchor", "Âncora de Expansão"))
@@ -158,10 +153,8 @@ class CanvasSizeDialog(BaseFramelessDialog):
             self.resample_combo.setCurrentIndex(idx)
             self.resample_combo.blockSignals(False)
 
-        if hasattr(self, "btn_cancel"):
-            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
-        if hasattr(self, "btn_apply"):
-            self.btn_apply.setText(tr("dialogs.resize_btn", "Redimensionar"))
+        self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        self.btn_apply.setText(tr("dialogs.resize_btn", "Redimensionar"))
 
     def _select_anchor(self, row: int, col: int):
         self.selected_anchor = (row, col)

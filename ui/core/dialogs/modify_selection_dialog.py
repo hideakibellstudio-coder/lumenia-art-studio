@@ -93,21 +93,17 @@ class ModifySelectionDialog(BaseFramelessDialog):
             "contract": f"{tr('menu.select.contract', 'Contrair Seleção')} por:",
             "feather": f"{tr('dialogs.feather_radius', 'Raio de Suavização (Feather)')}:"
         }.get(self.mode, f"{tr('dialogs.amount', 'Quantidade')}:")
-        if hasattr(self, "title_lbl"):
-            self.title_lbl.setText(title_text)
+        self.title_lbl.setText(title_text)
 
         tip_text = {
             "expand": tr("dialogs.expand_tip", "Aumenta o perímetro da seleção para fora."),
             "contract": tr("dialogs.contract_tip", "Diminui o perímetro da seleção para dentro."),
             "feather": tr("dialogs.feather_tip", "Cria uma transição suave e gradiente na borda da seleção.")
         }.get(self.mode, "")
-        if hasattr(self, "tip_lbl"):
-            self.tip_lbl.setText(tip_text)
+        self.tip_lbl.setText(tip_text)
 
-        if hasattr(self, "btn_cancel"):
-            self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
-        if hasattr(self, "btn_apply"):
-            self.btn_apply.setText(tr("dialogs.apply", "Aplicar"))
+        self.btn_cancel.setText(tr("dialogs.cancel", "Cancelar"))
+        self.btn_apply.setText(tr("dialogs.apply", "Aplicar"))
 
     def get_pixels(self) -> int:
         return self.spin.value()

@@ -160,7 +160,14 @@ def test_controlador_no_modo_distorcer(monkeypatch):
     backend = _Backend()
     monkeypatch.setattr(mod.EngineRegistry, "instance",
                         classmethod(lambda cls: type("R", (), {"get_backend": lambda self: backend})()))
-    widget = type("W", (), {"update": lambda self: None})()
+    class W(QtCore.QObject):  # o que o controlador usa do canvas (contrato ToolCanvas)
+        strokeStarted = QtCore.Signal()
+        strokeFinished = QtCore.Signal()
+
+        def update(self):
+            pass
+
+    widget = W()
     ctrl: TransformToolController = mod.TransformToolController(widget)
     ctrl.active = True
     ctrl.source_rect = QtCore.QRectF(0, 0, 100, 100)

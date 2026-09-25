@@ -131,16 +131,12 @@ class AboutDialog(BaseFramelessDialog):
         self.setWindowTitle(title)
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(title)
-        if hasattr(self, "lbl_sub"):
-            self.lbl_sub.setText(tr("app.tagline", "Digital Art & Paint Studio • Professional Edition"))
-        if hasattr(self, "lbl_ver"):
-            self.lbl_ver.setText(f"{tr('dialogs.version', 'Versão')} {APP_DISPLAY_VERSION}")
-        if hasattr(self, "spec_labels"):
-            for item in self.spec_labels:
-                lbl_t, key, default = item[0], item[1], item[2]
-                lbl_t.setText(f"{tr(key, default)}:")
-        if hasattr(self, "btn_close"):
-            self.btn_close.setText(tr("dialogs.ok", "OK"))
+        self.lbl_sub.setText(tr("app.tagline", "Digital Art & Paint Studio • Professional Edition"))
+        self.lbl_ver.setText(f"{tr('dialogs.version', 'Versão')} {APP_DISPLAY_VERSION}")
+        for item in self.spec_labels:
+            lbl_t, key, default = item[0], item[1], item[2]
+            lbl_t.setText(f"{tr(key, default)}:")
+        self.btn_close.setText(tr("dialogs.ok", "OK"))
 
     def _apply_theme(self, *args):
         theme = ThemeManager.instance()
@@ -157,13 +153,12 @@ class AboutDialog(BaseFramelessDialog):
         self.lbl_copy.setStyleSheet(f"font-size: 10px; color: {text_sec};")
         self.sep1.setStyleSheet(f"background-color: {border}; border: none; height: 1px; max-height: 1px;")
 
-        if hasattr(self, "spec_labels"):
-            for item in self.spec_labels:
-                lbl_t = item[0]
-                lbl_d = item[3] if len(item) > 3 else None
-                lbl_t.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_main};")
-                if lbl_d:
-                    lbl_d.setStyleSheet(f"font-size: 11px; color: {text_sec};")
+        for item in self.spec_labels:
+            lbl_t = item[0]
+            lbl_d = item[3] if len(item) > 3 else None
+            lbl_t.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {text_main};")
+            if lbl_d:
+                lbl_d.setStyleSheet(f"font-size: 11px; color: {text_sec};")
 
         self.setStyleSheet(f"""
             #InfoCard {{

@@ -2,31 +2,25 @@
  "ui/core/color/cms_engine.py": {
   "getattr_literal": 4
  },
- "ui/core/components/tool_sidebar/sidebar.py": {
-  "hasattr": 2
- },
  "ui/core/dialogs/canvas_size_dialog.py": {
   "getattr_literal": 2,
-  "hasattr": 11
+  "hasattr": 4
  },
  "ui/core/dialogs/layer_properties_dialog.py": {
-  "hasattr": 11
+  "hasattr": 1
  },
  "ui/core/dialogs/modify_selection_dialog.py": {
-  "hasattr": 5
- },
- "ui/core/dialogs/render_color_management_components.py": {
   "hasattr": 1
  },
  "ui/core/dialogs/render_settings_components.py": {
   "getattr_literal": 2,
-  "hasattr": 8
+  "hasattr": 5
  },
  "ui/core/dialogs/render_settings_dialog.py": {
-  "hasattr": 8
+  "hasattr": 2
  },
  "ui/core/dialogs/user_guide_dialog.py": {
-  "hasattr": 4
+  "hasattr": 2
  },
  "ui/core/document/history.py": {
   "foreign_private": 2,
@@ -57,36 +51,29 @@
   "getattr_literal": 2
  },
  "ui/core/screens/about_dialog.py": {
-  "hasattr": 6
- },
- "ui/core/screens/cursor_settings_dialog.py": {
   "hasattr": 1
  },
  "ui/core/screens/curve_window.py": {
-  "hasattr": 4
+  "hasattr": 1
  },
  "ui/core/screens/dock_settings_dialog.py": {
-  "hasattr": 2
+  "hasattr": 1
  },
  "ui/core/screens/filters/filter_adjustment_dialog.py": {
-  "hasattr": 9
+  "hasattr": 2
  },
  "ui/core/screens/floating_toolbar_settings_dialog.py": {
-  "hasattr": 4
+  "hasattr": 1
  },
  "ui/core/screens/keyboard_shortcuts_dialog.py": {
   "getattr_literal": 1,
-  "hasattr": 9
- },
- "ui/core/screens/plugins/components/plugin_card.py": {
-  "hasattr": 4
+  "hasattr": 2
  },
  "ui/core/screens/plugins/components/plugin_inspector.py": {
-  "getattr_literal": 2,
-  "hasattr": 17
+  "getattr_literal": 2
  },
  "ui/core/screens/plugins/dialog.py": {
-  "hasattr": 12
+  "hasattr": 3
  },
  "ui/core/shortcut_bindings.py": {
   "foreign_private": 1
@@ -96,9 +83,6 @@
  },
  "ui/core/widgets/compact_slider.py": {
   "foreign_private": 2
- },
- "ui/core/widgets/shape_dropdown.py": {
-  "hasattr": 1
  },
  "ui/core/widgets/toggle/toggle_switch.py": {
   "foreign_private": 1
@@ -128,20 +112,8 @@
  "ui/plugins/panels/brush_plugin/brush_selector_popup.py": {
   "getattr_literal": 4
  },
- "ui/plugins/panels/brush_plugin/stroke_preview.py": {
-  "hasattr": 1
- },
- "ui/plugins/panels/geometry_plugin/components/advanced_settings_dialog.py": {
-  "hasattr": 6
- },
- "ui/plugins/panels/geometry_plugin/components/geometry_selector.py": {
-  "hasattr": 2
- },
  "ui/plugins/panels/layers_plugin/delegate.py": {
   "hasattr": 1
- },
- "ui/plugins/panels/layers_plugin/header.py": {
-  "hasattr": 2
  },
  "ui/plugins/panels/layers_plugin/model.py": {
   "getattr_literal": 3
@@ -155,9 +127,6 @@
  "ui/plugins/panels/navigator_plugin/components/navigator_preview.py": {
   "foreign_private": 1,
   "hasattr": 2
- },
- "ui/plugins/panels/navigator_plugin/panel.py": {
-  "hasattr": 8
  },
  "ui/plugins/system/workspace_core/workspace/canvas/render_widget.py": {
   "foreign_private": 1,
@@ -177,28 +146,14 @@
  "ui/plugins/system/workspace_core/workspace/canvas/tools/eyedrop_tool_controller.py": {
   "getattr_literal": 1
  },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/selection_tool_controller.py": {
-  "hasattr": 11
- },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/shape_tool_controller.py": {
-  "getattr_literal": 1,
-  "hasattr": 4
+  "getattr_literal": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/text_overlay_editor.py": {
   "getattr_literal": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/text_tool_controller.py": {
-  "getattr_literal": 1,
-  "hasattr": 1
- },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/tool_manager.py": {
-  "hasattr": 1
- },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/transform_tool_controller.py": {
-  "hasattr": 6
- },
- "ui/plugins/system/workspace_core/workspace/dock/drawer_header.py": {
-  "hasattr": 1
+  "getattr_literal": 1
  },
  "ui/plugins/system/workspace_core/workspace/floating_toolbar.py": {
   "foreign_private": 1

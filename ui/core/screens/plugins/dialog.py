@@ -152,26 +152,21 @@ class PluginsWindow(BaseFramelessDialog):
         self.setWindowTitle(tr("plugins.dialog_title", "Gerenciador de Plugins"))
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("plugins.dialog_title", "Gerenciador de Plugins"))
-        if hasattr(self, "lbl_filters"):
-            self.lbl_filters.setText(tr("plugins.filters", "FILTROS"))
-        if hasattr(self, "btn_grp"):
-            mapping = {
-                "all": tr("plugins.filter_all", "Todos os Plugins"),
-                "active": tr("plugins.filter_active", "Ativos"),
-                "inactive": tr("plugins.filter_inactive", "Inativos"),
-                "system": tr("plugins.filter_system", "Sistema")
-            }
-            for btn in self.btn_grp.buttons():
-                fid = btn.property("filter_id")
-                if fid in mapping:
-                    btn.setText(mapping[fid])
-        if hasattr(self, "btn_import"):
-            self.btn_import.setText(f" {tr('plugins.import_zip', 'Importar .zip')}")
-        if hasattr(self, "lbl_heading"):
-            self.lbl_heading.setText(tr("plugins.heading", "Meus Plugins"))
-        if hasattr(self, "txt_search"):
-            self.txt_search.setPlaceholderText(tr("plugins.search_placeholder", "Pesquisar plugins..."))
-        if hasattr(self, "inspector") and hasattr(self.inspector, "retranslate_ui"):
+        self.lbl_filters.setText(tr("plugins.filters", "FILTROS"))
+        mapping = {
+            "all": tr("plugins.filter_all", "Todos os Plugins"),
+            "active": tr("plugins.filter_active", "Ativos"),
+            "inactive": tr("plugins.filter_inactive", "Inativos"),
+            "system": tr("plugins.filter_system", "Sistema")
+        }
+        for btn in self.btn_grp.buttons():
+            fid = btn.property("filter_id")
+            if fid in mapping:
+                btn.setText(mapping[fid])
+        self.btn_import.setText(f" {tr('plugins.import_zip', 'Importar .zip')}")
+        self.lbl_heading.setText(tr("plugins.heading", "Meus Plugins"))
+        self.txt_search.setPlaceholderText(tr("plugins.search_placeholder", "Pesquisar plugins..."))
+        if hasattr(self.inspector, "retranslate_ui"):
             self.inspector.retranslate_ui()
 
     def populate_list(self) -> None:
@@ -252,8 +247,7 @@ class PluginsWindow(BaseFramelessDialog):
             )
 
     def _open_plugin_settings(self, plugin) -> None:
-        if hasattr(plugin, "open_settings_ui"):
-            plugin.open_settings_ui(self)
+        plugin.open_settings_ui(self)
 
     def _apply_filters(self) -> None:
         filter_btn = self.btn_grp.checkedButton()
@@ -387,7 +381,5 @@ class PluginsWindow(BaseFramelessDialog):
                 background-color: {accent_hover};
             }}
         """)
-        if hasattr(self, "lbl_filters"):
-            self.lbl_filters.setStyleSheet(f"font-size: 10px; font-weight: bold; color: {text_sec};")
-        if hasattr(self, "lbl_heading"):
-            self.lbl_heading.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {text_main};")
+        self.lbl_filters.setStyleSheet(f"font-size: 10px; font-weight: bold; color: {text_sec};")
+        self.lbl_heading.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {text_main};")

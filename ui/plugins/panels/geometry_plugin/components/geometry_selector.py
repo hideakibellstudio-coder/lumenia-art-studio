@@ -133,10 +133,8 @@ class GeometrySelectorPopup(QtWidgets.QFrame):
         main_lay.addWidget(self.container)
 
     def retranslate_ui(self):
-        if hasattr(self, "btn_tab_ruler"):
-            self.btn_tab_ruler.setText(tr('geometry.tab_rulers', 'Réguas & Guias'))
-        if hasattr(self, "btn_tab_sym"):
-            self.btn_tab_sym.setText(tr('geometry.tab_symmetries', 'Simetrias'))
+        self.btn_tab_ruler.setText(tr('geometry.tab_rulers', 'Réguas & Guias'))
+        self.btn_tab_sym.setText(tr('geometry.tab_symmetries', 'Simetrias'))
         for idx, btn in enumerate(self.ruler_buttons):
             btn.setText(get_guide_name(idx))
         for idx, btn in enumerate(self.sym_buttons):

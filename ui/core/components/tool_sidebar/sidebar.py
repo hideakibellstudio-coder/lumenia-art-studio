@@ -154,10 +154,8 @@ class ToolSidebar(QtWidgets.QToolBar):
 
     def update_history_state(self, can_undo: bool, can_redo: bool) -> None:
         """Atualiza a disponibilidade visual dos botões de Desfazer e Refazer na barra."""
-        if hasattr(self, "action_undo"):
-            self.action_undo.setEnabled(bool(can_undo))
-        if hasattr(self, "action_redo"):
-            self.action_redo.setEnabled(bool(can_redo))
+        self.action_undo.setEnabled(bool(can_undo))
+        self.action_redo.setEnabled(bool(can_redo))
 
     def _update_scale(self, scale: float | None = None) -> None:
         """Redimensiona os ícones da barra superior de ferramentas de acordo com a escala global."""

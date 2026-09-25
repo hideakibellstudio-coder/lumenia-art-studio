@@ -96,7 +96,7 @@ class ProofingPreviewBar(QtWidgets.QWidget):
         backend = EngineRegistry.instance().get_backend()
         transform = getattr(backend, "transform_rgba_for_profile", None) if backend else None
         sp_active = False
-        if backend and hasattr(backend, "get_soft_proofing"):
+        if backend:
             sp = backend.get_soft_proofing()
             sp_active = bool(sp and getattr(sp, "enabled", False))
 
@@ -190,7 +190,7 @@ class ProfileCard(QtWidgets.QFrame):
 
     def retranslate_ui(self):
         from ui.infrastructure.i18n import tr
-        if hasattr(self, "badge_label") and self.is_active:
+        if self.is_active:
             self.badge_label.setText(tr("render.badge_active", "ATIVO"))
 
     def mousePressEvent(self, event):
@@ -214,8 +214,7 @@ class ProfileCard(QtWidgets.QFrame):
                 color: {text_color};
             }}
         """)
-        if hasattr(self, "cat_label"):
-            self.cat_label.setStyleSheet(f"color: {text_sec}; font-size: 11px;")
+        self.cat_label.setStyleSheet(f"color: {text_sec}; font-size: 11px;")
 
 
 class EnginePipelineGroup(QtWidgets.QGroupBox):

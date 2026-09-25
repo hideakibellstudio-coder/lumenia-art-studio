@@ -32,7 +32,7 @@ class PluginCard(QtWidgets.QFrame):
         # 1. Ícone
         self.icon_label = QtWidgets.QLabel()
         self.icon_label.setFixedSize(40, 40)
-        icon = self.plugin.get_icon() if hasattr(self.plugin, "get_icon") else None
+        icon = self.plugin.get_icon()
         if icon and not icon.isNull():
             self.icon_label.setPixmap(icon.pixmap(40, 40))
         else:
@@ -146,13 +146,11 @@ class PluginCard(QtWidgets.QFrame):
 
     def retranslate_ui(self) -> None:
         from ui.infrastructure.i18n import tr
-        if hasattr(self, "name_label"):
-            name_text = self._p_name
-            if self._is_system:
-                name_text += f" {tr('plugins.system_badge', '[Sistema]')}"
-            self.name_label.setText(name_text)
-        if hasattr(self, "meta_label"):
-            self.meta_label.setText(f"v{self._p_version} {tr('plugins.by', 'por')} {self._p_author}")
-        if hasattr(self, "switch") and self._is_system:
+        name_text = self._p_name
+        if self._is_system:
+            name_text += f" {tr('plugins.system_badge', '[Sistema]')}"
+        self.name_label.setText(name_text)
+        self.meta_label.setText(f"v{self._p_version} {tr('plugins.by', 'por')} {self._p_author}")
+        if self._is_system:
             self.switch.setToolTip(tr("plugins.system_cannot_disable", "Plugins de sistema não podem ser desativados."))
 

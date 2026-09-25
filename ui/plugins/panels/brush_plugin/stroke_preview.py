@@ -80,7 +80,7 @@ class StrokePreview(QtWidgets.QWidget):
 
     def _render_native_preview(self, w: int, h: int) -> QtGui.QImage:
         backend = EngineRegistry.instance().get_backend()
-        if not backend or not hasattr(backend, "render_brush_preview"):
+        if not backend:
             return None
 
         try:

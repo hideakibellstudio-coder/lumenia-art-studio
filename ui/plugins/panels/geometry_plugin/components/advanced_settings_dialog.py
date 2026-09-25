@@ -191,21 +191,15 @@ class AdvancedGeometryDialog(FloatingPanelWindow):
     def retranslate_ui(self):
         from ui.infrastructure.i18n import tr
         self.setWindowTitle(tr("geometry.advanced_dialog_title", "Configurações Avançadas de Geometria"))
-        if hasattr(self, "lbl_title"):
-            self.lbl_title.setText(tr("geometry.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA"))
-        if hasattr(self, "btn_reset"):
-            self.btn_reset.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
-        if hasattr(self, "tab_bar"):
-            self.tab_bar.setTabText(0, tr("geometry.tab_persp6p", "Perspectiva 6P"))
-            self.tab_bar.setTabText(1, tr("geometry.tab_snapping", "Snapping & Guias"))
-            self.tab_bar.setTabText(2, tr("geometry.tab_symmetry", "Simetria"))
+        self.lbl_title.setText(tr("geometry.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA"))
+        self.btn_reset.setText(tr("dialogs.reset_defaults", "Restaurar Padrões"))
+        self.tab_bar.setTabText(0, tr("geometry.tab_persp6p", "Perspectiva 6P"))
+        self.tab_bar.setTabText(1, tr("geometry.tab_snapping", "Snapping & Guias"))
+        self.tab_bar.setTabText(2, tr("geometry.tab_symmetry", "Simetria"))
 
-        if hasattr(self, "curv_page"):
-            self.curv_page.retranslate_ui()
-        if hasattr(self, "snap_page"):
-            self.snap_page.retranslate_ui()
-        if hasattr(self, "sym_page"):
-            self.sym_page.retranslate_ui()
+        self.curv_page.retranslate_ui()
+        self.snap_page.retranslate_ui()
+        self.sym_page.retranslate_ui()
 
     def eventFilter(self, watched, event):
         if event.type() == QtCore.QEvent.Wheel:

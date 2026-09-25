@@ -136,10 +136,8 @@ class UserGuideDialog(BaseFramelessDialog):
         self.setWindowTitle(title)
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(title)
-        if hasattr(self, "lbl_lang"):
-            self.lbl_lang.setText(tr("guide.language", "Idioma do Guia:"))
-        if hasattr(self, "btn_close"):
-            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self.lbl_lang.setText(tr("guide.language", "Idioma do Guia:"))
+        self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
     def _apply_theme(self, *args) -> None:
         tm = ThemeManager.instance()

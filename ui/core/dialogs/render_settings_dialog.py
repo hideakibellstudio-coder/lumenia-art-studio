@@ -239,29 +239,25 @@ class RenderSettingsDialog(BaseFramelessDialog):
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.render_title", "Configurações de Renderização & Modos de Cor"))
 
-        if hasattr(self, "search_box"):
-            self.search_box.setPlaceholderText(tr("dialogs.render_search", "Buscar perfil de cor..."))
+        self.search_box.setPlaceholderText(tr("dialogs.render_search", "Buscar perfil de cor..."))
 
-        if hasattr(self, "combo_cat"):
-            cur_idx = max(0, self.combo_cat.currentIndex())
-            self.combo_cat.blockSignals(True)
-            self.combo_cat.clear()
-            items = [
-                tr("dialogs.render_cat_all", "Todas as Categorias"),
-                tr("dialogs.render_cat_rgb", "Digital (RGB)"),
-                tr("dialogs.render_cat_cmyk", "Impressão (CMYK)"),
-                tr("dialogs.render_cat_a11y", "Acessibilidade"),
-                tr("dialogs.render_cat_physics", "Motor Físico"),
-            ]
-            for label in items:
-                self.combo_cat.addItem(label)
-            self.combo_cat.setCurrentIndex(cur_idx)
-            self.combo_cat.blockSignals(False)
+        cur_idx = max(0, self.combo_cat.currentIndex())
+        self.combo_cat.blockSignals(True)
+        self.combo_cat.clear()
+        items = [
+            tr("dialogs.render_cat_all", "Todas as Categorias"),
+            tr("dialogs.render_cat_rgb", "Digital (RGB)"),
+            tr("dialogs.render_cat_cmyk", "Impressão (CMYK)"),
+            tr("dialogs.render_cat_a11y", "Acessibilidade"),
+            tr("dialogs.render_cat_physics", "Motor Físico"),
+        ]
+        for label in items:
+            self.combo_cat.addItem(label)
+        self.combo_cat.setCurrentIndex(cur_idx)
+        self.combo_cat.blockSignals(False)
 
-        if hasattr(self, "btn_apply"):
-            self.btn_apply.setText(tr("dialogs.render_apply_btn", "Aplicar como Modo Ativo"))
-        if hasattr(self, "btn_close"):
-            self.btn_close.setText(tr("dialogs.close", "Fechar"))
+        self.btn_apply.setText(tr("dialogs.render_apply_btn", "Aplicar como Modo Ativo"))
+        self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
     def _save_switch_settings(self, *args):
         """Salva o estado atual dos switches e limites no QSettings e aplica ao motor."""
@@ -366,7 +362,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
 
     def _on_soft_proof_changed(self, proof_config: dict) -> None:
         backend = EngineRegistry.instance().get_backend()
-        if backend and hasattr(backend, "set_soft_proofing"):
+        if backend:
             backend.set_soft_proofing(proof_config)
             self.preview_bar.update()
 
@@ -382,8 +378,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
             "undo_limit_mb": int(self._saved_cfg.get("undo_limit_mb", 512)),
             "undo_max_steps": int(self._saved_cfg.get("undo_max_steps", 50)),
         }
-        if hasattr(self, "color_group"):
-            cfg.update(self.color_group.get_state())
+        cfg.update(self.color_group.get_state())
         self._saved_cfg = cfg
         save_render_settings(cfg)
 

@@ -111,8 +111,7 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
         outer_layout.addWidget(self.container)
 
     def retranslate_ui(self):
-        if hasattr(self, "lbl_header"):
-            self.lbl_header.setText(tr("shapes.header", "FORMAS GEOMÉTRICAS"))
+        self.lbl_header.setText(tr("shapes.header", "FORMAS GEOMÉTRICAS"))
         for item in SHAPE_ITEMS:
             sid = item["id"]
             if sid in self.buttons:

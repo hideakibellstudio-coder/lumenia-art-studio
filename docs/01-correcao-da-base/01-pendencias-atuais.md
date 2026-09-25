@@ -98,9 +98,18 @@ Ordem = ordem recomendada.
     e afins), listados no teste. Sete `hasattr` de sinal saíram (205 → 198).)*
     Resta: o contrato do roteador é largo; estreitá-lo é dividir o
     `RenderWidget` por responsabilidade.
-12. **`hasattr` em telas e diálogos (205 no total).** Maiores: inspetor de
-    plugins 17, diálogo de plugins 12, `selection_tool_controller` 11,
-    `layer_properties_dialog` 11, `canvas_size_dialog` 11.
+12. ~~**`hasattr` em telas e diálogos (205 no total).**~~ *(feito em
+    2026-09-25: 205 → 62. Saíram as guardas que nenhum caminho precisava:
+    28 sobre o backend (o `EngineBackend` declara todos os métodos
+    perguntados), 13 sobre sinais do canvas (garantidos pelos contratos do
+    item 11), 8 sobre a API de plugin (`IPlugin`/`PluginMetadata` garantem)
+    e 100 `hasattr(self, "widget")` em `retranslate_ui`/`_apply_theme`, que só
+    saíram onde uma análise do código prova que o widget já existe antes da
+    primeira chamada — criação dentro de `if` não conta, e o pytest-qt pegou o
+    único caso que a primeira versão da análise errou.)* Restam 62: 24 guardas
+    de widget criado condicionalmente ou pela classe base, duck typing de cor
+    na ponte, `sys.stdout.reconfigure` e o que os dublês de teste do documento
+    ainda não implementam (`get_layer_info`).
 13. **Cores fixas: 189 em 42 arquivos** (Lei 5). Começar por
     `perspective_grid` (24) e o overlay (18).
 14. **Complexidade: 23 funções acima de 20.** A pior,

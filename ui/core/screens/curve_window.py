@@ -302,24 +302,21 @@ class CurveWindow(BaseFramelessDialog):
         self.setWindowTitle(title)
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(title)
-        if hasattr(self, "pressure_sec"):
-            self.pressure_sec.retranslate(
-                tr("curves.sec_size", "Perfil de Tamanho (Ponta)"),
-                tr("curves.pressure", "Pressão"),
-                tr("curves.output", "Saída")
-            )
-        if hasattr(self, "flow_sec"):
-            self.flow_sec.retranslate(
-                tr("curves.sec_flow", "Perfil de Fluxo (Esmaecer)"),
-                tr("curves.pressure", "Pressão"),
-                tr("curves.output", "Saída")
-            )
-        if hasattr(self, "velocity_sec"):
-            self.velocity_sec.retranslate(
-                tr("curves.sec_velocity", "Modificador por Velocidade"),
-                tr("curves.velocity", "Velocidade"),
-                tr("curves.output", "Saída")
-            )
+        self.pressure_sec.retranslate(
+            tr("curves.sec_size", "Perfil de Tamanho (Ponta)"),
+            tr("curves.pressure", "Pressão"),
+            tr("curves.output", "Saída")
+        )
+        self.flow_sec.retranslate(
+            tr("curves.sec_flow", "Perfil de Fluxo (Esmaecer)"),
+            tr("curves.pressure", "Pressão"),
+            tr("curves.output", "Saída")
+        )
+        self.velocity_sec.retranslate(
+            tr("curves.sec_velocity", "Modificador por Velocidade"),
+            tr("curves.velocity", "Velocidade"),
+            tr("curves.output", "Saída")
+        )
 
     def sync_to_engine(self):
         from ui.core.engine.registry import EngineRegistry

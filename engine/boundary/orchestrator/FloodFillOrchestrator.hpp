@@ -20,8 +20,7 @@ public:
         const selection::SelectionMask& selectionMask,
         const utils::ColorRGBA& bgColor,
         int seedX, int seedY, const utils::ColorRGBA& fillColor,
-        int tolerance, bool contiguous, int expandPx, int gapClosingPx,
-        bool antiAliasing, bool sampleAllLayers
+        int tolerance, bool contiguous, int expandPx, bool sampleAllLayers
     );
 };
 

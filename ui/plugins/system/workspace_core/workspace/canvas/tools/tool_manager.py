@@ -168,8 +168,6 @@ class ToolManager:
                     tolerance=opts["tolerance"],
                     contiguous=opts["contiguous"],
                     expand_px=opts["expand_px"],
-                    gap_closing_px=opts["gap_closing_px"],
-                    aa=opts["aa"],
                     sample_all=opts["sample_all"],
                 )
                 if ok:

@@ -1,4 +1,5 @@
 #include "SelectionOrchestrator.hpp"
+#include "LayerSampleSource.hpp"
 
 namespace aladyn::engine::boundary::orchestrator {
 
@@ -14,34 +15,9 @@ bool SelectionOrchestrator::magicWandSelect(
         return false;
     }
 
-    const canvas::PixelBuffer* srcBuf = nullptr;
-    std::unique_ptr<canvas::PixelBuffer> tempBuf;
-
-    if (sampleAllLayers) {
-        srcBuf = &outputBuffer;
-    } else {
-        const document::Layer* activeLayer = layerStack.getActiveLayer();
-        if (!activeLayer) return false;
-        tempBuf = std::make_unique<canvas::PixelBuffer>(width, height, utils::ColorRGBA{0, 0, 0, 0});
-        const auto& grid = activeLayer->getTileGrid();
-        for (int ty = 0; ty < grid.getTilesCountY(); ++ty) {
-            for (int tx = 0; tx < grid.getTilesCountX(); ++tx) {
-                const auto* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
-                if (tile) {
-                    int px0 = tile->getPixelX();
-                    int py0 = tile->getPixelY();
-                    const auto& tBuf = tile->getBuffer();
-                    for (int py = 0; py < canvas::Tile::TILE_SIZE && py0 + py < height; ++py) {
-                        for (int px = 0; px < canvas::Tile::TILE_SIZE && px0 + px < width; ++px) {
-                            tempBuf->setPixel(px0 + px, py0 + py, tBuf.getPixel(px, py));
-                        }
-                    }
-                }
-            }
-        }
-        srcBuf = tempBuf.get();
-    }
-
+    std::unique_ptr<canvas::PixelBuffer> activeLayerPixels;
+    const canvas::PixelBuffer* srcBuf =
+        LayerSampleSource::select(sampleAllLayers, outputBuffer, layerStack, activeLayerPixels);
     if (!srcBuf) return false;
 
     auto rawMask = selection::SelectionEngine::generateWandMask(

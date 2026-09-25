@@ -22,8 +22,6 @@ public:
         int tolerance,
         bool contiguous,
         int expandPx,
-        int gapClosingPx,
-        bool antiAliasing,
         canvas::TileGrid& targetGrid,
         history::TileUndoManager& undoManager,
         int activeLayerIndex,

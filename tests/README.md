@@ -37,6 +37,7 @@
 | `test_brush_param_contract.py` | Contrato dos parâmetros de pincel — o motor define, a interface exibe. |
 | `test_brush_presets_catalog.py` | Unit tests for Camada 4 - Fase 1: Modularização do Catálogo de Presets de Pincéis. |
 | `test_brush_state.py` | Contrato de ui/core/state: BrushState (fonte única) e BrushEngineSync (único caminho ao motor). |
+| `test_bucket_wand_sample_layers.py` | Balde e varinha: "Todas as Camadas" decide se a região vem da composição ou só da camada ativa (o balde ignorava a opção até 2026-09-25). |
 | `test_buffer_contract.py` | Snapshots survive native mutations/destruction; malformed inputs never mutate. |
 | `test_canonical_enums_contract.py` | Contrato dos enums canonicos de Simetria e Reguas -- o motor define, a interface consome. |
 | `test_canvas_contracts.py` | Contratos dos colaboradores do canvas (`RouterCanvas`, `ViewportCanvas`, `StrokeCanvas`, `CursorCanvas`, `TextCanvas`, `ToolCanvas`) cumpridos pelo `RenderWidget`, e catraca "subpasta não importa a mãe" no Python. |
@@ -79,6 +80,7 @@
 | `test_i18n_keys_exist.py` | Toda chave literal passada a tr(...) ou Text(...) em ui/ (plugins incluídos) existe nos 4 locales. |
 | `test_i18n_localization.py` | Testes Unitários da Infraestrutura de Internacionalização (i18n) — Lumenia V2 (ARCcC). |
 | `test_i18n_system.py` | Unit Tests for I18nManager & Internationalization System (Lumenia V2 / ARCcC) Valida a detecção automática do idioma do SO, fallback universal para en_US, interpolação dinâmica de parâmetros e hot-swap em tempo real sem restart. |
+| `test_known_panel_contracts.py` | Painéis que o workspace liga pelo id (`navigator`, `layers`): os reais cumprem `PANEL_CONTRACTS` e `add_panel` recusa um widget que não cumpre, sem desregistrar o anterior. |
 | `test_lasso_anti_alias.py` | Laço: o Anti-Alias da barra suaviza a borda (cobertura de área igual à do polígono) e, sem ele, o quadrado seleciona exatamente os seus pixels. |
 | `test_layer_blend_mode_contract.py` | Contrato do enum canonico de modo de mesclagem de camadas -- o motor define, a interface consome. |
 | `test_layer_drop_plan.py` | Arrastar e soltar na árvore de camadas: onde as camadas movidas ficam. |

@@ -1,4 +1,5 @@
 #include "FloodFillOrchestrator.hpp"
+#include "LayerSampleSource.hpp"
 #include "../../core/raster/FloodFill.hpp"
 #include "../../core/raster/PixelContext.hpp"
 
@@ -12,19 +13,22 @@ bool FloodFillOrchestrator::floodFill(
     const selection::SelectionMask& selectionMask,
     const utils::ColorRGBA& bgColor,
     int seedX, int seedY, const utils::ColorRGBA& fillColor,
-    int tolerance, bool contiguous, int expandPx, int gapClosingPx,
-    bool antiAliasing, bool /*sampleAllLayers*/
+    int tolerance, bool contiguous, int expandPx, bool sampleAllLayers
 ) {
     document::Layer* activeLayer = layerStack.getActiveLayer();
     if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) return false;
 
     // Clipping Mask é 100% não-destrutivo: o preenchimento atua no espaço da camada e o recorte é visual
     const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &selectionMask };
+    std::unique_ptr<canvas::PixelBuffer> activeLayerPixels;
+    const canvas::PixelBuffer* source =
+        LayerSampleSource::select(sampleAllLayers, outputBuffer, layerStack, activeLayerPixels);
+    if (!source) return false;
 
     undoManager.beginStep("Bucket Fill");
     utils::Rect2D affectedBounds{0, 0, 0, 0};
     bool ok = raster::FloodFill::execute(
-        outputBuffer, seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing,
+        *source, seedX, seedY, fillColor, tolerance, contiguous, expandPx,
         activeLayer->getTileGrid(), undoManager, layerStack.getActiveIndex(), pCtx, affectedBounds
     );
 

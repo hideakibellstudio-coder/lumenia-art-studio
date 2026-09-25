@@ -76,6 +76,19 @@ Suíte depois disso: 940 testes, 935 passam, 5 pulados.
 não estava instalado. Corrigidos o teste e a queda que ele escondia (a barra
 flutuante da gravação deixava o filtro de eventos no canvas); pytest-qt no
 `requirements-dev`. Item 18 das próximas tasks.
+**Por último** (itens 8 a 17 e 19): gancho de pre-commit (`.githooks`);
+testes da entrada da caneta (roteador 29% → 84%, sobreposições 7% → 95%);
+`StrokeOrchestrator.cpp` dividido e a parede dos 450 barrada por teste;
+contratos por colaborador do canvas, 0 ciclos Python no canvas; `hasattr`
+205 → 62; cores fixas 189 → 147; 3 das 9 funções acima de complexidade 20;
+`bridge/infrastructure` com a política de erros; números medidos no documento
+de visão; nomes acessíveis na janela principal 2 → 66; gravação traduzida
+(71 chaves) e nomes padrão de camada/grupo/documento no idioma; contratos dos
+painéis `navigator`/`layers` conferidos em `add_panel`; balde com
+"Todas as Camadas" funcionando e sem os dois parâmetros que o motor ignorava.
+Suíte: 1015 testes, 1010 passam, 5 pulados (Linux, com pytest-qt); 69 de 69
+`.cpp` compilam para Windows (escalar e AVX2). Detalhe de cada item em
+`01-correcao-da-base/01-pendencias-atuais.md`.
 **Números medidos** (Linux, Python 3.11, offscreen, base `9038c9c`): 925
 testes, 920 passam e 5 pulados; cobertura de `ui/` 78%; 114 de 114 pastas
 com README; 0 ciclos entre pastas do motor (eram 9) e 2 no Python (eram 9);

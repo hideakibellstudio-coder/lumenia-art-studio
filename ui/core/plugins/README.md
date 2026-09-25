@@ -19,7 +19,7 @@ ServiceRegistry, PluginManager, PluginContext, WorkspaceService`.
 | `lifecycle.py` | Transações de ativação e encerramento de plugins. |
 | `manager.py` | PluginManager — Gerenciador do Ciclo de Vida e Descoberta de Plugins (Lumenia V2). |
 | `metadata.py` | `PluginMetadata` e `PluginType`: identidade, versão, dependências e tipo do plugin. |
-| `panel_ids.py` | `PanelId` (ids canônicos dos painéis) e `PANEL_TITLES` (título traduzível de cada um). |
+| `panel_ids.py` | `PanelId` (ids canônicos dos painéis), `PANEL_TITLES` (título traduzível de cada um) e `PANEL_CONTRACTS` (o que o workspace exige dos painéis `navigator` e `layers`, conferido em `add_panel`). |
 | `package_installer.py` | PackageInstaller — Instalação, Validação e Desinstalação Segura de Pacotes de Plugins. |
 | `package_manifest.py` | Contrato verificável para pacotes de plugins instalados externamente. |
 | `registry.py` | `ServiceRegistry`: registro de serviços por tipo (casca e plugins registram e pedem implementações). |

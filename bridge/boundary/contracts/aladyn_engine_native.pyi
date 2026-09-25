@@ -114,7 +114,7 @@ class PaintEngineFacade:
     def flood_fill(
         self, seed_x: int, seed_y: int, fill_color: ColorRGBA,
         tolerance: int = 20, contiguous: bool = True, expand_px: int = 1,
-        gap_closing_px: int = 0, anti_aliasing: bool = True, sample_all_layers: bool = True
+        sample_all_layers: bool = True
     ) -> bool: ...
     def magic_wand_select(
         self, seed_x: int, seed_y: int, tolerance: int = 20, contiguous: bool = True,

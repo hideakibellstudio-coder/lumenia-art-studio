@@ -223,13 +223,12 @@ telemetry::RealTimeStrokeMetrics PaintEngineFacade::getTelemetrySnapshot() const
 
 bool PaintEngineFacade::floodFill(
     int seedX, int seedY, const utils::ColorRGBA& fillColor,
-    int tolerance, bool contiguous, int expandPx, int gapClosingPx,
-    bool antiAliasing, bool sampleAllLayers
+    int tolerance, bool contiguous, int expandPx, bool sampleAllLayers
 ) {
     const bool result = orchestrator::FloodFillOrchestrator::floodFill(
         m_outputBuffer, m_layerStack, m_undoManager, m_compositor,
         m_selectionMask, m_canvasTexture.backgroundColor,
-        seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing, sampleAllLayers
+        seedX, seedY, fillColor, tolerance, contiguous, expandPx, sampleAllLayers
     );
     if (result) docContext().touch();
     return result;

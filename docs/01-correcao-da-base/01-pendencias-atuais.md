@@ -62,9 +62,15 @@ Ordem = ordem recomendada.
    usavam saíram de `LayerMerger::mergeLayerDown`, da cadeia do
    `cancelTransform` e de `LargeBrushOptimizer::computeAdaptiveStep`, cujo
    comentário prometia "modulação por velocidade" que nunca existiu.)*
-   Resta: o balde recebe `gapClosingPx` e `antiAliasing` e não usa; nenhuma
-   tela oferece as duas opções e o valor só atravessa as camadas (marcados
-   `[[maybe_unused]]` em `FloodFill.cpp`). Remover do contrato ou implementar.
+   *(Depois, no mesmo dia: `gapClosingPx` e `antiAliasing` do balde, que
+   nenhuma tela oferecia e o motor não usava, saíram do contrato inteiro —
+   motor, ponte, `.pyi`, backend Python e configurações da ferramenta; uma
+   configuração salva com essas chaves é ignorada pelo normalizador. No
+   caminho apareceu um terceiro parâmetro ignorado, esse visível: a caixa
+   "Todas as Camadas" do balde. O balde lia sempre a imagem composta; agora
+   ele e a varinha leem pelo mesmo `LayerSampleSource`
+   (`engine/boundary/orchestrator`). `tests/test_bucket_wand_sample_layers.py`
+   reprovava no motor antigo.)*
 7. ~~**Laço ignora o Anti-Alias.**~~ *(feito em 2026-09-25: cobertura de
    área no motor, 4 linhas de varredura por pixel com a parte horizontal
    exata; sem suavização, o fim de cada trecho deixou de ser inclusivo — o
@@ -165,10 +171,29 @@ Ordem = ordem recomendada.
     derrubar o app. Agora a barra solta o canvas quando o painel é desligado;
     o pytest-qt entrou no `requirements-dev` e `tests/test_dev_environment.py`
     falha se ele faltar.)*
-19. **Restos já conhecidos:** o plugin de gravação não tem tradução (~70
-    textos); nome padrão de camada nova em português; Prova de Cores global e
-    fora do arquivo; `add_panel` conhece os ids `navigator`/`layers`;
-    persistência das gavetas (decisão do usuário).
+19. **Restos já conhecidos.** *(2026-09-25: três feitos; o resto é decisão
+    do usuário.)*
+    - ~~Gravação sem tradução.~~ 71 chaves `recording.*` nos 4 idiomas; painel
+      e barra flutuante se refazem ao trocar o idioma. Os combos guardavam o
+      valor no texto (o motor procurava "1080p" no rótulo, a exportação
+      procurava "MP4"); agora no dado do item. A suíte passou a pôr cada teste
+      em pt_BR (`tests/conftest.py`): sem preferência salva o idioma segue o
+      sistema, e os testes que conferem texto reprovavam num sistema em
+      inglês (o Linux do agente, um runner do CI).
+    - ~~Nome padrão em português.~~ Camada, grupo e documento sem nome vêm de
+      `layers.default_name`, `layers.new_group` e `dialogs.untitled_name`
+      (`default_layer_name` em `ui/core/document/local_layer.py`). O motor
+      cria a camada inicial com o nome fixo "Camada 1" (C++); a ponte dá a ela
+      o mesmo nome do documento, sem sujá-lo.
+    - ~~`add_panel` conhece os ids `navigator`/`layers`.~~ Continua ligando os
+      dois pelo id (levar a ligação aos plugins alargaria o `WorkspaceService`
+      em ~10 membros por dois painéis), mas o que eles precisam ter está
+      declarado em `PANEL_CONTRACTS` (`ui/core/plugins/panel_ids.py`) e
+      `add_panel` recusa, antes de registrar, um widget que não cumpre.
+      `tests/test_known_panel_contracts.py`.
+    - **Decisão do usuário** (muda o produto ou o formato do arquivo): Prova
+      de Cores por documento e salva no arquivo (hoje é uma só, global); lembrar
+      as gavetas abertas entre sessões.
 
 ---
 

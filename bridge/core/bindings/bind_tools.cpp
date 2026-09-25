@@ -9,12 +9,11 @@ void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
     facade
         // Preenchimento (Flood Fill / Balde de Tinta Nativo)
         .def("flood_fill", [](boundary::PaintEngineFacade& self, int seedX, int seedY, const utils::ColorRGBA& fillColor,
-                              int tolerance, bool contiguous, int expandPx, int gapClosingPx, bool antiAliasing, bool sampleAllLayers) {
-            return self.floodFill(seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing, sampleAllLayers);
+                              int tolerance, bool contiguous, int expandPx, bool sampleAllLayers) {
+            return self.floodFill(seedX, seedY, fillColor, tolerance, contiguous, expandPx, sampleAllLayers);
         }, py::arg("seed_x"), py::arg("seed_y"), py::arg("fill_color"),
            py::arg("tolerance") = 20, py::arg("contiguous") = true,
-           py::arg("expand_px") = 1, py::arg("gap_closing_px") = 0,
-           py::arg("anti_aliasing") = true, py::arg("sample_all_layers") = true)
+           py::arg("expand_px") = 1, py::arg("sample_all_layers") = true)
         // Desfazer / Refazer
         .def("undo", &boundary::PaintEngineFacade::undo)
         .def("redo", &boundary::PaintEngineFacade::redo)

@@ -160,15 +160,13 @@ class AladynStrokeMixin(AladynBackendBase):
         tolerance: int = 20,
         contiguous: bool = True,
         expand_px: int = 1,
-        gap_closing_px: int = 0,
-        anti_aliasing: bool = True,
         sample_all_layers: bool = True,
     ) -> bool:
         if self._facade and self._native:
             c = to_native_color_rgba(self._native, fill_color)
             res = self._facade.flood_fill(
                 int(seed_x), int(seed_y), c, int(tolerance), bool(contiguous),
-                int(expand_px), int(gap_closing_px), bool(anti_aliasing), bool(sample_all_layers)
+                int(expand_px), bool(sample_all_layers)
             )
             if res:
                 self._mark_document_dirty("flood_fill")
@@ -177,8 +175,7 @@ class AladynStrokeMixin(AladynBackendBase):
 
     def fill_area(
         self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20,
-        contiguous: bool = True, expand_px: int = 1, gap_closing_px: int = 0,
-        aa: bool = True, sample_all: bool = True,
+        contiguous: bool = True, expand_px: int = 1, sample_all: bool = True,
     ) -> bool:
         """Executa Flood Fill ultra-rápido (<1ms) diretamente no motor nativo C++."""
         if not self._facade or not self._native or not native_has(self._facade, "flood_fill", "o balde de tinta não pinta"):
@@ -186,7 +183,7 @@ class AladynStrokeMixin(AladynBackendBase):
         native_color = to_native_color_rgba(self._native, fill_color)
         res = self._facade.flood_fill(
             int(seed_x), int(seed_y), native_color, int(tolerance), bool(contiguous),
-            int(expand_px), int(gap_closing_px), bool(aa), bool(sample_all)
+            int(expand_px), bool(sample_all)
         )
         if res:
             self._mark_document_dirty("flood_fill")

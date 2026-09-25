@@ -136,8 +136,7 @@ public:
 
     bool floodFill(int seedX, int seedY, const utils::ColorRGBA& fillColor,
                    int tolerance = 20, bool contiguous = true,
-                   int expandPx = 1, int gapClosingPx = 0, bool antiAliasing = true,
-                   bool sampleAllLayers = true);
+                   int expandPx = 1, bool sampleAllLayers = true);
 
     bool magicWandSelect(int seedX, int seedY, int tolerance = 20, bool contiguous = true,
                          int expandPx = 0, bool antiAliasing = true, int mode = 0,

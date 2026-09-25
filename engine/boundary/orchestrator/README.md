@@ -19,6 +19,7 @@ Não há porta única: cada orquestrador é incluído pela `PaintEngineFacade.cp
 | `FloodFillOrchestrator.hpp` | Balde de tinta na camada ativa (declaração). |
 | `FloodFillOrchestrator.cpp` | Balde de tinta: preenche no espaço da camada (a máscara de recorte continua não destrutiva). |
 | `LayerDirtyRegion.hpp` | Cálculo da região visual suja de uma camada (inclui grupos e máscaras de recorte). |
+| `LayerSampleSource.hpp` | De onde o balde e a varinha leem a região: a composição ou só a camada ativa (opção "Todas as Camadas"). |
 | `LayerStackOrchestrator.hpp` | Mutações da pilha de camadas (adicionar, remover, duplicar, reordenar, agrupar) com recomposição e histórico. |
 | `MemoryOrchestrator.hpp` | Compressão de camadas inativas e medidas de memória de tiles (COW). |
 | `RasterExportOrchestrator.hpp` | Saída raster: buffer de camada, miniatura, conversão de perfil de cor, buffer de exibição (declaração). |

@@ -286,11 +286,10 @@ class EngineBackend(ABC):
 
     # ── Preenchimento (Flood Fill) & Colagem de Buffers ───────────────────
 
-    def flood_fill(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, gap_closing_px: int = 0, anti_aliasing: bool = True, sample_all_layers: bool = True) -> bool: return False
-    def fill_area(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, gap_closing_px: int = 0, anti_aliasing: bool = True, sample_all_layers: bool = True, *, aa: Optional[bool] = None, sample_all: Optional[bool] = None) -> bool:
-        if aa is not None: anti_aliasing = aa
+    def flood_fill(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, sample_all_layers: bool = True) -> bool: return False
+    def fill_area(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, sample_all_layers: bool = True, *, sample_all: Optional[bool] = None) -> bool:
         if sample_all is not None: sample_all_layers = sample_all
-        return self.flood_fill(seed_x, seed_y, fill_color, tolerance, contiguous, expand_px, gap_closing_px, anti_aliasing, sample_all_layers)
+        return self.flood_fill(seed_x, seed_y, fill_color, tolerance, contiguous, expand_px, sample_all_layers)
     def paste_rgba_buffer_on_active_layer(self, x: int, y: int, width: int, height: int, buffer: bytes, blend_mode_id: int = 0, opacity: float = 1.0) -> bool: return False
 
     # ── Simetria & Guias/Réguas ───────────────────────────────────────────

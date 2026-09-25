@@ -66,9 +66,7 @@ TOOL_SETTING_DEFAULTS: dict[str, dict[str, Any]] = {
     "bucket": {
         "tolerance": 20,
         "expand_px": 1,
-        "gap_closing_px": 0,
         "contiguous": True,
-        "aa": True,
         "sample_all": True,
     },
     "eyedrop": {
@@ -118,9 +116,7 @@ _TOOL_SETTING_VALIDATORS: dict[str, dict[str, Validator]] = {
     "bucket": {
         "tolerance": _int_between(0, 100),
         "expand_px": _int_between(-10, 10),
-        "gap_closing_px": _int_between(0, 10),
         "contiguous": _bool,
-        "aa": _bool,
         "sample_all": _bool,
     },
     "eyedrop": {

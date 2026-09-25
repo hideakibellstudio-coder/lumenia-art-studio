@@ -38,7 +38,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
-from ui.core.plugins.panel_ids import PanelId
+from ui.core.plugins.panel_ids import PANEL_CONTRACTS, PanelId
 from ui.core.state import BrushEngineSync, BrushState, GeometryState, ToolState
 
 from .canvas.render_widget import CanvasWidget
@@ -227,6 +227,9 @@ class WorkspaceContainer(QtWidgets.QWidget):
         icon_path: str | None = None,
     ) -> None:
         """Registra e monta um painel na doca `area` ("left" ou "right")."""
+        contract = PANEL_CONTRACTS.get(panel_id)
+        if contract is not None and not isinstance(widget, contract):
+            raise TypeError(f"o painel '{panel_id}' não cumpre {contract.__name__} (ui/core/plugins/panel_ids.py)")
         previous = self._panels.widget(panel_id)
         if previous is widget:
             return
@@ -244,7 +247,9 @@ class WorkspaceContainer(QtWidgets.QWidget):
     def _bind_known_panel(self, panel_id: str, widget) -> None:
         """Painéis cujo id faz parte do contrato WorkspaceService.
 
-        As conexões ficam no `PanelConnections` e caem com `remove_panel`.
+        O que cada um precisa ter está em `PANEL_CONTRACTS` (conferido em
+        `add_panel`). As conexões ficam no `PanelConnections` e caem com
+        `remove_panel`.
         """
         bind = partial(self._panels.bind, panel_id)
         sync = self._view_sync

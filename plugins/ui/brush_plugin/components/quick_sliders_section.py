@@ -15,8 +15,8 @@ from PySide6 import QtCore, QtWidgets
 
 from ui.core.state import BrushParam
 from ui.core.widgets.compact_slider import CompactSlider
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import tr
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr
 
 # param -> (rótulo i18n, rótulo padrão, mínimo, máximo, sufixo, divisor slider→unidade, visível por padrão)
 _SLIDERS: dict[BrushParam, tuple[str, str, int, int, str, float, bool]] = {

@@ -1,10 +1,10 @@
-# `ui/core/theme/` — tema e cores
+# `ui/infrastructure/theme/` — tema e cores
 
 **Responsabilidade:** o `ThemeManager`: paletas de cor, escala da interface, ajustes de raio e fonte do usuário, folha de estilo global e os sinais `themeChanged`/`scaleChanged`.
 
 ## Porta de entrada
 
-`from ui.core.theme.manager import ThemeManager` (34 consumidores); `ThemeManager.instance().get_color(TOKEN, fallback)`.
+`from ui.infrastructure.theme.manager import ThemeManager` (34 consumidores); `ThemeManager.instance().get_color(TOKEN, fallback)`.
 
 ## Arquivos
 
@@ -26,6 +26,6 @@ Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
 pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
-- `ui/core`
-- `ui/core/config`
+- `ui/infrastructure/config`
+- `ui/infrastructure/icons`
 <!-- /arccc:deps -->

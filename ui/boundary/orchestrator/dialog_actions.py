@@ -12,10 +12,10 @@ from typing import Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.i18n import I18nManager, tr
-from ui.core.runtime_paths import resource_path
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.runtime_paths import resource_path
 from ui.core.shortcut_registry import ShortcutRegistry
-from ui.core.theme import ThemeManager
+from ui.infrastructure.theme import ThemeManager
 
 from .shell_actions import BackendProvider, ShellActions
 from .workspace_port import ShellWorkspace

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from ui.core.config.manager import ConfigManager
+from ui.infrastructure.config.manager import ConfigManager
 from ui.core.document.document import Document
 from ui.core.document.serializer import DocumentSerializer, DocumentFormatError
 from ui.core.document.restore import restore_document
@@ -32,7 +32,7 @@ def test_failed_config_replace_preserves_previous_file_and_reports_error(tmp_pat
     errors = []
     config.persistenceFailed.connect(errors.append)
     config.set("theme", "active", "changed", auto_save=False)
-    with patch("ui.core.config.storage.os.replace", side_effect=PermissionError("locked")):
+    with patch("ui.infrastructure.config.storage.os.replace", side_effect=PermissionError("locked")):
         assert not config.save()
     assert path.read_bytes() == previous
     assert errors == ["locked"]
@@ -55,7 +55,7 @@ def test_cannot_save_without_native_pixels(tmp_path):
 
 
 def test_group_first_and_locked_transparent_pixels_round_trip(tmp_path):
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
     backend = AladynBackend()
     assert backend.available
     backend.set_active_document_context("source", 2, 2)
@@ -131,7 +131,7 @@ def test_document_backup_retains_previous_generation(tmp_path):
 
 def test_geometry_change_preserves_pixels_and_applies_crop(tmp_path):
     from ui.core.document.geometry import change_geometry
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
     backend = AladynBackend()
     document = Document("geometry", "Geometry", 2, 2)
     document.layer_manager.add_layer("Camada 1")

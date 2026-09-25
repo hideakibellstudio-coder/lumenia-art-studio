@@ -54,14 +54,14 @@ ENGINE_TYPE_TO_CATEGORY: Dict[int, Any] = {cat["engine_type"]: cat for cat in BR
 
 
 def get_preset_display_name(raw_name: str) -> str:
-    from ui.core.i18n import tr
+    from ui.infrastructure.i18n import tr
     if raw_name in PRESET_I18N_KEYS:
         return tr(PRESET_I18N_KEYS[raw_name], raw_name)
     return raw_name
 
 
 def get_category_display_name(cat_id: str, default_label: str = "") -> str:
-    from ui.core.i18n import tr
+    from ui.infrastructure.i18n import tr
     if cat_id in CATEGORY_I18N_KEYS:
         return tr(CATEGORY_I18N_KEYS[cat_id], default_label or cat_id)
     return default_label or cat_id

@@ -15,9 +15,9 @@ import pytest
 from PySide6 import QtWidgets, QtCore
 
 from plugins.ui.navigator_plugin.panel import NavigatorPanel
-from ui.engine_backends.aladyn_mdi_mixin import AladynMdiMixin
-from ui.engine_backends.aladyn_layer_mixin import AladynLayerMixin
-from ui.engine_backends.aladyn_stroke_mixin import AladynStrokeMixin
+from ui.infrastructure.bridge_client.aladyn_mdi_mixin import AladynMdiMixin
+from ui.infrastructure.bridge_client.aladyn_layer_mixin import AladynLayerMixin
+from ui.infrastructure.bridge_client.aladyn_stroke_mixin import AladynStrokeMixin
 
 
 @pytest.fixture(scope="module")
@@ -222,9 +222,9 @@ def test_round12_loc_governance():
     base = Path(__file__).resolve().parent.parent
     files = [
         base / "plugins" / "ui" / "navigator_plugin" / "panel.py",
-        base / "ui" / "engine_backends" / "aladyn_mdi_mixin.py",
-        base / "ui" / "engine_backends" / "aladyn_layer_mixin.py",
-        base / "ui" / "engine_backends" / "aladyn_stroke_mixin.py",
+        base / "ui" / "infrastructure" / "bridge_client" / "aladyn_mdi_mixin.py",
+        base / "ui" / "infrastructure" / "bridge_client" / "aladyn_layer_mixin.py",
+        base / "ui" / "infrastructure" / "bridge_client" / "aladyn_stroke_mixin.py",
         Path(__file__),
     ]
 

@@ -8,7 +8,7 @@ dos módulos do sistema sendo carregados.
 
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core.runtime_paths import resource_path
+from ui.infrastructure.runtime_paths import resource_path
 
 
 class LumeniaSplashScreen(QtWidgets.QWidget):

@@ -183,7 +183,7 @@ class TestLowLevelBrushRaster(unittest.TestCase):
     # ── 7. PencilEngine: Modulação de Grão e Rugosidade de Grafite ───────────
     def test_07_pencil_grain_texture_modulation(self):
         """Valida que ativar brush_grain_enabled modula fisicamente a deposição estocástica do grafite."""
-        from ui.engine_backends.aladyn import AladynBackend
+        from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
         backend = AladynBackend()
         backend.set_active_document_context("test_doc_pencil", 200, 200)
@@ -219,7 +219,7 @@ class TestLowLevelBrushRaster(unittest.TestCase):
     # ── 8. Propagação de Presets de Lápis via apply_brush_preset_dict ─────────
     def test_08_brush_preset_propagation_through_backend(self):
         """Valida que presets curados de Lápis e Carvão ativam corretamente os grãos na ponte."""
-        from ui.engine_backends.aladyn import AladynBackend
+        from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
         backend = AladynBackend()
         backend.set_active_document_context("test_doc_preset", 200, 200)
@@ -248,7 +248,7 @@ class TestLowLevelBrushRaster(unittest.TestCase):
     def test_09_every_curated_preset_reaches_the_native_profile(self):
         """Cada receita selecionável troca o mini-motor e altera o perfil ativo."""
         from plugins.ui.brush_plugin.presets_data import BRUSH_CATEGORIES
-        from ui.engine_backends.aladyn import AladynBackend
+        from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
         backend = AladynBackend()
         backend.set_active_document_context("test_doc_all_presets", 128, 128)
@@ -283,7 +283,7 @@ class TestLowLevelBrushRaster(unittest.TestCase):
     # ── 10. Curva de pressão: UI -> ponte -> LUT nativa ────────────────────
     def test_10_pressure_curve_power_changes_native_lut(self):
         """O controle de potência deixa de ser persistência sem efeito no motor."""
-        from ui.engine_backends.aladyn import AladynBackend
+        from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
         backend = AladynBackend()
         backend.set_active_document_context("test_doc_pressure_curve", 64, 64)

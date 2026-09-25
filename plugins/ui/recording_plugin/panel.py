@@ -20,7 +20,7 @@ from typing import Optional
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui.core.widgets.card_box import PanelCardBox
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from .engine.recording_engine import TimelapseRecordingEngine
 from .components.recording_floating_bar import RecordingFloatingBar
 from .recording_actions import RecordingActions

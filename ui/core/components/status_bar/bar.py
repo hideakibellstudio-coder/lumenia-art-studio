@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 
 class StatusBar(QtWidgets.QStatusBar):

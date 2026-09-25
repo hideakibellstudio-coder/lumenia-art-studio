@@ -10,10 +10,9 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
-from ui.core.dialogs.base_dialog import _shadow_qcolor
-from ui.core.i18n import tr, I18nManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr, I18nManager
 
 SHAPE_ITEMS = [
     {"id": "shape_line", "i18n": "shapes.line", "label": "Linha Reta", "icon": "shape_line", "tooltip": "shapes.line_tooltip", "default_tip": "Linha Reta (Shift: Trava Ângulo)"},
@@ -63,7 +62,7 @@ class ShapeSelectorPopup(QtWidgets.QDialog):
 
         shadow = QtWidgets.QGraphicsDropShadowEffect(self.container)
         shadow.setBlurRadius(16)
-        shadow.setColor(_shadow_qcolor(160))
+        shadow.setColor(ThemeManager.instance().shadow_color(160))
         shadow.setOffset(0, 4)
         self.container.setGraphicsEffect(shadow)
 

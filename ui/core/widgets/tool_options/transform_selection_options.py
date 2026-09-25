@@ -1,7 +1,7 @@
 """TransformOptionsWidget e SelectionOptionsWidget — páginas do painel de pincel (views do ToolState)."""
 
 from PySide6 import QtWidgets
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import ToolState
 from .base import ToolHeaderLabel, ModernOptionCheckBox
 from .bound_view import ToolOptionsView

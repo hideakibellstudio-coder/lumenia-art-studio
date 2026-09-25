@@ -17,7 +17,7 @@ class NavigatorControls(QtWidgets.QWidget):
         main_layout.setContentsMargins(0, 4, 0, 4)
         main_layout.setSpacing(8)
 
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
 
         # --- ROW 1: ZOOM ---
         self.zoom_box = QtWidgets.QFrame()
@@ -107,12 +107,12 @@ class NavigatorControls(QtWidgets.QWidget):
 
         # Style theme
         self.update_theme()
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self.update_theme)
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "t_z"):
             self.t_z.setText(tr("tools.zoom_in", "Zoom").split()[0])
         if hasattr(self, "t_r"):
@@ -131,7 +131,7 @@ class NavigatorControls(QtWidgets.QWidget):
             self.btn_flipv.setToolTip(tr("menu.image.flip_v", "Espelhar V"))
 
     def update_theme(self, theme_name=None):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         border = ThemeManager.instance().get_color("border")
         bg_main = ThemeManager.instance().get_color("bg_main")
         text_main = ThemeManager.instance().get_color("text_main")
@@ -150,7 +150,7 @@ class NavigatorControls(QtWidgets.QWidget):
         self.zoom_box.setStyleSheet(style)
         self.angle_box.setStyleSheet(style)
         
-        from ui.core.icons import get_icon
+        from ui.infrastructure.icons import get_icon
         self.btn_z_minus.setIcon(get_icon("zoom-out", text_main))
         self.btn_z_plus.setIcon(get_icon("zoom-in", text_main))
         self.btn_fit.setIcon(get_icon("maximize", text_main))

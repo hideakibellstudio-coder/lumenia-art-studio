@@ -45,7 +45,7 @@ def test_collaborators_do_not_read_each_other_through_self():
 
 def test_dialog_actions_apply_shortcuts_and_language(qapp):
     from ui.core.components.menu_bar import MenuBar
-    from ui.core.i18n import tr
+    from ui.infrastructure.i18n import tr
     from ui.core.shortcut_registry import ShortcutRegistry
 
     window = QtWidgets.QMainWindow()

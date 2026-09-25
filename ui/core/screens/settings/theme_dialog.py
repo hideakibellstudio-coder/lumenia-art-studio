@@ -6,7 +6,7 @@ Interface profissional de 2 colunas no padrão Lumenia V2:
   - Coluna da Direita: Inspector de Cores, visualização da paleta e ajustes de geometria e tipografia.
 
 Raio dos cantos e fonte são ajustes do usuário por cima de qualquer tema
-(`ThemeManager.set_interface_tweaks`, opções em `ui/core/theme/interface_tweaks.py`).
+(`ThemeManager.set_interface_tweaks`, opções em `ui/infrastructure/theme/interface_tweaks.py`).
 Até 2026-09-24 os dois combos não estavam ligados a nada, e o filtro
 Escuros/Claros comparava o texto traduzido com o português (fora do pt-BR
 não filtrava).
@@ -18,9 +18,9 @@ import logging
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import I18nManager, tr
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .components.interface_tweaks_group import InterfaceTweaksGroup
 from .components.theme_card import ColorDot, ThemeMiniSwatches, ThemeCard

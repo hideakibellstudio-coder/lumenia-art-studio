@@ -18,12 +18,12 @@ from PySide6 import QtWidgets
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(["--platform", "offscreen"])
 
-from ui.core.config import ConfigManager
+from ui.infrastructure.config import ConfigManager
 from ui.core.document.document import Document
 from ui.core.document.restore import restore_document
 from ui.core.document.schema import validate_auxiliary
 from ui.core.document.serializer import DocumentFormatError, DocumentSerializer
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 
 def _document(uid: str) -> Document:

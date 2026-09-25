@@ -55,7 +55,7 @@ class AdvancedPanel(FloatingPanelWindow):
         brush_state.paramChanged.connect(self._on_state_param_changed)
         self._show_state()
 
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme("")
 
@@ -104,7 +104,7 @@ class AdvancedPanel(FloatingPanelWindow):
         sep.setObjectName("AdvSep")
         outer.addWidget(sep)
 
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
 
         self.tab_bar = QtWidgets.QTabBar()
         self.tab_bar.setExpanding(True)
@@ -159,15 +159,15 @@ class AdvancedPanel(FloatingPanelWindow):
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.setWindowTitle(tr("brush.advanced_settings", "Configurações Avançadas"))
         self.tab_bar.setTabText(0, tr("tools.brush", "Pincel").split()[0])
         self.tab_bar.setTabText(1, tr("brush.engine_dynamics", "Dinâmica por Motor"))
         self.lbl_title.setText(tr("brush.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE PINCEL"))
 
     def _make_title_bar(self) -> QtWidgets.QWidget:
-        from ui.core.icons import get_icon
-        from ui.core.i18n import tr
+        from ui.infrastructure.icons import get_icon
+        from ui.infrastructure.i18n import tr
         bar = QtWidgets.QWidget()
         bar.setObjectName("AdvTitleBar")
         bar.setFixedHeight(34)
@@ -205,8 +205,8 @@ class AdvancedPanel(FloatingPanelWindow):
         self.stack.setCurrentIndex(index)
 
     def _apply_theme(self, _=""):
-        from ui.core.icons import get_icon
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.icons import get_icon
+        from ui.infrastructure.theme.manager import ThemeManager
 
         text = ThemeManager.instance().get_color("text_main")
         self.btn_close.setIcon(get_icon("close", text))

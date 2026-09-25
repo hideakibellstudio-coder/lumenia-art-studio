@@ -21,8 +21,8 @@ from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
-from ui.core.i18n import tr
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
 

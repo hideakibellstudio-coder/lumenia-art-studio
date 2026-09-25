@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtWidgets
 
-from ui.core.i18n import I18nManager
+from ui.infrastructure.i18n import I18nManager
 from ui.core.state import ToolState
 
 

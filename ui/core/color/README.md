@@ -18,7 +18,7 @@
 
 ## Regras
 
-Sem widgets aqui; os diálogos que mostram perfis estão em `ui/core/dialogs`. O motor recebe o perfil pelo `EngineBackend` (`ui/engine_backends/aladyn_color_mixin.py`).
+Sem widgets aqui; os diálogos que mostram perfis estão em `ui/core/dialogs`. O motor recebe o perfil pelo `EngineBackend` (`ui/infrastructure/bridge_client/aladyn_color_mixin.py`).
 
 ## Dependências internas
 

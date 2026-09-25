@@ -16,10 +16,10 @@ import pytest
 from PySide6 import QtWidgets, QtCore
 
 from plugins.ui.navigator_plugin.panel import NavigatorPanel
-from ui.engine_backends.aladyn_layer_mixin import AladynLayerMixin
-from ui.engine_backends.aladyn import AladynBackend
-from ui.engine_backends.aladyn_selection_mixin import AladynSelectionMixin
-from ui.engine_backends.aladyn_resources_mixin import AladynResourcesMixin
+from ui.infrastructure.bridge_client.aladyn_layer_mixin import AladynLayerMixin
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn_selection_mixin import AladynSelectionMixin
+from ui.infrastructure.bridge_client.aladyn_resources_mixin import AladynResourcesMixin
 from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
 
@@ -255,10 +255,10 @@ def test_round13_loc_governance():
     files_to_check = [
         base_dir / "plugins/ui/navigator_plugin/panel.py",
         base_dir / "plugins/system/workspace_core/workspace/canvas/viewport/camera_proxies.py",
-        base_dir / "ui/engine_backends/aladyn_layer_mixin.py",
-        base_dir / "ui/engine_backends/aladyn.py",
-        base_dir / "ui/engine_backends/aladyn_selection_mixin.py",
-        base_dir / "ui/engine_backends/aladyn_resources_mixin.py",
+        base_dir / "ui/infrastructure/bridge_client/aladyn_layer_mixin.py",
+        base_dir / "ui/infrastructure/bridge_client/aladyn.py",
+        base_dir / "ui/infrastructure/bridge_client/aladyn_selection_mixin.py",
+        base_dir / "ui/infrastructure/bridge_client/aladyn_resources_mixin.py",
         Path(__file__).resolve(),
     ]
 

@@ -6,7 +6,7 @@ class IconButton(QtWidgets.QToolButton):
         super().__init__(parent)
         self.setProperty("icon_name", icon_name)
         if icon_name:
-            from ui.core.icons import get_icon
+            from ui.infrastructure.icons import get_icon
             self.setIcon(get_icon(icon_name, icon_color))
             
         self.setToolTip(tooltip)
@@ -50,11 +50,11 @@ class NavigatorPreview(QtWidgets.QWidget):
         self._drag_offset = QtCore.QPointF(0, 0)
         
         self.update_theme()
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self.update_theme)
 
     def update_theme(self, theme_name=None):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         theme = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {})
         colors = theme.get("colors", {})
         

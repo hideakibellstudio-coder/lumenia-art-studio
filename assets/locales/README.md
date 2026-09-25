@@ -4,7 +4,7 @@
 
 ## Porta de entrada
 
-`ui/core/i18n` (`tr(chave, padrão)`); en_US é o fallback quando a chave falta no idioma ativo.
+`ui/infrastructure/i18n` (`tr(chave, padrão)`); en_US é o fallback quando a chave falta no idioma ativo.
 
 ## Regras
 

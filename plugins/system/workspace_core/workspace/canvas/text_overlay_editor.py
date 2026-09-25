@@ -1,7 +1,7 @@
 """In-place Text Overlay Editor Widget for Canvas."""
 
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 class TextOverlayEditor(QtWidgets.QFrame):
     """Widget de edição de texto in-place sobreposto diretamente no canvas com tipografia em tempo real."""

@@ -9,10 +9,10 @@ import os
 from pathlib import Path
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import I18nManager, tr
-from ui.core.icons import get_icon
-from ui.core.runtime_paths import resource_path
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.runtime_paths import resource_path
 
 
 class UserGuideDialog(BaseFramelessDialog):

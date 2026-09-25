@@ -15,8 +15,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.plugins.manager import PluginManager
-from ui.core.i18n import tr
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .components.plugin_card import PluginCard
 from .components.plugin_inspector import PluginDetailsInspector
@@ -30,7 +30,7 @@ class PluginsWindow(BaseFramelessDialog):
     """Diálogo completo de gerenciamento e inspeção de plugins."""
 
     def __init__(self, parent=None):
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         super().__init__(title=tr("plugins.dialog_title", "Gerenciador de Plugins"), icon_name="plugin", parent=parent, modal=True)
         self.resize(1080, 680)
         self.setMinimumSize(960, 600)
@@ -86,7 +86,7 @@ class PluginsWindow(BaseFramelessDialog):
 
         filter_box.addStretch()
 
-        from ui.core.icons import get_icon
+        from ui.infrastructure.icons import get_icon
 
         self.btn_import = QtWidgets.QPushButton(" Importar .zip")
         self.btn_import.setObjectName("pluginImportBtn")
@@ -151,7 +151,7 @@ class PluginsWindow(BaseFramelessDialog):
         cols_layout.addWidget(self.inspector)
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.setWindowTitle(tr("plugins.dialog_title", "Gerenciador de Plugins"))
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("plugins.dialog_title", "Gerenciador de Plugins"))

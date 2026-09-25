@@ -12,7 +12,7 @@ from typing import Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.restore import restore_document

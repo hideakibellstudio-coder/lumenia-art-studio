@@ -6,9 +6,9 @@ categoria, captura interativa de teclas, validação de conflitos e persistênci
 """
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
-from ui.core.i18n import tr
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.i18n import tr
 
 from ui.core.shortcut_catalog import DEFAULT_SHORTCUTS
 
@@ -108,11 +108,11 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def _load_saved_shortcuts(self) -> dict:
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         saved = ConfigManager.instance().get_section("shortcuts")
         data = {}
         for item in DEFAULT_SHORTCUTS:
@@ -189,7 +189,7 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
 
     def retranslate_ui(self) -> None:
         """Atualiza dinamicamente os textos da tela de atalhos."""
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.shortcuts_title", "Configurações de Atalhos de Teclado"))
         if hasattr(self, "txt_search"):
@@ -296,7 +296,7 @@ class KeyboardShortcutsDialog(BaseFramelessDialog):
             self._populate_table()
 
     def _on_save_and_apply(self):
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         registry = getattr(self.parentWidget(), "shortcut_registry", None)
         if registry:
             try:

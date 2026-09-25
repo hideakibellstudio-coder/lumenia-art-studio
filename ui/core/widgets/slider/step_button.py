@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore, QtGui, QtSvg
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 def make_svg_minus_icon(color_hex: str = None) -> bytes:

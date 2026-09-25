@@ -6,8 +6,8 @@ cor capturada). Até 2026-09-24 o painel repassava a cor à mão
 """
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import tr
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr
 from ui.core.state import BrushState, ToolState
 from .base import ToolHeaderLabel, ModernOptionCheckBox
 from .bound_view import ToolOptionsView

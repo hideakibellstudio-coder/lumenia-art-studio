@@ -36,7 +36,7 @@ def test_dimensoes_invalidas_devolvem_vazio():
 
 def test_backend_entrega_a_previa_ao_painel():
     from PySide6.QtWidgets import QApplication
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     QApplication.instance() or QApplication(["--platform", "offscreen"])
     backend = AladynBackend()
@@ -47,7 +47,7 @@ def test_backend_entrega_a_previa_ao_painel():
 def test_previa_nao_altera_o_pincel_em_uso():
     """get_brush_profile() devolve referência ao perfil vivo: a prévia copia."""
     from PySide6.QtWidgets import QApplication
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     QApplication.instance() or QApplication(["--platform", "offscreen"])
     backend = AladynBackend()

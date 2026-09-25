@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.widgets.slider.labeled_slider import LabeledSlider
 from .filter_definitions import FILTER_DEFINITIONS
 
@@ -53,7 +53,7 @@ class FilterEditPopup(QtWidgets.QDialog):
         layout.setSpacing(12)
 
         # Header
-        from ui.core.icons import get_icon
+        from ui.infrastructure.icons import get_icon
         header_box = QtWidgets.QHBoxLayout()
         header_icon = QtWidgets.QLabel()
         header_icon.setFixedSize(16, 16)

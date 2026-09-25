@@ -9,8 +9,8 @@ Gerencia visibilidade de painéis e configurações de docas:
 from __future__ import annotations
 
 from PySide6 import QtGui, QtWidgets, QtCore
-from ui.core.icons import get_icon
-from ui.core.i18n import tr
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.i18n import tr
 from ui.core.plugins.panel_ids import PANEL_TITLES, PanelId
 
 # Painéis com item fixo no menu: (id canônico, lado da doca, atalho, ícone).
@@ -46,7 +46,7 @@ class WindowMenu(QtWidgets.QMenu):
         self._scale_actions: dict[float, QtGui.QAction] = {}
         self._setup_actions()
         self.retranslate_ui()
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().scaleChanged.connect(self.sync_scale_checked)
 
     def _setup_actions(self) -> None:
@@ -104,7 +104,7 @@ class WindowMenu(QtWidgets.QMenu):
         self._scale_group = QtGui.QActionGroup(self)
         self._scale_group.setExclusive(True)
 
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         current_scale = ThemeManager.instance().ui_scale
         scale_options = [
             ("80%", 0.8),

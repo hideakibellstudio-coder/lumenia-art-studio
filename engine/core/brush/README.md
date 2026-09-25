@@ -17,7 +17,7 @@
 
 ## Regras
 
-- Parâmetro novo de pincel entra no perfil aqui, é lido pelo mini-motor em `engines/` e chega da UI pela tabela `ui/engine_backends/brush_param_table.py`.
+- Parâmetro novo de pincel entra no perfil aqui, é lido pelo mini-motor em `engines/` e chega da UI pela tabela `ui/infrastructure/bridge_client/brush_param_table.py`.
 
 ## Dívida conhecida (medida em 2026-09-24)
 

@@ -275,7 +275,7 @@ class ColorWheelWidget(QtWidgets.QWidget):
         self.set_color(start_color)
         
         # Connect to theme manager
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
         self.update_theme_styles()
 
@@ -283,14 +283,14 @@ class ColorWheelWidget(QtWidgets.QWidget):
         self.update_theme_styles()
 
     def update_theme_styles(self):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         fg_primary = ThemeManager.instance().get_color("text_main")
         border = ThemeManager.instance().get_color("border")
         
         self.hex_widget.update_theme()
         self.recent_colors.update_theme()
         
-        from ui.core.icons import get_icon
+        from ui.infrastructure.icons import get_icon
         self.btn_swap.setIcon(get_icon("arrow-swap", fg_primary))
         self.vline.setStyleSheet(f"background-color: {border}; max-width: 1px;")
 

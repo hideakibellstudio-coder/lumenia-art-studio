@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame, QToolButton
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QCursor
-from ui.core.icons import get_icon
-from ui.core.i18n import tr, I18nManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.i18n import tr, I18nManager
 
 
 class IconButton(QToolButton):

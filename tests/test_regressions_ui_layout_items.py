@@ -16,7 +16,7 @@ from ui.core.state import GeometryState, ToolState
 from plugins.ui.layers_plugin.header import LayersHeader
 from plugins.ui.geometry_plugin.panel import GeometryPanel
 from ui.core.components.tool_sidebar.sidebar import ToolSidebar
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class TestAudit8Items(unittest.TestCase):

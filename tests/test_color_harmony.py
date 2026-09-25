@@ -44,7 +44,7 @@ def test_valor_desconhecido_vira_nenhuma():
 
 
 def test_roda_mostra_marca_e_amostras_e_lembra_a_regra():
-    from ui.core.config.manager import ConfigManager
+    from ui.infrastructure.config.manager import ConfigManager
     from ui.core.widgets.color_picker.color_wheel import ColorWheelWidget
     from ui.core.widgets.color_picker.harmony_widgets import HarmonyStrip
 

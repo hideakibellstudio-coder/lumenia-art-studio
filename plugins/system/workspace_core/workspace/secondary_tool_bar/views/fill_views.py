@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.tools import ToolCommand
 
 from .base import (

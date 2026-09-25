@@ -2,8 +2,8 @@
 
 from typing import Dict, List
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
-from ui.core.logger import get_logger
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.logging import get_logger
 from .sidebar_button import SidebarButton
 
 logger = get_logger("Workspace.DockSystem.Sidebar")

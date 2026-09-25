@@ -11,9 +11,9 @@ do app que já compartilham essa base.
 """
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 
 def _make_cursor_preview_icon(kind: str, color: str = "#ffffff") -> QtGui.QIcon:
@@ -95,11 +95,11 @@ class CursorSettingsDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def _load_settings(self):
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         sec = ConfigManager.instance().get_section("cursor")
         self.mode = sec.get("mode", "ring_and_dot")
         self.orientation = sec.get("orientation", "right")
@@ -227,7 +227,7 @@ class CursorSettingsDialog(BaseFramelessDialog):
 
     def retranslate_ui(self) -> None:
         """Atualiza dinamicamente os textos da tela de configurações de cursor."""
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "grp_box"):
             self.set_dialog_title(tr("dialogs.cursor_title", "Configurações de Cursor"))
             self.grp_box.setTitle(tr("dialogs.cursor_shape_title", "Formato do Cursor de Pintura"))
@@ -280,7 +280,7 @@ class CursorSettingsDialog(BaseFramelessDialog):
             "show_crosshair": self.chk_ch.isChecked(),
             "ring_opacity": self.slider_op.value() / 100.0,
         }
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         ConfigManager.instance().set_section("cursor", cfg)
         self.cursorSettingsChanged.emit(cfg)
         self.accept()

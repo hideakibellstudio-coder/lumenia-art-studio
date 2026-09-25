@@ -55,15 +55,17 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 <!-- arccc:deps -->
 - `ui/core`
 - `ui/core/components`
-- `ui/core/config`
 - `ui/core/dialogs`
 - `ui/core/document`
 - `ui/core/engine`
-- `ui/core/i18n`
 - `ui/core/plugins`
 - `ui/core/screens`
 - `ui/core/screens/filters`
 - `ui/core/state`
-- `ui/core/theme`
-- `ui/engine_backends`
+- `ui/infrastructure`
+- `ui/infrastructure/bridge_client`
+- `ui/infrastructure/config`
+- `ui/infrastructure/i18n`
+- `ui/infrastructure/logging`
+- `ui/infrastructure/theme`
 <!-- /arccc:deps -->

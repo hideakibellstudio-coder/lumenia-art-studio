@@ -8,7 +8,7 @@ class IconButton(QtWidgets.QToolButton):
         super().__init__(parent)
         self.setProperty("icon_name", icon_name)
         if icon_name:
-            from ui.core.icons import get_icon
+            from ui.infrastructure.icons import get_icon
             self.setIcon(get_icon(icon_name, icon_color))
             
         self.setToolTip(tooltip)
@@ -162,9 +162,9 @@ class HexWidget(QtWidgets.QWidget):
         layout.addWidget(self.btn_copy)
 
     def update_theme(self):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         fg = ThemeManager.instance().get_color("text_main")
-        from ui.core.icons import get_icon
+        from ui.infrastructure.icons import get_icon
         self.btn_copy.setIcon(get_icon("copy", fg))
 
     def set_color(self, color):
@@ -216,7 +216,7 @@ class RecentColorsWidget(QtWidgets.QFrame):
             layout.addWidget(btn, i // 5, i % 5)
             
     def update_theme(self):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         border = ThemeManager.instance().get_color("border")
         self.setStyleSheet(f"""
             QFrame#RecentColors {{
@@ -245,7 +245,7 @@ class RecentColorsWidget(QtWidgets.QFrame):
         self._update_buttons()
         
     def _update_buttons(self, border_color=None):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         if border_color is None:
             border_color = ThemeManager.instance().get_color("border")
         hover_color = ThemeManager.instance().get_color("FG_PRIMARY", "#ffffff")

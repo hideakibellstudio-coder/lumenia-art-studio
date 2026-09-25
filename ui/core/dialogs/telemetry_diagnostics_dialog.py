@@ -21,9 +21,9 @@ from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_meters import ENGINE_NAMES, simd_text
 from ui.core.engine.telemetry_tracker import TelemetryTracker
-from ui.core.i18n import I18nManager, tr
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class TelemetryDiagnosticsDialog(BaseFramelessDialog):

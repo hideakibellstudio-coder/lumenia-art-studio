@@ -16,8 +16,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from ui.core.config import ConfigManager
-from ui.core.i18n import I18nManager
+from ui.infrastructure.config import ConfigManager
+from ui.infrastructure.i18n import I18nManager
 from plugins.system.workspace_core.workspace.secondary_tool_bar.toolbar import SecondaryToolBar
 from ui.core.plugins.registry import ServiceRegistry
 from ui.core.state import GeometryState, install_app_state

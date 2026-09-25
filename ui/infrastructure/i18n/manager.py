@@ -14,7 +14,7 @@ import json
 import logging
 from typing import Any, Dict, Optional
 from PySide6 import QtCore
-from ui.core.runtime_paths import resource_path
+from ui.infrastructure.runtime_paths import resource_path
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ class I18nManager(QtCore.QObject):
         self._fallback_dict = self._load_locale_file("en_US")
 
         # 2. Restaura o idioma salvo nas preferências ou detecta o idioma do sistema operacional
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         saved_locale = ConfigManager.instance().get("locale", "current", "auto")
 
         if saved_locale is None or str(saved_locale).lower() in ("auto", "system", ""):
@@ -144,7 +144,7 @@ class I18nManager(QtCore.QObject):
         self._active_dict = self._load_locale_file(locale_code)
 
         # Persiste no ConfigManager (JSON)
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         val = "auto" if is_auto else locale_code
         ConfigManager.instance().set("locale", "current", val, auto_save=False)
         ConfigManager.instance().set("locale", "auto_detect", is_auto, auto_save=True)

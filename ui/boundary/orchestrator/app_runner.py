@@ -10,9 +10,9 @@ from __future__ import annotations
 import sys
 import logging
 from PySide6 import QtWidgets, QtGui, QtCore
-from ui.core.logger import setup_senior_logging, get_logger
+from ui.infrastructure.logging import setup_senior_logging, get_logger
 from ui.core.components.splash_screen import LumeniaSplashScreen
-from ui.core.runtime_paths import resource_path
+from ui.infrastructure.runtime_paths import resource_path
 from ui.boundary.orchestrator.main_window import MainWindow
 
 
@@ -39,7 +39,7 @@ def launch(args: list[str] | None = None) -> int:
         app = QtWidgets.QApplication(args)
 
     # Injeta a folha de estilos do tema globalmente na QApplication (diálogos, popups e janelas)
-    from ui.core.theme.manager import ThemeManager
+    from ui.infrastructure.theme.manager import ThemeManager
     app.setStyleSheet(ThemeManager.instance().get_stylesheet())
 
     # 3. Ícone Oficial do Programa

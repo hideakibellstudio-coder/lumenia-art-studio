@@ -29,7 +29,7 @@ string/int, e elas divergiam silenciosamente:
     índice->rótulo, com só 8 entradas em ordem diferente da tabela real
     (`"Additive"` no índice 6, onde o motor tem Erase; `"Erase"` no índice
     7, onde o motor tem PassThrough) -- bug confirmado, corrigido aqui.
-  - `ui/engine_backends/aladyn_layer_mixin.py` tinha a única tabela
+  - `ui/infrastructure/bridge_client/aladyn_layer_mixin.py` tinha a única tabela
     completa e correta (28 chaves EN+PT-BR -> os 13 índices certos), mas
     era a única fonte que sabia disso.
 

@@ -38,7 +38,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `plugins/system/workspace_core/workspace/canvas/viewport`
 - `ui/core/document`
 - `ui/core/engine`
-- `ui/core/i18n`
 - `ui/core/state`
-- `ui/core/theme`
+- `ui/infrastructure/i18n`
+- `ui/infrastructure/theme`
 <!-- /arccc:deps -->

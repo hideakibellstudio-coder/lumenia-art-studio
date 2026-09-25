@@ -1,10 +1,10 @@
-# `ui/core/i18n/` — idiomas
+# `ui/infrastructure/i18n/` — idiomas
 
 **Responsabilidade:** tradução da interface: `tr(chave, texto_padrão)` e o `I18nManager`, que troca o idioma e avisa as telas (`languageChanged`).
 
 ## Porta de entrada
 
-`from ui.core.i18n import tr, I18nManager`.
+`from ui.infrastructure.i18n import tr, I18nManager`.
 
 ## Arquivos
 
@@ -23,6 +23,6 @@ Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
 pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
-- `ui/core`
-- `ui/core/config`
+- `ui/infrastructure`
+- `ui/infrastructure/config`
 <!-- /arccc:deps -->

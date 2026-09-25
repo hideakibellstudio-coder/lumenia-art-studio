@@ -30,7 +30,7 @@ class LabeledSlider(QtWidgets.QWidget):
         self.lbl_title = QtWidgets.QLabel(label_text)
         
         # ThemeManager accent color colorized label
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         accent_color = ThemeManager.instance().get_color("accent")
         
         self.lbl_val = QtWidgets.QLabel(self._format_value(default_val / divisor))
@@ -94,7 +94,7 @@ class LabeledSlider(QtWidgets.QWidget):
         self.valueChanged.emit(actual_val)
         
     def _on_theme_changed(self, theme_name: str):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         accent_color = ThemeManager.instance().get_color("accent")
         self.lbl_val.setStyleSheet(f"font-weight: bold; color: {accent_color};")
         

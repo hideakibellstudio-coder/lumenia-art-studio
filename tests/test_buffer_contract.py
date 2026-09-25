@@ -6,7 +6,7 @@ import weakref
 import pytest
 import aladyn_engine_native as native
 from PySide6.QtWidgets import QApplication
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 
 @pytest.fixture

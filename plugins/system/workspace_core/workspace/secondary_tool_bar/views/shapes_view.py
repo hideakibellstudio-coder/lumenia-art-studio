@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.i18n import tr
-from ui.core.icons import get_icon
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.icons import get_icon
 from ui.core.widgets.compact_slider import CompactSlider
 from ui.core.widgets.shape_dropdown import ShapeDropdown
 

@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.config.manager import ConfigManager
-from ui.core.i18n import I18nManager, tr
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.config.manager import ConfigManager
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.theme.manager import ThemeManager
 
 from .harmony import HarmonyRule, harmony_colors, harmony_hues
 

@@ -7,7 +7,7 @@ motor. A UI conversa exclusivamente com estas abstrações:
     EngineBackend  — contrato do motor (render, brush, viewport, camadas...)
     EngineRegistry — registro do backend ativo (plugado por plugins de sistema)
 
-Regra de dependência: módulos de motor (ex.: ui/engine_backends/*) implementam
+Regra de dependência: módulos de motor (ex.: ui/infrastructure/bridge_client/*) implementam
 EngineBackend e são registrados via EngineRegistry. A casca nunca importa um
 motor concreto diretamente.
 """

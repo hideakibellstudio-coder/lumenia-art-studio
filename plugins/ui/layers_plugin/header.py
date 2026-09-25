@@ -25,12 +25,12 @@ class LayersOpacitySliderWidget(QWidget):
         self._accent_color = QColor("#6366f1")
         self._text_color = QColor("#f3f4f6")
 
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
         self._on_theme_changed()
 
     def _on_theme_changed(self, *_):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         tm = ThemeManager.instance()
         self._bg_color = QColor(tm.get_color("bg_panel", "#1e293b"))
         self._border_color = QColor(tm.get_color("border", "#334155"))
@@ -83,7 +83,7 @@ class LayersOpacitySliderWidget(QWidget):
         font.setBold(True)
         painter.setFont(font)
 
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         text = f"{tr('layers.opacity', 'Opacidade')}: {self._value}%"
         painter.drawText(r, Qt.AlignCenter, text)
 
@@ -126,7 +126,7 @@ class LayersHeader(QWidget):
         ctrl_row.setContentsMargins(0, 0, 0, 0)
         ctrl_row.setSpacing(6)
 
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
 
         self.combo_blend = QComboBox()
         self.combo_blend.setObjectName("LayersBlendCombo")
@@ -159,7 +159,7 @@ class LayersHeader(QWidget):
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "combo_blend"):
             self.combo_blend.setToolTip(tr("layers.blend_mode", "Modo de Mesclagem da Camada"))
         if hasattr(self, "slider_op"):
@@ -167,7 +167,7 @@ class LayersHeader(QWidget):
             self.slider_op.update()
 
         # Subscreve ao sistema de temas para auto-atualização
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self.on_theme_changed)
         self.on_theme_changed()
 
@@ -202,7 +202,7 @@ class LayersHeader(QWidget):
     def on_theme_changed(self, colors=None):
         """Aplica tema ao header. O argumento 'colors' é ignorado — lemos
         diretamente do ThemeManager para garantir consistência."""
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         tm = ThemeManager.instance()
         bg_input    = tm.get_color("bg_panel", "#1f2937")
         border      = tm.get_color("border",   "#374151")

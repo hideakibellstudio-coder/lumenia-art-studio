@@ -26,7 +26,7 @@
 
 ## Regras
 
-- Lei nº 2/3: fora de `ui/engine_backends` ninguém importa
+- Lei nº 2/3: fora de `ui/infrastructure/bridge_client` ninguém importa
   `aladyn_engine_native` nem acessa `_facade`/`_native`. Precisa de algo do
   motor? Declare o método em `EngineBackend` e implemente no backend.
 - Método novo no contrato: adicione em `backend.py` (com implementação padrão

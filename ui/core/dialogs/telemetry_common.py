@@ -21,8 +21,8 @@ from PySide6 import QtGui, QtWidgets
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_tracker import TelemetryTracker
-from ui.core.i18n import tr
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.theme.manager import ThemeManager
 
 # Estado do pipeline -> token do tema (todos os temas têm os tokens)
 _STATE_COLORS = {

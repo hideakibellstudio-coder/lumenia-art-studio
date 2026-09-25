@@ -15,7 +15,7 @@ import pytest
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui.core.engine.registry import EngineRegistry
-from ui.core.i18n import tr  # mensagens seguem o idioma ativo: compara com a tradução
+from ui.infrastructure.i18n import tr  # mensagens seguem o idioma ativo: compara com a tradução
 from ui.core.engine.backend import EngineBackend
 from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 from plugins.system.workspace_core.workspace.canvas.viewport.camera_controller import CameraController
@@ -23,7 +23,7 @@ from plugins.ui.navigator_plugin.panel import NavigatorPanel
 from plugins.ui.color_plugin.panel import ColorWheelPanel
 from ui.boundary.orchestrator.edit_actions import EditActions
 from ui.boundary.orchestrator.image_actions import ImageActions
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 
 class _MockBackend(EngineBackend):

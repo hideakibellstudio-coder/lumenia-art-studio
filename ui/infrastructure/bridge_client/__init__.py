@@ -1,5 +1,5 @@
 """
-ui.engine_backends — Factories de Backends de Motor
+ui.infrastructure.bridge_client — Factories de Backends de Motor
 ====================================================
 A casca nunca importa um motor concreto. Apenas este pacote conhece backends
 específicos e os expõe para o EngineRegistry durante o boot.
@@ -24,7 +24,7 @@ def create_backends() -> List[EngineBackend]:
     backends: List[EngineBackend] = []
 
     try:
-        from ui.engine_backends.aladyn import AladynBackend
+        from ui.infrastructure.bridge_client.aladyn import AladynBackend
         backends.append(AladynBackend())
     except Exception as e:  # pragma: no cover
         import logging

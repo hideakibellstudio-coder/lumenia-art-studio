@@ -19,10 +19,10 @@ from __future__ import annotations
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.i18n import I18nManager, tr
-from ui.core.icons import get_icon
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.icons import get_icon
 from ui.core.state import BrushParam, BrushState, ToolState, is_shape_tool
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.widgets.card_box import PanelCardBox
 from ui.core.widgets.tool_options import (
     EyedropOptionsWidget,

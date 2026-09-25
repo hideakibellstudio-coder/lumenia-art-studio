@@ -4,7 +4,7 @@
 
 ## Porta de entrada
 
-`ui/core/theme/manager.py` (`@ASSETS_DIR/icons/close.svg` e `maximize.svg`, quando a renderização em PNG falha).
+`ui/infrastructure/theme/manager.py` (`@ASSETS_DIR/icons/close.svg` e `maximize.svg`, quando a renderização em PNG falha).
 
 ## Arquivos
 
@@ -15,4 +15,4 @@
 
 ## Regras
 
-- Ícone de interface novo entra no catálogo em código (`ui/core/icon_svg_catalog.py`), que troca `currentColor` pela cor do tema.
+- Ícone de interface novo entra no catálogo em código (`ui/infrastructure/icons/svg_catalog.py`), que troca `currentColor` pela cor do tema.

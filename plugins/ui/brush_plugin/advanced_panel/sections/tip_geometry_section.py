@@ -1,7 +1,7 @@
 """Seção 2 do painel avançado: forma, dureza, ângulo e proporção da ponta."""
 from __future__ import annotations
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import BrushState
 
 from ..brush_engine_writer import BrushEngineWriter

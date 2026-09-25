@@ -17,8 +17,8 @@ from PySide6 import QtWidgets
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(["--platform", "offscreen"])
 
-from ui.core.config import ConfigManager
-from ui.core.i18n import tr
+from ui.infrastructure.config import ConfigManager
+from ui.infrastructure.i18n import tr
 from ui.core.state import GeometryState
 
 

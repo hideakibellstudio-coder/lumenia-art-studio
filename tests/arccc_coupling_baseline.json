@@ -137,9 +137,6 @@
   "foreign_private": 1,
   "getattr_literal": 2
  },
- "ui/core/runtime_paths.py": {
-  "getattr_literal": 1
- },
  "ui/core/screens/about_dialog.py": {
   "hasattr": 6
  },
@@ -175,9 +172,6 @@
  "ui/core/shortcut_bindings.py": {
   "foreign_private": 1
  },
- "ui/core/theme/manager.py": {
-  "getattr_literal": 2
- },
  "ui/core/widgets/color_picker/color_swatch_widgets.py": {
   "hasattr": 2
  },
@@ -190,20 +184,26 @@
  "ui/core/widgets/toggle/toggle_switch.py": {
   "foreign_private": 1
  },
- "ui/engine_backends/aladyn_brush_mixin.py": {
+ "ui/infrastructure/bridge_client/aladyn_brush_mixin.py": {
   "hasattr": 3
  },
- "ui/engine_backends/aladyn_buffers.py": {
+ "ui/infrastructure/bridge_client/aladyn_buffers.py": {
   "getattr_literal": 1,
   "hasattr": 7
  },
- "ui/engine_backends/aladyn_stroke_mixin.py": {
+ "ui/infrastructure/bridge_client/aladyn_stroke_mixin.py": {
   "getattr_literal": 7
  },
- "ui/engine_backends/native_fallback.py": {
+ "ui/infrastructure/bridge_client/native_fallback.py": {
   "hasattr": 1
  },
  "ui/infrastructure/logging/logger.py": {
   "hasattr": 2
+ },
+ "ui/infrastructure/runtime_paths.py": {
+  "getattr_literal": 1
+ },
+ "ui/infrastructure/theme/manager.py": {
+  "getattr_literal": 2
  }
 }

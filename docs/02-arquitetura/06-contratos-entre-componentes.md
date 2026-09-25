@@ -70,7 +70,7 @@ Quem conecta é quem se importa.
 
 Para qualquer coisa que toque pixels ou o perfil nativo. Só por métodos do
 `EngineBackend` (`ui/core/engine/backend.py`); nunca `_facade`/`_native`,
-nunca `aladyn_engine_native` fora de `ui/engine_backends/`.
+nunca `aladyn_engine_native` fora de `ui/infrastructure/bridge_client/`.
 
 ## Padrões proibidos, com o caso real e a correção
 

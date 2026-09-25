@@ -13,7 +13,7 @@ unificação do que já existe.)*
 
 ## 1. O que foi medido
 
-### A camada adaptadora `ui/engine_backends/`
+### A camada adaptadora `ui/infrastructure/bridge_client/`
 
 | | |
 | :--- | ---: |
@@ -126,7 +126,7 @@ A tabela precisa marcar explicitamente quais são só-escrita, senão a unifica�
 introduz perda de estado.
 
 > **Feito (encontrado em 2026-09-20, terceira rodada):** este passo já estava
-> implementado antes desta sessão — `ui/engine_backends/brush_param_table.py`
+> implementado antes desta sessão — `ui/infrastructure/bridge_client/brush_param_table.py`
 > (commit `23900cc`, fases de solidificação R1-R5) declara `TABELA` e
 > `PARAMS_POR_METODO` uma única vez; `get_brush_profile_dict` e
 > `apply_brush_preset_dict` (`aladyn_brush_profiles.py`) derivam dela, sem

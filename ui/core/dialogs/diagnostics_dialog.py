@@ -10,8 +10,8 @@ from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_meters import simd_text
-from ui.core.i18n import I18nManager, tr
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class DiagnosticsDialog(BaseFramelessDialog):

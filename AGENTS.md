@@ -39,7 +39,7 @@ O ambiente é particionado em diretórios irmãos no nível superior:
 ├── Lumenia/                             # Repositório de código 100% puro + .git (sempre leve, ~7 MB)
 │   ├── engine/                          # Motor C++20 puro
 │   ├── bridge/                          # PyBind11 bindings e contratos .pyi
-│   ├── ui/                              # Aplicação Python / PySide6 (Mixins e Camadas)
+│   ├── ui/                              # Pilar Python/PySide6: boundary/ (casca), core/ (núcleo), infrastructure/ (ponte com o motor, config, idioma, tema, ícones, logging)
 │   ├── plugins/                         # Plugins nativos e manifesto
 │   ├── assets/                          # Ícones e recursos visuais
 │   ├── docs/                            # Documentação técnica reconstruída
@@ -73,7 +73,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 
 ### Censo Atual (medido em 2026-09-24 com `wc -l` em `ui/` e `plugins/`):
 - **0 arquivos na Zona Vermelha e nenhuma exceção de LOC declarada.** Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
-- 314 verdes, 35 amarelos e **0 na parede** (430–449).
+- 313 verdes, 35 amarelos e **0 na parede** (430–449).
 - **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos.
 - **Dividir é por responsabilidade, não por tamanho.** O diagnóstico de
   2026-09-24 achou o teto de LOC "cumprido" com mixins e funções soltas que
@@ -85,7 +85,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 ## 🔒 4. AS 6 LEIS ARQUITETURAIS INVIOLÁVEIS
 
 1. **Zero Cross-Plugin Imports**: Um plugin em `plugins/` **NUNCA** importa outro plugin irmão diretamente. Comunicação entre plugins deve usar a API de plugins ou componentes compartilhados em `ui/core/`.
-2. **Isolamento de Binário C++**: É expressamente proibido importar `aladyn_engine_native` fora de `ui/engine_backends/`. Exceção aceita: testes de caixa-branca do motor nativo (`tests/test_lowlevel_*.py` e afins) e scripts isolados de diagnóstico/benchmark na raiz do repositório (`diag_*.py`, `benchmarks/`) podem importar o módulo diretamente — não são código que a UI executa em produção. Auditado na Fase de panorama pós-C5 (2026-09-17): 20 ocorrências, todas nessa categoria (ver `claude/panorama-leis-do-rio-pos-c5.md` no Projects).
+2. **Isolamento de Binário C++**: É expressamente proibido importar `aladyn_engine_native` fora de `ui/infrastructure/bridge_client/`. Exceção aceita: testes de caixa-branca do motor nativo (`tests/test_lowlevel_*.py` e afins) e scripts isolados de diagnóstico/benchmark na raiz do repositório (`diag_*.py`, `benchmarks/`) podem importar o módulo diretamente — não são código que a UI executa em produção. Auditado na Fase de panorama pós-C5 (2026-09-17): 20 ocorrências, todas nessa categoria (ver `claude/panorama-leis-do-rio-pos-c5.md` no Projects).
 3. **Zero Acesso a Atributos Privados**: A UI nunca acessa `_facade` ou `_native`. Toda comunicação é mediada por métodos canônicos em `EngineBackend`.
 4. **Fonte Única de Verdade (SSOT)**: O estado do documento reside em `Document` / `LocalLayerManager` (`ui/core/document/`). Painéis e widgets de UI são apenas **Views** reativas sincronizadas por sinais Qt.
 5. **Zero Hardcode de Cores**: Sempre utilize `ThemeManager.instance().get_color(...)` ou classes de estilo QSS.

@@ -10,7 +10,7 @@ from typing import Optional
 
 from PySide6 import QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.dialogs.canvas_size_dialog import CanvasSizeDialog
 from ui.core.document.geometry import change_geometry
 from ui.core.document.manager import DocumentManager

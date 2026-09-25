@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 
 
@@ -18,7 +18,7 @@ from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 
 def load_render_settings() -> dict:
     """Carrega as configurações salvas de renderização e perfil de cor do ConfigManager (JSON)."""
-    from ui.core.config import ConfigManager
+    from ui.infrastructure.config import ConfigManager
     sec = ConfigManager.instance().get_section("render")
     raw_profile = sec.get("profile_id", 0)
     aliases = {"srgb": 0, "display_p3": 1, "p3": 1, "adobe_rgb": 2, "rec2020": 3}
@@ -46,7 +46,7 @@ def load_render_settings() -> dict:
 
 def save_render_settings(cfg_dict: dict) -> None:
     """Salva as configurações de renderização e perfil de cor no ConfigManager (JSON)."""
-    from ui.core.config import ConfigManager
+    from ui.infrastructure.config import ConfigManager
     ConfigManager.instance().set_section("render", cfg_dict)
 
 
@@ -167,7 +167,7 @@ class ProfileCard(QtWidgets.QFrame):
         layout.addLayout(text_layout)
         layout.addStretch()
 
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         badge_text = tr("render.badge_active", "ATIVO") if self.is_active else ""
         self.badge_label = QtWidgets.QLabel(badge_text)
         self.badge_label.setStyleSheet(
@@ -179,7 +179,7 @@ class ProfileCard(QtWidgets.QFrame):
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def set_active_state(self, is_active: bool):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.is_active = is_active
         badge_text = tr("render.badge_active", "ATIVO") if is_active else ""
         self.badge_label.setText(badge_text)
@@ -189,7 +189,7 @@ class ProfileCard(QtWidgets.QFrame):
         )
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "badge_label") and self.is_active:
             self.badge_label.setText(tr("render.badge_active", "ATIVO"))
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class CurveWidget(QtWidgets.QWidget):
@@ -206,7 +206,7 @@ class CurveSection(QtWidgets.QFrame):
         self.apply_theme()
 
     def retranslate(self, title: str, label_x: str, label_y: str = ""):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.lbl_title.setText(title)
         self.btn_inv.setText(tr("curves.invert", "Inverter"))
         self.curve.label_x = label_x
@@ -264,7 +264,7 @@ class CurveWindow(BaseFramelessDialog):
     """Janela flutuante de Perfis e Curvas do Pincel (C++ ALADYN ENGINE)."""
 
     def __init__(self, parent=None):
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         super().__init__(title=tr("curves.window_title", "Perfis & Curvas LUT"), icon_name="curve", parent=parent, modal=False)
         self.setMinimumWidth(310)
 
@@ -297,7 +297,7 @@ class CurveWindow(BaseFramelessDialog):
         self.sync_to_engine()
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         title = tr("curves.window_title", "Perfis & Curvas LUT")
         self.setWindowTitle(title)
         if hasattr(self, "title_bar") and self.title_bar:

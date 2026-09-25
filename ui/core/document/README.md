@@ -63,6 +63,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
 - `ui/core/engine`
-- `ui/core/i18n`
 - `ui/core/plugins`
+- `ui/infrastructure/i18n`
 <!-- /arccc:deps -->

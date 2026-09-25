@@ -1,16 +1,31 @@
 """
-ui.core.icons — Catálogo Centralizado de Ícones Vetoriais SVG Dinâmicos
+ui.infrastructure.icons — Catálogo Centralizado de Ícones Vetoriais SVG Dinâmicos
 =======================================================================
 Fornece ícones vetoriais com suporte nativo a currentColor (adaptação a temas
 claros e escuros via IconManager / ThemeManager) com acabamento profissional.
 """
 
+from typing import Callable, Optional
+
 from PySide6 import QtGui, QtCore, QtSvg
 import xml.etree.ElementTree as ET
 
-from ui.core.icon_svg_catalog import SVG_ICONS, ALIASES
+from ui.infrastructure.icons.svg_catalog import SVG_ICONS, ALIASES
 
 _ICON_CACHE: dict = {}
+
+# Cor de um token do tema ("text_main", "accent"...). Quem registra é o
+# ThemeManager ao ser criado: os ícones não conhecem o tema. Até 2026-09-24
+# este módulo importava o ThemeManager dentro de get_icon e o tema importava o
+# catálogo de ícones (ciclo entre as duas pastas). Sem tema registrado, o SVG
+# fica com `currentColor` (o renderizador do Qt desenha em preto).
+_resolve_color: Callable[[str], Optional[str]] = lambda _token: None
+
+
+def set_color_resolver(resolver: Callable[[str], Optional[str]]) -> None:
+    """Chamado pelo ThemeManager: token do tema -> cor "#rrggbb"."""
+    global _resolve_color
+    _resolve_color = resolver
 
 def clear_icon_cache(*args):
     """Limpa o cache de ícones quando o tema muda."""
@@ -43,15 +58,13 @@ def get_icon(name: str, color: str = None, size: QtCore.QSize = QtCore.QSize(24,
         return QtGui.QIcon()
 
     if not color or not color.startswith("#"):
-        from ui.core.theme.manager import ThemeManager
-        color_key = color if color else "text_main"
-        color = ThemeManager.instance().get_color(color_key)
+        color = _resolve_color(color if color else "text_main")
 
     cache_key = (resolved_name, color, size.width(), size.height())
     if cache_key in _ICON_CACHE:
         return QtGui.QIcon(_ICON_CACHE[cache_key])
 
-    svg_xml = svg_template.replace("currentColor", color)
+    svg_xml = svg_template.replace("currentColor", color) if color else svg_template
     icon = svg_to_icon(svg_xml, size)
     _ICON_CACHE[cache_key] = icon
     return QtGui.QIcon(icon)

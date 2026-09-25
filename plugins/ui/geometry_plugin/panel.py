@@ -11,8 +11,8 @@ arrastado no canvas.
 
 from PySide6 import QtWidgets, QtCore
 from ui.core.state import GeometryState
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from .components.constants import GUIDE_TYPES, SYM_TYPES, get_guide_name, get_sym_name
 from .components.geometry_selector import GeometrySelectorButton
 from .components.advanced_settings_dialog import AdvancedGeometryDialog
@@ -44,7 +44,7 @@ class GeometryPanel(QtWidgets.QWidget):
         main_layout.setContentsMargins(6, 6, 6, 6)
         main_layout.setSpacing(8)
 
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
 
         # 1. Cabeçalho com Engrenagem e Seletor
         header = QtWidgets.QHBoxLayout()
@@ -93,7 +93,7 @@ class GeometryPanel(QtWidgets.QWidget):
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.btn_advanced.setToolTip(tr("geometry.advanced_settings", "Configurações Avançadas de Simetria e Réguas"))
         self.btn_center_pivot.setText(tr('geometry.center_pivot', 'Centralizar Pivô no Canvas'))
         self.btn_reset_angle.setText(tr('geometry.reset_axis_angle', 'Resetar Ângulo do Eixo (0°)'))
@@ -158,7 +158,7 @@ class GeometryPanel(QtWidgets.QWidget):
             self.adv_dialog.sync_from_state(self._state.fields())
 
     def _show_status(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         guide_type, sym_mode = self._state.guide["type"], self._state.symmetry["mode"]
 
         lines = []

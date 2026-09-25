@@ -63,5 +63,5 @@ Entre o Shell Qt e o backend do motor nativo, a camada de controle concentra a l
 
 - **`PluginManager`** (`ui/core/plugins/manager.py`): Ciclo de vida, injeção de `PluginContext` e resolução de dependências por ordenação topológica (DFS) — ver `architecture/PLUGIN_SUBSYSTEM.md`.
 - **`LocalLayerManager`** (`ui/core/document/layer_manager.py`): Ordem de pilha, grupos, *merge down* e a camada de papel (Camada 0) — ver `architecture/DOCUMENT_MODEL.md`.
-- **`AladynSelectionMixin`** / **`AladynTransformMixin`** (`ui/engine_backends/`): Delegam ao motor nativo as máscaras de seleção com operações booleanas e as matrizes de transformação afim/bicúbica — ver `architecture/ARCcC_FRAMEWORK.md`.
+- **`AladynSelectionMixin`** / **`AladynTransformMixin`** (`ui/infrastructure/bridge_client/`): Delegam ao motor nativo as máscaras de seleção com operações booleanas e as matrizes de transformação afim/bicúbica — ver `architecture/ARCcC_FRAMEWORK.md`.
 - **`DocumentHistory`** (`ui/core/document/history.py`): Undo/redo com histórico transacional paginado em disco.

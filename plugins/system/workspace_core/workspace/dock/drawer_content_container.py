@@ -2,7 +2,7 @@
 
 from typing import Dict, Set
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from .drawer_header import DrawerHeader
 from .dock_animator import DockAnimator
 

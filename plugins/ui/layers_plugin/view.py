@@ -228,8 +228,8 @@ class LayerTreeView(QTreeView):
 
     def contextMenuEvent(self, event):
         index = self.indexAt(event.pos())
-        from ui.core.icons import get_icon
-        from ui.core.i18n import tr
+        from ui.infrastructure.icons import get_icon
+        from ui.infrastructure.i18n import tr
         from PySide6.QtWidgets import QMenu
 
         if not index.isValid():

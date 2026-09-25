@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.document.manager import DocumentManager
-from ui.core.icons import get_icon
+from ui.infrastructure.icons import get_icon
 
 class TabCloseButton(QtWidgets.QToolButton):
     def __init__(self, parent=None):
@@ -31,7 +31,7 @@ class TabCloseButton(QtWidgets.QToolButton):
             size
         )
         
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         colors = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {}).get("colors", {})
         
         # Determina se está sob o cursor para pintar o fundo azul ou manter transparente
@@ -131,13 +131,13 @@ class TabbedViewportContainer(QtWidgets.QWidget):
         self.dm.documentClosed.connect(self._on_document_closed)
         
         # Sincroniza tema e escala
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         ThemeManager.instance().scaleChanged.connect(self._apply_scale)
         self._apply_scale()
 
     def _apply_theme(self, theme_name=None):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
 
         # QSS unificado do contêiner e abas com alinhamento vertical e cor de hover vermelha para fechar
         qss = f"""
@@ -197,7 +197,7 @@ class TabbedViewportContainer(QtWidgets.QWidget):
 
     def _apply_scale(self, scale: float | None = None) -> None:
         """Adapta a altura do cabeçalho de abas e botões à escala global da interface."""
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         s = scale if scale is not None else ThemeManager.instance().ui_scale
         h = max(24, int(34 * s))
         self.header_widget.setFixedHeight(h)

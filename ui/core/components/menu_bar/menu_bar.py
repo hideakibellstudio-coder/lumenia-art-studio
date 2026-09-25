@@ -19,7 +19,7 @@ from .view_menu import ViewMenu
 from .window_menu import WindowMenu
 from .help_menu import HelpMenu
 from .settings_menu import SettingsMenu
-from ui.core.runtime_paths import resource_path
+from ui.infrastructure.runtime_paths import resource_path
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -124,7 +124,7 @@ class MenuBar(QtWidgets.QMenuBar):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_menus()
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
 

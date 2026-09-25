@@ -8,7 +8,7 @@ from PySide6 import QtCore, QtWidgets
 
 from ui.core.widgets.compact_slider import CompactSlider
 from ui.core.widgets.collapsible_section import CollapsibleSection
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 # Itens do combo de densidade, em graus entre linhas da grade.
 _DENSITIES = (15.0, 30.0, 45.0)

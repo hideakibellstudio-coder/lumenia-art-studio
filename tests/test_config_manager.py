@@ -17,7 +17,7 @@ app = QtWidgets.QApplication.instance()
 if not app:
     app = QtWidgets.QApplication(sys.argv)
 
-from ui.core.config.manager import ConfigManager, DEFAULT_CONFIG
+from ui.infrastructure.config.manager import ConfigManager, DEFAULT_CONFIG
 
 
 class TestConfigManager(unittest.TestCase):

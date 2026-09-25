@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from PySide6 import QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import BrushParam, BrushState
 
 from ..brush_engine_writer import BrushEngineWriter

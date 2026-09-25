@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 
 class ModifySelectionDialog(BaseFramelessDialog):
@@ -27,7 +27,7 @@ class ModifySelectionDialog(BaseFramelessDialog):
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme()
 
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def _build_ui(self):

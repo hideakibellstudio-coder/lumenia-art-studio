@@ -3,7 +3,9 @@ import os
 import json
 import logging
 import re
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from ui.infrastructure.icons import set_color_resolver
 
 from .interface_tweaks import tweak_metrics, valid_font, valid_radius
 from .qss_icons import render_icon_png
@@ -83,7 +85,7 @@ class ThemeManager(QtCore.QObject):
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         candidate_themes = [
             os.path.join(self.base_dir, "themes"),
-            os.path.join(os.path.dirname(sys.executable), "ui", "core", "theme", "themes"),
+            os.path.join(os.path.dirname(sys.executable), "ui", "infrastructure", "theme", "themes"),
             os.path.join(os.path.dirname(sys.executable), "themes"),
         ]
         self.themes_dir = next((d for d in candidate_themes if os.path.isdir(d)), candidate_themes[0])
@@ -94,8 +96,10 @@ class ThemeManager(QtCore.QObject):
         self.assets_dir = os.path.join(app_root, "assets").replace("\\", "/")
         
         self.load_all_themes()
+        # Os ícones pedem as cores do tema por aqui (não importam o tema).
+        set_color_resolver(self.get_color)
 
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         saved_theme = ConfigManager.instance().get("theme", "active", "lumenia_purple")
         self._ui_scale = float(ConfigManager.instance().get("interface", "scale", 1.0))
         self._corner_radius = valid_radius(ConfigManager.instance().get("interface", "corner_radius", None))
@@ -194,7 +198,7 @@ class ThemeManager(QtCore.QObject):
         if (corner_radius, font_key) == (self._corner_radius, self._font_key):
             return
         self._corner_radius, self._font_key = corner_radius, font_key
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         ConfigManager.instance().set("interface", "corner_radius", corner_radius)
         ConfigManager.instance().set("interface", "font_family", font_key)
         self.apply_theme(self._current_theme, force=True)
@@ -204,7 +208,7 @@ class ThemeManager(QtCore.QObject):
         new_scale = max(0.5, min(3.0, round(float(scale), 2)))
         self._ui_scale = new_scale
 
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         ConfigManager.instance().set("interface", "scale", new_scale)
 
         app = QtWidgets.QApplication.instance()
@@ -223,7 +227,7 @@ class ThemeManager(QtCore.QObject):
         if (theme_name in self._themes and theme_name != self._current_theme) or force:
             self._current_theme = theme_name
 
-            from ui.core.config import ConfigManager
+            from ui.infrastructure.config import ConfigManager
             ConfigManager.instance().set("theme", "active", theme_name)
 
             # Aplica folha de estilos globalmente
@@ -380,6 +384,12 @@ class ThemeManager(QtCore.QObject):
             return "#ff5252"
 
         return "#121212" if is_dark else "#ffffff"
+
+    def shadow_color(self, alpha: int) -> QtGui.QColor:
+        """Cor da sombra do tema (token SHADOW, em rgba CSS) com o alpha pedido pelo widget."""
+        match = re.match(r"rgba?\((\d+),\s*(\d+),\s*(\d+)", self.get_color("SHADOW") or "")
+        r, g, b = (int(match.group(i)) for i in (1, 2, 3)) if match else (0, 0, 0)
+        return QtGui.QColor(r, g, b, alpha)
 
     def get_color(self, name: str, fallback: str = None) -> str:
         """Retorna a cor Hex correspondente ao token solicitado com fallback opcional inteligente."""

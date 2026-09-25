@@ -24,16 +24,16 @@ from typing import Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.components import MenuBar, StatusBar, ToolSidebar
-from ui.core.config.manager import ConfigManager
+from ui.infrastructure.config.manager import ConfigManager
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
-from ui.core.i18n import I18nManager, tr
+from ui.infrastructure.i18n import I18nManager, tr
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.registry import ServiceRegistry
-from ui.core.runtime_paths import resource_path
+from ui.infrastructure.runtime_paths import resource_path
 from ui.core.shortcut_registry import ShortcutRegistry
 from ui.core.state import install_app_state
 
@@ -59,7 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setStyleSheet(ThemeManager.instance().get_stylesheet())
 
         self.dm = DocumentManager.instance()
-        from ui.engine_backends import create_backends
+        from ui.infrastructure.bridge_client import create_backends
         EngineRegistry.instance().setup(create_backends())
         backend = EngineRegistry.instance().get_backend
         self._backend = backend

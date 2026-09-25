@@ -33,9 +33,9 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
 - `plugins/ui/geometry_plugin/components`
-- `ui/core`
-- `ui/core/i18n`
 - `ui/core/plugins`
 - `ui/core/state`
-- `ui/core/theme`
+- `ui/infrastructure/i18n`
+- `ui/infrastructure/icons`
+- `ui/infrastructure/theme`
 <!-- /arccc:deps -->

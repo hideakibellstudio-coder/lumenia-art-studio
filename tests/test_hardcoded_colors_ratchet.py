@@ -28,7 +28,7 @@ def contar() -> dict[str, int]:
     for base in ("ui", "plugins"):
         for path in sorted((ROOT / base).rglob("*.py")):
             rel = path.relative_to(ROOT).as_posix()
-            if "__pycache__" in rel or rel.startswith("ui/core/theme/"):
+            if "__pycache__" in rel or rel.startswith("ui/infrastructure/theme/"):
                 continue
             tree = ast.parse(path.read_text(encoding="utf-8"))
             fallbacks = {

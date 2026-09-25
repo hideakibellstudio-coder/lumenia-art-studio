@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from PySide6 import QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 from .base import (
     OrientedOptionsView, Text, add_slider, combo, header_row, icon_label, set_checked, set_combo_items,

@@ -70,7 +70,7 @@ DEFAULT_TOOLS = [
 
 
 def get_tool_name(tool_id: str) -> str:
-    from ui.core.i18n import tr
+    from ui.infrastructure.i18n import tr
     if tool_id in TOOL_I18N_KEYS:
         default_name = TOOL_META.get(tool_id, {}).get("name", tool_id)
         return tr(TOOL_I18N_KEYS[tool_id], default_name)

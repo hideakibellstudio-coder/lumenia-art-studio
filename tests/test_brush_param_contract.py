@@ -23,7 +23,7 @@ import pathlib
 
 import pytest
 
-from ui.engine_backends.brush_param_table import (
+from ui.infrastructure.bridge_client.brush_param_table import (
     GROUP_ATTRIBUTES,
     METHOD_PARAMS,
     BY_GROUP_AND_ATTRIBUTE,
@@ -92,7 +92,7 @@ def test_todo_grupo_declarado_existe_no_perfil(profile):
 
 
 def test_metodos_por_metodo_existem_no_backend():
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     for method_spec in METHOD_PARAMS:
         assert hasattr(AladynBackend, method_spec.method), (
@@ -146,7 +146,7 @@ def test_toda_chamada_da_interface_resolve():
 
 def test_ida_e_volta_preserva_o_estado():
     """get → apply → get deve ser estável: um preset salvo tem que voltar igual."""
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     backend = AladynBackend()
     if not backend.available:
@@ -167,7 +167,7 @@ def test_ida_e_volta_preserva_o_estado():
 
 
 def test_toda_chave_legivel_aparece_na_leitura():
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     backend = AladynBackend()
     if not backend.available:
@@ -182,7 +182,7 @@ def test_toda_chave_legivel_aparece_na_leitura():
 
 def test_parametro_nao_declarado_falha_alto():
     """A regressão que originou tudo isto: silêncio onde devia haver erro."""
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     backend = AladynBackend()
     with pytest.raises(KeyError):
@@ -193,7 +193,7 @@ def test_parametro_nao_declarado_falha_alto():
 
 def test_blend_mode_aceita_indice_da_combo():
     """A combo do painel manda o índice; o motor exige o enum."""
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     backend = AladynBackend()
     if not backend.available:

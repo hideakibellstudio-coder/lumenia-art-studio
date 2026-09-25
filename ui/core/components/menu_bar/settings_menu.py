@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.i18n import I18nManager, tr
-from ui.core.icons import get_icon
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.icons import get_icon
 
 class SettingsMenu(QtWidgets.QMenu):
     renderSettingsRequested = QtCore.Signal()

@@ -6,7 +6,7 @@ Até 2026-09-24 o diálogo mostrava "110 testes", "100%", "SIMD AVX2 Ativo" e
 from tests.run_all_tests import build_pytest_args
 from ui.core.dialogs.test_report_dialog import TestReportDialog
 from ui.core.dialogs.test_report_model import SECTIONS, parse_junit, section_of
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 JUNIT = """<?xml version="1.0" encoding="utf-8"?>
 <testsuites><testsuite name="pytest" tests="5">

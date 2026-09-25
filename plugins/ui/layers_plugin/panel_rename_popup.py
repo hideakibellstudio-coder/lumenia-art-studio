@@ -27,7 +27,7 @@ class LayerRenamePopup(QFrame):
         layout.setContentsMargins(4, 2, 4, 2)
         layout.addWidget(self.input_edit)
 
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         tm = ThemeManager.instance()
         bg_panel = tm.get_color("bg_panel", "#1e1e24")
         accent = tm.get_color("accent", "#6366f1")

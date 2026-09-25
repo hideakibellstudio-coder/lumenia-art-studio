@@ -22,8 +22,8 @@ from typing import Optional
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui.core.dialogs.floating_tool_window import FloatingToolWindow
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Callable, Optional
 
 from ui.core.engine.registry import EngineRegistry
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.plugins.canvas_access import request_canvas_repaint
 
 from .history import layer_transaction

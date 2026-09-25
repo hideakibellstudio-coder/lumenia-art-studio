@@ -35,7 +35,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 <!-- arccc:deps -->
 - `plugins/system/workspace_core/workspace/canvas/math`
 - `plugins/system/workspace_core/workspace/canvas/tools`
-- `ui/core`
-- `ui/core/config`
-- `ui/core/theme`
+- `ui/infrastructure/config`
+- `ui/infrastructure/icons`
+- `ui/infrastructure/theme`
 <!-- /arccc:deps -->

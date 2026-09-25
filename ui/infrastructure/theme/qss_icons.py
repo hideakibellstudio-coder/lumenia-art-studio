@@ -12,24 +12,24 @@ logger = logging.getLogger(__name__)
 
 
 def render_icon_png(icon_key: str, color: str, size: int = 24) -> str:
-    """Renderiza um ícone do catálogo central (mesmo pipeline de ui.core.icons.get_icon)
+    """Renderiza um ícone do catálogo central (mesmo pipeline de ui.infrastructure.icons.get_icon)
     para um arquivo PNG em cache, para ser referenciado via QSS `image: url(...)`.
 
     Necessário porque QSS não resolve `currentColor` em SVGs carregados via url() -- só o
-    pipeline Python de ui.core.icons faz essa substituição manualmente antes de renderizar.
+    pipeline Python de ui.infrastructure.icons faz essa substituição manualmente antes de renderizar.
     Um SVG cru com fill/stroke="currentColor" carregado direto pelo QSS (como acontecia com
     os botões close/float do QDockWidget) renderiza com a cor padrão do próprio arquivo (ou
     nem renderiza, dependendo da disponibilidade do plugin de imagem SVG do Qt) -- nunca
     reage ao tema. Ver claude/panorama-consistencia-visual-tema-2026-09-18.md (Achado #6).
 
-    A lógica de renderização espelha ui.core.icons.svg_to_icon() -- duplicada aqui de
-    propósito (não importada) para não criar um import de ui.core.icons em nível de módulo
+    A lógica de renderização espelha ui.infrastructure.icons.svg_to_icon() -- duplicada aqui de
+    propósito (não importada) para não criar um import de ui.infrastructure.icons em nível de módulo
     neste arquivo, já que ui/core/__init__.py importa ThemeManager como primeiro passo da
     inicialização do pacote `ui.core` (risco de import parcialmente circular).
     """
     import hashlib
-    from ui.core.icon_svg_catalog import SVG_ICONS, ALIASES
-    from ui.core.config import get_default_config_path
+    from ui.infrastructure.icons.svg_catalog import SVG_ICONS, ALIASES
+    from ui.infrastructure.config import get_default_config_path
 
     name = str(icon_key).replace("-", "_").replace(" ", "_")
     resolved_name = ALIASES.get(name, name)

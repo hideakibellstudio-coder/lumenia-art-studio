@@ -12,7 +12,7 @@ from .base import ToolHeaderLabel
 from .bound_view import ToolOptionsView
 from ui.core.widgets.shape_dropdown import ShapeDropdown
 from ui.core.widgets.compact_slider import CompactSlider
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import ToolState
 
 _DRAW_MODES = ("both", "stroke", "fill")

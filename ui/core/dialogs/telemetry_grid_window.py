@@ -23,8 +23,8 @@ from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from ui.core.engine.telemetry_meters import METERS, read_meters
 from ui.core.engine.telemetry_tracker import TelemetryTracker
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.widgets.metric_card import GridMetricCard
 from ui.core.widgets.pipeline_bar import PipelineBar
 

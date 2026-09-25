@@ -7,8 +7,8 @@ Expõe ações de gerenciamento de camadas, grupos, mesclagem, máscaras de cort
 from __future__ import annotations
 
 from PySide6 import QtWidgets, QtGui, QtCore
-from ui.core.icons import get_icon
-from ui.core.i18n import tr
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.i18n import tr
 
 
 class LayerMenu(QtWidgets.QMenu):

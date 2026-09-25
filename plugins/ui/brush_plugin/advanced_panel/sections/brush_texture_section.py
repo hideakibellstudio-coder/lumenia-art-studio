@@ -1,7 +1,7 @@
 """Seções 4 e 5 do painel avançado: textura (matéria) do pincel e espaçamento."""
 from __future__ import annotations
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import BrushParam, BrushState
 
 from ..brush_engine_writer import BrushEngineWriter

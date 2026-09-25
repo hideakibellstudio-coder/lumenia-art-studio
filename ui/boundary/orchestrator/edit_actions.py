@@ -12,7 +12,7 @@ from PySide6 import QtGui, QtWidgets
 
 from ui.core.dialogs.modify_selection_dialog import ModifySelectionDialog
 from ui.core.document.layer_commands import LayerCommands
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import BrushState
 
 from .shell_actions import BackendProvider, ShellActions, backend_ready

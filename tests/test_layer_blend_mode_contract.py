@@ -13,7 +13,7 @@ originalmente so 7 dos 13 valores de `document::LayerBlendMode`
 (Normal..Erase) -- estendido na Fase C5 para os 13, ja que o motor
 (`engine/core/document/blending/BlendEquations.hpp`) sempre implementou os
 13 por completo e a UI (`layers_plugin/header.py`) ja os ofereceria todos.
-`ui/engine_backends/aladyn_layer_mixin.py` nao depende deste binding pra
+`ui/infrastructure/bridge_client/aladyn_layer_mixin.py` nao depende deste binding pra
 converter (passa o indice inteiro puro direto pra
 `PaintEngineFacade::setLayerBlendMode(int)`), mas o binding documentando o
 contrato completo evita a mesma lacuna se algum codigo futuro voltar a

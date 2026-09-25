@@ -9,7 +9,7 @@ Suporta tematização dinâmica em tempo real via ThemeManager.
 from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class GridMetricCard(QtWidgets.QFrame):

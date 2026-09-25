@@ -176,7 +176,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         # Carrega ícone com recorte justo (sem áreas transparentes excessivas)
         icon_pix = None
         try:
-            from ui.core.runtime_paths import resource_path
+            from ui.infrastructure.runtime_paths import resource_path
             tight_path = str(resource_path("assets", "images", "icon_lumenia_tight.png"))
             base_path = str(resource_path("assets", "images", "icon_lumenia.png"))
             if os.path.exists(tight_path):

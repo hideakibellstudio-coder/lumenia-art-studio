@@ -7,8 +7,8 @@ Expõe ações de dimensionamento do canvas/imagem, cortes, rotações e ajustes
 from __future__ import annotations
 
 from PySide6 import QtWidgets, QtGui, QtCore
-from ui.core.icons import get_icon
-from ui.core.i18n import tr
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.i18n import tr
 
 
 class ImageMenu(QtWidgets.QMenu):

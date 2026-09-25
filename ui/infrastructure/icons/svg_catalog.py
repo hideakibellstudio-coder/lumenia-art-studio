@@ -1,6 +1,6 @@
-"""ui.core.icon_svg_catalog — Catálogo Centralizado de Ícones SVG e Aliases."""
+"""ui.infrastructure.icons.svg_catalog — Catálogo Centralizado de Ícones SVG e Aliases."""
 
-from ui.core.icon_svg_tools import SVG_TOOL_ICONS
+from ui.infrastructure.icons.svg_tool_icons import SVG_TOOL_ICONS
 
 SVG_SYSTEM_ICONS = {
     "undo": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -288,7 +288,7 @@ ALIASES = {
 }
 
 # Normaliza as chaves de ALIASES (hífen/espaço -> underscore) para casar com a normalização
-# que ui.core.icons.get_icon() já aplica ao nome recebido ANTES de consultar este dicionário.
+# que ui.infrastructure.icons.get_icon() já aplica ao nome recebido ANTES de consultar este dicionário.
 # Bug corrigido (panorama-consistencia-visual-tema-2026-09-18.md, Achado #3): chaves como
 # "arrow-swap" (hífen) nunca eram alcançadas, porque get_icon() já tinha trocado "-" por "_"
 # no nome antes de fazer ALIASES.get(nome) -- eram apelidos mortos por construção.

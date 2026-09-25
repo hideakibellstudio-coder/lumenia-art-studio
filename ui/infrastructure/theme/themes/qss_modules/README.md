@@ -1,4 +1,4 @@
-# `ui/core/theme/themes/qss_modules/` — folha de estilo em módulos
+# `ui/infrastructure/theme/themes/qss_modules/` — folha de estilo em módulos
 
 **Responsabilidade:** o QSS da aplicação dividido por área, concatenado em ordem alfabética e compilado com os tokens do tema ativo.
 

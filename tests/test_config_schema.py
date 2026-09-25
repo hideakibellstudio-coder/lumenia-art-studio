@@ -2,7 +2,7 @@
 
 import json
 import pytest
-from ui.core.config.manager import ConfigManager
+from ui.infrastructure.config.manager import ConfigManager
 
 
 def test_legacy_settings_migrate_without_losing_neighbors(tmp_path):

@@ -3,7 +3,7 @@ import numpy as np
 from PySide6 import QtCore, QtGui
 
 import aladyn_engine_native as aen
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 from ui.core.engine.registry import EngineRegistry
 
 

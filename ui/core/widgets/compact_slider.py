@@ -5,7 +5,7 @@ Slider inline preenchido proporcionalmente ao valor com botões laterais de pass
 Drag horizontal muda o valor e cliques nos botões alteram passo a passo.
 """
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.widgets.slider.step_button import SliderStepButton
 
 

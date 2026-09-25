@@ -33,9 +33,9 @@ Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
 pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
-- `ui/core`
-- `ui/core/i18n`
 - `ui/core/state`
-- `ui/core/theme`
 - `ui/core/widgets`
+- `ui/infrastructure/i18n`
+- `ui/infrastructure/icons`
+- `ui/infrastructure/theme`
 <!-- /arccc:deps -->

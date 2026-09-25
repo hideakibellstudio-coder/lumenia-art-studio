@@ -6,8 +6,8 @@ Sincroniza paleta do ThemeManager com delegados, cabeçalho e botões do LayersP
 
 from __future__ import annotations
 from typing import Any
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 def apply_layers_panel_theme(panel: Any) -> None:

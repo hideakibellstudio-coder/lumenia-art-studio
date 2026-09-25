@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.i18n import tr
-from ui.core.icons import get_icon
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.icons import get_icon
 from ui.core.state import BrushState
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.tools import ToolCommand
 from ui.core.widgets.tool_options import SAMPLE_RADII
 

@@ -15,14 +15,14 @@ from __future__ import annotations
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.widgets.card_box import PanelCardBox
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_tracker import TelemetryTracker
 from ui.core.dialogs.telemetry_common import banner_style, copy_report
 from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
 from ui.core.dialogs.telemetry_grid_window import TelemetryGridWindow
-from ui.core.i18n import I18nManager, tr
+from ui.infrastructure.i18n import I18nManager, tr
 from ui.core.widgets.pipeline_bar import PipelineBar
 
 # Texto curto do banner (a doca é estreita) por estado do TelemetryTracker.

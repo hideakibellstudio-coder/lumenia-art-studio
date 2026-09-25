@@ -56,7 +56,7 @@ class DockAnimator:
         self._expand_timer.timeout.connect(self.do_expand)
 
         try:
-            from ui.core.theme.manager import ThemeManager
+            from ui.infrastructure.theme.manager import ThemeManager
             ThemeManager.instance().scaleChanged.connect(self._on_scale_changed)
         except Exception:
             logging.getLogger(__name__).debug("DockAnimator sem reatividade de escala.", exc_info=True)
@@ -66,7 +66,7 @@ class DockAnimator:
     @property
     def drawer_width(self) -> int:
         try:
-            from ui.core.theme.manager import ThemeManager
+            from ui.infrastructure.theme.manager import ThemeManager
             return max(180, int(self.DRAWER_WIDTH * ThemeManager.instance().ui_scale))
         except Exception:
             return self.DRAWER_WIDTH

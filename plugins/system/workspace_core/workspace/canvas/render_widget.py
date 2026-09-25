@@ -86,7 +86,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         self._last_tablet_time, self._tablet_in_use = 0.0, False
         self._active_draw_color = QtGui.QColor(0, 0, 0, 255)
 
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         # Método ligado (não lambda): o PySide desconecta sozinho quando o widget
         # é destruído. Um lambda num sinal de singleton ficava vivo e chamava
         # update() num RenderWidget já deletado (ex.: após fechar um documento).

@@ -7,11 +7,11 @@ Exibe a identidade visual oficial, especificações do ALADYN Engine e créditos
 from __future__ import annotations
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from ui.core.i18n import tr
-from ui.core.runtime_paths import resource_path
-from ui.core.icons import get_icon
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.runtime_paths import resource_path
+from ui.infrastructure.icons import get_icon
 
 
 class AboutDialog(BaseFramelessDialog):
@@ -121,11 +121,11 @@ class AboutDialog(BaseFramelessDialog):
 
         self.content_layout.addLayout(bottom_lay)
 
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         title = tr("dialogs.about_title", "Sobre o Lumenia Studio")
         self.setWindowTitle(title)
         if hasattr(self, "title_bar") and self.title_bar:

@@ -29,6 +29,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `plugins/ui/recording_plugin/components`
 - `plugins/ui/recording_plugin/engine`
 - `ui/core/plugins`
-- `ui/core/theme`
 - `ui/core/widgets`
+- `ui/infrastructure/theme`
 <!-- /arccc:deps -->

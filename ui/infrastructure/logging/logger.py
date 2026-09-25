@@ -14,7 +14,7 @@ import functools
 import logging
 from logging.handlers import RotatingFileHandler
 from PySide6 import QtCore, QtWidgets
-from ui.core.runtime_paths import writable_data_dir
+from ui.infrastructure.runtime_paths import writable_data_dir
 
 
 # ── ANSI COLORS PARA TERMINAL ───────────────────────────────────────────────

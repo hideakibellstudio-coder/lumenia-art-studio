@@ -19,7 +19,7 @@ from ui.core.color.icc_profile import ICCProfileInfo
 from ui.core.color.proofing import SoftProofConfig, RenderingIntent
 from ui.core.color.cms_engine import get_cms_engine, ColorManagementEngine
 from ui.core.color.catalog import get_color_catalog, ColorProfileCatalog
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 from ui.core.document.document import Document
 from ui.core.document.serializer import DocumentSerializer
 from ui.core.document.restore import restore_document

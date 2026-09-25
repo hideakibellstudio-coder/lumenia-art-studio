@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import Optional
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.floating_panel_window import CanvasAreaProvider, FloatingPanelWindow
 
 from .curvilinear_perspective_page import CurvilinearPerspectivePage
@@ -177,7 +177,7 @@ class AdvancedGeometryDialog(FloatingPanelWindow):
 
         footer = QtWidgets.QWidget()
         fl = QtWidgets.QHBoxLayout(footer)
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         self.btn_reset = QtWidgets.QPushButton(tr("dialogs.reset_defaults", "Restaurar Padrões"))
         self.btn_reset.setObjectName("AdvResetBtn")
         self.btn_reset.setCursor(QtCore.Qt.PointingHandCursor)
@@ -189,7 +189,7 @@ class AdvancedGeometryDialog(FloatingPanelWindow):
         self.retranslate_ui()
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.setWindowTitle(tr("geometry.advanced_dialog_title", "Configurações Avançadas de Geometria"))
         if hasattr(self, "lbl_title"):
             self.lbl_title.setText(tr("geometry.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA"))
@@ -227,7 +227,7 @@ class AdvancedGeometryDialog(FloatingPanelWindow):
         icon.setFixedSize(16, 16)
         icon.setPixmap(get_icon("settings").pixmap(QtCore.QSize(14, 14)))
 
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.lbl_title = QtWidgets.QLabel(tr("geometry.advanced_title", "CONFIGURAÇÕES AVANÇADAS DE GEOMETRIA"))
         self.lbl_title.setObjectName("AdvTitleLabel")
 
@@ -305,8 +305,8 @@ class AdvancedGeometryDialog(FloatingPanelWindow):
         self._on_changed()
 
     def _apply_theme(self, _="") -> None:
-        from ui.core.icons import get_icon
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.icons import get_icon
+        from ui.infrastructure.theme.manager import ThemeManager
 
         text = ThemeManager.instance().get_color("text_main")
         self.btn_close.setIcon(get_icon("close", text))

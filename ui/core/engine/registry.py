@@ -44,7 +44,7 @@ class EngineRegistry:
     def setup(self, backends: List[EngineBackend]) -> Optional[EngineBackend]:
         """
         Recebe a lista de backends disponíveis (criados pelas factories de
-        `ui/engine_backends`) e ativa o primeiro cujo `available` for True.
+        `ui/infrastructure/bridge_client`) e ativa o primeiro cujo `available` for True.
 
         Retorna o backend ativo (ou None se nenhum motor estiver presente).
         """

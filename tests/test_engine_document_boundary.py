@@ -15,8 +15,8 @@ from PySide6.QtWidgets import QApplication
 
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
-from ui.engine_backends.aladyn import AladynBackend
-from ui.engine_backends.aladyn_mdi_mixin import PLACEHOLDER_CONTEXT
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn_mdi_mixin import PLACEHOLDER_CONTEXT
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
 ROOT = Path(__file__).resolve().parent.parent
@@ -64,13 +64,15 @@ def test_contexto_provisorio_sai_quando_um_documento_abre():
 
 
 def test_backend_nao_importa_o_modelo_de_documentos_para_sujar():
-    for path in (ROOT / "ui" / "engine_backends").glob("*.py"):
+    for path in (ROOT / "ui" / "infrastructure" / "bridge_client").glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         modules = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
         assert "ui.core.document.manager" not in modules, path.name
 
 
 def test_um_caminho_so_ate_o_motor():
-    assert not (ROOT / "ui" / "infrastructure" / "bridge_client").exists()
+    # O BridgeClient antigo (client.py, comandos em dataclass) saiu em 2026-09-24;
+    # desde 2026-09-25 a pasta bridge_client/ é o adaptador do motor (ex-engine_backends).
+    assert not (ROOT / "ui" / "infrastructure" / "bridge_client" / "client.py").exists()
     assert not (ROOT / "ui" / "core" / "engine" / "commands.py").exists()
     assert "dispatch" not in vars(EngineRegistry)

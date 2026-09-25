@@ -12,8 +12,8 @@ from plugins.system.workspace_core.workspace.canvas.renderers.tool_cursor_render
 from plugins.system.workspace_core.workspace.canvas.viewport.cursor_controller import CanvasCursorController
 from plugins.system.workspace_core.workspace.canvas.viewport.input_router import CanvasInputRouter
 from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-from ui.core.icon_svg_catalog import ALIASES
-from ui.core.icons import get_icon
+from ui.infrastructure.icons.svg_catalog import ALIASES
+from ui.infrastructure.icons import get_icon
 
 
 def _fake_canvas(tool: str) -> QtWidgets.QWidget:

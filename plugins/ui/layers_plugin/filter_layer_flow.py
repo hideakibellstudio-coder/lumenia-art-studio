@@ -19,7 +19,7 @@ from PySide6 import QtWidgets
 from ui.core.document.history import LayerTransactionCancelled, layer_transaction
 from ui.core.document.layer_manager import LocalLayerManager
 from ui.core.engine.registry import EngineRegistry
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.plugins.canvas_access import request_canvas_repaint
 
 

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QGroupBox, QHBoxLayout, QSlider, QSizePolicy, QApplication, QPushButton
 )
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 
 class FilterLayerDialog(BaseFramelessDialog):

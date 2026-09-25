@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from PySide6 import QtWidgets
 
-from ui.core.i18n import tr
-from ui.core.theme.interface_tweaks import FONT_CHOICES, RADIUS_CHOICES
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.theme.interface_tweaks import FONT_CHOICES, RADIUS_CHOICES
+from ui.infrastructure.theme.manager import ThemeManager
 
 SCALE_VALUES = (0.8, 1.0, 1.25, 1.5, 1.75, 2.0)
 

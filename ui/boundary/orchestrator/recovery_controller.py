@@ -11,8 +11,8 @@ from typing import Optional
 
 from PySide6 import QtCore, QtWidgets
 
-from ui.core.i18n import tr
-from ui.core.config.manager import ConfigManager
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.config.manager import ConfigManager
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.recovery import RecoveryStore

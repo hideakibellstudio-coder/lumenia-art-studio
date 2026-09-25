@@ -16,9 +16,9 @@ import pytest
 from PySide6 import QtCore, QtGui, QtWidgets
 from typing import Any
 
-from ui.engine_backends.aladyn_buffers import to_native_color_rgba
-from ui.engine_backends.aladyn_selection_mixin import AladynSelectionMixin
-from ui.engine_backends.aladyn_transform_mixin import AladynTransformMixin
+from ui.infrastructure.bridge_client.aladyn_buffers import to_native_color_rgba
+from ui.infrastructure.bridge_client.aladyn_selection_mixin import AladynSelectionMixin
+from ui.infrastructure.bridge_client.aladyn_transform_mixin import AladynTransformMixin
 from ui.boundary.orchestrator.edit_actions import EditActions
 
 # Garante instância de QApplication offscreen para o pytest

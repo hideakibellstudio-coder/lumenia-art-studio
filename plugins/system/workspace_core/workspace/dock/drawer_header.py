@@ -1,8 +1,8 @@
 """DrawerHeader component for Workspace Dock System."""
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 
 
 class DrawerHeader(QtWidgets.QWidget):
@@ -20,7 +20,7 @@ class DrawerHeader(QtWidgets.QWidget):
         layout.setContentsMargins(10, 0, 10, 0)
         layout.setSpacing(6)
 
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         self.title_label = QtWidgets.QLabel(title.upper(), self)
 
         self.btn_pin = QtWidgets.QToolButton(self)
@@ -48,7 +48,7 @@ class DrawerHeader(QtWidgets.QWidget):
         self._apply_style()
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "btn_pin"):
             self.btn_pin.setToolTip(tr("window.pin_dock", "Fixar Doca no Layout (Pin)"))
 

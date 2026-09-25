@@ -16,7 +16,7 @@ from ui.core.state import BrushParam, install_app_state
 
 @pytest.fixture
 def panel(qapp, monkeypatch):
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
     from plugins.ui.brush_plugin.advanced_panel import AdvancedPanel
     backend = AladynBackend()
     backend.set_active_document_context("adv-panel", 32, 32)

@@ -3,7 +3,7 @@ import logging
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.plugins.metadata import PluginMetadata
 
 
@@ -46,7 +46,7 @@ class PluginCard(QtWidgets.QFrame):
         info_layout.setSpacing(2)
         info_layout.setAlignment(QtCore.Qt.AlignVCenter)
 
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         is_system = False
         try:
             is_system = self.plugin.is_system_plugin()
@@ -145,7 +145,7 @@ class PluginCard(QtWidgets.QFrame):
         self.desc_label.setStyleSheet(f"font-size: 11px; color: {text_sec};")
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "name_label"):
             name_text = self._p_name
             if self._is_system:

@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.widgets.slider.labeled_slider import LabeledSlider
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class FilterInspector(QtWidgets.QWidget):

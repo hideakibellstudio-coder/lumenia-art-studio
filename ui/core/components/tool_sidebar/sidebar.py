@@ -7,8 +7,8 @@ Fornece acesso rápido às ferramentas de pincel, borracha, formas, histórico e
 from __future__ import annotations
 
 from PySide6 import QtWidgets, QtGui, QtCore
-from ui.core.icons import get_icon
-from ui.core.i18n import tr, I18nManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.i18n import tr, I18nManager
 
 
 class ToolSidebar(QtWidgets.QToolBar):
@@ -33,7 +33,7 @@ class ToolSidebar(QtWidgets.QToolBar):
         self.retranslate_ui()
         
         # Track theme and scale changes
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
         ThemeManager.instance().scaleChanged.connect(self._update_scale)
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
@@ -161,7 +161,7 @@ class ToolSidebar(QtWidgets.QToolBar):
 
     def _update_scale(self, scale: float | None = None) -> None:
         """Redimensiona os ícones da barra superior de ferramentas de acordo com a escala global."""
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         s = scale if scale is not None else ThemeManager.instance().ui_scale
         sz = max(16, int(20 * s))
         self.setIconSize(QtCore.QSize(sz, sz))

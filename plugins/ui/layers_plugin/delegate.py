@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QLineEdit
 from PySide6.QtCore import Qt, QRect, QPoint, Signal, QEvent, QSize
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFontMetrics, QIcon, QPixmap, QFont
-from ui.core.icons import get_icon
+from ui.infrastructure.icons import get_icon
 
 from .model import (
     ROLE_UID, ROLE_IS_GROUP, ROLE_VISIBLE, ROLE_LOCKED,
@@ -62,7 +62,7 @@ class LayerItemDelegate(QStyledItemDelegate):
         clip = index.data(ROLE_CLIPPING_MASK)
         eff_vis = index.data(ROLE_EFFECTIVE_VISIBLE)
 
-        from ui.core.theme import ThemeManager
+        from ui.infrastructure.theme import ThemeManager
         tm = ThemeManager.instance()
         
         accent_color = tm.get_color("ACCENT")
@@ -260,7 +260,7 @@ class LayerItemDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QLineEdit(parent)
         
-        from ui.core.theme import ThemeManager
+        from ui.infrastructure.theme import ThemeManager
         tm = ThemeManager.instance()
         bg_light = tm.get_color("bg_panel")
         accent_color = tm.get_color("ACCENT")

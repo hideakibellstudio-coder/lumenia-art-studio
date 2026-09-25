@@ -1,4 +1,4 @@
-from .theme.manager import ThemeManager
-from .icons import get_icon
+"""ui.core — núcleo da interface: estado, documento, contrato do motor, telas e widgets.
 
-__all__ = ["ThemeManager", "get_icon"]
+Pacote de pastas; cada uma tem a própria porta de entrada (ver README.md).
+"""

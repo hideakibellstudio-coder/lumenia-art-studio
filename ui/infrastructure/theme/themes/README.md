@@ -1,10 +1,10 @@
-# `ui/core/theme/themes/` — temas
+# `ui/infrastructure/theme/themes/` — temas
 
 **Responsabilidade:** as paletas de cor e métricas de cada tema, em JSON, e os módulos QSS que viram a folha de estilo.
 
 ## Porta de entrada
 
-`ui/core/theme/manager.py` (`ThemeManager`) carrega todos os `.json` desta pasta.
+`ui/infrastructure/theme/manager.py` (`ThemeManager`) carrega todos os `.json` desta pasta.
 
 ## Conteúdo
 

@@ -67,7 +67,7 @@ class LayersPanel(QWidget):
         self._build_ui()
         self.set_layer_manager(None)
 
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         self._apply_theme("")
 

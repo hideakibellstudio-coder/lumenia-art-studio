@@ -8,7 +8,7 @@ nem restaura o estado das gavetas entre sessões (decisão pendente).
 """
 
 from typing import TYPE_CHECKING
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.plugins.panel_ids import PANEL_TITLES
 
 if TYPE_CHECKING:

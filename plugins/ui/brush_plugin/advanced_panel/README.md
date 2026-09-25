@@ -34,11 +34,11 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
 - `plugins/ui/brush_plugin/advanced_panel/sections`
-- `ui/core`
 - `ui/core/dialogs`
 - `ui/core/engine`
-- `ui/core/i18n`
 - `ui/core/state`
-- `ui/core/theme`
 - `ui/core/widgets/slider`
+- `ui/infrastructure/i18n`
+- `ui/infrastructure/icons`
+- `ui/infrastructure/theme`
 <!-- /arccc:deps -->

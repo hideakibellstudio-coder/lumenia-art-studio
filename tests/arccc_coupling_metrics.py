@@ -21,7 +21,7 @@ Categorias medidas (todas em ui/ e plugins/)
 hasattr
     `hasattr(obj, "nome")`. Quase sempre é um contrato que não existe:
     o chamador não sabe o tipo do objeto e tateia. Exceção: as guardas sobre
-    o binário nativo dentro de ui/engine_backends/, que têm catraca própria
+    o binário nativo dentro de ui/infrastructure/bridge_client/, que têm catraca própria
     em test_river_ratchets.py e não são contadas aqui.
 getattr_literal
     `getattr(obj, "nome", ...)` com nome literal — o mesmo tatear, com valor
@@ -106,7 +106,7 @@ def _imported_modules(node: ast.AST) -> list[str]:
 def scan_file(path: Path) -> list[Occurrence]:
     rel = path.relative_to(ROOT).as_posix()
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=rel)
-    in_backends = rel.startswith("ui/engine_backends/")
+    in_backends = rel.startswith("ui/infrastructure/bridge_client/")
     found: list[Occurrence] = []
 
     def add(node: ast.AST, category: str, detail: str) -> None:

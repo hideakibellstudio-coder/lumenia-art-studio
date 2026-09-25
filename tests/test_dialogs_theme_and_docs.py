@@ -8,8 +8,8 @@ nos 5 diálogos principais do Lumenia, além dos novos diálogos UserGuideDialog
 import os
 import unittest
 from PySide6 import QtWidgets, QtCore
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import I18nManager, tr
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import I18nManager, tr
 from ui.core.screens.plugins.dialog import PluginsWindow
 from ui.core.dialogs.render_settings_dialog import RenderSettingsDialog
 from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog

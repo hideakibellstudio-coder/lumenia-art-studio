@@ -3,8 +3,8 @@
 from __future__ import annotations
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon, SVG_ICONS, ALIASES
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon, SVG_ICONS, ALIASES
 
 # Mapeamento inteligente de fallback para IDs e títulos de painéis
 PANEL_ICON_MAP = {

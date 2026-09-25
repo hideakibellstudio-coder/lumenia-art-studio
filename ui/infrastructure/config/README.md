@@ -1,10 +1,10 @@
-# `ui/core/config/` — configurações do usuário
+# `ui/infrastructure/config/` — configurações do usuário
 
 **Responsabilidade:** preferências persistidas num JSON único e versionado, com migração de versões antigas e escrita segura (cópia anterior validada).
 
 ## Porta de entrada
 
-`from ui.core.config import ConfigManager` (`ConfigManager.instance()`).
+`from ui.infrastructure.config import ConfigManager` (`ConfigManager.instance()`).
 
 ## Arquivos
 

@@ -14,19 +14,19 @@ app = QtWidgets.QApplication.instance()
 if not app:
     app = QtWidgets.QApplication(sys.argv)
 
-from ui.core.i18n import I18nManager, tr
+from ui.infrastructure.i18n import I18nManager, tr
 
 
 class TestI18nSystem(unittest.TestCase):
     def setUp(self):
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         ConfigManager.instance().set_test_mode(True)
         self.mgr = I18nManager.instance()
         self._orig_locale = self.mgr.get_current_locale()
 
     def tearDown(self):
         self.mgr.set_locale(self._orig_locale, emit_signal=False)
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         ConfigManager.instance().set_test_mode(False)
 
     def test_01_system_locale_detection_and_fallback(self):

@@ -13,9 +13,9 @@ from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
-from ui.core.icons import get_icon
+from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .render_settings_components import (
     ProofingPreviewBar,
@@ -45,7 +45,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
     profileChanged = QtCore.Signal(int)
 
     def __init__(self, parent=None):
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         super().__init__(title=tr("dialogs.render_title", "Configurações de Renderização & Modos de Cor"), icon_name="settings", parent=parent, modal=True)
         self.setObjectName("RenderSettingsDialog")
         self.resize(860, 580)
@@ -236,7 +236,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
 
     def retranslate_ui(self) -> None:
         """Atualiza dinamicamente todos os textos deste diálogo quando o idioma muda."""
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.render_title", "Configurações de Renderização & Modos de Cor"))
 

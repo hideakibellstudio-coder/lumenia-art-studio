@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QWidget, QHBoxLayout, QLabel, QPushButton,
                                QComboBox, QCheckBox)
 from PySide6.QtGui import QColor, QPainter, QBrush, QPixmap, QIcon, QPen, QAction
 from PySide6.QtCore import Qt, QSize, Signal, QPoint
-from ui.core.icons import get_icon
+from ui.infrastructure.icons import get_icon
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class ColorCircleButton(CircleButton):
         painter.end()
         
     def _choose_color(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         dlg = QColorDialog(self.color)
         dlg.setWindowTitle(tr("dialogs.paper_color_dialog", "Cor do Papel de Fundo (Layer 0)"))
         dlg.setOption(QColorDialog.ShowAlphaChannel, True)
@@ -213,7 +213,7 @@ class PaperLayerWidget(QWidget):
         popup.show()
 
     def update_theme(self, colors):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         qss = """
             QWidget#PaperLayerWidget {
                 background-color: @BG_PANEL;

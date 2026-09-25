@@ -38,7 +38,7 @@ from ui.core.engine.backend_protocols import (
     StrokeProtocol,
     TelemetryProtocol,
 )
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
 

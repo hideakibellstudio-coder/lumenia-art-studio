@@ -15,10 +15,10 @@ from __future__ import annotations
 from typing import Dict, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from .new_document import (
     BACKGROUND_COLORS,
     PAPER_TEXTURES,

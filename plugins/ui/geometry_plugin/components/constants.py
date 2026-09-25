@@ -67,7 +67,7 @@ SYM_KEYS = [
 
 
 def get_guide_name(idx: int) -> str:
-    from ui.core.i18n import tr
+    from ui.infrastructure.i18n import tr
     if 0 <= idx < len(GUIDE_KEYS):
         default = GUIDE_NAMES[idx] if idx < len(GUIDE_NAMES) else ""
         return tr(GUIDE_KEYS[idx], default)
@@ -75,7 +75,7 @@ def get_guide_name(idx: int) -> str:
 
 
 def get_sym_name(idx: int) -> str:
-    from ui.core.i18n import tr
+    from ui.infrastructure.i18n import tr
     if 0 <= idx < len(SYM_KEYS):
         default = SYM_NAMES[idx] if idx < len(SYM_NAMES) else ""
         return tr(SYM_KEYS[idx], default)

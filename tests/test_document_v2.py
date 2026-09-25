@@ -15,7 +15,7 @@ from ui.core.document.document import Document
 from ui.core.document.schema import migrate
 from ui.core.document.serializer import DocumentSerializer, DocumentFormatError
 from ui.core.document.restore import restore_document
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
 

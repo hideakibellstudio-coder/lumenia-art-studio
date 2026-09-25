@@ -1,10 +1,10 @@
-# `ui/engine_backends/` — adaptador do motor Aladyn
+# `ui/infrastructure/bridge_client/` — adaptador do motor Aladyn
 
 **Responsabilidade:** o único lugar que conhece o motor nativo: `AladynBackend` implementa o `EngineBackend` sobre o `aladyn_engine_native` (C++/pybind11), repartido em mixins por assunto.
 
 ## Porta de entrada
 
-`from ui.engine_backends import create_backends` — chamado no boot para registrar o backend no `EngineRegistry`. Ninguém mais importa daqui.
+`from ui.infrastructure.bridge_client import create_backends` — chamado no boot para registrar o backend no `EngineRegistry`. Ninguém mais importa daqui.
 
 ## Arquivos
 
@@ -54,7 +54,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 <!-- arccc:deps -->
 - `aladyn_engine_native`
 - `ui/core/color`
-- `ui/core/config`
 - `ui/core/document`
 - `ui/core/engine`
+- `ui/infrastructure/config`
 <!-- /arccc:deps -->

@@ -3,7 +3,7 @@
 from PySide6 import QtWidgets
 from ui.core.widgets.slider import LabeledSlider
 from ui.core.engine.registry import EngineRegistry
-from ui.core.i18n import tr, I18nManager
+from ui.infrastructure.i18n import tr, I18nManager
 
 class DynamicEngineParamsWidget(QtWidgets.QWidget):
     """Container dinâmico que exibe os sliders exclusivos de cada mini-motor C++."""

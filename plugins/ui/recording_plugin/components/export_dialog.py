@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Optional
 from PySide6 import QtCore, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class TimelapseExportDialog(QtWidgets.QDialog):

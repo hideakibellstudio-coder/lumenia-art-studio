@@ -2,9 +2,9 @@ import logging
 from typing import Dict, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.dialogs.floating_tool_window import FloatingToolWindow
-from ui.core.icons import get_icon
+from ui.infrastructure.icons import get_icon
 from ui.core.state import ToolState
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.tools import TOOL_META, DEFAULT_TOOLS
 from .floating_toolbar_button import FloatingToolbarButton  # noqa: F401 (reexportado)
 
@@ -62,7 +62,7 @@ class FloatingToolbar(FloatingToolWindow):
         tm = ThemeManager.instance()
         tm.themeChanged.connect(self._apply_theme)  # método ligado: auto-desconecta
         tm.scaleChanged.connect(self._on_scale_changed)
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     def _build_ui(self) -> None:

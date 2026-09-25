@@ -4,7 +4,7 @@
 
 ## Porta de entrada
 
-`ui.core.runtime_paths.resource_path("assets", ...)` — funciona no repositório e na distribuição empacotada.
+`ui.infrastructure.runtime_paths.resource_path("assets", ...)` — funciona no repositório e na distribuição empacotada.
 
 ## Conteúdo
 
@@ -19,6 +19,6 @@
 
 - Recurso novo é carregado por `resource_path`, nunca por caminho relativo ao diretório atual.
 
-Os ícones da interface vêm do catálogo em código (`ui/core/icon_svg_catalog.py`).
+Os ícones da interface vêm do catálogo em código (`ui/infrastructure/icons/svg_catalog.py`).
 Até 2026-09-24 `icons/` tinha 160 SVG, 158 sem nenhum consumidor (e 15 cópias
 dos ícones do plugin de geometria); saíram.

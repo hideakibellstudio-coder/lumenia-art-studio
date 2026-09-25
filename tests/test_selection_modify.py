@@ -111,7 +111,7 @@ def test_modificar_muda_a_geracao_do_documento():
 
 def test_backend_marca_documento_sujo_so_quando_muda(monkeypatch):
     from PySide6.QtWidgets import QApplication
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     QApplication.instance() or QApplication(["--platform", "offscreen"])
     backend = AladynBackend()

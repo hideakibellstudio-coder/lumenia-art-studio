@@ -10,8 +10,8 @@ from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.state import BrushState
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import tr, I18nManager
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr, I18nManager
 from .presets_data import get_preset_display_name
 from .brush_selector_popup import (
     BrushSelectorPopup,

@@ -101,7 +101,7 @@ def run_soak(total_cycles: int = 350, warmup_cycles: int = 180, sample_interval:
 
     # 2. Inicializa backend Aladyn
     from ui.core.engine.registry import EngineRegistry
-    from ui.engine_backends.aladyn import AladynBackend
+    from ui.infrastructure.bridge_client.aladyn import AladynBackend
     backend = AladynBackend()
     EngineRegistry.instance().setup([backend])
     if not backend or not backend.available:

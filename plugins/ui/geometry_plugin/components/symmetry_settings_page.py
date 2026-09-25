@@ -8,7 +8,7 @@ from PySide6 import QtCore, QtWidgets
 
 from ui.core.widgets.compact_slider import CompactSlider
 from ui.core.widgets.collapsible_section import CollapsibleSection
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 
 class SymmetrySettingsPage(QtWidgets.QScrollArea):

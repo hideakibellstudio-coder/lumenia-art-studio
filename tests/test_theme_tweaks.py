@@ -6,12 +6,12 @@ texto traduzido com o português (fora do pt-BR não filtrava).
 """
 import pytest
 
-from ui.core.config import ConfigManager
-from ui.core.i18n import I18nManager
+from ui.infrastructure.config import ConfigManager
+from ui.infrastructure.i18n import I18nManager
 from ui.core.screens.settings.components.theme_card import ThemeCard
 from ui.core.screens.settings.theme_dialog import ThemeDialog
-from ui.core.theme.interface_tweaks import FONT_STACKS, radius_metrics, tweak_metrics, valid_font, valid_radius
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.interface_tweaks import FONT_STACKS, radius_metrics, tweak_metrics, valid_font, valid_radius
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 @pytest.fixture

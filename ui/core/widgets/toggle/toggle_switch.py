@@ -23,7 +23,7 @@ class ToggleSwitch(QtWidgets.QAbstractButton):
         if thumb_color: self._thumb_color = QtGui.QColor(thumb_color)
         
         # Conecta à troca de tema
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self.update_theme_colors)
         
         # Animation
@@ -40,7 +40,7 @@ class ToggleSwitch(QtWidgets.QAbstractButton):
         return float(w - self._thumb_width - self._margin)
 
     def update_theme_colors(self):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         theme = ThemeManager.instance()._themes.get(ThemeManager.instance().current_theme, {})
         colors = theme.get("colors", {})
         

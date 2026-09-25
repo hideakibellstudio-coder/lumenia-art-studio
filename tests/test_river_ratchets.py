@@ -36,7 +36,7 @@ NATIVE_GUARDS_PERMITIDOS: dict[tuple[str, str], str] = {
 }
 
 # Grupo A (decisão de 2026-09-23): o plano B continua, mas nunca em silêncio --
-# passa por ui/engine_backends/native_fallback.native_has, que registra um
+# passa por ui/infrastructure/bridge_client/native_fallback.native_has, que registra um
 # WARNING dizendo o que o usuário perde. Chamada nova precisa entrar aqui.
 WARNED_GUARDS: dict[tuple[str, str], str] = {
     ("aladyn_stroke_mixin.py", "is_telemetry_enabled"): "telemetria por traço",
@@ -57,7 +57,7 @@ _NATIVE_RECEIVERS = {"self._facade", "facade", "self._native", "native", "f"}
 
 def _guardas_nativas() -> Counter:
     found: Counter = Counter()
-    for path in (ROOT / "ui" / "engine_backends").glob("*.py"):
+    for path in (ROOT / "ui" / "infrastructure" / "bridge_client").glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if not (isinstance(node, ast.Call) and getattr(node.func, "id", None) == "hasattr"):
@@ -90,7 +90,7 @@ def test_lista_de_guardas_nao_tem_entradas_mortas():
 
 def _guardas_com_aviso() -> Counter:
     found: Counter = Counter()
-    for path in (ROOT / "ui" / "engine_backends").glob("*.py"):
+    for path in (ROOT / "ui" / "infrastructure" / "bridge_client").glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "native_has":
@@ -112,14 +112,14 @@ def test_plano_b_com_aviso_so_da_lista_aprovada():
 
 
 def test_plano_b_avisa_uma_vez_e_devolve_false(caplog):
-    from ui.engine_backends import native_fallback
+    from ui.infrastructure.bridge_client import native_fallback
 
     class OldNative:
         def existe(self):
             return 1
 
     native_fallback._forget_warnings()
-    with caplog.at_level("WARNING", logger="ui.engine_backends.native"):
+    with caplog.at_level("WARNING", logger="ui.infrastructure.bridge_client.native"):
         assert native_fallback.native_has(OldNative(), "existe", "x") is True
         assert native_fallback.native_has(OldNative(), "sumiu", "a prévia fica aproximada") is False
         assert native_fallback.native_has(OldNative(), "sumiu", "a prévia fica aproximada") is False

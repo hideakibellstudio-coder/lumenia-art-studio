@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from PySide6 import QtCore, QtGui
 
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 
@@ -76,7 +76,7 @@ class ViewportRenderer:
             tm = ThemeManager.instance()
             painter.setPen(QtGui.QColor(tm.get_color("text_sec", "#9ca3af")))
             painter.setFont(QtGui.QFont("Segoe UI", 12, QtGui.QFont.Bold))
-            from ui.core.i18n import tr
+            from ui.infrastructure.i18n import tr
             title = tr("workspace.no_document", "Nenhum Documento Aberto")
             hint = tr("workspace.no_document_hint", "Pressione Ctrl+N ou Arquivo > Novo Documento")
             painter.drawText(widget.rect(), QtCore.Qt.AlignCenter, f"{title}\n\n{hint}")

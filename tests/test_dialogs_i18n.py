@@ -16,8 +16,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from ui.core.config import ConfigManager
-from ui.core.i18n import I18nManager, tr
+from ui.infrastructure.config import ConfigManager
+from ui.infrastructure.i18n import I18nManager, tr
 from ui.core.screens.dock_settings_dialog import DockBarsSettingsDialog
 from ui.core.screens.floating_toolbar_settings_dialog import FloatingToolbarSettingsDialog
 from ui.core.screens.settings.theme_dialog import ThemeDialog

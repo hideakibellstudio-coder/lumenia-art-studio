@@ -5,8 +5,8 @@ Separado de floating_toolbar.py em 2026-09-22 (o arquivo tinha 445 linhas, na
 """
 from typing import Optional
 from PySide6 import QtWidgets, QtCore, QtGui
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.tools import TOOL_META
 
 

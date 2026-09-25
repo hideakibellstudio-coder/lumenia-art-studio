@@ -11,8 +11,8 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.tools import TOOL_META, DEFAULT_TOOLS
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
@@ -34,7 +34,7 @@ _SETTINGS_APP = "LumeniaApp"
 # ── CARREGAMENTO / PERSISTÊNCIA ──────────────────────────────────────────────
 
 def load_floating_toolbar_settings() -> dict:
-    from ui.core.config import ConfigManager
+    from ui.infrastructure.config import ConfigManager
     cm = ConfigManager.instance()
     sec = cm.get_section("floating_toolbar")
     active = sec.get("active", True)
@@ -46,7 +46,7 @@ def load_floating_toolbar_settings() -> dict:
 
 
 def save_floating_toolbar_settings(cfg: dict) -> None:
-    from ui.core.config import ConfigManager
+    from ui.infrastructure.config import ConfigManager
     ConfigManager.instance().set_section("floating_toolbar", cfg)
 
 
@@ -58,7 +58,7 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
     settings_applied = QtCore.Signal(dict)
 
     def __init__(self, parent=None):
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         super().__init__(title=tr("dialogs.floating_toolbar_title", "Configurações da Barra Flutuante"), icon_name="tools", parent=parent, modal=True)
         self.setObjectName("FloatingToolbarSettingsDialog")
         self.resize(820, 550)
@@ -75,7 +75,7 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
         self.retranslate_ui()
 
     def _setup_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         cols_widget = QtWidgets.QWidget()
         cols_layout = QtWidgets.QHBoxLayout(cols_widget)
         cols_layout.setContentsMargins(0, 0, 0, 0)
@@ -218,7 +218,7 @@ class FloatingToolbarSettingsDialog(BaseFramelessDialog):
 
     def retranslate_ui(self) -> None:
         """Atualiza dinamicamente todos os textos deste diálogo quando o idioma muda."""
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.floating_toolbar_title", "Configurações da Barra Flutuante"))
         if hasattr(self, "search_box"):

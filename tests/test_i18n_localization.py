@@ -15,21 +15,21 @@ app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication(sys.argv)
 
-from ui.core.i18n import I18nManager, tr
+from ui.infrastructure.i18n import I18nManager, tr
 from ui.core.components.menu_bar.menu_bar import MenuBar
 
 
 class TestI18nLocalization(unittest.TestCase):
 
     def setUp(self):
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         ConfigManager.instance().set_test_mode(True)
         self.mgr = I18nManager.instance()
         self._orig_locale = self.mgr.get_current_locale()
 
     def tearDown(self):
         self.mgr.set_locale(self._orig_locale, emit_signal=False)
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         ConfigManager.instance().set_test_mode(False)
 
     def test_01_singleton_and_available_locales(self):
@@ -99,7 +99,7 @@ class TestI18nLocalization(unittest.TestCase):
             self.assertEqual(self.mgr.get_current_locale(), "es_ES")
 
             # Verifica persistência no ConfigManager (JSON)
-            from ui.core.config import ConfigManager
+            from ui.infrastructure.config import ConfigManager
             saved = ConfigManager.instance().get("locale", "current")
             self.assertEqual(saved, "es_ES")
         finally:

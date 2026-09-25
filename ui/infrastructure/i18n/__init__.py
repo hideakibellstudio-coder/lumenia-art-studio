@@ -1,5 +1,5 @@
 """
-ui.core.i18n — Módulo Universal de Internacionalização e Idiomas (ARCcC).
+ui.infrastructure.i18n — Módulo Universal de Internacionalização e Idiomas (ARCcC).
 ==========================================================================
 Exporta o I18nManager e o helper de tradução 'tr'.
 """

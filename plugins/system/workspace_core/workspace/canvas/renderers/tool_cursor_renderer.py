@@ -6,7 +6,7 @@ câmera (zoom) e fornece cursores SVG especializados com hotspots exatos e cache
 """
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.icons import get_icon
+from ui.infrastructure.icons import get_icon
 
 
 class ToolCursorRenderer:
@@ -78,7 +78,7 @@ class ToolCursorRenderer:
 
     @staticmethod
     def get_cursor_settings() -> dict:
-        from ui.core.config import ConfigManager
+        from ui.infrastructure.config import ConfigManager
         sec = ConfigManager.instance().get_section("cursor")
         return {
             "mode": sec.get("mode", "ring_and_dot"),

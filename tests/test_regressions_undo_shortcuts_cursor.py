@@ -13,9 +13,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 # Assegura que QApplication existe
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
 
-from ui.core.icons import get_icon, SVG_ICONS
+from ui.infrastructure.icons import get_icon, SVG_ICONS
 from ui.core.engine.registry import EngineRegistry
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog, DEFAULT_SHORTCUTS
 from ui.core.screens.cursor_settings_dialog import CursorSettingsDialog
 from plugins.system.workspace_core.workspace.canvas.renderers.tool_cursor_renderer import ToolCursorRenderer

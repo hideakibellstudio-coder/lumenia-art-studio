@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import List, Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.tools import TOOL_META
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 
@@ -124,7 +124,7 @@ class ToolToggleCard(QtWidgets.QFrame):
 
     def retranslate_ui(self) -> None:
         from ui.core.tools import get_tool_name
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         self.name_lbl.setText(get_tool_name(self.tool_id))
         shortcut = self.meta.get("shortcut", "")
         if shortcut:

@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-logger = logging.getLogger("ui.engine_backends.native")
+logger = logging.getLogger("ui.infrastructure.bridge_client.native")
 
 REBUILD_HINT = "Recompile o motor: python scripts/build_native.py --simd scalar"
 

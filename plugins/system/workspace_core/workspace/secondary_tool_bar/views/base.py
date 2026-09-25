@@ -23,8 +23,8 @@ from typing import Callable, NamedTuple
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.i18n import I18nManager, tr
-from ui.core.icons import get_icon
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.icons import get_icon
 from ui.core.state import ToolState
 from ui.core.widgets.tool_options import ToolOptionsView
 

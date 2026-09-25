@@ -10,7 +10,7 @@ from typing import Optional, Tuple
 
 from PySide6 import QtGui, QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 TextureFile = Tuple[bytes, int, int, str]
 

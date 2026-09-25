@@ -16,9 +16,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.dialogs.test_report_model import SECTIONS, SuiteReport, parse_junit
 from ui.core.dialogs.test_report_runner import TestRunnerThread
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import I18nManager, tr
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.icons import get_icon
 
 # (chave de tradução, título padrão, token de cor do tema)
 _KPIS = (

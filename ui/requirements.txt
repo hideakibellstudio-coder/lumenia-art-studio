@@ -1,3 +1,0 @@
-# Compatibilidade para quem ainda instala a partir de ui/requirements.txt.
-# O motor nativo usa PyBind11, não maturin; o lock canônico fica na raiz.
--r ../requirements-dev.lock

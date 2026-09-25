@@ -3,7 +3,7 @@ import pytest
 from PySide6.QtWidgets import QApplication
 from ui.core.document.document import Document
 from ui.core.document.history import LayerTransactionCancelled
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
 

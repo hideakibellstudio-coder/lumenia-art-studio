@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys
 
-from ui.core import runtime_paths
+from ui.infrastructure import runtime_paths
 
 
 def test_development_root_points_to_the_repository():

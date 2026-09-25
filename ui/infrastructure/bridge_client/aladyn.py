@@ -65,7 +65,7 @@ class AladynBackend(
         # facade nova ao trocar de documento.
         self._init_backend_state()
         try:
-            from ui.core.config.manager import ConfigManager
+            from ui.infrastructure.config.manager import ConfigManager
             saved_render = ConfigManager.instance().get_section("render")
             self._undo_memory_limit_mb = max(1, int(saved_render.get("undo_limit_mb", 512)))
             self._undo_max_steps = max(1, int(saved_render.get("undo_max_steps", 50)))

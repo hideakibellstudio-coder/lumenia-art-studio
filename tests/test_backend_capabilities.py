@@ -5,7 +5,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QApplication
 
 from ui.core.dialogs.render_settings_components import EnginePipelineGroup
-from ui.engine_backends.aladyn import AladynBackend
+from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])

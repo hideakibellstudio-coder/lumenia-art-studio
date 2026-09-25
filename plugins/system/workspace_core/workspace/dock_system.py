@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Dict, List, Set
 from PySide6 import QtCore, QtWidgets
 
-from ui.core.logger import get_logger
+from ui.infrastructure.logging import get_logger
 from .dock.sidebar_widget import SidebarWidget
 from .dock.drawer_content_container import DrawerContentContainer
 from .dock.dock_geometry_calculator import DockGeometryCalculator
@@ -74,7 +74,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self._outer_layout.addWidget(self.sidebar)
         self.drawer_container.hide()
 
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
     # ── Geometria e Dimensões Delegadas ──
@@ -199,7 +199,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
                 self.resolve_state()
                 self.drawer_opened.emit(active_pid)
         else:
-            from ui.core.i18n import tr
+            from ui.infrastructure.i18n import tr
             self.drawer_container.header.set_title(tr("window.stacked_panels", "PAINÉIS EMPILHADOS"))
             if not self.is_open:
                 self.is_open = True

@@ -157,7 +157,7 @@ com 0 `confirmed_violation` e 0 arquivos na Zona Vermelha.
 - Contagens de teste "725"/"659"/"670+": a medida real hoje é a do pytest.
 
 **Corrigido nesta sessão:**
-- Binário `.pyd` de 2026-09-05 esquecido em `ui/engine_backends/` (138 vs 185
+- Binário `.pyd` de 2026-09-05 esquecido em `ui/infrastructure/bridge_client/` (138 vs 185
   atributos) movido para `../build/obsoleto/`.
 - `WgpuRustBackend` removido (adaptador de um motor Rust inexistente); teste
   dos Protocols passou a exigir implementação real fora de `EngineBackend`.
@@ -300,7 +300,7 @@ relações para uma classe de 178 métodos muito usada — limitação conhecida
 resolvedor Python do Navigator para `self.atributo.metodo(...)` quando o tipo
 do atributo não é inferido estaticamente. Abandonado em favor de varredura
 direta por regex nos 178 nomes contra `ui/`, `plugins/` e `tests/` (excluindo
-os arquivos de definição e `ui/engine_backends/`), com verificação manual de
+os arquivos de definição e `ui/infrastructure/bridge_client/`), com verificação manual de
 cada candidato antes de confirmar — inclusive dois falsos positivos do
 próprio script (`available` é `@property`, acessado sem parênteses; `flood_fill`
 é chamado internamente por `fill_area`) e um bug de regex (`-SimpleMatch` do

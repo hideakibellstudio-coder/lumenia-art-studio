@@ -15,7 +15,7 @@ from typing import List, Optional
 
 from PySide6 import QtCore, QtWidgets
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 
 from .preset_card import PresetCard
 from .preset_catalog import PRESET_CATEGORIES

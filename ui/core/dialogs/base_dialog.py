@@ -1,20 +1,11 @@
 """BaseFramelessDialog — Janela e Diálogo Base Padronizado com Design System Lumenia V2."""
 
 from __future__ import annotations
-import re
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
-
-
-def _shadow_qcolor(alpha: int) -> QtGui.QColor:
-    """Constroi um QColor de sombra a partir do token SHADOW do tema (rgba CSS), preservando o alpha pedido pelo widget."""
-    raw = ThemeManager.instance().get_color("SHADOW", "rgba(0, 0, 0, 0.4)")
-    m = re.match(r"rgba?\((\d+),\s*(\d+),\s*(\d+)", raw)
-    r, g, b = (int(m.group(i)) for i in (1, 2, 3)) if m else (0, 0, 0)
-    return QtGui.QColor(r, g, b, alpha)
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 
 
 class DialogTitleBar(QtWidgets.QWidget):
@@ -147,7 +138,7 @@ class BaseFramelessDialog(QtWidgets.QDialog):
         # Efeito de Sombra Flutuante (Drop Shadow)
         self.shadow = QtWidgets.QGraphicsDropShadowEffect(self)
         self.shadow.setBlurRadius(20)
-        self.shadow.setColor(_shadow_qcolor(140))
+        self.shadow.setColor(ThemeManager.instance().shadow_color(140))
         self.shadow.setOffset(0, 4)
         self.root_container.setGraphicsEffect(self.shadow)
 

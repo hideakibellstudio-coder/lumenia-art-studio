@@ -12,9 +12,9 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.i18n import tr
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.color.proofing import SoftProofConfig, RenderingIntent
 from ui.core.color.catalog import get_color_catalog

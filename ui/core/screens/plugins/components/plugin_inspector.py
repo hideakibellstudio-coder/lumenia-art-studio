@@ -3,11 +3,11 @@ import logging
 
 import sys
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.i18n import tr
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.metadata import PluginMetadata
-from ui.core.icons import get_icon
+from ui.infrastructure.icons import get_icon
 
 
 class PluginDetailsInspector(QtWidgets.QFrame):
@@ -161,7 +161,7 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         self.scroll_area.hide()
 
     def retranslate_ui(self):
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "empty_label"):
             self.empty_label.setText(tr("plugins.select_plugin", "Selecione um plugin na lista ao lado para visualizar os detalhes."))
         if hasattr(self, "btn_config"):
@@ -252,7 +252,7 @@ class PluginDetailsInspector(QtWidgets.QFrame):
         self.lbl_deps.setText(p_deps)
         self.txt_desc.setText(p_desc)
 
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if is_system:
             self.btn_toggle.setText(f" {tr('plugins.filter_system', 'Sistema')}")
             self.btn_toggle.setIcon(get_icon("lock", ThemeManager.instance().get_color("FG_SECONDARY", "#9ca3af")))

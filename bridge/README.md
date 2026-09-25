@@ -18,9 +18,9 @@ Pilar 2 do ARCcC multi-pilar (`ui/` → `bridge/` → `engine/`): só serializa,
 ## Regras
 
 - Função nova exposta ao Python: binding em `core/bindings/`, assinatura no `.pyi`, teste `tests/test_pyi_contract_matches_binary.py` verde.
-- A UI só alcança o módulo por `ui/engine_backends/` (Lei nº 2 do AGENTS.md).
+- A UI só alcança o módulo por `ui/infrastructure/bridge_client/` (Lei nº 2 do AGENTS.md).
 
 ## Dívida conhecida (medida em 2026-09-24)
 
 - Falta `infrastructure/` (ex.: mapeamento de erros nativo ↔ Python), que o ARCcC multi-pilar prevê.
-- O lado Python da ponte (`ui/engine_backends/`) fica fora de `ui/infrastructure/`, onde o ARCcC coloca o cliente da ponte.
+- O lado Python da ponte (`ui/infrastructure/bridge_client/`) fica fora de `ui/infrastructure/`, onde o ARCcC coloca o cliente da ponte.

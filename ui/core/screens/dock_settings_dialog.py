@@ -13,13 +13,13 @@ As configurações são persistidas via QSettings.
 from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 
 
 def load_dock_settings() -> dict:
     """Carrega as configurações de gavetas do ConfigManager (JSON)."""
-    from ui.core.config import ConfigManager
+    from ui.infrastructure.config import ConfigManager
     sec = ConfigManager.instance().get_section("dock")
     return {
         "auto_collapse": sec.get("auto_collapse", False),
@@ -30,7 +30,7 @@ def load_dock_settings() -> dict:
 
 def save_dock_settings(settings_dict: dict) -> None:
     """Persiste as configurações de gavetas no ConfigManager (JSON)."""
-    from ui.core.config import ConfigManager
+    from ui.infrastructure.config import ConfigManager
     ConfigManager.instance().set_section("dock", settings_dict)
 
 
@@ -46,7 +46,7 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         Recebe os dados, não o workspace: até 2026-09-24 o diálogo lia
         `workspace.left_dock.panel_data` e a nova ordem nunca era aplicada.
         """
-        from ui.core.i18n import tr, I18nManager
+        from ui.infrastructure.i18n import tr, I18nManager
         super().__init__(title=tr("dialogs.dock_title", "Configurações: Barra de Gavetas"), icon_name="settings", parent=parent, modal=True)
         self._panels = panels or {}
         self.resize(660, 540)
@@ -63,7 +63,7 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
     # ── Construção da UI ──────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         main = self.content_layout
 
         # ── Seção: Comportamento ───────────────────────────────────────
@@ -171,7 +171,7 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
 
     def retranslate_ui(self) -> None:
         """Atualiza dinamicamente todos os textos deste diálogo quando o idioma é alterado."""
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         if hasattr(self, "title_bar") and self.title_bar:
             self.title_bar.set_title(tr("dialogs.dock_title", "Configurações: Barra de Gavetas"))
 
@@ -234,7 +234,7 @@ class DockBarsSettingsDialog(BaseFramelessDialog):
         return lw
 
     def _make_arrow_btns(self, list_widget: QtWidgets.QListWidget) -> tuple[QtWidgets.QHBoxLayout, QtWidgets.QPushButton, QtWidgets.QPushButton]:
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         row = QtWidgets.QHBoxLayout()
         btn_up = QtWidgets.QPushButton("▲ " + tr("layers.move_up", "Mover Cima"))
         btn_up.setFixedHeight(26)

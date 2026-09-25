@@ -12,8 +12,8 @@ from __future__ import annotations
 from typing import List, Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.theme.manager import ThemeManager
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .filter_definitions import FILTER_DEFINITIONS
 from .filter_card import FilterCard
@@ -145,12 +145,12 @@ class FilterAdjustmentDialog(BaseFramelessDialog):
         right_layout.addLayout(btn_box)
         cols_layout.addWidget(right_box, 5)
 
-        from ui.core.i18n import I18nManager
+        from ui.infrastructure.i18n import I18nManager
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
         self.retranslate_ui()
 
     def retranslate_ui(self) -> None:
-        from ui.core.i18n import tr
+        from ui.infrastructure.i18n import tr
         title = tr("filters.gallery", "Galeria de Filtros")
         self.setWindowTitle(title)
         if hasattr(self, "title_bar") and self.title_bar:

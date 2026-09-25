@@ -19,7 +19,7 @@
 
 ## Regras
 
-Só dados: sem Qt e sem motor. Parâmetro de preset novo precisa existir em `ui/engine_backends/brush_param_table.py`.
+Só dados: sem Qt e sem motor. Parâmetro de preset novo precisa existir em `ui/infrastructure/bridge_client/brush_param_table.py`.
 
 ## Dependências internas
 

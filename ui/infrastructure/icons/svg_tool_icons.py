@@ -1,4 +1,4 @@
-"""ui.core.icon_svg_tools — Catálogo SVG de Ferramentas Artísticas e Camadas."""
+"""ui.infrastructure.icons.svg_tool_icons — Catálogo SVG de Ferramentas Artísticas e Camadas."""
 
 SVG_TOOL_ICONS = {
     # ── FERRAMENTAS ARTÍSTICAS & PINCÉIS ──────────────────────────────────

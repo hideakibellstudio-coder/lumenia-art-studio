@@ -7,7 +7,7 @@ atuais, então as duas orientações sempre concordam.
 """
 from __future__ import annotations
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import ToolState
 
 from .base import (

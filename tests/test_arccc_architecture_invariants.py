@@ -4,8 +4,8 @@ test_arccc_architecture_invariants.py
 Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract).
 Testa e bloqueia de forma estática (via AST e inspeção estrutural) qualquer violação de:
 1. Cross-plugin imports (um plugin importando de outro plugin irmão).
-2. Imports diretos de C++ (aladyn_engine_native) fora de ui/engine_backends/.
-3. Acessos a atributos privados de ponteiros/facades nativas (_facade, _native) fora de ui/engine_backends/.
+2. Imports diretos de C++ (aladyn_engine_native) fora de ui/infrastructure/bridge_client/.
+3. Acessos a atributos privados de ponteiros/facades nativas (_facade, _native) fora de ui/infrastructure/bridge_client/.
 4. Cobertura de métodos canônicos do contrato universal EngineBackend no AladynBackend.
 5. Teto de linhas ARCcC (Zona Vermelha) em plugins/, ui/ e tests/, lido de
    tests/arccc_governance_rules.py — fonte única compartilhada com o teste de
@@ -84,15 +84,15 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         self.assertEqual(len(violations), 0, msg)
 
     def test_02_no_direct_native_cpp_in_ui_or_plugins(self):
-        """[ARCcC Regra 2] Nenhum arquivo em plugins/ ou ui/ (exceto ui/engine_backends/) pode importar aladyn_engine_native."""
+        """[ARCcC Regra 2] Nenhum arquivo em plugins/ ou ui/ (exceto ui/infrastructure/bridge_client/) pode importar aladyn_engine_native."""
         violations: List[Tuple[str, int]] = []
         
         target_dirs = [self.plugins_dir, self.ui_dir]
         for tdir in target_dirs:
             for fpath in self._get_py_files(tdir):
                 rel = os.path.relpath(fpath, self.root)
-                # Permitido unicamente no adaptador do motor (ui/engine_backends)
-                if rel.startswith(os.path.join('ui', 'engine_backends')):
+                # Permitido unicamente no adaptador do motor (ui/infrastructure/bridge_client)
+                if rel.startswith(os.path.join('ui', 'infrastructure', 'bridge_client')):
                     continue
                 
                 with open(fpath, 'r', encoding='utf-8', errors='ignore') as fl:
@@ -120,7 +120,7 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         for tdir in target_dirs:
             for fpath in self._get_py_files(tdir):
                 rel = os.path.relpath(fpath, self.root)
-                if rel.startswith(os.path.join('ui', 'engine_backends')):
+                if rel.startswith(os.path.join('ui', 'infrastructure', 'bridge_client')):
                     continue
                 
                 with open(fpath, 'r', encoding='utf-8', errors='ignore') as fl:
@@ -143,7 +143,7 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         """[ARCcC Regra 4] AladynBackend deve implementar 100% dos métodos canônicos do EngineBackend sem herdar no-ops."""
         import inspect
         from ui.core.engine.backend import EngineBackend
-        from ui.engine_backends.aladyn import AladynBackend
+        from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
         backend = AladynBackend()
         self.assertIsInstance(backend, EngineBackend)

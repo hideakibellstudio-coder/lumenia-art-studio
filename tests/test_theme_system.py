@@ -9,7 +9,7 @@ app = QtWidgets.QApplication.instance()
 if not app:
     app = QtWidgets.QApplication(sys.argv)
 
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.core.widgets.slider.step_button import SliderStepButton
 
@@ -19,7 +19,7 @@ class TestThemeSystem(unittest.TestCase):
         self.tm = ThemeManager.instance()
 
     def test_01_all_theme_files_valid_and_complete(self):
-        themes_dir = os.path.join(os.path.dirname(__file__), '..', 'ui', 'core', 'theme', 'themes')
+        themes_dir = os.path.join(os.path.dirname(__file__), '..', 'ui', 'infrastructure', 'theme', 'themes')
         theme_files = [f for f in os.listdir(themes_dir) if f.endswith('.json')]
         self.assertGreaterEqual(len(theme_files), 9)
 
@@ -45,7 +45,7 @@ class TestThemeSystem(unittest.TestCase):
             self.assertEqual(len(missing), 0, f'{tf} está faltando tokens: {missing}')
 
     def test_02_qss_compilation_no_unresolved_tokens(self):
-        themes_dir = os.path.join(os.path.dirname(__file__), '..', 'ui', 'core', 'theme', 'themes')
+        themes_dir = os.path.join(os.path.dirname(__file__), '..', 'ui', 'infrastructure', 'theme', 'themes')
         theme_keys = [f[:-5] for f in os.listdir(themes_dir) if f.endswith('.json')]
 
         for key in theme_keys:
@@ -98,7 +98,7 @@ class TestThemeSystem(unittest.TestCase):
         dlg.close()
 
     def test_06_ui_scale_getter_setter_and_persistence(self):
-        from ui.core.config.manager import ConfigManager
+        from ui.infrastructure.config.manager import ConfigManager
         cfg = ConfigManager.instance()
 
         orig_scale = self.tm.ui_scale

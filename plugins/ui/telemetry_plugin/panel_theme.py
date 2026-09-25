@@ -7,7 +7,7 @@ Aplica folhas de estilo nos widgets, barras de progresso e botões do TelemetryP
 from __future__ import annotations
 from typing import Any
 from PySide6 import QtGui
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 def apply_telemetry_panel_theme(panel: Any) -> None:

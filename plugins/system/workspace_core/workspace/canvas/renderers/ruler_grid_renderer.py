@@ -8,7 +8,7 @@ Strictly decoupled in compliance with ARCcC v2 (< 120 LOC).
 import math
 from PySide6 import QtCore, QtGui
 
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.theme.manager import ThemeManager
 
 
 class RulerGridRenderer:

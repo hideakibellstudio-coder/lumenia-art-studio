@@ -12,9 +12,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor, QPainter, QPixmap, QPen
 from PySide6.QtCore import Qt, Signal
 
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import tr
-from ui.core.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr
+from ui.infrastructure.icons import get_icon
 
 
 class TexturePopup(QDialog):

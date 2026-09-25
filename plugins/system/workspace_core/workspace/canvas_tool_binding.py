@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Callable
 
 from PySide6 import QtCore
 
-from ui.core.i18n import tr
+from ui.infrastructure.i18n import tr
 from ui.core.state import ToolState, options_key
 from ui.core.tools import TOOL_META, get_tool_name
 

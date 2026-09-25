@@ -5,8 +5,8 @@ Decoupled under ARCcC v2 (< 130 LOC).
 
 from typing import Dict
 from PySide6 import QtCore, QtWidgets
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.tools import DEFAULT_TOOLS, TOOL_META, get_tool_name
 
 

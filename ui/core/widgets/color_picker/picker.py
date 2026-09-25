@@ -10,12 +10,12 @@ class ColorButton(QtWidgets.QPushButton):
         self.clicked.connect(self.on_clicked)
         
         # Track theme changes
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self._on_theme_changed)
         self.update_style()
 
     def update_style(self):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         border_color = ThemeManager.instance().get_color("border")
         self.setStyleSheet(f"background-color: {self.color.name()}; border: 2px solid {border_color}; border-radius: 6px;")
 
@@ -57,12 +57,12 @@ class ColorPaletteGrid(QtWidgets.QWidget):
             layout.addWidget(btn, row, col)
             self.buttons.append((btn, color_hex))
             
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         ThemeManager.instance().themeChanged.connect(self.update_styles)
         self.update_styles()
 
     def update_styles(self):
-        from ui.core.theme.manager import ThemeManager
+        from ui.infrastructure.theme.manager import ThemeManager
         border_color = ThemeManager.instance().get_color("border")
         for btn, color_hex in self.buttons:
             btn.setStyleSheet(f"background-color: {color_hex}; border: 1px solid {border_color}; border-radius: 4px;")

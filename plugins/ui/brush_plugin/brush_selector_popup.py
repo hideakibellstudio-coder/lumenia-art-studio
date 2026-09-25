@@ -10,9 +10,9 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.icons import get_icon
-from ui.core.theme.manager import ThemeManager
-from ui.core.i18n import tr, I18nManager
+from ui.infrastructure.icons import get_icon
+from ui.infrastructure.theme.manager import ThemeManager
+from ui.infrastructure.i18n import tr, I18nManager
 from .presets_data import (
     BRUSH_CATEGORIES,
     get_preset_display_name,

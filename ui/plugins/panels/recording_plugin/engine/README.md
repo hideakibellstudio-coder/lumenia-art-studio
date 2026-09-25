@@ -33,4 +33,5 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/document`
 - `ui/core/engine`
 - `ui/infrastructure`
+- `ui/infrastructure/i18n`
 <!-- /arccc:deps -->

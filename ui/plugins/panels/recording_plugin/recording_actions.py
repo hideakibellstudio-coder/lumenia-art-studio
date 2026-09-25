@@ -16,6 +16,8 @@ from typing import Callable
 
 from PySide6 import QtCore, QtWidgets
 
+from ui.infrastructure.i18n import tr
+
 from .components.export_dialog import TimelapseExportDialog
 from .engine.export_worker import TimelapseExportWorker
 from .engine.recording_engine import TimelapseRecordingEngine
@@ -57,17 +59,19 @@ class RecordingActions:
 
         if engine.frame_count == 0:
             engine.discard_recording()
-            _Box.information(self._parent, "Gravação Parada", "A gravação foi encerrada sem quadros capturados.")
+            _Box.information(self._parent, tr("recording.stopped_title", "Gravação Parada"),
+                             tr("recording.stopped_empty", "A gravação foi encerrada sem quadros capturados."))
             return True
 
         box = _Box(self._parent)
-        box.setWindowTitle("Parar Gravação")
-        box.setText("Deseja salvar a gravação antes de parar?")
-        box.setInformativeText(f"A gravação contém {engine.frame_count} quadros capturados.")
+        box.setWindowTitle(tr("recording.stop_title", "Parar Gravação"))
+        box.setText(tr("recording.stop_question", "Deseja salvar a gravação antes de parar?"))
+        box.setInformativeText(tr("recording.stop_frames", "A gravação contém {n} quadros capturados.",
+                                  n=engine.frame_count))
         box.setIcon(_Box.Icon.Question)
-        btn_save = box.addButton("Salvar Vídeo", _Box.ButtonRole.AcceptRole)
-        btn_discard = box.addButton("Descartar", _Box.ButtonRole.DestructiveRole)
-        box.addButton("Cancelar", _Box.ButtonRole.RejectRole)
+        btn_save = box.addButton(tr("recording.save_video", "Salvar Vídeo"), _Box.ButtonRole.AcceptRole)
+        btn_discard = box.addButton(tr("recording.discard", "Descartar"), _Box.ButtonRole.DestructiveRole)
+        box.addButton(tr("common.cancel", "Cancelar"), _Box.ButtonRole.RejectRole)
         box.setDefaultButton(btn_save)
         box.exec()
         clicked = box.clickedButton()
@@ -88,8 +92,9 @@ class RecordingActions:
         """Pergunta e apaga todos os quadros da sessão."""
         reply = _Box.question(
             self._parent,
-            "Descartar Gravação",
-            "Deseja descartar a gravação atual? Todos os quadros capturados serão apagados.",
+            tr("recording.discard_title", "Descartar Gravação"),
+            tr("recording.discard_question",
+               "Deseja descartar a gravação atual? Todos os quadros capturados serão apagados."),
             _Box.StandardButton.Yes | _Box.StandardButton.No,
             _Box.StandardButton.No,
         )
@@ -102,15 +107,18 @@ class RecordingActions:
         # Aguarda qualquer gravação assíncrona pendente no pool de threads.
         QtCore.QThreadPool.globalInstance().waitForDone(1500)
         if engine.frame_count == 0:
-            _Box.warning(self._parent, "Aviso", "Nenhum quadro foi capturado para exportar.")
+            _Box.warning(self._parent, tr("recording.warning", "Aviso"),
+                         tr("recording.no_frames", "Nenhum quadro foi capturado para exportar."))
             return False
 
-        fmt = self._export_format()
-        is_mp4 = "MP4" in fmt
+        fmt = self._export_format()  # "mp4" ou "zip"
+        is_mp4 = fmt == "mp4"
         ext = ".mp4" if is_mp4 else ".zip"
-        filter_str = "Vídeo MP4 (*.mp4)" if is_mp4 else "Arquivo ZIP (*.zip)"
+        filter_str = (tr("recording.filter_mp4", "Vídeo MP4 (*.mp4)") if is_mp4
+                      else tr("recording.filter_zip", "Arquivo ZIP (*.zip)"))
         default_name = os.path.join(self._output_dir(), f"lumenia_timelapse{ext}")
-        save_path, _ = QtWidgets.QFileDialog.getSaveFileName(self._parent, "Salvar Gravação", default_name, filter_str)
+        save_path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self._parent, tr("recording.save_dialog", "Salvar Gravação"), default_name, filter_str)
         if not save_path:
             return False
 
@@ -126,9 +134,9 @@ class RecordingActions:
         def on_finished(success: bool, message: str, _path: str) -> None:
             dialog.close()
             if success:
-                _Box.information(self._parent, "Exportação Concluída", message)
+                _Box.information(self._parent, tr("recording.export_done_title", "Exportação Concluída"), message)
             else:
-                _Box.warning(self._parent, "Exportação Cancelada", message)
+                _Box.warning(self._parent, tr("recording.export_failed_title", "Exportação Cancelada"), message)
             engine.finish_session()
 
         worker.finished.connect(on_finished)

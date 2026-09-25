@@ -34,6 +34,24 @@ def qapp():
     return app
 
 
+@pytest.fixture(autouse=True)
+def _interface_in_portuguese():
+    """Todo teste começa com a interface em pt_BR, qualquer que seja o sistema.
+
+    Sem preferência salva, o idioma segue o sistema operacional: os testes que
+    conferem texto (escritos em português) passavam no Windows do dono e
+    reprovavam num sistema em inglês (o Linux do agente, um runner do CI), e
+    um teste que trocava o idioma sem voltar deixava o próximo em japonês.
+    Achado em 2026-09-25, ao traduzir o plugin de gravação.
+    """
+    from ui.infrastructure.i18n import I18nManager
+
+    i18n = I18nManager.instance()
+    if i18n.get_current_locale() != "pt_BR":
+        i18n.set_locale("pt_BR", is_auto=False)
+    yield
+
+
 @pytest.fixture(autouse=True, scope="module")
 def _descartar_janelas_criadas_pelo_modulo():
     """Destroi as janelas de topo que um módulo de teste deixou vivas.

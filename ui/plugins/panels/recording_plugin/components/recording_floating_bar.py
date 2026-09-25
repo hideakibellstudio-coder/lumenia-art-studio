@@ -22,6 +22,7 @@ from typing import Optional
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui.core.dialogs.floating_tool_window import FloatingToolWindow
+from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.icons import get_icon
 from ui.infrastructure.theme.manager import ThemeManager
 
@@ -50,6 +51,7 @@ class RecordingFloatingBar(FloatingToolWindow):
         self._setup_ui()
         self._apply_theme()
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
+        I18nManager.instance().languageChanged.connect(self._retranslate)
 
         if self._anchor is not None:
             self._anchor.installEventFilter(self)
@@ -137,7 +139,6 @@ class RecordingFloatingBar(FloatingToolWindow):
         self.btn_pause_resume.setFixedSize(28, 28)
         self.btn_pause_resume.setIconSize(QtCore.QSize(16, 16))
         self.btn_pause_resume.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-        self.btn_pause_resume.setToolTip("Pausar Gravação")
         self.btn_pause_resume.clicked.connect(self.pauseResumeRequested)
         self.box_layout.addWidget(self.btn_pause_resume)
 
@@ -146,7 +147,7 @@ class RecordingFloatingBar(FloatingToolWindow):
         self.btn_stop.setFixedSize(28, 28)
         self.btn_stop.setIconSize(QtCore.QSize(16, 16))
         self.btn_stop.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-        self.btn_stop.setToolTip("Parar Gravação (Pergunta para Salvar)")
+        self.btn_stop.setToolTip(tr("recording.stop_tip", "Parar Gravação (Pergunta para Salvar)"))
         self.btn_stop.clicked.connect(self.stopRequested)
         self.box_layout.addWidget(self.btn_stop)
 
@@ -155,7 +156,7 @@ class RecordingFloatingBar(FloatingToolWindow):
         self.btn_save.setFixedSize(28, 28)
         self.btn_save.setIconSize(QtCore.QSize(16, 16))
         self.btn_save.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-        self.btn_save.setToolTip("Salvar Vídeo...")
+        self.btn_save.setToolTip(tr("recording.save_tip", "Salvar Vídeo..."))
         self.btn_save.clicked.connect(self.saveRequested)
         self.box_layout.addWidget(self.btn_save)
 
@@ -202,10 +203,10 @@ class RecordingFloatingBar(FloatingToolWindow):
     def _update_icons(self) -> None:
         if self._paused:
             self.btn_pause_resume.setIcon(get_icon("play"))
-            self.btn_pause_resume.setToolTip("Retomar Gravação")
+            self.btn_pause_resume.setToolTip(tr("recording.resume", "Retomar Gravação"))
         else:
             self.btn_pause_resume.setIcon(get_icon("pause"))
-            self.btn_pause_resume.setToolTip("Pausar Gravação")
+            self.btn_pause_resume.setToolTip(tr("recording.pause", "Pausar Gravação"))
 
         self.btn_stop.setIcon(get_icon("stop", color=ThemeManager.instance().get_color("DANGER", "#f85149")))
         self.btn_save.setIcon(get_icon("save"))
@@ -223,12 +224,17 @@ class RecordingFloatingBar(FloatingToolWindow):
             self.lbl_led.setText("●")
             self.lbl_led.setStyleSheet(f"color: {danger}; font-size: 14px; background: transparent;")
         elif is_recording and is_paused:
-            self.lbl_status.setText("PAUSA")
+            self.lbl_status.setText(tr("recording.bar_paused", "PAUSA"))
             self.lbl_status.setStyleSheet(f"color: {warning}; font-size: 10px; font-weight: bold; background: transparent;")
             self.lbl_led.setText("●")
             self.lbl_led.setStyleSheet(f"color: {warning}; font-size: 14px; background: transparent;")
 
         self._update_icons()
+
+    def _retranslate(self) -> None:
+        self.btn_stop.setToolTip(tr("recording.stop_tip", "Parar Gravação (Pergunta para Salvar)"))
+        self.btn_save.setToolTip(tr("recording.save_tip", "Salvar Vídeo..."))
+        self.update_state(self._recording, self._paused)
 
     def update_pulse(self, state: bool) -> None:
         """Sincroniza a animação de pulso do LED com o painel."""

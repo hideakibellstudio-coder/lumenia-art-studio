@@ -21,6 +21,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
 - `ui/core/dialogs`
+- `ui/infrastructure/i18n`
 - `ui/infrastructure/icons`
 - `ui/infrastructure/theme`
 <!-- /arccc:deps -->

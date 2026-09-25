@@ -17,6 +17,8 @@ from typing import Optional
 
 from PySide6 import QtCore
 
+from ui.infrastructure.i18n import tr
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,16 +65,17 @@ class TimelapseExportWorker(QtCore.QObject):
                 self._process.kill()
             except Exception as e:
                 logger.warning("[ExportWorker] Erro ao interromper FFmpeg: %s", e)
-        self.finished.emit(False, "Exportação cancelada pelo usuário.", "")
+        self.finished.emit(False, tr("recording.worker_cancelled", "Exportação cancelada pelo usuário."), "")
 
     def _export_ffmpeg(self, output_mp4: str) -> None:
         """Compila a sequência em MP4 H.264 via processo externo FFmpeg."""
         ffmpeg_bin = shutil.which("ffmpeg")
         if not ffmpeg_bin:
-            self.finished.emit(False, "Executável FFmpeg não encontrado.", "")
+            self.finished.emit(False, tr("recording.worker_no_ffmpeg", "Executável FFmpeg não encontrado."), "")
             return
 
-        self.progress.emit(5, "Iniciando compilação de vídeo...", "Configurando decodificador H.264...")
+        self.progress.emit(5, tr("recording.worker_video_start", "Iniciando compilação de vídeo..."),
+                           tr("recording.worker_video_setup", "Configurando codificador H.264..."))
 
         self._process = QtCore.QProcess(self)
         self._process.setWorkingDirectory(self.temp_dir)
@@ -100,8 +103,9 @@ class TimelapseExportWorker(QtCore.QObject):
                         pct = min(95, int((cur_frame / self.total_frames) * 90) + 5)
                         self.progress.emit(
                             pct,
-                            "Codificando quadros em H.264...",
-                            f"Quadro {cur_frame} de {self.total_frames} processado."
+                            tr("recording.worker_encoding", "Codificando quadros em H.264..."),
+                            tr("recording.worker_frame", "Quadro {cur} de {total} processado.",
+                               cur=cur_frame, total=self.total_frames),
                         )
             except (ValueError, IndexError, ZeroDivisionError):
                 pass  # linha de progresso do ffmpeg fora do formato esperado
@@ -110,8 +114,11 @@ class TimelapseExportWorker(QtCore.QObject):
             if self._is_cancelled:
                 return
             if exit_code == 0:
-                self.progress.emit(100, "Concluído com sucesso!", f"Vídeo gravado em {os.path.basename(output_mp4)}")
-                self.finished.emit(True, f"Timelapse exportado com sucesso para:\n{output_mp4}", output_mp4)
+                self.progress.emit(100, tr("recording.worker_done", "Concluído!"),
+                                   tr("recording.worker_video_saved", "Vídeo gravado em {name}",
+                                      name=os.path.basename(output_mp4)))
+                self.finished.emit(True, tr("recording.worker_video_ok", "Timelapse exportado com sucesso para:\n{path}",
+                                            path=output_mp4), output_mp4)
             else:
                 logger.error("[ExportWorker] FFmpeg falhou com código %d", exit_code)
                 fallback_zip = os.path.splitext(output_mp4)[0] + ".zip"
@@ -124,15 +131,17 @@ class TimelapseExportWorker(QtCore.QObject):
     def _export_zip(self, output_zip: str, was_fallback: bool = False) -> None:
         """Compacta todos os frames JPEG em um arquivo ZIP com feedback progressivo."""
         if not self.temp_dir or not os.path.isdir(self.temp_dir):
-            self.finished.emit(False, "Pasta de rascunhos temporários inválida ou vazia.", "")
+            self.finished.emit(False, tr("recording.worker_bad_temp",
+                                         "Pasta de rascunhos temporários inválida ou vazia."), "")
             return
 
-        self.progress.emit(5, "Empacotando sequência de imagens...", "Inicializando arquivo ZIP...")
+        self.progress.emit(5, tr("recording.worker_zip_start", "Empacotando sequência de imagens..."),
+                           tr("recording.worker_zip_init", "Inicializando arquivo ZIP..."))
         try:
             files = sorted([f for f in os.listdir(self.temp_dir) if f.startswith("frame_") and f.endswith(".jpg")])
             total = len(files)
             if total == 0:
-                self.finished.emit(False, "Nenhum quadro disponível para exportar.", "")
+                self.finished.emit(False, tr("recording.no_frames", "Nenhum quadro foi capturado para exportar."), "")
                 return
 
             with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -146,15 +155,21 @@ class TimelapseExportWorker(QtCore.QObject):
                         pct = min(98, int(((idx + 1) / total) * 90) + 8)
                         self.progress.emit(
                             pct,
-                            "Comprimindo quadros JPEG...",
-                            f"Compactando {idx + 1} de {total}..."
+                            tr("recording.worker_zipping", "Comprimindo quadros JPEG..."),
+                            tr("recording.worker_zip_progress", "Compactando {cur} de {total}...",
+                               cur=idx + 1, total=total),
                         )
 
-            self.progress.emit(100, "Concluído!", f"Salvo em: {os.path.basename(output_zip)}")
-            msg = f"Sequência de quadros exportada com sucesso em:\n{output_zip}"
+            self.progress.emit(100, tr("recording.worker_done", "Concluído!"),
+                               tr("recording.worker_zip_saved", "Salvo em: {name}", name=os.path.basename(output_zip)))
+            msg = tr("recording.worker_zip_ok", "Sequência de quadros exportada com sucesso em:\n{path}", path=output_zip)
             if was_fallback:
-                msg = f"FFmpeg não foi localizado no PATH do sistema.\nA sequência de {total} quadros foi empacotada em:\n{output_zip}"
+                # Sem FFmpeg no PATH ou FFmpeg com erro: os quadros vão num ZIP.
+                msg = tr("recording.worker_zip_fallback",
+                         "Não foi possível gerar o vídeo (FFmpeg ausente ou com erro).\n"
+                         "A sequência de {n} quadros foi empacotada em:\n{path}", n=total, path=output_zip)
             self.finished.emit(True, msg, output_zip)
         except Exception as e:
             logger.error("[ExportWorker] Erro ao criar ZIP: %s", e)
-            self.finished.emit(False, f"Falha ao empacotar sequência: {e}", "")
+            self.finished.emit(False, tr("recording.worker_zip_failed", "Falha ao empacotar sequência: {error}",
+                                         error=e), "")

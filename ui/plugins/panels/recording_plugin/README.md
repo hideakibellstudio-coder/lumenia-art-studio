@@ -30,5 +30,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/plugins/panels/recording_plugin/engine`
 - `ui/core/plugins`
 - `ui/core/widgets`
+- `ui/infrastructure/i18n`
 - `ui/infrastructure/theme`
 <!-- /arccc:deps -->

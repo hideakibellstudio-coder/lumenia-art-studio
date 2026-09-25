@@ -11,6 +11,7 @@ from ui.plugins.panels.recording_plugin.engine.export_worker import TimelapseExp
 from ui.plugins.panels.recording_plugin.panel import RecordingPanel
 from ui.plugins.panels.recording_plugin import RecordingPlugin
 from ui.core.plugins.workspace_contract import WorkspaceService
+from ui.infrastructure.i18n import I18nManager
 from tests.recording_doubles import DummyCanvas, MockWorkspaceService, make_engine
 
 
@@ -81,6 +82,28 @@ def test_recording_plugin_activation(qapp):
     finally:
         reg._registry[WorkspaceService] = old_impls
 
+
+
+def test_recording_panel_follows_the_interface_language(qapp):
+    """Textos seguem o idioma; o dado dos combos (resolução, formato) não muda com a tradução."""
+    i18n = I18nManager.instance()
+    panel = RecordingPanel(make_engine())
+    panel.combo_res.setCurrentIndex(1)
+    panel.combo_format.setCurrentIndex(1)
+    try:
+        i18n.set_locale("en_US", is_auto=False)
+        assert panel.btn_toggle.text() == "Start Recording"
+        assert panel.combo_fps.currentText() == "30 FPS (Default)"
+        assert panel.floating_bar.btn_save.toolTip() == "Save Video..."
+        assert panel.engine.target_resolution == "1080p"
+        assert panel.combo_format.currentData() == "zip"
+    finally:
+        i18n.set_locale("pt_BR", is_auto=False)
+        panel.shutdown()
+        panel.deleteLater()
+    QtCore.QCoreApplication.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
+    i18n.set_locale("en_US", is_auto=False)  # painel já destruído: o sinal não pode chegar nele
+    i18n.set_locale("pt_BR", is_auto=False)
 
 def test_recording_fps_selection_and_duration_calculation(qapp):
     """Valida a seleção dinâmica de taxa de quadros (24, 30, 60 FPS) e o cálculo de duração."""

@@ -45,7 +45,7 @@ class TimelapseRecordingEngine(QtCore.QObject):
         self.frame_count: int = 0
         self.elapsed_seconds: int = 0
         self.temp_dir: Optional[str] = None
-        self.target_resolution: str = "Original (Canvas)"
+        self.target_resolution: str = "original"  # "original", "1080p" ou "720p" (dado do combo do painel)
         self.trigger_mode: str = "stroke"  # 'stroke' ou 'time'
         self.add_watermark: bool = True
         self.include_guides: bool = False

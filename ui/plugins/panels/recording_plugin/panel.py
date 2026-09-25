@@ -10,6 +10,11 @@ Interface do usuário integrada ao Workspace em PanelCardBox:
 Recebe o motor de gravação pelo construtor (o plugin cria e liga ao canvas) e
 o widget onde a barra flutuante se ancora. Iniciar, parar, salvar e descartar
 ficam no `RecordingActions`, usado também pela barra flutuante.
+
+Textos em `recording.*` (4 idiomas) e refeitos em `_retranslate` quando o
+idioma muda. Os combos guardam o valor no dado do item (`"1080p"`, `"zip"`,
+`30`), não no texto: até 2026-09-25 o motor e a exportação liam o texto
+mostrado ("1080p (Full HD)", "MP4 ...") e o painel não tinha tradução.
 """
 
 from __future__ import annotations
@@ -20,6 +25,7 @@ from typing import Optional
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui.core.widgets.card_box import PanelCardBox
+from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.theme.manager import ThemeManager
 from .engine.recording_engine import TimelapseRecordingEngine
 from .components.recording_floating_bar import RecordingFloatingBar
@@ -41,12 +47,13 @@ class RecordingPanel(QtWidgets.QWidget):
         self.setMaximumWidth(int(280 * ThemeManager.instance().ui_scale))
         self.engine = engine
         self.actions = RecordingActions(
-            engine, self, lambda: self.combo_format.currentText(), lambda: self.output_dir
+            engine, self, lambda: self.combo_format.currentData(), lambda: self.output_dir
         )
 
         self.output_dir: str = QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.StandardLocation.DocumentsLocation)
 
         self._pulse_state: bool = True
+        self._stats = (0, 0.0, 0.0)  # quadros, MB e segundos de vídeo mostrados no diagnóstico
         self.pulse_timer = QtCore.QTimer(self)
         self.pulse_timer.setInterval(500)
         self.pulse_timer.timeout.connect(self._on_pulse_tick)
@@ -57,11 +64,13 @@ class RecordingPanel(QtWidgets.QWidget):
         self.floating_bar.saveRequested.connect(self.actions.save)
 
         self._setup_ui()
+        self._retranslate()
         self._wire_engine()
         self._apply_theme()
 
         ThemeManager.instance().themeChanged.connect(self._apply_theme)
         ThemeManager.instance().scaleChanged.connect(self._apply_theme)
+        I18nManager.instance().languageChanged.connect(self._retranslate)
 
     def _setup_ui(self) -> None:
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -82,7 +91,7 @@ class RecordingPanel(QtWidgets.QWidget):
 
         self.lbl_led = QtWidgets.QLabel("●")
         self.lbl_led.setStyleSheet("font-size: 16px; font-weight: bold;")
-        self.lbl_status = QtWidgets.QLabel("INATIVO")
+        self.lbl_status = QtWidgets.QLabel()
         self.lbl_status.setStyleSheet("font-size: 11px; font-weight: bold;")
         self.lbl_time = QtWidgets.QLabel("00:00:00")
         self.lbl_time.setStyleSheet("font-family: monospace; font-size: 12px; font-weight: bold;")
@@ -94,7 +103,7 @@ class RecordingPanel(QtWidgets.QWidget):
         c_layout.addWidget(self.status_box)
 
         # ── 2. Botões de Ação ──────────────────────────────────────────────
-        self.btn_toggle = QtWidgets.QPushButton("Iniciar Gravação")
+        self.btn_toggle = QtWidgets.QPushButton()
         self.btn_toggle.setFixedHeight(34)
         self.btn_toggle.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_toggle.clicked.connect(self.actions.toggle)
@@ -105,19 +114,19 @@ class RecordingPanel(QtWidgets.QWidget):
         rx_layout.setContentsMargins(0, 0, 0, 0)
         rx_layout.setSpacing(4)
 
-        self.btn_stop = QtWidgets.QPushButton("Parar")
+        self.btn_stop = QtWidgets.QPushButton()
         self.btn_stop.setFixedHeight(28)
         self.btn_stop.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_stop.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_stop.clicked.connect(self.actions.request_stop)
 
-        self.btn_save = QtWidgets.QPushButton("Salvar")
+        self.btn_save = QtWidgets.QPushButton()
         self.btn_save.setFixedHeight(28)
         self.btn_save.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_save.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_save.clicked.connect(self.actions.save)
 
-        self.btn_discard = QtWidgets.QPushButton("Descartar")
+        self.btn_discard = QtWidgets.QPushButton()
         self.btn_discard.setFixedHeight(28)
         self.btn_discard.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         self.btn_discard.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
@@ -130,62 +139,37 @@ class RecordingPanel(QtWidgets.QWidget):
         c_layout.addWidget(self.row_extra)
 
         # ── 3. Opções de Timelapse ─────────────────────────────────────────
-        self.group_options = QtWidgets.QGroupBox("OPÇÕES DE TIMELAPSE")
+        self.group_options = QtWidgets.QGroupBox()
         self.group_options.setStyleSheet("font-weight: bold; font-size: 10px;")
         opt_layout = QtWidgets.QVBoxLayout(self.group_options)
         opt_layout.setContentsMargins(8, 12, 8, 8)
         opt_layout.setSpacing(8)
 
-        lbl_res = QtWidgets.QLabel("Resolução:")
-        lbl_res.setStyleSheet("font-size: 11px;")
-        self.combo_res = QtWidgets.QComboBox()
-        self.combo_res.addItems(["Original (Canvas)", "1080p (Full HD)", "720p (HD)"])
-        self.combo_res.currentTextChanged.connect(self._on_res_changed)
-        opt_layout.addWidget(lbl_res)
-        opt_layout.addWidget(self.combo_res)
-
-        lbl_trig = QtWidgets.QLabel("Gatilho de Captura:")
-        lbl_trig.setStyleSheet("font-size: 11px;")
-        self.combo_trigger = QtWidgets.QComboBox()
-        self.combo_trigger.addItems(["Por Traço (Recomendado)", "Por Tempo (2s)"])
+        self.lbl_res, self.combo_res = self._option_row(opt_layout, ("original", "1080p", "720p"))
+        self.combo_res.currentIndexChanged.connect(self._on_res_changed)
+        self.lbl_trig, self.combo_trigger = self._option_row(opt_layout, ("stroke", "time"))
         self.combo_trigger.currentIndexChanged.connect(self._on_trigger_changed)
-        opt_layout.addWidget(lbl_trig)
-        opt_layout.addWidget(self.combo_trigger)
-
-        lbl_fmt = QtWidgets.QLabel("Formato de Exportação:")
-        lbl_fmt.setStyleSheet("font-size: 11px;")
-        self.combo_format = QtWidgets.QComboBox()
-        self.combo_format.addItems(["MP4 (H.264/AVC)", "Sequência JPG (ZIP)"])
-        opt_layout.addWidget(lbl_fmt)
-        opt_layout.addWidget(self.combo_format)
-
-        lbl_fps = QtWidgets.QLabel("Taxa de Quadros (FPS):")
-        lbl_fps.setStyleSheet("font-size: 11px;")
-        self.combo_fps = QtWidgets.QComboBox()
-        self.combo_fps.addItems(["30 FPS (Padrão)", "60 FPS (Fluido)", "24 FPS (Cinema)"])
+        self.lbl_fmt, self.combo_format = self._option_row(opt_layout, ("mp4", "zip"))
+        self.lbl_fps, self.combo_fps = self._option_row(opt_layout, (30, 60, 24))
         self.combo_fps.currentIndexChanged.connect(self._on_fps_changed)
-        opt_layout.addWidget(lbl_fps)
-        opt_layout.addWidget(self.combo_fps)
 
-        self.chk_watermark = QtWidgets.QCheckBox("Incluir Marca d'Água")
-        self.chk_watermark.setToolTip("Adiciona marca d'água oficial do Lumenia no canto inferior direito")
+        self.chk_watermark = QtWidgets.QCheckBox()
         self.chk_watermark.setChecked(True)
         self.chk_watermark.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.chk_watermark.setStyleSheet("font-size: 11px;")
         self.chk_watermark.toggled.connect(self._on_watermark_toggled)
         opt_layout.addWidget(self.chk_watermark)
 
-        self.chk_guides = QtWidgets.QCheckBox("Incluir Guias Ativas")
-        self.chk_guides.setToolTip("Captura guias de perspectiva e eixos de simetria ativos no vídeo")
+        self.chk_guides = QtWidgets.QCheckBox()
         self.chk_guides.setChecked(False)
         self.chk_guides.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.chk_guides.setStyleSheet("font-size: 11px;")
         self.chk_guides.toggled.connect(self._on_guides_toggled)
         opt_layout.addWidget(self.chk_guides)
 
-        lbl_dir = QtWidgets.QLabel("Pasta de Destino:")
-        lbl_dir.setStyleSheet("font-size: 11px;")
-        opt_layout.addWidget(lbl_dir)
+        self.lbl_dir = QtWidgets.QLabel()
+        self.lbl_dir.setStyleSheet("font-size: 11px;")
+        opt_layout.addWidget(self.lbl_dir)
 
         row_dir = QtWidgets.QHBoxLayout()
         row_dir.setSpacing(4)
@@ -205,18 +189,15 @@ class RecordingPanel(QtWidgets.QWidget):
         c_layout.addWidget(self.group_options)
 
         # ── 4. Diagnósticos da Sessão ──────────────────────────────────────
-        self.group_diag = QtWidgets.QGroupBox("DIAGNÓSTICOS DA GRAVAÇÃO")
+        self.group_diag = QtWidgets.QGroupBox()
         self.group_diag.setStyleSheet("font-weight: bold; font-size: 10px;")
         diag_layout = QtWidgets.QVBoxLayout(self.group_diag)
         diag_layout.setContentsMargins(8, 12, 8, 8)
         diag_layout.setSpacing(6)
 
-        self.lbl_diag_frames = QtWidgets.QLabel("Quadros: 0")
-        self.lbl_diag_frames.setStyleSheet("font-size: 11px;")
-        self.lbl_diag_size = QtWidgets.QLabel("Tamanho: 0.0 MB")
-        self.lbl_diag_size.setStyleSheet("font-size: 11px;")
-        self.lbl_diag_dur = QtWidgets.QLabel("Duração: 0.0s (a 30 FPS)")
-        self.lbl_diag_dur.setStyleSheet("font-size: 11px;")
+        self.lbl_diag_frames, self.lbl_diag_size, self.lbl_diag_dur = (QtWidgets.QLabel() for _ in range(3))
+        for label in (self.lbl_diag_frames, self.lbl_diag_size, self.lbl_diag_dur):
+            label.setStyleSheet("font-size: 11px;")
 
         diag_layout.addWidget(self.lbl_diag_frames)
         diag_layout.addWidget(self.lbl_diag_size)
@@ -227,6 +208,58 @@ class RecordingPanel(QtWidgets.QWidget):
 
         card_box = PanelCardBox("", content, self)
         main_layout.addWidget(card_box)
+
+    @staticmethod
+    def _option_row(layout: QtWidgets.QVBoxLayout, values: tuple) -> tuple[QtWidgets.QLabel, QtWidgets.QComboBox]:
+        """Rótulo + combo cujos itens guardam `values` como dado (o texto vem de `_retranslate`)."""
+        label = QtWidgets.QLabel()
+        label.setStyleSheet("font-size: 11px;")
+        combo = QtWidgets.QComboBox()
+        for value in values:
+            combo.addItem("", value)
+        label.setBuddy(combo)
+        layout.addWidget(label)
+        layout.addWidget(combo)
+        return label, combo
+
+    def _retranslate(self) -> None:
+        """Textos no idioma atual (na criação e quando o idioma muda)."""
+        self.btn_stop.setText(tr("recording.stop", "Parar"))
+        self.btn_save.setText(tr("recording.save", "Salvar"))
+        self.btn_discard.setText(tr("recording.discard", "Descartar"))
+        self.group_options.setTitle(tr("recording.options", "OPÇÕES DE TIMELAPSE"))
+        self.group_diag.setTitle(tr("recording.diagnostics", "DIAGNÓSTICOS DA GRAVAÇÃO"))
+        self.lbl_res.setText(tr("recording.resolution", "Resolução:"))
+        self.lbl_trig.setText(tr("recording.trigger", "Gatilho de Captura:"))
+        self.lbl_fmt.setText(tr("recording.format", "Formato de Exportação:"))
+        self.lbl_fps.setText(tr("recording.fps", "Taxa de Quadros (FPS):"))
+        self.lbl_dir.setText(tr("recording.output_dir", "Pasta de Destino:"))
+        items = {
+            self.combo_res: (tr("recording.res_original", "Original (Canvas)"), "1080p (Full HD)", "720p (HD)"),
+            self.combo_trigger: (tr("recording.trigger_stroke", "Por Traço (Recomendado)"),
+                                 tr("recording.trigger_time", "Por Tempo (2s)")),
+            self.combo_format: ("MP4 (H.264/AVC)", tr("recording.format_zip", "Sequência JPG (ZIP)")),
+            self.combo_fps: (tr("recording.fps_30", "30 FPS (Padrão)"), tr("recording.fps_60", "60 FPS (Fluido)"),
+                             tr("recording.fps_24", "24 FPS (Cinema)")),
+        }
+        for combo, texts in items.items():
+            for index, text in enumerate(texts):
+                combo.setItemText(index, text)
+        self.chk_watermark.setText(tr("recording.watermark", "Incluir Marca d'Água"))
+        self.chk_watermark.setToolTip(tr("recording.watermark_tip",
+                                         "Adiciona marca d'água oficial do Lumenia no canto inferior direito"))
+        self.chk_guides.setText(tr("recording.guides", "Incluir Guias Ativas"))
+        self.chk_guides.setToolTip(tr("recording.guides_tip",
+                                      "Captura guias de perspectiva e eixos de simetria ativos no vídeo"))
+        self._update_status_view()
+        self._show_stats()
+
+    def _show_stats(self) -> None:
+        frames, size_mb, dur_secs = self._stats
+        self.lbl_diag_frames.setText(tr("recording.frames", "Quadros: {n}", n=frames))
+        self.lbl_diag_size.setText(tr("recording.size", "Tamanho: {mb} MB", mb=f"{size_mb:.1f}"))
+        self.lbl_diag_dur.setText(tr("recording.duration", "Duração: {secs}s (a {fps} FPS)",
+                                     secs=f"{dur_secs:.1f}", fps=self.engine.fps))
 
     def _wire_engine(self) -> None:
         self.engine.state_changed.connect(self._on_engine_state_changed)
@@ -246,25 +279,25 @@ class RecordingPanel(QtWidgets.QWidget):
 
         if not self.engine.is_recording:
             self.lbl_led.setStyleSheet(f"color: {fg_sec}; font-size: 16px;")
-            self.lbl_status.setText("INATIVO")
+            self.lbl_status.setText(tr("recording.status_idle", "INATIVO"))
             self.lbl_status.setStyleSheet(f"color: {fg_sec}; font-size: 11px; font-weight: bold;")
-            self.btn_toggle.setText("Iniciar Gravação")
+            self.btn_toggle.setText(tr("recording.start", "Iniciar Gravação"))
             self.row_extra.setVisible(False)
             self._set_options_enabled(True)
             self.pulse_timer.stop()
         elif self.engine.is_recording and not self.engine.is_paused:
             self.lbl_led.setStyleSheet(f"color: {danger}; font-size: 16px;")
-            self.lbl_status.setText("GRAVANDO")
+            self.lbl_status.setText(tr("recording.status_recording", "GRAVANDO"))
             self.lbl_status.setStyleSheet(f"color: {danger}; font-size: 11px; font-weight: bold;")
-            self.btn_toggle.setText("Pausar Gravação")
+            self.btn_toggle.setText(tr("recording.pause", "Pausar Gravação"))
             self.row_extra.setVisible(True)
             self._set_options_enabled(False)
             self.pulse_timer.start()
         else:
             self.lbl_led.setStyleSheet(f"color: {warning}; font-size: 16px;")
-            self.lbl_status.setText("PAUSADO")
+            self.lbl_status.setText(tr("recording.status_paused", "PAUSADO"))
             self.lbl_status.setStyleSheet(f"color: {warning}; font-size: 11px; font-weight: bold;")
-            self.btn_toggle.setText("Retomar Gravação")
+            self.btn_toggle.setText(tr("recording.resume", "Retomar Gravação"))
             self.row_extra.setVisible(True)
             self._set_options_enabled(False)
             self.pulse_timer.stop()
@@ -286,20 +319,21 @@ class RecordingPanel(QtWidgets.QWidget):
         self.floating_bar.update_pulse(self._pulse_state)
 
     def _on_browse_clicked(self) -> None:
-        dir_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta de Saída", self.output_dir)
+        dir_path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, tr("recording.choose_dir", "Selecionar Pasta de Saída"), self.output_dir)
         if dir_path:
             self.output_dir = dir_path
             self.txt_dir.setText(dir_path)
 
-    def _on_res_changed(self, text: str) -> None:
-        self.engine.target_resolution = text
+    def _on_res_changed(self, _index: int) -> None:
+        self.engine.target_resolution = self.combo_res.currentData()
 
-    def _on_fps_changed(self, idx: int) -> None:
-        fps_map = {0: 30, 1: 60, 2: 24}
-        fps_val = fps_map.get(idx, 30)
-        self.engine.fps = fps_val
-        dur_secs = self.engine.frame_count / float(fps_val)
-        self.lbl_diag_dur.setText(f"Duração: {dur_secs:.1f}s (a {fps_val} FPS)")
+    def _on_fps_changed(self, _index: int) -> None:
+        fps = int(self.combo_fps.currentData())
+        self.engine.fps = fps
+        frames, size_mb, _ = self._stats
+        self._stats = (frames, size_mb, self.engine.frame_count / float(fps))
+        self._show_stats()
 
     def _on_trigger_changed(self, idx: int) -> None:
         self.engine.trigger_mode = "stroke" if idx == 0 else "time"
@@ -316,9 +350,8 @@ class RecordingPanel(QtWidgets.QWidget):
         secs = self.engine.elapsed_seconds
         h, m, s = secs // 3600, (secs % 3600) // 60, secs % 60
         self.lbl_time.setText(f"{h:02d}:{m:02d}:{s:02d}")
-        self.lbl_diag_frames.setText(f"Quadros: {frames}")
-        self.lbl_diag_size.setText(f"Tamanho: {size_mb:.1f} MB")
-        self.lbl_diag_dur.setText(f"Duração: {dur_secs:.1f}s (a {self.engine.fps} FPS)")
+        self._stats = (frames, size_mb, dur_secs)
+        self._show_stats()
         self.floating_bar.update_stats(frames, secs)
 
     def shutdown(self) -> None:

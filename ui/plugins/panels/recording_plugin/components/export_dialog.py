@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Optional
 from PySide6 import QtCore, QtWidgets
 
+from ui.infrastructure.i18n import tr
 from ui.infrastructure.theme.manager import ThemeManager
 
 
@@ -22,7 +23,7 @@ class TimelapseExportDialog(QtWidgets.QDialog):
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
-        self.setWindowTitle("Exportando Timelapse")
+        self.setWindowTitle(tr("recording.export_title", "Exportando Timelapse"))
         self.setFixedSize(400, 150)
         self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowType.WindowContextHelpButtonHint)
         self._setup_ui()
@@ -33,7 +34,7 @@ class TimelapseExportDialog(QtWidgets.QDialog):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        self.lbl_status = QtWidgets.QLabel("Preparando para exportar...")
+        self.lbl_status = QtWidgets.QLabel(tr("recording.export_preparing", "Preparando para exportar..."))
         self.lbl_status.setStyleSheet("font-size: 12px; font-weight: bold;")
         layout.addWidget(self.lbl_status)
 
@@ -44,13 +45,13 @@ class TimelapseExportDialog(QtWidgets.QDialog):
         self.progress_bar.setTextVisible(True)
         layout.addWidget(self.progress_bar)
 
-        self.lbl_details = QtWidgets.QLabel("Processando quadros...")
+        self.lbl_details = QtWidgets.QLabel(tr("recording.export_processing", "Processando quadros..."))
         self.lbl_details.setStyleSheet("font-size: 11px;")
         layout.addWidget(self.lbl_details)
 
         btn_row = QtWidgets.QHBoxLayout()
         btn_row.addStretch()
-        self.btn_cancel = QtWidgets.QPushButton("Cancelar")
+        self.btn_cancel = QtWidgets.QPushButton(tr("common.cancel", "Cancelar"))
         self.btn_cancel.setFixedSize(80, 26)
         self.btn_cancel.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_cancel.clicked.connect(self._on_cancel_clicked)
@@ -106,5 +107,5 @@ class TimelapseExportDialog(QtWidgets.QDialog):
 
     def _on_cancel_clicked(self) -> None:
         self.btn_cancel.setEnabled(False)
-        self.lbl_status.setText("Cancelando exportação...")
+        self.lbl_status.setText(tr("recording.export_cancelling", "Cancelando exportação..."))
         self.cancel_requested.emit()

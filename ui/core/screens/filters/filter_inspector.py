@@ -7,8 +7,8 @@ baseado no esquema de parâmetros do filtro selecionado, emitindo alterações r
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Any
-from PySide6 import QtCore, QtGui, QtWidgets
+from typing import Dict, Optional, Any
+from PySide6 import QtCore, QtWidgets
 
 from ui.core.widgets.slider.labeled_slider import LabeledSlider
 from ui.infrastructure.theme.manager import ThemeManager
@@ -125,7 +125,6 @@ class FilterInspector(QtWidgets.QWidget):
 
     def update_style(self) -> None:
         tm = ThemeManager.instance()
-        text_main = tm.get_color("text_main")
         text_muted = tm.get_color("text_muted")
         accent = tm.get_color("accent")
 

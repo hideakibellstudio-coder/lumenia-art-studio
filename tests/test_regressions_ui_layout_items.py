@@ -4,7 +4,7 @@ Testes unitários abrangentes para validação dos 8 itens de observação e est
 
 import sys
 import unittest
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtGui
 
 from ui.core.geometry.dpi_calculator import (
     px_to_mm, mm_to_px, px_to_inches, inches_to_px,

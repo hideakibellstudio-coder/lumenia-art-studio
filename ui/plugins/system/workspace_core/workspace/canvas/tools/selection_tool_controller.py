@@ -2,7 +2,7 @@
 
 import logging
 from typing import Optional, List
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtWidgets
 from ui.core.engine.backend import EngineBackend
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings

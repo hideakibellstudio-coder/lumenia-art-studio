@@ -11,13 +11,13 @@ import json
 import shutil
 import tempfile
 import unittest
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets
 
 app = QtWidgets.QApplication.instance()
 if not app:
     app = QtWidgets.QApplication(sys.argv)
 
-from ui.infrastructure.config.manager import ConfigManager, DEFAULT_CONFIG
+from ui.infrastructure.config.manager import ConfigManager
 
 
 class TestConfigManager(unittest.TestCase):

@@ -7,7 +7,7 @@ painel de configurações do motor de renderização e persistência de preferê
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Any
+from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon

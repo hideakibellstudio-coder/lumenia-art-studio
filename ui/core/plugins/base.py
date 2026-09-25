@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QWidget
 from typing import Optional
 from ui.core.plugins.metadata import PluginMetadata
 from ui.core.plugins.context import PluginContext

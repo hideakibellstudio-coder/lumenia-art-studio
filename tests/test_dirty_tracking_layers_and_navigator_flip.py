@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 import pytest
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 
 from ui.plugins.panels.navigator_plugin.panel import NavigatorPanel
 from ui.infrastructure.bridge_client.aladyn_layer_mixin import AladynLayerMixin

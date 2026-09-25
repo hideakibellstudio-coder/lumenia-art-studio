@@ -1,8 +1,6 @@
 """AladynGeometryMixin — Integração com Guias, Réguas e Simetria C++ do ALADYN ENGINE."""
 
 from __future__ import annotations
-from typing import Any
-from PySide6 import QtGui
 from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase
 

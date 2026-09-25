@@ -2,7 +2,6 @@ import logging
 from typing import Dict, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 from ui.core.dialogs.floating_tool_window import FloatingToolWindow
-from ui.infrastructure.icons import get_icon
 from ui.core.state import ToolState
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.tools import TOOL_META, DEFAULT_TOOLS

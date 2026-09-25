@@ -9,14 +9,12 @@ from __future__ import annotations
 import io
 import os
 import sys
-import glob
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageCms
 from .icc_profile import ICCProfileInfo
-from .proofing import SoftProofConfig, RenderingIntent
 
 logger = logging.getLogger(__name__)
 

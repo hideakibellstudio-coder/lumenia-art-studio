@@ -6,24 +6,18 @@ prova de impressão CMYK (Soft-Proofing), gamut warning, embutimento em LMN e ex
 """
 
 from __future__ import annotations
-import io
-import os
-import shutil
-import tempfile
 import zipfile
 import pytest
 from pathlib import Path
 from PIL import Image, ImageCms
 
-from ui.core.color.icc_profile import ICCProfileInfo
 from ui.core.color.proofing import SoftProofConfig, RenderingIntent
-from ui.core.color.cms_engine import get_cms_engine, ColorManagementEngine
-from ui.core.color.catalog import get_color_catalog, ColorProfileCatalog
+from ui.core.color.cms_engine import get_cms_engine
+from ui.core.color.catalog import get_color_catalog
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
 from ui.core.document.document import Document
 from ui.core.document.serializer import DocumentSerializer
 from ui.core.document.restore import restore_document
-from ui.core.document.schema import DocumentFormatError
 from PySide6.QtWidgets import QApplication
 
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])

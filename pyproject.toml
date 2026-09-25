@@ -23,3 +23,13 @@ packages = []
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+# Linter (2026-09-25): regras do pyflakes e erros de sintaxe, zero achados.
+# `tests/test_python_lint.py` falha em achado novo. Cache fora do repositório
+# (política zero-dirt do AGENTS.md).
+[tool.ruff]
+target-version = "py311"
+cache-dir = "~/.cache/ruff"
+
+[tool.ruff.lint]
+select = ["E9", "F"]

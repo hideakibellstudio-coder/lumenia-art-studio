@@ -7,13 +7,12 @@ captura de exceções globais (sys.excepthook) e integração com Qt Message Han
 
 from __future__ import annotations
 
-import os
 import sys
 import time
 import functools
 import logging
 from logging.handlers import RotatingFileHandler
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore
 from ui.infrastructure.runtime_paths import writable_data_dir
 from ui.infrastructure.logging.crash_log import enable_native_crash_log
 

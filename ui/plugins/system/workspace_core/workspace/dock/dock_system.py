@@ -20,7 +20,7 @@ from .sidebar_widget import SidebarWidget
 from .drawer_content_container import DrawerContentContainer
 from .dock_geometry_calculator import DockGeometryCalculator
 from .dock_state_store import DockStateStore
-from .dock_animator import DockAnimator, SPEED_MAP, DELAY_MAP
+from .dock_animator import DockAnimator
 
 logger = get_logger("Workspace.DockSystem")
 

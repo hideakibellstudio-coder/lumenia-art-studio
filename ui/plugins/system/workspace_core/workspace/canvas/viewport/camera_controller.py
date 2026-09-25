@@ -1,6 +1,5 @@
 """Camera and Viewport 2D Navigation Controller."""
 
-from typing import Tuple, Optional
 from PySide6 import QtCore, QtGui
 from ui.core.engine.backend import PointerEvent
 

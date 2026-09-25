@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import logging
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.metadata import PluginMetadata, PluginType

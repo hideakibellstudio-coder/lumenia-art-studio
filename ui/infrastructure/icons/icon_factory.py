@@ -8,7 +8,6 @@ claros e escuros via IconManager / ThemeManager) com acabamento profissional.
 from typing import Callable, Optional
 
 from PySide6 import QtGui, QtCore, QtSvg
-import xml.etree.ElementTree as ET
 
 from ui.infrastructure.icons.svg_catalog import SVG_ICONS, ALIASES
 

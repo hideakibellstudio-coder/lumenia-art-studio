@@ -7,7 +7,6 @@ stroke latency (µs) measurement, TileGrid / UndoStack RAM tracking, and UI dial
 import os
 import sys
 import unittest
-import numpy as np
 
 # Raiz do projeto Lumenia
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

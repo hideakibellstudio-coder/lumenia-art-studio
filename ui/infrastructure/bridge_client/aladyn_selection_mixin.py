@@ -1,7 +1,7 @@
 """Selection operations mixin for AladynBackend."""
 
 from typing import Optional, Any
-from PySide6.QtGui import QImage, QColor
+from PySide6.QtGui import QImage
 from .aladyn_buffers import to_native_color_rgba
 from .aladyn_base import AladynBackendBase
 

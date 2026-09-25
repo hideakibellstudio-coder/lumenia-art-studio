@@ -1,11 +1,8 @@
 """Test Menu Bar Complete Wiring & Dialogs — Validação de Todas as Ações do Menu."""
 
 import unittest
-import sys
-import os
 
-from PySide6 import QtCore, QtGui, QtWidgets
-from ui.boundary.orchestrator.main_window import MainWindow
+from PySide6 import QtWidgets
 from ui.core.components.menu_bar.menu_bar import MenuBar
 
 # Assegura que QApplication existe em modo offscreen

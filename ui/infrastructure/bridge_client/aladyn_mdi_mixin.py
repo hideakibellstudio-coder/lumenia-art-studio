@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 import logging
-from typing import Any
 
 from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase

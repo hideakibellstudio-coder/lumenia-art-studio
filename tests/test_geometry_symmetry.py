@@ -143,7 +143,7 @@ class TestGeometrySymmetry(unittest.TestCase):
 
         ctrl_h.start_stroke_snap((960.0, 300.0))
         # Puxa horizontalmente
-        res_h = ctrl_h.snap_point(990.0, 300.0)
+        ctrl_h.snap_point(990.0, 300.0)
         self.assertIsNotNone(ctrl_h.locked_curve)
         fam_h = ctrl_h.locked_curve.get("family", "")
         self.assertTrue(fam_h.endswith("_x") or fam_h == "h" or fam_h.endswith("_z"), f"Esperado eixo H/D, obteve: {fam_h}")
@@ -155,7 +155,7 @@ class TestGeometrySymmetry(unittest.TestCase):
 
         ctrl_v.start_stroke_snap((960.0, 540.0))
         # Puxa verticalmente
-        res_v = ctrl_v.snap_point(960.0, 570.0)
+        ctrl_v.snap_point(960.0, 570.0)
         self.assertIsNotNone(ctrl_v.locked_curve)
         fam_v = ctrl_v.locked_curve.get("family", "")
         self.assertTrue(fam_v.endswith("_v") or fam_v == "v", f"Esperado eixo V, obteve: {fam_v}")
@@ -166,7 +166,7 @@ class TestGeometrySymmetry(unittest.TestCase):
         from ui.plugins.panels.geometry_plugin.components.geometry_selector import GeometrySelectorPopup, GeometrySelectorButton
         from ui.plugins.panels.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 
-        app = QApplication.instance() or QApplication(sys.argv)
+        _app = QApplication.instance() or QApplication(sys.argv)
         parent = QWidget()
 
         # Testa GeometrySelectorPopup
@@ -187,7 +187,7 @@ class TestGeometrySymmetry(unittest.TestCase):
     def test_08_curvilinear_6p_vanishing_point_exact_convergence(self):
         """Valida que todas as curvas H, V e D passam rigorosamente pelos pontos de fuga sem desvio (distância < 1e-4)."""
         from ui.plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import (
-            GeometryOverlayRenderer, rotate_3d_backward
+            GeometryOverlayRenderer
         )
 
         for yaw in [0.0, 35.0, 75.0, 180.0]:

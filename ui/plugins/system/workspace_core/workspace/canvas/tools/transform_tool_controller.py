@@ -2,7 +2,7 @@
 
 import math
 from typing import Optional
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import default_tool_settings
 from . import transform_distort as distort_geometry

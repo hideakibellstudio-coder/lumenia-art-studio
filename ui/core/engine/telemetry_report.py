@@ -63,7 +63,7 @@ def build_report(
         " LUMENIA ART STUDIO — COCKPIT DE TELEMETRIA & DIAGNÓSTICO EM GRID",
         "=" * 78,
         f"Data / Hora da Captura  : {time.strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Monitoramento em Tempo  : Captura Ativa (Timer 16ms / Zero Overhead)",
+        "Monitoramento em Tempo  : Captura Ativa (Timer 16ms / Zero Overhead)",
         *([f"Fixação Sempre no Topo  : {'SIM' if stay_on_top else 'NÃO'}"] if stay_on_top is not None else []),
         "",
         "-" * 78,

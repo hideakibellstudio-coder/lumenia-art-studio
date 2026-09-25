@@ -102,6 +102,7 @@
 | `test_plugin_lifecycle.py` | Ciclo de vida de plugins: ordem por dependência, limpeza em falha, conexões de painel removidas. |
 | `test_portable_build_contract.py` | Build portátil: inclui motor, dados, plugins e avisos de terceiros; textos de licença copiados dos pacotes; manifesto com hash de cada arquivo; caminho do instalador. |
 | `test_pyi_contract_matches_binary.py` | Regressao para F-024/3.3: garante que bridge/boundary/contracts/aladyn_engine_native.pyi descreve exatamente a superficie do modulo nativo compilado, nas duas direcoes. |
+| `test_python_lint.py` | Linter Python: zero achados do ruff com as regras de `[tool.ruff]` do `pyproject.toml` (pula se o ruff não estiver instalado). |
 | `test_recording_contracts.py` | Contratos do plugin de gravação: quadro vem do documento ativo e do motor; barra flutuante só emite sinais. |
 | `test_recording_plugin.py` | Testes de Unidade e Contrato para o Plugin de Gravação & Timelapse (ARCcC). |
 | `test_regressions_ui_layout_items.py` | Testes unitários abrangentes para validação dos 8 itens de observação e estabilidade. |

@@ -15,23 +15,13 @@ from ui.plugins.system.workspace_core.workspace.canvas.math.camera_3d_projector 
     rotate_3d_backward,
     get_curvilinear_camera_radius,
     create_curve_from_normal,
-    closest_point_on_curve,
-    p3d_to_2d_fisheye
+    closest_point_on_curve
 )
 from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_snapping_engine import (
     GeometrySnappingEngine
 )
 from ui.plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import (
     GeometryOverlayRenderer
-)
-from ui.plugins.system.workspace_core.workspace.canvas.renderers.perspective_grid_renderer import (
-    PerspectiveGridRenderer
-)
-from ui.plugins.system.workspace_core.workspace.canvas.renderers.symmetry_overlay_renderer import (
-    SymmetryOverlayRenderer
-)
-from ui.plugins.system.workspace_core.workspace.canvas.renderers.ruler_grid_renderer import (
-    RulerGridRenderer
 )
 from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import (
     GeometryToolController

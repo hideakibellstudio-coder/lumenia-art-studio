@@ -5,13 +5,11 @@ Renderiza o guia em formato Markdown nativo com suporte a múltiplos idiomas,
 busca e reatividade total ao Design System e Temas do Lumenia Studio.
 """
 
-import os
 from pathlib import Path
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.i18n import I18nManager, tr
-from ui.infrastructure.icons import get_icon
 from ui.infrastructure.runtime_paths import resource_path
 
 
@@ -151,9 +149,7 @@ class UserGuideDialog(BaseFramelessDialog):
         bg_input = tm.get_color("bg_input", "#0f172a")
         border = tm.get_color("border", "#334155")
         text_main = tm.get_color("text_main", "#f8fafc")
-        text_sec = tm.get_color("text_sec", "#94a3b8")
         accent = tm.get_color("accent", "#3b82f6")
-        accent_hover = tm.get_color("accent_hover", "#60a5fa")
 
         if hasattr(self, "root_container") and self.root_container:
             self.root_container.setStyleSheet(f"""

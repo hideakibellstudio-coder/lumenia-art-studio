@@ -14,12 +14,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
 
 from ui.infrastructure.icons import get_icon, SVG_ICONS
-from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
-from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog, DEFAULT_SHORTCUTS
+from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog
 from ui.core.screens.cursor_settings_dialog import CursorSettingsDialog
 from ui.plugins.system.workspace_core.workspace.canvas.renderers.tool_cursor_renderer import ToolCursorRenderer
-from ui.core.dialogs.render_settings_dialog import RenderSettingsDialog, load_render_settings, save_render_settings
+from ui.core.dialogs.render_settings_dialog import load_render_settings, save_render_settings
 
 
 class Test5ObservationsAudit(unittest.TestCase):

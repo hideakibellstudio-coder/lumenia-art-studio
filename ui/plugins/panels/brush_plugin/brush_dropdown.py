@@ -7,7 +7,7 @@ Mostra o preset ativo da ferramenta e abre o seletor; a escolha vai para o Brush
 from __future__ import annotations
 
 from typing import Optional
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ui.core.state import BrushState
 from ui.infrastructure.theme.manager import ThemeManager

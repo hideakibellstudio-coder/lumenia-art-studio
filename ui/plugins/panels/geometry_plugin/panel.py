@@ -106,7 +106,6 @@ class GeometryPanel(QtWidgets.QWidget):
         border = tm.get_color("border", "#313244")
         accent = tm.get_color("accent", "#6366f1")
         text_main = tm.get_color("text_main", "#f3f4f6")
-        text_sec = tm.get_color("text_sec", "#9ca3af")
         bg_hover = tm.get_color("accent_muted", "#4f46e5")
         fg_on_accent = tm.get_color("FG_PRIMARY", "#ffffff")
 

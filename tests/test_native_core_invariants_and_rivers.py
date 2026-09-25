@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 import pytest
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtGui
 
 import aladyn_engine_native as native
 from ui.infrastructure.bridge_client.aladyn import AladynBackend

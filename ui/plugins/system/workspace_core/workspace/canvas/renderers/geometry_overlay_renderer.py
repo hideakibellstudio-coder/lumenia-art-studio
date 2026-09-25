@@ -5,12 +5,6 @@ Maintains 100% backwards compatibility while complying with ARCcC v2 (< 85 LOC).
 """
 
 from PySide6 import QtGui
-from ..math.camera_3d_projector import (
-    rotate_3d_backward,
-    rotate_3d_forward,
-    create_curve_from_normal,
-    p3d_to_2d_fisheye
-)
 from .symmetry_overlay_renderer import SymmetryOverlayRenderer
 from .perspective_grid_renderer import PerspectiveGridRenderer
 from .ruler_grid_renderer import RulerGridRenderer

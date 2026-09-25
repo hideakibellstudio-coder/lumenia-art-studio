@@ -7,17 +7,10 @@ ativação/desativação sem afetar plugins ativos durante escaneamento e desins
 
 from __future__ import annotations
 
-import inspect
 import importlib
 import importlib.util
-import json
-import logging
 import os
-import shutil
 import sys
-import tempfile
-import uuid
-import zipfile
 from pathlib import Path
 
 from ui.infrastructure.logging import get_logger
@@ -25,7 +18,6 @@ from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.context import PluginContext
 from ui.core.plugins.discovery import discover_compiled_plugins, register_module_plugins
 from ui.core.plugins.lifecycle import PluginLifecycle
-from ui.core.plugins.package_manifest import validate_package_manifest
 from ui.core.plugins.registry import ServiceRegistry
 from ui.infrastructure.config.storage import read_object, save_with_backup
 from ui.infrastructure.runtime_paths import is_packaged, writable_data_dir

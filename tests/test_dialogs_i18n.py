@@ -8,7 +8,7 @@ acompanham a mudança de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP).
 import os
 import sys
 import unittest
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets
 
 # Configura modo offscreen
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -17,7 +17,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from ui.infrastructure.config import ConfigManager
-from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.i18n import I18nManager
 from ui.core.screens.dock_settings_dialog import DockBarsSettingsDialog
 from ui.core.screens.floating_toolbar_settings_dialog import FloatingToolbarSettingsDialog
 from ui.core.screens.settings.theme_dialog import ThemeDialog

@@ -5,7 +5,7 @@ and AdvancedDockSystem integration under ARCcC v2.
 """
 
 import unittest
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -16,9 +16,7 @@ from ui.plugins.system.workspace_core.workspace.dock.dock_state_store import (
     DockStateStore
 )
 from ui.plugins.system.workspace_core.workspace.dock.dock_animator import (
-    DockAnimator,
-    SPEED_MAP,
-    DELAY_MAP
+    DockAnimator
 )
 from ui.plugins.system.workspace_core.workspace.dock.dock_system import AdvancedDockSystem
 

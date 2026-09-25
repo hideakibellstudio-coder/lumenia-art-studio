@@ -10,7 +10,7 @@ Validações de:
 """
 
 import pytest
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtGui
 
 from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 from ui.core.engine.registry import EngineRegistry

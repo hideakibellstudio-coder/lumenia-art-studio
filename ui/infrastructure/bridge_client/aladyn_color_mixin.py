@@ -7,10 +7,9 @@ integrando LittleCMS para perfis arbitrários e simulação de Prova de Cor (Sof
 
 from __future__ import annotations
 import logging
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional
 from pathlib import Path
 
-from ui.core.color.icc_profile import ICCProfileInfo
 from ui.core.color.proofing import SoftProofConfig, RenderingIntent
 from ui.core.color.cms_engine import get_cms_engine
 from ui.core.color.catalog import get_color_catalog

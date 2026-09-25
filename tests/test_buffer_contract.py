@@ -98,7 +98,7 @@ def test_paste_coordinate_and_thumbnail_overflow_rejected(facade):
 
 
 def test_backend_images_and_buffers_survive_mdi_close():
-    app = QApplication.instance() or QApplication(["--platform", "offscreen"])
+    _app = QApplication.instance() or QApplication(["--platform", "offscreen"])
     backend = AladynBackend()
     backend.set_active_document_context("buffer-owner", 8, 8)
     assert backend.paste_rgba_buffer_on_active_layer(0, 0, 8, 8, bytes([90, 60, 30, 255]) * 64)

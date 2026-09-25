@@ -9,7 +9,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QLabel, QVBoxLayout, QButtonGroup, QRadioButton,
-    QGroupBox, QHBoxLayout, QSlider, QSizePolicy, QApplication, QPushButton
+    QGroupBox, QHBoxLayout, QSlider, QSizePolicy, QPushButton
 )
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.infrastructure.i18n import tr

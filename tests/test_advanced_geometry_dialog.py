@@ -1,7 +1,5 @@
 """Tests for Phase 3: AdvancedGeometryDialog ARCcC v2 decomposition."""
 
-import pytest
-from PySide6 import QtWidgets
 
 from ui.plugins.panels.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 from ui.plugins.panels.geometry_plugin.components.curvilinear_perspective_page import CurvilinearPerspectivePage

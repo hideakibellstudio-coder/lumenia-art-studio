@@ -1,7 +1,7 @@
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt, Signal
 import logging
 from collections import defaultdict
-from typing import List, Optional, Any
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 

@@ -9,10 +9,9 @@ Interface moderna de 2 colunas no padrão Lumenia V2:
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.icons import get_icon

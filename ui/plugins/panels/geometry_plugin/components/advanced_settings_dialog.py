@@ -6,7 +6,7 @@ Modularizado sob ARCcC v2 (< 300 LOC).
 from __future__ import annotations
 
 from typing import Optional
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.floating_panel_window import CanvasAreaProvider, FloatingPanelWindow

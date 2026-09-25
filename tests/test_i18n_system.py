@@ -5,10 +5,9 @@ Valida a detecção automática do idioma do SO, fallback universal para en_US,
 interpolação dinâmica de parâmetros e hot-swap em tempo real sem restart.
 """
 
-import os
 import sys
 import unittest
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets
 
 app = QtWidgets.QApplication.instance()
 if not app:

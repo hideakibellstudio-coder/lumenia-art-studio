@@ -15,7 +15,7 @@ não filtrava).
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import List
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.theme.manager import ThemeManager
@@ -23,7 +23,7 @@ from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .components.interface_tweaks_group import InterfaceTweaksGroup
-from .components.theme_card import ColorDot, ThemeMiniSwatches, ThemeCard
+from .components.theme_card import ThemeCard
 
 logger = logging.getLogger(__name__)
 

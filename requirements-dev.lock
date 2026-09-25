@@ -4,6 +4,8 @@
 # scipy 1.17.1 (win_amd64, cp311-cp314) added on 2026-09-24: scripts/build_portable.py
 # ships numpy and scipy as runtime data and fails without them. 1.17.x is the last
 # scipy line with cp311 wheels; it accepts the pinned numpy 2.4.5 (>=1.26.4,<2.7).
+# ruff 0.15.8 (py3-none-win_amd64, no dependencies) added on 2026-09-25 for
+# tests/test_python_lint.py; hash from PyPI.
 # Hashes were calculated from the resolved wheels for each supported CPython ABI.
 --require-hashes
 
@@ -45,6 +47,8 @@ pyside6-essentials==6.11.1 \
     --hash=sha256:63311bd48e32c584599ab04b9ef7c324082374cd2c9fa533f978fb893bb47e40
 pytest==9.0.3 \
     --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9
+ruff==0.15.8 \
+    --hash=sha256:04f79eff02a72db209d47d665ba7ebcad609d8918a134f86cb13dd132159fc89
 scipy==1.17.1 \
     --hash=sha256:d30e57c72013c2a4fe441c2fcb8e77b14e152ad48b5464858e07e2ad9fbfceff \
     --hash=sha256:41b71f4a3a4cab9d366cd9065b288efc4d4f3c0b37a91a8e0947fb5bd7f31d87 \

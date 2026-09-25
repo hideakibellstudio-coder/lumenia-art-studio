@@ -261,7 +261,11 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
        pasta, subpasta sem incluir a mãe, `#include` só para baixo e a ponte só
        pela API pública; módulo novo em `engine/core` entra em `CORE_ORDER`;
      - cores literais (`tests/test_hardcoded_colors_ratchet.py`) e varreduras
-       cegas/leis do rio (`tests/test_river_ratchets.py`).
+       cegas/leis do rio (`tests/test_river_ratchets.py`);
+     - linter (`tests/test_python_lint.py`): `ruff check .` com as regras de
+       `[tool.ruff]` do `pyproject.toml`, zero achados desde 2026-09-25.
+       Import sem uso: `ruff check --fix .`; nome importado só para
+       reexportar vai no `__all__` do pacote.
    - **Catraca arquitetural:** rode `navigator_verify` e compare a contagem de
      achados com a anterior. Ela pode cair ou ficar igual; **se subir, você
      introduziu algo** — investigue antes de entregar. Se a mudança tocou arquivos
@@ -321,6 +325,10 @@ sem log, é cota esgotada (GitHub → Settings → Billing), não erro do códig
 - **Conferir o build do Windows a partir do Linux (MinGW-w64)**:
   ```bash
   python scripts/check_windows_build.py            # escalar e AVX2
+  ```
+- **Linter Python (zero achados)**:
+  ```powershell
+  ruff check .            # --fix remove import sem uso
   ```
 - **Recompilar a Extensão Nativa C++ (Out-of-Tree)**:
   ```powershell

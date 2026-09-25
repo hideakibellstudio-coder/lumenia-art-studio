@@ -4,7 +4,7 @@ CollapsibleSection
 Seção com cabeçalho clicável que expande/colapsa o conteúdo.
 Independente de tema — usa objectName para estilização via QSS.
 """
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 
 
 class CollapsibleSection(QtWidgets.QWidget):

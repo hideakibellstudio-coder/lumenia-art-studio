@@ -7,12 +7,10 @@ import unittest
 from ui.plugins.panels.brush_plugin.presets_data import (
     BRUSH_CATEGORIES,
     PARAM_GROUPS,
-    CATEGORY_DEFAULTS,
     ENGINE_TYPE_TO_CATEGORY,
     get_preset_display_name,
     get_category_display_name,
 )
-from ui.plugins.panels.brush_plugin.presets.i18n_keys import PRESET_I18N_KEYS, CATEGORY_I18N_KEYS
 
 
 class TestBrushPresetsModular(unittest.TestCase):

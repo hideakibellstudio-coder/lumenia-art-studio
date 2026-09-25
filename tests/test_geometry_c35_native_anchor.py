@@ -159,9 +159,9 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
 
             # 1) Traço longo e rápido ao longo da curva A (horizontal): trava
             #    nela e o anchor acompanha até bem longe do ponto de pressão.
-            res1 = ctrl.snap_point(500.0, 5.0, 1.0)
+            ctrl.snap_point(500.0, 5.0, 1.0)
             self.assertEqual(ctrl.native_snap.curv_locked_index, 0, "deveria travar na curva A (horizontal)")
-            res2 = ctrl.snap_point(2000.0, 0.0, 1.0)
+            ctrl.snap_point(2000.0, 0.0, 1.0)
             self.assertEqual(ctrl.native_snap.curv_locked_index, 0)
             self.assertAlmostEqual(ctrl.native_snap.curv_anchor.x(), 2000.0, delta=1e-6)
             self.assertAlmostEqual(ctrl.native_snap.curv_anchor.y(), 0.0, delta=1e-6)

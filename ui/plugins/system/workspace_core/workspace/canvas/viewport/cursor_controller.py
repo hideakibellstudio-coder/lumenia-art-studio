@@ -18,9 +18,8 @@ por três módulos diferentes.
 
 from __future__ import annotations
 
-import time
 from typing import Optional, TYPE_CHECKING
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
 
@@ -196,7 +195,6 @@ class CanvasCursorController:
         self.cursor_in_viewport = True
         self._last_radius = brush_radius
 
-        was_over = self.over_canvas
         self.over_canvas = self.is_over_canvas(pos)
 
         if not was_in_viewport:

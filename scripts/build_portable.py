@@ -59,7 +59,7 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
     """Return the exact build command without modifying the workspace."""
     if output_dir is None:
         output_dir = DEFAULT_OUTPUT
-    native_extension = _native_extension()
+    _native_extension()  # falha cedo se o motor nativo não foi compilado
     theme_dir = ROOT / "ui" / "infrastructure" / "theme" / "themes"
     required = (ROOT / "assets", ROOT / "ui" / "plugins", theme_dir, ROOT / "main.py", NOTICES)
     missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]

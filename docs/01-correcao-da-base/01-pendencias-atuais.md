@@ -50,9 +50,14 @@ Ordem = ordem recomendada.
    caiu. `tests/test_native_crash_log.py` derruba um processo filho de
    verdade.)* Resta, e é decisão (Rota C3): enviar o registro, com
    consentimento, e o minidump do Windows.
-5. **Linter Python.** Não há nenhum configurado; `ruff check --select F`
-   acha 237 problemas (215 imports sem uso, 17 variáveis sem uso). *Pronto:*
-   regras no `pyproject.toml`, zero achados, teste que barra achado novo.
+5. ~~**Linter Python.**~~ *(feito em 2026-09-25: `[tool.ruff]` no
+   `pyproject.toml` (pyflakes e erros de sintaxe), ruff fixado no
+   `requirements-dev`, `tests/test_python_lint.py`. Os 237 achados zerados:
+   215 imports sem uso, 17 variáveis sem uso — cinco eram cores do tema
+   buscadas e não usadas; numa delas a barrinha de arraste
+   (`pill_handle.py`) diz seguir o tema e usa cores fixas (fica na
+   pendência 13) — e um
+   `__init__` duplicado no `.pyi` do `BrushProfile`.)*
 6. **Motor sem avisos do compilador.** Com `-Wall -Wextra` são 18 avisos
    distintos: ordem de inicialização em `Layer.hpp`, parâmetros recebidos e
    ignorados (`FloodFill` ignora `gapClosingPx` e `antiAliasing`;

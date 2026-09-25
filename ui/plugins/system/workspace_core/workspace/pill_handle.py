@@ -54,18 +54,16 @@ class PillHandle(QtWidgets.QWidget):
         self._apply_style()
 
     def _apply_style(self, *args) -> None:
-        theme = ThemeManager.instance()
-        # Usa a cor de texto principal com alpha reduzido — idêntico ao legado
-        # "rgba(200, 200, 200, 0.6)" normal, branco no hover
-        text = theme.get_color("text_muted", "#a0a0b0")
-        self.setStyleSheet(f"""
-            PillHandle {{
+        # Cores fixas, não seguem o tema (dívida da Lei 5: pendência 13 de
+        # docs/01-correcao-da-base/01-pendencias-atuais.md).
+        self.setStyleSheet("""
+            PillHandle {
                 background-color: rgba(200, 200, 200, 0.55);
                 border-radius: 3px;
-            }}
-            PillHandle:hover {{
+            }
+            PillHandle:hover {
                 background-color: rgba(255, 255, 255, 0.95);
-            }}
+            }
         """)
 
     # ── Hover ─────────────────────────────────────────────────────────────

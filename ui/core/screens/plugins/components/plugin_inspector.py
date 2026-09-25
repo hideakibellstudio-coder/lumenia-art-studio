@@ -2,7 +2,7 @@
 import logging
 
 import sys
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from ui.infrastructure.i18n import tr
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.plugins.manager import PluginManager

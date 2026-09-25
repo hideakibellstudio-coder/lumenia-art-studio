@@ -5,7 +5,7 @@ Renderiza anéis de alto contraste (branco/preto) escalados em tempo real pela
 câmera (zoom) e fornece cursores SVG especializados com hotspots exatos e cache.
 """
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 from ui.infrastructure.icons import get_icon
 
 

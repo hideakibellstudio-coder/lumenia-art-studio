@@ -40,7 +40,7 @@ class DocumentHistory:
 
     def _bootstrap_projection_signature(self):
         manager = self.document.layer_manager
-        layer: LocalLayer  # anotacao para o resolvedor do Navigator (usado nas comprehensions abaixo)
+        layer: LocalLayer  # noqa: F842 -- anotação para o resolvedor do Navigator (usado nas comprehensions abaixo)
         indices = {layer.uid: index for index, layer in enumerate(manager.layers)}
         return tuple((bool(layer.is_group), bool(layer.is_filter), indices.get(layer.parent_uid, -1))
                      for layer in manager.layers)

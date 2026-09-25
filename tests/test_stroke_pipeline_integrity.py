@@ -8,7 +8,7 @@ inversões bruscas e escalas de estabilização de 0% a 98%.
 
 import math
 import pytest
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 
 from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 from ui.core.engine.registry import EngineRegistry

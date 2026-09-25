@@ -3,7 +3,7 @@
 Modularized under ARCcC v2 (< 200 LOC).
 """
 
-from typing import Callable, List, Optional
+from typing import List, Optional
 from PySide6 import QtCore, QtWidgets
 
 from ui.core.widgets.compact_slider import CompactSlider

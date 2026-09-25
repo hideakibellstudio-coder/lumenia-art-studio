@@ -2,7 +2,6 @@
 
 from PySide6 import QtWidgets, QtCore, QtGui
 import math
-import os
 
 from .color_swatch_widgets import (
     IconButton, OverlappingColorSwitcher, TransparencyButton, HexWidget, RecentColorsWidget

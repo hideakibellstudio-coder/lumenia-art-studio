@@ -8,7 +8,6 @@ Valida o ciclo completo de alternância de tela cheia (Full Screen):
 - Sincronização do checkmark de status
 """
 
-import pytest
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.components.menu_bar.menu_bar import MenuBar

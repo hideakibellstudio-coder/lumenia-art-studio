@@ -5,7 +5,7 @@ cor capturada). Até 2026-09-24 o painel repassava a cor à mão
 (`set_captured_color`) e o widget publicava o dicionário inteiro a cada clique.
 """
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.i18n import tr
 from ui.core.state import BrushState, ToolState

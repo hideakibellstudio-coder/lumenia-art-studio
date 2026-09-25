@@ -140,15 +140,15 @@ class TabbedViewportContainer(QtWidgets.QWidget):
         from ui.infrastructure.theme.manager import ThemeManager
 
         # QSS unificado do contêiner e abas com alinhamento vertical e cor de hover vermelha para fechar
-        qss = f"""
-            QWidget#ViewportHeader {{
+        qss = """
+            QWidget#ViewportHeader {
                 background-color: @BG_DARKEST;
                 border-bottom: 1px solid @BORDER;
-            }}
-            QTabBar {{
+            }
+            QTabBar {
                 border: none;
-            }}
-            QTabBar::tab {{
+            }
+            QTabBar::tab {
                 background-color: @BG_DARKER;
                 color: @FG_SECONDARY;
                 border: 1px solid @BORDER;
@@ -162,32 +162,32 @@ class TabbedViewportContainer(QtWidgets.QWidget):
                 margin-top: 5px;
                 font-family: @FONT_FAMILY;
                 font-size: 11px;
-            }}
-            QTabBar::tab:selected {{
+            }
+            QTabBar::tab:selected {
                 background-color: @BG_DARK;
                 color: @FG_PRIMARY;
                 font-weight: bold;
                 border-bottom: 2px solid @ACCENT;
                 margin-top: 3px;
-            }}
-            QTabBar::tab:hover:!selected {{
+            }
+            QTabBar::tab:hover:!selected {
                 background-color: @BG_MID;
                 color: @FG_PRIMARY;
-            }}
+            }
 
-            QToolButton#TabCloseButton {{
+            QToolButton#TabCloseButton {
                 background: transparent;
                 border: none;
-            }}
-            QToolButton#NewTabButton {{
+            }
+            QToolButton#NewTabButton {
                 background-color: @BG_DARKER;
                 border: 1px solid @BORDER;
                 border-radius: 10px;
-            }}
-            QToolButton#NewTabButton:hover {{
+            }
+            QToolButton#NewTabButton:hover {
                 background-color: @BG_MID;
                 border-color: @ACCENT;
-            }}
+            }
         """
         compiled = ThemeManager.instance().compile_qss(qss)
         self.setStyleSheet(compiled)

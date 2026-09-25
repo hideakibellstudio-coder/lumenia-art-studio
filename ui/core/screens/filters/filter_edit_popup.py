@@ -8,8 +8,8 @@ As alterações acionam a recomposição do canvas em tempo real.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Any
-from PySide6 import QtCore, QtGui, QtWidgets
+from typing import Dict, List, Any
+from PySide6 import QtCore, QtWidgets
 
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.widgets.slider.labeled_slider import LabeledSlider

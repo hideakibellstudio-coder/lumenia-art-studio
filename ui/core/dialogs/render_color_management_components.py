@@ -9,11 +9,10 @@ simulação de Prova de Cor de Impressão (Soft-Proofing) e Alerta de Gamut.
 from __future__ import annotations
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from ui.infrastructure.i18n import tr
-from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.color.proofing import SoftProofConfig, RenderingIntent

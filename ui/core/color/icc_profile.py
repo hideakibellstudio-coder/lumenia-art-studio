@@ -6,7 +6,7 @@ Unifica perfis nativos embutidos do Aladyn e perfis ICC externos (.icc / .icm).
 
 from __future__ import annotations
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import os
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
 

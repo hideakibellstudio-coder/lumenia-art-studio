@@ -18,7 +18,6 @@ if PROJECT_ROOT not in sys.path:
 from PySide6.QtWidgets import QApplication
 app = QApplication.instance() or QApplication(sys.argv)
 
-from ui.boundary.orchestrator.main_window import MainWindow
 from ui.core.engine.registry import EngineRegistry
 
 

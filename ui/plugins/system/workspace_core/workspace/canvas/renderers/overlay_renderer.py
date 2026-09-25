@@ -1,6 +1,5 @@
 """Canvas Overlays Renderer (Selection Marching Ants, Transform Gizmo, Shape Preview, Loupe HUD)."""
 
-import math
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
 from ui.plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController

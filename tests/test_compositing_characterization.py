@@ -221,7 +221,6 @@ def test_mascara_recorte_nao_migra_com_opacidade_zero_da_base():
     engine = native.PaintEngineFacade(canvas_size, canvas_size)
 
     # Camada 0: verde em 150..250
-    c0 = engine.get_active_layer_index()
     green_buf = bytes([0, 255, 0, 255] * (100 * 100))
     engine.paste_rgba_buffer_on_active_layer(150, 150, 100, 100, green_buf)
 

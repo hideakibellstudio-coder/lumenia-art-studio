@@ -1,7 +1,7 @@
 """CloseDocumentDialog — Diálogo Moderno de Confirmação para Salvar/Descartar Alterações."""
 
 from __future__ import annotations
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 

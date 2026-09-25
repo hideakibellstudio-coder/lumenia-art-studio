@@ -1,6 +1,5 @@
 """Real C++ I/O, codec and multi-tile history failure scenarios (no Python mocks)."""
 from pathlib import Path
-import os
 import subprocess
 import sys
 

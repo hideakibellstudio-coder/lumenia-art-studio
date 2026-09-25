@@ -1,7 +1,7 @@
 """Conta-gotas (amostragem + cor capturada) e transformação (comandos + interpolação)."""
 from __future__ import annotations
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from ui.infrastructure.i18n import tr
 from ui.infrastructure.icons import get_icon

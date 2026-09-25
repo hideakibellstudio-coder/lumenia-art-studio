@@ -10,13 +10,12 @@ Validates:
 import os
 import sys
 import unittest
-import math
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from PySide6 import QtWidgets, QtGui, QtCore
+from PySide6 import QtWidgets
 import aladyn_engine_native as aen
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
@@ -136,7 +135,6 @@ class TestPhase5ViewportPipeline(unittest.TestCase):
     def test_04_render_widget_hardware_acceleration_and_telemetry(self):
         """Valida inicializacao do RenderWidget acelerado/fallback e metricas de Viewport."""
         from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-        from ui.plugins.system.workspace_core.workspace.canvas.viewport.viewport_renderer import ViewportRenderer
 
         widget = RenderWidget()
         widget.resize(800, 600)

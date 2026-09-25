@@ -12,13 +12,12 @@ Cobre:
 from __future__ import annotations
 
 import pytest
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtGui
 
 from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.i18n import tr  # mensagens seguem o idioma ativo: compara com a tradução
 from ui.core.engine.backend import EngineBackend
 from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-from ui.plugins.system.workspace_core.workspace.canvas.viewport.camera_controller import CameraController
 from ui.plugins.panels.navigator_plugin.panel import NavigatorPanel
 from ui.plugins.panels.color_plugin.panel import ColorWheelPanel
 from ui.boundary.orchestrator.edit_actions import EditActions

@@ -1,17 +1,14 @@
 """Test MDI Multi-Document Lifecycle & C++ Facade Isolation."""
 
 import unittest
-import sys
-import os
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 # Assegura que QApplication existe em modo offscreen
 app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication(["--platform", "offscreen"])
 
-from ui.boundary.orchestrator.main_window import MainWindow
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 

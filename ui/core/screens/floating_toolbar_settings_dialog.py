@@ -8,7 +8,7 @@ Interface moderna de 2 colunas no padrão Lumenia V2:
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Any
+from typing import List
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.theme.manager import ThemeManager

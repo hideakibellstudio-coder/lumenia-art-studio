@@ -13,8 +13,7 @@ Testa o saneamento orbital da Rodada 11:
 from __future__ import annotations
 import pathlib
 import pytest
-from PySide6 import QtCore, QtGui, QtWidgets
-from typing import Any
+from PySide6 import QtGui, QtWidgets
 
 from ui.infrastructure.bridge_client.aladyn_buffers import to_native_color_rgba
 from ui.infrastructure.bridge_client.aladyn_selection_mixin import AladynSelectionMixin

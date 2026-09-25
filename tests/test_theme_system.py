@@ -3,7 +3,7 @@ import sys
 import json
 import re
 import unittest
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets
 
 app = QtWidgets.QApplication.instance()
 if not app:
@@ -88,7 +88,7 @@ class TestThemeSystem(unittest.TestCase):
 
     def test_05_widget_theme_reactivity(self):
         dlg = BaseFramelessDialog('Teste de Diálogo')
-        step_btn = SliderStepButton(is_plus=True, style_type='round')
+        _step_btn = SliderStepButton(is_plus=True, style_type='round')  # vivo durante a troca de tema
 
         self.tm.apply_theme('light_default')
         self.tm.apply_theme('dark_default')

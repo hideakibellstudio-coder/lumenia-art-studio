@@ -13,7 +13,7 @@ corresponde.
 
 from __future__ import annotations
 from typing import Dict, Optional, Any
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon

@@ -5,10 +5,9 @@ Valida o I18nManager, carregamento de catálogos JSON, fallback em cascata, inte
 emissão de sinais Qt e retranslation em tempo real da barra de menus.
 """
 
-import os
 import sys
 import unittest
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 
 # Garante a inicialização do QApplication para testes com QObject/QMenuBar
 app = QtWidgets.QApplication.instance()

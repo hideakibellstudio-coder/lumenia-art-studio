@@ -1,8 +1,7 @@
 """CanvasInputRouter — Routes mouse, tablet, touch and keyboard events to active tool controllers."""
 
 from typing import Optional, TYPE_CHECKING
-from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.engine.backend import PointerEvent
+from PySide6 import QtCore, QtGui
 
 if TYPE_CHECKING:
     from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget

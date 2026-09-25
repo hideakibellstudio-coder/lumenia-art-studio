@@ -85,7 +85,7 @@ class TestLowLevelPhase2ColorDynamics(unittest.TestCase):
         self.assertAlmostEqual(evt.azimuth, 0.0, delta=1.0)
 
         # Valida que o fast-path nativo aceita tilt e twist sem exceção
-        res = self.facade.begin_stroke_raw(50.0, 50.0, 0.8, 0.0, 45.0, 0.0, 90.0)
+        self.facade.begin_stroke_raw(50.0, 50.0, 0.8, 0.0, 45.0, 0.0, 90.0)
         res_update = self.facade.update_stroke_raw(60.0, 50.0, 0.8, 0.01, 45.0, 0.0, 90.0)
         self.facade.end_stroke_raw()
         self.assertIsInstance(res_update, list)

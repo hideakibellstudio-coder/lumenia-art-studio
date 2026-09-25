@@ -1,7 +1,7 @@
 """Canvas & Image Size Dialog — Redimensionamento de Canvas e Imagem."""
 
 from __future__ import annotations
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtWidgets
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.infrastructure.i18n import tr

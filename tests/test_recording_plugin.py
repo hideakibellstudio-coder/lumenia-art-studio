@@ -7,7 +7,6 @@ comportamento do painel de UI e registro no WorkspaceService.
 
 import os
 import zipfile
-import pytest
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from ui.plugins.panels.recording_plugin.engine.recording_engine import TimelapseRecordingEngine

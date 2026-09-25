@@ -1,9 +1,7 @@
 import logging
-import os
 from PySide6.QtWidgets import (QWidget, QHBoxLayout, QLabel, QPushButton, 
-                               QColorDialog, QDialog, QSlider, QVBoxLayout, QMenu, QApplication,
-                               QComboBox, QCheckBox)
-from PySide6.QtGui import QColor, QPainter, QBrush, QPixmap, QIcon, QPen, QAction
+                               QColorDialog)
+from PySide6.QtGui import QColor, QPainter, QBrush, QPen
 from PySide6.QtCore import Qt, QSize, Signal, QPoint
 from ui.infrastructure.icons import get_icon
 

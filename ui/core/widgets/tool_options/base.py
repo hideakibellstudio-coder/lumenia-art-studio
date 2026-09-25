@@ -1,6 +1,6 @@
 """Base controls for tool options widgets."""
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from ui.infrastructure.icons import get_icon
 from ui.infrastructure.theme.manager import ThemeManager
 

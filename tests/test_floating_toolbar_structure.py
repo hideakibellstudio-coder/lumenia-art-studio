@@ -4,8 +4,6 @@ Testes de Regressão e Contrato para a Decomposição da Fase 2 da Camada 5 (ARC
 Valida o desacoplamento de ToolbarLivePreview, ToolToggleCard e FloatingToolbarSettingsDialog.
 """
 
-import pytest
-from PySide6 import QtWidgets, QtCore
 
 from ui.core.screens.floating_toolbar_components import (
     ToolbarLivePreview,

@@ -214,7 +214,6 @@ class BrushProfile:
     smudge_params: SmudgeParams
     watercolor_params: WatercolorParams
     oil_params: OilParams
-    def __init__(self) -> None: ...
 
 class CanvasTexture:
     background_color: ColorRGBA

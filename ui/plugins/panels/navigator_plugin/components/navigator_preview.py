@@ -1,5 +1,4 @@
 from PySide6 import QtWidgets, QtCore, QtGui
-import math
 
 class IconButton(QtWidgets.QToolButton):
     def __init__(self, icon_name, tooltip="", parent=None, size=28, icon_size=18, checkable=False, icon_color=None):

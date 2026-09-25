@@ -1,12 +1,11 @@
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QLineEdit
-from PySide6.QtCore import Qt, QRect, QPoint, Signal, QEvent, QSize
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFontMetrics, QIcon, QPixmap, QFont
+from PySide6.QtCore import Qt, QRect, Signal, QEvent, QSize
+from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFontMetrics, QPixmap, QFont
 from ui.infrastructure.icons import get_icon
 
 from .model import (
     ROLE_UID, ROLE_IS_GROUP, ROLE_VISIBLE, ROLE_LOCKED,
-    ROLE_ALPHA_LOCK, ROLE_CLIPPING_MASK, ROLE_CHILD_COUNT,
-    ROLE_EFFECTIVE_VISIBLE, ROLE_EFFECTIVE_OPACITY, ROLE_IS_FILTER
+    ROLE_ALPHA_LOCK, ROLE_CLIPPING_MASK, ROLE_EFFECTIVE_VISIBLE, ROLE_IS_FILTER
 )
 
 ROW_HEIGHT = 48
@@ -52,7 +51,6 @@ class LayerItemDelegate(QStyledItemDelegate):
         is_selected = option.state & QStyle.State_Selected
         is_hovered = option.state & QStyle.State_MouseOver
 
-        uid = index.data(ROLE_UID)
         name = index.data(Qt.DisplayRole)
         is_group = index.data(ROLE_IS_GROUP)
         is_filter = index.data(ROLE_IS_FILTER)

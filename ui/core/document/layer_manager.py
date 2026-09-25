@@ -1,4 +1,4 @@
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore
 import logging
 from typing import Optional
 
@@ -15,9 +15,7 @@ from .layer_backend_sync import (
     sync_backend_merge_down,
     sync_backend_property,
     sync_backend_select,
-    sync_backend_parents,
     validate_layer_tree,
-    perform_reorder_and_reparent,
 )
 from .layer_manager_tree_ops import LayerTreeOpsMixin
 

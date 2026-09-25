@@ -8,12 +8,9 @@ Interface moderna de gerenciamento de plugins dividida em 2 colunas:
 
 from __future__ import annotations
 
-import os
-import sys
 import logging
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
-from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
 from ui.core.plugins.manager import PluginManager
 from ui.infrastructure.i18n import tr
 from ui.infrastructure.theme.manager import ThemeManager

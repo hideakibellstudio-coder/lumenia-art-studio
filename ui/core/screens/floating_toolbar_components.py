@@ -7,8 +7,8 @@ tátil de alternância de visibilidade de ferramenta (ToolToggleCard).
 
 from __future__ import annotations
 
-from typing import List, Optional
-from PySide6 import QtCore, QtGui, QtWidgets
+from typing import List
+from PySide6 import QtCore, QtWidgets
 
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon

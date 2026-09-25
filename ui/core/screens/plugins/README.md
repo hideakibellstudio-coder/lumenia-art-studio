@@ -22,7 +22,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/dialogs`
 - `ui/core/plugins`
 - `ui/core/screens/plugins/components`
-- `ui/core/widgets/toggle`
 - `ui/infrastructure/i18n`
 - `ui/infrastructure/icons`
 - `ui/infrastructure/theme`

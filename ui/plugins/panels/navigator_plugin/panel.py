@@ -1,5 +1,4 @@
-from PySide6 import QtWidgets, QtCore, QtGui
-import math
+from PySide6 import QtWidgets, QtCore
 from .components.navigator_preview import IconButton, NavigatorPreview
 
 

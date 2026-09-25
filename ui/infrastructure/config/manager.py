@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import copy
-import json
 import logging
 from typing import Any, Dict, Optional
 from PySide6 import QtCore

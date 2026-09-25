@@ -7,7 +7,7 @@ cores parceiras no anel da roda e mostra amostras clicáveis.
 from __future__ import annotations
 
 import pytest
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from ui.core.widgets.color_picker.harmony import HarmonyRule, harmony_colors, harmony_hues
 

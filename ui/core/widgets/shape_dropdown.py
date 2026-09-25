@@ -7,8 +7,8 @@ em um grid popover elegante com ícones SVG e temas dinâmicos, sem poluir a bar
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Any
-from PySide6 import QtCore, QtGui, QtWidgets
+from typing import Dict, Optional
+from PySide6 import QtCore, QtWidgets
 
 from ui.infrastructure.icons import get_icon
 from ui.infrastructure.theme.manager import ThemeManager

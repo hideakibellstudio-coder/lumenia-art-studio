@@ -1,7 +1,6 @@
 """Tests for Phase 4: Layers Plugin (paper & panel) ARCcC v2 decomposition."""
 
-import pytest
-from PySide6 import QtWidgets, QtGui
+from PySide6 import QtGui
 
 from ui.plugins.panels.layers_plugin.paper_texture_dialog import TexturePopup
 from ui.plugins.panels.layers_plugin.paper import TexturePopup as PaperTexturePopup, PaperLayerWidget

@@ -7,7 +7,7 @@ para envolver os painéis dentro das gavetas do Lumenia V2 sem labels de topo.
 
 from __future__ import annotations
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtWidgets
 from ui.infrastructure.theme.manager import ThemeManager
 
 

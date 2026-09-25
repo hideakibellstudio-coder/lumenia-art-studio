@@ -1,14 +1,10 @@
 """Unit tests for NewDocumentDialog, PresetCatalog and memory estimation."""
 
-import os
 import unittest
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 
 from ui.core.screens.new_document.preset_catalog import (
     PRESET_CATEGORIES,
-    BACKGROUND_COLORS,
-    PAPER_TEXTURES,
-    COLOR_PROFILES,
     estimate_ram_usage_mb,
 )
 from ui.core.screens.new_document_dialog import NewDocumentDialog

@@ -6,8 +6,7 @@ from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon
 from ui.infrastructure.i18n import tr, I18nManager
 from .constants import (
-    GUIDE_TYPES, GUIDE_NAMES, SYM_TYPES, SYM_NAMES,
-    get_guide_name, get_sym_name
+    GUIDE_TYPES, SYM_TYPES, get_guide_name, get_sym_name
 )
 
 class GeometrySelectorPopup(QtWidgets.QFrame):

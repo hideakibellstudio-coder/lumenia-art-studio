@@ -1,7 +1,7 @@
 """Catalog of document presets, paper properties, and memory estimators for Lumenia."""
 
 from __future__ import annotations
-from typing import Dict, List, Tuple, Any
+from typing import Dict, Any
 
 PRESET_CATEGORIES: Dict[str, Dict[str, Any]] = {
     "illustration": {

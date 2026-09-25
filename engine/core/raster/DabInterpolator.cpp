@@ -37,7 +37,7 @@ std::vector<utils::Dab> DabInterpolator::interpolate(
 
     // Passo inicial estimado via LargeBrushOptimizer (isolamento completo de traço fino vs gigante)
     const double initRadius = std::max(0.001, startDab.radius);
-    const double nominalStep = LargeBrushOptimizer::computeAdaptiveStep(initRadius, safeSpacing, distance);
+    const double nominalStep = LargeBrushOptimizer::computeAdaptiveStep(initRadius, safeSpacing);
     const double minStepClamp = std::max(0.75, nominalStep * 0.25);
     double curStep = nominalStep;
 
@@ -87,7 +87,7 @@ std::vector<utils::Dab> DabInterpolator::interpolate(
         lastDabPos = d;
 
         // Atualiza o passo ideal para o raio do ponto atual de emissão via LargeBrushOptimizer
-        curStep = std::max(minStepClamp, LargeBrushOptimizer::computeAdaptiveStep(radius, safeSpacing, distance));
+        curStep = std::max(minStepClamp, LargeBrushOptimizer::computeAdaptiveStep(radius, safeSpacing));
 
         d += curStep;
 
@@ -183,7 +183,7 @@ std::vector<utils::Dab> DabInterpolator::interpolateSpline(
 
     const double safeSpacing = std::max(0.005, spacingFactor);
     const double initRadius = std::max(0.001, p1.radius);
-    const double nominalStep = LargeBrushOptimizer::computeAdaptiveStep(initRadius, safeSpacing, arcLength);
+    const double nominalStep = LargeBrushOptimizer::computeAdaptiveStep(initRadius, safeSpacing);
     const double minStepClamp = std::max(0.75, nominalStep * 0.25);
     double curStep = nominalStep;
 
@@ -244,7 +244,7 @@ std::vector<utils::Dab> DabInterpolator::interpolateSpline(
         dabs.push_back(std::move(dab));
 
         lastDabPos = d;
-        curStep = std::max(minStepClamp, LargeBrushOptimizer::computeAdaptiveStep(radius, safeSpacing, arcLength));
+        curStep = std::max(minStepClamp, LargeBrushOptimizer::computeAdaptiveStep(radius, safeSpacing));
         d += curStep;
 
         const size_t maxDabs = LargeBrushOptimizer::getMaxDabsPerSegment(std::max(p1.radius, p2.radius));

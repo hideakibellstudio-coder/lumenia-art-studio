@@ -6,8 +6,7 @@ namespace aladyn::engine::raster {
 
 double LargeBrushOptimizer::computeAdaptiveStep(
     double radius,
-    double spacingFactor,
-    double segmentDistance
+    double spacingFactor
 ) noexcept {
     const double safeR = std::max(0.001, radius);
     const double safeSpacing = std::max(0.005, spacingFactor);

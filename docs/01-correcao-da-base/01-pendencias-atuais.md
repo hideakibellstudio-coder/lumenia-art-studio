@@ -58,12 +58,15 @@ Ordem = ordem recomendada.
    (`pill_handle.py`) diz seguir o tema e usa cores fixas (fica na
    pendência 13) — e um
    `__init__` duplicado no `.pyi` do `BrushProfile`.)*
-6. **Motor sem avisos do compilador.** Com `-Wall -Wextra` são 18 avisos
-   distintos: ordem de inicialização em `Layer.hpp`, parâmetros recebidos e
-   ignorados (`FloodFill` ignora `gapClosingPx` e `antiAliasing`;
-   `TransformEngineCommit`, `LayerMerger`, `LargeBrushOptimizer`), variáveis
-   sem uso e um `switch` sem o caso `Erase`. *Pronto:* zero avisos e
-   `scripts/check_windows_build.py` falhando em aviso novo.
+6. ~~**Motor sem avisos do compilador.**~~ *(feito em 2026-09-25: os 18
+   avisos de `-Wall -Wextra` zerados e `scripts/check_windows_build.py`
+   compila com `-Werror` (escalar e AVX2, 68 de 68). Parâmetros que nada
+   usavam saíram de `LayerMerger::mergeLayerDown`, da cadeia do
+   `cancelTransform` e de `LargeBrushOptimizer::computeAdaptiveStep`, cujo
+   comentário prometia "modulação por velocidade" que nunca existiu.)*
+   Resta: o balde recebe `gapClosingPx` e `antiAliasing` e não usa; nenhuma
+   tela oferece as duas opções e o valor só atravessa as camadas (marcados
+   `[[maybe_unused]]` em `FloodFill.cpp`). Remover do contrato ou implementar.
 7. ~~**Laço ignora o Anti-Alias.**~~ *(feito em 2026-09-25: cobertura de
    área no motor, 4 linhas de varredura por pixel com a parte horizontal
    exata; sem suavização, o fim de cada trecho deixou de ser inclusivo — o

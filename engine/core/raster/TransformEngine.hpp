@@ -99,10 +99,6 @@ public:
     /// Cancela a transformação restaurando os pixels originais
     bool cancelTransform(
         document::Layer* activeLayer,
-        int canvasWidth,
-        int canvasHeight,
-        history::TileUndoManager& undoManager,
-        int activeLayerIndex,
         utils::Rect2D& outDirtyBounds
     );
 

@@ -318,6 +318,10 @@ void DabRenderer::renderDab(
                         tileModified = true;
                         break;
                     }
+                    case utils::DabBlendMode::Erase:
+                        // A borracha não passa por aqui: o EraserEngine
+                        // pinta sozinho, reduzindo o alpha.
+                        break;
                     case utils::DabBlendMode::Additive: { // Modo Luz / Glow
                         const double srcA = curFinalAlpha;
                         const double dstR = static_cast<double>(dst.r);

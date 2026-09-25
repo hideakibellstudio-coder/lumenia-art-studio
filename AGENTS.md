@@ -296,8 +296,9 @@ commitar, o agente em Linux roda:
    `encoding=`;
 2. `python scripts/check_windows_build.py` quando o commit toca `engine/`,
    `bridge/` ou `setup.py`: compila os `.cpp` do `setup.py` para o alvo Windows
-   com MinGW-w64 (escalar e AVX2, como o CI). Instalação no Debian/Ubuntu:
-   `apt-get install g++-mingw-w64-x86-64-posix`.
+   com MinGW-w64 (escalar e AVX2, como o CI), com aviso tratado como erro
+   (`-Wall -Wextra -Werror`; o motor tem zero avisos desde 2026-09-25).
+   Instalação no Debian/Ubuntu: `apt-get install g++-mingw-w64-x86-64-posix`.
 
 Regras de código que valem pelo mesmo motivo:
 

@@ -289,7 +289,7 @@ bool LayerStack::flattenGroup(int index, bool linearGamma, bool deepColor) {
 }
 
 bool LayerStack::mergeLayerDown(int index, bool linearGamma, bool deepColor) {
-    return LayerMerger::mergeLayerDown(m_drawingLayers, m_activeIndex, m_width, m_height, index, linearGamma, deepColor);
+    return LayerMerger::mergeLayerDown(m_drawingLayers, m_activeIndex, index, linearGamma, deepColor);
 }
 
 Layer* LayerStack::getActiveLayer() noexcept {

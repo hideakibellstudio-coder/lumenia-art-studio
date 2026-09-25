@@ -27,14 +27,14 @@ public:
      * @brief Calcula o passo analítico adaptativo entre carimbos.
      *
      * - Para traços finos (R <= 32px): mantém espaçamento puramente uniforme e nominal.
-     * - Para traços gigantes (R > 32px): aplica escala logarítmica estável e modulação
-     *   de throughput por velocidade, garantindo sobreposição contínua (>= 70%) sem
-     *   redundância catastrófica de carimbos.
+     * - Para traços gigantes (R > 32px): o espaçamento sobe suavemente (Hermite) até
+     *   18% do diâmetro em R = 250px, com teto de 35% do diâmetro (sobreposição >= 65%).
+     *   Só o raio decide o passo: até 2026-09-25 a assinatura recebia a distância do
+     *   segmento e este texto prometia "modulação por velocidade", que nunca existiu.
      */
     [[nodiscard]] static double computeAdaptiveStep(
         double radius,
-        double spacingFactor,
-        double segmentDistance = 0.0
+        double spacingFactor
     ) noexcept;
 
     /**

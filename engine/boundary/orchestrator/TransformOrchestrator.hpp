@@ -53,8 +53,7 @@ public:
         history::TileUndoManager& undoManager,
         document::Compositor& compositor,
         canvas::PixelBuffer& outputBuffer,
-        const utils::ColorRGBA& bgColor,
-        int canvasWidth, int canvasHeight
+        const utils::ColorRGBA& bgColor
     );
 
     static bool flipActiveLayer(

@@ -296,7 +296,7 @@ bool PaintEngineFacade::commitTransformDistort(const std::vector<double>& corner
     return result;
 }
 bool PaintEngineFacade::cancelTransform() {
-    return orchestrator::TransformOrchestrator::cancelTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, m_width, m_height);
+    return orchestrator::TransformOrchestrator::cancelTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
 }
 bool PaintEngineFacade::flipActiveLayer(bool horizontal) {
     const bool result = orchestrator::TransformOrchestrator::flipActiveLayer(horizontal, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);

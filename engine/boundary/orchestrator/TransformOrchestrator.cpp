@@ -74,7 +74,7 @@ bool TransformOrchestrator::commitTransformDistort(
         compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);
         return true;
     }
-    cancelTransform(transformEngine, layerStack, undoManager, compositor, outputBuffer, bgColor, canvasWidth, canvasHeight);
+    cancelTransform(transformEngine, layerStack, undoManager, compositor, outputBuffer, bgColor);
     return false;
 }
 
@@ -84,17 +84,14 @@ bool TransformOrchestrator::cancelTransform(
     history::TileUndoManager& undoManager,
     document::Compositor& compositor,
     canvas::PixelBuffer& outputBuffer,
-    const utils::ColorRGBA& bgColor,
-    int canvasWidth, int canvasHeight
+    const utils::ColorRGBA& bgColor
 ) {
     if (!transformEngine.isActive()) return false;
     document::Layer* activeLayer = layerStack.getActiveLayer();
     if (!activeLayer) return false;
 
     utils::Rect2D dirtyBounds;
-    bool ok = transformEngine.cancelTransform(
-        activeLayer, canvasWidth, canvasHeight, undoManager, layerStack.getActiveIndex(), dirtyBounds
-    );
+    bool ok = transformEngine.cancelTransform(activeLayer, dirtyBounds);
     if (ok) {
         undoManager.cancelStep();
         compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirtyBounds, outputBuffer, bgColor);

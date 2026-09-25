@@ -11,11 +11,11 @@ namespace aladyn::engine::document {
 class Layer : public LayerNode {
 public:
     Layer(const std::string& name, int width, int height, bool isBackground = false)
-        : LayerNode(name, LayerNodeType::DrawingLayer), m_tileGrid(width, height), m_isBackground(isBackground) {}
+        : LayerNode(name, LayerNodeType::DrawingLayer), m_isBackground(isBackground), m_tileGrid(width, height) {}
 
     // Constructor alternativo para criação de grupos com LayerNodeType::Group
     Layer(const std::string& name, LayerNodeType type, int width, int height, bool isBackground = false)
-        : LayerNode(name, type), m_tileGrid(width, height), m_isBackground(isBackground) {}
+        : LayerNode(name, type), m_isBackground(isBackground), m_tileGrid(width, height) {}
 
     [[nodiscard]] bool isAlphaLocked() const noexcept { return m_alphaLocked; }
     void setAlphaLocked(bool locked) noexcept { m_alphaLocked = locked; }

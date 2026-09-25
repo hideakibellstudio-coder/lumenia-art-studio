@@ -179,7 +179,6 @@ void applySharpenVignette(const FilterSettings& filter, const FilterRegion& regi
     const float maxDist = std::sqrt(cx * cx + cy * cy) * vRad;
     const float innerDist = maxDist * 0.4f;
 
-    const int regW = endX - startX + 1;
     const int regH = endY - startY + 1;
     std::vector<uint8_t> srcCopy;
     if (sharpen > 0.001f) {

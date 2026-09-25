@@ -35,8 +35,11 @@ bool FloodFill::execute(
     int tolerance,
     bool contiguous,
     int expandPx,
-    int gapClosingPx,
-    bool antiAliasing,
+    // Sem efeito (achado em 2026-09-25 pelos avisos do compilador): nenhuma tela
+    // oferece fechar lacunas nem suavizar o balde; o valor só atravessa as
+    // camadas. Remover ou implementar: pendências da base, item 6.
+    [[maybe_unused]] int gapClosingPx,
+    [[maybe_unused]] bool antiAliasing,
     canvas::TileGrid& targetGrid,
     history::TileUndoManager& undoManager,
     int activeLayerIndex,

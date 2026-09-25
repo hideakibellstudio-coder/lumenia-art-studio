@@ -24,14 +24,13 @@ public:
     ) noexcept {
         if (count == 0 || dst == nullptr) return;
 
+        size_t i = 0;
+
+#if defined(__AVX2__)
         const uint32_t c32 = (static_cast<uint32_t>(srcColor.a) << 24) |
                              (static_cast<uint32_t>(srcColor.b) << 16) |
                              (static_cast<uint32_t>(srcColor.g) << 8)  |
                               static_cast<uint32_t>(srcColor.r);
-
-        size_t i = 0;
-
-#if defined(__AVX2__)
         const __m256i val256 = _mm256_set1_epi32(static_cast<int>(c32));
         for (; i + 8 <= count; i += 8) {
             _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst + i), val256);

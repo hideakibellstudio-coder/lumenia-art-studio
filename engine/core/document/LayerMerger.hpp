@@ -22,8 +22,6 @@ public:
     static bool mergeLayerDown(
         std::vector<std::unique_ptr<Layer>>& drawingLayers,
         int& activeIndex,
-        int width,
-        int height,
         int index,
         bool linearGamma = true,
         bool deepColor = false

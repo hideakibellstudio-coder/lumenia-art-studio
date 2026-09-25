@@ -6,7 +6,9 @@ cabeçalhos do Windows. Este script faz a checagem que falta antes do commit:
 todos os `.cpp` de `setup.py` (a mesma lista do build oficial) compilados com
 `x86_64-w64-mingw32-g++`, com os cabeçalhos do CPython para Windows, nas duas
 variantes que o CI compila (escalar e AVX2). Só análise (`-fsyntax-only`):
-nada é gravado no repositório.
+nada é gravado no repositório. Aviso é erro (`-Wall -Wextra -Werror`): o motor
+chegou a zero avisos em 2026-09-25 e aviso novo reprova; os cabeçalhos de
+terceiros (CPython, pybind11) entram como `-isystem` e ficam de fora.
 
 Uso:
     python scripts/check_windows_build.py                  # escalar e AVX2
@@ -103,8 +105,8 @@ def main(argv: list[str] | None = None) -> int:
     import pybind11
 
     compiler = find_compiler()
-    base = ["-std=c++20", "-fsyntax-only", "-fopenmp",
-            f"-I{python_include(args.python_include)}", f"-I{pybind11.get_include()}"]
+    base = ["-std=c++20", "-fsyntax-only", "-fopenmp", "-Wall", "-Wextra", "-Werror",
+            "-isystem", str(python_include(args.python_include)), "-isystem", pybind11.get_include()]
     sources = setup_sources()
     variants = list(VARIANTS) if args.simd == "both" else [args.simd]
     failed = 0

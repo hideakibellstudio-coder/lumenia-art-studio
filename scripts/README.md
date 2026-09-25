@@ -11,7 +11,7 @@ Cada script roda sozinho (`python scripts/<nome>.py`); os de build estão em AGE
 | Arquivo | Responsabilidade |
 |---|---|
 | `build_native.py` | Compila a extensão `aladyn_engine_native` (objetos em `../build/temp_native`). |
-| `check_windows_build.py` | Compila os `.cpp` do `setup.py` para o alvo Windows a partir do Linux (MinGW-w64, escalar e AVX2); o agente em Linux roda antes de commitar mudança em C++ (AGENTS.md, seção 5.1). |
+| `check_windows_build.py` | Compila os `.cpp` do `setup.py` para o alvo Windows a partir do Linux (MinGW-w64, escalar e AVX2) com `-Wall -Wextra -Werror`: aviso novo reprova; o agente em Linux roda antes de commitar mudança em C++ (AGENTS.md, seção 5.1). |
 | `build_portable.py` | Gera e verifica a distribuição portátil com Nuitka (`../build/portable`, `../dist`), com os avisos de terceiros (`assets/legal/`) e os textos de licença dos pacotes embutidos em `licenses/`. |
 | `lumenia_installer.iss` | Script do Inno Setup do instalador oficial. |
 | `generate_compile_commands.py` | Gera `compile_commands.json` capturando as chamadas reais do MSVC (para o ARCcC-Navigator). |

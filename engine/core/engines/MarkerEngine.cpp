@@ -66,7 +66,6 @@ void MarkerEngine::renderDab(
     const double sinA = isCircular ? 0.0 : std::sin(radAngle);
     const double invAspect = isCircular ? 1.0 : (1.0 / aspect);
 
-    const double safeR = std::max(0.001, r);
     const double maxRadius = effectiveRadius + 1.0;
     const double maxRadiusSq = maxRadius * maxRadius;
 

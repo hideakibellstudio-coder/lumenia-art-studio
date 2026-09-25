@@ -94,10 +94,6 @@ bool TransformEngine::commitTransform(
 
 bool TransformEngine::cancelTransform(
     document::Layer* activeLayer,
-    int canvasWidth,
-    int canvasHeight,
-    history::TileUndoManager& undoManager,
-    int activeLayerIndex,
     utils::Rect2D& outDirtyBounds
 ) {
     if (!m_state.active || !m_sourceBuffer || !activeLayer) {

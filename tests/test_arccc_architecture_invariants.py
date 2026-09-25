@@ -19,7 +19,7 @@ import unittest
 from typing import List, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from arccc_governance_rules import MAX_LINES_ERROR, is_declared_exception  # noqa: E402
+from arccc_governance_rules import MAX_LINES_ERROR, MAX_LINES_WALL, is_declared_exception  # noqa: E402
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -186,6 +186,17 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
             f"  - {v[0]}: {v[1]} LOC (limite: {MAX_LINES_ERROR - 1} LOC)" for v in sorted(violations, key=lambda x: x[1], reverse=True)
         )
         self.assertEqual(len(violations), 0, msg)
+
+    def test_no_python_file_on_the_wall(self):
+        """[ARCcC Regra 5] Parede dos 450: nenhum arquivo de ui/ ou tests/ entre 430 e 449 linhas."""
+        on_the_wall = []
+        for tdir in (self.ui_dir, self.tests_dir):
+            for fpath in self._get_py_files(tdir):
+                with open(fpath, 'r', encoding='utf-8', errors='ignore') as fl:
+                    loc = sum(1 for _ in fl)
+                if MAX_LINES_WALL <= loc < MAX_LINES_ERROR:
+                    on_the_wall.append(f"{os.path.relpath(fpath, self.root)}: {loc}")
+        self.assertEqual(on_the_wall, [], "divida por responsabilidade antes de crescer: " + ", ".join(on_the_wall))
 
 
 if __name__ == '__main__':

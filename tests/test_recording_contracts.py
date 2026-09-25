@@ -11,7 +11,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.plugins.panels.recording_plugin.engine.export_worker import TimelapseExportWorker
 from ui.plugins.panels.recording_plugin.engine.frame_source import DocumentFrameSource
 from ui.plugins.panels.recording_plugin.panel import RecordingPanel
-from tests.test_recording_plugin import DummyBackend, make_engine
+from tests.recording_doubles import DummyBackend, make_engine
 from ui.core.document.document import Document
 
 

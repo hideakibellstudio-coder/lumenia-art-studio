@@ -28,6 +28,10 @@ from __future__ import annotations
 # Zonas quantitativas, identicas a AGENTS.md e ao LUMENIA_PROFILE do Navigator.
 MAX_LINES_WARN = 300   # Zona Amarela: >= 300 linhas
 MAX_LINES_ERROR = 450  # Zona Vermelha: >= 450 linhas (violacao)
+# Parede (AGENTS.md, secao 3): arquivo entre 430 e 449 linhas nao recebe codigo
+# novo sem antes ser dividido. Ate 2026-09-25 so o censo manual olhava a parede,
+# e so em ui/: StrokeOrchestrator.cpp chegou a 447 sem ninguem ver.
+MAX_LINES_WALL = 430
 
 # Excecoes formais, espelhando `declared_exceptions` do perfil `lumenia`.
 # Cada entrada precisa de uma razao explicita: uma excecao sem justificativa

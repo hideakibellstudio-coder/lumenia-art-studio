@@ -67,6 +67,7 @@ cpp_sources = [
     "engine/core/color/ColorProfile.cpp",
     "engine/boundary/orchestrator/StrokeOrchestrator.cpp",
     "engine/boundary/orchestrator/StrokeOrchestratorEnd.cpp",
+    "engine/boundary/orchestrator/StrokeOrchestratorSegment.cpp",
     "engine/boundary/orchestrator/StrokePreviewRenderer.cpp",
     "engine/boundary/orchestrator/SelectionOrchestrator.cpp",
     "engine/boundary/orchestrator/TransformOrchestrator.cpp",

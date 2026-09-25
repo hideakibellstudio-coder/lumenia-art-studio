@@ -27,10 +27,11 @@ Não há porta única: cada orquestrador é incluído pela `PaintEngineFacade.cp
 | `SelectionOrchestrator.cpp` | Implementação sobre `selection/SelectionEngine`, com histórico. |
 | `SnapOrchestrator.hpp` | Guias, simetria e snap (reto, curvilíneo, perspectiva) e estimativa de trajetória (declaração). |
 | `SnapOrchestrator.cpp` | Implementação; codifica curvas curvilíneas em 11 doubles para cruzar a ponte sem tipo novo. |
-| `StrokeLatencyPolicy.hpp` | Regra de baixa latência compartilhada pelas duas metades do `StrokeOrchestrator`. |
+| `StrokeLatencyPolicy.hpp` | Regra de baixa latência compartilhada pelos arquivos do `StrokeOrchestrator`. |
 | `StrokeOrchestrator.hpp` | Traço a partir de amostras brutas: interpolação por spline e deposição de dabs (declaração, `RawStrokeContext`). |
-| `StrokeOrchestrator.cpp` | `updateStrokeRaw` e o pipeline de dabs. |
+| `StrokeOrchestrator.cpp` | `updateStrokeRaw`: cada amostra da caneta vira dabs e trechos de spline. |
 | `StrokeOrchestratorEnd.cpp` | `endStrokeRaw` (separado em 2026-09-22, teto de 450 linhas). |
+| `StrokeOrchestratorSegment.cpp` | Desenho de um segmento (`renderSegment`, `renderSplineSegment`): interpolação, histórico, rasterização e composição (separado em 2026-09-25, estava na parede dos 450). |
 | `StrokePreviewRenderer.hpp` | Prévias fora de documento: pincelada de demonstração e máscara da ponta redonda (declaração). |
 | `StrokePreviewRenderer.cpp` | Pincelada com o motor de pincel real do perfil; máscara da ponta com a queda do `LargeBrushOptimizer` (o laço morava na ponte até 2026-09-25). |
 | `StrokeSessionOrchestrator.hpp` | Sessão de traço (início, atualização, fim) e amostra de telemetria (declaração). |

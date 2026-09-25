@@ -78,9 +78,13 @@ Ordem = ordem recomendada.
    `tests/test_canvas_input_router.py` (23 testes, canvas e motor reais) e
    `tests/test_canvas_overlay_renderer.py` (15). Cobertura medida só com eles:
    `input_router.py` 29% → 84%, `overlay_renderer.py` 7% → 95%.)*
-10. **`StrokeOrchestrator.cpp` na parede (447 linhas).** O censo do
-    `AGENTS.md` e o teste de LOC só olham `ui/`. *Pronto:* arquivo dividido
-    por responsabilidade e censo/teste cobrindo o C++.
+10. ~~**`StrokeOrchestrator.cpp` na parede (447 linhas).**~~ *(feito em
+    2026-09-25: o desenho de um segmento (interpolação, histórico,
+    rasterização, composição) foi para `StrokeOrchestratorSegment.cpp`; o
+    `StrokeOrchestrator.cpp` ficou com a entrada da caneta (236 linhas). Os
+    testes de teto passaram a barrar a parede (430–449) em Python e C++, e
+    acharam mais um: `tests/test_recording_plugin.py` (434), dividido em motor
+    e painel.)*
 11. **`RenderWidget` grande demais.** `input_router.py` usa 37 membros dele;
     é a causa dos 2 ciclos Python que restam (`canvas` ↔ `tools`/`viewport`,
     por anotação de tipo). *Pronto:* contrato estreito (`Protocol`) e 0 ciclos.

@@ -15,6 +15,7 @@
 | `main_window_fixture.py` | Acesso compartilhado à MainWindow dos testes de integração. |
 | `qt_windows.py` | Enumeração segura das janelas de topo do Qt nos testes. |
 | `run_all_tests.py` | Runner da suíte: executa tudo (ou uma suíte nomeada) com saída UTF-8 no Windows, cobertura e `--junit` para o relatório de testes. |
+| `recording_doubles.py` | Dublês compartilhados pelos testes do plugin de gravação (canvas, backend, workspace e motor de teste). |
 | `arccc_coupling_metrics.py` | Mede, arquivo por arquivo, os padrões de acoplamento que transformaram a UI em espaguete, e mantém a catraca (`arccc_coupling_baseline.json`) usada por `tests/test_arccc_coupling_ratchet.py`. |
 | `arccc_identifier_language.py` | Conta identificadores com palavra em português por arquivo e mantém a catraca `arccc_identifier_baseline.json` (seção 14 do ARCcC). |
 | `arccc_governance_rules.py` | FONTE ÚNICA das regras quantitativas ARCcC usadas pelos testes de governança. |
@@ -109,7 +110,8 @@
 | `test_pyi_contract_matches_binary.py` | Regressao para F-024/3.3: garante que bridge/boundary/contracts/aladyn_engine_native.pyi descreve exatamente a superficie do modulo nativo compilado, nas duas direcoes. |
 | `test_python_lint.py` | Linter Python: zero achados do ruff com as regras de `[tool.ruff]` do `pyproject.toml` (pula se o ruff não estiver instalado). |
 | `test_recording_contracts.py` | Contratos do plugin de gravação: quadro vem do documento ativo e do motor; barra flutuante só emite sinais. |
-| `test_recording_plugin.py` | Testes de Unidade e Contrato para o Plugin de Gravação & Timelapse (ARCcC). |
+| `test_recording_engine.py` | Motor de gravação: ciclo da sessão, captura assíncrona, exportação ZIP, marca d'água e guias na captura. |
+| `test_recording_plugin.py` | Plugin de gravação: painel, ativação no `WorkspaceService`, FPS, barra flutuante (inclusive soltar o canvas ao desativar), fluxo de parada e zero imports entre plugins. |
 | `test_regressions_ui_layout_items.py` | Testes unitários abrangentes para validação dos 8 itens de observação e estabilidade. |
 | `test_regressions_undo_shortcuts_cursor.py` | Test suite for the 5 User Observations Audit and Verification in Lumenia V2. |
 | `test_render_options_and_native_dirty_tracking.py` | Opções de renderização e marcação nativa de regiões alteradas. |

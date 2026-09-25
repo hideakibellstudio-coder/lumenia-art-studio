@@ -84,7 +84,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 ### Censo Atual (medido em 2026-09-25 com `wc -l` em `ui/`, plugins incluídos):
 - **0 arquivos na Zona Vermelha e nenhuma exceção de LOC declarada.** Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
 - 314 verdes, 35 amarelos e **0 na parede** (430–449).
-- **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos.
+- **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos. Desde 2026-09-25 os testes de teto barram a parede em `ui/`, `tests/`, `engine/` e `bridge/` (`MAX_LINES_WALL` em `tests/arccc_governance_rules.py`); antes só este censo olhava, e só `ui/`: `StrokeOrchestrator.cpp` chegou a 447.
 - **Dividir é por responsabilidade, não por tamanho.** O diagnóstico de
   2026-09-24 achou o teto de LOC "cumprido" com mixins e funções soltas que
   recebem o dono e escrevem nos atributos privados dele: o arquivo encolhe e o

@@ -48,6 +48,12 @@ totalmente voluntário.
 Os desenvolvedores reservam-se o direito de atualizar, aprimorar ou modificar
 recursos em versões futuras.
 
+7. COMPONENTES DE TERCEIROS
+O Lumenia inclui componentes de terceiros (como Qt/PySide6, sob a LGPLv3) que
+seguem as suas próprias licenças, listadas em THIRD_PARTY_NOTICES.txt. Nada
+nestes termos limita os direitos que essas licenças dão a você sobre esses
+componentes.
+
 
 ================================================================================
  🇺🇸 ENGLISH VERSION (EN)
@@ -89,6 +95,11 @@ feedback form is 100% voluntary.
 6. MODIFICATIONS & UPDATES
 The developer reserves the right to update, modify, or enhance features in 
 future releases of the Software.
+
+7. THIRD-PARTY COMPONENTS
+Lumenia includes third-party components (such as Qt/PySide6, under the LGPLv3)
+that follow their own licenses, listed in THIRD_PARTY_NOTICES.txt. Nothing in
+these terms limits the rights those licenses grant you over those components.
 
 ================================================================================
                           Lumenia Team / ALADYN Engine

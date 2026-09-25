@@ -1,0 +1,112 @@
+================================================================================
+                    LUMENIA — AVISOS DE SOFTWARE DE TERCEIROS
+                          THIRD-PARTY SOFTWARE NOTICES
+================================================================================
+
+[PT-BR] O Lumenia inclui os componentes de terceiros listados abaixo, cada um
+sob a sua própria licença. Esses termos valem para o componente, não para a sua
+arte nem para o restante do Lumenia (ver TERMS_AND_LICENSE.txt). Os textos
+completos estão em "assets/legal" e em "licenses", na pasta de instalação.
+
+[EN] Lumenia includes the third-party components listed below, each under its
+own license. Those terms apply to the component, not to your artwork nor to
+the rest of Lumenia (see TERMS_AND_LICENSE.txt). The full texts are in
+"assets/legal" and "licenses", inside the installation folder.
+
+--------------------------------------------------------------------------------
+1. Qt for Python (PySide6, shiboken6) and the Qt libraries
+--------------------------------------------------------------------------------
+Copyright (C) The Qt Company Ltd. and other contributors.
+License: GNU Lesser General Public License, version 3 (LGPL-3.0-only).
+Full text: assets/legal/LGPL-3.0.txt, which supplements the GNU General Public
+License, version 3: assets/legal/GPL-3.0.txt.
+
+Lumenia uses these libraries unmodified, as separate dynamic libraries (the
+Qt6*.dll files and the PySide6 and shiboken6 modules in the installation
+folder). You may replace them with your own build of a compatible version.
+Source code: https://download.qt.io/official_releases/ (Qt) and
+https://download.qt.io/official_releases/QtForPython/ (PySide6, shiboken6).
+The shipped versions are shown in Help > Engine Diagnostics & Telemetry
+("Framework UI").
+
+--------------------------------------------------------------------------------
+2. Python
+--------------------------------------------------------------------------------
+Copyright (c) 2001 Python Software Foundation. All rights reserved.
+License: Python Software Foundation License Version 2 (PSF-2.0).
+Full text: licenses/Python/LICENSE.txt
+
+--------------------------------------------------------------------------------
+3. Pillow (and the libraries it bundles: libjpeg-turbo, libpng, zlib,
+   Little CMS, FreeType, libtiff, libwebp, OpenJPEG and others)
+--------------------------------------------------------------------------------
+Copyright (c) 1997-2011 by Secret Labs AB; Copyright (c) 1995-2011 by Fredrik
+Lundh and contributors; Copyright (c) 2010 by Jeffrey A. Clark and contributors.
+License: MIT-CMU (HPND); bundled libraries under their own licenses.
+Full text, including every bundled library: licenses/Pillow/
+
+--------------------------------------------------------------------------------
+4. NumPy and SciPy (and the libraries they bundle, such as OpenBLAS and the
+   GCC runtime libraries)
+--------------------------------------------------------------------------------
+Copyright (c) NumPy Developers; Copyright (c) SciPy Developers.
+License: BSD-3-Clause; bundled libraries under their own licenses (BSD, MIT,
+zlib, and GPL-3.0 with the GCC Runtime Library Exception, among others).
+Full text: licenses/numpy/ and licenses/scipy/
+
+--------------------------------------------------------------------------------
+5. pybind11 (compiled into the ALADYN engine, aladyn_engine_native)
+--------------------------------------------------------------------------------
+Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>, All rights reserved.
+License: BSD-3-Clause.
+Full text: licenses/pybind11/LICENSE
+
+--------------------------------------------------------------------------------
+6. Microsoft Visual C++ runtime and OpenMP runtime (vcruntime140*.dll,
+   msvcp140*.dll, vcomp140.dll)
+--------------------------------------------------------------------------------
+Redistributed as "Distributable Code" under the Microsoft Visual Studio
+license terms.
+
+--------------------------------------------------------------------------------
+7. Interface icons (ui/infrastructure/icons)
+--------------------------------------------------------------------------------
+Part of the interface icons follows the drawings of Lucide and Feather.
+
+Lucide — ISC License
+Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part
+of Feather (MIT). All other copyright (c) for Lucide are held by Lucide
+Contributors 2022.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Feather — MIT License
+Copyright (c) 2013-2023 Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -33,11 +33,16 @@ Ordem = ordem recomendada.
    única `ui/infrastructure/app_info.py`; `tests/test_app_version.py` confere
    `pyproject.toml`, `setup.py`, instalador, README, EULA e o "Sobre", e barra
    versão escrita à mão na interface.)*
-3. **Avisos de licença de terceiros.** O `TERMS_AND_LICENSE.txt` não cita
-   Qt/PySide6 (LGPLv3), pybind11, NumPy nem Pillow/LittleCMS, e o portátil e o
-   instalador não levam o texto dessas licenças. Distribuir assim descumpre a
-   LGPL do Qt. *Pronto:* arquivo de avisos no repositório, copiado pelo build
-   portátil (e daí para o instalador), com teste.
+3. ~~**Avisos de licença de terceiros.**~~ *(feito em 2026-09-25:
+   `assets/legal/` com `THIRD_PARTY_NOTICES.txt` (Qt/PySide6, Python, Pillow,
+   NumPy, SciPy, pybind11, runtime do MSVC, ícones Lucide/Feather) e os textos
+   integrais da LGPLv3 e da GPLv3, que o PySide6 não traz no pacote; o build
+   portátil copia os avisos para a raiz da distribuição e os textos de licença
+   dos pacotes embutidos para `licenses/`; EULA com a seção 7 nas duas
+   línguas. Achado junto: `tests/test_portable_build_contract.py`, que só roda
+   no Windows, ainda pedia `--include-package=plugins` depois da mudança para
+   `ui/plugins` — corrigido, com uma versão que roda em qualquer sistema.
+   Falta a revisão do dono do projeto: o arquivo não é parecer jurídico.)*
 4. **Queda do motor deixa rastro.** O `sys.excepthook` só vê exceção Python;
    um acesso inválido no C++ fecha o app sem uma linha no log. *Pronto:*
    `faulthandler` gravando em `logs/` da pasta de dados do usuário.

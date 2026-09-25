@@ -14,6 +14,7 @@
 | `docs/` | Guia do usuário por idioma (diálogo de ajuda). |
 | `images/` | Ícone da aplicação. |
 | `icons/` | Os dois SVG de fallback do QSS (fechar e maximizar). |
+| `legal/` | Avisos de licença de terceiros (LGPLv3 do Qt e demais) que a distribuição leva. |
 
 ## Regras
 

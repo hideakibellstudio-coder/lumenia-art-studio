@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import importlib.util
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -18,6 +20,12 @@ PARENT_BUILD = ROOT.parent / "build"
 PARENT_DIST = ROOT.parent / "dist"
 # Out-of-tree build default: se existir pasta build/dist externa, usa ROOT.parent
 DEFAULT_OUTPUT = (PARENT_BUILD / "portable") if (PARENT_BUILD.exists() or ROOT.parent.name.endswith("CLEAN")) else (ROOT / "build" / "portable")
+NOTICES = ROOT / "assets" / "legal" / "THIRD_PARTY_NOTICES.txt"
+# Pacotes distribuídos que trazem o texto da licença (e o das bibliotecas que
+# embutem) nos metadados instalados. O PySide6 não traz: a LGPLv3 e a GPLv3
+# estão em assets/legal/. Pacote novo na distribuição entra aqui e em NOTICES.
+LICENSED_PACKAGES = ("Pillow", "numpy", "scipy", "pybind11")
+LICENSE_NAME = re.compile(r"LICEN[CS]E|COPYING|NOTICE", re.IGNORECASE)
 
 
 def project_version() -> str:
@@ -53,7 +61,7 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
         output_dir = DEFAULT_OUTPUT
     native_extension = _native_extension()
     theme_dir = ROOT / "ui" / "infrastructure" / "theme" / "themes"
-    required = (ROOT / "assets", ROOT / "ui" / "plugins", theme_dir, ROOT / "main.py")
+    required = (ROOT / "assets", ROOT / "ui" / "plugins", theme_dir, ROOT / "main.py", NOTICES)
     missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
     if missing:
         raise RuntimeError(f"recursos de distribuição ausentes: {', '.join(missing)}")
@@ -79,6 +87,7 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
         f"--include-data-dir={theme_dir}=ui/infrastructure/theme/themes",
         f"--include-data-files={ROOT / 'Send_Feedback.html'}=Send_Feedback.html",
         f"--include-data-files={ROOT / 'TERMS_AND_LICENSE.txt'}=TERMS_AND_LICENSE.txt",
+        f"--include-data-files={NOTICES}=THIRD_PARTY_NOTICES.txt",
         str(ROOT / "main.py"),
     ]
     return command[:-1] + _runtime_package_data("numpy") + _runtime_package_data("scipy") + command[-1:]
@@ -104,6 +113,32 @@ def write_release_manifest(distribution_dir: Path) -> Path:
     return output
 
 
+def copy_third_party_licenses(distribution_dir: Path, packages: tuple[str, ...] | None = None) -> list[Path]:
+    """Copy each bundled package's license texts to licenses/<package>/ (plus Python's)."""
+    copied = []
+    for name in LICENSED_PACKAGES if packages is None else packages:
+        try:
+            package = importlib.metadata.distribution(name)
+        except importlib.metadata.PackageNotFoundError as exc:
+            raise RuntimeError(f"pacote distribuído sem metadados de licença: {name}") from exc
+        texts = [f for f in package.files or () if ".dist-info/" in f.as_posix() and LICENSE_NAME.search(f.name)]
+        if not texts:
+            raise RuntimeError(f"{name} {package.version} não traz o texto da licença nos metadados")
+        for text in texts:
+            relative = text.as_posix().split(".dist-info/", 1)[1].removeprefix("licenses/")
+            target = distribution_dir / "licenses" / name / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(package.locate_file(text), target)
+            copied.append(target)
+    python_license = Path(sys.base_prefix) / "LICENSE.txt"
+    if python_license.is_file():
+        target = distribution_dir / "licenses" / "Python" / "LICENSE.txt"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(python_license, target)
+        copied.append(target)
+    return copied
+
+
 def _canonical_distribution(output_dir: Path) -> Path:
     distributions = sorted(path for path in output_dir.glob("*.dist") if path.is_dir())
     if len(distributions) != 1:
@@ -127,6 +162,7 @@ def verify_distribution(output_dir: Path = DEFAULT_OUTPUT) -> Path:
     if not bundled_native.is_file():
         source_native = _native_extension()
         shutil.copy2(source_native, bundled_native)
+    copy_third_party_licenses(distribution)
     write_release_manifest(distribution)
     return distribution
 

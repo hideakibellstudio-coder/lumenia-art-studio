@@ -49,6 +49,25 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-25 — Estrutura física do ARCcC, conferência do Windows e próximas tasks
+**Base:** pedidos do usuário nesta sessão (Claude Code): terminar a estrutura
+física do ARCcC (passos 1 a 5 de `02-arquitetura/07-auditoria-da-estrutura-fisica.md`),
+fazer os commits passarem no Windows mesmo com o agente em Linux, tirar o CI
+do push, e um relatório de estado do projeto em relação ao ARCcC e ao mercado.
+**O que mudou:** serviços transversais em `ui/infrastructure`; motor C++ em
+camadas (`utils` → `infrastructure` → `core` → `boundary`) sem ciclo de pasta
+e com a ponte entrando só por `AladynEngine.hpp`; plugins em `ui/plugins`;
+`scripts/check_windows_build.py` (MinGW-w64) e
+`tests/test_windows_portability.py`; CI só à mão (`AGENTS.md` seção 5.1).
+**Próximas tasks registradas:** engenharia sem feature em
+`01-correcao-da-base/01-pendencias-atuais.md` ("Próximas tasks", 18 itens);
+produto em `05-visao-e-futuro/03-benchmark-competitivo-e-rotas-de-produto.md`
+(Rota C comercial, paridade e posicionamento).
+**Números medidos** (Linux, Python 3.11, offscreen, base `9038c9c`): 925
+testes, 920 passam e 5 pulados; cobertura de `ui/` 78%; 114 de 114 pastas
+com README; 0 ciclos entre pastas do motor (eram 9) e 2 no Python (eram 9);
+68 de 68 `.cpp` compilam para Windows com MinGW (escalar e AVX2).
+
 ### 2026-09-24 — Espaguete desfeito por contrato, catracas e README por pasta
 **Base:** pedido do usuário nesta sessão (Claude Code): pôr tudo o que já
 existe em conformidade com o ARCcC, sem espaguete, e documentado a ponto de

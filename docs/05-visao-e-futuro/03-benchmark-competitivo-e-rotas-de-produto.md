@@ -97,10 +97,27 @@ As três promessas falsas (Modificar seleção, Distorcer, Harmonias) viraram
 funções reais -- decisão do dono do produto: "deixar de prometer e desenvolver
 a função real". Ver as linhas da tabela acima.
 
+### Rota C — Comercial (P0: bloqueia venda) — registrada em 2026-09-25
+Do relatório de estado de 2026-09-25. O motor de pintura não é o gargalo; o
+que impede vender é troca de arquivos e distribuição. A engenharia sem
+feature que vem junto (build com MSVC, versão única, avisos de licença de
+terceiros, registro de quedas) está em
+`../01-correcao-da-base/01-pendencias-atuais.md`, "Próximas tasks".
+
+| # | Item | Status | Evidência (2026-09-25) |
+|---|---|---|---|
+| C1 | Exportar PSD com camadas; depois importar | **NÃO EXISTE** | Só sai PNG/JPEG achatado. É o formato de entrega da indústria. |
+| C2 | Assinatura digital do instalador | **NÃO EXISTE** | Sem ela o SmartScreen avisa "app desconhecido" para todo cliente. Exige certificado (custo). |
+| C3 | Relatório de falhas | **PARCIAL** | Log rotativo e `sys.excepthook` existem; nada sai da máquina. Enviar exige consentimento (a EULA promete não coletar a arte). |
+| C4 | Atualização automática | **NÃO EXISTE** | Cliente só atualiza baixando o instalador de novo. |
+| C5 | Licença e canal de venda | **DECISÃO** | Sem ativação, loja nem página. |
+| C6 | ffmpeg | **DECISÃO** | Embutir no instalador ou explicar na UI (seção 2). |
+
 ### Rota 1 — Ganhos rápidos (pouco código, uso diário)
 Tecla `X` para trocar cores · `Esc` descarta o traço em andamento · cores
 recentes registradas ao pintar · Solo de camada · aviso rápido de
-Desfazer/Refazer · `Tab` para canvas limpo.
+Desfazer/Refazer · `Tab` para canvas limpo. *Conferido em 2026-09-25: nenhum
+dos seis foi feito.*
 
 ### Rota 2 — Médio prazo
 Calibração global de pressão (reaproveitar `curve_window` + curva global
@@ -112,7 +129,18 @@ Coleta de cor (mistura úmida) para o pincel comum · pipeline de cor 16-bit
 formato de tile, compositor, desfazer e arquivo; fica para depois da Rota 1.
 
 ### Pendência de distribuição
-ffmpeg no instalador (ver seção 2).
+ffmpeg no instalador (ver seção 2). Agora é o item C6 da Rota C.
+
+### Paridade e posicionamento (registrados em 2026-09-25)
+- **P1, paridade com Krita, Clip Studio e Photoshop:** máscara de camada (só
+  existe máscara de recorte), camada de texto editável (hoje o texto vira
+  pixels), ferramenta de gradiente, recorte (crop).
+- **P2, posicionamento (DECISÃO):** animação, vetor e quadrinhos são o
+  terreno do Clip Studio. Disputar, ou ficar no nicho "pintura rápida e leve,
+  sem assinatura", como o SAI.
+
+Ordem recomendada: build com MSVC verificado → C1 a C4 → qualidade dirigida
+(pendências) → Rota 1 → P1.
 
 ---
 

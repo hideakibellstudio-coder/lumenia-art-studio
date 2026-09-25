@@ -11,6 +11,86 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
+## 🔜 Próximas tasks — profissionalizar a base sem feature (registradas em 2026-09-25)
+
+Origem: relatório de estado do projeto pedido pelo usuário em 2026-09-25
+(ARCcC e prontidão como produto). Tudo medido no Linux nesta data, na base
+`9038c9c`: 925 testes (920 passam, 5 pulados), cobertura de `ui/` 78%. O que
+é feature ou decisão de produto (PSD, assinatura, atualização automática,
+licença de venda) está na "Rota C" de
+`../05-visao-e-futuro/03-benchmark-competitivo-e-rotas-de-produto.md`.
+Ordem = ordem recomendada.
+
+1. **Build com o MSVC verificado.** Os passos 2 a 5 da reorganização
+   (`6671706`, `fc08f11`, `20a83a5`) nunca foram compilados com o MSVC: o CI
+   está só no manual e sem cota. O MinGW compila os 68 `.cpp` para Windows
+   (escalar e AVX2), o que reduz o risco sem eliminá-lo. *Pronto:*
+   `python scripts/build_native.py --simd scalar` e `python -m pytest` verdes
+   na máquina do dono, ou o CI rodado à mão verde.
+2. **Versão única do produto.** A janela "Sobre" mostra "2.5.0 (Build
+   2026.08)"; o produto é 0.2.0, escrito à mão em `pyproject.toml`,
+   `setup.py`, `scripts/lumenia_installer.iss`, `README.md` e
+   `TERMS_AND_LICENSE.txt`. *Pronto:* uma fonte só, lida pelo app, e um teste
+   que falha se uma cópia divergir.
+3. **Avisos de licença de terceiros.** O `TERMS_AND_LICENSE.txt` não cita
+   Qt/PySide6 (LGPLv3), pybind11, NumPy nem Pillow/LittleCMS, e o portátil e o
+   instalador não levam o texto dessas licenças. Distribuir assim descumpre a
+   LGPL do Qt. *Pronto:* arquivo de avisos no repositório, copiado pelo build
+   portátil (e daí para o instalador), com teste.
+4. **Queda do motor deixa rastro.** O `sys.excepthook` só vê exceção Python;
+   um acesso inválido no C++ fecha o app sem uma linha no log. *Pronto:*
+   `faulthandler` gravando em `logs/` da pasta de dados do usuário.
+5. **Linter Python.** Não há nenhum configurado; `ruff check --select F`
+   acha 237 problemas (215 imports sem uso, 17 variáveis sem uso). *Pronto:*
+   regras no `pyproject.toml`, zero achados, teste que barra achado novo.
+6. **Motor sem avisos do compilador.** Com `-Wall -Wextra` são 18 avisos
+   distintos: ordem de inicialização em `Layer.hpp`, parâmetros recebidos e
+   ignorados (`FloodFill` ignora `gapClosingPx` e `antiAliasing`;
+   `TransformEngineCommit`, `LayerMerger`, `LargeBrushOptimizer`), variáveis
+   sem uso e um `switch` sem o caso `Erase`. *Pronto:* zero avisos e
+   `scripts/check_windows_build.py` falhando em aviso novo.
+7. **Laço ignora o Anti-Alias.** `SelectionEngine::generatePolygonMask`
+   recebe `antiAliasing` e não usa: o botão da barra de seleção não muda nada
+   no laço. A interface promete e não faz, então vem antes de qualquer
+   feature (regra 2 do benchmark). *Pronto:* borda suavizada no motor, teste
+   que falha sem a correção.
+8. **Conferência antes do commit sem depender da memória do agente.** Com o
+   CI só à mão, a seção 5.1 do `AGENTS.md` é a única barreira. *Pronto:* hook
+   de pre-commit versionado (`core.hooksPath`) que roda as catracas rápidas e,
+   se o commit toca `engine/`, `bridge/` ou `setup.py`, a conferência do
+   Windows.
+9. **Cobertura da entrada da caneta.** `input_router.py` tem 29% de
+   cobertura e `handle_pointer_press` complexidade 47; `overlay_renderer.py`
+   tem 7%. É o caminho mais sensível do produto.
+10. **`StrokeOrchestrator.cpp` na parede (447 linhas).** O censo do
+    `AGENTS.md` e o teste de LOC só olham `ui/`. *Pronto:* arquivo dividido
+    por responsabilidade e censo/teste cobrindo o C++.
+11. **`RenderWidget` grande demais.** `input_router.py` usa 37 membros dele;
+    é a causa dos 2 ciclos Python que restam (`canvas` ↔ `tools`/`viewport`,
+    por anotação de tipo). *Pronto:* contrato estreito (`Protocol`) e 0 ciclos.
+12. **`hasattr` em telas e diálogos (205 no total).** Maiores: inspetor de
+    plugins 17, diálogo de plugins 12, `selection_tool_controller` 11,
+    `layer_properties_dialog` 11, `canvas_size_dialog` 11.
+13. **Cores fixas: 189 em 42 arquivos** (Lei 5). Começar por
+    `perspective_grid` (24) e o overlay (18).
+14. **Complexidade: 23 funções acima de 20.** A pior,
+    `get_cached_curvilinear_data` (59), mora em
+    `canvas/math/curvilinear_mesh_builder.py`: conferir se duplica a matemática
+    do `CurvilinearSnapEngine` nativo (Lei do Rio 2) e o cache na classe.
+15. **`bridge/infrastructure/`** para traduzir erros nativos (ARCcC 15.3): a
+    ponte é o único pilar sem essa camada.
+16. **Números sem medição no documento de visão.**
+    `../05-visao-e-futuro/01-visao-estrategica.md` promete latência < 1,2 ms,
+    abertura < 2 s e "390 testes". *Pronto:* medido no Windows com mesa, ou o
+    texto corrigido para o que foi medido.
+17. **Acessibilidade:** 0 nomes acessíveis (`setAccessibleName`) na interface.
+18. **Restos já conhecidos:** o plugin de gravação não tem tradução (~70
+    textos); nome padrão de camada nova em português; Prova de Cores global e
+    fora do arquivo; `add_panel` conhece os ids `navigator`/`layers`;
+    persistência das gavetas (decisão do usuário).
+
+---
+
 ## ✅ 2026-09-24 — Espaguete desfeito por contrato (sessão Claude Code)
 
 Medido no Linux (Python 3.11, offscreen): 835 testes passam, 5 pulados. CI do

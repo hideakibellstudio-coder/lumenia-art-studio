@@ -20,7 +20,7 @@ DECLARED_EXCEPTION = {"tests", "docs", "assets", "scripts", "benchmarks"}
 BUILD_AND_ENTRY = {
     "main.py", "setup.py", "pyproject.toml", "requirements-dev.lock", "requirements-dev.txt",
     "Launch_Lumenia.bat", "Launch_Lumenia_Silent.vbs", "Send_Feedback.html", "TERMS_AND_LICENSE.txt",
-    "README.md", "AGENTS.md", ".gitignore", ".gitattributes", ".github",
+    "README.md", "AGENTS.md", ".gitignore", ".gitattributes", ".github", ".githooks",
 }
 
 

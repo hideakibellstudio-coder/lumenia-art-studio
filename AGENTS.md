@@ -57,7 +57,7 @@ O ambiente é particionado em diretórios irmãos no nível superior:
 `engine/`) e arquivos de build/entrada do monorepo (`main.py`, `setup.py`,
 `pyproject.toml`, `requirements-dev.*`, lançadores `Launch_Lumenia.*`,
 `Send_Feedback.html`, `TERMS_AND_LICENSE.txt`, `README.md`, `AGENTS.md`,
-configuração do git e `.github/`). **Exceção declarada** (decisão do dono do
+configuração do git, `.githooks/` e `.github/`). **Exceção declarada** (decisão do dono do
 projeto, 2026-09-25): `tests/`, `docs/`, `assets/`, `scripts/` e `benchmarks/`
 ficam na raiz — atravessam os três pilares, e CI, instalador e build portátil
 esperam esses caminhos. Até 2026-09-25 os plugins moravam em `plugins/`, na
@@ -284,7 +284,10 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
 ### 5.1 Agente em Linux, projeto em Windows (obrigatório antes de todo commit)
 
 O dono do projeto usa **Windows** e o CI compila com **MSVC no Windows**; agentes
-costumam rodar em **Linux**. O que passa no Linux pode quebrar lá (achados de
+costumam rodar em **Linux**. **Gancho de pre-commit** (ativar uma vez por
+clone: `git config core.hooksPath .githooks`): roda em segundos as catracas e,
+se o commit toca o motor, a compilação para Windows (`scripts/pre_commit.py`).
+Não substitui a suíte completa abaixo. O que passa no Linux pode quebrar lá (achados de
 2026-09-25: acentos corrompidos no `setup.py` por arquivo UTF-8 salvo como
 cp1252; trechos `#ifdef _WIN32` que o g++ do Linux nunca compila). Antes de
 commitar, o agente em Linux roda:

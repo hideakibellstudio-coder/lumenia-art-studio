@@ -21,12 +21,10 @@ licença de venda) está na "Rota C" de
 `../05-visao-e-futuro/03-benchmark-competitivo-e-rotas-de-produto.md`.
 Ordem = ordem recomendada.
 
-1. **Build com o MSVC verificado.** Os passos 2 a 5 da reorganização
-   (`6671706`, `fc08f11`, `20a83a5`) nunca foram compilados com o MSVC: o CI
-   está só no manual e sem cota. O MinGW compila os 68 `.cpp` para Windows
-   (escalar e AVX2), o que reduz o risco sem eliminá-lo. *Pronto:*
-   `python scripts/build_native.py --simd scalar` e `python -m pytest` verdes
-   na máquina do dono, ou o CI rodado à mão verde.
+1. ~~**Build com o MSVC verificado.**~~ *(feito em 2026-09-25, na máquina do
+   dono: motor compilado com o MSVC e suíte com 933 passando, 6 pulados e 1
+   falha fora do motor (item 18). O teste do laço, que só passa com o motor
+   novo, passou lá.)*
 2. ~~**Versão única do produto.**~~ *(feito em 2026-09-25: o app mostrava
    três versões inventadas — título "Lumenia Brush Engine 2.0", splash
    "v2.0", "Sobre" "2.5.0 (Build 2026.08)" — com o produto em 0.2.0. Fonte
@@ -71,11 +69,11 @@ Ordem = ordem recomendada.
    área no motor, 4 linhas de varredura por pixel com a parte horizontal
    exata; sem suavização, o fim de cada trecho deixou de ser inclusivo — o
    laço ganhava uma coluna à direita. `tests/test_lasso_anti_alias.py`.)*
-8. **Conferência antes do commit sem depender da memória do agente.** Com o
-   CI só à mão, a seção 5.1 do `AGENTS.md` é a única barreira. *Pronto:* hook
-   de pre-commit versionado (`core.hooksPath`) que roda as catracas rápidas e,
-   se o commit toca `engine/`, `bridge/` ou `setup.py`, a conferência do
-   Windows.
+8. ~~**Conferência antes do commit sem depender da memória do agente.**~~
+   *(feito em 2026-09-25: `.githooks/pre-commit` chama `scripts/pre_commit.py`,
+   que roda em ~13 s as catracas e os testes de governança e, se o commit toca
+   o motor, a compilação para Windows. Ativar uma vez por clone:
+   `git config core.hooksPath .githooks`. `tests/test_pre_commit_hook.py`.)*
 9. **Cobertura da entrada da caneta.** `input_router.py` tem 29% de
    cobertura e `handle_pointer_press` complexidade 47; `overlay_renderer.py`
    tem 7%. É o caminho mais sensível do produto.

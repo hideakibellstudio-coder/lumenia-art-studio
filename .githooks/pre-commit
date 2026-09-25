@@ -1,0 +1,8 @@
+#!/bin/sh
+# Conferência antes de cada commit (AGENTS.md, seção 5.1): scripts/pre_commit.py.
+# Ativar uma vez por clone:   git config core.hooksPath .githooks
+# Pular numa emergência:      git commit --no-verify
+if command -v python >/dev/null 2>&1; then
+    exec python scripts/pre_commit.py
+fi
+exec python3 scripts/pre_commit.py

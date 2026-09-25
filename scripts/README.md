@@ -16,6 +16,7 @@ Cada script roda sozinho (`python scripts/<nome>.py`); os de build estão em AGE
 | `lumenia_installer.iss` | Script do Inno Setup do instalador oficial. |
 | `generate_compile_commands.py` | Gera `compile_commands.json` capturando as chamadas reais do MSVC (para o ARCcC-Navigator). |
 | `boot_smoke.py` | Fumaça do boot da casca, sem janela real. |
+| `pre_commit.py` | Conferência rápida antes do commit (chamada por `.githooks/pre-commit`): catracas e testes de governança em segundos e, se o commit toca o motor, a compilação para Windows. |
 | `run_soak_test.py` | Bateria rápida só do pincel nativo, sem widgets. |
 | `soak_full_session.py` | Gate de sessão longa: MainWindow real com traço, camadas, salvar e MDI. |
 | `monitor_session.ps1` | Amostra memória e handles do Lumenia durante uma sessão real de pintura. |

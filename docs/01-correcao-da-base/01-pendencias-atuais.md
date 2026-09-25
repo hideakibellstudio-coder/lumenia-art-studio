@@ -74,9 +74,10 @@ Ordem = ordem recomendada.
    que roda em ~13 s as catracas e os testes de governança e, se o commit toca
    o motor, a compilação para Windows. Ativar uma vez por clone:
    `git config core.hooksPath .githooks`. `tests/test_pre_commit_hook.py`.)*
-9. **Cobertura da entrada da caneta.** `input_router.py` tem 29% de
-   cobertura e `handle_pointer_press` complexidade 47; `overlay_renderer.py`
-   tem 7%. É o caminho mais sensível do produto.
+9. ~~**Cobertura da entrada da caneta.**~~ *(feito em 2026-09-25:
+   `tests/test_canvas_input_router.py` (23 testes, canvas e motor reais) e
+   `tests/test_canvas_overlay_renderer.py` (15). Cobertura medida só com eles:
+   `input_router.py` 29% → 84%, `overlay_renderer.py` 7% → 95%.)*
 10. **`StrokeOrchestrator.cpp` na parede (447 linhas).** O censo do
     `AGENTS.md` e o teste de LOC só olham `ui/`. *Pronto:* arquivo dividido
     por responsabilidade e censo/teste cobrindo o C++.

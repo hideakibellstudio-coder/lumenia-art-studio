@@ -37,6 +37,8 @@
 | `test_buffer_contract.py` | Snapshots survive native mutations/destruction; malformed inputs never mutate. |
 | `test_canonical_enums_contract.py` | Contrato dos enums canonicos de Simetria e Reguas -- o motor define, a interface consome. |
 | `test_canvas_cursor_interactions.py` | Testes de Regressão e Contrato para o Sistema de Cursor do Canvas (ARCcC v2) Valida o comportamento dos cursores de viewport, renderizadores de ferramentas, feedback tátil de pan/zoom e sincronização reativa do raio de pincel. |
+| `test_canvas_input_router.py` | Entrada da caneta e do teclado no canvas (`CanvasInputRouter`) com o `RenderWidget` e o motor reais: pan, zoom por arraste, conta-gotas, balde, varinha, seleções, laço, formas, transformação, traço (ponta borracha, linha com Shift) e teclas. |
+| `test_canvas_overlay_renderer.py` | Sobreposições do canvas (`OverlayRenderer`) desenhadas num QImage: formigas da seleção, prévias de seleção e laço, alças da transformação e do Distorcer, prévia de formas e lupa do conta-gotas. |
 | `test_color_harmony.py` | Harmonias no painel "Cores & Harmonias" -- 2026-09-23. |
 | `test_color_management_cms.py` | Test Suite: LittleCMS Professional Color Management, ICC Profiles, Soft-Proofing & LMN Persistence. |
 | `test_compositing_characterization.py` | Teste de caracterizacao da composicao: fixa o resultado ATUAL em pixels. |

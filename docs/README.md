@@ -63,6 +63,14 @@ e com a ponte entrando só por `AladynEngine.hpp`; plugins em `ui/plugins`;
 `01-correcao-da-base/01-pendencias-atuais.md` ("Próximas tasks", 18 itens);
 produto em `05-visao-e-futuro/03-benchmark-competitivo-e-rotas-de-produto.md`
 (Rota C comercial, paridade e posicionamento).
+**Feito em seguida** (itens 2 a 7 das próximas tasks): versão única do
+produto (o app mostrava "2.0", "v2.0" e "2.5.0"); avisos de licença de
+terceiros no portátil e no instalador; queda nativa registrada em
+`logs/native_crash.log`; linter (ruff, 237 achados → 0); motor sem avisos
+do compilador (18 → 0) com a conferência do Windows em `-Werror`; Anti-Alias
+do laço, que era ignorado. Achado no caminho: um teste que só roda no Windows
+ainda pedia `--include-package=plugins` e falharia na máquina do dono.
+Suíte depois disso: 940 testes, 935 passam, 5 pulados.
 **Números medidos** (Linux, Python 3.11, offscreen, base `9038c9c`): 925
 testes, 920 passam e 5 pulados; cobertura de `ui/` 78%; 114 de 114 pastas
 com README; 0 ciclos entre pastas do motor (eram 9) e 2 no Python (eram 9);

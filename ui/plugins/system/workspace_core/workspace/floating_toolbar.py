@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class FloatingToolbar(FloatingToolWindow):
-    """Barra de ferramentas flutuante em formato de cápsula escura estilo Lumenia 2.0.
+    """Barra de ferramentas flutuante em formato de cápsula escura.
 
     View do ToolState: clicar num botão pede a troca ao estado; o destaque do
     botão muda quando o estado avisa (qualquer que seja a origem da troca).

@@ -19,6 +19,7 @@ from .view_menu import ViewMenu
 from .window_menu import WindowMenu
 from .help_menu import HelpMenu
 from .settings_menu import SettingsMenu
+from ui.infrastructure.app_info import APP_NAME, APP_VERSION
 from ui.infrastructure.runtime_paths import resource_path
 
 
@@ -133,7 +134,7 @@ class MenuBar(QtWidgets.QMenuBar):
         icon_path = resource_path("assets", "images", "icon_lumenia.png")
         if icon_path.is_file():
             act_brand = QtGui.QAction(QtGui.QIcon(str(icon_path)), "", self)
-            act_brand.setToolTip("Lumenia 2.0 • Clique para Sobre o Software")
+            act_brand.setToolTip(f"{APP_NAME} {APP_VERSION} • Clique para Sobre o Software")
             act_brand.triggered.connect(self.aboutRequested.emit)
             self.addAction(act_brand)
 

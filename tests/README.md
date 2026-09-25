@@ -20,6 +20,7 @@
 | `arccc_governance_rules.py` | FONTE ÚNICA das regras quantitativas ARCcC usadas pelos testes de governança. |
 | `arccc_package_docs.py` | Documentação por pasta (ARCcC): TODA pasta do repositório tem README.md. |
 | `test_advanced_geometry_dialog.py` | Tests for Phase 3: AdvancedGeometryDialog ARCcC v2 decomposition. |
+| `test_app_version.py` | A versão do produto tem fonte única (`ui/infrastructure/app_info.py`): confere `pyproject.toml`, `setup.py`, instalador, README, EULA e a janela "Sobre", e barra versão escrita à mão na interface. |
 | `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
 | `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ (plugins incluídos) pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `ui.plugins.*` fora dos plugins e do carregador do que já tinha. |
 | `test_arccc_cpp_and_docs_governance.py` | Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++). |

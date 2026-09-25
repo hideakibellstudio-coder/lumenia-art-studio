@@ -33,6 +33,7 @@ from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.i18n import I18nManager, tr
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.registry import ServiceRegistry
+from ui.infrastructure.app_info import APP_NAME
 from ui.infrastructure.runtime_paths import resource_path
 from ui.core.shortcut_registry import ShortcutRegistry
 from ui.core.state import install_app_state
@@ -51,7 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Lumenia Brush Engine 2.0")
+        self.setWindowTitle(APP_NAME)
         icon_path = resource_path("assets", "images", "icon_lumenia.png")
         if icon_path.is_file():
             self.setWindowIcon(QtGui.QIcon(str(icon_path)))

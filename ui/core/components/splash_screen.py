@@ -8,6 +8,7 @@ dos módulos do sistema sendo carregados.
 
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.infrastructure.app_info import APP_DISPLAY_VERSION
 from ui.infrastructure.runtime_paths import resource_path
 
 
@@ -100,7 +101,7 @@ class LumeniaSplashScreen(QtWidgets.QWidget):
         badge_hbox = QtWidgets.QHBoxLayout()
         badge_hbox.setSpacing(8)
         
-        lbl_badge = QtWidgets.QLabel("v2.0 • ALADYN C++ Native Core")
+        lbl_badge = QtWidgets.QLabel(f"v{APP_DISPLAY_VERSION} • ALADYN C++ Native Core")
         lbl_badge.setStyleSheet("""
             background-color: rgba(147, 51, 234, 0.25);
             color: #d8b4fe;

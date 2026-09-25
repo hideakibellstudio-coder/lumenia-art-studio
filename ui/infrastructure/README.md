@@ -14,6 +14,7 @@ Cada subpasta tem a sua (ver o README dela). Os mais usados:
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Marca o pacote. |
+| `app_info.py` | Nome e versão do produto, fonte única para a interface; `tests/test_app_version.py` confere as cópias do empacotamento. |
 | `runtime_paths.py` | Caminhos de recursos que funcionam no repositório e no executável empacotado (`resource_path`). |
 
 | Pasta | Responsabilidade |

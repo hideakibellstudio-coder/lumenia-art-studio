@@ -10,6 +10,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.infrastructure.i18n import tr
+from ui.infrastructure.app_info import APP_DISPLAY_VERSION
 from ui.infrastructure.runtime_paths import resource_path
 from ui.infrastructure.icons import get_icon
 
@@ -53,7 +54,7 @@ class AboutDialog(BaseFramelessDialog):
         self.lbl_sub = QtWidgets.QLabel(tr("app.tagline", "Digital Art & Paint Studio • Professional Edition"))
         self.lbl_sub.setProperty("accent", "true")
 
-        self.lbl_ver = QtWidgets.QLabel(f"{tr('dialogs.version', 'Versão')} 2.5.0 (Build 2026.08)")
+        self.lbl_ver = QtWidgets.QLabel(f"{tr('dialogs.version', 'Versão')} {APP_DISPLAY_VERSION}")
         self.lbl_ver.setProperty("muted", "true")
 
         v_info.addWidget(self.lbl_name)
@@ -133,7 +134,7 @@ class AboutDialog(BaseFramelessDialog):
         if hasattr(self, "lbl_sub"):
             self.lbl_sub.setText(tr("app.tagline", "Digital Art & Paint Studio • Professional Edition"))
         if hasattr(self, "lbl_ver"):
-            self.lbl_ver.setText(f"{tr('dialogs.version', 'Versão')} 2.5.0 (Build 2026.08)")
+            self.lbl_ver.setText(f"{tr('dialogs.version', 'Versão')} {APP_DISPLAY_VERSION}")
         if hasattr(self, "spec_labels"):
             for item in self.spec_labels:
                 lbl_t, key, default = item[0], item[1], item[2]

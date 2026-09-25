@@ -6,8 +6,7 @@ import os
 from pathlib import Path
 import sys
 
-
-APP_NAME = "Lumenia"
+from ui.infrastructure.app_info import APP_NAME
 
 
 def is_packaged() -> bool:

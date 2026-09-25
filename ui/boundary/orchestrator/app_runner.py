@@ -12,6 +12,7 @@ import logging
 from PySide6 import QtWidgets, QtGui, QtCore
 from ui.infrastructure.logging import setup_senior_logging, get_logger
 from ui.core.components.splash_screen import LumeniaSplashScreen
+from ui.infrastructure.app_info import APP_DISPLAY_VERSION, APP_NAME, APP_VERSION
 from ui.infrastructure.runtime_paths import resource_path
 from ui.boundary.orchestrator.main_window import MainWindow
 
@@ -26,7 +27,7 @@ def launch(args: list[str] | None = None) -> int:
     setup_senior_logging(log_level)
 
     logger = get_logger("MainApp")
-    logger.info("🎨 Inicializando Lumenia Brush Engine 2.0 (ARCcC Runtime)...")
+    logger.info("🎨 Inicializando %s %s...", APP_NAME, APP_DISPLAY_VERSION)
 
     # 2. Inicialização da Aplicação Qt (desativa compressão de eventos para preservar cadência real da caneta/mouse)
     # (os dois atributos existem em todo Qt 6; o PySide6 é a versão mínima)
@@ -37,6 +38,8 @@ def launch(args: list[str] | None = None) -> int:
     app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(args)
+    app.setApplicationName(APP_NAME)
+    app.setApplicationVersion(APP_VERSION)
 
     # Injeta a folha de estilos do tema globalmente na QApplication (diálogos, popups e janelas)
     from ui.infrastructure.theme.manager import ThemeManager
@@ -73,5 +76,5 @@ def launch(args: list[str] | None = None) -> int:
     window = MainWindow()
     splash.finish(window)
 
-    logger.info("✨ Lumenia 2.0 inicializado e pronto para interação do usuário.")
+    logger.info("✨ %s %s inicializado e pronto para interação do usuário.", APP_NAME, APP_VERSION)
     return app.exec()

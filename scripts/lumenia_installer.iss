@@ -1,6 +1,6 @@
 ; ==============================================================================
 ;  LUMENIA ART STUDIO — INNO SETUP SCRIPT
-;  Gera o instalador oficial Lumenia_Setup_v0.2.0.exe
+;  Gera o instalador oficial Lumenia_Setup_v<MyAppVersion>.exe
 ; ==============================================================================
 
 #define MyAppName "Lumenia"

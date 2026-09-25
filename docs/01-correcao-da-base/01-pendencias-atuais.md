@@ -27,11 +27,12 @@ Ordem = ordem recomendada.
    (escalar e AVX2), o que reduz o risco sem eliminá-lo. *Pronto:*
    `python scripts/build_native.py --simd scalar` e `python -m pytest` verdes
    na máquina do dono, ou o CI rodado à mão verde.
-2. **Versão única do produto.** A janela "Sobre" mostra "2.5.0 (Build
-   2026.08)"; o produto é 0.2.0, escrito à mão em `pyproject.toml`,
-   `setup.py`, `scripts/lumenia_installer.iss`, `README.md` e
-   `TERMS_AND_LICENSE.txt`. *Pronto:* uma fonte só, lida pelo app, e um teste
-   que falha se uma cópia divergir.
+2. ~~**Versão única do produto.**~~ *(feito em 2026-09-25: o app mostrava
+   três versões inventadas — título "Lumenia Brush Engine 2.0", splash
+   "v2.0", "Sobre" "2.5.0 (Build 2026.08)" — com o produto em 0.2.0. Fonte
+   única `ui/infrastructure/app_info.py`; `tests/test_app_version.py` confere
+   `pyproject.toml`, `setup.py`, instalador, README, EULA e o "Sobre", e barra
+   versão escrita à mão na interface.)*
 3. **Avisos de licença de terceiros.** O `TERMS_AND_LICENSE.txt` não cita
    Qt/PySide6 (LGPLv3), pybind11, NumPy nem Pillow/LittleCMS, e o portátil e o
    instalador não levam o texto dessas licenças. Distribuir assim descumpre a

@@ -4,15 +4,15 @@
 #include "../texture/Texture2D.hpp"
 #include "../texture/ProceduralTextures.hpp"
 #include "../math/BezierCurve.hpp"
-#include "../math/MathUtils.hpp"
-#include "../raster/Dab.hpp"
+#include "../../utils/MathUtils.hpp"
+#include "../../utils/ColorRGBA.hpp"
 #include <memory>
 
 namespace aladyn::engine::canvas {
 
 class CanvasTexture {
 public:
-    raster::ColorRGBA backgroundColor{255, 255, 255, 255};
+    utils::ColorRGBA backgroundColor{255, 255, 255, 255};
 
     bool canvasGrainEnabled{false};
     double canvasGrainScale{1.0};
@@ -33,7 +33,7 @@ public:
             }
             if (canvasGrainContrast != 1.0 && canvasGrainContrast > 0.0) {
                 const double halfSpan = 0.5 / canvasGrainContrast;
-                h = math::MathUtils::smoothstep(0.5 - halfSpan, 0.5 + halfSpan, h);
+                h = utils::MathUtils::smoothstep(0.5 - halfSpan, 0.5 + halfSpan, h);
             }
             heightLUT[i] = canvasTextureCurve.sample(h);
         }

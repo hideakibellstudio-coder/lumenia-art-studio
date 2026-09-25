@@ -10,15 +10,15 @@ static constexpr double PI = 3.14159265358979323846;
 
 // ─── AMOSTAGEM & INTERPOLAÇÃO ───────────────────────────────────────────────
 
-ColorRGBA TransformEngine::sampleNearest(const canvas::PixelBuffer& src, double u, double v) noexcept {
+utils::ColorRGBA TransformEngine::sampleNearest(const canvas::PixelBuffer& src, double u, double v) noexcept {
     return transform::sampleNearest(src, u, v);
 }
 
-ColorRGBA TransformEngine::sampleBilinear(const canvas::PixelBuffer& src, double u, double v) noexcept {
+utils::ColorRGBA TransformEngine::sampleBilinear(const canvas::PixelBuffer& src, double u, double v) noexcept {
     return transform::sampleBilinear(src, u, v);
 }
 
-ColorRGBA TransformEngine::sampleBicubic(const canvas::PixelBuffer& src, double u, double v) noexcept {
+utils::ColorRGBA TransformEngine::sampleBicubic(const canvas::PixelBuffer& src, double u, double v) noexcept {
     return transform::sampleBicubic(src, u, v);
 }
 
@@ -26,10 +26,10 @@ ColorRGBA TransformEngine::sampleBicubic(const canvas::PixelBuffer& src, double 
 
 bool TransformEngine::beginTransform(
     document::Layer* activeLayer,
-    const SelectionMask* selectionMask,
+    const selection::SelectionMask* selectionMask,
     int canvasWidth,
     int canvasHeight,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex
 ) {
     if (!activeLayer || activeLayer->isFilter() || activeLayer->isGroup()) return false;
@@ -84,7 +84,7 @@ bool TransformEngine::beginTransform(
     const int bw = maxX - minX + 1;
     const int bh = maxY - minY + 1;
 
-    m_state.sourceBounds = math::Rect2D{
+    m_state.sourceBounds = utils::Rect2D{
         static_cast<double>(minX),
         static_cast<double>(minY),
         static_cast<double>(bw),
@@ -100,7 +100,7 @@ bool TransformEngine::beginTransform(
     m_state.flipH = false;
     m_state.flipV = false;
 
-    m_sourceBuffer = std::make_unique<canvas::PixelBuffer>(bw, bh, ColorRGBA{0, 0, 0, 0});
+    m_sourceBuffer = std::make_unique<canvas::PixelBuffer>(bw, bh, utils::ColorRGBA{0, 0, 0, 0});
 
     // Copia os pixels da camada ativa para o sourceBuffer
     auto& grid = activeLayer->getTileGrid();
@@ -185,7 +185,7 @@ bool TransformEngine::beginTransform(
     return true;
 }
 
-math::Rect2D TransformEngine::calculateDestBounds(
+utils::Rect2D TransformEngine::calculateDestBounds(
     double dx, double dy,
     double scaleX, double scaleY,
     double rotationDeg,
@@ -229,7 +229,7 @@ math::Rect2D TransformEngine::calculateDestBounds(
         if (destY > maxY) maxY = destY;
     }
 
-    return math::Rect2D{
+    return utils::Rect2D{
         std::floor(minX) - 2.0,
         std::floor(minY) - 2.0,
         std::ceil(maxX - minX) + 4.0,
@@ -245,9 +245,9 @@ bool TransformEngine::flipLayer(
     bool horizontal,
     int canvasWidth,
     int canvasHeight,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex,
-    math::Rect2D& outDirtyBounds
+    utils::Rect2D& outDirtyBounds
 ) {
     if (!beginTransform(activeLayer, nullptr, canvasWidth, canvasHeight, undoManager, activeLayerIndex)) {
         return false;
@@ -269,9 +269,9 @@ bool TransformEngine::rotateLayer90(
     bool clockwise,
     int canvasWidth,
     int canvasHeight,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex,
-    math::Rect2D& outDirtyBounds
+    utils::Rect2D& outDirtyBounds
 ) {
     if (!beginTransform(activeLayer, nullptr, canvasWidth, canvasHeight, undoManager, activeLayerIndex)) {
         return false;

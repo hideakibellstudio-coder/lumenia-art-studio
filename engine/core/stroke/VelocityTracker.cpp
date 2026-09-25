@@ -6,13 +6,13 @@ namespace aladyn::engine::stroke {
 VelocityTracker::VelocityTracker(double smoothingFactor) noexcept
     : m_smoothingFactor(smoothingFactor) {}
 
-void VelocityTracker::reset(math::Point2D initialPosition, double timestamp) noexcept {
+void VelocityTracker::reset(utils::Point2D initialPosition, double timestamp) noexcept {
     m_lastPosition = initialPosition;
     m_lastTimestamp = timestamp;
     m_smoothedVelocity = 0.0;
 }
 
-double VelocityTracker::update(math::Point2D currentPosition, double timestamp) noexcept {
+double VelocityTracker::update(utils::Point2D currentPosition, double timestamp) noexcept {
     const double dt = timestamp - m_lastTimestamp;
     if (dt > 0.0) {
         const double distance = m_lastPosition.distanceTo(currentPosition);

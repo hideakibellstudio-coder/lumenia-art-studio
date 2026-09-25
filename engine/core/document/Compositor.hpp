@@ -15,8 +15,8 @@ class Compositor {
 public:
     Compositor(int width, int height);
 
-    static raster::ColorRGBA blendPixel(raster::ColorRGBA src, double layerOpacity, raster::ColorRGBA dst, LayerBlendMode mode);
-    static raster::ColorRGBA blendPixel(raster::ColorRGBA src, double layerOpacity, raster::ColorRGBA dst, LayerBlendMode mode, bool linearGamma, bool deepColor);
+    static utils::ColorRGBA blendPixel(utils::ColorRGBA src, double layerOpacity, utils::ColorRGBA dst, LayerBlendMode mode);
+    static utils::ColorRGBA blendPixel(utils::ColorRGBA src, double layerOpacity, utils::ColorRGBA dst, LayerBlendMode mode, bool linearGamma, bool deepColor);
     static void applyFilterToBuffer(const FilterLayer& filter, canvas::PixelBuffer& buffer, int minX = 0, int maxX = -1, int minY = 0, int maxY = -1);
 
     // Opções do pipeline são propriedades do compositor, e não apenas
@@ -26,11 +26,11 @@ public:
     void setDeepColor(bool enabled) noexcept { m_deepColor = enabled; }
     [[nodiscard]] bool isDeepColor() const noexcept { return m_deepColor; }
 
-    void composite(const std::vector<const Layer*>& layers, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
-    void composite(const std::vector<std::unique_ptr<Layer>>& layers, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
+    void composite(const std::vector<const Layer*>& layers, canvas::PixelBuffer& outputBuffer, const utils::ColorRGBA& bgColor = {255, 255, 255, 255});
+    void composite(const std::vector<std::unique_ptr<Layer>>& layers, canvas::PixelBuffer& outputBuffer, const utils::ColorRGBA& bgColor = {255, 255, 255, 255});
 
-    void compositeRegion(const std::vector<const Layer*>& layers, const math::Rect2D& region, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
-    void compositeRegion(const std::vector<std::unique_ptr<Layer>>& layers, const math::Rect2D& region, canvas::PixelBuffer& outputBuffer, const raster::ColorRGBA& bgColor = {255, 255, 255, 255});
+    void compositeRegion(const std::vector<const Layer*>& layers, const utils::Rect2D& region, canvas::PixelBuffer& outputBuffer, const utils::ColorRGBA& bgColor = {255, 255, 255, 255});
+    void compositeRegion(const std::vector<std::unique_ptr<Layer>>& layers, const utils::Rect2D& region, canvas::PixelBuffer& outputBuffer, const utils::ColorRGBA& bgColor = {255, 255, 255, 255});
 
     // Sobrecarga com scratch layer: durante um traço ativo, insere o scratchGrid
     // como overlay imediatamente acima da camada ativa correspondente (activeLayerTarget),
@@ -38,9 +38,9 @@ public:
     // normalmente (conteúdo pré-existente) e o scratch aparece sobre ela.
     void compositeRegionWithScratch(
         const std::vector<const Layer*>& layers,
-        const math::Rect2D& region,
+        const utils::Rect2D& region,
         canvas::PixelBuffer& outputBuffer,
-        const raster::ColorRGBA& bgColor,
+        const utils::ColorRGBA& bgColor,
         const canvas::TileGrid& scratchGrid,
         const Layer* activeLayerTarget,
         LayerBlendMode scratchBlendMode,

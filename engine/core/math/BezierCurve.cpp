@@ -13,11 +13,11 @@ BezierCurve::BezierCurve(CurvePreset preset) {
     setPreset(preset);
 }
 
-BezierCurve::BezierCurve(Point2D p0, Point2D p1, Point2D p2, Point2D p3) {
+BezierCurve::BezierCurve(utils::Point2D p0, utils::Point2D p1, utils::Point2D p2, utils::Point2D p3) {
     setControlPoints(p0, p1, p2, p3);
 }
 
-void BezierCurve::setControlPoints(Point2D p0, Point2D p1, Point2D p2, Point2D p3) {
+void BezierCurve::setControlPoints(utils::Point2D p0, utils::Point2D p1, utils::Point2D p2, utils::Point2D p3) {
     m_controlPoints[0] = p0;
     m_controlPoints[1] = p1;
     m_controlPoints[2] = p2;
@@ -60,8 +60,8 @@ void BezierCurve::setPower(double power) {
         const double x = static_cast<double>(i) / (LUT_SIZE - 1);
         m_lut[i] = std::pow(x, power);
     }
-    m_controlPoints = {Point2D{0.0, 0.0}, Point2D{1.0 / 3.0, std::pow(1.0 / 3.0, power)},
-                      Point2D{2.0 / 3.0, std::pow(2.0 / 3.0, power)}, Point2D{1.0, 1.0}};
+    m_controlPoints = {utils::Point2D{0.0, 0.0}, utils::Point2D{1.0 / 3.0, std::pow(1.0 / 3.0, power)},
+                      utils::Point2D{2.0 / 3.0, std::pow(2.0 / 3.0, power)}, utils::Point2D{1.0, 1.0}};
 }
 
 void BezierCurve::rebuildLut() {

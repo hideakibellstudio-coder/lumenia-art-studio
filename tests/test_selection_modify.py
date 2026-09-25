@@ -1,7 +1,7 @@
 """Seleção -> Modificar (Expandir, Contrair, Suavizar Borda) -- 2026-09-23.
 
 Antes, o diálogo abria, mostrava "Seleção modificada" e nada mudava. Agora a
-morfologia roda no motor (engine/core/raster/SelectionMorphology.cpp): a borda
+morfologia roda no motor (engine/core/selection/SelectionMorphology.cpp): a borda
 é a linha de 50% da máscara e o raio é medido em pixels inteiros nos lados
 retos (retângulo 10x10 expandido 5 vira 20x20).
 """

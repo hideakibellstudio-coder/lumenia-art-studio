@@ -1,6 +1,5 @@
 #include "BindingsCommon.hpp"
 #include "BufferContract.hpp"
-#include "../../../engine/core/color/ColorProfile.hpp"
 
 namespace aladyn::bridge {
 

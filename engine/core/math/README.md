@@ -1,18 +1,15 @@
-# `engine/core/math/` — matemática e geometria
+# `engine/core/math/` — geometria de guias e viewport
 
-**Responsabilidade:** tipos geométricos e cálculos puros: pontos, retângulos, Bézier, transformação de viewport, simetria e o snap de guias (reto, curvo, curvilíneo 6P e perspectiva).
+**Responsabilidade:** cálculos geométricos com regra do produto: Bézier das curvas de pressão, transformação de viewport, simetria e o snap de guias (reto, curvo, curvilíneo 6P e perspectiva), estimativa de trajetória.
 
 ## Porta de entrada
 
-Não há porta única; os tipos básicos são `Point2D.hpp` e `Rect2D.hpp`.
+Não há porta única: cada serviço tem o seu cabeçalho. Os tipos básicos (`Point2D`, `Rect2D`, `MathUtils`) estão em `engine/utils/`.
 
 ## Arquivos
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `Point2D.hpp` | Ponto 2D com operações vetoriais. |
-| `Rect2D.hpp` | Retângulo alinhado aos eixos. |
-| `MathUtils.hpp` | Funções utilitárias (clamp, interpolação). |
 | `BezierCurve.hpp` | Curva Bézier com presets e tabela (LUT) para curvas de pressão (declaração). |
 | `BezierCurve.cpp` | Implementação. |
 | `ViewportTransform.hpp` | Transformação canvas ↔ tela (zoom, pan, rotação, espelho) (declaração). |
@@ -33,10 +30,7 @@ Não há porta única; os tipos básicos são `Point2D.hpp` e `Rect2D.hpp`.
 ## Regras
 
 - Lei do rio nº 2: snap, simetria e transformação existem aqui; a UI não reimplementa em Python.
-
-## Dívida conhecida (medida em 2026-09-24)
-
-`SymmetryEngine.hpp` inclui `raster/Dab.hpp`: a matemática depende da rasterização (e `raster/` depende daqui), ciclo `math` ↔ `raster`. Pelo ARCcC esta pasta seria utilitário (`engine/utils/`).
+- Módulo mais baixo de `engine/core`: só inclui `engine/utils`.
 
 ## Dependências internas
 
@@ -44,5 +38,5 @@ Medidas pelo teste `tests/test_arccc_package_docs.py` (`#include` e `import`):
 dependência nova entre pastas entra nesta lista no mesmo commit.
 
 <!-- arccc:deps -->
-- `engine/core/raster`
+- `engine/utils`
 <!-- /arccc:deps -->

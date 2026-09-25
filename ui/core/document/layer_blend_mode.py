@@ -1,6 +1,6 @@
 """LayerBlendMode -- enum canonico para o modo de mesclagem de camadas.
 
-Espelha 1:1 `engine/core/document/LayerNode.hpp::LayerBlendMode`. O motor
+Espelha 1:1 `engine/core/document/blending/LayerBlendMode.hpp::LayerBlendMode`. O motor
 (`engine/core/document/blending/BlendEquations.hpp`) implementa os 13 modos
 por completo, incluindo ColorDodge/ColorBurn/Difference/Exclusion/Add, e o
 binding pybind11 (`bridge/core/bindings/bind_math_brush.cpp`,
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 class LayerBlendMode(IntEnum):
-    """Espelha `document::LayerBlendMode` (engine/core/document/LayerNode.hpp)."""
+    """Espelha `document::LayerBlendMode` (engine/core/document/blending/LayerBlendMode.hpp)."""
 
     NORMAL = 0
     MULTIPLY = 1

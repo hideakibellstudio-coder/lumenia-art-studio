@@ -22,9 +22,9 @@ bool TransformEngine::commitTransform(
     int interpMode,
     int canvasWidth,
     int canvasHeight,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex,
-    math::Rect2D& outDirtyBounds
+    utils::Rect2D& outDirtyBounds
 ) {
     if (!m_state.active || !m_sourceBuffer || !activeLayer) {
         reset();
@@ -81,7 +81,7 @@ bool TransformEngine::commitTransform(
             return u >= -0.5 && u <= srcW + 0.5 && v >= -0.5 && v <= srcH + 0.5;
         });
 
-    outDirtyBounds = math::Rect2D{
+    outDirtyBounds = utils::Rect2D{
         std::min(m_state.sourceBounds.x, destBounds.x),
         std::min(m_state.sourceBounds.y, destBounds.y),
         std::max(m_state.sourceBounds.x + m_state.sourceBounds.width, destBounds.x + destBounds.width) - std::min(m_state.sourceBounds.x, destBounds.x),
@@ -96,9 +96,9 @@ bool TransformEngine::cancelTransform(
     document::Layer* activeLayer,
     int canvasWidth,
     int canvasHeight,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex,
-    math::Rect2D& outDirtyBounds
+    utils::Rect2D& outDirtyBounds
 ) {
     if (!m_state.active || !m_sourceBuffer || !activeLayer) {
         reset();

@@ -29,7 +29,7 @@ def create_backends() -> List[EngineBackend]:
     except Exception as e:  # pragma: no cover
         import logging
         logging.getLogger(__name__).warning(
-            f"[engine_backends] Falha ao preparar AladynBackend: {e}"
+            f"[bridge_client] Falha ao preparar AladynBackend: {e}"
         )
 
     return backends

@@ -1,5 +1,5 @@
 #include "ProceduralTextures.hpp"
-#include "../math/MathUtils.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <cmath>
 #include <random>
 #include <algorithm>
@@ -52,7 +52,7 @@ std::shared_ptr<Texture2D> ProceduralTextures::createShapePreset(ShapePreset pre
                     break;
                 }
             }
-            alpha = math::MathUtils::clamp(alpha, 0.0, 1.0);
+            alpha = utils::MathUtils::clamp(alpha, 0.0, 1.0);
             tex->setPixel(x, y, static_cast<uint8_t>(alpha * 255.0));
         }
     }
@@ -91,7 +91,7 @@ std::shared_ptr<Texture2D> ProceduralTextures::createHeightPreset(HeightPreset p
                     break;
                 }
             }
-            val = math::MathUtils::clamp(val, 0.0, 255.0);
+            val = utils::MathUtils::clamp(val, 0.0, 255.0);
             tex->setPixel(x, y, static_cast<uint8_t>(val));
         }
     }

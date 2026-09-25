@@ -14,7 +14,7 @@ static inline double linearToSrgb(double c) noexcept {
 }
 
 // Simulação espectral CMYK física com ganho de ponto e limite de tinta
-static inline raster::ColorRGBA simulateCmyk(
+static inline utils::ColorRGBA simulateCmyk(
     double r, double g, double b, uint8_t a,
     double dotGain, double inkLimit, double paperWhiteness, double blackDensity
 ) noexcept {
@@ -45,7 +45,7 @@ static inline raster::ColorRGBA simulateCmyk(
     double simG = (1.0 - m) * (1.0 - k * blackDensity) * paperWhiteness;
     double simB = (1.0 - y) * (1.0 - k * blackDensity) * paperWhiteness;
 
-    return raster::ColorRGBA{
+    return utils::ColorRGBA{
         static_cast<uint8_t>(std::clamp(simR * 255.0, 0.0, 255.0)),
         static_cast<uint8_t>(std::clamp(simG * 255.0, 0.0, 255.0)),
         static_cast<uint8_t>(std::clamp(simB * 255.0, 0.0, 255.0)),
@@ -53,7 +53,7 @@ static inline raster::ColorRGBA simulateCmyk(
     };
 }
 
-raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, ColorProfileType profile) noexcept {
+utils::ColorRGBA ColorProfileManager::transformColor(utils::ColorRGBA src, ColorProfileType profile) noexcept {
     if (profile == ColorProfileType::Default_sRGB) {
         return src;
     }
@@ -68,7 +68,7 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
             const double p3R = 0.8225 * r + 0.1775 * g;
             const double p3G = 0.0332 * r + 0.9668 * g;
             const double p3B = 0.0171 * r + 0.0724 * g + 0.9105 * b;
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(std::clamp(p3R * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(p3G * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(p3B * 255.0, 0.0, 255.0)),
@@ -80,13 +80,13 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
             const double ar = std::clamp(r * 0.98, 0.0, 1.0);
             const double ag = std::clamp(g * 1.12, 0.0, 1.0);
             const double ab = std::clamp(b * (g > 0.3 ? 1.08 : 1.0), 0.0, 1.0);
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(ar * 255.0), static_cast<uint8_t>(ag * 255.0),
                 static_cast<uint8_t>(ab * 255.0), src.a};
         }
 
         case ColorProfileType::Rec2020:
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(std::clamp(std::pow(r, 0.9) * 1.05 * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(std::pow(g, 0.9) * 1.08 * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(std::pow(b, 0.9) * 1.05 * 255.0, 0.0, 255.0)), src.a};
@@ -106,7 +106,7 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
         case ColorProfileType::Acromatopsia: {
             const double lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
             const uint8_t lumByte = static_cast<uint8_t>(std::clamp(lum * 255.0, 0.0, 255.0));
-            return raster::ColorRGBA{lumByte, lumByte, lumByte, src.a};
+            return utils::ColorRGBA{lumByte, lumByte, lumByte, src.a};
         }
 
         case ColorProfileType::ColorBlindness_Protanopia: {
@@ -114,7 +114,7 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
             const double pr = 0.56667 * r + 0.43333 * g;
             const double pg = 0.55833 * r + 0.44167 * g;
             const double pb = 0.24167 * g + 0.75833 * b;
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(std::clamp(pr * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(pg * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(pb * 255.0, 0.0, 255.0)),
@@ -127,7 +127,7 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
             const double dr = 0.62500 * r + 0.37500 * g;
             const double dg = 0.70000 * r + 0.30000 * g;
             const double db = 0.30000 * g + 0.70000 * b;
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(std::clamp(dr * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(dg * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(db * 255.0, 0.0, 255.0)),
@@ -140,7 +140,7 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
             const double tr = 0.95000 * r + 0.05000 * g;
             const double tg = 0.43333 * g + 0.56667 * b;
             const double tb = 0.47500 * g + 0.52500 * b;
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(std::clamp(tr * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(tg * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(tb * 255.0, 0.0, 255.0)),
@@ -149,7 +149,7 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
         }
 
         case ColorProfileType::Linear_sRGB:
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(std::clamp(std::pow(r, 2.2) * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(std::pow(g, 2.2) * 255.0, 0.0, 255.0)),
                 static_cast<uint8_t>(std::clamp(std::pow(b, 2.2) * 255.0, 0.0, 255.0)), src.a};
@@ -159,7 +159,7 @@ raster::ColorRGBA ColorProfileManager::transformColor(raster::ColorRGBA src, Col
                 constexpr double a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
                 return std::clamp((value * (a * value + b)) / (value * (c * value + d) + e), 0.0, 1.0);
             };
-            return raster::ColorRGBA{
+            return utils::ColorRGBA{
                 static_cast<uint8_t>(tone(r * 1.2) * 255.0),
                 static_cast<uint8_t>(tone(g * 1.2) * 255.0),
                 static_cast<uint8_t>(tone(b * 1.2) * 255.0), src.a};
@@ -187,8 +187,8 @@ void ColorProfileManager::transformBuffer(
 
     for (int i = 0; i < pixelCount; ++i) {
         const int idx = i * 4;
-        raster::ColorRGBA srcCol{srcRgba[idx], srcRgba[idx + 1], srcRgba[idx + 2], srcRgba[idx + 3]};
-        raster::ColorRGBA outCol = transformColor(srcCol, profile);
+        utils::ColorRGBA srcCol{srcRgba[idx], srcRgba[idx + 1], srcRgba[idx + 2], srcRgba[idx + 3]};
+        utils::ColorRGBA outCol = transformColor(srcCol, profile);
         dstRgba[idx]     = outCol.r;
         dstRgba[idx + 1] = outCol.g;
         dstRgba[idx + 2] = outCol.b;

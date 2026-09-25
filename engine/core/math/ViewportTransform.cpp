@@ -82,32 +82,32 @@ void ViewportTransform::updateMatrices() noexcept {
     }
 }
 
-Point2D ViewportTransform::canvasToScreen(double cx, double cy) const noexcept {
-    return Point2D{
+utils::Point2D ViewportTransform::canvasToScreen(double cx, double cy) const noexcept {
+    return utils::Point2D{
         m_m00 * cx + m_m01 * cy + m_tx,
         m_m10 * cx + m_m11 * cy + m_ty
     };
 }
 
-Point2D ViewportTransform::screenToCanvas(double sx, double sy) const noexcept {
-    return Point2D{
+utils::Point2D ViewportTransform::screenToCanvas(double sx, double sy) const noexcept {
+    return utils::Point2D{
         m_inv00 * sx + m_inv01 * sy + m_invTx,
         m_inv10 * sx + m_inv11 * sy + m_invTy
     };
 }
 
-Rect2D ViewportTransform::getVisibleCanvasBounds() const noexcept {
-    const Point2D c0 = screenToCanvas(0.0, 0.0);
-    const Point2D c1 = screenToCanvas(m_viewportWidth, 0.0);
-    const Point2D c2 = screenToCanvas(m_viewportWidth, m_viewportHeight);
-    const Point2D c3 = screenToCanvas(0.0, m_viewportHeight);
+utils::Rect2D ViewportTransform::getVisibleCanvasBounds() const noexcept {
+    const utils::Point2D c0 = screenToCanvas(0.0, 0.0);
+    const utils::Point2D c1 = screenToCanvas(m_viewportWidth, 0.0);
+    const utils::Point2D c2 = screenToCanvas(m_viewportWidth, m_viewportHeight);
+    const utils::Point2D c3 = screenToCanvas(0.0, m_viewportHeight);
 
     const double minX = std::max(0.0, std::min({c0.x, c1.x, c2.x, c3.x}));
     const double minY = std::max(0.0, std::min({c0.y, c1.y, c2.y, c3.y}));
     const double maxX = std::min(m_canvasWidth,  std::max({c0.x, c1.x, c2.x, c3.x}));
     const double maxY = std::min(m_canvasHeight, std::max({c0.y, c1.y, c2.y, c3.y}));
 
-    return Rect2D{minX, minY, std::max(0.0, maxX - minX), std::max(0.0, maxY - minY)};
+    return utils::Rect2D{minX, minY, std::max(0.0, maxX - minX), std::max(0.0, maxY - minY)};
 }
 
 std::tuple<int, int, int, int> ViewportTransform::getVisibleTileRange(
@@ -119,7 +119,7 @@ std::tuple<int, int, int, int> ViewportTransform::getVisibleTileRange(
         return {0, 0, 0, 0};
     }
 
-    const Rect2D bounds = getVisibleCanvasBounds();
+    const utils::Rect2D bounds = getVisibleCanvasBounds();
     int minTx = static_cast<int>(std::floor(bounds.x / tileSize));
     int minTy = static_cast<int>(std::floor(bounds.y / tileSize));
     int maxTx = static_cast<int>(std::floor((bounds.x + bounds.width) / tileSize));
@@ -139,7 +139,7 @@ bool ViewportTransform::isTileVisible(int tx, int ty, int tileSize) const noexce
     const double tileMaxX = tileMinX + tileSize;
     const double tileMaxY = tileMinY + tileSize;
 
-    const Rect2D bounds = getVisibleCanvasBounds();
+    const utils::Rect2D bounds = getVisibleCanvasBounds();
     const double visMinX = bounds.x;
     const double visMinY = bounds.y;
     const double visMaxX = bounds.x + bounds.width;

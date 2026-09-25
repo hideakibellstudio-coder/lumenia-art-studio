@@ -4,7 +4,7 @@
 
 ## Porta de entrada
 
-`IBrushEngine.hpp` (interface comum); a lista concreta de motores fica em `engine/boundary/public-api/internal/BrushEngineFactory.hpp`.
+`IBrushEngine.hpp` (interface comum); a lista concreta de motores fica em `engine/boundary/orchestrator/BrushEngineFactory.hpp`.
 
 ## Arquivos
 
@@ -31,6 +31,7 @@
 ## Regras
 
 - Motor novo: herda `IBrushEngine`, entra no `BrushEngineFactory` e no `EngineType` de `brush/BrushProfile.hpp`.
+- Módulo mais alto de `engine/core`: pode incluir qualquer módulo abaixo, e nenhum módulo do núcleo o inclui.
 
 ## Dependências internas
 
@@ -41,6 +42,6 @@ dependência nova entre pastas entra nesta lista no mesmo commit.
 - `engine/core/brush`
 - `engine/core/canvas`
 - `engine/core/document`
-- `engine/core/math`
 - `engine/core/raster`
+- `engine/utils`
 <!-- /arccc:deps -->

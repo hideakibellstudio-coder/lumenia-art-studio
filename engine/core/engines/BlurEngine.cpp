@@ -1,6 +1,6 @@
 #include "BlurEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -10,7 +10,7 @@
 namespace aladyn::engine::engines {
 
 // Amostra segura na TileGrid da camada ativa
-static inline raster::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
+static inline utils::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
     if (globalX < 0 || globalX >= tileGrid.getWidth() || globalY < 0 || globalY >= tileGrid.getHeight()) {
         return {0, 0, 0, 0};
     }
@@ -20,11 +20,11 @@ static inline raster::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, i
     const int lpy = globalY % canvas::Tile::TILE_SIZE;
 
     const canvas::Tile* t = const_cast<canvas::TileGrid&>(tileGrid).getTile(tx, ty);
-    return t ? t->getBuffer().getPixel(lpx, lpy) : raster::ColorRGBA{0, 0, 0, 0};
+    return t ? t->getBuffer().getPixel(lpx, lpy) : utils::ColorRGBA{0, 0, 0, 0};
 }
 
 void BlurEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,
     canvas::TileGrid& tileGrid,
@@ -67,7 +67,7 @@ void BlurEngine::renderDab(
     const int snapH = snapMaxY - snapMinY + 1;
     if (snapW <= 0 || snapH <= 0) return;
 
-    std::vector<raster::ColorRGBA> srcBlock(static_cast<size_t>(snapW * snapH));
+    std::vector<utils::ColorRGBA> srcBlock(static_cast<size_t>(snapW * snapH));
     for (int sy = 0; sy < snapH; ++sy) {
         const int gy = snapMinY + sy;
         for (int sx = 0; sx < snapW; ++sx) {
@@ -104,7 +104,7 @@ void BlurEngine::renderDab(
             for (int k = -kernelR; k <= kernelR; ++k) {
                 const int kx = std::clamp(sx + k, 0, snapW - 1);
                 const float w = kernelWeights[static_cast<size_t>(k + kernelR)];
-                const raster::ColorRGBA px = srcBlock[static_cast<size_t>(rowOffset + kx)];
+                const utils::ColorRGBA px = srcBlock[static_cast<size_t>(rowOffset + kx)];
 
                 const float aNorm = static_cast<float>(px.a) / 255.0f;
                 if (px.a > 0) {
@@ -124,7 +124,7 @@ void BlurEngine::renderDab(
     }
 
     // Passo Vertical (1D) + Aplicação do Dab na TileGrid
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -174,7 +174,7 @@ void BlurEngine::renderDab(
                 const double mixFactor = dab.opacity * shapeAlpha * blurStr;
                 if (mixFactor <= 0.0) continue;
 
-                const raster::ColorRGBA origPx = srcBlock[static_cast<size_t>(snapY * snapW + snapX)];
+                const utils::ColorRGBA origPx = srcBlock[static_cast<size_t>(snapY * snapW + snapX)];
 
                 // Acumulação vertical dos resultados intermediários
                 float sumR = 0.0f, sumG = 0.0f, sumB = 0.0f, sumA = 0.0f;
@@ -238,7 +238,7 @@ void BlurEngine::renderDab(
                     outA = static_cast<double>(origPx.a) * (1.0 - curMixFactor) + smoothedA * curMixFactor;
                 }
 
-                buffer.setPixel(px, py, raster::ColorRGBA{
+                buffer.setPixel(px, py, utils::ColorRGBA{
                     static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
                     static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
                     static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),

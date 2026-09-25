@@ -18,7 +18,7 @@
 
 ## Regras
 
-- Sem dependência de pixels: esta pasta só conhece `math/`.
+- Sem dependência de pixels: esta pasta só conhece `engine/utils` (`Point2D`).
 
 ## Dependências internas
 
@@ -26,5 +26,5 @@ Medidas pelo teste `tests/test_arccc_package_docs.py` (`#include` e `import`):
 dependência nova entre pastas entra nesta lista no mesmo commit.
 
 <!-- arccc:deps -->
-- `engine/core/math`
+- `engine/utils`
 <!-- /arccc:deps -->

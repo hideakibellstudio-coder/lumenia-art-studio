@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_PIXEL_CONTEXT_HPP
 #define ALADYN_ENGINE_PIXEL_CONTEXT_HPP
 
-#include "SelectionMask.hpp"
+#include "../selection/SelectionMask.hpp"
 
 namespace aladyn::engine::document {
 class Layer;
@@ -17,7 +17,7 @@ namespace aladyn::engine::raster {
 struct PixelContext {
     bool alphaLocked{false};
     const document::Layer* clipBaseLayer{nullptr};
-    const SelectionMask* selectionMask{nullptr};
+    const selection::SelectionMask* selectionMask{nullptr};
     const void* stencilMask{nullptr};
 };
 

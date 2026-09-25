@@ -1,6 +1,6 @@
 #include "WatercolorEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -9,7 +9,7 @@
 namespace aladyn::engine::engines {
 
 void WatercolorEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& canvasTexture,
     canvas::TileGrid& tileGrid,
@@ -30,7 +30,7 @@ void WatercolorEngine::renderDab(
     const double effectiveRadius = r * (1.0 + bleedRatio * waterLevel * 0.4);
     const double maxR = effectiveRadius / aspect + 2.0;
 
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -132,7 +132,7 @@ void WatercolorEngine::renderDab(
                 if (curEffectiveOpacity <= 0.0) continue;
 
                 // 5. Compositing Transparente Estilo Veladura (Glaze)
-                const raster::ColorRGBA dst = buffer.getPixel(px, py);
+                const utils::ColorRGBA dst = buffer.getPixel(px, py);
 
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
@@ -152,7 +152,7 @@ void WatercolorEngine::renderDab(
                     const double mixG = dstG * (1.0 - curEffectiveOpacity) + glazeG * curEffectiveOpacity;
                     const double mixB = dstB * (1.0 - curEffectiveOpacity) + glazeB * curEffectiveOpacity;
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(mixR * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(mixG * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(mixB * 255.0, 0.0, 255.0)),
@@ -164,7 +164,7 @@ void WatercolorEngine::renderDab(
 
                 if (dst.a == 0) {
                     // Deposição em transparência pura
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         dab.color.r,
                         dab.color.g,
                         dab.color.b,
@@ -196,7 +196,7 @@ void WatercolorEngine::renderDab(
 
                     const double outA = std::clamp(dstA + curEffectiveOpacity * (1.0 - dstA) * 0.4, 0.0, 1.0);
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(mixR * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(mixG * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(mixB * 255.0, 0.0, 255.0)),

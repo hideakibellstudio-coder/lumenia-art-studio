@@ -1,6 +1,6 @@
 #include "InkerEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -9,7 +9,7 @@
 namespace aladyn::engine::engines {
 
 void InkerEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,  // NÃO USADO
     canvas::TileGrid& tileGrid,
@@ -22,7 +22,7 @@ void InkerEngine::renderDab(
     const double aspect = std::max(0.05, profile.tip.aspectRatio);
     const double maxR = r / aspect + 2.0;
 
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -152,7 +152,7 @@ void InkerEngine::renderDab(
 
                 if (curFinalAlpha <= 0.0) continue;
 
-                const raster::ColorRGBA dst = buffer.getPixel(px, py);
+                const utils::ColorRGBA dst = buffer.getPixel(px, py);
 
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
@@ -164,7 +164,7 @@ void InkerEngine::renderDab(
                     const double outG = (dab.color.g * srcA + dst.g * dstA * invSrcA) / (srcA + dstA * invSrcA);
                     const double outB = (dab.color.b * srcA + dst.b * dstA * invSrcA) / (srcA + dstA * invSrcA);
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
@@ -182,7 +182,7 @@ void InkerEngine::renderDab(
                     const double outG = (dab.color.g * curFinalAlpha + dst.g * dstA * (1.0 - curFinalAlpha)) / outA;
                     const double outB = (dab.color.b * curFinalAlpha + dst.b * dstA * (1.0 - curFinalAlpha)) / outA;
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),

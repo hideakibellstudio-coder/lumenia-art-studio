@@ -42,7 +42,7 @@ import aladyn_engine_native as native
 
 GOLDEN_PATH = Path(__file__).parent / "golden" / "compositing_golden.json"
 
-# engine/core/document/FilterLayer.hpp — mantenha sincronizado com o enum.
+# engine/core/document/filters/FilterSettings.hpp — mantenha sincronizado com o enum.
 FILTER_TYPES = {
     "hue_sat": 0,
     "brightness_contrast": 1,

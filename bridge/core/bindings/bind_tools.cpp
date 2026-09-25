@@ -8,7 +8,7 @@ using namespace aladyn::engine;
 void bind_tools(py::module_& /*m*/, FacadeClass& facade) {
     facade
         // Preenchimento (Flood Fill / Balde de Tinta Nativo)
-        .def("flood_fill", [](boundary::PaintEngineFacade& self, int seedX, int seedY, const raster::ColorRGBA& fillColor,
+        .def("flood_fill", [](boundary::PaintEngineFacade& self, int seedX, int seedY, const utils::ColorRGBA& fillColor,
                               int tolerance, bool contiguous, int expandPx, int gapClosingPx, bool antiAliasing, bool sampleAllLayers) {
             return self.floodFill(seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing, sampleAllLayers);
         }, py::arg("seed_x"), py::arg("seed_y"), py::arg("fill_color"),

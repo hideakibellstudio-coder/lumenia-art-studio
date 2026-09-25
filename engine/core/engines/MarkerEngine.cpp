@@ -1,6 +1,6 @@
 #include "MarkerEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -9,7 +9,7 @@
 namespace aladyn::engine::engines {
 
 void MarkerEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,
     canvas::TileGrid& tileGrid,
@@ -28,7 +28,7 @@ void MarkerEngine::renderDab(
     const double effectiveRadius = r * (1.0 + wetness * 0.12);
     const double maxR = effectiveRadius / aspect + 2.0;
 
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -158,7 +158,7 @@ void MarkerEngine::renderDab(
                 if (curOpacity <= 0.0) continue;
 
                 // 4. Blending Autêntico de Marcador (Veladura translúcida contínua sem colapso de cor)
-                const raster::ColorRGBA dst = buffer.getPixel(px, py);
+                const utils::ColorRGBA dst = buffer.getPixel(px, py);
 
                 const double srcR = static_cast<double>(dab.color.r) / 255.0;
                 const double srcG = static_cast<double>(dab.color.g) / 255.0;
@@ -180,7 +180,7 @@ void MarkerEngine::renderDab(
                     const double outG = std::max(minG, dstG * (1.0 - absorb * (1.0 - srcG)));
                     const double outB = std::max(minB, dstB * (1.0 - absorb * (1.0 - srcB)));
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB * 255.0, 0.0, 255.0)),
@@ -192,7 +192,7 @@ void MarkerEngine::renderDab(
 
                 if (dst.a == 0) {
                     // Primeiro depósito: veladura translúcida da tinta do marcador
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         dab.color.r,
                         dab.color.g,
                         dab.color.b,
@@ -213,7 +213,7 @@ void MarkerEngine::renderDab(
                     const double outG = std::max(minG, dstG * (1.0 - absorb * (1.0 - srcG)));
                     const double outB = std::max(minB, dstB * (1.0 - absorb * (1.0 - srcB)));
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB * 255.0, 0.0, 255.0)),

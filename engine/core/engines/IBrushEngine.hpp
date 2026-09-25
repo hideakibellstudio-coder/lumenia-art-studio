@@ -5,7 +5,7 @@
 #include "../canvas/CanvasTexture.hpp"
 #include "../canvas/TileGrid.hpp"
 #include "../canvas/PixelBuffer.hpp"
-#include "../raster/Dab.hpp"
+#include "../../utils/Dab.hpp"
 #include "../raster/PixelContext.hpp"
 
 namespace aladyn::engine::engines {
@@ -29,7 +29,7 @@ public:
     //   - BlurEngine  → lê compositeBuffer, aplica kernel Gaussiano, escreve no tileGrid.
     //   - SmudgeEngine → lê compositeBuffer (coleta cor), deposita cor carregada no tileGrid.
     virtual void renderDab(
-        const raster::Dab& dab,
+        const utils::Dab& dab,
         const brush::BrushProfile& profile,
         const canvas::CanvasTexture& canvasTexture,
         canvas::TileGrid& tileGrid,

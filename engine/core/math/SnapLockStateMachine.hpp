@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_SNAP_LOCK_STATE_MACHINE_HPP
 #define ALADYN_ENGINE_SNAP_LOCK_STATE_MACHINE_HPP
 
-#include "Point2D.hpp"
+#include "../../utils/Point2D.hpp"
 #include "SnapCandidate.hpp"
 #include "TrajectoryEstimator.hpp"
 #include <vector>
@@ -18,7 +18,7 @@ struct SnapLockConfig {
 };
 
 struct SnapLockResult {
-    Point2D point{ 0.0, 0.0 };
+    utils::Point2D point{ 0.0, 0.0 };
     SnapLockState state{ SnapLockState::Searching };
     int candidateIndex{ -1 }; // -1 = nenhuma candidata tentativa/comprometida
     int streak{ 0 };
@@ -48,7 +48,7 @@ struct SnapLockResult {
 class SnapLockStateMachine {
 public:
     static SnapLockResult step(
-        const Point2D& rawPoint,
+        const utils::Point2D& rawPoint,
         const TrajectoryEstimate& trajectory,
         const std::vector<SnapCandidate>& candidates,
         SnapLockState prevState,
@@ -63,10 +63,10 @@ private:
     // recalcular no chamador.
     static double scoreCandidate(
         const SnapCandidate& candidate,
-        const Point2D& rawPoint,
+        const utils::Point2D& rawPoint,
         const TrajectoryEstimate& trajectory,
         const SnapLockConfig& config,
-        Point2D& outClosest
+        utils::Point2D& outClosest
     ) noexcept;
 };
 

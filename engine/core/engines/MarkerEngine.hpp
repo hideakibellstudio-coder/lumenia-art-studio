@@ -25,7 +25,7 @@ public:
     MarkerEngine() = default;
 
     void renderDab(
-        const raster::Dab& dab,
+        const utils::Dab& dab,
         const brush::BrushProfile& profile,
         const canvas::CanvasTexture& canvasTexture,
         canvas::TileGrid& tileGrid,

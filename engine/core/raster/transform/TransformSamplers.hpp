@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_TRANSFORM_SAMPLERS_HPP
 #define ALADYN_ENGINE_TRANSFORM_SAMPLERS_HPP
 
-#include "../Dab.hpp"
+#include "../../../utils/ColorRGBA.hpp"
 #include "../../canvas/PixelBuffer.hpp"
 #include <algorithm>
 #include <cmath>
@@ -18,13 +18,13 @@ inline double cubicWeight(double t) noexcept {
     return 0.0;
 }
 
-inline ColorRGBA sampleNearest(const canvas::PixelBuffer& src, double u, double v) noexcept {
+inline utils::ColorRGBA sampleNearest(const canvas::PixelBuffer& src, double u, double v) noexcept {
     const int x = static_cast<int>(std::floor(u));
     const int y = static_cast<int>(std::floor(v));
     return src.getPixel(x, y);
 }
 
-inline ColorRGBA sampleBilinear(const canvas::PixelBuffer& src, double u, double v) noexcept {
+inline utils::ColorRGBA sampleBilinear(const canvas::PixelBuffer& src, double u, double v) noexcept {
     const int w = src.getWidth();
     const int h = src.getHeight();
 
@@ -67,17 +67,17 @@ inline ColorRGBA sampleBilinear(const canvas::PixelBuffer& src, double u, double
     const double outA = topA * (1.0 - fy) + botA * fy;
 
     if (outA > 0.001) {
-        return ColorRGBA{
+        return utils::ColorRGBA{
             static_cast<uint8_t>(std::clamp(outR / outA, 0.0, 255.0)),
             static_cast<uint8_t>(std::clamp(outG / outA, 0.0, 255.0)),
             static_cast<uint8_t>(std::clamp(outB / outA, 0.0, 255.0)),
             static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
         };
     }
-    return ColorRGBA{0, 0, 0, 0};
+    return utils::ColorRGBA{0, 0, 0, 0};
 }
 
-inline ColorRGBA sampleBicubic(const canvas::PixelBuffer& src, double u, double v) noexcept {
+inline utils::ColorRGBA sampleBicubic(const canvas::PixelBuffer& src, double u, double v) noexcept {
     const int w = src.getWidth();
     const int h = src.getHeight();
 
@@ -122,14 +122,14 @@ inline ColorRGBA sampleBicubic(const canvas::PixelBuffer& src, double u, double 
 
     accA = std::clamp(accA, 0.0, 1.0);
     if (accA > 0.001) {
-        return ColorRGBA{
+        return utils::ColorRGBA{
             static_cast<uint8_t>(std::clamp(accR / accA, 0.0, 255.0)),
             static_cast<uint8_t>(std::clamp(accG / accA, 0.0, 255.0)),
             static_cast<uint8_t>(std::clamp(accB / accA, 0.0, 255.0)),
             static_cast<uint8_t>(std::clamp(accA * 255.0, 0.0, 255.0))
         };
     }
-    return ColorRGBA{0, 0, 0, 0};
+    return utils::ColorRGBA{0, 0, 0, 0};
 }
 
 } // namespace aladyn::engine::raster::transform

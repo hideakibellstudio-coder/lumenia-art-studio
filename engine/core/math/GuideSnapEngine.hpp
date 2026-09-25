@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_GUIDE_SNAP_ENGINE_HPP
 #define ALADYN_ENGINE_GUIDE_SNAP_ENGINE_HPP
 
-#include "Point2D.hpp"
+#include "../../utils/Point2D.hpp"
 #include <vector>
 
 namespace aladyn::engine::math {
@@ -19,13 +19,13 @@ enum class GuideType {
 
 struct GuideConfig {
     GuideType type{GuideType::None};
-    Point2D p0{0.0, 0.0};
-    Point2D p1{100.0, 100.0};
-    Point2D p2{200.0, 200.0};
-    Point2D p3{300.0, 300.0};
-    Point2D vpA{400.0, 300.0};
-    Point2D vpB{-1000.0, 300.0};
-    Point2D vpC{400.0, -2000.0};
+    utils::Point2D p0{0.0, 0.0};
+    utils::Point2D p1{100.0, 100.0};
+    utils::Point2D p2{200.0, 200.0};
+    utils::Point2D p3{300.0, 300.0};
+    utils::Point2D vpA{400.0, 300.0};
+    utils::Point2D vpB{-1000.0, 300.0};
+    utils::Point2D vpC{400.0, -2000.0};
     double cx{0.0};
     double cy{0.0};
     double fov{130.0};
@@ -58,10 +58,10 @@ public:
     // travamento. OnePoint/TwoPoint/ThreePoint/Isometric/Curvilinear
     // retornam rawPoint inalterado aqui -- ver snapPerspective() e
     // CurvilinearSnapEngine::snap() para esses tipos (Fase C3.1 / C2b).
-    static Point2D snapPoint(
+    static utils::Point2D snapPoint(
         const GuideConfig& config,
-        const Point2D& rawPoint,
-        const Point2D* lastPoint = nullptr
+        const utils::Point2D& rawPoint,
+        const utils::Point2D* lastPoint = nullptr
     ) noexcept;
 
     // -- Perspectiva (1P/2P/3P/Isometric) -- Fase C3.1 --------------------
@@ -74,19 +74,19 @@ public:
     // Curvilinear: quem chama informa a direcao travada (se houver, via
     // lockedDir) e recebe de volta o que persistir para a proxima chamada
     // (outLockedDir/outHasLockedDir).
-    static Point2D snapPerspective(
+    static utils::Point2D snapPerspective(
         const GuideConfig& config,
-        const Point2D& rawPoint,
-        const Point2D& strokeStart,
-        const Point2D* lockedDir,
+        const utils::Point2D& rawPoint,
+        const utils::Point2D& strokeStart,
+        const utils::Point2D* lockedDir,
         double zoom,
-        Point2D& outLockedDir,
+        utils::Point2D& outLockedDir,
         bool& outHasLockedDir
     ) noexcept;
 
 private:
-    static Point2D projectToLine(const Point2D& p0, const Point2D& p1, const Point2D& q) noexcept;
-    static Point2D projectToBezier(const Point2D& p0, const Point2D& p1, const Point2D& p2, const Point2D& p3, const Point2D& q) noexcept;
+    static utils::Point2D projectToLine(const utils::Point2D& p0, const utils::Point2D& p1, const utils::Point2D& q) noexcept;
+    static utils::Point2D projectToBezier(const utils::Point2D& p0, const utils::Point2D& p1, const utils::Point2D& p2, const utils::Point2D& p3, const utils::Point2D& q) noexcept;
 };
 
 } // namespace aladyn::engine::math

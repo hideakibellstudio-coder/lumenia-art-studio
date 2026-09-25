@@ -1,5 +1,5 @@
 #include "Texture2D.hpp"
-#include "../math/MathUtils.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -53,10 +53,10 @@ double Texture2D::sampleNormalized(double u, double v, TextureWrapMode wrapMode)
     const double v01 = static_cast<double>(samplePixel(x0, y1, wrapMode)) / 255.0;
     const double v11 = static_cast<double>(samplePixel(x1, y1, wrapMode)) / 255.0;
 
-    const double top = math::MathUtils::lerp(v00, v10, fx);
-    const double bottom = math::MathUtils::lerp(v01, v11, fx);
+    const double top = utils::MathUtils::lerp(v00, v10, fx);
+    const double bottom = utils::MathUtils::lerp(v01, v11, fx);
 
-    return math::MathUtils::lerp(top, bottom, fy);
+    return utils::MathUtils::lerp(top, bottom, fy);
 }
 
 } // namespace aladyn::engine::texture

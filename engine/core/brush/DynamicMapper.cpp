@@ -6,7 +6,7 @@ namespace aladyn::engine::brush {
 
 MappedBrushState DynamicMapper::map(
     const BrushProfile& profile,
-    math::Point2D position,
+    utils::Point2D position,
     double rawPressure,
     double normalizedVelocity,
     double strokeAngle,
@@ -79,14 +79,14 @@ MappedBrushState DynamicMapper::map(
     }
     aspect = std::clamp(aspect, 0.05, 1.0);
 
-    math::Point2D finalPos = position;
-    raster::ColorRGBA color = profile.baseColor;
+    utils::Point2D finalPos = position;
+    utils::ColorRGBA color = profile.baseColor;
 
     return MappedBrushState{finalPos, radius, mappedFlow, rawPressure, angle, color, aspect};
 }
 
 void DynamicMapper::applyJitter(
-    raster::Dab& dab,
+    utils::Dab& dab,
     const BrushProfile& profile
 ) noexcept {
     static thread_local std::mt19937 rng(1337);
@@ -162,7 +162,7 @@ void DynamicMapper::applyJitter(
 
 std::vector<MappedBrushState> DynamicMapper::map_scatter(
     const BrushProfile& profile,
-    math::Point2D position,
+    utils::Point2D position,
     double rawPressure,
     double normalizedVelocity,
     double strokeAngle,

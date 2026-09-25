@@ -3,7 +3,7 @@
 
 namespace aladyn::engine::math {
 
-Point2D SnapCandidateMath::closestPoint(const SnapCandidate& candidate, const Point2D& pt) noexcept {
+utils::Point2D SnapCandidateMath::closestPoint(const SnapCandidate& candidate, const utils::Point2D& pt) noexcept {
     if (candidate.kind == CandidateKind::Line) {
         // dir já é unitário por contrato de quem monta a candidata — projeção
         // sem precisar dividir por |dir|^2 (mesma simplificação já usada em
@@ -12,33 +12,33 @@ Point2D SnapCandidateMath::closestPoint(const SnapCandidate& candidate, const Po
         const double dx = pt.x - candidate.p1.x;
         const double dy = pt.y - candidate.p1.y;
         const double t = dx * candidate.dir.x + dy * candidate.dir.y;
-        return Point2D{ candidate.p1.x + t * candidate.dir.x, candidate.p1.y + t * candidate.dir.y };
+        return utils::Point2D{ candidate.p1.x + t * candidate.dir.x, candidate.p1.y + t * candidate.dir.y };
     }
 
     const double dx = pt.x - candidate.center.x;
     const double dy = pt.y - candidate.center.y;
     const double dist = std::sqrt(dx * dx + dy * dy);
     if (dist > 1e-9) {
-        return Point2D{ candidate.center.x + (dx / dist) * candidate.radius, candidate.center.y + (dy / dist) * candidate.radius };
+        return utils::Point2D{ candidate.center.x + (dx / dist) * candidate.radius, candidate.center.y + (dy / dist) * candidate.radius };
     }
-    return Point2D{ candidate.center.x + candidate.radius, candidate.center.y };
+    return utils::Point2D{ candidate.center.x + candidate.radius, candidate.center.y };
 }
 
-Point2D SnapCandidateMath::tangentAt(const SnapCandidate& candidate, const Point2D& pt) noexcept {
+utils::Point2D SnapCandidateMath::tangentAt(const SnapCandidate& candidate, const utils::Point2D& pt) noexcept {
     if (candidate.kind == CandidateKind::Line) {
         return candidate.dir;
     }
 
-    const Point2D closest = closestPoint(candidate, pt);
+    const utils::Point2D closest = closestPoint(candidate, pt);
     const double rx = closest.x - candidate.center.x;
     const double ry = closest.y - candidate.center.y;
     const double rlen = std::sqrt(rx * rx + ry * ry);
     if (rlen < 1e-9) {
-        return Point2D{ 1.0, 0.0 };
+        return utils::Point2D{ 1.0, 0.0 };
     }
     // Perpendicular ao raio (90 graus anti-horário) — mesma convenção já
     // usada no loop de pontuação de CurvilinearSnapEngine::snap().
-    return Point2D{ -ry / rlen, rx / rlen };
+    return utils::Point2D{ -ry / rlen, rx / rlen };
 }
 
 } // namespace aladyn::engine::math

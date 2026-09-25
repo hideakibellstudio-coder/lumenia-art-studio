@@ -21,15 +21,15 @@ BINARY = OUT / ("history_faults.exe" if os.name == "nt" else "history_faults")
 SOURCES = [
     "tests/native/history_faults.cpp",
     "engine/core/canvas/Tile.cpp", "engine/core/canvas/TileGrid.cpp",
-    "engine/core/canvas/SpatialCuller.cpp", "engine/core/canvas/TileUndoManager.cpp",
-    "engine/core/canvas/TileHistoryRestore.cpp", "engine/core/canvas/ScratchDiskManager.cpp",
-    "engine/core/compression/Lz4Codec.cpp", "engine/core/document/LayerStack.cpp",
+    "engine/core/canvas/SpatialCuller.cpp", "engine/core/history/TileUndoManager.cpp",
+    "engine/core/history/TileHistoryRestore.cpp", "engine/infrastructure/storage/ScratchDiskManager.cpp",
+    "engine/infrastructure/compression/Lz4Codec.cpp", "engine/core/document/LayerStack.cpp",
     "engine/core/document/LayerMerger.cpp", "engine/core/document/FilterLayer.cpp",
     "engine/core/document/Compositor.cpp",
-    "engine/core/document/internal/CompositeRegionSupport.cpp",
-    "engine/core/document/blending/FilterApplier.cpp",
-    "engine/core/document/blending/filters/PointFilters.cpp",
-    "engine/core/document/blending/filters/AreaFilters.cpp",
+    "engine/core/document/CompositeRegionSupport.cpp",
+    "engine/core/document/filters/FilterApplier.cpp",
+    "engine/core/document/filters/PointFilters.cpp",
+    "engine/core/document/filters/AreaFilters.cpp",
 ]
 
 

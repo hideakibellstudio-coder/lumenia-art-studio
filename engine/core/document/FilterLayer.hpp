@@ -2,26 +2,23 @@
 #define ALADYN_ENGINE_FILTER_LAYER_HPP
 
 #include "Layer.hpp"
+#include "filters/FilterSettings.hpp"
 #include <vector>
 #include <string>
 
 namespace aladyn::engine::document {
 
-enum class FilterType {
-    HueSat = 0,             // Matiz / Saturação / Luminosidade (HSV)
-    BrightnessContrast = 1, // Brilho / Contraste / Gama
-    GaussianBlur = 2,       // Desfoque Gaussiano / Movimento
-    ColorBalance = 3,       // Balanço de Cores / Níveis RGB
-    SharpenVignette = 4,    // Nitidez & Vinheta
-    InvertThreshold = 5,    // Inversão & Limiar
-    Pixelate = 6            // Pixelizar (Mosaico procedural)
-};
+using filters::FilterType;
 
 class FilterLayer : public Layer {
 public:
     FilterLayer(const std::string& name, FilterType type, int width = 1, int height = 1);
 
     [[nodiscard]] FilterType getFilterType() const noexcept { return m_filterType; }
+    /// O que o filtro precisa desta camada para rodar (filters::FilterApplier).
+    [[nodiscard]] filters::FilterSettings settings() const noexcept {
+        return {m_filterType, &m_params, getEffectiveOpacity()};
+    }
     void setFilterType(FilterType type) noexcept { m_filterType = type; }
 
     [[nodiscard]] const std::vector<float>& getParams() const noexcept { return m_params; }

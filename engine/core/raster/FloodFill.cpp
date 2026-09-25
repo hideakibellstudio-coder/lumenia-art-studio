@@ -31,17 +31,17 @@ bool FloodFill::execute(
     const canvas::PixelBuffer& sourceBuffer,
     int seedX,
     int seedY,
-    const ColorRGBA& fillColor,
+    const utils::ColorRGBA& fillColor,
     int tolerance,
     bool contiguous,
     int expandPx,
     int gapClosingPx,
     bool antiAliasing,
     canvas::TileGrid& targetGrid,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex,
     const PixelContext& pCtx,
-    math::Rect2D& outAffectedBounds
+    utils::Rect2D& outAffectedBounds
 ) {
     const int width = sourceBuffer.getWidth();
     const int height = sourceBuffer.getHeight();
@@ -59,12 +59,12 @@ bool FloodFill::execute(
     const uint8_t* srcRaw = sourceBuffer.getData();
     if (!srcRaw) return false;
 
-    auto getSrcPixel = [&](int x, int y) noexcept -> ColorRGBA {
+    auto getSrcPixel = [&](int x, int y) noexcept -> utils::ColorRGBA {
         size_t off = static_cast<size_t>(y * width + x) * 4;
-        return ColorRGBA{srcRaw[off + 0], srcRaw[off + 1], srcRaw[off + 2], srcRaw[off + 3]};
+        return utils::ColorRGBA{srcRaw[off + 0], srcRaw[off + 1], srcRaw[off + 2], srcRaw[off + 3]};
     };
 
-    const ColorRGBA targetColor = getSrcPixel(seedX, seedY);
+    const utils::ColorRGBA targetColor = getSrcPixel(seedX, seedY);
 
     // Tolerância Euclidiana máxima em RGB
     const double tolNorm = std::clamp(tolerance, 0, 100) / 100.0;
@@ -72,7 +72,7 @@ bool FloodFill::execute(
     const int maxDistSq = static_cast<int>(std::round(maxDist * maxDist));
 
     auto matchesTarget = [&](int x, int y) noexcept -> bool {
-        const ColorRGBA c = getSrcPixel(x, y);
+        const utils::ColorRGBA c = getSrcPixel(x, y);
         int dr = static_cast<int>(c.r) - static_cast<int>(targetColor.r);
         int dg = static_cast<int>(c.g) - static_cast<int>(targetColor.g);
         int db = static_cast<int>(c.b) - static_cast<int>(targetColor.b);
@@ -207,7 +207,7 @@ bool FloodFill::execute(
 
     if (!anyFilled) return false;
 
-    outAffectedBounds = math::Rect2D{
+    outAffectedBounds = utils::Rect2D{
         static_cast<double>(minX),
         static_cast<double>(minY),
         static_cast<double>(maxX - minX + 1),

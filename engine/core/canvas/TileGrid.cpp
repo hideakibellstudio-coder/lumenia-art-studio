@@ -35,7 +35,7 @@ Tile* TileGrid::getOrCreateTile(int tileX, int tileY) {
     return ptr;
 }
 
-void TileGrid::clearAll(raster::ColorRGBA color) {
+void TileGrid::clearAll(utils::ColorRGBA color) {
     for (auto& [idx, tile] : m_tiles) {
         tile->getBuffer().fill(color);
         tile->setDirty(true);

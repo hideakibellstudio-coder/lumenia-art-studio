@@ -77,7 +77,7 @@ dizer claramente por que o MP4 não aparece.
 ### Rio 4 — Seleção e transformação
 | Item | Status | Evidência |
 |---|---|---|
-| Expandir / Contrair / Suavizar seleção | **EXISTE** (2026-09-23) | `engine/core/raster/SelectionMorphology.cpp`: expandir/contrair por transformada de distância euclidiana exata (custo não depende do raio, borda antisserrilhada, esmaecido preservado) e suavizar por desfoque gaussiano (sigma = raio/2). Borda da tela não contrai. Entra no Desfazer (transação estrutural). `tests/test_selection_modify.py`. |
+| Expandir / Contrair / Suavizar seleção | **EXISTE** (2026-09-23) | `engine/core/selection/SelectionMorphology.cpp`: expandir/contrair por transformada de distância euclidiana exata (custo não depende do raio, borda antisserrilhada, esmaecido preservado) e suavizar por desfoque gaussiano (sigma = raio/2). Borda da tela não contrai. Entra no Desfazer (transação estrutural). `tests/test_selection_modify.py`. |
 | Distorcer / perspectiva na Transformação | **EXISTE** (2026-09-23) | Modo "Distorcer" (painel e barra secundária): cada canto vai para onde é arrastado; lados movem dois cantos; o quad nunca dobra. Commit por homografia no motor (`TransformEngineDistort.cpp`), prévia por `QTransform.quadToQuad` -- o teste confere que os dois levam o mesmo ponto ao mesmo lugar. O laço de amostragem virou `transform/InverseMappedComposite.hpp`, compartilhado com o modo livre. `tests/test_transform_distort.py`. |
 | Tolerância da varinha arrastando | **PARCIAL** | A tolerância existe como controle na barra de opções; ajustar arrastando sobre o canvas, não. |
 

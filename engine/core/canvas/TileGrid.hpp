@@ -28,7 +28,7 @@ public:
     Tile* getTile(int tileX, int tileY);
     Tile* getOrCreateTile(int tileX, int tileY);
 
-    void clearAll(raster::ColorRGBA color = {0, 0, 0, 0});
+    void clearAll(utils::ColorRGBA color = {0, 0, 0, 0});
     // Redimensiona preservando os pixels existentes no offset informado.
     // Usado por canvas resize/crop; nunca recria a camada silenciosamente.
     void resizePreserve(int width, int height, int offsetX = 0, int offsetY = 0);

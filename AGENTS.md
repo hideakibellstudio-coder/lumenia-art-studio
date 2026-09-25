@@ -37,8 +37,8 @@ O ambiente é particionado em diretórios irmãos no nível superior:
 ```text
 + LUMENIA CLEAN/
 ├── Lumenia/                             # Repositório de código 100% puro + .git (sempre leve, ~7 MB)
-│   ├── engine/                          # Motor C++20 puro
-│   ├── bridge/                          # PyBind11 bindings e contratos .pyi
+│   ├── engine/                          # Motor C++20 em camadas: utils/ → infrastructure/ → core/ → boundary/ (orchestrator, public-api)
+│   ├── bridge/                          # PyBind11 bindings e contratos .pyi (do motor, só inclui public-api/AladynEngine.hpp)
 │   ├── ui/                              # Pilar Python/PySide6: boundary/ (casca), core/ (núcleo), infrastructure/ (ponte com o motor, config, idioma, tema, ícones, logging)
 │   ├── plugins/                         # Plugins nativos e manifesto
 │   ├── assets/                          # Ícones e recursos visuais
@@ -247,6 +247,9 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
        identificador com palavra em português não pode aumentar em nenhum
        arquivo (código em inglês; português só em comentário, doc e `tr`).
        Caiu → `python -m tests.arccc_identifier_language --tighten`;
+     - camadas do motor C++ (`tests/test_arccc_cxx_layers.py`): sem ciclo de
+       pasta, subpasta sem incluir a mãe, `#include` só para baixo e a ponte só
+       pela API pública; módulo novo em `engine/core` entra em `CORE_ORDER`;
      - cores literais (`tests/test_hardcoded_colors_ratchet.py`) e varreduras
        cegas/leis do rio (`tests/test_river_ratchets.py`).
    - **Catraca arquitetural:** rode `navigator_verify` e compare a contagem de

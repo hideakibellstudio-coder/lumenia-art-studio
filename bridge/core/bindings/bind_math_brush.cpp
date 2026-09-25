@@ -1,6 +1,4 @@
 #include "BindingsCommon.hpp"
-#include "../../../engine/core/math/ViewportTransform.hpp"
-#include "../../../engine/boundary/public-api/internal/StrokePreviewRenderer.hpp"
 
 namespace aladyn::bridge {
 
@@ -8,12 +6,12 @@ using namespace aladyn::engine;
 
 void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
     // ─── MATH ────────────────────────────────────────────────────────────────
-    py::class_<math::Point2D>(m, "Point2D")
+    py::class_<utils::Point2D>(m, "Point2D")
         .def(py::init<>())
         .def(py::init<double, double>())
-        .def_readwrite("x", &math::Point2D::x)
-        .def_readwrite("y", &math::Point2D::y)
-        .def("distance_to", &math::Point2D::distanceTo);
+        .def_readwrite("x", &utils::Point2D::x)
+        .def_readwrite("y", &utils::Point2D::y)
+        .def("distance_to", &utils::Point2D::distanceTo);
 
     py::enum_<math::CurvePreset>(m, "CurvePreset")
         .value("Linear", math::CurvePreset::Linear)
@@ -97,11 +95,11 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .export_values();
 
     // ─── DAB BLEND MODE (APENAS O QUE O MOTOR SUPORTA) ──────────────────────
-    py::enum_<raster::DabBlendMode>(m, "DabBlendMode")
-        .value("Normal",   raster::DabBlendMode::Normal)
-        .value("Multiply", raster::DabBlendMode::Multiply)
-        .value("Additive", raster::DabBlendMode::Additive)
-        .value("Erase",    raster::DabBlendMode::Erase)
+    py::enum_<utils::DabBlendMode>(m, "DabBlendMode")
+        .value("Normal",   utils::DabBlendMode::Normal)
+        .value("Multiply", utils::DabBlendMode::Multiply)
+        .value("Additive", utils::DabBlendMode::Additive)
+        .value("Erase",    utils::DabBlendMode::Erase)
         .export_values();
 
     // ─── LAYER BLEND MODE (MODO DE MESCLAGEM DAS CAMADAS DO DOCUMENTO) ───────
@@ -130,21 +128,21 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .export_values();
 
     // ─── SELECTION MODE ──────────────────────────────────────────────────────
-    py::enum_<raster::SelectionMode>(m, "SelectionMode")
-        .value("New",       raster::SelectionMode::New)
-        .value("Add",       raster::SelectionMode::Add)
-        .value("Subtract",  raster::SelectionMode::Subtract)
-        .value("Intersect", raster::SelectionMode::Intersect)
+    py::enum_<selection::SelectionMode>(m, "SelectionMode")
+        .value("New",       selection::SelectionMode::New)
+        .value("Add",       selection::SelectionMode::Add)
+        .value("Subtract",  selection::SelectionMode::Subtract)
+        .value("Intersect", selection::SelectionMode::Intersect)
         .export_values();
 
-    py::class_<raster::ColorRGBA>(m, "ColorRGBA")
+    py::class_<utils::ColorRGBA>(m, "ColorRGBA")
         .def(py::init<>())
         .def(py::init<uint8_t, uint8_t, uint8_t, uint8_t>(),
              py::arg("r"), py::arg("g"), py::arg("b"), py::arg("a") = 255)
-        .def_readwrite("r", &raster::ColorRGBA::r)
-        .def_readwrite("g", &raster::ColorRGBA::g)
-        .def_readwrite("b", &raster::ColorRGBA::b)
-        .def_readwrite("a", &raster::ColorRGBA::a);
+        .def_readwrite("r", &utils::ColorRGBA::r)
+        .def_readwrite("g", &utils::ColorRGBA::g)
+        .def_readwrite("b", &utils::ColorRGBA::b)
+        .def_readwrite("a", &utils::ColorRGBA::a);
 
     // ─── STROKE ──────────────────────────────────────────────────────────────
     py::enum_<stroke::PointerEventType>(m, "PointerEventType")
@@ -155,7 +153,7 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
 
     py::class_<stroke::PointerEvent>(m, "PointerEvent")
         .def(py::init<>())
-        .def(py::init<stroke::PointerEventType, math::Point2D, double, double, double, double, double>(),
+        .def(py::init<stroke::PointerEventType, utils::Point2D, double, double, double, double, double>(),
              py::arg("type"), py::arg("position"),
              py::arg("pressure") = 1.0, py::arg("timestamp") = 0.0,
              py::arg("tilt_x") = 0.0, py::arg("tilt_y") = 0.0, py::arg("twist") = 0.0)
@@ -174,11 +172,11 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def(py::init<double>(), py::arg("stabilization_percentage") = 40.0)
         .def("set_stabilization_percentage", &stroke::DynamicStabilizer::setStabilizationPercentage)
         .def("get_stabilization_percentage", &stroke::DynamicStabilizer::getStabilizationPercentage)
-        .def("reset", [](stroke::DynamicStabilizer& self, math::Point2D initialPosition, double initialPressure) {
+        .def("reset", [](stroke::DynamicStabilizer& self, utils::Point2D initialPosition, double initialPressure) {
             self.reset(initialPosition, initialPressure);
         }, py::arg("initial_position"), py::arg("initial_pressure") = 1.0)
         .def("reanchor_initial_position", &stroke::DynamicStabilizer::reanchorInitialPosition, py::arg("new_initial_position"))
-        .def("update", [](stroke::DynamicStabilizer& self, math::Point2D rawPosition, double rawPressure, double normalizedVelocity) {
+        .def("update", [](stroke::DynamicStabilizer& self, utils::Point2D rawPosition, double rawPressure, double normalizedVelocity) {
             return self.update(rawPosition, rawPressure, normalizedVelocity);
         }, py::arg("raw_position"), py::arg("raw_pressure") = 1.0, py::arg("normalized_velocity") = 0.0)
         .def("flush", &stroke::DynamicStabilizer::flush, py::arg("end_position"), py::arg("steps") = 3)
@@ -312,12 +310,12 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readonly("output_flow", &boundary::TelemetryData::outputFlow);
 
     // ─── PRÉVIA DO TRAÇO (painel de pincel) ──────────────────────────────────
-    // Restaurado em 2026-09-22; ver StrokePreviewRenderer.hpp para o histórico.
+    // Restaurado em 2026-09-22; ver engine/boundary/orchestrator/StrokePreviewRenderer.hpp para o histórico.
     m.def("render_stroke_preview", [](const brush::BrushProfile& profile, int width, int height) -> py::bytes {
         std::vector<uint8_t> rgba;
         {
             py::gil_scoped_release release;
-            rgba = boundary::internal::renderStrokePreview(profile, width, height);
+            rgba = boundary::renderStrokePreview(profile, width, height);
         }
         return py::bytes(reinterpret_cast<const char*>(rgba.data()), rgba.size());
     }, py::arg("profile"), py::arg("width") = 260, py::arg("height") = 52);

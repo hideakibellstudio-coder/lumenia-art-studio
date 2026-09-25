@@ -1,6 +1,5 @@
 #include "BindingsCommon.hpp"
 #include "BufferContract.hpp"
-#include "../../../engine/core/raster/LargeBrushOptimizer.hpp"
 
 namespace aladyn::bridge {
 
@@ -82,34 +81,14 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         .def("get_shape_preview_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             const auto tex = self.getBrushProfile().shapeTexture;
             if (!tex) {
-                constexpr int sz = 64;
-                const double center = 32.0;
-                const double maxDist = 30.0;
-                const double hardness = std::clamp(self.getBrushProfile().hardness, 0.0, 0.99);
-                const double hardSpan = hardness * maxDist;
-                const double invSoftSpan = 1.0 / std::max(0.001, maxDist - hardSpan);
-                std::vector<uint8_t> preview(sz * sz, 0);
-                for (int y = 0; y < sz; ++y) {
-                    const double dy = static_cast<double>(y) + 0.5 - center;
-                    for (int x = 0; x < sz; ++x) {
-                        const double dx = static_cast<double>(x) + 0.5 - center;
-                        const double dist = std::sqrt(dx * dx + dy * dy);
-                        if (dist > maxDist) continue;
-                        double a = 1.0;
-                        if (dist > hardSpan) {
-                            const double t = (maxDist - dist) * invSoftSpan;
-                            a = raster::LargeBrushOptimizer::smoothHermite(t);
-                        }
-                        preview[static_cast<size_t>(y * sz + x)] = static_cast<uint8_t>(std::clamp(a * 255.0, 0.0, 255.0));
-                    }
-                }
-                return py::bytes(reinterpret_cast<const char*>(preview.data()), preview.size());
+                const auto mask = boundary::renderRoundTipMask(self.getBrushProfile().hardness);
+                return py::bytes(reinterpret_cast<const char*>(mask.data()), mask.size());
             }
             return pixelSnapshot(tex->getData(), checkedRasterBytes(tex->getWidth(), tex->getHeight(), 1));
         })
         .def("get_shape_preview_dimensions", [](boundary::PaintEngineFacade& self) {
             const auto tex = self.getBrushProfile().shapeTexture;
-            return tex ? std::make_pair(tex->getWidth(), tex->getHeight()) : std::make_pair(64, 64);
+            return tex ? std::make_pair(tex->getWidth(), tex->getHeight()) : std::make_pair(boundary::kRoundTipPreviewSize, boundary::kRoundTipPreviewSize);
         })
         .def("get_brush_height_preview_buffer", [](boundary::PaintEngineFacade& self) -> py::object {
             const auto tex = self.getBrushProfile().brushHeightTexture;

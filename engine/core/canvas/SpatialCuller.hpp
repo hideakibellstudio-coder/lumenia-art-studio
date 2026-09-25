@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_SPATIAL_CULLER_HPP
 #define ALADYN_ENGINE_SPATIAL_CULLER_HPP
 
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "Tile.hpp"
 #include <vector>
 #include <utility>
@@ -20,7 +20,7 @@ struct TileIndex {
 class SpatialCuller {
 public:
     static std::vector<TileIndex> getIntersectingTiles(
-        const math::Rect2D& boundingBox,
+        const utils::Rect2D& boundingBox,
         int documentWidth,
         int documentHeight
     );

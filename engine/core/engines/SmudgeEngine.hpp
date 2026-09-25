@@ -2,7 +2,7 @@
 #define ALADYN_ENGINE_SMUDGE_ENGINE_HPP
 
 #include "IBrushEngine.hpp"
-#include "../math/Point2D.hpp"
+#include "../../utils/Point2D.hpp"
 
 namespace aladyn::engine::document { class Layer; }
 
@@ -26,7 +26,7 @@ public:
     SmudgeEngine() = default;
 
     void renderDab(
-        const raster::Dab& dab,
+        const utils::Dab& dab,
         const brush::BrushProfile& profile,
         const canvas::CanvasTexture& canvasTexture,
         canvas::TileGrid& tileGrid,
@@ -48,8 +48,8 @@ public:
 
 private:
     bool              m_hasCarriedColor{false};
-    raster::ColorRGBA m_carriedColor{0, 0, 0, 0};
-    math::Point2D     m_lastPosition{0.0, 0.0};
+    utils::ColorRGBA m_carriedColor{0, 0, 0, 0};
+    utils::Point2D     m_lastPosition{0.0, 0.0};
 };
 
 } // namespace aladyn::engine::engines

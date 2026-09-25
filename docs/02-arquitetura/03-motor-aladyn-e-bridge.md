@@ -10,7 +10,7 @@ O **ALADYN ENGINE** é o motor nativo de pintura digital de ultra-baixa latênci
 Localizada em `engine/boundary/public-api/PaintEngineFacade.hpp`:
 - Expõe todos os métodos públicos de desenho, camadas, transformações, mipmapping e canal de telemetria.
 - Encapsula totalmente as estruturas internas do motor (`LayerStack`, `StrokeOrchestrator`, `DynamicStabilizer`), prevenindo acoplamentos indevidos.
-- **A fachada e uma camada de traducao, nao de logica.** Cada metodo publico traduz argumentos e delega para um orquestrador de `engine/boundary/public-api/internal/` (ver D). Qualquer metodo que cresca alem de ~4 linhas indica logica que pertence a um orquestrador -- foi o acumulo desse tipo de metodo que levou o arquivo a 929 LOC (Zona Vermelha com excecao declarada) antes da decomposicao.
+- **A fachada e uma camada de traducao, nao de logica.** Cada metodo publico traduz argumentos e delega para um orquestrador de `engine/boundary/orchestrator/` (ver D). Qualquer metodo que cresca alem de ~4 linhas indica logica que pertence a um orquestrador -- foi o acumulo desse tipo de metodo que levou o arquivo a 929 LOC (Zona Vermelha com excecao declarada) antes da decomposicao.
 
 ### B. Pilha de Camadas: `LayerStack` e `LayerNode`
 Localizada em `engine/core/document/LayerStack.cpp` e `LayerNode.hpp`:
@@ -24,7 +24,7 @@ Localizado em `engine/core/stroke/`:
 - **Interpolação Hermite / Catmull-Rom**: Pontos intermediários de traço são interpolados com alta precisão subpixel, garantindo curvas contínuas mesmo em movimentos ultrarrápidos da stylus.
 - **Latência**: Processamento de cada evento em menos de $1.2\text{ms}$.
 
-### D. Orquestradores Internos (`engine/boundary/public-api/internal/`)
+### D. Orquestradores (`engine/boundary/orchestrator/`)
 Codigo que a fachada delega, um assunto por arquivo. Todos expoem apenas funcoes estaticas e recebem explicitamente o estado de que precisam -- nenhum guarda estado proprio:
 
 | Arquivo | Assunto |
@@ -50,7 +50,8 @@ A ponte entre o C++20 e o Python 3.11+ é implementada via **PyBind11**:
 - **`bridge/core/bindings/`**:
   - `bind_layers.cpp`: Vincula operações de camadas, ordenação, visibilidade, blend modes e identidades estáveis de UID.
   - `bind_math_brush.cpp`: Vincula parâmetros de pincel, raio, opacidade, fluxo e curvas de pressão.
-  - `aladyn_engine_native.cpp`: Módulo raiz CPython (`aladyn_engine_native.cp314-win_amd64.pyd`).
+  - `engine_bindings.cpp`: Módulo raiz CPython (`aladyn_engine_native.cp314-win_amd64.pyd`).
+  - `BindingsCommon.hpp`: único ponto que inclui o motor, e só por `engine/boundary/public-api/AladynEngine.hpp` (a API pública; `tests/test_arccc_cxx_layers.py`).
 - **Contratos de Tipagem (`bridge/boundary/contracts/aladyn_engine_native.pyi`)**:
   - Fornece anotações de tipo completas (Type Hints) e stubs de documentação para o analisador estático (MyPy/PyLance) e para o ARCcC Navigator.
 

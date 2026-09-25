@@ -2,7 +2,7 @@
 #define ALADYN_ENGINE_TILE_HPP
 
 #include "PixelBuffer.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include <memory>
 #include <vector>
 #include <cstdint>
@@ -13,7 +13,7 @@ namespace aladyn::engine::canvas {
 class Tile {
 public:
     static constexpr int TILE_SIZE = 128;
-    static constexpr size_t TILE_BYTES = TILE_SIZE * TILE_SIZE * sizeof(raster::ColorRGBA); // 65536 bytes
+    static constexpr size_t TILE_BYTES = TILE_SIZE * TILE_SIZE * sizeof(utils::ColorRGBA); // 65536 bytes
 
     Tile(int tileX, int tileY);
     Tile(int tileX, int tileY, std::shared_ptr<PixelBuffer> sharedBuffer);
@@ -24,8 +24,8 @@ public:
     [[nodiscard]] int getPixelX() const noexcept { return m_tileX * TILE_SIZE; }
     [[nodiscard]] int getPixelY() const noexcept { return m_tileY * TILE_SIZE; }
 
-    [[nodiscard]] math::Rect2D getBounds() const noexcept {
-        return math::Rect2D{
+    [[nodiscard]] utils::Rect2D getBounds() const noexcept {
+        return utils::Rect2D{
             static_cast<double>(getPixelX()),
             static_cast<double>(getPixelY()),
             static_cast<double>(TILE_SIZE),

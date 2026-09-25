@@ -26,9 +26,8 @@ Lumenia/
 ├── bridge/              # Camada PyBind11 e contratos .pyi
 ├── ui/                  # Aplicação Python / PySide6
 │   ├── boundary/        # Shell e orquestradores de menu/canvas
-│   ├── core/            # Núcleo de domínio (document, color, history, plugins)
-│   ├── engine_backends/ # Adaptadores de motor e mixins
-│   └── infrastructure/  # Logging, arquivos e utilitários
+│   ├── core/            # Núcleo de domínio (estado, document, color, geometry, plugins)
+│   └── infrastructure/  # Cliente da ponte (bridge_client), config, i18n, tema, ícones, logging
 ├── plugins/             # Plugins do ecossistema
 ├── assets/              # Ícones SVG, cursores e imagens
 ├── scripts/             # Automação de build e empacotamento

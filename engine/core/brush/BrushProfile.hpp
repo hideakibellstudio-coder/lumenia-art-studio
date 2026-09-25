@@ -3,7 +3,7 @@
 
 #include "BrushTip.hpp"
 #include "../math/BezierCurve.hpp"
-#include "../raster/Dab.hpp"
+#include "../../utils/Dab.hpp"
 #include "../texture/Texture2D.hpp"
 #include "../texture/ProceduralTextures.hpp"
 #include <memory>
@@ -90,10 +90,10 @@ public:
     double opacity{1.0};            // Opacidade máxima nominal (0.0 a 1.0)
     double minOpacityPercent{0.0};  // Opacidade mínima em % a 0% de pressão
     double hardness{1.0};           // Dureza da borda procedural (0.0=macio, 1.0=duro)
-    raster::DabBlendMode blendMode{raster::DabBlendMode::Normal};
+    utils::DabBlendMode blendMode{utils::DabBlendMode::Normal};
 
     double spacingFactor{0.04};
-    raster::ColorRGBA baseColor{10, 10, 14, 255};
+    utils::ColorRGBA baseColor{10, 10, 14, 255};
 
     bool pressureSizeEnabled{true};
     bool pressureFlowEnabled{true};

@@ -11,7 +11,7 @@ void DynamicStabilizer::setStabilizationPercentage(double percentage) noexcept {
     m_stabilizationPercentage = std::clamp(percentage, 0.0, 99.0);
 }
 
-void DynamicStabilizer::reset(math::Point2D initialPosition, double initialPressure) noexcept {
+void DynamicStabilizer::reset(utils::Point2D initialPosition, double initialPressure) noexcept {
     m_stabilizedPosition = initialPosition;
     m_stabilizedPressure = initialPressure;
     m_lastMovementDelta = {0.0, 0.0};
@@ -21,7 +21,7 @@ void DynamicStabilizer::reset(math::Point2D initialPosition, double initialPress
     m_pressureHistoryBuffer[0] = initialPressure;
 }
 
-void DynamicStabilizer::reanchorInitialPosition(math::Point2D newInitialPosition) noexcept {
+void DynamicStabilizer::reanchorInitialPosition(utils::Point2D newInitialPosition) noexcept {
     if (m_historyCount == 0) {
         reset(newInitialPosition, m_stabilizedPressure);
         return;
@@ -44,7 +44,7 @@ void DynamicStabilizer::reanchorInitialPosition(math::Point2D newInitialPosition
     }
 }
 
-math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double rawPressure, double normalizedVelocity) noexcept {
+utils::Point2D DynamicStabilizer::update(utils::Point2D rawPosition, double rawPressure, double normalizedVelocity) noexcept {
     if (m_stabilizationPercentage <= 0.5) {
         m_lastMovementDelta = rawPosition - m_stabilizedPosition;
         m_stabilizedPosition = rawPosition;
@@ -89,13 +89,13 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double rawPre
         totalWeight += w;
     }
 
-    const math::Point2D newPos{
+    const utils::Point2D newPos{
         totalWeight > 0.0 ? (sumX / totalWeight) : rawPosition.x,
         totalWeight > 0.0 ? (sumY / totalWeight) : rawPosition.y
     };
     m_stabilizedPressure = totalWeight > 0.0 ? (sumPressure / totalWeight) : rawPressure;
 
-    const math::Point2D delta = newPos - m_stabilizedPosition;
+    const utils::Point2D delta = newPos - m_stabilizedPosition;
     if (delta.length() > 0.05) {
         m_lastMovementDelta = delta;
     }
@@ -103,12 +103,12 @@ math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double rawPre
     return m_stabilizedPosition;
 }
 
-math::Point2D DynamicStabilizer::update(math::Point2D rawPosition, double normalizedVelocity) noexcept {
+utils::Point2D DynamicStabilizer::update(utils::Point2D rawPosition, double normalizedVelocity) noexcept {
     return update(rawPosition, m_stabilizedPressure, normalizedVelocity);
 }
 
-std::vector<math::Point2D> DynamicStabilizer::flush(math::Point2D endPosition, size_t steps) noexcept {
-    std::vector<math::Point2D> catchupPoints;
+std::vector<utils::Point2D> DynamicStabilizer::flush(utils::Point2D endPosition, size_t steps) noexcept {
+    std::vector<utils::Point2D> catchupPoints;
     if (m_stabilizationPercentage <= 0.5) {
         m_lastMovementDelta = endPosition - m_stabilizedPosition;
         m_stabilizedPosition = endPosition;
@@ -120,7 +120,7 @@ std::vector<math::Point2D> DynamicStabilizer::flush(math::Point2D endPosition, s
     catchupPoints.reserve(maxSteps);
 
     for (size_t s = 0; s < maxSteps; ++s) {
-        const math::Point2D delta = endPosition - m_stabilizedPosition;
+        const utils::Point2D delta = endPosition - m_stabilizedPosition;
         if (delta.length() < 0.25) {
             m_lastMovementDelta = endPosition - m_stabilizedPosition;
             m_stabilizedPosition = endPosition;
@@ -129,7 +129,7 @@ std::vector<math::Point2D> DynamicStabilizer::flush(math::Point2D endPosition, s
         }
         const double stepProgress = static_cast<double>(s + 1) / static_cast<double>(maxSteps);
         const double factor = std::clamp(0.40 + 0.55 * (stepProgress * stepProgress), 0.40, 0.95);
-        const math::Point2D nextPos = m_stabilizedPosition + (delta * factor);
+        const utils::Point2D nextPos = m_stabilizedPosition + (delta * factor);
         m_lastMovementDelta = nextPos - m_stabilizedPosition;
         m_stabilizedPosition = nextPos;
         catchupPoints.push_back(m_stabilizedPosition);
@@ -144,8 +144,8 @@ std::vector<math::Point2D> DynamicStabilizer::flush(math::Point2D endPosition, s
     return catchupPoints;
 }
 
-std::vector<math::Point2D> DynamicStabilizer::getTaperPoints(size_t steps, double maxDistance) noexcept {
-    std::vector<math::Point2D> pts;
+std::vector<utils::Point2D> DynamicStabilizer::getTaperPoints(size_t steps, double maxDistance) noexcept {
+    std::vector<utils::Point2D> pts;
     const double speed = m_lastMovementDelta.length();
     // Se o traço parou antes de levantar a caneta, não gera cauda de flick
     if (speed < 0.3) {
@@ -155,7 +155,7 @@ std::vector<math::Point2D> DynamicStabilizer::getTaperPoints(size_t steps, doubl
     const size_t numSteps = std::clamp(steps, static_cast<size_t>(2), static_cast<size_t>(8));
     pts.reserve(numSteps);
 
-    const math::Point2D dir = m_lastMovementDelta * (1.0 / speed);
+    const utils::Point2D dir = m_lastMovementDelta * (1.0 / speed);
     const double distLimit = maxDistance > 0.0 ? maxDistance : 25.0;
     const double totalDist = std::clamp(speed * 1.5, 2.0, distLimit);
 
@@ -168,10 +168,10 @@ std::vector<math::Point2D> DynamicStabilizer::getTaperPoints(size_t steps, doubl
     return pts;
 }
 
-math::Point2D DynamicStabilizer::predictPosition(math::Point2D currentPos, math::Point2D velocity) const noexcept {
+utils::Point2D DynamicStabilizer::predictPosition(utils::Point2D currentPos, utils::Point2D velocity) const noexcept {
     if (!m_predictionEnabled) return currentPos;
     const double dtSec = m_aheadMs / 1000.0;
-    return math::Point2D{
+    return utils::Point2D{
         currentPos.x + velocity.x * dtSec,
         currentPos.y + velocity.y * dtSec
     };

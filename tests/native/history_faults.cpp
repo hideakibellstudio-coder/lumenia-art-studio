@@ -1,4 +1,4 @@
-#include "engine/core/canvas/TileUndoManager.hpp"
+#include "engine/core/history/TileUndoManager.hpp"
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -15,7 +15,7 @@
 #include <stdexcept>
 
 using namespace aladyn::engine;
-using canvas::ScratchDiskManager;
+using storage::ScratchDiskManager;
 
 void require(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
 
@@ -42,7 +42,7 @@ public:
     }
 };
 
-void paintStep(canvas::TileUndoManager& history, document::LayerStack& stack, unsigned seed) {
+void paintStep(history::TileUndoManager& history, document::LayerStack& stack, unsigned seed) {
     std::mt19937 rng(seed);
     auto& grid = stack.getDrawingLayer(0)->getTileGrid();
     history.beginStep("random pixels");
@@ -69,9 +69,9 @@ std::vector<uint8_t> pixels(document::LayerStack& stack) {
 void replayFailure(bool redo, bool corruption) {
     auto disk = std::make_unique<FaultDisk>();
     auto* io = disk.get();
-    canvas::TileUndoManager history(50, 1, true, std::move(disk));
+    history::TileUndoManager history(50, 1, true, std::move(disk));
     document::LayerStack stack(2048, 64);
-    raster::SelectionMask selection(2048, 64);
+    selection::SelectionMask selection(2048, 64);
     paintStep(history, stack, 1);
     auto first = pixels(stack);
     paintStep(history, stack, 2);
@@ -101,9 +101,9 @@ void pagingFailure(int writeNumber) {
     auto disk = std::make_unique<FaultDisk>();
     auto* io = disk.get();
     io->failWrite = writeNumber;
-    canvas::TileUndoManager history(50, 1, true, std::move(disk));
+    history::TileUndoManager history(50, 1, true, std::move(disk));
     document::LayerStack stack(2048, 64);
-    raster::SelectionMask selection(2048, 64);
+    selection::SelectionMask selection(2048, 64);
     paintStep(history, stack, 10);
     const auto first = pixels(stack);
     paintStep(history, stack, 20);

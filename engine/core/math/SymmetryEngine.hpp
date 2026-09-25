@@ -1,8 +1,8 @@
 #ifndef ALADYN_ENGINE_SYMMETRY_ENGINE_HPP
 #define ALADYN_ENGINE_SYMMETRY_ENGINE_HPP
 
-#include "../raster/Dab.hpp"
-#include "Point2D.hpp"
+#include "../../utils/Dab.hpp"
+#include "../../utils/Point2D.hpp"
 #include <vector>
 
 namespace aladyn::engine::math {
@@ -28,12 +28,12 @@ class SymmetryEngine {
 public:
     static void apply(
         const SymmetryConfig& config,
-        const raster::Dab& dab,
-        const Point2D* strokeStart,
-        std::vector<raster::Dab>& outDabs
+        const utils::Dab& dab,
+        const utils::Point2D* strokeStart,
+        std::vector<utils::Dab>& outDabs
     );
 
-    static Point2D mirrorPoint(double x, double y, double cx, double cy, double cosA, double sinA) noexcept;
+    static utils::Point2D mirrorPoint(double x, double y, double cx, double cy, double cosA, double sinA) noexcept;
 };
 
 } // namespace aladyn::engine::math

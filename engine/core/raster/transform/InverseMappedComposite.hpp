@@ -8,9 +8,8 @@
 // TransformEngine::commitTransform em 2026-09-23 sem mudar a aritmética.
 
 #include "TransformSamplers.hpp"
-#include "../TransformEngine.hpp"
 #include "../../canvas/TileGrid.hpp"
-#include "../../canvas/TileUndoManager.hpp"
+#include "../../history/TileUndoManager.hpp"
 #include <algorithm>
 
 namespace aladyn::engine::raster::transform {
@@ -23,7 +22,7 @@ void compositeInverseMapped(
     const canvas::PixelBuffer& source,
     int minDx, int minDy, int maxDx, int maxDy,
     int interpMode,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex,
     InverseFn&& inverse
 ) {
@@ -63,7 +62,7 @@ void compositeInverseMapped(
 
                     double u = 0.0, v = 0.0;
                     if (inverse(destX, destY, u, v)) {
-                        ColorRGBA sampled;
+                        utils::ColorRGBA sampled;
                         if (interpMode == static_cast<int>(InterpolationMode::Nearest)) {
                             sampled = sampleNearest(source, u, v);
                         } else if (interpMode == static_cast<int>(InterpolationMode::Bilinear)) {

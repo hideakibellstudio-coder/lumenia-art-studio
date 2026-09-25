@@ -61,3 +61,35 @@ def test_previa_nao_altera_o_pincel_em_uso():
         assert abs(vivo.opacity - 0.9) < 1e-9
     finally:
         backend.close_document_context("previa_isolada")
+
+
+def _round_tip_mask(hardness: float) -> bytes:
+    """A fórmula que a ponte calculava até 2026-09-25 (bind_stroke.cpp)."""
+    size, center, max_dist = 64, 32.0, 30.0
+    hard_span = min(max(hardness, 0.0), 0.99) * max_dist
+    inv_soft = 1.0 / max(0.001, max_dist - hard_span)
+    out = bytearray(size * size)
+    for y in range(size):
+        dy = y + 0.5 - center
+        for x in range(size):
+            dx = x + 0.5 - center
+            dist = (dx * dx + dy * dy) ** 0.5
+            if dist > max_dist:
+                continue
+            alpha = 1.0
+            if dist > hard_span:
+                t = min(max((max_dist - dist) * inv_soft, 0.0), 1.0)
+                alpha = t * t * (3.0 - 2.0 * t)
+            out[y * size + x] = int(min(max(alpha * 255.0, 0.0), 255.0))
+    return bytes(out)
+
+
+@pytest.mark.parametrize("hardness", [0.0, 0.35, 0.99, 1.5])
+def test_round_tip_preview_is_computed_by_the_engine_with_the_same_numbers(hardness):
+    """Sem textura de forma, a prévia da ponta é a máscara redonda do motor
+    (boundary::renderRoundTipMask); o laço saiu da ponte sem mudar o resultado."""
+    engine = native.PaintEngineFacade(8, 8)
+    profile = engine.get_brush_profile()
+    profile.hardness = hardness  # referência ao perfil do motor
+    assert engine.get_shape_preview_dimensions() == (64, 64)
+    assert engine.get_shape_preview_buffer() == _round_tip_mask(hardness)

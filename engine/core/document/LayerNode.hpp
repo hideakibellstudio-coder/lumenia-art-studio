@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <cstdint>
+#include "blending/LayerBlendMode.hpp"
 
 namespace aladyn::engine::document {
 
@@ -14,21 +15,9 @@ enum class LayerNodeType {
     FilterLayer = 2
 };
 
-enum class LayerBlendMode {
-    Normal      = 0,  // Alpha Over tradicional
-    Multiply    = 1,  // Multiplicação de cores
-    Screen      = 2,  // Divisão / Claridade
-    Overlay     = 3,  // Sobreposição de contraste
-    Darken      = 4,  // Escurecer
-    Lighten     = 5,  // Clarear
-    Erase       = 6,  // Borracha de camada (Alpha Erase)
-    PassThrough = 7,  // Atravessar (Modo padrão para Grupos)
-    ColorDodge  = 8,  // Subexposição de cor / Brilho Neon
-    ColorBurn   = 9,  // Superexposição de cor / Contraste denso
-    Difference  = 10, // Diferença / Inversão cromática
-    Exclusion   = 11, // Exclusão
-    Add         = 12  // Adicionar / Luz Pura
-};
+// Enum da mesclagem, definido em blending/ e reexportado aqui: é parte do
+// contrato do documento (document::LayerBlendMode).
+using blending::LayerBlendMode;
 
 class LayerNode {
 public:

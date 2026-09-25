@@ -1,6 +1,6 @@
 #include "EraserEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../raster/LargeBrushOptimizer.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
@@ -10,7 +10,7 @@
 namespace aladyn::engine::engines {
 
 void EraserEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,  // NÃO USADO
     canvas::TileGrid& tileGrid,
@@ -24,7 +24,7 @@ void EraserEngine::renderDab(
     const double aspect = std::max(0.05, profile.tip.aspectRatio);
     const double maxR = r / aspect + 2.0;
 
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -161,7 +161,7 @@ void EraserEngine::renderDab(
                 }
                 if (eraseStrength <= 0.0) continue;
 
-                raster::ColorRGBA dst = buffer.getPixel(px, py);
+                utils::ColorRGBA dst = buffer.getPixel(px, py);
                 const double dstA = static_cast<double>(dst.a) / 255.0;
                 const double newA = dstA * (1.0 - eraseStrength);
 

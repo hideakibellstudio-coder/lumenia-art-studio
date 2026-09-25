@@ -90,7 +90,7 @@ flowchart TD
 2. **Órbita 2 (Painéis & Observadores):** Docks flutuantes, painéis de plugins (Navegador, Camadas, Cores), sincronizadores de documento.
 3. **Órbita 3 (Viewport & Ferramentas Satélites):** Viewport OpenGL/Software, roteador de eventos do canvas, controladores de ferramentas secundárias.
 4. **Órbita 4 (Adaptador Python do Motor):** `AladynBackend` e seus mixins atômicos especializados (`Stroke`, `Layer`, `Selection`, `Transform`, `Geometry`, `Color`, `Resources`, `MDI`), e rastreamento dirty.
-5. **Órbita 5 (Ponte PyBind11 e 11 Orquestradores de Borda):** `BufferContract.hpp` (segurança de ponteiros, snapshots imutáveis, checked byte allocation), e os 11 orquestradores de `engine/boundary/public-api/internal/`.
+5. **Órbita 5 (Ponte PyBind11 e 11 Orquestradores de Borda):** `BufferContract.hpp` (segurança de ponteiros, snapshots imutáveis, checked byte allocation), e os 11 orquestradores de `engine/boundary/orchestrator/` (então `public-api/internal/`).
 6. **Órbita 6 (O Núcleo Físico Primordial C++):** Grade esparsa `TileGrid` (blocos 64x64, COW, `pruneEmptyTiles`, culling espacial), `TileUndoManager` (delta snapshots LZ4, limites MB, paginação para `ScratchDiskManager`), `Compositor` & `BlendEquations` (Linear Gamma, Deep Color float32, 13 modos canônicos de mesclagem) e `DabRenderer` SIMD.
 
 ---
@@ -253,7 +253,7 @@ Atingindo a profundidade máxima da arquitetura (Camadas 5 e 6) e validando o re
    - *Garantia:* Exceções controladas (`pybind11::value_error`) em buffers malformados, prevenindo *segfaults* silenciosos.
 
 2. **Propagação de Estado e Invalidadores nos 11 Orquestradores de Borda:**
-   - *Verificação:* Mapeamento dos 11 orquestradores em `engine/boundary/public-api/internal/`. Validação de que `DocumentContext::touch()` é invocado em todas as mutações de raster e estrutura, incrementando o contador monótono `documentGeneration` e invalidando a pirâmide de Mipmaps (`m_mipmapPyramid.markDirty()`).
+   - *Verificação:* Mapeamento dos 11 orquestradores em `engine/boundary/orchestrator/` (então `public-api/internal/`). Validação de que `DocumentContext::touch()` é invocado em todas as mutações de raster e estrutura, incrementando o contador monótono `documentGeneration` e invalidando a pirâmide de Mipmaps (`m_mipmapPyramid.markDirty()`).
    - *Garantia:* Ausência de descompasso de renderização entre o buffer base e os níveis de LOD reduzidos da visualização.
 
 3. **Validação Física do Núcleo Primordial C++ (`TileGrid`, `TileUndoManager`, `Compositor`):**

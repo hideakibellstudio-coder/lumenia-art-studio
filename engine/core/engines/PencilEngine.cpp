@@ -1,8 +1,8 @@
 #include "PencilEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../raster/LargeBrushOptimizer.hpp"
-#include "../math/MathUtils.hpp"
+#include "../../utils/MathUtils.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -11,7 +11,7 @@
 namespace aladyn::engine::engines {
 
 void PencilEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& canvasTexture,
     canvas::TileGrid& tileGrid,
@@ -24,7 +24,7 @@ void PencilEngine::renderDab(
     const double aspect = std::max(0.05, profile.tip.aspectRatio);
 
     const double maxR = r / aspect + 2.0;
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -133,7 +133,7 @@ void PencilEngine::renderDab(
                     if (profile.brushGrainInvert) brushHeight = 1.0 - brushHeight;
                     if (profile.brushGrainContrast != 1.0 && profile.brushGrainContrast > 0.0) {
                         const double hs = 0.5 / profile.brushGrainContrast;
-                        brushHeight = math::MathUtils::smoothstep(0.5 - hs, 0.5 + hs, brushHeight);
+                        brushHeight = utils::MathUtils::smoothstep(0.5 - hs, 0.5 + hs, brushHeight);
                     }
                     brushHeight = profile.brushTextureCurve.sample(brushHeight);
                 }
@@ -148,7 +148,7 @@ void PencilEngine::renderDab(
                     if (canvasTexture.canvasGrainInvert) canvasHeight = 1.0 - canvasHeight;
                     if (canvasTexture.canvasGrainContrast != 1.0 && canvasTexture.canvasGrainContrast > 0.0) {
                         const double hs = 0.5 / canvasTexture.canvasGrainContrast;
-                        canvasHeight = math::MathUtils::smoothstep(0.5 - hs, 0.5 + hs, canvasHeight);
+                        canvasHeight = utils::MathUtils::smoothstep(0.5 - hs, 0.5 + hs, canvasHeight);
                     }
                     canvasHeight = canvasTexture.canvasTextureCurve.sample(canvasHeight);
                 }
@@ -160,7 +160,7 @@ void PencilEngine::renderDab(
 
                 const double combinedHeight = brushHeight * (canvasHeight * canvasHeight);
                 const double threshold = (1.0 - dab.pressure) + hardnessOffset;
-                const double depositedInk = math::MathUtils::smoothstep(
+                const double depositedInk = utils::MathUtils::smoothstep(
                     threshold - 0.14, threshold + 0.14, combinedHeight
                 );
 
@@ -199,7 +199,7 @@ void PencilEngine::renderDab(
                 if (curFinalAlpha <= 0.0) continue;
 
                 // 5. COMPOSIÇÃO — Normal Alpha Over & Alpha Lock
-                const raster::ColorRGBA dst = buffer.getPixel(px, py);
+                const utils::ColorRGBA dst = buffer.getPixel(px, py);
 
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
@@ -211,7 +211,7 @@ void PencilEngine::renderDab(
                     const double outG = (dab.color.g * srcA + dst.g * dstA * invSrcA) / (srcA + dstA * invSrcA);
                     const double outB = (dab.color.b * srcA + dst.b * dstA * invSrcA) / (srcA + dstA * invSrcA);
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
@@ -230,7 +230,7 @@ void PencilEngine::renderDab(
                     const double outG = (dab.color.g * srcA + dst.g * dstA * (1.0 - srcA)) / outA;
                     const double outB = (dab.color.b * srcA + dst.b * dstA * (1.0 - srcA)) / outA;
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),

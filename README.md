@@ -69,7 +69,7 @@ O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_n
 ### 🛡️ 7. Arquitetura em 6 Camadas, Retorno dos 5 Rios & Confiabilidade Zero-Leak
 *   **Metodologia Concentric Satellite Peeling:** Arquitetura concêntrica de 6 camadas (UI $\to$ Plugins $\to$ Canvas Bridge $\to$ Python Backend $\to$ Fronteira PyBind11 $\to$ Núcleo Físico C++).
 *   **Retorno Ascendente dos 5 Rios:** Validação bidirecional de fluxo de dados de ponta a ponta (Traço, Câmera/Viewport, Camadas/Histórico, Seleção/Transformação e Cor/Perfis).
-*   **Qualidade e Zero Regressão:** **725 testes automatizados (100% verde)** e portão de estresse de longa duração aprovado ($\Delta\text{GDI} = 0$, $\Delta\text{Handles} = 0$, Drift de Memória Privada = $0.00\text{ MB} / 100\text{ ciclos}$).
+*   **Qualidade e Zero Regressão:** **918 testes automatizados (913 passam, 5 pulados que exigem Windows ou perfis ICC instalados; medido em 2026-09-25 no Linux)** e portão de estresse de longa duração aprovado ($\Delta\text{GDI} = 0$, $\Delta\text{Handles} = 0$, Drift de Memória Privada = $0.00\text{ MB} / 100\text{ ciclos}$).
 *   **Governança ARCcC:** Limite estrito de < 450 linhas de código por arquivo (Zona Verde) em todo o código Python e C++.
 
 ---
@@ -82,21 +82,22 @@ Lumenia/
 │   ├── boundary/contracts/  # Contratos tipados (aladyn_engine_native.pyi)
 │   └── core/bindings/       # BufferContract.hpp (segurança de memória) e bind_*.cpp
 │
-├── engine/                  # ALADYN Native Engine (C++20 SIMD)
-│   ├── boundary/public-api/ # PaintEngineFacade e 11 Orquestradores de Borda
-│   └── core/                # TileGrid, TileUndoManager, Compositor, DabRenderer
+├── engine/                  # ALADYN Native Engine (C++20 SIMD), em camadas
+│   ├── boundary/            # public-api/ (AladynEngine.hpp, PaintEngineFacade) e orchestrator/
+│   ├── core/                # Domínios: canvas, selection, document, history, raster, engines...
+│   ├── infrastructure/      # Compressão LZ4, disco de rascunho, telemetria
+│   └── utils/               # Tipos de valor: Point2D, Rect2D, ColorRGBA, Dab
 │
-├── ui/                      # Interface Gráfica PySide6 (Padrão BCE & Mixins)
-│   ├── main.py              # Ponto de entrada (QApplication, Splash Screen)
+├── ui/                      # Interface Gráfica PySide6
 │   ├── boundary/            # MainWindow, menus e coordenação de eventos
-│   ├── core/                # DocumentManager, temas, internacionalização (i18n)
-│   └── engine_backends/     # AladynBackend e 10 Mixins de domínio especializados
+│   ├── core/                # Estado, documento, contrato do motor, cor, geometria, telas
+│   └── infrastructure/      # Cliente da ponte (AladynBackend), config, i18n, tema, ícones, log
 │
 ├── plugins/                 # Extensões e Módulos Desacoplados (Caixas-Pretas)
 │   ├── system/              # Plugins do sistema (workspace_core, render_widget)
 │   └── ui/                  # Plugins de interface (brush, color, layers, navigator)
 │
-├── tests/                   # 82 Suítes Automatizadas (725 testes com 100% aprovação)
+├── tests/                   # 109 arquivos de teste, 918 testes (medido em 2026-09-25)
 │
 ├── docs/                    # Documentação Técnica Canônica (ver docs/README.md)
 │   ├── 01-correcao-da-base/ # Pendências vivas, auditoria orbital e simplificação da ponte

@@ -2,7 +2,7 @@
 #include "SimdSpanBlender.hpp"
 #include "LargeBrushOptimizer.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/MathUtils.hpp"
+#include "../../utils/MathUtils.hpp"
 #include "../document/Layer.hpp"
 #include "../color/LinearColorSpace.hpp"
 #include <cmath>
@@ -11,7 +11,7 @@
 namespace aladyn::engine::raster {
 
 void DabRenderer::renderDab(
-    const Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& canvasTexture,
     canvas::TileGrid& tileGrid,
@@ -30,7 +30,7 @@ void DabRenderer::renderDab(
 
     // Bounding Box considerando a rotação e o achatamento elíptico
     const double maxR = r / aspect + 2.0;
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR,
         dab.position.y - maxR,
         maxR * 2.0,
@@ -102,7 +102,7 @@ void DabRenderer::renderDab(
     // Fast-path de texturas: quando desligadas (padrão de desenho de alto desempenho),
     // o valor de depositedInk é puramente analítico e 100% constante para todo o dab.
     const bool hasTextures = (profile.brushGrainEnabled && brushHeightTex) || (canvasTexture.canvasGrainEnabled && canvasHeightTex);
-    const double defaultDepositedInk = hasTextures ? 1.0 : math::MathUtils::smoothstep(threshold - feather, threshold + feather, 1.0);
+    const double defaultDepositedInk = hasTextures ? 1.0 : utils::MathUtils::smoothstep(threshold - feather, threshold + feather, 1.0);
     if (!hasTextures && defaultDepositedInk <= 0.0) {
         return; // Zero tinta depositada
     }
@@ -130,7 +130,7 @@ void DabRenderer::renderDab(
         if (minX > maxX || minY > maxY) continue;
 
         bool tileModified = false;
-        ColorRGBA* tileBasePtr = reinterpret_cast<ColorRGBA*>(buffer.getData());
+        utils::ColorRGBA* tileBasePtr = reinterpret_cast<utils::ColorRGBA*>(buffer.getData());
 
         for (int py = minY; py <= maxY; ++py) {
             const double globalY = static_cast<double>(tilePixelY + py) + 0.5;
@@ -149,7 +149,7 @@ void DabRenderer::renderDab(
             }
 
             const double vCanvas = (hasTextures && canvasTexture.canvasGrainEnabled && canvasHeightTex) ? (globalY * canvasGrainFactor) : 0.0;
-            ColorRGBA* dstRow = tileBasePtr + (py * canvas::Tile::TILE_SIZE);
+            utils::ColorRGBA* dstRow = tileBasePtr + (py * canvas::Tile::TILE_SIZE);
 
             for (int px = rowMinX; px <= rowMaxX; ++px) {
 
@@ -217,7 +217,7 @@ void DabRenderer::renderDab(
                         }
 
                         if (invBrushGrainContrast > 0.0) {
-                            brushHeight = math::MathUtils::smoothstep(0.5 - invBrushGrainContrast, 0.5 + invBrushGrainContrast, brushHeight);
+                            brushHeight = utils::MathUtils::smoothstep(0.5 - invBrushGrainContrast, 0.5 + invBrushGrainContrast, brushHeight);
                         }
 
                         brushHeight = profile.brushTextureCurve.sample(brushHeight);
@@ -232,7 +232,7 @@ void DabRenderer::renderDab(
                     }
 
                     const double combinedHeight = brushHeight * canvasHeight;
-                    const double depositedInk = math::MathUtils::smoothstep(threshold - feather, threshold + feather, combinedHeight);
+                    const double depositedInk = utils::MathUtils::smoothstep(threshold - feather, threshold + feather, combinedHeight);
                     curFinalAlpha = dabBaseAlpha * shapeAlpha * depositedInk;
                 }
 
@@ -264,7 +264,7 @@ void DabRenderer::renderDab(
 
                 if (curFinalAlpha <= 0.0) continue;
 
-                ColorRGBA& dst = dstRow[px];
+                utils::ColorRGBA& dst = dstRow[px];
 
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
@@ -277,10 +277,10 @@ void DabRenderer::renderDab(
 
                 // ─── PROCESSAMENTO DE MODO DE MESCLAGEM (DAB BLEND MODES) ──────
                 switch (dab.blendMode) {
-                    case DabBlendMode::Normal: {
+                    case utils::DabBlendMode::Normal: {
                         if (dst.a == 0) {
                             const uint8_t fa8 = static_cast<uint8_t>(std::clamp(curFinalAlpha * 255.0, 0.0, 255.0));
-                            dst = ColorRGBA{dab.color.r, dab.color.g, dab.color.b, fa8};
+                            dst = utils::ColorRGBA{dab.color.r, dab.color.g, dab.color.b, fa8};
                             tileModified = true;
                             break;
                         }
@@ -295,7 +295,7 @@ void DabRenderer::renderDab(
                         tileModified = true;
                         break;
                     }
-                    case DabBlendMode::Multiply: { // Modo Canetinha / Marker
+                    case utils::DabBlendMode::Multiply: { // Modo Canetinha / Marker
                         const double srcA = curFinalAlpha;
                         const double dstR = static_cast<double>(dst.r) / 255.0;
                         const double dstG = static_cast<double>(dst.g) / 255.0;
@@ -309,7 +309,7 @@ void DabRenderer::renderDab(
                         const double multG = dstG * (1.0 - srcA * (1.0 - srcG));
                         const double multB = dstB * (1.0 - srcA * (1.0 - srcB));
 
-                        dst = ColorRGBA{
+                        dst = utils::ColorRGBA{
                             static_cast<uint8_t>(std::clamp(multR * 255.0, 0.0, 255.0)),
                             static_cast<uint8_t>(std::clamp(multG * 255.0, 0.0, 255.0)),
                             static_cast<uint8_t>(std::clamp(multB * 255.0, 0.0, 255.0)),
@@ -318,7 +318,7 @@ void DabRenderer::renderDab(
                         tileModified = true;
                         break;
                     }
-                    case DabBlendMode::Additive: { // Modo Luz / Glow
+                    case utils::DabBlendMode::Additive: { // Modo Luz / Glow
                         const double srcA = curFinalAlpha;
                         const double dstR = static_cast<double>(dst.r);
                         const double dstG = static_cast<double>(dst.g);
@@ -328,7 +328,7 @@ void DabRenderer::renderDab(
                         const double addG = dstG + static_cast<double>(dab.color.g) * srcA;
                         const double addB = dstB + static_cast<double>(dab.color.b) * srcA;
 
-                        dst = ColorRGBA{
+                        dst = utils::ColorRGBA{
                             static_cast<uint8_t>(std::clamp(addR, 0.0, 255.0)),
                             static_cast<uint8_t>(std::clamp(addG, 0.0, 255.0)),
                             static_cast<uint8_t>(std::clamp(addB, 0.0, 255.0)),

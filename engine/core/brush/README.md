@@ -19,10 +19,6 @@
 
 - Parâmetro novo de pincel entra no perfil aqui, é lido pelo mini-motor em `engines/` e chega da UI pela tabela `ui/infrastructure/bridge_client/brush_param_table.py`.
 
-## Dívida conhecida (medida em 2026-09-24)
-
-`raster/` inclui arquivos daqui e esta pasta inclui `raster/Dab.hpp`: ciclo de pasta `brush` ↔ `raster`.
-
 ## Dependências internas
 
 Medidas pelo teste `tests/test_arccc_package_docs.py` (`#include` e `import`):
@@ -30,6 +26,6 @@ dependência nova entre pastas entra nesta lista no mesmo commit.
 
 <!-- arccc:deps -->
 - `engine/core/math`
-- `engine/core/raster`
 - `engine/core/texture`
+- `engine/utils`
 <!-- /arccc:deps -->

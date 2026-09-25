@@ -1,17 +1,17 @@
 #include "Tile.hpp"
-#include "../compression/Lz4Codec.hpp"
+#include "../../infrastructure/compression/Lz4Codec.hpp"
 #include <algorithm>
 
 namespace aladyn::engine::canvas {
 
 Tile::Tile(int tileX, int tileY)
     : m_tileX(tileX), m_tileY(tileY),
-      m_buffer(std::make_shared<PixelBuffer>(TILE_SIZE, TILE_SIZE, raster::ColorRGBA{0, 0, 0, 0})) {}
+      m_buffer(std::make_shared<PixelBuffer>(TILE_SIZE, TILE_SIZE, utils::ColorRGBA{0, 0, 0, 0})) {}
 
 Tile::Tile(int tileX, int tileY, std::shared_ptr<PixelBuffer> sharedBuffer)
     : m_tileX(tileX), m_tileY(tileY), m_buffer(std::move(sharedBuffer)) {
     if (!m_buffer) {
-        m_buffer = std::make_shared<PixelBuffer>(TILE_SIZE, TILE_SIZE, raster::ColorRGBA{0, 0, 0, 0});
+        m_buffer = std::make_shared<PixelBuffer>(TILE_SIZE, TILE_SIZE, utils::ColorRGBA{0, 0, 0, 0});
     }
 }
 
@@ -64,7 +64,7 @@ bool Tile::decompress() noexcept {
     if (!m_isCompressed) return true;
     if (m_compressedData.empty()) return false;
 
-    auto newBuf = std::make_shared<PixelBuffer>(TILE_SIZE, TILE_SIZE, raster::ColorRGBA{0, 0, 0, 0});
+    auto newBuf = std::make_shared<PixelBuffer>(TILE_SIZE, TILE_SIZE, utils::ColorRGBA{0, 0, 0, 0});
     bool ok = compression::Lz4Codec::decompressBlock(
         m_compressedData.data(),
         m_compressedData.size(),

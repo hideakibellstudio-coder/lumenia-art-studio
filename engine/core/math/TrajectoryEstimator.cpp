@@ -1,5 +1,5 @@
 #include "TrajectoryEstimator.hpp"
-#include "MathUtils.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <cmath>
 
 namespace aladyn::engine::math {
@@ -13,7 +13,7 @@ namespace {
     constexpr double MIN_SEGMENT_LENGTH = 1e-6;
 }
 
-TrajectoryEstimate TrajectoryEstimator::estimate(const std::vector<Point2D>& recentPoints, double zoom) noexcept {
+TrajectoryEstimate TrajectoryEstimator::estimate(const std::vector<utils::Point2D>& recentPoints, double zoom) noexcept {
     TrajectoryEstimate result;
 
     const size_t n = recentPoints.size();
@@ -23,7 +23,7 @@ TrajectoryEstimate TrajectoryEstimator::estimate(const std::vector<Point2D>& rec
 
     double sumWx = 0.0, sumWy = 0.0, sumW = 0.0;
     size_t validSegments = 0;
-    Point2D lastValidDir{ 1.0, 0.0 };
+    utils::Point2D lastValidDir{ 1.0, 0.0 };
 
     const size_t numSegments = n - 1;
     double weight = 1.0;
@@ -31,8 +31,8 @@ TrajectoryEstimate TrajectoryEstimator::estimate(const std::vector<Point2D>& rec
     // peso de forma incremental (soma final independe da ordem).
     for (size_t k = 0; k < numSegments; ++k) {
         const size_t i = numSegments - 1 - k;
-        const Point2D& a = recentPoints[i];
-        const Point2D& b = recentPoints[i + 1];
+        const utils::Point2D& a = recentPoints[i];
+        const utils::Point2D& b = recentPoints[i + 1];
         const double dx = b.x - a.x;
         const double dy = b.y - a.y;
         const double len = std::sqrt(dx * dx + dy * dy);
@@ -44,7 +44,7 @@ TrajectoryEstimate TrajectoryEstimator::estimate(const std::vector<Point2D>& rec
         sumWx += weight * ux;
         sumWy += weight * uy;
         sumW += weight;
-        lastValidDir = Point2D{ ux, uy };
+        lastValidDir = utils::Point2D{ ux, uy };
         ++validSegments;
         weight *= RECENCY_DECAY;
     }
@@ -59,9 +59,9 @@ TrajectoryEstimate TrajectoryEstimator::estimate(const std::vector<Point2D>& rec
     // segmentos concordam; perto de 0 = se cancelam, ex. zigue-zague/ruido).
     const double coherence = std::sqrt(avgX * avgX + avgY * avgY);
 
-    Point2D direction;
+    utils::Point2D direction;
     if (coherence > 1e-6) {
-        direction = Point2D{ avgX / coherence, avgY / coherence };
+        direction = utils::Point2D{ avgX / coherence, avgY / coherence };
     } else {
         // Sem direcao dominante -- usa o ultimo segmento valido como
         // palpite, mas a confianca (abaixo) ja fica perto de zero por causa
@@ -78,7 +78,7 @@ TrajectoryEstimate TrajectoryEstimator::estimate(const std::vector<Point2D>& rec
     const double netDy = recentPoints[n - 1].y - recentPoints[0].y;
     const double netDist = std::sqrt(netDx * netDx + netDy * netDy);
     const double moveFloor = 3.9 / std::max(0.01, zoom);
-    const double moveConfidence = MathUtils::smoothstep(moveFloor, moveFloor * 2.0, netDist);
+    const double moveConfidence = utils::MathUtils::smoothstep(moveFloor, moveFloor * 2.0, netDist);
 
     result.direction = direction;
     result.confidence = moveConfidence * coherence;

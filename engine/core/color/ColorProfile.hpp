@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "../raster/Dab.hpp"
+#include "../../utils/ColorRGBA.hpp"
 
 namespace aladyn::engine::color {
 
@@ -40,7 +40,7 @@ struct ColorProfileInfo {
 
 class ColorProfileManager {
 public:
-    static raster::ColorRGBA transformColor(raster::ColorRGBA src, ColorProfileType profile) noexcept;
+    static utils::ColorRGBA transformColor(utils::ColorRGBA src, ColorProfileType profile) noexcept;
 
     static void transformBuffer(
         const uint8_t* srcRgba,

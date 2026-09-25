@@ -23,6 +23,7 @@
 | `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
 | `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ ou plugins/ pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `plugins.*` a partir do núcleo do que já tinha. |
 | `test_arccc_cpp_and_docs_governance.py` | Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++). |
+| `test_arccc_cxx_layers.py` | Camadas do pilar C++: sem ciclo de pasta, subpasta sem incluir a mãe, inclusão só para baixo (utils → infrastructure → core em ordem → orchestrator → public-api) e a ponte só por `AladynEngine.hpp`. |
 | `test_arccc_identifier_language_ratchet.py` | Catraca de idioma: nenhum arquivo ganha identificador com palavra em português. |
 | `test_arccc_package_docs.py` | Toda pasta do repositório tem README com arquivos e dependências verdadeiros. |
 | `test_backend_capabilities.py` | Contrato de capacidades reais entre a UI e os backends de pintura. |

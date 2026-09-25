@@ -1,6 +1,6 @@
 #include "SmudgeEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -10,7 +10,7 @@
 namespace aladyn::engine::engines {
 
 // Amostra segura direta no TileGrid
-static inline raster::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
+static inline utils::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
     if (globalX < 0 || globalX >= tileGrid.getWidth() || globalY < 0 || globalY >= tileGrid.getHeight()) {
         return {0, 0, 0, 0};
     }
@@ -20,11 +20,11 @@ static inline raster::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, i
     const int lpy = globalY % canvas::Tile::TILE_SIZE;
 
     const canvas::Tile* t = const_cast<canvas::TileGrid&>(tileGrid).getTile(tx, ty);
-    return t ? t->getBuffer().getPixel(lpx, lpy) : raster::ColorRGBA{0, 0, 0, 0};
+    return t ? t->getBuffer().getPixel(lpx, lpy) : utils::ColorRGBA{0, 0, 0, 0};
 }
 
 // Amostragem Gaussiana ponderada otimizada da área do dab na CAMADA ATIVA
-static raster::ColorRGBA sampleDabArea(
+static utils::ColorRGBA sampleDabArea(
     double cx, double cy, double radius,
     const canvas::TileGrid& tileGrid
 ) {
@@ -50,7 +50,7 @@ static raster::ColorRGBA sampleDabArea(
             if (distSq > (radius + 1.0) * (radius + 1.0)) continue;
 
             const double w = std::exp(-distSq * sigmaFactor);
-            const raster::ColorRGBA s = getTilePixel(tileGrid, sx, sy);
+            const utils::ColorRGBA s = getTilePixel(tileGrid, sx, sy);
 
             if (s.a > 0) {
                 const double aNorm = static_cast<double>(s.a) / 255.0;
@@ -66,7 +66,7 @@ static raster::ColorRGBA sampleDabArea(
 
     if (alphaWeightSum <= 0.0) return {0, 0, 0, 0};
 
-    return raster::ColorRGBA{
+    return utils::ColorRGBA{
         static_cast<uint8_t>(std::clamp(sumR / alphaWeightSum, 0.0, 255.0)),
         static_cast<uint8_t>(std::clamp(sumG / alphaWeightSum, 0.0, 255.0)),
         static_cast<uint8_t>(std::clamp(sumB / alphaWeightSum, 0.0, 255.0)),
@@ -75,7 +75,7 @@ static raster::ColorRGBA sampleDabArea(
 }
 
 void SmudgeEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,
     canvas::TileGrid& tileGrid,
@@ -93,7 +93,7 @@ void SmudgeEngine::renderDab(
     const double stretch = std::clamp(profile.smudgeParams.smudgeStretch, 0.0, 1.0);
 
     // Amostragem da camada ativa
-    const raster::ColorRGBA sampledColor = sampleDabArea(dab.position.x, dab.position.y, r, tileGrid);
+    const utils::ColorRGBA sampledColor = sampleDabArea(dab.position.x, dab.position.y, r, tileGrid);
 
     // Lógica de Coleta e Arrasto
     if (!m_hasCarriedColor) {
@@ -134,7 +134,7 @@ void SmudgeEngine::renderDab(
     const double smearOffsetY = (moveDist > 0.01) ? (-moveDY / moveDist * r * stretch * 0.5) : 0.0;
     m_lastPosition = dab.position;
 
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -212,11 +212,11 @@ void SmudgeEngine::renderDab(
                 if (curDepositFactor <= 0.0) continue;
 
                 // Lookup ultrarrápido O(1) do rastro direcional (sem aninhamento de loops!)
-                raster::ColorRGBA sourceColorForSmear = m_carriedColor;
+                utils::ColorRGBA sourceColorForSmear = m_carriedColor;
                 if (moveDist > 0.5 && stretch > 0.05) {
                     const int sampleX = static_cast<int>(std::round(static_cast<double>(globalX) + smearOffsetX));
                     const int sampleY = static_cast<int>(std::round(static_cast<double>(globalY) + smearOffsetY));
-                    const raster::ColorRGBA trailSample = getTilePixel(tileGrid, sampleX, sampleY);
+                    const utils::ColorRGBA trailSample = getTilePixel(tileGrid, sampleX, sampleY);
 
                     if (trailSample.a > 0) {
                         const double trailMix = stretch * 0.4;
@@ -231,7 +231,7 @@ void SmudgeEngine::renderDab(
                     }
                 }
 
-                const raster::ColorRGBA dst = buffer.getPixel(px, py);
+                const utils::ColorRGBA dst = buffer.getPixel(px, py);
 
                 if (ctx.alphaLocked) {
                     if (dst.a == 0) continue;
@@ -245,7 +245,7 @@ void SmudgeEngine::renderDab(
                     const double outG = (sourceColorForSmear.g * srcA + dst.g * dstA * invSrcA) / denom;
                     const double outB = (sourceColorForSmear.b * srcA + dst.b * dstA * invSrcA) / denom;
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
@@ -264,7 +264,7 @@ void SmudgeEngine::renderDab(
                     const double outG = (sourceColorForSmear.g * srcA + dst.g * dstA * (1.0 - srcA)) / outA;
                     const double outB = (sourceColorForSmear.b * srcA + dst.b * dstA * (1.0 - srcA)) / outA;
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),

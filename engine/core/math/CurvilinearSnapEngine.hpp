@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_CURVILINEAR_SNAP_ENGINE_HPP
 #define ALADYN_ENGINE_CURVILINEAR_SNAP_ENGINE_HPP
 
-#include "Point2D.hpp"
+#include "../../utils/Point2D.hpp"
 #include "GuideSnapEngine.hpp"
 #include <vector>
 
@@ -21,11 +21,11 @@ struct CurvilinearCurve {
     CurveKind   kind{CurveKind::Line};
     CurveFamily family{CurveFamily::GroundV};
     // Line:
-    Point2D p1{0.0, 0.0};
-    Point2D p2{0.0, 0.0};
-    Point2D dir{1.0, 0.0};
+    utils::Point2D p1{0.0, 0.0};
+    utils::Point2D p2{0.0, 0.0};
+    utils::Point2D dir{1.0, 0.0};
     // Circle:
-    Point2D center{0.0, 0.0};
+    utils::Point2D center{0.0, 0.0};
     double  radius{0.0};
 };
 
@@ -47,7 +47,7 @@ public:
     // (tipicamente uma vez, no início do traço) e congela o resultado.
     static std::vector<CurvilinearCurve> candidates(
         const GuideConfig& config,
-        const Point2D& clickPt
+        const utils::Point2D& clickPt
     ) noexcept;
 
     // Curva primária (meridiano/paralelo) da grade completa mais próxima de
@@ -55,21 +55,21 @@ public:
     // Retorna false se nenhuma curva estiver dentro de maxDist.
     static bool nearestPrimaryGridCurve(
         const GuideConfig& config,
-        const Point2D& pt,
+        const utils::Point2D& pt,
         double maxDist,
         CurvilinearCurve& out
     ) noexcept;
 
-    static Point2D closestPointOnCurve(const CurvilinearCurve& curve, const Point2D& pt) noexcept;
+    static utils::Point2D closestPointOnCurve(const CurvilinearCurve& curve, const utils::Point2D& pt) noexcept;
 
     // Snap curvilíneo sem estado — espelha snap_curvilinear(). candidates é a
     // lista já congelada pelo chamador; lockedIndex é o índice da curva
     // travada na chamada anterior (-1 = nenhuma). outLockedIndex recebe o que
     // deve ser persistido para a próxima chamada (-1 = destravar).
-    static Point2D snap(
+    static utils::Point2D snap(
         const GuideConfig& config,
-        const Point2D& rawPoint,
-        const Point2D& strokeStart,
+        const utils::Point2D& rawPoint,
+        const utils::Point2D& strokeStart,
         const std::vector<CurvilinearCurve>& candidates,
         int lockedIndex,
         bool isStroking,

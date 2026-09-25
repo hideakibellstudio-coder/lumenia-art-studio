@@ -1,21 +1,21 @@
 #ifndef ALADYN_ENGINE_PAINT_ENGINE_FACADE_HPP
 #define ALADYN_ENGINE_PAINT_ENGINE_FACADE_HPP
 
-#include "../../core/math/Point2D.hpp"
+#include "../../utils/Point2D.hpp"
 #include "../../core/stroke/PointerEvent.hpp"
 #include "../../core/stroke/VelocityTracker.hpp"
 #include "../../core/stroke/DynamicStabilizer.hpp"
 #include "../../core/brush/BrushProfile.hpp"
 #include "../../core/canvas/CanvasTexture.hpp"
-#include "../../core/math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../../core/canvas/PixelBuffer.hpp"
-#include "../../core/canvas/TileUndoManager.hpp"
+#include "../../core/history/TileUndoManager.hpp"
 #include "../../core/document/Layer.hpp"
 #include "../../core/document/LayerStack.hpp"
 #include "../../core/document/Compositor.hpp"
 #include "../../core/texture/ProceduralTextures.hpp"
 #include "../../core/engines/IBrushEngine.hpp"
-#include "../../core/raster/SelectionMask.hpp"
+#include "../../core/selection/SelectionMask.hpp"
 #include "../../core/color/ColorProfile.hpp"
 #include "../../core/raster/TransformEngine.hpp"
 #include "../../core/math/SymmetryEngine.hpp"
@@ -24,14 +24,14 @@
 #include "../../core/math/SnapCandidate.hpp"
 #include "../../core/math/TrajectoryEstimator.hpp"
 #include "../../core/math/SnapLockStateMachine.hpp"
-#include "../../core/telemetry/EngineTelemetry.hpp"
+#include "../../infrastructure/telemetry/EngineTelemetry.hpp"
 #include "../../core/canvas/MipmapPyramid.hpp"
 #include <vector>
 #include <memory>
 
 namespace aladyn::engine::boundary {
 
-namespace internal {
+namespace orchestrator {
     struct TouchdownSample;
     struct DocumentContext;
     struct EngineStateContext;
@@ -134,7 +134,7 @@ public:
                                         double tiltX = 0.0, double tiltY = 0.0, double twist = 0.0);
     std::vector<double> endStrokeRaw(double endX = -1e9, double endY = -1e9);
 
-    bool floodFill(int seedX, int seedY, const raster::ColorRGBA& fillColor,
+    bool floodFill(int seedX, int seedY, const utils::ColorRGBA& fillColor,
                    int tolerance = 20, bool contiguous = true,
                    int expandPx = 1, int gapClosingPx = 0, bool antiAliasing = true,
                    bool sampleAllLayers = true);
@@ -153,19 +153,19 @@ public:
     bool featherSelection(int radiusPx);
     [[nodiscard]] bool hasSelection() const noexcept { return m_selectionMask.hasSelection(); }
     bool deleteSelectionOnActiveLayer();
-    bool fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor);
+    bool fillSelectionOnActiveLayer(const utils::ColorRGBA& fillColor);
     [[nodiscard]] uint8_t* getSelectionMaskData() noexcept { return m_selectionMask.getData(); }
     [[nodiscard]] size_t getSelectionMaskSize() const noexcept { return m_selectionMask.getSizeInBytes(); }
     bool setSelectionMaskBuffer(const std::vector<uint8_t>& pixels) {
         if (pixels.size() != m_selectionMask.getSizeInBytes()) return false;
-        m_selectionMask.combine(pixels, raster::SelectionMode::New);
+        m_selectionMask.combine(pixels, selection::SelectionMode::New);
         return true;
     }
     [[nodiscard]] std::vector<int> getSelectionBounds() const;
     [[nodiscard]] std::vector<int> getSelectionContourSegments() const;
     [[nodiscard]] std::vector<std::vector<int>> getSelectionContourLoops() const;
-    [[nodiscard]] raster::SelectionMask& getSelectionMask() noexcept { return m_selectionMask; }
-    [[nodiscard]] const raster::SelectionMask& getSelectionMask() const noexcept { return m_selectionMask; }
+    [[nodiscard]] selection::SelectionMask& getSelectionMask() noexcept { return m_selectionMask; }
+    [[nodiscard]] const selection::SelectionMask& getSelectionMask() const noexcept { return m_selectionMask; }
 
     // ── Métodos de Transformação Livre (Transform Tool) ─────────────────────
     bool beginTransform();
@@ -355,13 +355,13 @@ public:
 
 private:
     // Contextos agregados que este facade entrega aos orquestradores de
-    // internal/. Declarados com tipo de retorno incompleto de proposito: o
-    // header publico nao inclui internal/ -- so o .cpp, que e' quem constroi e
+    // orchestrator/. Declarados com tipo de retorno incompleto de proposito: o
+    // header publico nao inclui orchestrator/ -- so o .cpp, que e' quem constroi e
     // consome os contextos. Nunca armazene um deles: resizeCanvas() e o resync
     // de historico trocam buffers e compositor por instancias novas.
-    internal::DocumentContext    docContext() noexcept;
-    internal::EngineStateContext stateContext() noexcept;
-    internal::RawStrokeContext   strokeContext() noexcept;
+    orchestrator::DocumentContext    docContext() noexcept;
+    orchestrator::EngineStateContext stateContext() noexcept;
+    orchestrator::RawStrokeContext   strokeContext() noexcept;
     void touchDocument() noexcept { ++m_documentGeneration; m_mipmapPyramid.markDirty(); }
     bool touchedIf(bool changed) noexcept { if (changed) touchDocument(); return changed; }
     void initEngine(brush::EngineType type);
@@ -382,21 +382,21 @@ private:
 
     std::unique_ptr<engines::IBrushEngine> m_activeEngine;
 
-    raster::Dab m_lastDab;
+    utils::Dab m_lastDab;
 
     document::LayerStack m_layerStack;
     document::Compositor m_compositor;
     canvas::PixelBuffer  m_outputBuffer;
     mutable canvas::PixelBuffer m_displayBuffer;
     canvas::MipmapPyramid m_mipmapPyramid;
-    raster::SelectionMask m_selectionMask;
+    selection::SelectionMask m_selectionMask;
     raster::TransformEngine m_transformEngine;
-    canvas::TileUndoManager m_undoManager;
+    history::TileUndoManager m_undoManager;
 
     math::SymmetryConfig m_symmetryConfig;
     math::GuideConfig    m_guideConfig;
-    math::Point2D        m_strokeStartPoint{0.0, 0.0};
-    math::Point2D        m_lastRawPoint{0.0, 0.0};
+    utils::Point2D        m_strokeStartPoint{0.0, 0.0};
+    utils::Point2D        m_lastRawPoint{0.0, 0.0};
     double               m_lastRawPressure{1.0};
     bool                 m_hasLastRawPoint{false};
     double               m_distanceCarryover{0.0};
@@ -405,11 +405,11 @@ private:
     uint32_t             m_segmentsRenderedInStroke{0};
 
     bool                                         m_pendingFirstSegment{false};
-    std::unique_ptr<internal::TouchdownSample>   m_firstSample;
+    std::unique_ptr<orchestrator::TouchdownSample>   m_firstSample;
 
-    raster::Dab m_splineP0;
-    raster::Dab m_splineP1;
-    raster::Dab m_splineP2;
+    utils::Dab m_splineP0;
+    utils::Dab m_splineP1;
+    utils::Dab m_splineP2;
     uint32_t    m_splineCount{0};
 
     telemetry::EngineTelemetryManager m_telemetryManager;

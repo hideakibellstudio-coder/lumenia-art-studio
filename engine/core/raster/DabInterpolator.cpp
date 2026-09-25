@@ -7,14 +7,14 @@
 
 namespace aladyn::engine::raster {
 
-std::vector<Dab> DabInterpolator::interpolate(
-    const Dab& startDab,
-    const Dab& endDab,
+std::vector<utils::Dab> DabInterpolator::interpolate(
+    const utils::Dab& startDab,
+    const utils::Dab& endDab,
     double spacingFactor,
     double& distanceCarryover,
     const brush::BrushProfile* profile
 ) {
-    std::vector<Dab> dabs;
+    std::vector<utils::Dab> dabs;
 
     const double distance = startDab.position.distanceTo(endDab.position);
     const double safeSpacing = std::max(0.005, spacingFactor);
@@ -22,7 +22,7 @@ std::vector<Dab> DabInterpolator::interpolate(
     // Se o movimento for um clique estacionário / ponto único inicial
     if (distance < 0.0001) {
         if (distanceCarryover <= 0.0) {
-            Dab d = startDab;
+            utils::Dab d = startDab;
             if (profile) {
                 brush::DynamicMapper::applyJitter(d, *profile);
             }
@@ -65,7 +65,7 @@ std::vector<Dab> DabInterpolator::interpolate(
     while (d <= distance) {
         const double t = (distance > 0.0001) ? std::clamp(d / distance, 0.0, 1.0) : 0.0;
 
-        const math::Point2D pos = startDab.position + (endDab.position - startDab.position) * t;
+        const utils::Point2D pos = startDab.position + (endDab.position - startDab.position) * t;
         const double radius = startDab.radius + (endDab.radius - startDab.radius) * t;
         const double opacity = startDab.opacity + (endDab.opacity - startDab.opacity) * t;
         const double pressure = startDab.pressure + (endDab.pressure - startDab.pressure) * t;
@@ -77,7 +77,7 @@ std::vector<Dab> DabInterpolator::interpolate(
         const uint8_t b = static_cast<uint8_t>(std::clamp(startDab.color.b + (endDab.color.b - startDab.color.b) * t, 0.0, 255.0));
         const uint8_t a = static_cast<uint8_t>(std::clamp(startDab.color.a + (endDab.color.a - startDab.color.a) * t, 0.0, 255.0));
 
-        Dab dab(pos, radius, opacity, pressure, angle, startDab.blendMode, ColorRGBA{r, g, b, a}, aspect);
+        utils::Dab dab(pos, radius, opacity, pressure, angle, startDab.blendMode, utils::ColorRGBA{r, g, b, a}, aspect);
         // Correção B2: Aplica jitters individualmente por carimbo emitido
         if (profile) {
             brush::DynamicMapper::applyJitter(dab, *profile);
@@ -101,11 +101,11 @@ std::vector<Dab> DabInterpolator::interpolate(
     return dabs;
 }
 
-std::vector<Dab> DabInterpolator::interpolateSpline(
-    const Dab& p0,
-    const Dab& p1,
-    const Dab& p2,
-    const Dab& p3,
+std::vector<utils::Dab> DabInterpolator::interpolateSpline(
+    const utils::Dab& p0,
+    const utils::Dab& p1,
+    const utils::Dab& p2,
+    const utils::Dab& p3,
     double spacingFactor,
     double& distanceCarryover,
     const brush::BrushProfile* profile
@@ -131,23 +131,23 @@ std::vector<Dab> DabInterpolator::interpolateSpline(
     const double inv02 = 1.0 / (t2 - t0);
     const double inv13 = 1.0 / (t3 - t1);
 
-    auto evalCurve = [&](double t) -> math::Point2D {
-        const math::Point2D A1 = p0.position * ((t1 - t) * inv01) + p1.position * ((t - t0) * inv01);
-        const math::Point2D A2 = p1.position * ((t2 - t) * inv12) + p2.position * ((t - t1) * inv12);
-        const math::Point2D A3 = p2.position * ((t3 - t) * inv23) + p3.position * ((t - t2) * inv23);
+    auto evalCurve = [&](double t) -> utils::Point2D {
+        const utils::Point2D A1 = p0.position * ((t1 - t) * inv01) + p1.position * ((t - t0) * inv01);
+        const utils::Point2D A2 = p1.position * ((t2 - t) * inv12) + p2.position * ((t - t1) * inv12);
+        const utils::Point2D A3 = p2.position * ((t3 - t) * inv23) + p3.position * ((t - t2) * inv23);
 
-        const math::Point2D B1 = A1 * ((t2 - t) * inv02) + A2 * ((t - t0) * inv02);
-        const math::Point2D B2 = A2 * ((t3 - t) * inv13) + A3 * ((t - t1) * inv13);
+        const utils::Point2D B1 = A1 * ((t2 - t) * inv02) + A2 * ((t - t0) * inv02);
+        const utils::Point2D B2 = A2 * ((t3 - t) * inv13) + A3 * ((t - t1) * inv13);
 
         return B1 * ((t2 - t) * inv12) + B2 * ((t - t1) * inv12);
     };
 
     // Amostragem de 4 cordas para cálculo exato de comprimento de arco
-    const math::Point2D q0 = p1.position;
-    const math::Point2D q1 = evalCurve(t1 + 0.25 * (t2 - t1));
-    const math::Point2D q2 = evalCurve(t1 + 0.50 * (t2 - t1));
-    const math::Point2D q3 = evalCurve(t1 + 0.75 * (t2 - t1));
-    const math::Point2D q4 = p2.position;
+    const utils::Point2D q0 = p1.position;
+    const utils::Point2D q1 = evalCurve(t1 + 0.25 * (t2 - t1));
+    const utils::Point2D q2 = evalCurve(t1 + 0.50 * (t2 - t1));
+    const utils::Point2D q3 = evalCurve(t1 + 0.75 * (t2 - t1));
+    const utils::Point2D q4 = p2.position;
 
     const double chord01 = q0.distanceTo(q1);
     const double chord12 = q1.distanceTo(q2);
@@ -195,7 +195,7 @@ std::vector<Dab> DabInterpolator::interpolateSpline(
         if (d < 0.0) d = 0.0;
     }
 
-    std::vector<Dab> dabs;
+    std::vector<utils::Dab> dabs;
     if (d > arcLength) {
         if (distanceCarryover < 0.0) distanceCarryover = 0.0;
         distanceCarryover += arcLength;
@@ -210,7 +210,7 @@ std::vector<Dab> DabInterpolator::interpolateSpline(
     while (d <= arcLength) {
         const double u = std::clamp(d / arcLength, 0.0, 1.0);
         const double t = distanceToT(d);
-        const math::Point2D pos = evalCurve(t);
+        const utils::Point2D pos = evalCurve(t);
 
         const double radius = p1.radius + (p2.radius - p1.radius) * u;
         const double opacity = p1.opacity + (p2.opacity - p1.opacity) * u;
@@ -219,9 +219,9 @@ std::vector<Dab> DabInterpolator::interpolateSpline(
 
         // Ângulo derivado da tangente instantânea da spline no nó t
         const double dtStep = 0.005 * (t2 - t1);
-        const math::Point2D pAhead = evalCurve(std::min(t2, t + dtStep));
-        const math::Point2D pBehind = evalCurve(std::max(t1, t - dtStep));
-        const math::Point2D tangent = pAhead - pBehind;
+        const utils::Point2D pAhead = evalCurve(std::min(t2, t + dtStep));
+        const utils::Point2D pBehind = evalCurve(std::max(t1, t - dtStep));
+        const utils::Point2D tangent = pAhead - pBehind;
 
         double angle;
         if (tangent.x * tangent.x + tangent.y * tangent.y > 1e-6) {
@@ -237,7 +237,7 @@ std::vector<Dab> DabInterpolator::interpolateSpline(
         const uint8_t b = static_cast<uint8_t>(std::clamp(p1.color.b + (p2.color.b - p1.color.b) * u, 0.0, 255.0));
         const uint8_t a = static_cast<uint8_t>(std::clamp(p1.color.a + (p2.color.a - p1.color.a) * u, 0.0, 255.0));
 
-        Dab dab(pos, radius, opacity, pressure, angle, p1.blendMode, ColorRGBA{r, g, b, a}, aspect);
+        utils::Dab dab(pos, radius, opacity, pressure, angle, p1.blendMode, utils::ColorRGBA{r, g, b, a}, aspect);
         if (profile) {
             brush::DynamicMapper::applyJitter(dab, *profile);
         }

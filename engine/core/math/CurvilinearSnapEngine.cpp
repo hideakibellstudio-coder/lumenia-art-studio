@@ -59,37 +59,37 @@ bool CurvilinearSnapEngine::curveFromNormal(double a, double b, double c, double
         if (denom < 1e-6) return false;
         const double dx = b / denom, dy = a / denom;
         out.kind = CurveKind::Line;
-        out.p1 = Point2D{ cx - dx * 100000.0, cy - dy * 100000.0 };
-        out.p2 = Point2D{ cx + dx * 100000.0, cy + dy * 100000.0 };
-        out.dir = Point2D{ dx, dy };
+        out.p1 = utils::Point2D{ cx - dx * 100000.0, cy - dy * 100000.0 };
+        out.p2 = utils::Point2D{ cx + dx * 100000.0, cy + dy * 100000.0 };
+        out.dir = utils::Point2D{ dx, dy };
         return true;
     }
 
     out.kind = CurveKind::Circle;
-    out.center = Point2D{ cx + (-R * a / c), cy + (R * b / c) };
+    out.center = utils::Point2D{ cx + (-R * a / c), cy + (R * b / c) };
     out.radius = R / std::abs(c);
     return true;
 }
 
-Point2D CurvilinearSnapEngine::closestPointOnCurve(const CurvilinearCurve& curve, const Point2D& pt) noexcept {
+utils::Point2D CurvilinearSnapEngine::closestPointOnCurve(const CurvilinearCurve& curve, const utils::Point2D& pt) noexcept {
     if (curve.kind == CurveKind::Line) {
         const double vx = curve.p2.x - curve.p1.x;
         const double vy = curve.p2.y - curve.p1.y;
         const double len2 = vx * vx + vy * vy;
         if (len2 < 1e-6) return curve.p1;
         const double t = ((pt.x - curve.p1.x) * vx + (pt.y - curve.p1.y) * vy) / len2;
-        return Point2D{ curve.p1.x + t * vx, curve.p1.y + t * vy };
+        return utils::Point2D{ curve.p1.x + t * vx, curve.p1.y + t * vy };
     }
     const double dx = pt.x - curve.center.x;
     const double dy = pt.y - curve.center.y;
     const double dist = std::sqrt(dx * dx + dy * dy);
     if (dist > 1e-5) {
-        return Point2D{ curve.center.x + (dx / dist) * curve.radius, curve.center.y + (dy / dist) * curve.radius };
+        return utils::Point2D{ curve.center.x + (dx / dist) * curve.radius, curve.center.y + (dy / dist) * curve.radius };
     }
-    return Point2D{ curve.center.x + curve.radius, curve.center.y };
+    return utils::Point2D{ curve.center.x + curve.radius, curve.center.y };
 }
 
-std::vector<CurvilinearCurve> CurvilinearSnapEngine::candidates(const GuideConfig& config, const Point2D& clickPt) noexcept {
+std::vector<CurvilinearCurve> CurvilinearSnapEngine::candidates(const GuideConfig& config, const utils::Point2D& clickPt) noexcept {
     std::vector<CurvilinearCurve> curves;
 
     const double R = curvilinearCameraRadius(config.fov, config.baseRadius);
@@ -120,9 +120,9 @@ std::vector<CurvilinearCurve> CurvilinearSnapEngine::candidates(const GuideConfi
             CurvilinearCurve line;
             line.kind = CurveKind::Line;
             line.family = CurveFamily::GroundV;
-            line.p1 = Point2D{ clickPt.x - dx * 20000.0, clickPt.y - dy * 20000.0 };
-            line.p2 = Point2D{ clickPt.x + dx * 20000.0, clickPt.y + dy * 20000.0 };
-            line.dir = Point2D{ dx, dy };
+            line.p1 = utils::Point2D{ clickPt.x - dx * 20000.0, clickPt.y - dy * 20000.0 };
+            line.p2 = utils::Point2D{ clickPt.x + dx * 20000.0, clickPt.y + dy * 20000.0 };
+            line.dir = utils::Point2D{ dx, dy };
             curves.push_back(line);
         } else {
             CurvilinearCurve cv;
@@ -155,7 +155,7 @@ std::vector<CurvilinearCurve> CurvilinearSnapEngine::candidates(const GuideConfi
     return curves;
 }
 
-bool CurvilinearSnapEngine::nearestPrimaryGridCurve(const GuideConfig& config, const Point2D& pt, double maxDist, CurvilinearCurve& out) noexcept {
+bool CurvilinearSnapEngine::nearestPrimaryGridCurve(const GuideConfig& config, const utils::Point2D& pt, double maxDist, CurvilinearCurve& out) noexcept {
     const double R = curvilinearCameraRadius(config.fov, config.baseRadius);
     const double dRad = config.density * PI / 180.0;
     const double yawRad = config.yaw * PI / 180.0;
@@ -195,7 +195,7 @@ bool CurvilinearSnapEngine::nearestPrimaryGridCurve(const GuideConfig& config, c
     bool found = false;
     double bestD = maxDist;
     for (const auto& c : grid) {
-        const Point2D cp = closestPointOnCurve(c, pt);
+        const utils::Point2D cp = closestPointOnCurve(c, pt);
         const double d = std::sqrt((pt.x - cp.x) * (pt.x - cp.x) + (pt.y - cp.y) * (pt.y - cp.y));
         if (d < bestD) {
             bestD = d;
@@ -206,10 +206,10 @@ bool CurvilinearSnapEngine::nearestPrimaryGridCurve(const GuideConfig& config, c
     return found;
 }
 
-Point2D CurvilinearSnapEngine::snap(
+utils::Point2D CurvilinearSnapEngine::snap(
     const GuideConfig& config,
-    const Point2D& rawPoint,
-    const Point2D& strokeStart,
+    const utils::Point2D& rawPoint,
+    const utils::Point2D& strokeStart,
     const std::vector<CurvilinearCurve>& candidates,
     int lockedIndex,
     bool isStroking,
@@ -219,7 +219,7 @@ Point2D CurvilinearSnapEngine::snap(
     outLockedIndex = -1;
 
     if (lockedIndex >= 0 && lockedIndex < static_cast<int>(candidates.size())) {
-        const Point2D locked = closestPointOnCurve(candidates[lockedIndex], rawPoint);
+        const utils::Point2D locked = closestPointOnCurve(candidates[lockedIndex], rawPoint);
         const double strayDx = rawPoint.x - locked.x;
         const double strayDy = rawPoint.y - locked.y;
         const double stray = std::sqrt(strayDx * strayDx + strayDy * strayDy);
@@ -277,7 +277,7 @@ Point2D CurvilinearSnapEngine::snap(
         int bestI = idx[0];
         double bestDist = std::numeric_limits<double>::max();
         for (int i : idx) {
-            const Point2D cp = closestPointOnCurve(candidates[i], rawPoint);
+            const utils::Point2D cp = closestPointOnCurve(candidates[i], rawPoint);
             const double d = std::sqrt((rawPoint.x - cp.x) * (rawPoint.x - cp.x) + (rawPoint.y - cp.y) * (rawPoint.y - cp.y));
             if (d < bestDist) { bestDist = d; bestI = i; }
         }
@@ -291,7 +291,7 @@ Point2D CurvilinearSnapEngine::snap(
     double bestScore = -1.0;
     for (int i : idx) {
         const auto& c = candidates[i];
-        const Point2D cp = closestPointOnCurve(c, rawPoint);
+        const utils::Point2D cp = closestPointOnCurve(c, rawPoint);
         double tdx, tdy;
         if (c.kind == CurveKind::Line) {
             tdx = c.dir.x; tdy = c.dir.y;

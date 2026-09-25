@@ -1,13 +1,13 @@
 #ifndef ALADYN_ENGINE_TRAJECTORY_ESTIMATOR_HPP
 #define ALADYN_ENGINE_TRAJECTORY_ESTIMATOR_HPP
 
-#include "Point2D.hpp"
+#include "../../utils/Point2D.hpp"
 #include <vector>
 
 namespace aladyn::engine::math {
 
 struct TrajectoryEstimate {
-    Point2D direction{1.0, 0.0}; // unitário (mesmo quando confidence == 0)
+    utils::Point2D direction{1.0, 0.0}; // unitário (mesmo quando confidence == 0)
     double confidence{0.0};      // 0..1
 };
 
@@ -38,7 +38,7 @@ public:
     // o traço inteiro. zoom afeta só o piso de deslocamento mínimo (mesmo
     // papel que já tinha em lock_thresh).
     static TrajectoryEstimate estimate(
-        const std::vector<Point2D>& recentPoints,
+        const std::vector<utils::Point2D>& recentPoints,
         double zoom
     ) noexcept;
 };

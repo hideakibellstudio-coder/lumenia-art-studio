@@ -29,7 +29,7 @@ Python, `#include` no C++). Comando: `python -m tests.arccc_package_docs`.
 
 | Exigência | Situação |
 |---|---|
-| `index` (ponto de entrada) | Python: todo pacote tem `__init__.py` (desde a pendência 9). C++: não há cabeçalho agregador por pasta; o README de cada pasta nomeia o cabeçalho de entrada. |
+| `index` (ponto de entrada) | Python: todo pacote tem `__init__.py` (desde a pendência 9). C++: o motor tem uma porta única para a ponte (`engine/boundary/public-api/AladynEngine.hpp`, passo 4); dentro do motor não há cabeçalho agregador por pasta e o README de cada pasta nomeia o cabeçalho de entrada. |
 | `manifest.json` | Nenhuma pasta tem. O projeto usa o bloco `arccc:deps` do README (medido pelo teste) no papel de manifesto de dependências. |
 | `testes/` por pasta | A suíte é central (`tests/`, 115 arquivos). |
 
@@ -46,16 +46,17 @@ A raiz tem os três pilares (`ui/`, `bridge/`, `engine/`) e também:
 | Pilar | Tem | Falta ou sobra |
 |---|---|---|
 | `ui/` | `boundary/`, `core/`, `infrastructure/` | Resolvido no passo 3: `engine_backends/` virou `ui/infrastructure/bridge_client/` (o cliente da ponte, seção 15.3); configuração, idioma, tema, ícones e caminhos saíram de `ui/core/` para `ui/infrastructure/`; `ui/main.py` e `ui/requirements.txt` (sem uso) saíram. Não há `utils/` (nada genérico o bastante). |
-| `engine/` | `boundary/`, `core/` | Faltam `infrastructure/` e `utils/`; `core/math` e `core/compression` são utilitários. `boundary/public-api/internal/` (27 arquivos) é implementação dentro da API pública. |
+| `engine/` | `boundary/`, `core/`, `infrastructure/`, `utils/` | Resolvido no passo 4: tipos de valor (`Point2D`, `Rect2D`, `MathUtils`, `ColorRGBA`, `Dab`) em `utils/`; compressão, disco de rascunho e telemetria em `infrastructure/`; os orquestradores saíram de `public-api/internal/` para `boundary/orchestrator/`. |
 | `bridge/` | `boundary/`, `core/` | Falta `infrastructure/` (mapeamento de erros). |
 
 ### 2.4 Dependências entre pastas (seções 4.1 e 15.4)
 
 | Medida | Python (`ui/`, `plugins/`) | C++ (`engine/`, `bridge/`) |
 |---|---|---|
-| Relações de dependência entre pastas | 254 → 262 depois do passo 3 | 66 |
-| Entre pastas irmãs (regra 2: proibido) | 29 → 21 depois do passo 3 | 24 |
-| Pares de pastas em ciclo | 9 → 5 depois do passo 3 | 9 |
+| Relações de dependência entre pastas | 254 → 262 depois do passo 3 | 66 → 69 depois do passo 4 |
+| Entre pastas irmãs (regra 2: proibido) | 29 → 21 depois do passo 3 | 24 → 20 depois do passo 4 |
+| Pares de pastas em ciclo | 9 → 5 depois do passo 3 | 9 → 0 depois do passo 4 |
+| Subpasta incluindo a pasta-mãe | — | 5 → 0 depois do passo 4 |
 
 - Python, antes: os destinos irmãos mais usados eram `ui/core/config`,
   `ui/core/engine`, `ui/core/i18n` e `ui/core/theme`. No passo 3 os serviços
@@ -69,12 +70,27 @@ A raiz tem os três pilares (`ui/`, `bridge/`, `engine/`) e também:
   plugins (`workspace` ↔ `dock`, `canvas` ↔ `tools`/`viewport`,
   `advanced_panel` ↔ `sections`) — ficam para o passo 5, quando `plugins/` entra
   em `ui/`.
-- C++: ciclos `canvas` ↔ `document`, `raster` ↔ `math`, `raster` ↔ `brush`,
-  `raster` ↔ `canvas`, `raster` ↔ `color`. A maior parte vem de tipos básicos
-  (`raster/Dab.hpp` com `ColorRGBA`) usados por todo mundo.
-- A ponte inclui `engine/core/{canvas,color,math,raster}` e
-  `engine/boundary/public-api/internal` diretamente, não só a API pública
-  (seção 15.4, regra 2).
+- C++, antes: ciclos `canvas` ↔ `document` (o histórico em `canvas/` incluía a
+  pilha de camadas), `raster` ↔ `math`/`brush`/`canvas`/`color` (tipos básicos
+  em `raster/Dab.hpp` e a seleção dentro de `raster/`) e quatro subpastas que
+  incluíam a pasta-mãe (`document/blending`, `document/blending/filters`,
+  `document/internal`, `raster/transform`).
+- C++, passo 4: tipos de valor para `engine/utils/`; `TileUndoManager` para o
+  módulo novo `core/history/`; seleção para `core/selection/`; o enum de
+  mesclagem para `document/blending/LayerBlendMode.hpp` e o dos filtros para
+  `document/filters/FilterSettings.hpp` (o documento os reexporta); HSV para
+  `core/color/`; `document/internal/` voltou para `document/`. O motor ficou em
+  camadas — `utils` → `infrastructure` → `core` (`math` → `texture` → `color` →
+  `stroke` → `canvas` → `selection` → `brush` → `document` → `history` →
+  `raster` → `engines`) → `orchestrator` → `public-api` → ponte — conferidas
+  por `tests/test_arccc_cxx_layers.py`. As 20 relações entre irmãs que sobram
+  (19 entre módulos de `core/`, e `public-api` → `orchestrator`, que é o par
+  da seção 3.1) vão todas para baixo nessa ordem: decisão registrada em
+  `engine/core/README.md`.
+- A ponte incluía `engine/core/{canvas,color,math,raster}` e
+  `engine/boundary/public-api/internal`; desde o passo 4 inclui só
+  `engine/boundary/public-api/AladynEngine.hpp`, e a máscara da ponta redonda,
+  que era calculada na ponte, passou para o motor (`boundary::renderRoundTipMask`).
 
 ### 2.5 Idioma e nomenclatura (seção 14) — resolvido no código de produção (passo 2)
 
@@ -107,17 +123,20 @@ de um crash de encerramento, do primeiro commit, sem referência).
 
 1. **Limpeza sem mudança de comportamento:** remover os SVG sem consumidor, a
    cópia de ícones, o `.bak` e o HTML gerado (e ignorá-los no `.gitignore`);
-   decidir se os `bisect_*` viram teste ou saem.
+   decidir se os `bisect_*` viram teste ou saem. **Feito (passo 1).**
 2. **Nomes em inglês:** lançadores e página de feedback da raiz, o script de
    monitoramento; catraca de identificadores em português (só pode cair) e
-   renomeação progressiva.
+   renomeação progressiva. **Feito (passo 2; `tests/` só pode cair).**
 3. **`ui/`:** `engine_backends/` → `ui/infrastructure/` (cliente da ponte) e os
    serviços transversais (`config`, `i18n`, `theme`, registro do motor, log,
    caminhos) → `ui/infrastructure/`, com as catracas e o Navigator conferindo.
+   **Feito (passo 3).**
 4. **`engine/` e `bridge/`:** `engine/utils/` (tipos básicos, matemática,
    compressão) para quebrar os ciclos; orquestradores fora de `public-api/`;
-   a ponte incluindo só a API pública.
+   a ponte incluindo só a API pública. **Feito (passo 4).**
 5. **Raiz:** `plugins/` para dentro de `ui/`; `tests/`, `scripts/`, `docs/`,
    `assets/` e `benchmarks/` ficam na raiz como exceção declarada de monorepo
    (ferramentas e instalador esperam esses caminhos) ou migram para dentro dos
-   pilares — decisão do dono do projeto.
+   pilares — decisão do dono do projeto: `plugins/` entra em `ui/`; `tests/`,
+   `docs/` e `assets/` (com `scripts/` e `benchmarks/`) ficam na raiz como
+   exceção declarada.

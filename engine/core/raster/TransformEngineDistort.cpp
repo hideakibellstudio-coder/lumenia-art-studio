@@ -15,9 +15,9 @@ bool TransformEngine::commitTransformDistort(
     int interpMode,
     int canvasWidth,
     int canvasHeight,
-    canvas::TileUndoManager& undoManager,
+    history::TileUndoManager& undoManager,
     int activeLayerIndex,
-    math::Rect2D& outDirtyBounds
+    utils::Rect2D& outDirtyBounds
 ) {
     if (!m_state.active || !m_sourceBuffer || !activeLayer || !transform::isConvexQuad(corners)) {
         return false;
@@ -61,7 +61,7 @@ bool TransformEngine::commitTransformDistort(
     const auto& sb = m_state.sourceBounds;
     const double x0 = std::min(sb.x, qMinX), y0 = std::min(sb.y, qMinY);
     const double x1 = std::max(sb.x + sb.width, qMaxX), y1 = std::max(sb.y + sb.height, qMaxY);
-    outDirtyBounds = math::Rect2D{x0, y0, x1 - x0, y1 - y0};
+    outDirtyBounds = utils::Rect2D{x0, y0, x1 - x0, y1 - y0};
 
     reset();
     return true;

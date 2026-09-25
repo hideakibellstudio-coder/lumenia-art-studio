@@ -1,8 +1,8 @@
 #ifndef ALADYN_ENGINE_VIEWPORT_TRANSFORM_HPP
 #define ALADYN_ENGINE_VIEWPORT_TRANSFORM_HPP
 
-#include "Point2D.hpp"
-#include "Rect2D.hpp"
+#include "../../utils/Point2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include <tuple>
 #include <utility>
 
@@ -24,10 +24,10 @@ public:
     void setCanvasSize(double w, double h) noexcept;
     void setCamera(double panX, double panY, double zoom, double rotationDeg, bool flipH = false, bool flipV = false) noexcept;
 
-    [[nodiscard]] Point2D canvasToScreen(double cx, double cy) const noexcept;
-    [[nodiscard]] Point2D screenToCanvas(double sx, double sy) const noexcept;
+    [[nodiscard]] utils::Point2D canvasToScreen(double cx, double cy) const noexcept;
+    [[nodiscard]] utils::Point2D screenToCanvas(double sx, double sy) const noexcept;
 
-    [[nodiscard]] Rect2D getVisibleCanvasBounds() const noexcept;
+    [[nodiscard]] utils::Rect2D getVisibleCanvasBounds() const noexcept;
 
     /**
      * @brief Retorna o intervalo retangular de tiles (minTx, minTy, maxTx, maxTy) visíveis no Viewport.

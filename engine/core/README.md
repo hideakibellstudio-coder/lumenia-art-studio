@@ -1,31 +1,37 @@
 # `engine/core/` — núcleo do motor
 
-**Responsabilidade:** os domínios do motor, cada um numa pasta: pixels e tiles, pincel, cor, documento e camadas, mini-motores de pincel, matemática, rasterização, traço, textura, compressão e telemetria.
+**Responsabilidade:** os domínios do motor, cada um numa pasta: matemática de guias e viewport, texturas, cor, entrada do traço, armazenamento de pixels, seleção, pincel, documento e camadas, histórico, rasterização e os mini-motores de pincel.
 
 ## Porta de entrada
 
-Não há porta única: quem usa o núcleo é `engine/boundary/public-api` (fachada e orquestradores).
+Não há porta única: quem usa o núcleo é `engine/boundary/` (orquestradores e API pública).
 
 ## Conteúdo
 
+Na ordem das camadas, de baixo para cima (cada módulo só inclui os anteriores, `engine/utils` e `engine/infrastructure`):
+
 | Pasta | Responsabilidade |
 |---|---|
-| `brush/` | Perfil do pincel (parâmetros por motor) e mapeamento dinâmico pressão/velocidade → dab. |
-| `canvas/` | Armazenamento de pixels: tiles com COW e compressão, grade, histórico por tile, disco de rascunho, mipmaps. |
-| `color/` | Perfis de cor canônicos e espaço linear (Deep Color). |
-| `compression/` | Codec LZ4 dos tiles. |
-| `document/` | Camadas, pilha, mesclagem de camadas e compositor. |
-| `engines/` | Mini-motores de pincel (lápis, nanquim, marcador, aquarela, óleo, borracha, desfoque, smudge). |
-| `math/` | Geometria: pontos, retângulos, Bézier, viewport, simetria, snap de guias e de perspectiva. |
-| `raster/` | Rasterização: dabs, interpolação, preenchimento, seleção, transformação. |
+| `math/` | Bézier, viewport, simetria, snap de guias e de perspectiva, trajetória. |
+| `texture/` | Texturas 2D e procedurais (ponta e papel). |
+| `color/` | Perfis de cor canônicos, espaço linear (Deep Color) e conversão HSV. |
 | `stroke/` | Entrada do traço: eventos de ponteiro, velocidade e estabilizador. |
-| `telemetry/` | Medidas do traço em tempo real. |
-| `texture/` | Texturas 2D e texturas procedurais (ponta e papel). |
+| `canvas/` | Armazenamento de pixels: tiles com COW e compressão, grade, mipmaps, textura do papel. |
+| `selection/` | Máscara de seleção, varinha e formas, morfologia (expandir, contrair, suavizar). |
+| `brush/` | Perfil do pincel e mapeamento dinâmico pressão/velocidade → dab. |
+| `document/` | Camadas, pilha, mesclagem, filtros e compositor. |
+| `history/` | Desfazer/refazer por tile e por estrutura, com paginação em disco. |
+| `raster/` | Rasterização: dabs, interpolação, deposição, balde, transformação. |
+| `engines/` | Mini-motores de pincel (lápis, nanquim, marcador, aquarela, óleo, borracha, desfoque, smudge). |
 
 ## Regras
 
-- Domínio novo vira pasta com README; `#include` entre pastas aparece no bloco `arccc:deps` do README de quem inclui.
+- Módulo novo vira pasta com README e entra em `CORE_ORDER` de `tests/test_arccc_cxx_layers.py` no lugar que as dependências dele pedem.
+- `#include` entre módulos só para baixo na ordem acima; `#include` entre pastas aparece no bloco `arccc:deps` do README de quem inclui.
 
-## Dívida conhecida (medida em 2026-09-24)
+## Decisão registrada (2026-09-25)
 
-Pelo ARCcC, pastas irmãs não se incluem diretamente; aqui 24 relações de inclusão são entre irmãs e 5 pares formam ciclo (medido em 2026-09-24). `math` e `compression` são utilitários (candidatos a `engine/utils/`).
+O ARCcC proíbe irmãs se incluírem diretamente. Aqui 19 relações de inclusão
+são entre módulos irmãos (ex.: `raster` → `canvas`), todas no sentido da ordem
+acima e sem ciclo: a ordem declarada é o contrato entre eles. Antes eram 23
+entre módulos de `core/`, com 9 pares de pastas em ciclo no motor.

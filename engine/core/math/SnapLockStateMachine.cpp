@@ -1,26 +1,26 @@
 #include "SnapLockStateMachine.hpp"
-#include "MathUtils.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <cmath>
 
 namespace aladyn::engine::math {
 
 double SnapLockStateMachine::scoreCandidate(
     const SnapCandidate& candidate,
-    const Point2D& rawPoint,
+    const utils::Point2D& rawPoint,
     const TrajectoryEstimate& trajectory,
     const SnapLockConfig& config,
-    Point2D& outClosest
+    utils::Point2D& outClosest
 ) noexcept {
     outClosest = SnapCandidateMath::closestPoint(candidate, rawPoint);
     const double dist = rawPoint.distanceTo(outClosest);
 
-    const double t = MathUtils::clamp(1.0 - dist / std::max(1e-6, config.attractionRadius), 0.0, 1.0);
+    const double t = utils::MathUtils::clamp(1.0 - dist / std::max(1e-6, config.attractionRadius), 0.0, 1.0);
     const double proximity = t * t * (3.0 - 2.0 * t); // smoothstep(0,1,t) -- candidata fora do raio pontua 0
     if (proximity <= 0.0) {
         return 0.0;
     }
 
-    const Point2D tangent = SnapCandidateMath::tangentAt(candidate, rawPoint);
+    const utils::Point2D tangent = SnapCandidateMath::tangentAt(candidate, rawPoint);
     const double alignment = std::abs(trajectory.direction.x * tangent.x + trajectory.direction.y * tangent.y);
     const double sharpened = std::pow(alignment, config.scoreSharpness);
 
@@ -30,12 +30,12 @@ double SnapLockStateMachine::scoreCandidate(
     // confiavel). Com confianca plena, pesa o alinhamento inteiro. Rampa
     // continua em vez de um corte binario -- nao reintroduz o mesmo tipo de
     // limiar rigido que causou o bug original.
-    const double directionFactor = MathUtils::lerp(1.0, sharpened, trajectory.confidence);
+    const double directionFactor = utils::MathUtils::lerp(1.0, sharpened, trajectory.confidence);
     return proximity * directionFactor;
 }
 
 SnapLockResult SnapLockStateMachine::step(
-    const Point2D& rawPoint,
+    const utils::Point2D& rawPoint,
     const TrajectoryEstimate& trajectory,
     const std::vector<SnapCandidate>& candidates,
     SnapLockState prevState,
@@ -52,7 +52,7 @@ SnapLockResult SnapLockStateMachine::step(
     if (prevState == SnapLockState::Committed
         && prevCandidateIndex >= 0
         && prevCandidateIndex < static_cast<int>(candidates.size())) {
-        const Point2D closest = SnapCandidateMath::closestPoint(candidates[static_cast<size_t>(prevCandidateIndex)], rawPoint);
+        const utils::Point2D closest = SnapCandidateMath::closestPoint(candidates[static_cast<size_t>(prevCandidateIndex)], rawPoint);
         const double stray = rawPoint.distanceTo(closest);
         if (config.breakawayRadius <= 0.0 || stray <= config.breakawayRadius) {
             result.point = closest;
@@ -73,9 +73,9 @@ SnapLockResult SnapLockStateMachine::step(
 
     int bestIndex = -1;
     double bestScore = 0.0;
-    Point2D bestClosest = rawPoint;
+    utils::Point2D bestClosest = rawPoint;
     for (int i = 0; i < static_cast<int>(candidates.size()); ++i) {
-        Point2D closest;
+        utils::Point2D closest;
         const double score = scoreCandidate(candidates[static_cast<size_t>(i)], rawPoint, trajectory, config, closest);
         if (score > bestScore) {
             bestScore = score;

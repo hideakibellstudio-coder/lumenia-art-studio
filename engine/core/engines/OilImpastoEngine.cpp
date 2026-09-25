@@ -1,6 +1,6 @@
 #include "OilImpastoEngine.hpp"
 #include "../canvas/SpatialCuller.hpp"
-#include "../math/Rect2D.hpp"
+#include "../../utils/Rect2D.hpp"
 #include "../document/Layer.hpp"
 #include "../raster/PixelContext.hpp"
 #include <cmath>
@@ -9,7 +9,7 @@
 namespace aladyn::engine::engines {
 
 void OilImpastoEngine::renderDab(
-    const raster::Dab& dab,
+    const utils::Dab& dab,
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,
     canvas::TileGrid& tileGrid,
@@ -27,7 +27,7 @@ void OilImpastoEngine::renderDab(
     const double viscosity    = std::clamp(profile.oilParams.viscosity, 0.0, 1.0);
     const double specularBrill = std::clamp(profile.oilParams.specularBrilliance, 0.0, 1.0);
 
-    const math::Rect2D bounds{
+    const utils::Rect2D bounds{
         dab.position.x - maxR, dab.position.y - maxR,
         maxR * 2.0, maxR * 2.0
     };
@@ -137,7 +137,7 @@ void OilImpastoEngine::renderDab(
 
                 if (curEffectiveOpacity <= 0.0) continue;
 
-                const raster::ColorRGBA dst = buffer.getPixel(px, py);
+                const utils::ColorRGBA dst = buffer.getPixel(px, py);
 
                 const double srcR = static_cast<double>(dab.color.r) / 255.0;
                 const double srcG = static_cast<double>(dab.color.g) / 255.0;
@@ -168,7 +168,7 @@ void OilImpastoEngine::renderDab(
                     double outG = (effSrcG * srcA + dstG * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
                     double outB = (effSrcB * srcA + dstB * dstA * invSrcA) / (srcA + dstA * invSrcA) + specularAdd;
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB * 255.0, 0.0, 255.0)),
@@ -185,7 +185,7 @@ void OilImpastoEngine::renderDab(
                     double outG = (effSrcG * srcA + dstG * dstA * (1.0 - srcA)) / outA + specularAdd;
                     double outB = (effSrcB * srcA + dstB * dstA * (1.0 - srcA)) / outA + specularAdd;
 
-                    buffer.setPixel(px, py, raster::ColorRGBA{
+                    buffer.setPixel(px, py, utils::ColorRGBA{
                         static_cast<uint8_t>(std::clamp(outR * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outG * 255.0, 0.0, 255.0)),
                         static_cast<uint8_t>(std::clamp(outB * 255.0, 0.0, 255.0)),

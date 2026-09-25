@@ -10,7 +10,7 @@ fica fora de qualquer guardrail automatizado de LOC ou consistencia
 documental -- o que permitiu que:
 
   - engine/boundary/public-api/PaintEngineFacade.cpp        (652 LOC)
-  - engine/boundary/public-api/internal/StrokeOrchestrator.cpp (460 LOC)
+  - engine/boundary/orchestrator/StrokeOrchestrator.cpp (460 LOC; então em public-api/internal/)
 
 ultrapassassem o teto sem que nenhum teste os acusasse, mesmo com a
 suite 100% GREEN.

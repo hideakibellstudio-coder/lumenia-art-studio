@@ -1,17 +1,17 @@
 #include "PaintEngineFacade.hpp"
-#include "internal/BrushEngineFactory.hpp"
-#include "internal/BufferPasteOrchestrator.hpp"
-#include "internal/DocumentStateOrchestrator.hpp"
-#include "internal/FloodFillOrchestrator.hpp"
-#include "internal/LayerStackOrchestrator.hpp"
-#include "internal/MemoryOrchestrator.hpp"
-#include "internal/RasterExportOrchestrator.hpp"
-#include "internal/SelectionOrchestrator.hpp"
-#include "internal/SnapOrchestrator.hpp"
-#include "internal/StrokeOrchestrator.hpp"
-#include "internal/StrokeSessionOrchestrator.hpp"
-#include "internal/TransformOrchestrator.hpp"
-#include "../../core/raster/SelectionMorphology.hpp"
+#include "../orchestrator/BrushEngineFactory.hpp"
+#include "../orchestrator/BufferPasteOrchestrator.hpp"
+#include "../orchestrator/DocumentStateOrchestrator.hpp"
+#include "../orchestrator/FloodFillOrchestrator.hpp"
+#include "../orchestrator/LayerStackOrchestrator.hpp"
+#include "../orchestrator/MemoryOrchestrator.hpp"
+#include "../orchestrator/RasterExportOrchestrator.hpp"
+#include "../orchestrator/SelectionOrchestrator.hpp"
+#include "../orchestrator/SnapOrchestrator.hpp"
+#include "../orchestrator/StrokeOrchestrator.hpp"
+#include "../orchestrator/StrokeSessionOrchestrator.hpp"
+#include "../orchestrator/TransformOrchestrator.hpp"
+#include "../../core/selection/SelectionMorphology.hpp"
 #include <cstdlib>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ PaintEngineFacade::PaintEngineFacade(int width, int height)
     _putenv("OMP_WAIT_POLICY=PASSIVE");
 #endif
 
-    m_firstSample = std::make_unique<internal::TouchdownSample>();
+    m_firstSample = std::make_unique<orchestrator::TouchdownSample>();
     initEngine(brush::EngineType::Brush);
     m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
 }
@@ -62,21 +62,21 @@ PaintEngineFacade::~PaintEngineFacade() = default;
 // syncHistoryGeometry() podem trocar buffers e compositor por instancias novas,
 // entao qualquer contexto guardado entre chamadas ficaria pendente.
 
-internal::DocumentContext PaintEngineFacade::docContext() noexcept {
-    return internal::DocumentContext{
+orchestrator::DocumentContext PaintEngineFacade::docContext() noexcept {
+    return orchestrator::DocumentContext{
         m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
         m_documentGeneration, m_mipmapPyramid, m_linearGamma, m_deepColor
     };
 }
 
-internal::EngineStateContext PaintEngineFacade::stateContext() noexcept {
-    return internal::EngineStateContext{
+orchestrator::EngineStateContext PaintEngineFacade::stateContext() noexcept {
+    return orchestrator::EngineStateContext{
         docContext(), m_displayBuffer, m_selectionMask, m_undoManager, m_width, m_height
     };
 }
 
-internal::RawStrokeContext PaintEngineFacade::strokeContext() noexcept {
-    return internal::RawStrokeContext{
+orchestrator::RawStrokeContext PaintEngineFacade::strokeContext() noexcept {
+    return orchestrator::RawStrokeContext{
         m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, *m_firstSample,
         m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
         m_distanceCarryover, m_timeCarryover, m_lastTimestamp, m_lastDab, m_velocityTracker, m_stabilizer,
@@ -92,7 +92,7 @@ internal::RawStrokeContext PaintEngineFacade::strokeContext() noexcept {
 
 void PaintEngineFacade::initEngine(brush::EngineType type) {
     m_brushProfile.engineType = type;
-    m_activeEngine = internal::BrushEngineFactory::create(type);
+    m_activeEngine = orchestrator::BrushEngineFactory::create(type);
     if (m_activeEngine) m_activeEngine->onActivate(m_brushProfile);
 }
 
@@ -110,29 +110,29 @@ void PaintEngineFacade::setEngineType(int engineTypeId) {
 // armadilha para qualquer chamada futura fora de transacao. Nao as
 // reintroduza.
 
-int PaintEngineFacade::addLayer(const std::string& name, int insertIndex) { return internal::LayerStackOrchestrator::addLayer(docContext(), name, insertIndex); }
-int PaintEngineFacade::addGroup(const std::string& name, int insertIndex) { return internal::LayerStackOrchestrator::addGroup(docContext(), name, insertIndex); }
-int PaintEngineFacade::addFilterLayer(const std::string& name, int filterTypeId, int insertIndex) { return internal::LayerStackOrchestrator::addFilterLayer(docContext(), name, filterTypeId, insertIndex); }
-bool PaintEngineFacade::removeLayer(int index) { return internal::LayerStackOrchestrator::removeLayer(docContext(), index); }
-int PaintEngineFacade::duplicateLayer(int index) { return internal::LayerStackOrchestrator::duplicateLayer(docContext(), index); }
-bool PaintEngineFacade::reorderLayer(int fromIndex, int toIndex) { return internal::LayerStackOrchestrator::reorderLayer(docContext(), fromIndex, toIndex); }
-bool PaintEngineFacade::reorderLayers(const std::vector<int>& newOrder) { return internal::LayerStackOrchestrator::reorderLayers(docContext(), newOrder); }
-bool PaintEngineFacade::setLayerParents(const std::vector<int>& parentIndices) { return internal::LayerStackOrchestrator::setLayerParents(docContext(), parentIndices); }
-bool PaintEngineFacade::flattenGroup(int index) { return internal::LayerStackOrchestrator::flattenGroup(docContext(), index); }
-bool PaintEngineFacade::mergeLayerDown(int index) { return internal::LayerStackOrchestrator::mergeLayerDown(docContext(), index); }
-bool PaintEngineFacade::setGroupPassThrough(int index, bool passThrough) { return internal::LayerStackOrchestrator::setGroupPassThrough(docContext(), index, passThrough); }
-void PaintEngineFacade::clearLayer(int index) { internal::LayerStackOrchestrator::clearLayer(docContext(), index); }
+int PaintEngineFacade::addLayer(const std::string& name, int insertIndex) { return orchestrator::LayerStackOrchestrator::addLayer(docContext(), name, insertIndex); }
+int PaintEngineFacade::addGroup(const std::string& name, int insertIndex) { return orchestrator::LayerStackOrchestrator::addGroup(docContext(), name, insertIndex); }
+int PaintEngineFacade::addFilterLayer(const std::string& name, int filterTypeId, int insertIndex) { return orchestrator::LayerStackOrchestrator::addFilterLayer(docContext(), name, filterTypeId, insertIndex); }
+bool PaintEngineFacade::removeLayer(int index) { return orchestrator::LayerStackOrchestrator::removeLayer(docContext(), index); }
+int PaintEngineFacade::duplicateLayer(int index) { return orchestrator::LayerStackOrchestrator::duplicateLayer(docContext(), index); }
+bool PaintEngineFacade::reorderLayer(int fromIndex, int toIndex) { return orchestrator::LayerStackOrchestrator::reorderLayer(docContext(), fromIndex, toIndex); }
+bool PaintEngineFacade::reorderLayers(const std::vector<int>& newOrder) { return orchestrator::LayerStackOrchestrator::reorderLayers(docContext(), newOrder); }
+bool PaintEngineFacade::setLayerParents(const std::vector<int>& parentIndices) { return orchestrator::LayerStackOrchestrator::setLayerParents(docContext(), parentIndices); }
+bool PaintEngineFacade::flattenGroup(int index) { return orchestrator::LayerStackOrchestrator::flattenGroup(docContext(), index); }
+bool PaintEngineFacade::mergeLayerDown(int index) { return orchestrator::LayerStackOrchestrator::mergeLayerDown(docContext(), index); }
+bool PaintEngineFacade::setGroupPassThrough(int index, bool passThrough) { return orchestrator::LayerStackOrchestrator::setGroupPassThrough(docContext(), index, passThrough); }
+void PaintEngineFacade::clearLayer(int index) { orchestrator::LayerStackOrchestrator::clearLayer(docContext(), index); }
 
-void PaintEngineFacade::setLayerOpacity(int index, double opacity) { internal::LayerStackOrchestrator::setLayerOpacity(docContext(), index, opacity); }
-void PaintEngineFacade::setLayerBlendMode(int index, int blendModeId) { internal::LayerStackOrchestrator::setLayerBlendMode(docContext(), index, blendModeId); }
-void PaintEngineFacade::setLayerVisibility(int index, bool visible) { internal::LayerStackOrchestrator::setLayerVisibility(docContext(), index, visible); }
-void PaintEngineFacade::setLayerClippingMask(int index, bool clipped) { internal::LayerStackOrchestrator::setLayerClippingMask(docContext(), index, clipped); }
-void PaintEngineFacade::setLayerLock(int index, bool locked) { internal::LayerStackOrchestrator::setLayerLock(docContext(), index, locked); }
-void PaintEngineFacade::setLayerAlphaLock(int index, bool locked) { internal::LayerStackOrchestrator::setLayerAlphaLock(docContext(), index, locked); }
+void PaintEngineFacade::setLayerOpacity(int index, double opacity) { orchestrator::LayerStackOrchestrator::setLayerOpacity(docContext(), index, opacity); }
+void PaintEngineFacade::setLayerBlendMode(int index, int blendModeId) { orchestrator::LayerStackOrchestrator::setLayerBlendMode(docContext(), index, blendModeId); }
+void PaintEngineFacade::setLayerVisibility(int index, bool visible) { orchestrator::LayerStackOrchestrator::setLayerVisibility(docContext(), index, visible); }
+void PaintEngineFacade::setLayerClippingMask(int index, bool clipped) { orchestrator::LayerStackOrchestrator::setLayerClippingMask(docContext(), index, clipped); }
+void PaintEngineFacade::setLayerLock(int index, bool locked) { orchestrator::LayerStackOrchestrator::setLayerLock(docContext(), index, locked); }
+void PaintEngineFacade::setLayerAlphaLock(int index, bool locked) { orchestrator::LayerStackOrchestrator::setLayerAlphaLock(docContext(), index, locked); }
 
-void PaintEngineFacade::setFilterParams(int index, const std::vector<float>& params) { internal::LayerStackOrchestrator::setFilterParams(docContext(), index, params); }
-std::vector<float> PaintEngineFacade::getFilterParams(int index) const { return internal::LayerStackOrchestrator::getFilterParams(m_layerStack, index); }
-int PaintEngineFacade::getFilterType(int index) const { return internal::LayerStackOrchestrator::getFilterType(m_layerStack, index); }
+void PaintEngineFacade::setFilterParams(int index, const std::vector<float>& params) { orchestrator::LayerStackOrchestrator::setFilterParams(docContext(), index, params); }
+std::vector<float> PaintEngineFacade::getFilterParams(int index) const { return orchestrator::LayerStackOrchestrator::getFilterParams(m_layerStack, index); }
+int PaintEngineFacade::getFilterType(int index) const { return orchestrator::LayerStackOrchestrator::getFilterType(m_layerStack, index); }
 
 void PaintEngineFacade::setBackgroundVisibility(bool visible) {
     m_layerStack.getBackgroundLayer().setVisible(visible);
@@ -150,15 +150,15 @@ void PaintEngineFacade::setBackgroundColor(uint8_t r, uint8_t g, uint8_t b, uint
 
 // ─── ESTADO DO DOCUMENTO E HISTORICO ──────────────────────────────────────
 
-void PaintEngineFacade::resizeCanvas(int width, int height) { internal::DocumentStateOrchestrator::resizeCanvas(stateContext(), width, height); }
-void PaintEngineFacade::clearCanvas() { internal::DocumentStateOrchestrator::clearCanvas(docContext()); }
-bool PaintEngineFacade::cancelLayerTransaction() { return internal::DocumentStateOrchestrator::cancelLayerTransaction(stateContext()); }
-bool PaintEngineFacade::undo() { return internal::DocumentStateOrchestrator::undo(stateContext()); }
-bool PaintEngineFacade::redo() { return internal::DocumentStateOrchestrator::redo(stateContext()); }
+void PaintEngineFacade::resizeCanvas(int width, int height) { orchestrator::DocumentStateOrchestrator::resizeCanvas(stateContext(), width, height); }
+void PaintEngineFacade::clearCanvas() { orchestrator::DocumentStateOrchestrator::clearCanvas(docContext()); }
+bool PaintEngineFacade::cancelLayerTransaction() { return orchestrator::DocumentStateOrchestrator::cancelLayerTransaction(stateContext()); }
+bool PaintEngineFacade::undo() { return orchestrator::DocumentStateOrchestrator::undo(stateContext()); }
+bool PaintEngineFacade::redo() { return orchestrator::DocumentStateOrchestrator::redo(stateContext()); }
 
 bool PaintEngineFacade::applyPreparedGeometry(const PaintEngineFacade& prepared) {
     if (&prepared == this) return false;
-    return internal::DocumentStateOrchestrator::applyPreparedGeometry(
+    return orchestrator::DocumentStateOrchestrator::applyPreparedGeometry(
         stateContext(), prepared.m_layerStack, prepared.m_selectionMask);
 }
 
@@ -166,18 +166,18 @@ bool PaintEngineFacade::applyPreparedGeometry(const PaintEngineFacade& prepared)
 
 void PaintEngineFacade::beginStroke(const stroke::PointerEvent& event) {
     auto ctx = strokeContext();
-    internal::StrokeSessionOrchestrator::beginStroke(ctx, event);
+    orchestrator::StrokeSessionOrchestrator::beginStroke(ctx, event);
 }
 
 TelemetryData PaintEngineFacade::updateStroke(const stroke::PointerEvent& event) {
     auto ctx = strokeContext();
-    const auto s = internal::StrokeSessionOrchestrator::updateStroke(ctx, event);
+    const auto s = orchestrator::StrokeSessionOrchestrator::updateStroke(ctx, event);
     return { s.pressure, s.velocity, s.outputFlow };
 }
 
 void PaintEngineFacade::endStroke(const stroke::PointerEvent& /*event*/) {
     auto ctx = strokeContext();
-    if (internal::StrokeSessionOrchestrator::endStroke(ctx)) docContext().touch();
+    if (orchestrator::StrokeSessionOrchestrator::endStroke(ctx)) docContext().touch();
 }
 
 void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, double timestamp,
@@ -205,28 +205,28 @@ void PaintEngineFacade::beginStrokeRaw(double x, double y, double pressure, doub
 std::vector<double> PaintEngineFacade::updateStrokeRaw(double x, double y, double pressure, double timestamp,
                                                        double tiltX, double tiltY, double twist) {
     auto ctx = strokeContext();
-    return internal::StrokeOrchestrator::updateStrokeRaw(ctx, x, y, pressure, timestamp, tiltX, tiltY, twist);
+    return orchestrator::StrokeOrchestrator::updateStrokeRaw(ctx, x, y, pressure, timestamp, tiltX, tiltY, twist);
 }
 
 std::vector<double> PaintEngineFacade::endStrokeRaw(double endX, double endY) {
     auto ctx = strokeContext();
-    return internal::StrokeOrchestrator::endStrokeRaw(ctx, [this](const stroke::PointerEvent& ev) {
+    return orchestrator::StrokeOrchestrator::endStrokeRaw(ctx, [this](const stroke::PointerEvent& ev) {
         this->endStroke(ev);
     }, endX, endY);
 }
 
 telemetry::RealTimeStrokeMetrics PaintEngineFacade::getTelemetrySnapshot() const {
-    return internal::StrokeSessionOrchestrator::telemetrySnapshot(m_layerStack, m_undoManager, m_telemetryManager);
+    return orchestrator::StrokeSessionOrchestrator::telemetrySnapshot(m_layerStack, m_undoManager, m_telemetryManager);
 }
 
 // ─── FLOOD FILL ───────────────────────────────────────────────────────────
 
 bool PaintEngineFacade::floodFill(
-    int seedX, int seedY, const raster::ColorRGBA& fillColor,
+    int seedX, int seedY, const utils::ColorRGBA& fillColor,
     int tolerance, bool contiguous, int expandPx, int gapClosingPx,
     bool antiAliasing, bool sampleAllLayers
 ) {
-    const bool result = internal::FloodFillOrchestrator::floodFill(
+    const bool result = orchestrator::FloodFillOrchestrator::floodFill(
         m_outputBuffer, m_layerStack, m_undoManager, m_compositor,
         m_selectionMask, m_canvasTexture.backgroundColor,
         seedX, seedY, fillColor, tolerance, contiguous, expandPx, gapClosingPx, antiAliasing, sampleAllLayers
@@ -237,31 +237,31 @@ bool PaintEngineFacade::floodFill(
 
 // ─── MÉTODOS DE SELEÇÃO & CONTORNOS ────────────────────────────────────────
 bool PaintEngineFacade::magicWandSelect(int seedX, int seedY, int tolerance, bool contiguous, int expandPx, bool antiAliasing, int mode, bool sampleAllLayers) {
-    return internal::SelectionOrchestrator::magicWandSelect(seedX, seedY, tolerance, contiguous, expandPx, antiAliasing, mode, sampleAllLayers, m_width, m_height, m_outputBuffer, m_layerStack, m_selectionMask);
+    return orchestrator::SelectionOrchestrator::magicWandSelect(seedX, seedY, tolerance, contiguous, expandPx, antiAliasing, mode, sampleAllLayers, m_width, m_height, m_outputBuffer, m_layerStack, m_selectionMask);
 }
 bool PaintEngineFacade::selectRect(int x, int y, int w, int h, int mode, int featherPx, int cornerRadiusPx) {
-    return internal::SelectionOrchestrator::selectRect(x, y, w, h, mode, featherPx, cornerRadiusPx, m_width, m_height, m_selectionMask);
+    return orchestrator::SelectionOrchestrator::selectRect(x, y, w, h, mode, featherPx, cornerRadiusPx, m_width, m_height, m_selectionMask);
 }
 bool PaintEngineFacade::selectEllipse(int cx, int cy, int rx, int ry, int mode, bool antiAliasing, int featherPx) {
-    return internal::SelectionOrchestrator::selectEllipse(cx, cy, rx, ry, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
+    return orchestrator::SelectionOrchestrator::selectEllipse(cx, cy, rx, ry, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
 }
 bool PaintEngineFacade::selectPolygon(const std::vector<int>& flatPoints, int mode, bool antiAliasing, int featherPx) {
-    return internal::SelectionOrchestrator::selectPolygon(flatPoints, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
+    return orchestrator::SelectionOrchestrator::selectPolygon(flatPoints, mode, antiAliasing, featherPx, m_width, m_height, m_selectionMask);
 }
 bool PaintEngineFacade::deleteSelectionOnActiveLayer() {
-    const bool result = internal::SelectionOrchestrator::deleteSelectionOnActiveLayer(m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = orchestrator::SelectionOrchestrator::deleteSelectionOnActiveLayer(m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
     if (result) docContext().touch();
     return result;
 }
-bool PaintEngineFacade::fillSelectionOnActiveLayer(const raster::ColorRGBA& fillColor) {
-    const bool result = internal::SelectionOrchestrator::fillSelectionOnActiveLayer(fillColor, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+bool PaintEngineFacade::fillSelectionOnActiveLayer(const utils::ColorRGBA& fillColor) {
+    const bool result = orchestrator::SelectionOrchestrator::fillSelectionOnActiveLayer(fillColor, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
     if (result) docContext().touch();
     return result;
 }
 // Seleção é salva no .lmn: mudar a geração faz a transação gravar o Desfazer.
-bool PaintEngineFacade::expandSelection(int radiusPx) { return touchedIf(raster::SelectionMorphology::expand(m_selectionMask, radiusPx)); }
-bool PaintEngineFacade::contractSelection(int radiusPx) { return touchedIf(raster::SelectionMorphology::contract(m_selectionMask, radiusPx)); }
-bool PaintEngineFacade::featherSelection(int radiusPx) { return touchedIf(raster::SelectionMorphology::feather(m_selectionMask, radiusPx)); }
+bool PaintEngineFacade::expandSelection(int radiusPx) { return touchedIf(selection::SelectionMorphology::expand(m_selectionMask, radiusPx)); }
+bool PaintEngineFacade::contractSelection(int radiusPx) { return touchedIf(selection::SelectionMorphology::contract(m_selectionMask, radiusPx)); }
+bool PaintEngineFacade::featherSelection(int radiusPx) { return touchedIf(selection::SelectionMorphology::feather(m_selectionMask, radiusPx)); }
 std::vector<int> PaintEngineFacade::getSelectionBounds() const {
     auto b = m_selectionMask.getBounds();
     return { static_cast<int>(b.x), static_cast<int>(b.y), static_cast<int>(b.width), static_cast<int>(b.height) };
@@ -271,7 +271,7 @@ std::vector<std::vector<int>> PaintEngineFacade::getSelectionContourLoops() cons
 
 // ─── TRANSFORMAÇÃO LIVRE ───────────────────────────────────────────────────
 bool PaintEngineFacade::beginTransform() {
-    return internal::TransformOrchestrator::beginTransform(m_transformEngine, m_layerStack, m_selectionMask, m_undoManager, m_width, m_height);
+    return orchestrator::TransformOrchestrator::beginTransform(m_transformEngine, m_layerStack, m_selectionMask, m_undoManager, m_width, m_height);
 }
 bool PaintEngineFacade::isTransformActive() const noexcept { return m_transformEngine.isActive(); }
 std::vector<double> PaintEngineFacade::getTransformSourceBounds() const {
@@ -283,7 +283,7 @@ std::vector<double> PaintEngineFacade::getTransformPivot() const {
     return { s.pivotX, s.pivotY };
 }
 bool PaintEngineFacade::commitTransform(double dx, double dy, double scaleX, double scaleY, double rotationDeg, double pivotX, double pivotY, bool flipH, bool flipV, int interpMode) {
-    const bool result = internal::TransformOrchestrator::commitTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, dx, dy, scaleX, scaleY, rotationDeg, pivotX, pivotY, flipH, flipV, interpMode, m_width, m_height);
+    const bool result = orchestrator::TransformOrchestrator::commitTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, dx, dy, scaleX, scaleY, rotationDeg, pivotX, pivotY, flipH, flipV, interpMode, m_width, m_height);
     if (result) docContext().touch();
     return result;
 }
@@ -291,20 +291,20 @@ bool PaintEngineFacade::commitTransformDistort(const std::vector<double>& corner
     if (corners.size() != 8) return false;
     std::array<double, 8> quad{};
     std::copy(corners.begin(), corners.end(), quad.begin());
-    const bool result = internal::TransformOrchestrator::commitTransformDistort(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, quad, interpMode, m_width, m_height);
+    const bool result = orchestrator::TransformOrchestrator::commitTransformDistort(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, quad, interpMode, m_width, m_height);
     if (result) docContext().touch();
     return result;
 }
 bool PaintEngineFacade::cancelTransform() {
-    return internal::TransformOrchestrator::cancelTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, m_width, m_height);
+    return orchestrator::TransformOrchestrator::cancelTransform(m_transformEngine, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor, m_width, m_height);
 }
 bool PaintEngineFacade::flipActiveLayer(bool horizontal) {
-    const bool result = internal::TransformOrchestrator::flipActiveLayer(horizontal, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = orchestrator::TransformOrchestrator::flipActiveLayer(horizontal, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
     if (result) docContext().touch();
     return result;
 }
 bool PaintEngineFacade::rotateActiveLayer90(bool clockwise) {
-    const bool result = internal::TransformOrchestrator::rotateActiveLayer90(clockwise, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = orchestrator::TransformOrchestrator::rotateActiveLayer90(clockwise, m_width, m_height, m_layerStack, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
     if (result) docContext().touch();
     return result;
 }
@@ -317,7 +317,7 @@ std::vector<int> PaintEngineFacade::getTransformSourceBufferSize() const {
     return buf ? std::vector<int>{ buf->getWidth(), buf->getHeight() } : std::vector<int>{ 0, 0 };
 }
 bool PaintEngineFacade::pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId, double opacity) {
-    const bool result = internal::BufferPasteOrchestrator::paste(x, y, width, height, buffer, blendModeId, opacity, m_width, m_height, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
+    const bool result = orchestrator::BufferPasteOrchestrator::paste(x, y, width, height, buffer, blendModeId, opacity, m_width, m_height, m_layerStack, m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor);
     if (result) docContext().touch();
     return result;
 }
@@ -341,7 +341,7 @@ void PaintEngineFacade::setGuideConfig(
     double vpAx, double vpAy, double vpBx, double vpBy, double vpCx, double vpCy, double cx, double cy,
     double fov, double pitch, double yaw, double snapRadius
 ) {
-    internal::SnapOrchestrator::setGuideConfig(m_guideConfig, type, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y,
+    orchestrator::SnapOrchestrator::setGuideConfig(m_guideConfig, type, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y,
         vpAx, vpAy, vpBx, vpBy, vpCx, vpCy, cx, cy, fov, pitch, yaw, snapRadius);
 }
 
@@ -353,34 +353,34 @@ void PaintEngineFacade::setCurvilinearGuideConfig(
     bool showStraightVerticals,
     int snapMode, double snapSensitivity
 ) {
-    internal::SnapOrchestrator::setCurvilinearGuideConfig(m_guideConfig, baseRadius, density,
+    orchestrator::SnapOrchestrator::setCurvilinearGuideConfig(m_guideConfig, baseRadius, density,
         showV, showH, showD, showGround, showCeiling, showGroundVerticals, showCeilingVerticals,
         showStraightVerticals, snapMode, snapSensitivity);
 }
 
 std::vector<double> PaintEngineFacade::snapPoint(double rawX, double rawY, double lastX, double lastY, bool hasLast) const {
-    return internal::SnapOrchestrator::snapPoint(m_guideConfig, rawX, rawY, lastX, lastY, hasLast);
+    return orchestrator::SnapOrchestrator::snapPoint(m_guideConfig, rawX, rawY, lastX, lastY, hasLast);
 }
 std::vector<double> PaintEngineFacade::getCurvilinearCandidates(double clickX, double clickY) const {
-    return internal::SnapOrchestrator::getCurvilinearCandidates(m_guideConfig, clickX, clickY);
+    return orchestrator::SnapOrchestrator::getCurvilinearCandidates(m_guideConfig, clickX, clickY);
 }
 std::vector<double> PaintEngineFacade::getNearestPrimaryGridCurve(double x, double y, double maxDist) const {
-    return internal::SnapOrchestrator::getNearestPrimaryGridCurve(m_guideConfig, x, y, maxDist);
+    return orchestrator::SnapOrchestrator::getNearestPrimaryGridCurve(m_guideConfig, x, y, maxDist);
 }
 std::vector<double> PaintEngineFacade::snapCurvilinear(
     double rawX, double rawY, double startX, double startY,
     const std::vector<double>& candidates, int lockedIndex, bool isStroking, double zoom
 ) const {
-    return internal::SnapOrchestrator::snapCurvilinear(m_guideConfig, rawX, rawY, startX, startY, candidates, lockedIndex, isStroking, zoom);
+    return orchestrator::SnapOrchestrator::snapCurvilinear(m_guideConfig, rawX, rawY, startX, startY, candidates, lockedIndex, isStroking, zoom);
 }
 std::vector<double> PaintEngineFacade::snapPerspective(
     double rawX, double rawY, double startX, double startY,
     bool hasLockedDir, double lockedDirX, double lockedDirY, double zoom
 ) const {
-    return internal::SnapOrchestrator::snapPerspective(m_guideConfig, rawX, rawY, startX, startY, hasLockedDir, lockedDirX, lockedDirY, zoom);
+    return orchestrator::SnapOrchestrator::snapPerspective(m_guideConfig, rawX, rawY, startX, startY, hasLockedDir, lockedDirX, lockedDirY, zoom);
 }
 std::vector<double> PaintEngineFacade::estimateTrajectory(const std::vector<double>& recentPoints, double zoom) const {
-    return internal::SnapOrchestrator::estimateTrajectory(recentPoints, zoom);
+    return orchestrator::SnapOrchestrator::estimateTrajectory(recentPoints, zoom);
 }
 std::vector<double> PaintEngineFacade::stepSnapLock(
     double rawX, double rawY,
@@ -389,16 +389,16 @@ std::vector<double> PaintEngineFacade::stepSnapLock(
     int prevState, int prevCandidateIndex, int prevStreak,
     double attractionRadius, double breakawayRadius, int commitFrames, double scoreSharpness
 ) const {
-    return internal::SnapOrchestrator::stepSnapLock(rawX, rawY, trajDirX, trajDirY, trajConfidence,
+    return orchestrator::SnapOrchestrator::stepSnapLock(rawX, rawY, trajDirX, trajDirY, trajConfidence,
         candidates, prevState, prevCandidateIndex, prevStreak,
         attractionRadius, breakawayRadius, commitFrames, scoreSharpness);
 }
 
 // ─── ESCALABILIDADE DE MEMORIA ────────────────────────────────────────────
 
-size_t PaintEngineFacade::compressInactiveLayers() { return internal::MemoryOrchestrator::compressInactiveLayers(m_layerStack); }
-size_t PaintEngineFacade::decompressAllLayers() { return internal::MemoryOrchestrator::decompressAllLayers(m_layerStack); }
-double PaintEngineFacade::getTotalTileMemoryMB() const { return internal::MemoryOrchestrator::getTotalTileMemoryMB(m_layerStack); }
-size_t PaintEngineFacade::getCowSharedTilesCount() const { return internal::MemoryOrchestrator::getCowSharedTilesCount(m_layerStack); }
+size_t PaintEngineFacade::compressInactiveLayers() { return orchestrator::MemoryOrchestrator::compressInactiveLayers(m_layerStack); }
+size_t PaintEngineFacade::decompressAllLayers() { return orchestrator::MemoryOrchestrator::decompressAllLayers(m_layerStack); }
+double PaintEngineFacade::getTotalTileMemoryMB() const { return orchestrator::MemoryOrchestrator::getTotalTileMemoryMB(m_layerStack); }
+size_t PaintEngineFacade::getCowSharedTilesCount() const { return orchestrator::MemoryOrchestrator::getCowSharedTilesCount(m_layerStack); }
 
 } // namespace aladyn::engine::boundary

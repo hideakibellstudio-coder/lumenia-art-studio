@@ -76,10 +76,10 @@ bool LayerMerger::flattenGroup(
 
                 for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
                     for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
-                        raster::ColorRGBA src = sBuf.getPixel(px, py);
+                        utils::ColorRGBA src = sBuf.getPixel(px, py);
                         if (src.a == 0) continue;
 
-                        raster::ColorRGBA dst = dBuf.getPixel(px, py);
+                        utils::ColorRGBA dst = dBuf.getPixel(px, py);
                         dBuf.setPixel(px, py, blending::blendPixel(
                             src, relOpacity, dst, LayerBlendMode::Normal, linearGamma, deepColor));
                     }
@@ -173,14 +173,14 @@ bool LayerMerger::mergeLayerDown(
 
             for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
                 for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
-                    raster::ColorRGBA src = uBuf.getPixel(px, py);
+                    utils::ColorRGBA src = uBuf.getPixel(px, py);
                     if (src.a == 0) continue;
 
-                    raster::ColorRGBA dst = lBuf.getPixel(px, py);
+                    utils::ColorRGBA dst = lBuf.getPixel(px, py);
                     // Não mescla fora da silhueta da camada base
                     if (upperIsClipping && dst.a == 0) continue;
 
-                    raster::ColorRGBA blended = blending::blendPixel(src, upperOpacity, dst, upperBlend, linearGamma, deepColor);
+                    utils::ColorRGBA blended = blending::blendPixel(src, upperOpacity, dst, upperBlend, linearGamma, deepColor);
                     lBuf.setPixel(px, py, blended);
                 }
             }

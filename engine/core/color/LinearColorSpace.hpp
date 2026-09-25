@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_LINEAR_COLOR_SPACE_HPP
 #define ALADYN_ENGINE_LINEAR_COLOR_SPACE_HPP
 
-#include "../raster/Dab.hpp"
+#include "../../utils/ColorRGBA.hpp"
 #include <cmath>
 #include <algorithm>
 #include <cstdint>
@@ -60,28 +60,28 @@ inline uint8_t linearToSRGBPrecise(double l) noexcept {
     return static_cast<uint8_t>(std::clamp(std::lround(s * 255.0), 0l, 255l));
 }
 
-inline raster::ColorRGBA blendLinearNormalHighPrecision(
-    raster::ColorRGBA src,
+inline utils::ColorRGBA blendLinearNormalHighPrecision(
+    utils::ColorRGBA src,
     double srcA,
-    raster::ColorRGBA dst
+    utils::ColorRGBA dst
 ) noexcept {
     if (srcA <= 0.0) return dst;
     if (dst.a == 0) {
-        return raster::ColorRGBA{
+        return utils::ColorRGBA{
             src.r, src.g, src.b,
             static_cast<uint8_t>(std::clamp(std::lround(srcA * 255.0), 0l, 255l))
         };
     }
     const double dstA = static_cast<double>(dst.a) / 255.0;
     const double outA = srcA + dstA * (1.0 - srcA);
-    if (outA <= 0.0) return raster::ColorRGBA{0, 0, 0, 0};
+    if (outA <= 0.0) return utils::ColorRGBA{0, 0, 0, 0};
     const auto toLinear = [](uint8_t c) noexcept -> double {
         const double s = static_cast<double>(c) / 255.0;
         return (s <= 0.04045) ? s / 12.92 : std::pow((s + 0.055) / 1.055, 2.4);
     };
     const double srcFactor = srcA / outA;
     const double dstFactor = dstA * (1.0 - srcA) / outA;
-    return raster::ColorRGBA{
+    return utils::ColorRGBA{
         linearToSRGBPrecise(toLinear(src.r) * srcFactor + toLinear(dst.r) * dstFactor),
         linearToSRGBPrecise(toLinear(src.g) * srcFactor + toLinear(dst.g) * dstFactor),
         linearToSRGBPrecise(toLinear(src.b) * srcFactor + toLinear(dst.b) * dstFactor),
@@ -89,14 +89,14 @@ inline raster::ColorRGBA blendLinearNormalHighPrecision(
     };
 }
 
-inline raster::ColorRGBA blendLinearNormal(
-    raster::ColorRGBA src,
+inline utils::ColorRGBA blendLinearNormal(
+    utils::ColorRGBA src,
     float srcA,
-    raster::ColorRGBA dst
+    utils::ColorRGBA dst
 ) noexcept {
     if (srcA <= 0.0f) return dst;
     if (dst.a == 0) {
-        return raster::ColorRGBA{
+        return utils::ColorRGBA{
             src.r, src.g, src.b,
             static_cast<uint8_t>(std::clamp(srcA * 255.0f + 0.5f, 0.0f, 255.0f))
         };
@@ -104,7 +104,7 @@ inline raster::ColorRGBA blendLinearNormal(
 
     const float dstA = static_cast<float>(dst.a) / 255.0f;
     const float outA = srcA + dstA * (1.0f - srcA);
-    if (outA <= 0.0f) return raster::ColorRGBA{0, 0, 0, 0};
+    if (outA <= 0.0f) return utils::ColorRGBA{0, 0, 0, 0};
 
     const float sR = sRGBToLinear(src.r);
     const float sG = sRGBToLinear(src.g);
@@ -122,7 +122,7 @@ inline raster::ColorRGBA blendLinearNormal(
     const float outLinG = sG * factorSrc + dG * factorDst;
     const float outLinB = sB * factorSrc + dB * factorDst;
 
-    return raster::ColorRGBA{
+    return utils::ColorRGBA{
         linearToSRGB(outLinR),
         linearToSRGB(outLinG),
         linearToSRGB(outLinB),
@@ -130,13 +130,13 @@ inline raster::ColorRGBA blendLinearNormal(
     };
 }
 
-inline raster::ColorRGBA blendLinearNormalOpaque(
-    raster::ColorRGBA src,
+inline utils::ColorRGBA blendLinearNormalOpaque(
+    utils::ColorRGBA src,
     float srcA,
-    raster::ColorRGBA dst
+    utils::ColorRGBA dst
 ) noexcept {
     if (srcA <= 0.0f) return dst;
-    if (srcA >= 1.0f) return raster::ColorRGBA{src.r, src.g, src.b, 255};
+    if (srcA >= 1.0f) return utils::ColorRGBA{src.r, src.g, src.b, 255};
 
     const float sR = sRGBToLinear(src.r);
     const float sG = sRGBToLinear(src.g);
@@ -151,7 +151,7 @@ inline raster::ColorRGBA blendLinearNormalOpaque(
     const float outLinG = sG * srcA + dG * invSrcA;
     const float outLinB = sB * srcA + dB * invSrcA;
 
-    return raster::ColorRGBA{
+    return utils::ColorRGBA{
         linearToSRGB(outLinR),
         linearToSRGB(outLinG),
         linearToSRGB(outLinB),

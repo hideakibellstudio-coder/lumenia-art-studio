@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_SNAP_CANDIDATE_HPP
 #define ALADYN_ENGINE_SNAP_CANDIDATE_HPP
 
-#include "Point2D.hpp"
+#include "../../utils/Point2D.hpp"
 
 namespace aladyn::engine::math {
 
@@ -26,22 +26,22 @@ struct SnapCandidate {
     CandidateKind kind{CandidateKind::Line};
     int family{0};
     // Line: p1 é um ponto qualquer sobre a reta; dir é a direção unitária.
-    Point2D p1{0.0, 0.0};
-    Point2D dir{1.0, 0.0};
+    utils::Point2D p1{0.0, 0.0};
+    utils::Point2D dir{1.0, 0.0};
     // Circle:
-    Point2D center{0.0, 0.0};
+    utils::Point2D center{0.0, 0.0};
     double radius{0.0};
 };
 
 class SnapCandidateMath {
 public:
     // Ponto de `candidate` mais próximo de `pt`.
-    static Point2D closestPoint(const SnapCandidate& candidate, const Point2D& pt) noexcept;
+    static utils::Point2D closestPoint(const SnapCandidate& candidate, const utils::Point2D& pt) noexcept;
 
     // Direção tangente unitária de `candidate` no ponto mais próximo de
     // `pt` — constante para Line; perpendicular ao raio (sentido arbitrário
     // mas consistente) para Circle.
-    static Point2D tangentAt(const SnapCandidate& candidate, const Point2D& pt) noexcept;
+    static utils::Point2D tangentAt(const SnapCandidate& candidate, const utils::Point2D& pt) noexcept;
 };
 
 } // namespace aladyn::engine::math

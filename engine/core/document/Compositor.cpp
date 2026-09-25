@@ -1,27 +1,27 @@
 #include "Compositor.hpp"
 #include "FilterLayer.hpp"
-#include "internal/CompositeRegionSupport.hpp"
+#include "CompositeRegionSupport.hpp"
 #include "blending/BlendEquations.hpp"
-#include "blending/FilterApplier.hpp"
+#include "filters/FilterApplier.hpp"
 
 namespace aladyn::engine::document {
 
 Compositor::Compositor(int width, int height)
     : m_width(width), m_height(height) {}
 
-raster::ColorRGBA Compositor::blendPixel(
-    raster::ColorRGBA src,
+utils::ColorRGBA Compositor::blendPixel(
+    utils::ColorRGBA src,
     double layerOpacity,
-    raster::ColorRGBA dst,
+    utils::ColorRGBA dst,
     LayerBlendMode mode
 ) {
     return blending::blendPixel(src, layerOpacity, dst, mode, true, false);
 }
 
-raster::ColorRGBA Compositor::blendPixel(
-    raster::ColorRGBA src,
+utils::ColorRGBA Compositor::blendPixel(
+    utils::ColorRGBA src,
     double layerOpacity,
-    raster::ColorRGBA dst,
+    utils::ColorRGBA dst,
     LayerBlendMode mode,
     bool linearGamma,
     bool deepColor
@@ -34,17 +34,17 @@ void Compositor::applyFilterToBuffer(
     canvas::PixelBuffer& buffer,
     int minX, int maxX, int minY, int maxY
 ) {
-    blending::FilterApplier::apply(filter, buffer, minX, maxX, minY, maxY);
+    filters::FilterApplier::apply(filter.settings(), buffer, minX, maxX, minY, maxY);
 }
 
 void Compositor::composite(
     const std::vector<const Layer*>& layers,
     canvas::PixelBuffer& outputBuffer,
-    const raster::ColorRGBA& bgColor
+    const utils::ColorRGBA& bgColor
 ) {
     compositeRegion(
         layers,
-        math::Rect2D{0, 0, static_cast<double>(m_width), static_cast<double>(m_height)},
+        utils::Rect2D{0, 0, static_cast<double>(m_width), static_cast<double>(m_height)},
         outputBuffer,
         bgColor
     );
@@ -53,7 +53,7 @@ void Compositor::composite(
 void Compositor::composite(
     const std::vector<std::unique_ptr<Layer>>& layers,
     canvas::PixelBuffer& outputBuffer,
-    const raster::ColorRGBA& bgColor
+    const utils::ColorRGBA& bgColor
 ) {
     std::vector<const Layer*> rawPtrs;
     rawPtrs.reserve(layers.size());
@@ -72,9 +72,9 @@ void Compositor::composite(
 // ja existiam entre as sobrecargas antes desta extracao.
 void Compositor::compositeRegion(
     const std::vector<const Layer*>& layers,
-    const math::Rect2D& region,
+    const utils::Rect2D& region,
     canvas::PixelBuffer& outputBuffer,
-    const raster::ColorRGBA& bgColor
+    const utils::ColorRGBA& bgColor
 ) {
     if (layers.empty()) return;
 
@@ -131,9 +131,9 @@ void Compositor::compositeRegion(
 
 void Compositor::compositeRegion(
     const std::vector<std::unique_ptr<Layer>>& layers,
-    const math::Rect2D& region,
+    const utils::Rect2D& region,
     canvas::PixelBuffer& outputBuffer,
-    const raster::ColorRGBA& bgColor
+    const utils::ColorRGBA& bgColor
 ) {
     std::vector<const Layer*> rawPtrs;
     rawPtrs.reserve(layers.size());
@@ -145,9 +145,9 @@ void Compositor::compositeRegion(
 
 void Compositor::compositeRegionWithScratch(
     const std::vector<const Layer*>& layers,
-    const math::Rect2D& region,
+    const utils::Rect2D& region,
     canvas::PixelBuffer& outputBuffer,
-    const raster::ColorRGBA& bgColor,
+    const utils::ColorRGBA& bgColor,
     const canvas::TileGrid& scratchGrid,
     const Layer* activeLayerTarget,
     LayerBlendMode scratchBlendMode,

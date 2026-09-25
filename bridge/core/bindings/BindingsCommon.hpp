@@ -4,8 +4,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../../../engine/boundary/public-api/PaintEngineFacade.hpp"
-#include "../../../engine/core/canvas/Tile.hpp"
+#include "../../../engine/boundary/public-api/AladynEngine.hpp"  // única porta para o motor
 
 namespace py = pybind11;
 

@@ -5,7 +5,7 @@
 namespace aladyn::engine::canvas {
 
 std::vector<TileIndex> SpatialCuller::getIntersectingTiles(
-    const math::Rect2D& boundingBox,
+    const utils::Rect2D& boundingBox,
     int documentWidth,
     int documentHeight
 ) {

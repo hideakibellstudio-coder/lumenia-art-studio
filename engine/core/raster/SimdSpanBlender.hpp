@@ -1,7 +1,7 @@
 #ifndef ALADYN_ENGINE_SIMD_SPAN_BLENDER_HPP
 #define ALADYN_ENGINE_SIMD_SPAN_BLENDER_HPP
 
-#include "Dab.hpp"
+#include "../../utils/ColorRGBA.hpp"
 #include "../color/LinearColorSpace.hpp"
 #include <cstdint>
 #include <cstddef>
@@ -18,9 +18,9 @@ class SimdSpanBlender {
 public:
     // Escrita vetorial ultrarrápida para miolo sólido opaco (AVX2: 8 pixels por instrução)
     static inline void blendSpanSolidOpaque(
-        ColorRGBA* dst,
+        utils::ColorRGBA* dst,
         size_t count,
-        ColorRGBA srcColor
+        utils::ColorRGBA srcColor
     ) noexcept {
         if (count == 0 || dst == nullptr) return;
 
@@ -45,9 +45,9 @@ public:
 
     // Mesclagem linear rápida de trecho contínuo quando dst.a == 255
     static inline void blendSpanLinearNormalOpaque(
-        ColorRGBA* dst,
+        utils::ColorRGBA* dst,
         size_t count,
-        ColorRGBA srcColor,
+        utils::ColorRGBA srcColor,
         float srcA
     ) noexcept {
         if (count == 0 || dst == nullptr || srcA <= 0.0f) return;
@@ -71,9 +71,9 @@ public:
 
     // Mesclagem linear geral de trecho contínuo (suporta transparência de destino)
     static inline void blendSpanLinearNormal(
-        ColorRGBA* dst,
+        utils::ColorRGBA* dst,
         size_t count,
-        ColorRGBA srcColor,
+        utils::ColorRGBA srcColor,
         float srcA
     ) noexcept {
         if (count == 0 || dst == nullptr || srcA <= 0.0f) return;

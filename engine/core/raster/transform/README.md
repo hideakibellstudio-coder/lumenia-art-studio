@@ -16,11 +16,7 @@
 
 ## Regras
 
-- Só `../TransformEngine*.cpp` inclui esta pasta.
-
-## Dívida conhecida (medida em 2026-09-24)
-
-`Homography.hpp` declara a struct `Homografia` (nome em português, contra a seção 14 do ARCcC).
+- Só `../TransformEngine*.cpp` inclui esta pasta, e ela não inclui a pasta-mãe.
 
 ## Dependências internas
 
@@ -29,5 +25,6 @@ dependência nova entre pastas entra nesta lista no mesmo commit.
 
 <!-- arccc:deps -->
 - `engine/core/canvas`
-- `engine/core/raster`
+- `engine/core/history`
+- `engine/utils`
 <!-- /arccc:deps -->

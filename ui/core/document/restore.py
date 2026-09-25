@@ -6,7 +6,7 @@ from .schema import CURRENT_VERSION, decode_guides
 from PySide6.QtGui import QColor
 
 
-def restore_document(document: Document, backend, manifest, payloads):
+def restore_document(document: Document, backend, manifest, payloads):  # noqa: C901 -- dívida registrada (pendências, item 14)
     if not backend or not backend.available:
         raise DocumentFormatError("motor indisponível para restaurar os pixels")
     records = manifest["layers"]

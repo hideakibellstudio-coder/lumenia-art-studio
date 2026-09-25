@@ -64,126 +64,144 @@ class CanvasInputRouter:
         self._previous_engine_type: Optional[int] = None
 
     def handle_pointer_press(self, pos: QtCore.QPointF, button: QtCore.Qt.MouseButton, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
+        """Apertar: a primeira regra que consome o clique vence, nesta ordem.
+
+        Navegação (meio ou espaço) → alças das guias → conta-gotas (ou Alt) →
+        ferramenta de clique (texto, balde, varinha, seleção, forma) → laço →
+        transformação → zoom por arraste → traço. Dividido em passos em
+        2026-09-25 (complexidade 26); `tests/test_canvas_input_router.py`
+        confere cada ramo.
+        """
         w: RouterCanvas = self.widget
-        effective_tool = "eraser" if is_eraser_tip else w.active_tool
-
-        # ── Navegação de Câmera / Pan (Espaço + Clique Esquerdo ou Botão do Meio) ──
-        if button == QtCore.Qt.MiddleButton or (button == QtCore.Qt.LeftButton and w.is_space_held):
-            w.is_panning = True
-            w.last_mouse_pos = pos
-            w.setCursor(QtCore.Qt.ClosedHandCursor)
+        tool = "eraser" if is_eraser_tip else w.active_tool
+        left = button == QtCore.Qt.LeftButton
+        if button == QtCore.Qt.MiddleButton or (left and w.is_space_held):
+            self._start_pan(pos)
+            return
+        world = self._world(pos)
+        if w.geometry_ctrl.mouse_press(world, w.zoom, button == QtCore.Qt.RightButton):
             w.update()
             return
-
-        world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-        pt = QtCore.QPointF(world_evt.x, world_evt.y)
-        if w.geometry_ctrl.mouse_press(pt, w.zoom, button == QtCore.Qt.RightButton):
-            w.update()
+        if left and (tool == "eyedrop" or (modifiers & QtCore.Qt.AltModifier)):
+            self._start_eyedrop(pos)
             return
-
-        if button == QtCore.Qt.LeftButton and (effective_tool == "eyedrop" or (modifiers & QtCore.Qt.AltModifier)):
-            w.eyedrop_ctrl.active = True
-            w.eyedrop_ctrl.pos = pos
-            w.eyedrop_ctrl.old_color = w.eyedrop_ctrl.current_color
-            w.eyedrop_ctrl.do_sample(pos.x(), pos.y())
-            w.update()
+        if left and self._press_click_tool(tool, pos, world):
             return
-
-        if button == QtCore.Qt.LeftButton and effective_tool == "text":
-            world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-            if w.active_text_editor:
-                if not w.active_text_editor.geometry().contains(QtCore.QPoint(int(pos.x()), int(pos.y()))):
-                    w.commit_text_overlay()
-                    w.open_text_editor(world_evt.x, world_evt.y)
-            else:
-                w.open_text_editor(world_evt.x, world_evt.y)
+        if tool == "lasso" and self._press_lasso(button, world):
             return
-
-        if button == QtCore.Qt.LeftButton and effective_tool == "bucket":
-            w.do_flood_fill(pos.x(), pos.y())
+        if (tool == "transform" or w.transform_ctrl.active) and left and self._press_transform(world):
             return
-
-        if button == QtCore.Qt.LeftButton and effective_tool == "wand":
-            w.selection_ctrl.do_magic_wand_select(pos.x(), pos.y())
-            return
-
-        if button == QtCore.Qt.LeftButton and effective_tool in ("rect_select", "ellipse_select"):
-            world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-            w.selection_ctrl.drag_active = True
-            w.selection_ctrl.drag_start = QtCore.QPointF(world_evt.x, world_evt.y)
-            w.selection_ctrl.drag_current = w.selection_ctrl.drag_start
-            w.update()
-            return
-
-        if button == QtCore.Qt.LeftButton and (effective_tool == "shapes" or effective_tool.startswith("shape_")):
-            world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-            w.shape_ctrl.drag_active = True
-            w.shape_ctrl.drag_start = QtCore.QPointF(world_evt.x, world_evt.y)
-            w.shape_ctrl.drag_current = w.shape_ctrl.drag_start
-            w.strokeStarted.emit()
-            w.update()
-            return
-
-
-        if effective_tool == "lasso":
-            world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-            pt = QtCore.QPointF(world_evt.x, world_evt.y)
-            ltype = w.selection_ctrl.lasso_settings.get("lasso_type", "freehand")
-            if ltype == "freehand" and button == QtCore.Qt.LeftButton:
-                w.selection_ctrl.lasso_is_drawing = True
-                w.selection_ctrl.lasso_points = [pt]
-                w.update()
-                return
-            elif ltype == "polygonal":
-                if button == QtCore.Qt.LeftButton:
-                    if w.selection_ctrl.lasso_points and (pt - w.selection_ctrl.lasso_points[0]).manhattanLength() < max(6.0, 12.0 / max(0.01, w.zoom)) and len(w.selection_ctrl.lasso_points) >= 3:
-                        w.selection_ctrl.finish_lasso_selection()
-                    else:
-                        w.selection_ctrl.lasso_points.append(pt)
-                    w.update()
-                    return
-                elif button == QtCore.Qt.RightButton:
-                    w.selection_ctrl.lasso_points.clear()
-                    w.selection_ctrl.lasso_hover_pt = None
-                    w.update()
-                    return
-
-        if effective_tool == "transform" or w.transform_ctrl.active:
-            if button == QtCore.Qt.LeftButton:
-                world_evt = w.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
-                pt = QtCore.QPointF(world_evt.x, world_evt.y)
-                if w.transform_ctrl.active:
-                    handle = w.transform_ctrl.hit_test_handle(pt, w.zoom)
-                    if handle:
-                        w.transform_ctrl.begin_drag(handle, pt)
-                        w.update()
-                        return
-                else:
-                    w.start_transform_mode()
-                    return
-
-        if (button == QtCore.Qt.RightButton and (modifiers & QtCore.Qt.AltModifier)) or (button == QtCore.Qt.LeftButton and (modifiers & QtCore.Qt.ControlModifier) and (modifiers & QtCore.Qt.AltModifier)):
+        if (button == QtCore.Qt.RightButton and (modifiers & QtCore.Qt.AltModifier)) or (left and (modifiers & QtCore.Qt.ControlModifier) and (modifiers & QtCore.Qt.AltModifier)):
             w.is_zoom_dragging = True
             w.zoom_drag_start_pos = pos
             w.setCursor(QtCore.Qt.SizeVerCursor)
             return
+        if left:
+            self._press_stroke(pos, pressure, modifiers, is_eraser_tip, timestamp, tilt_x, tilt_y, twist)
 
-        if button == QtCore.Qt.LeftButton:
-            if is_eraser_tip and w.backend:
-                self._previous_engine_type = w.backend.get_active_engine_type()
-                w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
+    def _world(self, pos: QtCore.QPointF) -> QtCore.QPointF:
+        world_evt = self.widget.to_canvas(pos.x(), pos.y(), 1.0, 0.0)
+        return QtCore.QPointF(world_evt.x, world_evt.y)
 
-            p0 = w.stroke.last_end_screen
-            if (modifiers & QtCore.Qt.ShiftModifier) and p0 is not None:
-                w.start_stroke(p0.x(), p0.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
-                steps = 10
-                for s in range(1, steps + 1):
-                    t = s / steps
-                    ix = p0.x() + (pos.x() - p0.x()) * t
-                    iy = p0.y() + (pos.y() - p0.y()) * t
-                    w.paint_stroke(ix, iy, max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+    def _start_pan(self, pos: QtCore.QPointF) -> None:
+        w = self.widget
+        w.is_panning = True
+        w.last_mouse_pos = pos
+        w.setCursor(QtCore.Qt.ClosedHandCursor)
+        w.update()
+
+    def _start_eyedrop(self, pos: QtCore.QPointF) -> None:
+        w = self.widget
+        w.eyedrop_ctrl.active = True
+        w.eyedrop_ctrl.pos = pos
+        w.eyedrop_ctrl.old_color = w.eyedrop_ctrl.current_color
+        w.eyedrop_ctrl.do_sample(pos.x(), pos.y())
+        w.update()
+
+    def _press_click_tool(self, tool: str, pos: QtCore.QPointF, world: QtCore.QPointF) -> bool:
+        """Ferramentas que agem no clique esquerdo. Devolve se consumiu o clique."""
+        w = self.widget
+        if tool == "text":
+            editor = w.active_text_editor
+            if editor is None:
+                w.open_text_editor(world.x(), world.y())
+            elif not editor.geometry().contains(QtCore.QPoint(int(pos.x()), int(pos.y()))):
+                w.commit_text_overlay()
+                w.open_text_editor(world.x(), world.y())
+            return True
+        if tool == "bucket":
+            w.do_flood_fill(pos.x(), pos.y())
+            return True
+        if tool == "wand":
+            w.selection_ctrl.do_magic_wand_select(pos.x(), pos.y())
+            return True
+        if tool in ("rect_select", "ellipse_select"):
+            self._start_drag(w.selection_ctrl, world)
+            w.update()
+            return True
+        if tool == "shapes" or tool.startswith("shape_"):
+            self._start_drag(w.shape_ctrl, world)
+            w.strokeStarted.emit()
+            w.update()
+            return True
+        return False
+
+    @staticmethod
+    def _start_drag(ctrl: Any, world: QtCore.QPointF) -> None:
+        ctrl.drag_active = True
+        ctrl.drag_start = world
+        ctrl.drag_current = world
+
+    def _press_lasso(self, button: QtCore.Qt.MouseButton, pt: QtCore.QPointF) -> bool:
+        w = self.widget
+        sel = w.selection_ctrl
+        ltype = sel.lasso_settings.get("lasso_type", "freehand")
+        if ltype == "freehand" and button == QtCore.Qt.LeftButton:
+            sel.lasso_is_drawing = True
+            sel.lasso_points = [pt]
+        elif ltype == "polygonal" and button == QtCore.Qt.LeftButton:
+            close_radius = max(6.0, 12.0 / max(0.01, w.zoom))
+            if len(sel.lasso_points) >= 3 and (pt - sel.lasso_points[0]).manhattanLength() < close_radius:
+                sel.finish_lasso_selection()
             else:
-                w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+                sel.lasso_points.append(pt)
+        elif ltype == "polygonal" and button == QtCore.Qt.RightButton:
+            sel.lasso_points.clear()
+            sel.lasso_hover_pt = None
+        else:
+            return False
+        w.update()
+        return True
+
+    def _press_transform(self, pt: QtCore.QPointF) -> bool:
+        w = self.widget
+        if not w.transform_ctrl.active:
+            w.start_transform_mode()
+            return True
+        handle = w.transform_ctrl.hit_test_handle(pt, w.zoom)
+        if handle:
+            w.transform_ctrl.begin_drag(handle, pt)
+            w.update()
+            return True
+        return False
+
+    def _press_stroke(self, pos, pressure, modifiers, is_eraser_tip, timestamp, tilt_x, tilt_y, twist) -> None:
+        w = self.widget
+        if is_eraser_tip and w.backend:
+            self._previous_engine_type = w.backend.get_active_engine_type()
+            w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
+        p0 = w.stroke.last_end_screen
+        if (modifiers & QtCore.Qt.ShiftModifier) and p0 is not None:
+            # Linha reta desde o fim do último traço.
+            w.start_stroke(p0.x(), p0.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+            steps = 10
+            for s in range(1, steps + 1):
+                t = s / steps
+                ix = p0.x() + (pos.x() - p0.x()) * t
+                iy = p0.y() + (pos.y() - p0.y()) * t
+                w.paint_stroke(ix, iy, max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
+        else:
+            w.start_stroke(pos.x(), pos.y(), max(0.02, pressure), timestamp, tilt_x, tilt_y, twist)
 
     def handle_pointer_move(self, pos: QtCore.QPointF, pressure: float, modifiers: QtCore.Qt.KeyboardModifiers, is_eraser_tip: bool = False, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0):
         w: RouterCanvas = self.widget

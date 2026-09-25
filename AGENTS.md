@@ -263,7 +263,9 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
      - cores literais (`tests/test_hardcoded_colors_ratchet.py`) e varreduras
        cegas/leis do rio (`tests/test_river_ratchets.py`);
      - linter (`tests/test_python_lint.py`): `ruff check .` com as regras de
-       `[tool.ruff]` do `pyproject.toml`, zero achados desde 2026-09-25.
+       `[tool.ruff]` do `pyproject.toml` (pyflakes e complexidade McCabe até
+       20), zero achados desde 2026-09-25. Função nova acima de 20 reprova:
+       divida em passos com nome.
        Import sem uso: `ruff check --fix .`; nome importado só para
        reexportar vai no `__all__` do pacote.
    - **Catraca arquitetural:** rode `navigator_verify` e compare a contagem de

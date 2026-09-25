@@ -17,6 +17,7 @@
 | `geometry_snapping_engine.py` | Pure Analytical Geometry Snapping Engine. |
 | `geometry_tool_controller.py` | `GeometryToolController`: alças, arrasto e snap das guias e da simetria sobre o `GeometryState` compartilhado; escritor único no motor e no documento ativo (`Document.store_*_state`). |
 | `selection_tool_controller.py` | Selection Tool Controller (Magic Wand, Rect, Ellipse, Lasso). |
+| `shape_paths.py` | Geometria das formas (linha, retângulo, elipse, polígono, estrela) com Shift e Alt: funções puras, `build_shape_path`. |
 | `shape_tool_controller.py` | Vector and Geometric Shape Tool Controller. |
 | `text_tool_controller.py` | TextToolController — Controlador de Edição e Inserção de Texto no Canvas. |
 | `tool_manager.py` | ToolManager — Centralized Life-Cycle Manager for Canvas Tools. |

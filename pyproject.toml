@@ -32,4 +32,10 @@ target-version = "py311"
 cache-dir = "~/.cache/ruff"
 
 [tool.ruff.lint]
-select = ["E9", "F"]
+# C901: complexidade ciclomática (McCabe). Acima de 20 reprova; as funções que
+# já passavam disso em 2026-09-25 estão marcadas com `# noqa: C901` e listadas
+# em docs/01-correcao-da-base/01-pendencias-atuais.md (item 14).
+select = ["E9", "F", "C901"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20

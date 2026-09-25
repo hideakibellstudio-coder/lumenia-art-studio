@@ -118,10 +118,21 @@ Ordem = ordem recomendada.
     (`OverlayPalette.HORIZON`, `ANTS_DARK`...). Catraca: 189 → 147 em 40
     arquivos.* Próximos: amostras do seletor de cor (20), `shape_dropdown` (9),
     diálogo de render (8), cursor (7).
-14. **Complexidade: 23 funções acima de 20.** A pior,
-    `get_cached_curvilinear_data` (59), mora em
-    `canvas/math/curvilinear_mesh_builder.py`: conferir se duplica a matemática
-    do `CurvilinearSnapEngine` nativo (Lei do Rio 2) e o cache na classe.
+14. **Complexidade acima de 20.** *(Iniciado em 2026-09-25. Medida agora
+    pelo linter (McCabe, regra C901 do ruff): eram 9 funções acima de 20 (os
+    "23" vinham de outra ferramenta, que também conta operadores booleanos).
+    Saíram 3 — `handle_pointer_press` (26) e `handle_key_press` (24) em passos
+    nomeados, `calculate_path` (22) para `shape_paths.py` (1.440 arrastos
+    comparados, idênticos) — e o linter reprova função nova acima de 20.)*
+    Restam 6, marcadas `# noqa: C901`: `get_cached_curvilinear_data` (57),
+    `DocumentSerializer.read`, `_validate_manifest` e `validate_auxiliary`
+    (31 cada), `DocumentSerializer.save` (27), `restore_document` (24).
+    **Achado (Lei do Rio 2):** `canvas/math/camera_3d_projector.py` refaz em
+    Python `rotate3DBackward`, `curveFromNormal` e `curvilinearCameraRadius`,
+    que o `CurvilinearSnapEngine` nativo já tem. Corrigir: expor a malha da
+    perspectiva curvilínea pelo motor (uma função que devolve as curvas) e o
+    `curvilinear_mesh_builder.py` só desenhar — some a duplicação e a função
+    de complexidade 57 junto.
 15. **`bridge/infrastructure/`** para traduzir erros nativos (ARCcC 15.3): a
     ponte é o único pilar sem essa camada.
 16. **Números sem medição no documento de visão.**

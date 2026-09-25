@@ -31,7 +31,7 @@ class DocumentSerializer:
         return [int(color.red()), int(color.green()), int(color.blue()), int(color.alpha())]
 
     @classmethod
-    def save(cls, document: Document, backend, path: str | os.PathLike[str]) -> str:
+    def save(cls, document: Document, backend, path: str | os.PathLike[str]) -> str:  # noqa: C901 -- dívida registrada (pendências, item 14)
         if not backend or not getattr(backend, "available", False):
             raise DocumentFormatError("motor indisponível; salvamento cancelado para preservar o documento")
         context = getattr(backend, "get_active_document_context", None)
@@ -176,7 +176,7 @@ class DocumentSerializer:
         return str(target)
 
     @classmethod
-    def read(cls, path: str | os.PathLike[str]) -> tuple[dict[str, Any], dict[str, bytes]]:
+    def read(cls, path: str | os.PathLike[str]) -> tuple[dict[str, Any], dict[str, bytes]]:  # noqa: C901 -- dívida registrada (pendências, item 14)
         source = Path(path).expanduser().resolve()
         try:
             with zipfile.ZipFile(source, "r") as archive:
@@ -278,7 +278,7 @@ class DocumentSerializer:
             raise DocumentFormatError("manifesto contém valores inválidos") from exc
 
     @staticmethod
-    def _validate_manifest(manifest):
+    def _validate_manifest(manifest):  # noqa: C901 -- dívida registrada (pendências, item 14)
         validate_auxiliary(manifest)
         if not isinstance(manifest.get("name", ""), str):
             raise DocumentFormatError("nome do documento inválido")

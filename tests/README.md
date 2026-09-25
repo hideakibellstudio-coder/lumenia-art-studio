@@ -123,6 +123,7 @@
 | `test_runtime_paths.py` | Raiz de recursos em desenvolvimento (repositório) e empacotado (pasta do executável). |
 | `test_secondary_toolbar_structure.py` | Contrato da barra secundária (ui/plugins/system/workspace_core/workspace/secondary_tool_bar). |
 | `test_selection_modify.py` | Seleção -> Modificar (Expandir, Contrair, Suavizar Borda) -- 2026-09-23. |
+| `test_shape_paths.py` | Geometria da ferramenta Formas (`shape_paths.py`): Shift e Alt no retângulo, na elipse e na linha; vértices do polígono e da estrela; forma pequena ou desconhecida sem caminho. |
 | `test_shortcut_registry.py` | Registro de atalhos: remapear/desativar/conflito atômicos, contexto do editor de texto e do canvas. |
 | `test_state_links.py` | Regras entre estados (ui/core/state/state_links.py). |
 | `test_stroke_characterization.py` | Caracterização do traço — fixa o comportamento ANTES de mexer no motor. |

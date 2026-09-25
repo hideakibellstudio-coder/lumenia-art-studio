@@ -67,7 +67,7 @@ def _number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def validate_auxiliary(manifest):
+def validate_auxiliary(manifest):  # noqa: C901 -- dívida registrada (pendências, item 14)
     # "dpi" é opcional: arquivos anteriores a 2026-09-24 não têm (restaura 300).
     dpi = manifest.get("dpi", 300)
     if type(dpi) is not int or not 1 <= dpi <= 100000:

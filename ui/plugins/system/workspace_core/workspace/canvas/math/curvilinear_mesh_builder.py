@@ -15,7 +15,7 @@ class CurvilinearMeshBuilder:
     _curv_cache: dict = {}
 
     @classmethod
-    def get_cached_curvilinear_data(cls, guide: dict) -> dict:
+    def get_cached_curvilinear_data(cls, guide: dict) -> dict:  # noqa: C901 -- dívida registrada (pendências, item 14)
         """Computes or retrieves cached 3D curves and paths for curvilinear perspective."""
         cx, cy = float(guide.get("cx", 400.0)), float(guide.get("cy", 300.0))
         fov = float(guide.get("fov", 130.0))

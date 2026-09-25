@@ -140,10 +140,11 @@ Ordem = ordem recomendada.
     isso em `transform_rgba_for_profile` saiu. A catraca de camadas do C++
     ganhou a ordem interna da ponte (`infrastructure` → `core` → `boundary`);
     `tests/test_bridge_error_policy.py`.)*
-16. **Números sem medição no documento de visão.**
-    `../05-visao-e-futuro/01-visao-estrategica.md` promete latência < 1,2 ms,
-    abertura < 2 s e "390 testes". *Pronto:* medido no Windows com mesa, ou o
-    texto corrigido para o que foi medido.
+16. ~~**Números sem medição no documento de visão.**~~ *(feito em 2026-09-25:
+    o texto agora diz o que foi medido no Linux — traço de 120 amostras em
+    19 ms no motor (~0,16 ms por amostra), abertura em ~1 s, 998 testes,
+    repositório de 8,6 MB — e diz que a latência com mesa no Windows não foi
+    medida.)* Resta medir no Windows com mesa digitalizadora.
 17. **Acessibilidade:** 0 nomes acessíveis (`setAccessibleName`) na interface.
 18. ~~**Teste que só falhava na máquina do dono.**~~ *(feito em 2026-09-25:
     no Windows, `test_recording_plugin_activation` falhava com "Exceptions

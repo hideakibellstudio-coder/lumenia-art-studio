@@ -53,7 +53,7 @@ O projeto divide-se em dois universos complementares e rigorosamente desacoplado
 │                       ALADYN ENGINE (MOTOR)                           │
 │              Núcleo Nativo de Ultra-Baixa Latência (C++20)            │
 │  • PaintEngineFacade (Ponto único de contato, isento de Qt/Python)    │
-│  • StrokeOrchestrator com Estabilizador Dinâmico Cinemático (<1.5ms) │
+│  • StrokeOrchestrator com Estabilizador Dinâmico Cinemático         │
 │  • Sistema de Grade de Tiles Esparsos (64x64) com Compressão LZ4     │
 │  • Composição de Camadas Multi-Thread e SIMD (AVX2 / Scalar)          │
 │  • Motores Físicos de Pincel (Lápis, Tinta, Aquarela, Óleo, Smudge)  │
@@ -68,7 +68,7 @@ O projeto divide-se em dois universos complementares e rigorosamente desacoplado
 ### Pilar B: A Lumenia UI & Governança ARCcC (O Cérebro Reativo)
 - **ARCcC (Atomic Recursive Componentization by Contract)**: Uma metodologia que impede a entropia do software. Nenhum arquivo de código ultrapassa 450 linhas. Cada componente é testável e atômico.
 - **Extensibilidade por Plugins**: Todas as ferramentas principais (pincéis, camadas, telemetria, geometria) foram criadas como plugins. Novos recursos podem ser criados por terceiros sem tocar no núcleo da aplicação.
-- **Soberania do Usuário**: A aplicação inicializa em menos de 2 segundos, não depende de login ou conexão com servidores, e salva todos os dados em um formato aberto e transparente (`.lmn`).
+- **Soberania do Usuário**: A aplicação abre em cerca de 1 segundo (medido em 2026-09-25 no Linux, da importação à janela principal, sem o interpretador; no Windows ainda não medido), não depende de login ou conexão com servidores, e salva todos os dados em um formato aberto e transparente (`.lmn`).
 
 ---
 
@@ -76,11 +76,12 @@ O projeto divide-se em dois universos complementares e rigorosamente desacoplado
 
 Até o momento presente, o projeto já consolidou avanços extraordinários que a maioria dos softwares leva anos para alcançar:
 
-1. **Latência de Traço Sub-Milissegundo**:
-   - Pipeline de processamento nativo que responde a eventos de caneta stylus em menos de $1.2\text{ms}$.
+1. **Custo do traço medido**:
+   - No benchmark oficial (`benchmarks/run_engine_benchmarks.py`, 2026-09-25, Linux em contêiner de 4 núcleos, build `-O2`), um traço de 120 amostras numa tela de 1024 px custa em média 19 ms no motor, cerca de 0,16 ms por amostra da caneta (p95 do traço inteiro: 32 ms). A latência ponta a ponta com mesa digitalizadora no Windows ainda não foi medida; até 2026-09-25 este item afirmava "menos de 1,2 ms" sem medição.
 2. **Descompressão Arquitetural Perfeita (0 Arquivos na Zona Vermelha)**:
    - 100% dos arquivos Python dentro dos limites seguros ($\le 450$ LOC), mantendo a legibilidade e a pureza estrutural.
-3. **Malha de Testes 100% Verde (390 Testes)**:
+3. **Malha de Testes Verde (998 testes em 2026-09-25)**:
+   - No Linux, 993 passam e 5 são pulados (exigem Windows ou perfis ICC); o número 390 que estava aqui era antigo.
    - Uma suíte completa cobrindo I/O, corrupção simulada de arquivos, falta de memória, falhas de scratch disk, transformações afins e integridade de camadas.
 4. **Gestão Profissional de Cor (LittleCMS 2.18 / Plano B)**:
    - Suporte a perfis ICC arbitrários externos, soft-proofing com emulação CMYK (SWOP, FOGRA39), 4 intents de renderização, compensação de ponto preto e alerta de cores fora do gamut de impressão.
@@ -89,7 +90,7 @@ Até o momento presente, o projeto já consolidou avanços extraordinários que 
 6. **Release Comercial Standalone Pronto (F-016)**:
    - Executável portátil autônomo compilado via Nuitka com MSVC C++20, manifesto criptográfico SHA-256 e instalador oficial Inno Setup (apenas ~55 MB, sem dependências externas).
 7. **Saneamento Total e Ambiente Limpo**:
-   - Eliminação de mais de 3.4 GB de arquivos temporários e caches durante o saneamento inicial, mantendo um repositório enxuto de aproximadamente **12 MB** (`du`, sem contar `.git/` nem `build/`, que nunca fazem parte de uma distribuição) com compilação *Out-of-Tree*. O número subiu frente aos 6.95 MB medidos logo após o saneamento original à medida que assets, testes e o binário nativo compilado foram adicionados ao longo do desenvolvimento; o essencial do saneamento (sem cache, sem artefatos de build versionados) permanece.
+   - Eliminação de mais de 3.4 GB de arquivos temporários e caches durante o saneamento inicial, mantendo um repositório enxuto de **8,6 MB** (`du` em 2026-09-25, sem contar `.git/`, `build/`, o binário nativo compilado e os caches `__pycache__`, que nunca fazem parte de uma distribuição) com compilação *Out-of-Tree*. O número subiu frente aos 6.95 MB medidos logo após o saneamento original à medida que assets, testes e o binário nativo compilado foram adicionados ao longo do desenvolvimento; o essencial do saneamento (sem cache, sem artefatos de build versionados) permanece.
 
 ---
 
@@ -103,7 +104,7 @@ O objetivo final do **Lumenia** é consolidar-se como o **ambiente de criação 
   [FASE 1: FUNDAÇÃO]             [FASE 2: CONSOLIDAÇÃO]          [FASE 3: DOMÍNIO CRIATIVO]
   ✅ Motor C++20 Aladyn           ✅ Release Comercial (Inno)     ⏳ Buffers 16-bit / Float
   ✅ Shell UI & MDI              ✅ Gestão de Cor LittleCMS      ⏳ Shaders GPU (WebGPU/Vulkan)
-  ✅ 390 Testes Verdes           ✅ Saneamento (~12 MB s/ .git)  ⏳ Pincéis de Aquarela Físicos
+  ✅ 998 Testes Verdes           ✅ Saneamento (~9 MB s/ .git)   ⏳ Pincéis de Aquarela Físicos
   ✅ Arquitetura ARCcC           ✅ Out-of-Tree Build            ⏳ Assistência Vetorial Suave
   ───────────────────────        ────────────────────────        ─────────────────────────
       "O Motor Funciona"             "O Produto é Sólido"            "A Ferramenta Definitiva"

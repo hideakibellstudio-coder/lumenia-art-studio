@@ -7,6 +7,7 @@ Strictly decoupled in compliance with ARCcC v2 (< 250 LOC).
 
 import math
 from PySide6 import QtCore, QtGui
+from ui.infrastructure.theme.overlay_palette import OverlayPalette
 
 from ui.infrastructure.theme.manager import ThemeManager
 
@@ -33,7 +34,7 @@ class PerspectiveGridRenderer:
             vps.append(guide.get("vpC", QtCore.QPointF(400, -1200)))
 
         if len(vps) >= 2:
-            painter.setPen(QtGui.QPen(QtGui.QColor(234, 88, 12, 180), line_w * 1.5))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.HORIZON), line_w * 1.5))
             painter.drawLine(QtCore.QPointF(-8000, vps[0].y()), QtCore.QPointF(8000, vps[0].y()))
 
         tm = ThemeManager.instance()
@@ -44,17 +45,17 @@ class PerspectiveGridRenderer:
         dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
 
         for vp in vps:
-            painter.setBrush(QtGui.QColor(234, 88, 12, 220))
+            painter.setBrush(QtGui.QColor(*OverlayPalette.VANISHING_POINT))
             painter.setPen(QtGui.QPen(handle_border_col, line_w))
             painter.drawEllipse(vp, handle_r * 1.2, handle_r * 1.2)
-            painter.setPen(QtGui.QPen(QtGui.QColor(234, 88, 12, 90), line_w, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.VANISHING_RAYS), line_w, QtCore.Qt.DashLine))
             for deg in range(0, 360, 20):
                 rad = math.radians(deg)
                 painter.drawLine(vp, QtCore.QPointF(vp.x() + 4000.0 * math.cos(rad), vp.y() + 4000.0 * math.sin(rad)))
 
         if ctrl and hasattr(ctrl, "hover_point") and ctrl.hover_point is not None:
             hpt = ctrl.hover_point
-            pen_active = QtGui.QPen(QtGui.QColor(255, 125, 45, 210), line_w * 1.5, QtCore.Qt.DashLine)
+            pen_active = QtGui.QPen(QtGui.QColor(*OverlayPalette.SNAP_RAY_ACTIVE), line_w * 1.5, QtCore.Qt.DashLine)
             painter.setPen(pen_active)
             for vp in vps:
                 dx, dy = hpt.x() - vp.x(), hpt.y() - vp.y()
@@ -74,7 +75,7 @@ class PerspectiveGridRenderer:
     @staticmethod
     def render_isometric(painter: QtGui.QPainter, line_w: float):
         """Renders standard 30-degree isometric drawing grid."""
-        painter.setPen(QtGui.QPen(QtGui.QColor(59, 130, 246, 75), line_w, QtCore.Qt.DashLine))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.ISOMETRIC_GRID), line_w, QtCore.Qt.DashLine))
         spacing = 80.0
         tan_30 = math.tan(math.pi / 6)
         for i in range(-50, 50):
@@ -92,7 +93,7 @@ class PerspectiveGridRenderer:
 
         has_ring = guide.get("show_ring", True)
         if has_ring:
-            painter.setPen(QtGui.QPen(QtGui.QColor(168, 85, 247, 220), line_w * 1.5))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_RING), line_w * 1.5))
             painter.setBrush(QtCore.Qt.NoBrush)
             painter.drawEllipse(QtCore.QPointF(cx, cy), R, R)
             clip = QtGui.QPainterPath()
@@ -101,27 +102,27 @@ class PerspectiveGridRenderer:
             painter.setClipPath(clip)
 
         if guide.get("show_ground", False) and not data["ground_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(100, 200, 150, 70), line_w, QtCore.Qt.SolidLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_GROUND), line_w, QtCore.Qt.SolidLine))
             painter.drawPath(data["ground_path"])
 
         if guide.get("show_ground_verticals", False) and not data["gv_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(100, 150, 255, 60), line_w, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_GROUND_VERTICALS), line_w, QtCore.Qt.DashLine))
             painter.drawPath(data["gv_path"])
 
         if guide.get("show_ceiling", False) and not data["ceiling_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(200, 150, 100, 70), line_w, QtCore.Qt.SolidLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_CEILING), line_w, QtCore.Qt.SolidLine))
             painter.drawPath(data["ceiling_path"])
 
         if guide.get("show_ceiling_verticals", False) and not data["cv_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(200, 100, 100, 60), line_w, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_CEILING_VERTICALS), line_w, QtCore.Qt.DashLine))
             painter.drawPath(data["cv_path"])
 
         if guide.get("show_cube", False) and not data["cube_path"].isEmpty():
-            painter.setPen(QtGui.QPen(QtGui.QColor(150, 100, 255, 180), line_w * 1.4))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_CUBE), line_w * 1.4))
             painter.drawPath(data["cube_path"])
 
         if guide.get("show_v", True) and data["v_curves"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(90, 140, 255, 110), line_w, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_VERTICAL), line_w, QtCore.Qt.DashLine))
             for curv in data["v_curves"]:
                 if curv["type"] == "line":
                     painter.drawLine(curv["p1"], curv["p2"])
@@ -129,7 +130,7 @@ class PerspectiveGridRenderer:
                     painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
 
         if guide.get("show_h", True) and data["h_curves"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 90, 130, 110), line_w, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_HORIZONTAL), line_w, QtCore.Qt.DashLine))
             for curv in data["h_curves"]:
                 if curv["type"] == "line":
                     painter.drawLine(curv["p1"], curv["p2"])
@@ -137,7 +138,7 @@ class PerspectiveGridRenderer:
                     painter.drawEllipse(curv["center"], curv["radius"], curv["radius"])
 
         if guide.get("show_d", True) and data["d_curves"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(90, 210, 130, 110), line_w, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_DEPTH), line_w, QtCore.Qt.DashLine))
             for curv in data["d_curves"]:
                 if curv["type"] == "line":
                     painter.drawLine(curv["p1"], curv["p2"])
@@ -149,7 +150,7 @@ class PerspectiveGridRenderer:
             painter.setFont(font)
             for name, pt, col in data["vps"]:
                 painter.setBrush(col)
-                painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), line_w))
+                painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_VP_OUTLINE), line_w))
                 painter.drawEllipse(pt, handle_r * 0.8, handle_r * 0.8)
                 painter.setPen(QtGui.QPen(col))
                 painter.drawText(int(pt.x() + 6), int(pt.y() + 4), name)
@@ -158,7 +159,7 @@ class PerspectiveGridRenderer:
             painter.restore()
 
         if guide.get("show_letterbox", False) and data["letterbox_rect"]:
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 120), line_w * 1.5))
+            painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_LETTERBOX), line_w * 1.5))
             painter.setBrush(QtCore.Qt.NoBrush)
             painter.drawRect(data["letterbox_rect"])
 
@@ -166,14 +167,14 @@ class PerspectiveGridRenderer:
         cos_y, sin_y = math.cos(yaw_rad), math.sin(yaw_rad)
         arm_len = 80.0 / zoom_factor
         hx, hy = cx + arm_len * cos_y, cy + arm_len * sin_y
-        painter.setPen(QtGui.QPen(QtGui.QColor(150, 100, 255, 140), line_w * 1.5))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_ROTATION_ARM), line_w * 1.5))
         painter.drawLine(QtCore.QPointF(cx, cy), QtCore.QPointF(hx, hy))
 
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 180), line_w))
-        painter.setBrush(QtGui.QColor(100, 200, 255, 240))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.CURV_PIVOT_OUTLINE), line_w))
+        painter.setBrush(QtGui.QColor(*OverlayPalette.CURV_PIVOT))
         painter.drawEllipse(QtCore.QPointF(hx, hy), handle_r * 1.1, handle_r * 1.1)
 
-        painter.setBrush(QtGui.QColor(255, 255, 255, 240))
+        painter.setBrush(QtGui.QColor(*OverlayPalette.CURV_ARM_HANDLE))
         painter.drawEllipse(QtCore.QPointF(cx, cy), handle_r * 1.2, handle_r * 1.2)
 
     @staticmethod
@@ -201,13 +202,13 @@ class PerspectiveGridRenderer:
         for c in curves_to_draw:
             fam = c.get("family", "")
             if fam.endswith("_v") or fam == "v":
-                c_col = QtGui.QColor(56, 189, 248, 120)
+                c_col = QtGui.QColor(*OverlayPalette.CURV_HOVER_VERTICAL)
             elif fam.endswith("_x") or fam == "h":
-                c_col = QtGui.QColor(248, 113, 113, 120)
+                c_col = QtGui.QColor(*OverlayPalette.CURV_HOVER_HORIZONTAL)
             elif fam.endswith("_z") or fam == "d":
-                c_col = QtGui.QColor(74, 222, 128, 120)
+                c_col = QtGui.QColor(*OverlayPalette.CURV_HOVER_DEPTH)
             else:
-                c_col = QtGui.QColor(255, 125, 45, 100)
+                c_col = QtGui.QColor(*OverlayPalette.CURV_HOVER_OTHER)
 
             painter.setPen(QtGui.QPen(c_col, line_w * 1.3, QtCore.Qt.DashLine))
             if c["type"] == "line":

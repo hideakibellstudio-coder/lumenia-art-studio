@@ -1,6 +1,7 @@
 """Canvas Overlays Renderer (Selection Marching Ants, Transform Gizmo, Shape Preview, Loupe HUD)."""
 
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.infrastructure.theme.overlay_palette import OverlayPalette
 from ui.plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
 from ui.plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController
 
@@ -20,7 +21,7 @@ class OverlayRenderer:
 
         # 1. Sombra suave
         painter.setPen(QtCore.Qt.NoPen)
-        painter.setBrush(QtGui.QColor(0, 0, 0, 80))
+        painter.setBrush(QtGui.QColor(*OverlayPalette.LOUPE_SHADOW))
         painter.drawEllipse(QtCore.QPointF(cx, cy + 4), r_outer + 2, r_outer + 2)
 
         # 2. Miniatura ampliada do canvas sob a retícula (Zoom 4x)
@@ -30,7 +31,7 @@ class OverlayRenderer:
         clip_path = QtGui.QPainterPath()
         clip_path.addEllipse(QtCore.QPointF(cx, cy), r_inner, r_inner)
         painter.setClipPath(clip_path)
-        painter.fillRect(QtCore.QRectF(cx - r_inner, cy - r_inner, r_inner * 2, r_inner * 2), QtGui.QColor(30, 30, 30))
+        painter.fillRect(QtCore.QRectF(cx - r_inner, cy - r_inner, r_inner * 2, r_inner * 2), QtGui.QColor(*OverlayPalette.LOUPE_BACKGROUND))
 
         if qimg and not qimg.isNull():
             world_evt = widget.to_canvas(screen_pos.x(), screen_pos.y(), 1.0, 0.0)
@@ -47,10 +48,10 @@ class OverlayRenderer:
                 painter.drawImage(target_rect, cropped)
 
         # 3. Retículo de Mira Central
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 240), 1.5))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.LOUPE_RETICLE), 1.5))
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.drawRect(QtCore.QRectF(cx - 3, cy - 3, 6, 6))
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0, 180), 1.0))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.LOUPE_RETICLE_OUTLINE), 1.0))
         painter.drawRect(QtCore.QRectF(cx - 4, cy - 4, 8, 8))
         painter.restore()
 
@@ -71,7 +72,7 @@ class OverlayRenderer:
         painter.setPen(pen_old)
         painter.drawArc(ring_rect, 180 * 16, 180 * 16)
 
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 140), 1.0))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.LOUPE_RING_OUTLINE), 1.0))
         painter.drawEllipse(QtCore.QPointF(cx, cy), r_outer, r_outer)
         painter.drawEllipse(QtCore.QPointF(cx, cy), r_inner, r_inner)
         painter.drawLine(QtCore.QPointF(cx - r_outer, cy), QtCore.QPointF(cx - r_inner, cy))
@@ -81,10 +82,10 @@ class OverlayRenderer:
         badge_w, badge_h = 74.0, 18.0
         badge_rect = QtCore.QRectF(cx - badge_w / 2, cy + r_outer + 4, badge_w, badge_h)
         painter.setPen(QtCore.Qt.NoPen)
-        painter.setBrush(QtGui.QColor(15, 23, 42, 220))
+        painter.setBrush(QtGui.QColor(*OverlayPalette.LOUPE_BADGE))
         painter.drawRoundedRect(badge_rect, 4, 4)
 
-        painter.setPen(QtGui.QColor(255, 255, 255))
+        painter.setPen(QtGui.QColor(*OverlayPalette.LOUPE_BADGE_TEXT))
         fnt = QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold)
         painter.setFont(fnt)
         painter.drawText(badge_rect, QtCore.Qt.AlignCenter, cur_color.name().upper())
@@ -114,12 +115,12 @@ class OverlayRenderer:
         zoom_factor = max(0.01, zoom)
         line_w = 1.0 / zoom_factor
 
-        pen_black = QtGui.QPen(QtGui.QColor(0, 0, 0, 255), line_w)
+        pen_black = QtGui.QPen(QtGui.QColor(*OverlayPalette.ANTS_DARK), line_w)
         pen_black.setStyle(QtCore.Qt.CustomDashLine)
         pen_black.setDashPattern([4, 4])
         pen_black.setDashOffset(dash_offset)
 
-        pen_white = QtGui.QPen(QtGui.QColor(255, 255, 255, 255), line_w)
+        pen_white = QtGui.QPen(QtGui.QColor(*OverlayPalette.ANTS_LIGHT), line_w)
         pen_white.setStyle(QtCore.Qt.CustomDashLine)
         pen_white.setDashPattern([4, 4])
         pen_white.setDashOffset(dash_offset + 4.0)
@@ -137,11 +138,11 @@ class OverlayRenderer:
         zoom_factor = max(0.01, zoom)
         line_w = 1.0 / zoom_factor
 
-        pen_black = QtGui.QPen(QtGui.QColor(0, 0, 0, 255), line_w)
+        pen_black = QtGui.QPen(QtGui.QColor(*OverlayPalette.ANTS_DARK), line_w)
         pen_black.setStyle(QtCore.Qt.CustomDashLine)
         pen_black.setDashPattern([4, 4])
 
-        pen_white = QtGui.QPen(QtGui.QColor(255, 255, 255, 255), line_w)
+        pen_white = QtGui.QPen(QtGui.QColor(*OverlayPalette.ANTS_LIGHT), line_w)
         pen_white.setStyle(QtCore.Qt.CustomDashLine)
         pen_white.setDashPattern([4, 4])
         pen_white.setDashOffset(4.0)
@@ -223,7 +224,7 @@ class OverlayRenderer:
         painter.save()
         zf = max(0.01, zoom)
         lw, hs = 1.2 / zf, 8.0 / zf
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 150, 255, 230), lw))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.TRANSFORM_BOX), lw))
         painter.setBrush(QtCore.Qt.NoBrush)
 
         c_tl, c_tr = t_mat.map(src_rect.topLeft()), t_mat.map(src_rect.topRight())
@@ -235,8 +236,8 @@ class OverlayRenderer:
         c_ml = t_mat.map(QtCore.QPointF(src_rect.left(), src_rect.center().y()))
         c_mr = t_mat.map(QtCore.QPointF(src_rect.right(), src_rect.center().y()))
 
-        painter.setPen(QtGui.QPen(QtGui.QColor(0, 100, 200, 255), lw))
-        painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 255)))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.TRANSFORM_HANDLE_OUTLINE), lw))
+        painter.setBrush(QtGui.QBrush(QtGui.QColor(*OverlayPalette.TRANSFORM_HANDLE)))
         for pt in (c_tl, c_tr, c_br, c_bl, c_tc, c_bc, c_ml, c_mr):
             painter.drawRect(QtCore.QRectF(pt.x() - hs/2, pt.y() - hs/2, hs, hs))
 
@@ -245,8 +246,8 @@ class OverlayRenderer:
             return
         pvm = t_mat.map(pv)
         pr = 7.0 / zf
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 60, 60, 230), lw * 1.5))
-        painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 180)))
+        painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.TRANSFORM_PIVOT), lw * 1.5))
+        painter.setBrush(QtGui.QBrush(QtGui.QColor(*OverlayPalette.TRANSFORM_PIVOT_FILL)))
         painter.drawEllipse(QtCore.QRectF(pvm.x() - pr, pvm.y() - pr, pr * 2.0, pr * 2.0))
         painter.drawLine(QtCore.QPointF(pvm.x() - pr - 2, pvm.y()), QtCore.QPointF(pvm.x() + pr + 2, pvm.y()))
         painter.drawLine(QtCore.QPointF(pvm.x(), pvm.y() - pr - 2), QtCore.QPointF(pvm.x(), pvm.y() + pr + 2))
@@ -260,8 +261,8 @@ class OverlayRenderer:
         cfg = shape_ctrl.settings
         dm = cfg.get("draw_mode", "both")
         sw = float(cfg.get("stroke_width", 4))
-        sc = QtGui.QColor(cfg.get("stroke_color", QtGui.QColor(147, 51, 234)))
-        fc = QtGui.QColor(cfg.get("fill_color", QtGui.QColor(192, 132, 252, 180)))
+        sc = QtGui.QColor(cfg.get("stroke_color", QtGui.QColor(*OverlayPalette.SHAPE_STROKE_DEFAULT)))
+        fc = QtGui.QColor(cfg.get("fill_color", QtGui.QColor(*OverlayPalette.SHAPE_FILL_DEFAULT)))
 
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)

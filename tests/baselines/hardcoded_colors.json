@@ -28,8 +28,6 @@
  "ui/plugins/system/workspace_core/workspace/canvas/math/curvilinear_mesh_builder.py": 6,
  "ui/plugins/system/workspace_core/workspace/canvas/render_widget.py": 2,
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/canvas_background_renderer.py": 4,
- "ui/plugins/system/workspace_core/workspace/canvas/renderers/overlay_renderer.py": 18,
- "ui/plugins/system/workspace_core/workspace/canvas/renderers/perspective_grid_renderer.py": 24,
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/ruler_grid_renderer.py": 6,
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/symmetry_overlay_renderer.py": 4,
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/tool_cursor_renderer.py": 7,

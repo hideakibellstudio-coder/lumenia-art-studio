@@ -133,8 +133,13 @@ Ordem = ordem recomendada.
     perspectiva curvilínea pelo motor (uma função que devolve as curvas) e o
     `curvilinear_mesh_builder.py` só desenhar — some a duplicação e a função
     de complexidade 57 junto.
-15. **`bridge/infrastructure/`** para traduzir erros nativos (ARCcC 15.3): a
-    ponte é o único pilar sem essa camada.
+15. ~~**`bridge/infrastructure/`**~~ *(feito em 2026-09-25: a camada existe com
+    o `BufferContract.hpp` (validação e cópia de buffers, que morava entre os
+    bindings) e a política de erros escrita no README — o motor só lança
+    `std::invalid_argument`, que vira `ValueError`; o `try/catch` que repetia
+    isso em `transform_rgba_for_profile` saiu. A catraca de camadas do C++
+    ganhou a ordem interna da ponte (`infrastructure` → `core` → `boundary`);
+    `tests/test_bridge_error_policy.py`.)*
 16. **Números sem medição no documento de visão.**
     `../05-visao-e-futuro/01-visao-estrategica.md` promete latência < 1,2 ms,
     abertura < 2 s e "390 testes". *Pronto:* medido no Windows com mesa, ou o

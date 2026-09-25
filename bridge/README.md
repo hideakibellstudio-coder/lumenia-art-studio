@@ -14,6 +14,7 @@ Pilar 2 do ARCcC multi-pilar (`ui/` → `bridge/` → `engine/`): só serializa,
 |---|---|
 | `boundary/` | Contrato tipado (`.pyi`) do módulo nativo. |
 | `core/` | Os bindings PyBind11. |
+| `infrastructure/` | Validação e cópia de buffers e a política de tradução de erros (desde 2026-09-25). |
 
 ## Regras
 
@@ -23,4 +24,6 @@ Pilar 2 do ARCcC multi-pilar (`ui/` → `bridge/` → `engine/`): só serializa,
 
 ## Dívida conhecida (medida em 2026-09-25)
 
-- Falta `infrastructure/` (ex.: mapeamento de erros nativo ↔ Python), que o ARCcC multi-pilar prevê; hoje a validação de buffers (`BufferContract.hpp`) lança `ValueError` direto nos bindings.
+- Nenhuma registrada. `infrastructure/` existe desde 2026-09-25 (antes o
+  `BufferContract.hpp` morava entre os bindings e a política de erros não
+  estava escrita).

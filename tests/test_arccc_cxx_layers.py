@@ -7,7 +7,8 @@ passou a ser em camadas, de baixo para cima:
 
     engine/utils -> engine/infrastructure/* -> engine/core/<módulo> (na ordem
     de CORE_ORDER) -> engine/boundary/orchestrator -> engine/boundary/public-api
-    -> bridge (só por public-api/AladynEngine.hpp)
+    -> bridge (só por public-api/AladynEngine.hpp), que por dentro também é
+       em camadas: bridge/infrastructure -> bridge/core -> bridge/boundary
 
 Uma pasta só inclui camadas abaixo dela; subpasta nunca inclui a pasta-mãe.
 Módulo novo em engine/core entra em CORE_ORDER no lugar que as dependências
@@ -28,6 +29,8 @@ PUBLIC_HEADER = "engine/boundary/public-api/AladynEngine.hpp"
 # Módulos de engine/core, de baixo para cima: cada um só inclui os anteriores.
 CORE_ORDER = ["math", "texture", "color", "stroke", "canvas", "selection",
               "brush", "document", "history", "raster", "engines"]
+# Camadas da ponte (2026-09-25: infrastructure/ criada com BufferContract.hpp).
+BRIDGE_ORDER = ["infrastructure", "core", "boundary"]
 
 
 def _file_edges() -> list[tuple[str, str]]:
@@ -59,7 +62,7 @@ def _layer(folder: str) -> tuple[int, int]:
     """(camada, posição dentro de engine/core) de uma pasta do pilar C++."""
     parts = folder.split("/")
     if parts[0] == "bridge":
-        return (5, 0)
+        return (5, BRIDGE_ORDER.index(parts[1]))
     if parts[1] == "utils":
         return (0, 0)
     if parts[1] == "infrastructure":

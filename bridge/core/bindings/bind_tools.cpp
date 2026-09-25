@@ -1,5 +1,5 @@
 #include "BindingsCommon.hpp"
-#include "BufferContract.hpp"
+#include "../../infrastructure/BufferContract.hpp"
 
 namespace aladyn::bridge {
 

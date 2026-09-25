@@ -30,6 +30,7 @@
 | `test_arccc_package_docs.py` | Toda pasta do repositório tem README com arquivos e dependências verdadeiros. |
 | `test_arccc_root_layout.py` | Raiz reservada aos pilares (`ui/`, `bridge/`, `engine/`), arquivos de build/entrada e a exceção declarada (`tests/`, `docs/`, `assets/`, `scripts/`, `benchmarks/`); plugins só em `ui/plugins/`. |
 | `test_backend_capabilities.py` | Contrato de capacidades reais entre a UI e os backends de pintura. |
+| `test_bridge_error_policy.py` | Política de erros da ponte: entrada inválida no motor e buffer fora das dimensões viram `ValueError`, sem `try/catch` repetido nos bindings. |
 | `test_brush_advanced_panel.py` | Painel avançado do pincel: seções com estado próprio e dois caminhos claros. |
 | `test_brush_panel_structure.py` | BrushSettingsPanel e seus componentes como views do BrushState. |
 | `test_brush_param_contract.py` | Contrato dos parâmetros de pincel — o motor define, a interface exibe. |

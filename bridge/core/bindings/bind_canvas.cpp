@@ -1,5 +1,5 @@
 #include "BindingsCommon.hpp"
-#include "BufferContract.hpp"
+#include "../../infrastructure/BufferContract.hpp"
 
 namespace aladyn::bridge {
 
@@ -36,11 +36,8 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
             return result;
         })
         .def("transform_rgba_for_profile", [](boundary::PaintEngineFacade& self, py::bytes buffer, int profileId) {
-            try {
-                return py::bytes(self.transformRgbaForProfile(buffer, profileId));
-            } catch (const std::invalid_argument& e) {
-                throw py::value_error(e.what());
-            }
+            // std::invalid_argument do motor vira ValueError (bridge/infrastructure/README.md).
+            return py::bytes(self.transformRgbaForProfile(buffer, profileId));
         }, py::arg("buffer"), py::arg("profile_id"))
         .def("set_low_latency", &boundary::PaintEngineFacade::setLowLatency)
         .def("get_low_latency", &boundary::PaintEngineFacade::getLowLatency)

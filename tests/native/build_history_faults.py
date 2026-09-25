@@ -39,7 +39,7 @@ def build():
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in inputs)).hexdigest()
     stamp = OUT / "source.sha256"
     binary = BINARY
-    if binary.exists() and stamp.exists() and stamp.read_text() == digest:
+    if binary.exists() and stamp.exists() and stamp.read_text(encoding="utf-8") == digest:
         return
     if os.name == "nt" and not shutil.which("cl.exe"):
         vswhere = Path(os.environ["ProgramFiles(x86)"]) / "Microsoft Visual Studio/Installer/vswhere.exe"
@@ -68,7 +68,7 @@ def build():
     # target_lang="c++": no Linux/macOS o linker padrão do distutils é o de C,
     # que não traz a libstdc++ (falhava com dezenas de símbolos indefinidos).
     compiler.link_executable(objects, str(OUT / "history_faults"), target_lang="c++")
-    stamp.write_text(digest)
+    stamp.write_text(digest, encoding="utf-8")
 
 
 if __name__ == "__main__":

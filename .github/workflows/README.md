@@ -4,7 +4,7 @@
 
 ## Porta de entrada
 
-`ci.yml` (em todo push e pull request).
+`ci.yml`: em push na `main`, em pull request e à mão (`workflow_dispatch`). Push novo cancela o run anterior do mesmo ref.
 
 ## Arquivos
 
@@ -15,3 +15,6 @@
 ## Regras
 
 - Passo novo de build ou teste entra aqui e no guia de build (`docs/03-guias/02-build-e-release.md`).
+- Até 2026-09-25 rodava em todo push: o mesmo commit na branch de trabalho e na
+  `main` gastava o dobro de minutos, e a cota do Actions acabou (jobs
+  falhando em 2 s, sem runner). Branch sem PR roda à mão pela aba Actions.

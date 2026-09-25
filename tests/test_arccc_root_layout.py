@@ -26,7 +26,8 @@ BUILD_AND_ENTRY = {
 
 def _tracked_root_entries() -> set[str]:
     try:
-        out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+        out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True,
+                             encoding="utf-8", check=True).stdout
     except (OSError, subprocess.CalledProcessError):
         pytest.skip("git indisponível: a raiz é conferida pelos arquivos versionados")
     return {line.split("/", 1)[0] for line in out.splitlines() if line}

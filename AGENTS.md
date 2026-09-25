@@ -277,11 +277,48 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
 
 ---
 
+### 5.1 Agente em Linux, projeto em Windows (obrigatório antes de todo commit)
+
+O dono do projeto usa **Windows** e o CI compila com **MSVC no Windows**; agentes
+costumam rodar em **Linux**. O que passa no Linux pode quebrar lá (achados de
+2026-09-25: acentos corrompidos no `setup.py` por arquivo UTF-8 salvo como
+cp1252; trechos `#ifdef _WIN32` que o g++ do Linux nunca compila). Antes de
+commitar, o agente em Linux roda:
+
+1. a suíte completa (`python -m pytest`), que inclui
+   `tests/test_windows_portability.py`: nomes que colidem sem diferenciar
+   maiúsculas, nomes inválidos no Windows, caminhos longos, texto que não é
+   UTF-8 ou já corrompido, e `open`/`read_text`/`write_text` de texto sem
+   `encoding=`;
+2. `python scripts/check_windows_build.py` quando o commit toca `engine/`,
+   `bridge/` ou `setup.py`: compila os `.cpp` do `setup.py` para o alvo Windows
+   com MinGW-w64 (escalar e AVX2, como o CI). Instalação no Debian/Ubuntu:
+   `apt-get install g++-mingw-w64-x86-64-posix`.
+
+Regras de código que valem pelo mesmo motivo:
+
+- texto sempre com `encoding="utf-8"` (no Windows o padrão é cp1252);
+- caminho com `pathlib`/`os.path` e comparação com `as_posix()` — nunca
+  `relpath(...)` comparado com `"ui/"` (no Windows vem `ui\`);
+- processo filho com `sys.executable`, nunca `"python3"`; nada de `/tmp` fixo;
+- C++ que depende da plataforma fica atrás de `#ifdef _WIN32` e é conferido
+  pelo script acima.
+
+**Minutos do CI:** o repositório é privado e cada run na `main` são 5 jobs
+Windows (os minutos contam em dobro). O CI roda em push na `main`, em PR e à
+mão; agrupe o trabalho e publique uma vez por tarefa concluída, não a cada
+passo. Job que falha em 2 segundos, sem runner e sem log, é cota esgotada
+(GitHub → Settings → Billing), não erro do código.
+
 ## 🛠️ 6. COMANDOS CANÔNICOS OFICIAIS
 
 - **Rodar a Suíte Completa de Testes**:
   ```powershell
   python -m pytest
+  ```
+- **Conferir o build do Windows a partir do Linux (MinGW-w64)**:
+  ```bash
+  python scripts/check_windows_build.py            # escalar e AVX2
   ```
 - **Recompilar a Extensão Nativa C++ (Out-of-Tree)**:
   ```powershell

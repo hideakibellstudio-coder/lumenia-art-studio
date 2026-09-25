@@ -129,6 +129,7 @@
 | `test_tools_signal_symmetry_and_flip.py` | Testes automatizados cobrindo a integridade dos subsistemas satélites (Rodada 9). |
 | `test_transform_distort.py` | Transformar -> Distorcer -- 2026-09-23. |
 | `test_window_menu_panels.py` | Menu Janela: cada item abre o painel registrado com o mesmo PanelId. |
+| `test_windows_portability.py` | Portabilidade para o Windows, conferida em qualquer sistema: caixa de nomes, nomes inválidos, caminhos longos, UTF-8 sem texto corrompido e `encoding=` em todo texto lido/gravado. |
 
 ## Regras
 

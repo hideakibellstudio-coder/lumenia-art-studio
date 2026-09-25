@@ -69,7 +69,7 @@ O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_n
 ### 🛡️ 7. Arquitetura em 6 Camadas, Retorno dos 5 Rios & Confiabilidade Zero-Leak
 *   **Metodologia Concentric Satellite Peeling:** Arquitetura concêntrica de 6 camadas (UI $\to$ Plugins $\to$ Canvas Bridge $\to$ Python Backend $\to$ Fronteira PyBind11 $\to$ Núcleo Físico C++).
 *   **Retorno Ascendente dos 5 Rios:** Validação bidirecional de fluxo de dados de ponta a ponta (Traço, Câmera/Viewport, Camadas/Histórico, Seleção/Transformação e Cor/Perfis).
-*   **Qualidade e Zero Regressão:** **920 testes automatizados (915 passam, 5 pulados que exigem Windows ou perfis ICC instalados; medido em 2026-09-25 no Linux)** e portão de estresse de longa duração aprovado ($\Delta\text{GDI} = 0$, $\Delta\text{Handles} = 0$, Drift de Memória Privada = $0.00\text{ MB} / 100\text{ ciclos}$).
+*   **Qualidade e Zero Regressão:** **925 testes automatizados (920 passam, 5 pulados que exigem Windows ou perfis ICC instalados; medido em 2026-09-25 no Linux)** e portão de estresse de longa duração aprovado ($\Delta\text{GDI} = 0$, $\Delta\text{Handles} = 0$, Drift de Memória Privada = $0.00\text{ MB} / 100\text{ ciclos}$).
 *   **Governança ARCcC:** Limite estrito de < 450 linhas de código por arquivo (Zona Verde) em todo o código Python e C++.
 
 ---
@@ -94,7 +94,7 @@ Lumenia/
 │   ├── infrastructure/      # Cliente da ponte (AladynBackend), config, i18n, tema, ícones, log
 │   └── plugins/             # Plugins embutidos: system/ (workspace, canvas) e panels/ (pincel, cor, camadas...)
 │
-├── tests/                   # 110 arquivos de teste, 920 testes (medido em 2026-09-25)
+├── tests/                   # 111 arquivos de teste, 925 testes (medido em 2026-09-25)
 │
 ├── docs/                    # Documentação Técnica Canônica (ver docs/README.md)
 │   ├── 01-correcao-da-base/ # Pendências vivas, auditoria orbital e simplificação da ponte

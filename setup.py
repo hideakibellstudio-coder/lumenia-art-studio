@@ -9,9 +9,9 @@ if SIMD_MODE not in {"scalar", "avx2"}:
     raise RuntimeError("LUMENIA_SIMD deve ser 'scalar' ou 'avx2'")
 
 compile_args = ["/EHsc", "/bigobj", "/std:c++20", "/openmp", "/O2"]
-# Um mÃ³dulo CPython compilado globalmente para AVX2 pode falhar ao carregar em
-# mÃ¡quinas x64 sem essa extensÃ£o. O caminho base Ã© escalar/SSE2 do x64; builds
-# de laboratÃ³rio podem pedir AVX2 explicitamente e devem ser distribuÃ­dos como
+# Um módulo CPython compilado globalmente para AVX2 pode falhar ao carregar em
+# máquinas x64 sem essa extensão. O caminho base é escalar/SSE2 do x64; builds
+# de laboratório podem pedir AVX2 explicitamente e devem ser distribuídos como
 # artefatos separados.
 if SIMD_MODE == "avx2":
     compile_args.append("/arch:AVX2")

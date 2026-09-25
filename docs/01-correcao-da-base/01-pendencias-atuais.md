@@ -43,9 +43,13 @@ Ordem = ordem recomendada.
    no Windows, ainda pedia `--include-package=plugins` depois da mudança para
    `ui/plugins` — corrigido, com uma versão que roda em qualquer sistema.
    Falta a revisão do dono do projeto: o arquivo não é parecer jurídico.)*
-4. **Queda do motor deixa rastro.** O `sys.excepthook` só vê exceção Python;
-   um acesso inválido no C++ fecha o app sem uma linha no log. *Pronto:*
-   `faulthandler` gravando em `logs/` da pasta de dados do usuário.
+4. ~~**Queda do motor deixa rastro.**~~ *(feito em 2026-09-25:
+   `ui/infrastructure/logging/crash_log.py` liga o `faulthandler` em
+   `logs/native_crash.log`; na abertura seguinte o registro é guardado com
+   data (os 5 últimos ficam) e o log principal avisa que a sessão anterior
+   caiu. `tests/test_native_crash_log.py` derruba um processo filho de
+   verdade.)* Resta, e é decisão (Rota C3): enviar o registro, com
+   consentimento, e o minidump do Windows.
 5. **Linter Python.** Não há nenhum configurado; `ruff check --select F`
    acha 237 problemas (215 imports sem uso, 17 variáveis sem uso). *Pronto:*
    regras no `pyproject.toml`, zero achados, teste que barra achado novo.

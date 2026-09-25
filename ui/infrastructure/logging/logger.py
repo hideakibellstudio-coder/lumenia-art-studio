@@ -15,6 +15,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from PySide6 import QtCore, QtWidgets
 from ui.infrastructure.runtime_paths import writable_data_dir
+from ui.infrastructure.logging.crash_log import enable_native_crash_log
 
 
 # ── ANSI COLORS PARA TERMINAL ───────────────────────────────────────────────
@@ -182,6 +183,7 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
     root_logger.addHandler(console_handler)
 
     # 2. Rotating File Handler
+    logs_dir = None
     try:
         logs_dir = writable_data_dir() / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
@@ -202,3 +204,13 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
 
     logger = get_logger("Bootstrap")
     logger.info("🚀 Senior Logging System initialized successfully (Console ANSI + File Rotating).")
+
+    # 4. Quedas nativas (motor C++, Qt), que o excepthook não vê
+    if logs_dir is not None:
+        try:
+            previous_crash = enable_native_crash_log(logs_dir)
+        except OSError as exc:
+            logger.warning("Registro de quedas nativas indisponível: %s", exc)
+        else:
+            if previous_crash is not None:
+                logger.warning("A sessão anterior terminou com uma queda nativa; pilha em %s", previous_crash)

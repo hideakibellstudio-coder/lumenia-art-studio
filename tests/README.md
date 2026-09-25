@@ -95,6 +95,7 @@
 | `test_menu_bar_complete_wiring.py` | Test Menu Bar Complete Wiring & Dialogs — Validação de Todas as Ações do Menu. |
 | `test_native_build_contract.py` | Os metadados de build do módulo nativo descrevem o binário realmente carregado. |
 | `test_native_core_invariants_and_rivers.py` | Invariantes do núcleo C++ e as 5 Leis do Leito do Rio de ponta a ponta. |
+| `test_native_crash_log.py` | Queda nativa de verdade (processo filho) grava a pilha em `native_crash.log`; a abertura seguinte guarda o registro e avisa; só os 5 últimos ficam. |
 | `test_new_document_dialog.py` | Unit tests for NewDocumentDialog, PresetCatalog and memory estimation. |
 | `test_persistence_failures.py` | Failure injection and native round-trip regression coverage. |
 | `test_plugin_installation.py` | Instalação de plugin: exige manifesto, recusa path traversal, id repetido e manifesto incompleto. |

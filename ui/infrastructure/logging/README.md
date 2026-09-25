@@ -1,6 +1,6 @@
 # `ui/infrastructure/logging/` — logging
 
-**Responsabilidade:** configuração do logging da aplicação (console colorido, arquivo, captura de exceções não tratadas e mensagens do Qt) e o decorador de medição de tempo.
+**Responsabilidade:** configuração do logging da aplicação (console colorido, arquivo, captura de exceções não tratadas, quedas nativas e mensagens do Qt) e o decorador de medição de tempo.
 
 ## Porta de entrada
 
@@ -11,6 +11,7 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | ui.infrastructure.logging — Módulo Canônico de Logging e Telemetria (ARCcC). |
+| `crash_log.py` | Quedas nativas (motor C++, Qt): `faulthandler` em `logs/native_crash.log`; na abertura seguinte guarda o registro com data (os 5 últimos) e o log principal avisa. |
 | `logger.py` | Senior Enterprise Logging Infrastructure (Lumenia V2) — ARCcC Infrastructure. |
 
 ## Regras

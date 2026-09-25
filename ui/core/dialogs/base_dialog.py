@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ui.infrastructure.accessibility import name_from_tooltips
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon
 
@@ -124,6 +125,11 @@ class BaseFramelessDialog(QtWidgets.QDialog):
         self._build_base_ui(title, icon_name)
         ThemeManager.instance().themeChanged.connect(self._apply_base_theme)
         self._apply_base_theme()
+
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
+        # Nome acessível dos controles só com ícone = a dica traduzida.
+        name_from_tooltips(self)
+        super().showEvent(event)
 
     def _build_base_ui(self, title: str, icon_name: Optional[str]):
         # Layout raiz da janela que contém o padding para a sombra projetada

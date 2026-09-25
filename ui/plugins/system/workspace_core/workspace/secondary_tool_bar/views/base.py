@@ -118,6 +118,7 @@ def add_slider(view: OrientedOptionsView, caption: Text, s: QtWidgets.QSlider,
                value_lbl: QtWidgets.QLabel) -> QtWidgets.QLabel:
     """Horizontal: rótulo, slider, valor na mesma linha. Vertical: rótulo e valor, slider embaixo."""
     caption_lbl = view.label(caption)
+    caption_lbl.setBuddy(s)  # rótulo do controle para o leitor de tela
     layout = view.layout_
     if view.vertical:
         row = QtWidgets.QHBoxLayout()

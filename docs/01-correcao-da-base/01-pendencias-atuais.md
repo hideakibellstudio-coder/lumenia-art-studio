@@ -145,7 +145,15 @@ Ordem = ordem recomendada.
     19 ms no motor (~0,16 ms por amostra), abertura em ~1 s, 998 testes,
     repositório de 8,6 MB — e diz que a latência com mesa no Windows não foi
     medida.)* Resta medir no Windows com mesa digitalizadora.
-17. **Acessibilidade:** 0 nomes acessíveis (`setAccessibleName`) na interface.
+17. **Acessibilidade.** *(Iniciado em 2026-09-25: eram 2 widgets com nome
+    acessível na janela principal; agora 66. `ui/infrastructure/accessibility.py`
+    dá a cada controle sem texto visível a dica traduzida como nome (ou o
+    rótulo ligado por `setBuddy`, que os helpers das barras de opções passaram
+    a usar), ao montar a janela, ao trocar de idioma e ao abrir cada diálogo.
+    `tests/test_accessibility_names.py`.)* Restam sem nome, por não terem dica
+    nem rótulo ligado: os botões −/+ dos `CompactSlider` (22), os da barra
+    flutuante (12), as amostras de cores recentes (10) e 9 dos 27 deslizantes
+    (opções do balde e da varinha).
 18. ~~**Teste que só falhava na máquina do dono.**~~ *(feito em 2026-09-25:
     no Windows, `test_recording_plugin_activation` falhava com "Exceptions
     caught in Qt event loop"; no Linux do agente passava. O pytest-qt, instalado

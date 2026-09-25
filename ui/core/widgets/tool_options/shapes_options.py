@@ -44,6 +44,7 @@ class ShapesOptionsWidget(ToolOptionsView):
         row.setSpacing(4)
         row.addWidget(label)
         row.addWidget(field, 1)
+        label.setBuddy(field)  # rótulo do controle para o leitor de tela
         layout.addLayout(row)
 
     def _muted_label(self) -> QtWidgets.QLabel:

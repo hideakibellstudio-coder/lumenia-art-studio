@@ -14,6 +14,7 @@ Cada subpasta tem a sua (ver o README dela). Os mais usados:
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Marca o pacote. |
+| `accessibility.py` | Nomes acessíveis (leitor de tela): controle sem texto visível recebe a dica traduzida, ou o rótulo ligado por `setBuddy`, como nome. |
 | `app_info.py` | Nome e versão do produto, fonte única para a interface; `tests/test_app_version.py` confere as cópias do empacotamento. |
 | `runtime_paths.py` | Caminhos de recursos que funcionam no repositório e no executável empacotado (`resource_path`). |
 

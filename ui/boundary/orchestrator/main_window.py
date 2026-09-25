@@ -33,6 +33,7 @@ from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.i18n import I18nManager, tr
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.registry import ServiceRegistry
+from ui.infrastructure.accessibility import name_from_tooltips
 from ui.infrastructure.app_info import APP_NAME
 from ui.infrastructure.runtime_paths import resource_path
 from ui.core.shortcut_registry import ShortcutRegistry
@@ -128,8 +129,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.workspace is not None:
             self._wire_workspace(self.workspace)
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
+        # Depois de todas as retraduções (o slot desta janela é o último ligado).
+        I18nManager.instance().languageChanged.connect(self._schedule_name_controls)
         self.retranslate_ui()
         self.update_undo_redo_actions()
+        self._name_controls()
 
         self._first_show = True
         self._was_maximized_before_fullscreen = False
@@ -232,6 +236,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_active_tool_changed(self, tool_id: str, _previous: str) -> None:
         self.tool_sidebar.show_active_tool(tool_id)
+
+    def _schedule_name_controls(self) -> None:
+        QtCore.QTimer.singleShot(0, self, self._name_controls)
+
+    def _name_controls(self) -> None:
+        """Nome acessível de cada controle só com ícone = a dica traduzida."""
+        name_from_tooltips(self)
 
     def retranslate_ui(self) -> None:
         """Propaga a tradução ativa para os componentes da janela."""

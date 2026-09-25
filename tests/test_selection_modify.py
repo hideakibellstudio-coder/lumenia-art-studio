@@ -194,7 +194,7 @@ def test_menu_sem_selecao_avisa_e_nao_abre_dialogo(janela_com_documento, monkeyp
 
 
 def test_modificar_pela_interface_entra_no_desfazer(janela_com_documento: "MainWindow"):
-    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+    from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
     from ui.core.engine.backend import EngineBackend
     from ui.core.engine.registry import EngineRegistry
 

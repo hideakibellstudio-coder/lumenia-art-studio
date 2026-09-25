@@ -1,6 +1,6 @@
 """Catraca da Lei 5 (zero hardcode de cores).
 
-Conta, por arquivo de ui/ e plugins/, cores literais (hex "#rrggbb" e
+Conta, por arquivo de ui/ (plugins incluídos), cores literais (hex "#rrggbb" e
 QColor(r, g, b)) que NÃO são o fallback de `ThemeManager.get_color(TOKEN,
 "#fallback")`. A linha de base de 2026-09-22 (228 em 54 arquivos, a maioria
 cores de conteúdo: guias/réguas sobre o desenho, paletas de amostras) está em
@@ -25,7 +25,7 @@ _HEX = re.compile(r"^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$")
 
 def contar() -> dict[str, int]:
     contagem: dict[str, int] = {}
-    for base in ("ui", "plugins"):
+    for base in ("ui",):  # plugins embutidos em ui/plugins
         for path in sorted((ROOT / base).rglob("*.py")):
             rel = path.relative_to(ROOT).as_posix()
             if "__pycache__" in rel or rel.startswith("ui/infrastructure/theme/"):

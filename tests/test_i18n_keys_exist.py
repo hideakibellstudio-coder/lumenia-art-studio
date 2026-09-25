@@ -1,4 +1,4 @@
-"""Toda chave literal passada a tr(...) ou Text(...) em ui/ e plugins/ existe nos 4 locales.
+"""Toda chave literal passada a tr(...) ou Text(...) em ui/ (plugins incluídos) existe nos 4 locales.
 
 Sem isto, uma chave nova cai no texto padrão em português para TODOS os
 idiomas -- foi o caso de 25 chaves em 2026-09-22 (menus de escala, telemetria,
@@ -27,7 +27,7 @@ def _flat(d: dict, prefix: str = "") -> set[str]:
 
 def _chaves_usadas() -> dict[str, str]:
     usadas: dict[str, str] = {}
-    for base in ("ui", "plugins"):
+    for base in ("ui",):  # plugins embutidos em ui/plugins
         for path in (ROOT / base).rglob("*.py"):
             if "__pycache__" in path.parts:
                 continue

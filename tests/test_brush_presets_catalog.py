@@ -4,7 +4,7 @@ Tests modular presets under ARCcC v2.
 """
 
 import unittest
-from plugins.ui.brush_plugin.presets_data import (
+from ui.plugins.panels.brush_plugin.presets_data import (
     BRUSH_CATEGORIES,
     PARAM_GROUPS,
     CATEGORY_DEFAULTS,
@@ -12,7 +12,7 @@ from plugins.ui.brush_plugin.presets_data import (
     get_preset_display_name,
     get_category_display_name,
 )
-from plugins.ui.brush_plugin.presets.i18n_keys import PRESET_I18N_KEYS, CATEGORY_I18N_KEYS
+from ui.plugins.panels.brush_plugin.presets.i18n_keys import PRESET_I18N_KEYS, CATEGORY_I18N_KEYS
 
 
 class TestBrushPresetsModular(unittest.TestCase):

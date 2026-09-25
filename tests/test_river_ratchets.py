@@ -11,7 +11,7 @@ alguém decida conscientemente (editando a lista abaixo, com motivo).
    de pincel passou 4 semanas mostrando uma aproximação vetorial sem ninguém
    notar. Guarda nova só entra nesta lista com decisão explícita.
 2. Varredura cega da árvore de widgets (`topLevelWidgets`,
-   `parent().parent()`) em ui/ e plugins/ -- use ui/core/plugins/canvas_access.
+   `parent().parent()`) em ui/ (plugins incluídos) -- use ui/core/plugins/canvas_access.
 3. Caminhos absolutos de máquina (ex.: `Z:\\...`) em código ou testes.
 """
 
@@ -138,7 +138,7 @@ _VARREDURA_CEGA = re.compile(r"\.topLevelWidgets\(|parent\(\)\.parent\(\)")
 
 def test_sem_varredura_cega_da_arvore_de_widgets():
     ofensores = []
-    for base in ("ui", "plugins"):
+    for base in ("ui",):  # plugins embutidos em ui/plugins
         for path in (ROOT / base).rglob("*.py"):
             if "__pycache__" in path.parts:
                 continue
@@ -158,7 +158,7 @@ _CAMINHO_DE_MAQUINA = re.compile(r"[A-Za-z]:[\\/](?!Windows)[A-Za-z+ ]", re.IGNO
 
 def test_sem_caminhos_absolutos_de_maquina():
     ofensores = []
-    for base in ("ui", "plugins", "tests", "scripts"):
+    for base in ("ui", "tests", "scripts"):
         for path in (ROOT / base).rglob("*.py"):
             if "__pycache__" in path.parts or path.name == Path(__file__).name:
                 continue
@@ -186,7 +186,7 @@ def test_sinais_de_singleton_nao_ligam_lambda():
     após fechar um documento). Use `.connect(self.metodo)`.
     """
     ofensores = []
-    for base in ("ui", "plugins"):
+    for base in ("ui",):  # plugins embutidos em ui/plugins
         for path in (ROOT / base).rglob("*.py"):
             if "__pycache__" in path.parts:
                 continue

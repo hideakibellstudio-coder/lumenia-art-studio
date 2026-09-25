@@ -7,7 +7,7 @@ Testa e bloqueia de forma estática (via AST e inspeção estrutural) qualquer v
 2. Imports diretos de C++ (aladyn_engine_native) fora de ui/infrastructure/bridge_client/.
 3. Acessos a atributos privados de ponteiros/facades nativas (_facade, _native) fora de ui/infrastructure/bridge_client/.
 4. Cobertura de métodos canônicos do contrato universal EngineBackend no AladynBackend.
-5. Teto de linhas ARCcC (Zona Vermelha) em plugins/, ui/ e tests/, lido de
+5. Teto de linhas ARCcC (Zona Vermelha) em ui/ (plugins incluídos) e tests/, lido de
    tests/arccc_governance_rules.py — fonte única compartilhada com o teste de
    governança C++ e com o perfil `lumenia` do ARCcC-Navigator.
 """
@@ -31,7 +31,7 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.root = PROJECT_ROOT
-        cls.plugins_dir = os.path.join(cls.root, 'plugins')
+        cls.plugins_dir = os.path.join(cls.root, 'ui', 'plugins')
         cls.ui_dir = os.path.join(cls.root, 'ui')
         cls.tests_dir = os.path.join(cls.root, 'tests')
 
@@ -66,15 +66,15 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
                     for node in ast.walk(tree):
                         if isinstance(node, ast.ImportFrom) and node.module:
                             parts = node.module.split('.')
-                            if len(parts) >= 3 and parts[0] == 'plugins':
-                                imp_plugin = parts[2]
+                            if len(parts) >= 4 and parts[:2] == ['ui', 'plugins']:
+                                imp_plugin = parts[3]
                                 if imp_plugin != p_name:
                                     violations.append((rel, node.lineno, node.module))
                         elif isinstance(node, ast.Import):
                             for alias in node.names:
                                 parts = alias.name.split('.')
-                                if len(parts) >= 3 and parts[0] == 'plugins':
-                                    imp_plugin = parts[2]
+                                if len(parts) >= 4 and parts[:2] == ['ui', 'plugins']:
+                                    imp_plugin = parts[3]
                                     if imp_plugin != p_name:
                                         violations.append((rel, node.lineno, alias.name))
 
@@ -84,10 +84,10 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         self.assertEqual(len(violations), 0, msg)
 
     def test_02_no_direct_native_cpp_in_ui_or_plugins(self):
-        """[ARCcC Regra 2] Nenhum arquivo em plugins/ ou ui/ (exceto ui/infrastructure/bridge_client/) pode importar aladyn_engine_native."""
+        """[ARCcC Regra 2] Nenhum arquivo em ui/ (plugins incluídos; exceto ui/infrastructure/bridge_client/) pode importar aladyn_engine_native."""
         violations: List[Tuple[str, int]] = []
         
-        target_dirs = [self.plugins_dir, self.ui_dir]
+        target_dirs = [self.ui_dir]  # ui/plugins incluído
         for tdir in target_dirs:
             for fpath in self._get_py_files(tdir):
                 rel = os.path.relpath(fpath, self.root)
@@ -116,7 +116,7 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         """[ARCcC Regra 3] UI e Plugins nunca devem acessar atributos privados _facade ou _native."""
         violations: List[Tuple[str, int, str]] = []
         
-        target_dirs = [self.plugins_dir, self.ui_dir]
+        target_dirs = [self.ui_dir]  # ui/plugins incluído
         for tdir in target_dirs:
             for fpath in self._get_py_files(tdir):
                 rel = os.path.relpath(fpath, self.root)
@@ -167,13 +167,13 @@ class TestARCcCArchitectureInvariants(unittest.TestCase):
         self.assertEqual(len(missing), 0, msg)
 
     def test_05_strict_loc_ceiling_compliance(self):
-        """[ARCcC Regra 5] Teto de linhas da Zona Vermelha em plugins/, ui/ e tests/.
+        """[ARCcC Regra 5] Teto de linhas da Zona Vermelha em ui/ (com ui/plugins) e tests/.
 
         O limite vem de tests/arccc_governance_rules.py, a mesma fonte usada pelo
         teste de governança C++ e alinhada ao perfil `lumenia` do Navigator.
         """
         violations: List[Tuple[str, int]] = []
-        target_dirs = [self.plugins_dir, self.ui_dir, self.tests_dir]
+        target_dirs = [self.ui_dir, self.tests_dir]
         for tdir in target_dirs:
             for fpath in self._get_py_files(tdir):
                 rel = os.path.relpath(fpath, self.root)

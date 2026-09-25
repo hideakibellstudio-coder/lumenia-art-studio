@@ -19,7 +19,7 @@
 
 ## Regras
 
-A roda é uma view: o painel de cores a liga ao `BrushState` (`plugins/ui/color_plugin`).
+A roda é uma view: o painel de cores a liga ao `BrushState` (`ui/plugins/panels/color_plugin`).
 
 ## Dependências internas
 

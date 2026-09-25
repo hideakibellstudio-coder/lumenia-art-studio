@@ -247,7 +247,7 @@ class TestLowLevelBrushRaster(unittest.TestCase):
     # ── 9. Catálogo inteiro: preset -> perfil nativo ───────────────────────
     def test_09_every_curated_preset_reaches_the_native_profile(self):
         """Cada receita selecionável troca o mini-motor e altera o perfil ativo."""
-        from plugins.ui.brush_plugin.presets_data import BRUSH_CATEGORIES
+        from ui.plugins.panels.brush_plugin.presets_data import BRUSH_CATEGORIES
         from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
         backend = AladynBackend()

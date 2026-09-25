@@ -98,7 +98,7 @@ class TestGeometrySymmetry(unittest.TestCase):
 
     def test_06_proportional_centering_portrait_and_landscape(self):
         """Valida a centralização matemática e cálculo proporcional de base_radius para diferentes formatos."""
-        from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
+        from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
 
         class DummyWidget:
             canvas_w = 2480
@@ -130,7 +130,7 @@ class TestGeometrySymmetry(unittest.TestCase):
 
     def test_07_curvilinear_all_axes_snapping(self):
         """Valida que o snap curvilíneo 6P permite desenhar nos eixos Horizontal (H), Vertical (V) e Profundidade (D)."""
-        from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
+        from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
 
         class DummyWidget:
             canvas_w = 1920
@@ -163,8 +163,8 @@ class TestGeometrySymmetry(unittest.TestCase):
     def test_07_geometry_ui_dialogs_and_popups(self):
         """Valida que o popup do seletor e a janela avançada de geometria instanciam perfeitamente sem crash."""
         from PySide6.QtWidgets import QApplication, QWidget
-        from plugins.ui.geometry_plugin.components.geometry_selector import GeometrySelectorPopup, GeometrySelectorButton
-        from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
+        from ui.plugins.panels.geometry_plugin.components.geometry_selector import GeometrySelectorPopup, GeometrySelectorButton
+        from ui.plugins.panels.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 
         app = QApplication.instance() or QApplication(sys.argv)
         parent = QWidget()
@@ -186,7 +186,7 @@ class TestGeometrySymmetry(unittest.TestCase):
 
     def test_08_curvilinear_6p_vanishing_point_exact_convergence(self):
         """Valida que todas as curvas H, V e D passam rigorosamente pelos pontos de fuga sem desvio (distância < 1e-4)."""
-        from plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import (
+        from ui.plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import (
             GeometryOverlayRenderer, rotate_3d_backward
         )
 
@@ -236,7 +236,7 @@ class TestGeometrySymmetry(unittest.TestCase):
 
     def test_09_curvilinear_overlay_caching_performance(self):
         """Valida que o cache geométrico reutiliza os cálculos prévios em O(1)."""
-        from plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import GeometryOverlayRenderer
+        from ui.plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import GeometryOverlayRenderer
 
         guide = {
             "type": "curvilinear",
@@ -298,7 +298,7 @@ class TestGeometrySymmetry(unittest.TestCase):
         algoritmo que de fato e' um porte fiel (selecao de candidata +
         projecao), sem cruzar para o territorio onde os dois motores
         divergem por design."""
-        from plugins.system.workspace_core.workspace.canvas.tools.geometry_snapping_engine import (
+        from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_snapping_engine import (
             GeometrySnappingEngine,
         )
         from PySide6 import QtCore as _QtCore

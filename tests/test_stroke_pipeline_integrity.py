@@ -10,7 +10,7 @@ import math
 import pytest
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
 

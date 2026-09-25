@@ -18,11 +18,11 @@ if PROJECT_ROOT not in sys.path:
 
 from ui.infrastructure.config import ConfigManager
 from ui.infrastructure.i18n import I18nManager
-from plugins.system.workspace_core.workspace.secondary_tool_bar.toolbar import SecondaryToolBar
+from ui.plugins.system.workspace_core.workspace.secondary_tool_bar.toolbar import SecondaryToolBar
 from ui.core.plugins.registry import ServiceRegistry
 from ui.core.state import GeometryState, install_app_state
-from plugins.ui.geometry_plugin.panel import GeometryPanel
-from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
+from ui.plugins.panels.geometry_plugin.panel import GeometryPanel
+from ui.plugins.panels.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 
 
 class TestToolbarsGeometryI18nRetranslation(unittest.TestCase):

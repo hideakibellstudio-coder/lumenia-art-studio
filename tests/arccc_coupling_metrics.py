@@ -16,7 +16,7 @@ workspace que "apalpa" os painéis dos outros plugins com `hasattr(dock, ...)`.
 Nenhuma dessas coisas aparece numa contagem de linhas. Este módulo mede
 exatamente elas.
 
-Categorias medidas (todas em ui/ e plugins/)
+Categorias medidas (todas em ui/, plugins embutidos incluídos)
 --------------------------------------------
 hasattr
     `hasattr(obj, "nome")`. Quase sempre é um contrato que não existe:
@@ -35,8 +35,9 @@ silent_except
     `except Exception:` (ou `except:`) cujo corpo é só `pass`/`continue`/
     `return`. Engole erro sem deixar rastro.
 reverse_import
-    Módulo de ui/ importando `plugins.*`. O núcleo não pode depender das
-    folhas; só o carregador (ui/core/plugins/) conhece o pacote de plugins.
+    Módulo de ui/ fora de ui/plugins/ importando `ui.plugins.*`. O núcleo não
+    pode depender das folhas; só o carregador (ui/core/plugins/) conhece o
+    pacote de plugins.
 
 Uso
 ---
@@ -58,15 +59,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = Path(__file__).resolve().parent / "arccc_coupling_baseline.json"
-SCANNED_ROOTS = ("ui", "plugins")
+SCANNED_ROOTS = ("ui",)
 CATEGORIES = ("hasattr", "getattr_literal", "foreign_private", "silent_except", "reverse_import")
 
 # Receptores das guardas sobre o binário nativo (catraca própria em
 # test_river_ratchets.py::NATIVE_GUARDS_PERMITIDOS).
 _NATIVE_RECEIVERS = {"self._facade", "facade", "self._native", "native", "f"}
 _SELF_NAMES = {"self", "cls"}
-# O carregador de plugins é o único ponto de ui/ que pode conhecer `plugins.*`.
+# O carregador de plugins é o único ponto de ui/ que pode conhecer `ui.plugins.*`.
 _PLUGIN_LOADER_DIR = "ui/core/plugins/"
+_PLUGINS_DIR = "ui/plugins/"
 
 
 @dataclass(frozen=True)
@@ -131,9 +133,9 @@ def scan_file(path: Path) -> list[Occurrence]:
             )
             if broad and _is_silent_body(node.body):
                 add(node, "silent_except", "except Exception: pass")
-        if rel.startswith("ui/") and not rel.startswith(_PLUGIN_LOADER_DIR):
+        if rel.startswith("ui/") and not rel.startswith((_PLUGIN_LOADER_DIR, _PLUGINS_DIR)):
             for module in _imported_modules(node):
-                if module == "plugins" or module.startswith("plugins."):
+                if module == "ui.plugins" or module.startswith("ui.plugins."):
                     add(node, "reverse_import", module)
     return found
 

@@ -3,7 +3,7 @@ cada mutacao.
 
 Contexto (panorama pos-C5, item P1 #2): `GeometryToolController.guide_state`
 e `sym_state` sao dicts simples mutados de fora da classe controladora --
-principalmente por `plugins/ui/geometry_plugin/panel.py` (~30 atribuicoes em
+principalmente por `ui/plugins/panels/geometry_plugin/panel.py` (~30 atribuicoes em
 `_sync_to_render_widget`) -- cada mutacao exigindo uma chamada manual e
 subsequente a `sync_guides_to_engine`/`sync_symmetry_to_engine`. Esse padrao
 e fragil: nada impede uma nova mutacao esquecer o sync correspondente.

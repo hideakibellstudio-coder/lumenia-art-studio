@@ -26,8 +26,8 @@ from PySide6 import QtWidgets, QtCore, QtGui
 import aladyn_engine_native as native
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
 from ui.infrastructure.bridge_client.aladyn_buffers import to_native_color_rgba
-from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-from plugins.ui.navigator_plugin.panel import NavigatorPanel
+from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+from ui.plugins.panels.navigator_plugin.panel import NavigatorPanel
 
 
 @pytest.fixture(scope="module")

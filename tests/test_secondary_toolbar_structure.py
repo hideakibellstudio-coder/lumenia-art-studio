@@ -1,4 +1,4 @@
-"""Contrato da barra secundária (plugins/system/workspace_core/workspace/secondary_tool_bar).
+"""Contrato da barra secundária (ui/plugins/system/workspace_core/workspace/secondary_tool_bar).
 
 A barra é moldura + uma view por ferramenta e orientação; cada view é view do
 ToolState. Até 2026-09-24 a barra tinha três mixins de handlers, nove funções
@@ -9,7 +9,7 @@ de uma para a outra à mão.
 import pytest
 from PySide6 import QtCore, QtGui
 
-from plugins.system.workspace_core.workspace.secondary_tool_bar import SecondaryToolBar
+from ui.plugins.system.workspace_core.workspace.secondary_tool_bar import SecondaryToolBar
 from ui.core.plugins.registry import ServiceRegistry
 from ui.core.state import install_app_state
 from ui.core.tools import ToolCommand

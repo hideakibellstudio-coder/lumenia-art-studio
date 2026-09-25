@@ -15,7 +15,7 @@ com os comandos indicados.
 
 Faltavam: o motor C++ inteiro (20 de 20 pastas), a ponte (5 de 5),
 `tests/` (4), `scripts/`, `benchmarks/`, `assets/` (7), 6 pastas de `docs/`,
-`.github/` (2), `plugins/system`, `plugins/ui`, os temas e os ícones do
+`.github/` (2), `ui/plugins/system`, `ui/plugins/panels`, os temas e os ícones do
 plugin de geometria.
 
 `tests/test_arccc_package_docs.py` agora exige, em toda pasta: README,
@@ -31,31 +31,41 @@ Python, `#include` no C++). Comando: `python -m tests.arccc_package_docs`.
 |---|---|
 | `index` (ponto de entrada) | Python: todo pacote tem `__init__.py` (desde a pendência 9). C++: o motor tem uma porta única para a ponte (`engine/boundary/public-api/AladynEngine.hpp`, passo 4); dentro do motor não há cabeçalho agregador por pasta e o README de cada pasta nomeia o cabeçalho de entrada. |
 | `manifest.json` | Nenhuma pasta tem. O projeto usa o bloco `arccc:deps` do README (medido pelo teste) no papel de manifesto de dependências. |
-| `testes/` por pasta | A suíte é central (`tests/`, 115 arquivos). |
+| `testes/` por pasta | A suíte é central (`tests/`, exceção declarada da raiz). |
 
 ### 2.2 Raiz reservada aos pilares (seção 15.4, regra 1)
 
-A raiz tem os três pilares (`ui/`, `bridge/`, `engine/`) e também:
-`plugins/` (Python, fora de `ui/`), `assets/`, `docs/`, `tests/`,
-`scripts/`, `benchmarks/`, `main.py`, `Iniciar_Lumenia.bat`,
+Antes: a raiz tinha os três pilares (`ui/`, `bridge/`, `engine/`) e também
+`plugins/` (Python, fora de `ui/`), `assets/`, `docs/`, `tests/`, `scripts/`,
+`benchmarks/`, `main.py`, `Iniciar_Lumenia.bat`,
 `Iniciar_Lumenia_Silencioso.vbs`, `Enviar_Feedback.html` e
 `TERMS_AND_LICENSE.txt`.
+
+Resolvido no passo 5: `plugins/` virou `ui/plugins/` (`plugins/ui/` →
+`ui/plugins/panels/`, para não haver `ui.plugins.ui` nem uma pasta `ui` dos
+plugins no `sys.path` sombreando o pacote `ui`). Por decisão do dono do
+projeto, `tests/`, `docs/`, `assets/`, `scripts/` e `benchmarks/` ficam na raiz
+como **exceção declarada** (atravessam os pilares; CI, instalador e build
+portátil esperam esses caminhos), ao lado dos arquivos de build/entrada
+(`main.py`, `setup.py`, `pyproject.toml`, lançadores, termos). A lista está no
+AGENTS.md (seção 2) e em `tests/test_arccc_root_layout.py`, que falha com
+entrada nova na raiz.
 
 ### 2.3 Estrutura interna de cada pilar (seção 15.3)
 
 | Pilar | Tem | Falta ou sobra |
 |---|---|---|
-| `ui/` | `boundary/`, `core/`, `infrastructure/` | Resolvido no passo 3: `engine_backends/` virou `ui/infrastructure/bridge_client/` (o cliente da ponte, seção 15.3); configuração, idioma, tema, ícones e caminhos saíram de `ui/core/` para `ui/infrastructure/`; `ui/main.py` e `ui/requirements.txt` (sem uso) saíram. Não há `utils/` (nada genérico o bastante). |
+| `ui/` | `boundary/`, `core/`, `infrastructure/`, `plugins/` | Passo 5: os plugins embutidos entraram como `ui/plugins/` (as funcionalidades do pilar; o carregador fica em `ui/core/plugins`). Passo 3: `engine_backends/` virou `ui/infrastructure/bridge_client/` (o cliente da ponte, seção 15.3); configuração, idioma, tema, ícones e caminhos saíram de `ui/core/` para `ui/infrastructure/`; `ui/main.py` e `ui/requirements.txt` (sem uso) saíram. Não há `utils/` (nada genérico o bastante). |
 | `engine/` | `boundary/`, `core/`, `infrastructure/`, `utils/` | Resolvido no passo 4: tipos de valor (`Point2D`, `Rect2D`, `MathUtils`, `ColorRGBA`, `Dab`) em `utils/`; compressão, disco de rascunho e telemetria em `infrastructure/`; os orquestradores saíram de `public-api/internal/` para `boundary/orchestrator/`. |
 | `bridge/` | `boundary/`, `core/` | Falta `infrastructure/` (mapeamento de erros). |
 
 ### 2.4 Dependências entre pastas (seções 4.1 e 15.4)
 
-| Medida | Python (`ui/`, `plugins/`) | C++ (`engine/`, `bridge/`) |
+| Medida | Python (`ui/`, com os plugins) | C++ (`engine/`, `bridge/`) |
 |---|---|---|
-| Relações de dependência entre pastas | 254 → 262 depois do passo 3 | 66 → 69 depois do passo 4 |
-| Entre pastas irmãs (regra 2: proibido) | 29 → 21 depois do passo 3 | 24 → 20 depois do passo 4 |
-| Pares de pastas em ciclo | 9 → 5 depois do passo 3 | 9 → 0 depois do passo 4 |
+| Relações de dependência entre pastas | 254 → 262 (passo 3) → 260 (passo 5) | 66 → 69 depois do passo 4 |
+| Entre pastas irmãs (regra 2: proibido) | 29 → 21 (passo 3) → 20 (passo 5) | 24 → 20 depois do passo 4 |
+| Pares de pastas em ciclo | 9 → 5 (passo 3) → 2 (passo 5) | 9 → 0 depois do passo 4 |
 | Subpasta incluindo a pasta-mãe | — | 5 → 0 depois do passo 4 |
 
 - Python, antes: os destinos irmãos mais usados eram `ui/core/config`,
@@ -64,12 +74,18 @@ A raiz tem os três pilares (`ui/`, `bridge/`, `engine/`) e também:
   `ui/core` ↔ `i18n`/`theme`/`logging`, `icons` ↔ `theme` (o tema registra as
   cores nos ícones) e `ui/core/dialogs` ↔ `ui/core/widgets` (a cor da sombra
   virou `ThemeManager.shadow_color`).
-- Python, depois: as 21 relações entre irmãs que sobram são, na maioria, o
-  contrato do motor (`ui/core/engine`, 5) e a configuração dentro de
-  `ui/infrastructure` (3). Os 5 ciclos que sobram são pai ↔ filha dentro de
-  plugins (`workspace` ↔ `dock`, `canvas` ↔ `tools`/`viewport`,
-  `advanced_panel` ↔ `sections`) — ficam para o passo 5, quando `plugins/` entra
-  em `ui/`.
+- Python, depois do passo 3: as 21 relações entre irmãs que sobravam eram, na
+  maioria, o contrato do motor (`ui/core/engine`, 5) e a configuração dentro
+  de `ui/infrastructure` (3); 5 ciclos, pai ↔ filha dentro dos plugins.
+- Python, passo 5: `dock_system.py` foi para `workspace/dock/` (só dependia das
+  peças da doca, que o importavam da pasta-mãe), `text_overlay_editor.py` para
+  `canvas/tools/` (só a ferramenta de texto usa) e os auxiliares do painel
+  avançado (`brush_engine_writer`, `texture_file`, `non_scroll_combo_box`,
+  `panel_thumbnails`) para `advanced_panel/sections/`, que os usa. Sobram 2
+  ciclos, `canvas` ↔ `tools` e `canvas` ↔ `viewport`, só por anotação de tipo
+  do `RenderWidget` (`TYPE_CHECKING`); dívida registrada no README do canvas
+  (o `input_router.py` usa 37 membros do widget: dividir o widget vem antes do
+  contrato).
 - C++, antes: ciclos `canvas` ↔ `document` (o histórico em `canvas/` incluía a
   pilha de camadas), `raster` ↔ `math`/`brush`/`canvas`/`color` (tipos básicos
   em `raster/Dab.hpp` e a seleção dentro de `raster/`) e quatro subpastas que
@@ -114,7 +130,7 @@ A raiz tem os três pilares (`ui/`, `bridge/`, `engine/`) e também:
 Saíram: 158 SVG de `assets/icons/` sem consumidor (os ícones vêm de
 `ui/infrastructure/icons/svg_catalog.py`; ficaram `close.svg` e `maximize.svg`, fallback
 do QSS), a cópia `assets/icons/geometry/` dos ícones do plugin de geometria,
-o índice `icon_index.json`, `plugins/plugins_config.json.bak` (cópia de
+o índice `icon_index.json`, `ui/plugins/plugins_config.json.bak` (cópia de
 segurança gerada em execução), `scripts/github_project_dashboard.html` (saída
 gerada, agora no `.gitignore`) e os cinco `scripts/bisect_*.py` (diagnósticos
 de um crash de encerramento, do primeiro commit, sem referência).
@@ -139,4 +155,4 @@ de um crash de encerramento, do primeiro commit, sem referência).
    (ferramentas e instalador esperam esses caminhos) ou migram para dentro dos
    pilares — decisão do dono do projeto: `plugins/` entra em `ui/`; `tests/`,
    `docs/` e `assets/` (com `scripts/` e `benchmarks/`) ficam na raiz como
-   exceção declarada.
+   exceção declarada. **Feito (passo 5).**

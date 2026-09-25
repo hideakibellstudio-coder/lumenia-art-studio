@@ -16,13 +16,17 @@
 
 - Subpastas (ARCcC multi-pilar, seção 15.3): `boundary/` (casca: janela
   principal e boot), `core/` (núcleo compartilhado por casca e plugins: estado,
-  documento, contrato do motor, telas, widgets) e `infrastructure/` (serviços
-  técnicos: cliente da ponte com o motor, configuração, idioma, tema, ícones,
-  logging, caminhos). Não há `utils/`: nada aqui é genérico o bastante.
-- `ui/` nunca importa `plugins/` (catraca `reverse_import` em
-  `tests/arccc_coupling_metrics.py`). Plugins importam o núcleo, nunca o contrário.
+  documento, contrato do motor, carregador de plugins, telas, widgets),
+  `infrastructure/` (serviços técnicos: cliente da ponte com o motor,
+  configuração, idioma, tema, ícones, logging, caminhos) e `plugins/` (as
+  funcionalidades como plugins embutidos: workspace e painéis). Não há
+  `utils/`: nada aqui é genérico o bastante.
+- Fora de `ui/plugins` e do carregador (`ui/core/plugins`), nada importa
+  `ui.plugins` (catraca `reverse_import` em `tests/arccc_coupling_metrics.py`).
+  Plugins importam o núcleo, nunca o contrário.
 - Até 2026-09-24 havia ainda `ui/engine_backends/` fora das quatro pastas e os
-  atalhos `ui/main.py` e `ui/requirements.txt` (sem nenhum uso).
+  atalhos `ui/main.py` e `ui/requirements.txt` (sem nenhum uso); até
+  2026-09-25 os plugins moravam em `plugins/`, na raiz do repositório.
 
 ## Dependências internas
 

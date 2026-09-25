@@ -36,6 +36,12 @@ ServiceRegistry, PluginManager, PluginContext, WorkspaceService`.
 - Painel de plugin fala com o usuário emitindo um sinal que o plugin liga a
   `WorkspaceService.show_status` (nunca `QApplication.activeWindow()`).
 
+## Dependência declarada
+
+`manager.py` importa `ui/plugins/builtin_registry.py` (a lista dos plugins
+embutidos para o executável): o carregador é o único ponto de `ui/` fora de
+`ui/plugins` que conhece o pacote de plugins.
+
 ## Dependências internas
 
 Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
@@ -46,4 +52,5 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/infrastructure`
 - `ui/infrastructure/config`
 - `ui/infrastructure/logging`
+- `ui/plugins`
 <!-- /arccc:deps -->

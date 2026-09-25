@@ -135,8 +135,8 @@ class TestPhase5ViewportPipeline(unittest.TestCase):
     # ── 4. RenderWidget Hardware Acceleration & Telemetry ─────────────────────
     def test_04_render_widget_hardware_acceleration_and_telemetry(self):
         """Valida inicializacao do RenderWidget acelerado/fallback e metricas de Viewport."""
-        from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-        from plugins.system.workspace_core.workspace.canvas.viewport.viewport_renderer import ViewportRenderer
+        from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+        from ui.plugins.system.workspace_core.workspace.canvas.viewport.viewport_renderer import ViewportRenderer
 
         widget = RenderWidget()
         widget.resize(800, 600)

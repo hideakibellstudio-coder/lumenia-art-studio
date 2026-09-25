@@ -10,11 +10,11 @@ from ui.core.geometry.dpi_calculator import (
     px_to_mm, mm_to_px, px_to_inches, inches_to_px,
     px_to_pt, pt_to_px, calculate_print_dimensions
 )
-from plugins.ui.navigator_plugin.components.navigator_preview import NavigatorPreview
-from plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
+from ui.plugins.panels.navigator_plugin.components.navigator_preview import NavigatorPreview
+from ui.plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
 from ui.core.state import GeometryState, ToolState
-from plugins.ui.layers_plugin.header import LayersHeader
-from plugins.ui.geometry_plugin.panel import GeometryPanel
+from ui.plugins.panels.layers_plugin.header import LayersHeader
+from ui.plugins.panels.geometry_plugin.panel import GeometryPanel
 from ui.core.components.tool_sidebar.sidebar import ToolSidebar
 from ui.infrastructure.theme.manager import ThemeManager
 

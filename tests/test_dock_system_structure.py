@@ -9,18 +9,18 @@ from PySide6 import QtCore, QtWidgets
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
-from plugins.system.workspace_core.workspace.dock.dock_geometry_calculator import (
+from ui.plugins.system.workspace_core.workspace.dock.dock_geometry_calculator import (
     DockGeometryCalculator
 )
-from plugins.system.workspace_core.workspace.dock.dock_state_store import (
+from ui.plugins.system.workspace_core.workspace.dock.dock_state_store import (
     DockStateStore
 )
-from plugins.system.workspace_core.workspace.dock.dock_animator import (
+from ui.plugins.system.workspace_core.workspace.dock.dock_animator import (
     DockAnimator,
     SPEED_MAP,
     DELAY_MAP
 )
-from plugins.system.workspace_core.workspace.dock_system import AdvancedDockSystem
+from ui.plugins.system.workspace_core.workspace.dock.dock_system import AdvancedDockSystem
 
 
 class DummyWorkspace(QtWidgets.QWidget):

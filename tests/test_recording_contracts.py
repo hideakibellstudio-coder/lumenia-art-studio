@@ -8,9 +8,9 @@ Contratos do plugin de gravação depois de desfazer o espaguete (2026-09-24)
 """
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from plugins.ui.recording_plugin.engine.export_worker import TimelapseExportWorker
-from plugins.ui.recording_plugin.engine.frame_source import DocumentFrameSource
-from plugins.ui.recording_plugin.panel import RecordingPanel
+from ui.plugins.panels.recording_plugin.engine.export_worker import TimelapseExportWorker
+from ui.plugins.panels.recording_plugin.engine.frame_source import DocumentFrameSource
+from ui.plugins.panels.recording_plugin.panel import RecordingPanel
 from tests.test_recording_plugin import DummyBackend, make_engine
 from ui.core.document.document import Document
 
@@ -42,7 +42,7 @@ def test_frame_source_le_o_documento_e_o_motor(qapp):
 
 def test_barra_flutuante_so_emite_sinais(qapp):
     """A barra não conhece o painel: emite e o painel liga ao RecordingActions."""
-    from plugins.ui.recording_plugin.components.recording_floating_bar import RecordingFloatingBar
+    from ui.plugins.panels.recording_plugin.components.recording_floating_bar import RecordingFloatingBar
     bar = RecordingFloatingBar()
     fired = []
     bar.pauseResumeRequested.connect(lambda: fired.append("pause"))

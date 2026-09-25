@@ -121,9 +121,9 @@ painel) e uma das cópias zerava a opacidade do fundo.
 
 ## Consumidores atuais
 
-- `plugins/ui/brush_plugin/panel.py`, `brush_dropdown.py`, `advanced_panel/`
-- `plugins/ui/color_plugin/panel.py`
-- `plugins/system/workspace_core/workspace/canvas_brush_binding.py`,
+- `ui/plugins/panels/brush_plugin/panel.py`, `brush_dropdown.py`, `advanced_panel/`
+- `ui/plugins/panels/color_plugin/panel.py`
+- `ui/plugins/system/workspace_core/workspace/canvas_brush_binding.py`,
   `canvas_tool_binding.py`, `floating_toolbar.py`, `secondary_tool_bar/`,
   `workspace_document_sync.py`
 - `ui/core/widgets/tool_options/` (páginas de opções, via `ToolOptionsView`)
@@ -140,7 +140,7 @@ painel) e uma das cópias zerava a opacidade do fundo.
 
 `ui/core/engine` (contrato `EngineBackend`, só para tipo), `ui/core/plugins`
 (`ServiceRegistry`) e `ui/core` (`tool_settings`, `tools`). Nada de
-`plugins/*`, nada de widgets. Medidas pelo teste
+`ui/plugins/*`, nada de widgets. Medidas pelo teste
 `tests/test_arccc_package_docs.py`:
 
 <!-- arccc:deps -->

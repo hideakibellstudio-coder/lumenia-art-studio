@@ -3,9 +3,9 @@
 import pytest
 from PySide6 import QtWidgets, QtGui
 
-from plugins.ui.layers_plugin.paper_texture_dialog import TexturePopup
-from plugins.ui.layers_plugin.paper import TexturePopup as PaperTexturePopup, PaperLayerWidget
-from plugins.ui.layers_plugin.panel import LayersPanel
+from ui.plugins.panels.layers_plugin.paper_texture_dialog import TexturePopup
+from ui.plugins.panels.layers_plugin.paper import TexturePopup as PaperTexturePopup, PaperLayerWidget
+from ui.plugins.panels.layers_plugin.panel import LayersPanel
 from ui.core.document.local_layer import LocalLayer
 
 

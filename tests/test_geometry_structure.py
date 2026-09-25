@@ -10,7 +10,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
-from plugins.system.workspace_core.workspace.canvas.math.camera_3d_projector import (
+from ui.plugins.system.workspace_core.workspace.canvas.math.camera_3d_projector import (
     rotate_3d_forward,
     rotate_3d_backward,
     get_curvilinear_camera_radius,
@@ -18,22 +18,22 @@ from plugins.system.workspace_core.workspace.canvas.math.camera_3d_projector imp
     closest_point_on_curve,
     p3d_to_2d_fisheye
 )
-from plugins.system.workspace_core.workspace.canvas.tools.geometry_snapping_engine import (
+from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_snapping_engine import (
     GeometrySnappingEngine
 )
-from plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import (
+from ui.plugins.system.workspace_core.workspace.canvas.renderers.geometry_overlay_renderer import (
     GeometryOverlayRenderer
 )
-from plugins.system.workspace_core.workspace.canvas.renderers.perspective_grid_renderer import (
+from ui.plugins.system.workspace_core.workspace.canvas.renderers.perspective_grid_renderer import (
     PerspectiveGridRenderer
 )
-from plugins.system.workspace_core.workspace.canvas.renderers.symmetry_overlay_renderer import (
+from ui.plugins.system.workspace_core.workspace.canvas.renderers.symmetry_overlay_renderer import (
     SymmetryOverlayRenderer
 )
-from plugins.system.workspace_core.workspace.canvas.renderers.ruler_grid_renderer import (
+from ui.plugins.system.workspace_core.workspace.canvas.renderers.ruler_grid_renderer import (
     RulerGridRenderer
 )
-from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import (
+from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import (
     GeometryToolController
 )
 

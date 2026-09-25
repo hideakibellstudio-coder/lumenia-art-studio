@@ -2,7 +2,7 @@
 
 É a base de toda tela de opções de ferramenta: as páginas do painel de pincel
 (esta pasta) e as views da barra secundária
-(`plugins/system/workspace_core/workspace/secondary_tool_bar/views/`).
+(`ui/plugins/system/workspace_core/workspace/secondary_tool_bar/views/`).
 
 Contrato:
 - a subclasse monta os widgets e chama `bind()` no fim do construtor;

@@ -8,7 +8,7 @@ resultado por `show_status`. Não conhece widgets: as views se atualizam pelos
 sinais do gerenciador.
 
 Histórico: até 2026-09-24 existiam duas implementações. O painel chamava o
-gerenciador (`plugins/ui/layers_plugin/layer_commands.py`); o menu chamava o
+gerenciador (`ui/plugins/panels/layers_plugin/layer_commands.py`); o menu chamava o
 motor primeiro e o gerenciador depois (`main_window_menu_actions.py`), e só o
 menu achatava grupos no motor. As duas davam certo por acaso, graças às
 guardas de contagem de `layer_backend_sync`.

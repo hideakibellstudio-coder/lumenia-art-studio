@@ -15,12 +15,12 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6 import QtWidgets, QtCore
 
-from plugins.ui.navigator_plugin.panel import NavigatorPanel
+from ui.plugins.panels.navigator_plugin.panel import NavigatorPanel
 from ui.infrastructure.bridge_client.aladyn_layer_mixin import AladynLayerMixin
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
 from ui.infrastructure.bridge_client.aladyn_selection_mixin import AladynSelectionMixin
 from ui.infrastructure.bridge_client.aladyn_resources_mixin import AladynResourcesMixin
-from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
 
 @pytest.fixture(scope="module")
@@ -253,8 +253,8 @@ def test_aladyn_resources_dirty():
 def test_round13_loc_governance():
     base_dir = Path(__file__).resolve().parent.parent
     files_to_check = [
-        base_dir / "plugins/ui/navigator_plugin/panel.py",
-        base_dir / "plugins/system/workspace_core/workspace/canvas/viewport/camera_proxies.py",
+        base_dir / "ui/plugins/panels/navigator_plugin/panel.py",
+        base_dir / "ui/plugins/system/workspace_core/workspace/canvas/viewport/camera_proxies.py",
         base_dir / "ui/infrastructure/bridge_client/aladyn_layer_mixin.py",
         base_dir / "ui/infrastructure/bridge_client/aladyn.py",
         base_dir / "ui/infrastructure/bridge_client/aladyn_selection_mixin.py",

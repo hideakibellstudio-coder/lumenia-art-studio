@@ -4,7 +4,7 @@ test_arccc_cpp_and_docs_governance.py
 Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++).
 
 O teste original `test_arccc_architecture_invariants.py` audita SOMENTE
-os modulos Python de `plugins/`, `ui/` e `tests/` (ver seu `test_05_...`,
+os modulos Python de `ui/` (com `ui/plugins/`) e `tests/` (ver seu `test_05_...`,
 teto de linhas). O nucleo nativo do ALADYN ENGINE (`engine/` e `bridge/`)
 fica fora de qualquer guardrail automatizado de LOC ou consistencia
 documental -- o que permitiu que:

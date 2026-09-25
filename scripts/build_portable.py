@@ -52,8 +52,8 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
     if output_dir is None:
         output_dir = DEFAULT_OUTPUT
     native_extension = _native_extension()
-    theme_dir = ROOT / "ui" / "core" / "theme" / "themes"
-    required = (ROOT / "assets", ROOT / "plugins", theme_dir, ROOT / "main.py")
+    theme_dir = ROOT / "ui" / "infrastructure" / "theme" / "themes"
+    required = (ROOT / "assets", ROOT / "ui" / "plugins", theme_dir, ROOT / "main.py")
     missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
     if missing:
         raise RuntimeError(f"recursos de distribuição ausentes: {', '.join(missing)}")
@@ -71,7 +71,7 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
         "--output-filename=Lumenia.exe",
         f"--output-dir={output_dir}",
         "--include-package=ui",
-        "--include-package=plugins",
+        "--include-package=ui.plugins",  # pastas de agrupamento sem __init__ (namespace)
         "--include-module=aladyn_engine_native",
         "--nofollow-import-to=numpy",
         "--nofollow-import-to=scipy",

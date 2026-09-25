@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6 import QtWidgets, QtCore
 
-from plugins.ui.navigator_plugin.panel import NavigatorPanel
+from ui.plugins.panels.navigator_plugin.panel import NavigatorPanel
 from ui.infrastructure.bridge_client.aladyn_mdi_mixin import AladynMdiMixin
 from ui.infrastructure.bridge_client.aladyn_layer_mixin import AladynLayerMixin
 from ui.infrastructure.bridge_client.aladyn_stroke_mixin import AladynStrokeMixin
@@ -221,7 +221,7 @@ def test_stroke_mixin_mark_document_dirty():
 def test_round12_loc_governance():
     base = Path(__file__).resolve().parent.parent
     files = [
-        base / "plugins" / "ui" / "navigator_plugin" / "panel.py",
+        base / "ui" / "plugins" / "panels" / "navigator_plugin" / "panel.py",
         base / "ui" / "infrastructure" / "bridge_client" / "aladyn_mdi_mixin.py",
         base / "ui" / "infrastructure" / "bridge_client" / "aladyn_layer_mixin.py",
         base / "ui" / "infrastructure" / "bridge_client" / "aladyn_stroke_mixin.py",

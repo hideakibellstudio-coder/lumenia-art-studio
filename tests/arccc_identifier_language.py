@@ -37,7 +37,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = Path(__file__).resolve().parent / "arccc_identifier_baseline.json"
 
-PY_DIRS = ("ui", "plugins", "tests", "scripts", "benchmarks")
+PY_DIRS = ("ui", "tests", "scripts", "benchmarks")
 CXX_DIRS = ("engine", "bridge", "tests/native")
 CXX_SUFFIXES = (".hpp", ".cpp", ".h")
 

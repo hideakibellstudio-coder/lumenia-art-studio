@@ -32,7 +32,7 @@ import unittest
 sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "..")))
 
 from ui.core.engine.registry import EngineRegistry
-from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import (
+from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import (
     GeometryToolController,
 )
 

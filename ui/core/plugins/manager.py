@@ -32,6 +32,9 @@ from ui.infrastructure.runtime_paths import is_packaged, writable_data_dir
 
 logger = get_logger("PluginManager")
 
+# Plugins embutidos (ui/plugins), importáveis como `ui.plugins.<...>`.
+_BUILTIN_PLUGINS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins")
+
 
 class PluginManager:
     _instance = None
@@ -48,15 +51,12 @@ class PluginManager:
         if plugins_dir is None:
             if is_packaged():
                 self.plugins_dir = str(writable_data_dir() / "plugins")
-                from plugins.builtin_registry import BUILTIN_PLUGIN_MODULES
+                from ui.plugins.builtin_registry import BUILTIN_PLUGIN_MODULES
                 self._builtin_plugin_modules = BUILTIN_PLUGIN_MODULES
             else:
                 candidate_dirs = [
                     os.path.join(os.path.dirname(sys.executable), "plugins"),
-                    os.path.join(
-                        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-                        "plugins",
-                    ),
+                    _BUILTIN_PLUGINS_DIR,
                 ]
                 self.plugins_dir = next((d for d in candidate_dirs if os.path.isdir(d)), candidate_dirs[0])
         else:
@@ -150,8 +150,9 @@ class PluginManager:
                 if plugin_dir not in sys.path:
                     sys.path.insert(0, plugin_dir)
 
-                # 1. Tentar importar canonicamente como submódulo do pacote 'plugins'
-                rel_path = os.path.relpath(file_path, os.path.dirname(self.plugins_dir))
+                # 1. Tentar importar canonicamente: `ui.plugins.<...>` para os
+                # embutidos; numa pasta externa, relativo à pasta-mãe dela.
+                rel_path = os.path.relpath(file_path, self._package_root())
                 parts = os.path.splitext(rel_path)[0].replace("\\", "/").split("/")
                 if parts[-1] == "__init__":
                     parts = parts[:-1]
@@ -188,6 +189,12 @@ class PluginManager:
             except Exception as e:
                 logger.error(f"Erro ao carregar o plugin '{module_name}': {e}")
 
+
+    def _package_root(self) -> str:
+        """Pasta a partir da qual o caminho de um plugin vira nome de módulo."""
+        if os.path.normcase(os.path.abspath(self.plugins_dir)) == os.path.normcase(_BUILTIN_PLUGINS_DIR):
+            return os.path.dirname(os.path.dirname(_BUILTIN_PLUGINS_DIR))
+        return os.path.dirname(self.plugins_dir)
 
     def discover_plugins(self) -> None:
         """Executa a descoberta e ativação inicial no boot da aplicação."""

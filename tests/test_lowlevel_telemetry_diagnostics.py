@@ -94,7 +94,7 @@ class TestLowLevelTelemetryDiagnostics(unittest.TestCase):
             app = QtWidgets.QApplication(sys.argv)
 
         from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
-        from plugins.ui.telemetry_plugin.panel import TelemetryPanel
+        from ui.plugins.panels.telemetry_plugin.panel import TelemetryPanel
 
         panel = TelemetryPanel()
         self.assertIsNotNone(panel)

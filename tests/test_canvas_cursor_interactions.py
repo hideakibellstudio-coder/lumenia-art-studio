@@ -8,10 +8,10 @@ feedback tátil de pan/zoom e sincronização reativa do raio de pincel.
 import pytest
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from plugins.system.workspace_core.workspace.canvas.renderers.tool_cursor_renderer import ToolCursorRenderer
-from plugins.system.workspace_core.workspace.canvas.viewport.cursor_controller import CanvasCursorController
-from plugins.system.workspace_core.workspace.canvas.viewport.input_router import CanvasInputRouter
-from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+from ui.plugins.system.workspace_core.workspace.canvas.renderers.tool_cursor_renderer import ToolCursorRenderer
+from ui.plugins.system.workspace_core.workspace.canvas.viewport.cursor_controller import CanvasCursorController
+from ui.plugins.system.workspace_core.workspace.canvas.viewport.input_router import CanvasInputRouter
+from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 from ui.infrastructure.icons.svg_catalog import ALIASES
 from ui.infrastructure.icons import get_icon
 

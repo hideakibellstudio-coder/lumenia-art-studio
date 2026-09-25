@@ -21,11 +21,12 @@
 | `arccc_package_docs.py` | Documentação por pasta (ARCcC): TODA pasta do repositório tem README.md. |
 | `test_advanced_geometry_dialog.py` | Tests for Phase 3: AdvancedGeometryDialog ARCcC v2 decomposition. |
 | `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
-| `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ ou plugins/ pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `plugins.*` a partir do núcleo do que já tinha. |
+| `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ (plugins incluídos) pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `ui.plugins.*` fora dos plugins e do carregador do que já tinha. |
 | `test_arccc_cpp_and_docs_governance.py` | Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++). |
 | `test_arccc_cxx_layers.py` | Camadas do pilar C++: sem ciclo de pasta, subpasta sem incluir a mãe, inclusão só para baixo (utils → infrastructure → core em ordem → orchestrator → public-api) e a ponte só por `AladynEngine.hpp`. |
 | `test_arccc_identifier_language_ratchet.py` | Catraca de idioma: nenhum arquivo ganha identificador com palavra em português. |
 | `test_arccc_package_docs.py` | Toda pasta do repositório tem README com arquivos e dependências verdadeiros. |
+| `test_arccc_root_layout.py` | Raiz reservada aos pilares (`ui/`, `bridge/`, `engine/`), arquivos de build/entrada e a exceção declarada (`tests/`, `docs/`, `assets/`, `scripts/`, `benchmarks/`); plugins só em `ui/plugins/`. |
 | `test_backend_capabilities.py` | Contrato de capacidades reais entre a UI e os backends de pintura. |
 | `test_brush_advanced_panel.py` | Painel avançado do pincel: seções com estado próprio e dois caminhos claros. |
 | `test_brush_panel_structure.py` | BrushSettingsPanel e seus componentes como views do BrushState. |
@@ -66,7 +67,7 @@
 | `test_giant_brush_smoothness_and_throughput.py` | Pincéis gigantes: suavidade do falloff analítico e vazão do `LargeBrushOptimizer`. |
 | `test_hardcoded_colors_ratchet.py` | Catraca da Lei 5 (zero hardcode de cores). |
 | `test_history_io_failures.py` | Real C++ I/O, codec and multi-tile history failure scenarios (no Python mocks). |
-| `test_i18n_keys_exist.py` | Toda chave literal passada a tr(...) ou Text(...) em ui/ e plugins/ existe nos 4 locales. |
+| `test_i18n_keys_exist.py` | Toda chave literal passada a tr(...) ou Text(...) em ui/ (plugins incluídos) existe nos 4 locales. |
 | `test_i18n_localization.py` | Testes Unitários da Infraestrutura de Internacionalização (i18n) — Lumenia V2 (ARCcC). |
 | `test_i18n_system.py` | Unit Tests for I18nManager & Internationalization System (Lumenia V2 / ARCcC) Valida a detecção automática do idioma do SO, fallback universal para en_US, interpolação dinâmica de parâmetros e hot-swap em tempo real sem restart. |
 | `test_layer_blend_mode_contract.py` | Contrato do enum canonico de modo de mesclagem de camadas -- o motor define, a interface consome. |
@@ -109,7 +110,7 @@
 | `test_runner_coverage_contract.py` | O runner grava a cobertura da fronteira de documento. |
 | `test_runner_suite_selection.py` | As suítes nomeadas do runner apontam para arquivos de teste existentes e únicos. |
 | `test_runtime_paths.py` | Raiz de recursos em desenvolvimento (repositório) e empacotado (pasta do executável). |
-| `test_secondary_toolbar_structure.py` | Contrato da barra secundária (plugins/system/workspace_core/workspace/secondary_tool_bar). |
+| `test_secondary_toolbar_structure.py` | Contrato da barra secundária (ui/plugins/system/workspace_core/workspace/secondary_tool_bar). |
 | `test_selection_modify.py` | Seleção -> Modificar (Expandir, Contrair, Suavizar Borda) -- 2026-09-23. |
 | `test_shortcut_registry.py` | Registro de atalhos: remapear/desativar/conflito atômicos, contexto do editor de texto e do canvas. |
 | `test_state_links.py` | Regras entre estados (ui/core/state/state_links.py). |

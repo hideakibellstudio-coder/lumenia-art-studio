@@ -1,7 +1,7 @@
 """
 test_arccc_coupling_ratchet.py
 ==============================
-Catraca de acoplamento da UI: nenhum arquivo de ui/ ou plugins/ pode ganhar
+Catraca de acoplamento da UI: nenhum arquivo de ui/ (plugins incluídos) pode ganhar
 mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except`
 silencioso ou import de `plugins.*` a partir do núcleo do que já tinha.
 
@@ -32,7 +32,7 @@ _HOW_TO_FIX = {
         "Erro engolido em silêncio é bug escondido."
     ),
     "reverse_import": (
-        "ui/ não importa plugins/: o núcleo não depende das folhas. Publique um "
+        "ui/ não importa ui/plugins/: o núcleo não depende das folhas. Publique um "
         "contrato em ui/core/ e deixe o plugin registrá-lo no ServiceRegistry."
     ),
 }
@@ -54,7 +54,7 @@ def test_no_file_gets_more_coupled():
                 worse.append(f"  {path}  [{cat}] {count} > catraca {limit}\n{lines}\n    -> {_HOW_TO_FIX[cat]}")
 
     assert not worse, (
-        "Acoplamento novo em ui/ ou plugins/ (a catraca só desce):\n"
+        "Acoplamento novo em ui/ (a catraca só desce):\n"
         + "\n".join(worse)
         + "\n\nMoveu ou renomeou um arquivo? python -m tests.arccc_coupling_metrics --rename VELHO NOVO"
     )

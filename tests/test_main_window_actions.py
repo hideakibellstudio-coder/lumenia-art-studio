@@ -21,8 +21,8 @@ _ORCHESTRATOR = Path("ui/boundary/orchestrator")
 
 def test_workspace_container_fulfils_shell_port():
     """O WorkspaceContainer e o RenderWidget têm tudo que a casca usa."""
-    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-    from plugins.system.workspace_core.workspace.workspace_container import WorkspaceContainer
+    from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+    from ui.plugins.system.workspace_core.workspace.workspace_container import WorkspaceContainer
 
     class_members = {"canvas_widget"}  # atributo de instância criado no __init__
     missing = [m for m in SHELL_WORKSPACE_MEMBERS if m not in class_members and not hasattr(WorkspaceContainer, m)]

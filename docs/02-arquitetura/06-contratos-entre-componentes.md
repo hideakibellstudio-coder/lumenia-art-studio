@@ -107,7 +107,7 @@ Carregar textura aplicava duas vezes (via `BridgeClient` e direto).
 ### ✗ Decomposição falsa (fatiar por linhas)
 
 ```python
-# plugins/ui/layers_plugin/panel_actions.py — função livre dona do estado alheio
+# ui/plugins/panels/layers_plugin/panel_actions.py — função livre dona do estado alheio
 def add_filter_layer(panel, filter_type=None):
     panel._preview_filter_idx = -1
     ...

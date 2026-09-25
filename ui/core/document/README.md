@@ -33,7 +33,7 @@
 ## Regras
 
 - Lei nº 4 (SSOT): painéis são views do `LocalLayerManager`; nenhum painel
-  sincroniza o motor por conta própria (ver `plugins/ui/layers_plugin`).
+  sincroniza o motor por conta própria (ver `ui/plugins/panels/layers_plugin`).
 - Operação de camada iniciada pela interface roda dentro de
   `layer_transaction` (um passo de histórico, mensagem de status). Contrato
   do dono: `layer_manager` e `show_status(msg)` (sem descoberta por

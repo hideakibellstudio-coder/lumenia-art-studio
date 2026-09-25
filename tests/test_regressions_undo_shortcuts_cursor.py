@@ -18,7 +18,7 @@ from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
 from ui.core.screens.keyboard_shortcuts_dialog import KeyboardShortcutsDialog, DEFAULT_SHORTCUTS
 from ui.core.screens.cursor_settings_dialog import CursorSettingsDialog
-from plugins.system.workspace_core.workspace.canvas.renderers.tool_cursor_renderer import ToolCursorRenderer
+from ui.plugins.system.workspace_core.workspace.canvas.renderers.tool_cursor_renderer import ToolCursorRenderer
 from ui.core.dialogs.render_settings_dialog import RenderSettingsDialog, load_render_settings, save_render_settings
 
 
@@ -118,7 +118,7 @@ class Test5ObservationsAudit(unittest.TestCase):
 
     # ── Item 5: Navigator Dynamic Dimensions Pan Sync ────────────────────────
     def test_navigator_pan_dynamic_sync(self):
-        from plugins.system.workspace_core.workspace.document_view_sync import DocumentViewSync
+        from ui.plugins.system.workspace_core.workspace.document_view_sync import DocumentViewSync
         from ui.core.document.manager import DocumentManager
         from ui.core.state import BrushEngineSync, BrushState
 

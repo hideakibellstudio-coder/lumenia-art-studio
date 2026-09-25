@@ -5,11 +5,11 @@ from types import SimpleNamespace
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QApplication
 
-from plugins.system.workspace_core.workspace.canvas.tools.eyedrop_tool_controller import EyedropToolController
-from plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController
-from plugins.system.workspace_core.workspace.canvas.tools.tool_manager import ToolManager
-from plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
-from plugins.ui.brush_plugin.panel import BrushSettingsPanel
+from ui.plugins.system.workspace_core.workspace.canvas.tools.eyedrop_tool_controller import EyedropToolController
+from ui.plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController
+from ui.plugins.system.workspace_core.workspace.canvas.tools.tool_manager import ToolManager
+from ui.plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
+from ui.plugins.panels.brush_plugin.panel import BrushSettingsPanel
 from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import TOOL_SETTING_DEFAULTS, default_tool_settings, normalize_tool_settings
 from ui.core.widgets.tool_options import BucketOptionsWidget, TransformOptionsWidget
@@ -62,8 +62,8 @@ def test_tool_state_routes_canonical_settings_to_the_controllers_that_consume_th
     Antes de 2026-09-24 este teste chamava o roteador do workspace, que escrevia
     nos dicionários privados do canvas; agora o caminho é o estado.
     """
-    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-    from plugins.system.workspace_core.workspace.canvas_tool_binding import CanvasToolBinding
+    from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+    from ui.plugins.system.workspace_core.workspace.canvas_tool_binding import CanvasToolBinding
     from ui.core.state import ToolState
 
     tools = ToolState()

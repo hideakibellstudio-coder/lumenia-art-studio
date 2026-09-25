@@ -1,6 +1,6 @@
 from PySide6.QtCore import QObject, Signal
 
-from plugins.system.workspace_core.workspace.panel_connections import PanelConnections
+from ui.plugins.system.workspace_core.workspace.panel_connections import PanelConnections
 from ui.core.plugins.base import BasePlugin
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.metadata import PluginMetadata

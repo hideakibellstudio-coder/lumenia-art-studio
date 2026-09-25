@@ -183,7 +183,7 @@ def test_flatten_image_goes_through_the_model_in_one_step(session, monkeypatch):
 def test_panel_restoration_does_not_reorder_native_twice(session, monkeypatch):
     from ui.core.document.manager import DocumentManager
     from ui.core.engine.registry import EngineRegistry
-    from plugins.ui.layers_plugin.panel import LayersPanel
+    from ui.plugins.panels.layers_plugin.panel import LayersPanel
     document, backend = session
     monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
     monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: document)

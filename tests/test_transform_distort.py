@@ -13,8 +13,8 @@ import pytest
 native = pytest.importorskip("aladyn_engine_native")
 from PySide6 import QtCore, QtGui  # noqa: E402
 
-from plugins.system.workspace_core.workspace.canvas.tools import transform_distort as d  # noqa: E402
-from plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import (  # noqa: E402
+from ui.plugins.system.workspace_core.workspace.canvas.tools import transform_distort as d  # noqa: E402
+from ui.plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import (  # noqa: E402
     TransformToolController,
 )
 
@@ -155,7 +155,7 @@ class _Backend:
 
 
 def test_controlador_no_modo_distorcer(monkeypatch):
-    from plugins.system.workspace_core.workspace.canvas.tools import transform_tool_controller as mod
+    from ui.plugins.system.workspace_core.workspace.canvas.tools import transform_tool_controller as mod
 
     backend = _Backend()
     monkeypatch.setattr(mod.EngineRegistry, "instance",

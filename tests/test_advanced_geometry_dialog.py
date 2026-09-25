@@ -3,10 +3,10 @@
 import pytest
 from PySide6 import QtWidgets
 
-from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
-from plugins.ui.geometry_plugin.components.curvilinear_perspective_page import CurvilinearPerspectivePage
-from plugins.ui.geometry_plugin.components.snapping_guides_page import SnappingGuidesPage
-from plugins.ui.geometry_plugin.components.symmetry_settings_page import SymmetrySettingsPage
+from ui.plugins.panels.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
+from ui.plugins.panels.geometry_plugin.components.curvilinear_perspective_page import CurvilinearPerspectivePage
+from ui.plugins.panels.geometry_plugin.components.snapping_guides_page import SnappingGuidesPage
+from ui.plugins.panels.geometry_plugin.components.symmetry_settings_page import SymmetrySettingsPage
 
 
 

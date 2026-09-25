@@ -91,7 +91,7 @@ def test_load_starts_from_defaults_and_centers_on_the_document():
 
 
 def test_advanced_dialog_publishes_only_the_edited_field():
-    from plugins.ui.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
+    from ui.plugins.panels.geometry_plugin.components.advanced_settings_dialog import AdvancedGeometryDialog
 
     state = GeometryState()
     state.set_symmetry_mode("radial")

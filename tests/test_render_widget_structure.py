@@ -9,15 +9,15 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
-from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
-from plugins.system.workspace_core.workspace.canvas.tools.tool_manager import ToolManager
-from plugins.system.workspace_core.workspace.canvas.renderers.canvas_background_renderer import (
+from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+from ui.plugins.system.workspace_core.workspace.canvas.tools.tool_manager import ToolManager
+from ui.plugins.system.workspace_core.workspace.canvas.renderers.canvas_background_renderer import (
     CanvasBackgroundRenderer
 )
-from plugins.system.workspace_core.workspace.canvas.viewport.canvas_stroke_pipeline import (
+from ui.plugins.system.workspace_core.workspace.canvas.viewport.canvas_stroke_pipeline import (
     CanvasStrokePipeline
 )
-from plugins.system.workspace_core.workspace.canvas.viewport.viewport_renderer import ViewportRenderer
+from ui.plugins.system.workspace_core.workspace.canvas.viewport.viewport_renderer import ViewportRenderer
 
 
 class TestCanvasBackgroundRenderer(unittest.TestCase):

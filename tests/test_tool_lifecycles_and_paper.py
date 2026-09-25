@@ -12,7 +12,7 @@ Validações de:
 import pytest
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
@@ -109,7 +109,7 @@ def test_render_widget_active_color_and_brush_color_reaching_shapes(app):
     CanvasToolBinding → ShapeToolController. Até 2026-09-24 havia também um
     `RenderWidget.set_shape_color` paralelo, que zerava a transparência do fundo.
     """
-    from plugins.system.workspace_core.workspace.canvas_tool_binding import CanvasToolBinding
+    from ui.plugins.system.workspace_core.workspace.canvas_tool_binding import CanvasToolBinding
     from ui.core.plugins.registry import ServiceRegistry
     from ui.core.state import install_app_state
 
@@ -152,7 +152,7 @@ def test_document_owns_paper_and_canvas_reads_it(app, monkeypatch):
 
 def test_paper_layer_widget_is_a_view_of_the_document(app):
     """O widget de papel edita pelo documento e se atualiza pelo sinal dele."""
-    from plugins.ui.layers_plugin.paper import PaperLayerWidget
+    from ui.plugins.panels.layers_plugin.paper import PaperLayerWidget
     from ui.core.document.document import Document
     doc = Document("paper-view", "Papel", 8, 8)
     widget = PaperLayerWidget()

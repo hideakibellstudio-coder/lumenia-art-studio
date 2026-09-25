@@ -241,7 +241,7 @@ class TestDialogsI18nRetranslation(unittest.TestCase):
 
     def test_08_telemetry_panel_and_diagnostics_dialog_retranslation(self):
         """Valida que o TelemetryPanel e o TelemetryDiagnosticsDialog re-traduzem dinamicamente."""
-        from plugins.ui.telemetry_plugin.panel import TelemetryPanel
+        from ui.plugins.panels.telemetry_plugin.panel import TelemetryPanel
         from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
 
         panel = TelemetryPanel()

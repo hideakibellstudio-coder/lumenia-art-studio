@@ -115,7 +115,7 @@ def test_geometry_signal_updates_canvas_and_navigator(session, monkeypatch):
     from PySide6 import QtCore
     from ui.core.document.manager import DocumentManager
     from ui.core.state import BrushEngineSync, BrushState
-    from plugins.system.workspace_core.workspace.document_view_sync import DocumentViewSync
+    from ui.plugins.system.workspace_core.workspace.document_view_sync import DocumentViewSync
     doc, backend = session
 
     class _Canvas(QtCore.QObject):

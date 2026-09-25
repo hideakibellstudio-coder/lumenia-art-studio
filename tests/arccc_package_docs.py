@@ -2,8 +2,8 @@
 
 "Toda pasta" é toda pasta com arquivos (própria ou de subpastas), fora as de
 ferramenta e de build (`.git`, `__pycache__`, `build`, caches...): ui/,
-plugins/, engine/, bridge/, tests/, scripts/, docs/, assets/, .github/...
-Até 2026-09-24 só as pastas com .py de ui/ e plugins/ eram conferidas, e 51
+engine/, bridge/, tests/, scripts/, docs/, assets/, .github/...
+Até 2026-09-24 só as pastas com .py de ui/ e de plugins/ (então na raiz) eram conferidas, e 51
 das 111 pastas (o motor C++ inteiro, a ponte, os testes) não tinham README.
 
 O README de cada pasta tem que:
@@ -12,7 +12,7 @@ O README de cada pasta tem que:
    `toolbar.py`, `TileGrid.hpp`, `01-pendencias-atuais.md`) — arquivo novo sem
    explicação no README faz o teste falhar. Arquivos de dados (ícones, temas,
    locales) não precisam ser citados um a um;
-3. nas pastas de código dos pilares (Python em ui/ e plugins/, C++ em engine/
+3. nas pastas de código dos pilares (Python em ui/, C++ em engine/
    e bridge/), declarar entre os marcadores abaixo exatamente as pastas que o
    código importa/inclui (dependências internas):
 
@@ -39,7 +39,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASES = ("ui", "plugins")          # pilares Python: dependências por import
+BASES = ("ui",)                    # pilar Python: dependências por import
 CXX_BASES = ("engine", "bridge")   # pilares C++: dependências por #include
 NATIVE = "aladyn_engine_native"
 CXX_SUFFIXES = (".hpp", ".cpp", ".h")

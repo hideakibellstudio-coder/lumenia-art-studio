@@ -5,7 +5,7 @@ Lista de camadas: índice 0 é a de baixo; linha 0 da árvore é o filho de cima
 """
 from types import SimpleNamespace
 
-from plugins.ui.layers_plugin.drop_plan import plan_layer_drop
+from ui.plugins.panels.layers_plugin.drop_plan import plan_layer_drop
 
 
 def _layer(uid, parent=None, group=False):

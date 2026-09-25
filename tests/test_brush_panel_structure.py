@@ -9,9 +9,9 @@ agora é o BrushState, e é ele que se testa aqui.
 import pytest
 from PySide6 import QtGui
 
-from plugins.ui.brush_plugin.components.quick_sliders_section import QuickSlidersSection
-from plugins.ui.brush_plugin.components.tool_selection_column import ToolSelectionColumn
-from plugins.ui.brush_plugin.panel import BrushSettingsPanel
+from ui.plugins.panels.brush_plugin.components.quick_sliders_section import QuickSlidersSection
+from ui.plugins.panels.brush_plugin.components.tool_selection_column import ToolSelectionColumn
+from ui.plugins.panels.brush_plugin.panel import BrushSettingsPanel
 from ui.core.state import BrushParam, BrushState, ToolState
 from ui.core.widgets.compact_slider import CompactSlider
 

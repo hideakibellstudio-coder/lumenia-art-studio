@@ -106,7 +106,7 @@ def test_metodos_por_metodo_existem_no_backend():
 def _chamadas_literais_a_set_brush_param() -> list[tuple[pathlib.Path, int, str, str]]:
     """Varre o repositório por set_brush_param("grupo", "param", ...) literais."""
     found: list[tuple[pathlib.Path, int, str, str]] = []
-    for caminho in list(RAIZ.glob("ui/**/*.py")) + list(RAIZ.glob("plugins/**/*.py")):
+    for caminho in RAIZ.glob("ui/**/*.py"):  # plugins embutidos em ui/plugins
         try:
             arvore = ast.parse(caminho.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError):

@@ -17,7 +17,7 @@
 
 ## Regras
 
-- O id de `HeightPreset` é o `paper_texture_id` do documento: as listas de papel da UI (novo documento e `plugins/ui/layers_plugin/paper_texture_dialog.py`) usam os mesmos ids.
+- O id de `HeightPreset` é o `paper_texture_id` do documento: as listas de papel da UI (novo documento e `ui/plugins/panels/layers_plugin/paper_texture_dialog.py`) usam os mesmos ids.
 
 ## Dependências internas
 

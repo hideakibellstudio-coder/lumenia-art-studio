@@ -133,7 +133,7 @@ Durante o saneamento da Rodada 9 do Lumenia, a aplicação deste método revelou
    - *Saneamento:* Verificação de métodos reais via `hasattr(self._facade, "set_render_options")`.
 
 5. **Shim Residual Nível 2:**
-   - *Falha:* `plugins/ui/color_plugin/color_wheel.py` existia apenas para reexportar componentes do módulo canônico.
+   - *Falha:* `ui/plugins/panels/color_plugin/color_wheel.py` existia apenas para reexportar componentes do módulo canônico.
    - *Saneamento:* Eliminação do arquivo e migração do import direto no consumidor.
 
 6. **Assimetria de Sinais `strokeStarted` / `strokeFinished`:**

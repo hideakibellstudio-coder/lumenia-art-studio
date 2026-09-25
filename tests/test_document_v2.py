@@ -187,7 +187,7 @@ def test_paper_ui_updates_model_without_replacing_embedded_texture(drawing, monk
     escolher outro preset troca a textura embutida."""
     from ui.core.document.manager import DocumentManager
     from ui.core.engine.registry import EngineRegistry
-    from plugins.ui.layers_plugin.paper import PaperLayerWidget
+    from ui.plugins.panels.layers_plugin.paper import PaperLayerWidget
     document, backend = drawing
     monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: document)
     monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
@@ -213,7 +213,7 @@ def test_guide_switch_resets_old_modes_and_restores_points(drawing, monkeypatch)
     from types import SimpleNamespace
     from ui.core.document.manager import DocumentManager
     from ui.core.engine.registry import EngineRegistry
-    from plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
+    from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
     document, backend = drawing
     monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: document)
     monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)

@@ -59,7 +59,7 @@ class TestI18nSystem(unittest.TestCase):
 
     def test_05_brush_presets_and_tool_options_across_languages(self):
         """Valida que receitas de pincel, seções avançadas e opções de ferramentas traduzem nos 4 idiomas."""
-        from plugins.ui.brush_plugin.presets_data import get_preset_display_name, get_category_display_name
+        from ui.plugins.panels.brush_plugin.presets_data import get_preset_display_name, get_category_display_name
         from ui.core.tools import get_tool_name
 
         # 1. Português

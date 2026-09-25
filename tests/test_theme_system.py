@@ -128,7 +128,7 @@ class TestThemeSystem(unittest.TestCase):
 
     def test_07_bars_scale_reactivity(self):
         from ui.core.components.tool_sidebar.sidebar import ToolSidebar
-        from plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
+        from ui.plugins.system.workspace_core.workspace.floating_toolbar import FloatingToolbar
         from ui.core.state import ToolState
 
         orig_scale = self.tm.ui_scale

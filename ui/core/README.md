@@ -23,7 +23,7 @@ configuração, caminhos) ficam em `ui/infrastructure/` desde 2026-09-24.
 
 ## Regras
 
-- É o KERNEL: nada aqui importa `plugins/`.
+- É o KERNEL: nada aqui importa `ui/plugins/` (a exceção é o carregador, `plugins/`, que lê a lista dos embutidos).
 - Opção de ferramenta nova nasce em `tool_settings.py` (padrão + validador) e
   mora no `ToolState` (`ui/core/state`), nunca num widget.
 - Comando pontual novo sobre a ferramenta em uso: um valor em `ToolCommand`

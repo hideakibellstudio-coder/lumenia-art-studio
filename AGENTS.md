@@ -39,8 +39,7 @@ O ambiente é particionado em diretórios irmãos no nível superior:
 ├── Lumenia/                             # Repositório de código 100% puro + .git (sempre leve, ~7 MB)
 │   ├── engine/                          # Motor C++20 em camadas: utils/ → infrastructure/ → core/ → boundary/ (orchestrator, public-api)
 │   ├── bridge/                          # PyBind11 bindings e contratos .pyi (do motor, só inclui public-api/AladynEngine.hpp)
-│   ├── ui/                              # Pilar Python/PySide6: boundary/ (casca), core/ (núcleo), infrastructure/ (ponte com o motor, config, idioma, tema, ícones, logging)
-│   ├── plugins/                         # Plugins nativos e manifesto
+│   ├── ui/                              # Pilar Python/PySide6: boundary/ (casca), core/ (núcleo), infrastructure/ (ponte com o motor, config, idioma, tema, ícones, logging), plugins/ (workspace e painéis)
 │   ├── assets/                          # Ícones e recursos visuais
 │   ├── docs/                            # Documentação técnica reconstruída
 │   ├── scripts/                         # Scripts oficiais de automação
@@ -53,6 +52,17 @@ O ambiente é particionado em diretórios irmãos no nível superior:
     ├── Lumenia_Setup_v0.2.0.exe         # Instalador oficial (55.6 MB)
     └── portable/Lumenia.dist/           # Executável portátil standalone
 ```
+
+**Raiz do repositório (ARCcC 15.4, regra 1):** os três pilares (`ui/`, `bridge/`,
+`engine/`) e arquivos de build/entrada do monorepo (`main.py`, `setup.py`,
+`pyproject.toml`, `requirements-dev.*`, lançadores `Launch_Lumenia.*`,
+`Send_Feedback.html`, `TERMS_AND_LICENSE.txt`, `README.md`, `AGENTS.md`,
+configuração do git e `.github/`). **Exceção declarada** (decisão do dono do
+projeto, 2026-09-25): `tests/`, `docs/`, `assets/`, `scripts/` e `benchmarks/`
+ficam na raiz — atravessam os três pilares, e CI, instalador e build portátil
+esperam esses caminhos. Até 2026-09-25 os plugins moravam em `plugins/`, na
+raiz; hoje estão em `ui/plugins/`. Entrada nova na raiz fora dessa lista faz
+`tests/test_arccc_root_layout.py` falhar.
 
 ---
 
@@ -71,9 +81,9 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 > 251" enquanto o teste e o Navigator usavam 300; alinhada ao que é de fato
 > verificado.
 
-### Censo Atual (medido em 2026-09-24 com `wc -l` em `ui/` e `plugins/`):
+### Censo Atual (medido em 2026-09-25 com `wc -l` em `ui/`, plugins incluídos):
 - **0 arquivos na Zona Vermelha e nenhuma exceção de LOC declarada.** Nenhuma alteração pode criar ou expandir um arquivo para $\ge 450$ linhas.
-- 313 verdes, 35 amarelos e **0 na parede** (430–449).
+- 314 verdes, 35 amarelos e **0 na parede** (430–449).
 - **Parede dos 450:** arquivo entre 430 e 449 linhas não recebe código novo sem antes ser dividido — um teto usado como meta produz arquivos espremidos, não coesos.
 - **Dividir é por responsabilidade, não por tamanho.** O diagnóstico de
   2026-09-24 achou o teto de LOC "cumprido" com mixins e funções soltas que
@@ -84,7 +94,7 @@ O projeto aplica estritamente a metodologia **ARCcC** (*Atomic Recursive Compone
 
 ## 🔒 4. AS 6 LEIS ARQUITETURAIS INVIOLÁVEIS
 
-1. **Zero Cross-Plugin Imports**: Um plugin em `plugins/` **NUNCA** importa outro plugin irmão diretamente. Comunicação entre plugins deve usar a API de plugins ou componentes compartilhados em `ui/core/`.
+1. **Zero Cross-Plugin Imports**: Um plugin em `ui/plugins/` **NUNCA** importa outro plugin irmão diretamente. Comunicação entre plugins deve usar a API de plugins ou componentes compartilhados em `ui/core/`.
 2. **Isolamento de Binário C++**: É expressamente proibido importar `aladyn_engine_native` fora de `ui/infrastructure/bridge_client/`. Exceção aceita: testes de caixa-branca do motor nativo (`tests/test_lowlevel_*.py` e afins) e scripts isolados de diagnóstico/benchmark na raiz do repositório (`diag_*.py`, `benchmarks/`) podem importar o módulo diretamente — não são código que a UI executa em produção. Auditado na Fase de panorama pós-C5 (2026-09-17): 20 ocorrências, todas nessa categoria (ver `claude/panorama-leis-do-rio-pos-c5.md` no Projects).
 3. **Zero Acesso a Atributos Privados**: A UI nunca acessa `_facade` ou `_native`. Toda comunicação é mediada por métodos canônicos em `EngineBackend`.
 4. **Fonte Única de Verdade (SSOT)**: O estado do documento reside em `Document` / `LocalLayerManager` (`ui/core/document/`). Painéis e widgets de UI são apenas **Views** reativas sincronizadas por sinais Qt.
@@ -185,7 +195,7 @@ reais de antes/depois: `docs/02-arquitetura/06-contratos-entre-componentes.md`.
   lugar só (`ui/core/state/state_links.py`).
 - `except Exception: pass` (catraca `silent_except` está em 0).
 
-**Toda pasta tem README** — todas mesmo: `ui/`, `plugins/`, o motor C++
+**Toda pasta tem README** — todas mesmo: `ui/` (com `ui/plugins/`), o motor C++
 (`engine/`), a ponte (`bridge/`), `tests/`, `scripts/`, `docs/`, `assets/` —
 com responsabilidade, porta de entrada, tabela de arquivos, regras e, nas pastas
 de código dos pilares, o bloco `arccc:deps` com as dependências medidas

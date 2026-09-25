@@ -28,7 +28,7 @@ Formato de arquivo `.lmn` e gestão de cor (LittleCMS/ICC).
 Visão estratégica de produto, benchmark competitivo de mercado (`03-benchmark-competitivo-e-rotas-de-produto.md`) e roadmap do pipeline de cor 16-bit/float. Norteia as decisões de refinamento da branch `feature/evolucao-produto`.
 
 ### READMEs por pasta de código — leia antes de mexer
-Cada pasta de `ui/` e `plugins/` tem um `README.md` com a responsabilidade,
+Cada pasta do repositório (`ui/` com os plugins em `ui/plugins/`, `engine/`, `bridge/`, `tests/`, `docs/`...) tem um `README.md` com a responsabilidade,
 a porta de entrada, a tabela de arquivos, as regras, a dívida conhecida e as
 dependências internas medidas (bloco `arccc:deps`). O teste
 `tests/test_arccc_package_docs.py` falha se um arquivo ou import novo não
@@ -125,7 +125,7 @@ verde (762 testes, 110–135 s), `navigator_verify` com 0 `confirmed_violation`,
 
 ### 2026-09-21 — Sincronização Bidirecional Viewport/Navigator e Dirty Tracking de Camadas (Rodada 13)
 **O que foi feito:** Décima terceira rodada de auditoria e saneamento concêntrico aplicando `lumenia-satellite-audit`:
-1. *Alinhamento dos Ícones de Flip no Navigator*: correção dos ícones SVG em `NavigatorControls` (`plugins/ui/navigator_plugin/panel.py`), associando `flip-vertical` a `btn_fliph` e `flip-horizontal` a `btn_flipv`, alinhando a representação visual com a percepção do usuário e preservando conexões de sinal 1:1.
+1. *Alinhamento dos Ícones de Flip no Navigator*: correção dos ícones SVG em `NavigatorControls` (`ui/plugins/panels/navigator_plugin/panel.py`), associando `flip-vertical` a `btn_fliph` e `flip-horizontal` a `btn_flipv`, alinhando a representação visual com a percepção do usuário e preservando conexões de sinal 1:1.
 2. *Sincronização Bidirecional Viewport $\leftrightarrow$ Navigator*: os setters de `flip_x` e `flip_y` em `canvas_compat.py` agora emitem `cameraChanged.emit(...)` de forma idempotente quando alterados, garantindo que espelhamentos acionados externamente (menu principal, atalhos) atualizem imediatamente o viewport no painel do Navigator.
 3. *Completude de Rastreamento Dirty em Camadas (`aladyn_layer_mixin.py`)*: inclusão sistemática de chamadas a `self._mark_document_dirty(...)` em todas as mutações da pilha de camadas (`add_layer`, `remove_layer`, `duplicate_layer`, `merge_layer_down`, `flatten_group`, `add_group`, `add_filter_layer`, `reorder_layer`, `reorder_layers`, `set_layer_parents`, `set_layer_blend_mode`, `set_layer_opacity`, `set_layer_visibility`, `set_layer_lock`, `set_layer_alpha_lock`, `set_layer_clipping_mask`, `set_layer_name`, `set_filter_params`), fechando a paridade 1:1 com o `ctx.touch()` de `LayerStackOrchestrator` do C++.
 4. *Rastreamento Dirty em Geometria, Transações e Recursos*: adição de `_mark_document_dirty` em `resize`, `apply_prepared_geometry`, `commit_layer_transaction` (`aladyn.py`), `set_selection_mask_buffer` (`aladyn_selection_mixin.py`) e `set_canvas_resource` (`aladyn_resources_mixin.py`).
@@ -133,7 +133,7 @@ verde (762 testes, 110–135 s), `navigator_verify` com 0 `confirmed_violation`,
 
 ### 2026-09-21 — Saneamento dos Botões de Flip do Navigator e Fronteira Primordial C++ (Rodada 12)
 **O que foi feito:** Décima segunda rodada de saneamento concêntrico aplicando `lumenia-satellite-audit`:
-1. *Alinhamento dos Botões de Flip no Navigator*: correção no `NavigatorControls` (`plugins/ui/navigator_plugin/panel.py`), onde `btn_fliph` estava indevidamente conectado a `flipVRequested.emit` e `btn_flipv` conectado a `flipHRequested.emit`. Alinhamento 1:1 restabelecido (`btn_fliph` $\to$ `flipHRequested`, `btn_flipv` $\to$ `flipVRequested`).
+1. *Alinhamento dos Botões de Flip no Navigator*: correção no `NavigatorControls` (`ui/plugins/panels/navigator_plugin/panel.py`), onde `btn_fliph` estava indevidamente conectado a `flipVRequested.emit` e `btn_flipv` conectado a `flipHRequested.emit`. Alinhamento 1:1 restabelecido (`btn_fliph` $\to$ `flipHRequested`, `btn_flipv` $\to$ `flipVRequested`).
 2. *Guard Resiliente em MDI (`aladyn_mdi_mixin.py`)*: substituição de condicional inalcançável por `if hasattr(facade, "set_render_options"):` com suporte a fallbacks granulares (`set_low_latency`, `set_linear_gamma`, `set_deep_color`) tanto na inicialização quanto na re-ativação de documentos.
 3. *Rastreamento Dirty em Operações Nativas C++*: inclusão de chamadas a `self._mark_document_dirty(...)` em `clear_canvas`, `clear_layer`, `undo`, `redo` (`aladyn_layer_mixin.py`), e em `flood_fill`, `fill_area` e `end_stroke` (`aladyn_stroke_mixin.py`), garantindo sincronia perfeita do indicador de documento não-salvo.
 4. *Suíte Modular e Governança ARCcC*: criação de `tests/test_render_options_and_native_dirty_tracking.py` (6/6 testes verdes). Todos os arquivos modificados abaixo do limite de 450 LOC (Zona Verde). 100% de testes verdes em toda a suíte do projeto.
@@ -157,7 +157,7 @@ verde (762 testes, 110–135 s), `navigator_verify` com 0 `confirmed_violation`,
 7. *Espelhamento H/V Ponta a Ponta*: propriedades `flip_x`/`flip_y` no canvas e emissão de `flip_changed_by_user` pelo `NavigatorPanel` com sincronização bidirecional.
 8. *Marching Ants em Seleção via Menu*: métodos unificados `select_all()`, `invert_selection()` e `clear_selection()` sincronizando o timer de 60ms.
 9. *Guards em `AladynBackend`*: eliminação de branches `elif` inalcançáveis em `set_render_options` e `render`.
-10. *Eliminação de Shim Nível 2*: remoção definitiva de `plugins/ui/color_plugin/color_wheel.py` com import canônico conforme política Zero-Dirt.
+10. *Eliminação de Shim Nível 2*: remoção definitiva de `ui/plugins/panels/color_plugin/color_wheel.py` com import canônico conforme política Zero-Dirt.
 11. *Simetria de Sinais em Formas e Transformação*: `strokeStarted` disparado no início do arrasto e `strokeFinished` garantido no término.
 12. *Salvaguarda ARCcC Invariants*: divisão modular em `tests/test_tools_signal_symmetry_and_flip.py` (11/11 testes verdes) e `tests/test_tool_lifecycles_and_paper.py` (6/6 testes verdes), mantendo todos os arquivos abaixo do teto de 450 LOC (Zona Verde).
 13. *Documentação e Skill*: criação de `.agents/skills/lumenia-satellite-audit/SKILL.md` e `docs/01-correcao-da-base/06-auditoria-orbital-decomposta.md`.

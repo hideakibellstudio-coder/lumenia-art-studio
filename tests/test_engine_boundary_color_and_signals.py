@@ -243,7 +243,7 @@ def test_menu_actions_signal_symmetry_and_active_color(monkeypatch):
 
 def test_render_widget_run_as_stroke_emits_pair_even_on_error():
     """O canvas emite início e fim do traço em par, mesmo se a edição falhar."""
-    from plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
+    from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
     class _Signal:
         def __init__(self):

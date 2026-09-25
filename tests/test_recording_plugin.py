@@ -10,12 +10,12 @@ import zipfile
 import pytest
 from PySide6 import QtCore, QtWidgets, QtGui
 
-from plugins.ui.recording_plugin.engine.recording_engine import TimelapseRecordingEngine
-from plugins.ui.recording_plugin.engine.export_worker import TimelapseExportWorker
-from plugins.ui.recording_plugin.engine.frame_source import DocumentFrameSource, Frame
+from ui.plugins.panels.recording_plugin.engine.recording_engine import TimelapseRecordingEngine
+from ui.plugins.panels.recording_plugin.engine.export_worker import TimelapseExportWorker
+from ui.plugins.panels.recording_plugin.engine.frame_source import DocumentFrameSource, Frame
 from ui.core.document.document import Document
-from plugins.ui.recording_plugin.panel import RecordingPanel
-from plugins.ui.recording_plugin import RecordingPlugin
+from ui.plugins.panels.recording_plugin.panel import RecordingPanel
+from ui.plugins.panels.recording_plugin import RecordingPlugin
 from ui.core.plugins.workspace_contract import WorkspaceService
 
 
@@ -363,7 +363,7 @@ def test_recording_stop_flow_dialog(qapp, monkeypatch):
 
 def test_recording_include_guides_option(qapp, tmp_path):
     """Valida a opção de incluir guias ativas (simetria e perspectiva) na captura de timelapse."""
-    from plugins.ui.recording_plugin.engine.recording_engine import FrameSaveTask
+    from ui.plugins.panels.recording_plugin.engine.recording_engine import FrameSaveTask
 
     # Guias e simetria vêm do documento ativo (fonte única), não do canvas.
     doc = Document("rec-guides", "Guias", 400, 300)
@@ -413,14 +413,16 @@ def test_recording_zero_cross_plugin_imports():
     """Garante conformidade estrita com a Lei Canônica de Zero Cross-Plugin Imports."""
     import ast
     import pathlib
-    base_dir = pathlib.Path(__file__).parent.parent / "plugins" / "ui" / "recording_plugin"
-    for py_file in base_dir.rglob("*.py"):
+    base_dir = pathlib.Path(__file__).parent.parent / "ui" / "plugins" / "panels" / "recording_plugin"
+    py_files = list(base_dir.rglob("*.py"))
+    assert py_files, f"pasta do plugin não encontrada: {base_dir}"
+    for py_file in py_files:
         tree = ast.parse(py_file.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                if node.module and (node.module.startswith("plugins.system") or (node.module.startswith("plugins.") and "recording_plugin" not in node.module)):
+                if node.module and node.module.startswith("ui.plugins.") and "recording_plugin" not in node.module:
                     assert False, f"Cross-Plugin Import em {py_file}: {node.module}"
             elif isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name.startswith("plugins.system") or (alias.name.startswith("plugins.") and "recording_plugin" not in alias.name):
+                    if alias.name.startswith("ui.plugins.") and "recording_plugin" not in alias.name:
                         assert False, f"Cross-Plugin Import em {py_file}: {alias.name}"

@@ -64,11 +64,10 @@ Ordem = ordem recomendada.
    `TransformEngineCommit`, `LayerMerger`, `LargeBrushOptimizer`), variáveis
    sem uso e um `switch` sem o caso `Erase`. *Pronto:* zero avisos e
    `scripts/check_windows_build.py` falhando em aviso novo.
-7. **Laço ignora o Anti-Alias.** `SelectionEngine::generatePolygonMask`
-   recebe `antiAliasing` e não usa: o botão da barra de seleção não muda nada
-   no laço. A interface promete e não faz, então vem antes de qualquer
-   feature (regra 2 do benchmark). *Pronto:* borda suavizada no motor, teste
-   que falha sem a correção.
+7. ~~**Laço ignora o Anti-Alias.**~~ *(feito em 2026-09-25: cobertura de
+   área no motor, 4 linhas de varredura por pixel com a parte horizontal
+   exata; sem suavização, o fim de cada trecho deixou de ser inclusivo — o
+   laço ganhava uma coluna à direita. `tests/test_lasso_anti_alias.py`.)*
 8. **Conferência antes do commit sem depender da memória do agente.** Com o
    CI só à mão, a seção 5.1 do `AGENTS.md` é a única barreira. *Pronto:* hook
    de pre-commit versionado (`core.hooksPath`) que roda as catracas rápidas e,

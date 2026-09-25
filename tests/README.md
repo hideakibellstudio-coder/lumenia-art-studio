@@ -71,6 +71,7 @@
 | `test_i18n_keys_exist.py` | Toda chave literal passada a tr(...) ou Text(...) em ui/ (plugins incluídos) existe nos 4 locales. |
 | `test_i18n_localization.py` | Testes Unitários da Infraestrutura de Internacionalização (i18n) — Lumenia V2 (ARCcC). |
 | `test_i18n_system.py` | Unit Tests for I18nManager & Internationalization System (Lumenia V2 / ARCcC) Valida a detecção automática do idioma do SO, fallback universal para en_US, interpolação dinâmica de parâmetros e hot-swap em tempo real sem restart. |
+| `test_lasso_anti_alias.py` | Laço: o Anti-Alias da barra suaviza a borda (cobertura de área igual à do polígono) e, sem ele, o quadrado seleciona exatamente os seus pixels. |
 | `test_layer_blend_mode_contract.py` | Contrato do enum canonico de modo de mesclagem de camadas -- o motor define, a interface consome. |
 | `test_layer_drop_plan.py` | Arrastar e soltar na árvore de camadas: onde as camadas movidas ficam. |
 | `test_layer_manager_history.py` | Histórico estrutural do gerenciador de camadas: renomear/reordenar preservam uids; camada 0 nunca vira máscara de recorte. |

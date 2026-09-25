@@ -1,6 +1,6 @@
 // Máscaras geométricas do SelectionEngine (retângulo, elipse, polígono) --
 // separadas de SelectionEngine.cpp em 2026-09-22 (teto ARCcC de 450 linhas).
-// Corpos movidos sem alteração.
+// O polígono (laço) ganhou suavização de verdade em 2026-09-25.
 #include "SelectionEngine.hpp"
 #include <deque>
 #include <cmath>
@@ -8,6 +8,44 @@
 #include <cstring>
 
 namespace aladyn::engine::selection {
+
+namespace {
+
+// Cobertura horizontal exata de [x0, x1) somada em `coverage` com peso `weight`.
+void addSpanCoverage(std::vector<double>& coverage, double x0, double x1, double weight) {
+    const double width = static_cast<double>(coverage.size());
+    x0 = std::clamp(x0, 0.0, width);
+    x1 = std::clamp(x1, 0.0, width);
+    if (x1 <= x0) return;
+    const int first = static_cast<int>(x0);
+    const int last = std::min(static_cast<int>(x1), static_cast<int>(coverage.size()) - 1);
+    if (first == last) {
+        coverage[first] += (x1 - x0) * weight;
+        return;
+    }
+    coverage[first] += (first + 1 - x0) * weight;
+    for (int x = first + 1; x < last; ++x) coverage[x] += weight;
+    coverage[last] += (x1 - last) * weight;
+}
+
+// Interseções da linha horizontal `scanY` com as arestas do polígono, em ordem.
+void scanlineCrossings(const std::vector<std::pair<int, int>>& points, double scanY, std::vector<double>& out) {
+    out.clear();
+    size_t j = points.size() - 1;
+    for (size_t i = 0; i < points.size(); ++i) {
+        const double yI = points[i].second;
+        const double yJ = points[j].second;
+        if ((yI < scanY && yJ >= scanY) || (yJ < scanY && yI >= scanY)) {
+            const double xI = points[i].first;
+            const double xJ = points[j].first;
+            out.push_back(xI + (scanY - yI) / (yJ - yI) * (xJ - xI));
+        }
+        j = i;
+    }
+    std::sort(out.begin(), out.end());
+}
+
+} // namespace
 
 std::vector<uint8_t> SelectionEngine::generateRectMask(
     int width,
@@ -148,6 +186,32 @@ std::vector<uint8_t> SelectionEngine::generatePolygonMask(
     minY = std::max(0, minY);
     maxY = std::min(height - 1, maxY);
 
+    if (antiAliasing) {
+        // Até 2026-09-25 este parâmetro era ignorado e o botão Anti-Alias da
+        // barra não mudava nada no laço. Cobertura de área: SUBROWS linhas de
+        // varredura por pixel, com a parte horizontal exata.
+        constexpr int SUBROWS = 4;
+        std::vector<double> coverage(static_cast<size_t>(width));
+        std::vector<double> crossings;
+        for (int y = minY; y <= maxY; ++y) {
+            std::fill(coverage.begin(), coverage.end(), 0.0);
+            for (int s = 0; s < SUBROWS; ++s) {
+                scanlineCrossings(points, y + (s + 0.5) / SUBROWS, crossings);
+                for (size_t k = 0; k + 1 < crossings.size(); k += 2) {
+                    addSpanCoverage(coverage, crossings[k], crossings[k + 1], 1.0 / SUBROWS);
+                }
+            }
+            const size_t rowOff = static_cast<size_t>(y) * static_cast<size_t>(width);
+            for (int x = 0; x < width; ++x) {
+                mask[rowOff + x] = static_cast<uint8_t>(std::lround(std::clamp(coverage[x], 0.0, 1.0) * 255.0));
+            }
+        }
+        if (featherPx > 0) {
+            applyFeather(mask, width, height, featherPx);
+        }
+        return mask;
+    }
+
     const size_t numPoints = points.size();
     std::vector<int> nodeX;
     nodeX.reserve(16);
@@ -174,9 +238,11 @@ std::vector<uint8_t> SelectionEngine::generatePolygonMask(
 
         const size_t rowOff = static_cast<size_t>(y * width);
         for (size_t k = 0; k + 1 < nodeX.size(); k += 2) {
+            // Centro do pixel dentro do contorno: [início, fim). Até 2026-09-25 o
+            // fim era inclusivo e o laço ganhava uma coluna à direita.
             int xStart = std::max(0, nodeX[k]);
-            int xEnd = std::min(width - 1, nodeX[k + 1]);
-            for (int x = xStart; x <= xEnd; ++x) {
+            int xEnd = std::min(width, nodeX[k + 1]);
+            for (int x = xStart; x < xEnd; ++x) {
                 mask[rowOff + x] = 255;
             }
         }

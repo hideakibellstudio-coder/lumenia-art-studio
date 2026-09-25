@@ -13,7 +13,7 @@
 | `SelectionMask.hpp` | Máscara de seleção e modos de combinação (nova, somar, subtrair, interseção). |
 | `SelectionEngine.hpp` | Máscaras de varinha, retângulo, elipse, polígono e suavização (declaração). |
 | `SelectionEngine.cpp` | Varinha mágica (global e contígua). |
-| `SelectionShapeMasks.cpp` | Máscaras geométricas (separadas em 2026-09-22, teto de 450 linhas). |
+| `SelectionShapeMasks.cpp` | Máscaras geométricas (separadas em 2026-09-22, teto de 450 linhas); o laço tem suavização por cobertura de área desde 2026-09-25. |
 | `SelectionMorphology.hpp` | Seleção → Modificar: expandir, contrair, suavizar borda (declaração). |
 | `SelectionMorphology.cpp` | Implementação com transformada de distância euclidiana exata. |
 

@@ -22,7 +22,9 @@ def qapp():
 
     Fonte única do fixture: antes existiam nove cópias idênticas espalhadas
     pelos módulos e um módulo (test_tools_signal_symmetry_and_flip.py) que
-    dependia do `qapp` do pytest-qt, que não está no requirements-dev.lock.
+    dependia do `qapp` do pytest-qt. Desde 2026-09-25 o pytest-qt está no
+    requirements-dev (reprova exceção dentro de slot do Qt), mas o `qapp` que
+    vale é este: fixture do conftest tem precedência sobre o do plugin.
     """
     from PySide6 import QtWidgets
 

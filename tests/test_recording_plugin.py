@@ -29,8 +29,11 @@ class DummyBackend:
         return b"\xff\x00\x00\xff" * (self.w * self.h)
 
 
-class DummyCanvas(QtCore.QObject):
-    """Só o que o plugin usa do canvas: o sinal de fim de traço."""
+class DummyCanvas(QtWidgets.QWidget):
+    """Canvas de teste. O contrato (`WorkspaceService.canvas`) é um QWidget: o
+    plugin liga o fim do traço ao motor e ancora a barra flutuante no canvas.
+    Até 2026-09-25 isto era um QObject; a barra chamava `isVisible()` nele
+    dentro de um slot do Qt e o erro só aparecia com o pytest-qt instalado."""
     strokeFinished = QtCore.Signal()
 
 
@@ -214,6 +217,10 @@ def test_recording_plugin_activation(qapp):
         assert "recording" not in mock_ws.panels
         # ...e desliga ao desativar.
         assert canvas.receivers(QtCore.SIGNAL("strokeFinished()")) == 0
+        # A barra flutuante também solta o canvas (filtro de eventos e aviso de
+        # destruição): o canvas continua vivo depois que o painel morre, e o
+        # filtro de uma barra já destruída derrubava o processo (2026-09-25).
+        assert canvas.receivers(QtCore.SIGNAL("destroyed(QObject*)")) == 0
     finally:
         reg._registry[WorkspaceService] = old_impls
 

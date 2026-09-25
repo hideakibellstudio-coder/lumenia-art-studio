@@ -322,8 +322,9 @@ class RecordingPanel(QtWidgets.QWidget):
         self.floating_bar.update_stats(frames, secs)
 
     def shutdown(self) -> None:
-        """Fecha a barra flutuante (o plugin chama ao desativar)."""
+        """Fecha a barra flutuante e a solta do canvas (o plugin chama ao desativar)."""
         self.floating_bar.hide_bar()
+        self.floating_bar.detach_anchor()
         self.floating_bar.close()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:

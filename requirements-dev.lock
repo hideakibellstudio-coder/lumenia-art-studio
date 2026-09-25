@@ -6,6 +6,9 @@
 # scipy line with cp311 wheels; it accepts the pinned numpy 2.4.5 (>=1.26.4,<2.7).
 # ruff 0.15.8 (py3-none-win_amd64, no dependencies) added on 2026-09-25 for
 # tests/test_python_lint.py; hash from PyPI.
+# pytest-qt 4.5.0 and its dependency typing-extensions 4.16.0 (py3-none-any) added
+# on 2026-09-25: exceptions raised inside Qt slots fail the test instead of
+# passing silently (the owner's machine already had it); hashes from PyPI.
 # Hashes were calculated from the resolved wheels for each supported CPython ABI.
 --require-hashes
 
@@ -47,6 +50,8 @@ pyside6-essentials==6.11.1 \
     --hash=sha256:63311bd48e32c584599ab04b9ef7c324082374cd2c9fa533f978fb893bb47e40
 pytest==9.0.3 \
     --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9
+pytest-qt==4.5.0 \
+    --hash=sha256:ed21ea9b861247f7d18090a26bfbda8fb51d7a8a7b6f776157426ff2ccf26eff
 ruff==0.15.8 \
     --hash=sha256:04f79eff02a72db209d47d665ba7ebcad609d8918a134f86cb13dd132159fc89
 scipy==1.17.1 \
@@ -58,5 +63,7 @@ setuptools==82.0.1 \
     --hash=sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb
 shiboken6==6.11.1 \
     --hash=sha256:c2c6863aa80ec18c0f82cea3417837b279cdc60024ac17123461dc9042577df7
+typing-extensions==4.16.0 \
+    --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
 wheel==0.46.3 \
     --hash=sha256:4b399d56c9d9338230118d705d9737a2a468ccca63d5e813e2a4fc7815d8bc4d

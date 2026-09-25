@@ -53,6 +53,22 @@ class RecordingFloatingBar(FloatingToolWindow):
 
         if self._anchor is not None:
             self._anchor.installEventFilter(self)
+            self._anchor.destroyed.connect(self._forget_anchor)
+
+    def detach_anchor(self) -> None:
+        """Solta o canvas; o painel chama ao ser desligado.
+
+        Sem isto o canvas, que continua vivo, chamava o filtro de eventos de
+        uma barra já destruída e o PySide derrubava o processo (achado em
+        2026-09-25: desativar o plugin de gravação com um documento aberto).
+        """
+        if self._anchor is not None:
+            self._anchor.destroyed.disconnect(self._forget_anchor)
+            self._anchor.removeEventFilter(self)
+            self._anchor = None
+
+    def _forget_anchor(self) -> None:
+        self._anchor = None
 
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if watched is self._anchor and event.type() in (QtCore.QEvent.Resize, QtCore.QEvent.Move):

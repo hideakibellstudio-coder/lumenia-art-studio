@@ -289,7 +289,10 @@ costumam rodar em **Linux**. O que passa no Linux pode quebrar lá (achados de
 cp1252; trechos `#ifdef _WIN32` que o g++ do Linux nunca compila). Antes de
 commitar, o agente em Linux roda:
 
-1. a suíte completa (`python -m pytest`), que inclui
+1. a suíte completa (`python -m pytest`) com o `requirements-dev` instalado —
+   sem o pytest-qt, exceção dentro de slot do Qt só é impressa e o teste passa
+   no Linux enquanto falha no Windows (achado em 2026-09-25; o
+   `tests/test_dev_environment.py` falha se ele faltar). A suíte inclui
    `tests/test_windows_portability.py`: nomes que colidem sem diferenciar
    maiúsculas, nomes inválidos no Windows, caminhos longos, texto que não é
    UTF-8 ou já corrompido, e `open`/`read_text`/`write_text` de texto sem

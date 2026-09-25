@@ -43,6 +43,7 @@
 | `test_config_manager.py` | Unit Tests for ConfigManager (Lumenia V2 / ARCcC) Valida a persistência em arquivo JSON, isolamento em modo de testes (in-memory), atualização atômica, emissão de sinais e migração transparente do QSettings. |
 | `test_config_schema.py` | Config migration and preservation across incompatible application versions. |
 | `test_dependency_lock_contract.py` | O lock de dependências do Windows fixa cada pacote resolvido, com hash. |
+| `test_dev_environment.py` | O ambiente da suíte é o do `requirements-dev`: o pytest-qt precisa estar ativo, senão exceção dentro de slot do Qt passa em silêncio (diferença entre o Linux do agente e o Windows do dono em 2026-09-25). |
 | `test_dialogs_i18n.py` | Test Suite: Dialogs & Configuration I18n Retranslation Valida se todos os diálogos de preferências e configurações de sistema acompanham a mudança de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP). |
 | `test_dialogs_theme_and_docs.py` | Diálogos principais reagem à troca de tema e de idioma; guia do usuário nos 4 idiomas. |
 | `test_dirty_tracking_layers_and_navigator_flip.py` | Sincronização viewport/navegador (incluindo espelhamento) e marcação de alterações nas camadas. |

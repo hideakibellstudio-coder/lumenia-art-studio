@@ -71,6 +71,11 @@ do compilador (18 → 0) com a conferência do Windows em `-Werror`; Anti-Alias
 do laço, que era ignorado. Achado no caminho: um teste que só roda no Windows
 ainda pedia `--include-package=plugins` e falharia na máquina do dono.
 Suíte depois disso: 940 testes, 935 passam, 5 pulados.
+**Depois, na máquina do dono** (Windows): 1 falha,
+`test_recording_plugin_activation`, que no Linux passava porque lá o pytest-qt
+não estava instalado. Corrigidos o teste e a queda que ele escondia (a barra
+flutuante da gravação deixava o filtro de eventos no canvas); pytest-qt no
+`requirements-dev`. Item 18 das próximas tasks.
 **Números medidos** (Linux, Python 3.11, offscreen, base `9038c9c`): 925
 testes, 920 passam e 5 pulados; cobertura de `ui/` 78%; 114 de 114 pastas
 com README; 0 ciclos entre pastas do motor (eram 9) e 2 no Python (eram 9);

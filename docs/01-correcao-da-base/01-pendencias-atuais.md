@@ -101,7 +101,18 @@ Ordem = ordem recomendada.
     abertura < 2 s e "390 testes". *Pronto:* medido no Windows com mesa, ou o
     texto corrigido para o que foi medido.
 17. **Acessibilidade:** 0 nomes acessíveis (`setAccessibleName`) na interface.
-18. **Restos já conhecidos:** o plugin de gravação não tem tradução (~70
+18. ~~**Teste que só falhava na máquina do dono.**~~ *(feito em 2026-09-25:
+    no Windows, `test_recording_plugin_activation` falhava com "Exceptions
+    caught in Qt event loop"; no Linux do agente passava. O pytest-qt, instalado
+    só lá, reprova exceção levantada dentro de um slot do Qt. O teste usava um
+    canvas falso que não era widget, contra o contrato
+    (`WorkspaceService.canvas` é `QWidget`). Com o teste corrigido apareceu uma
+    queda de verdade: a barra flutuante da gravação deixava o filtro de eventos
+    no canvas depois de destruída, e desativar o plugin com o canvas vivo podia
+    derrubar o app. Agora a barra solta o canvas quando o painel é desligado;
+    o pytest-qt entrou no `requirements-dev` e `tests/test_dev_environment.py`
+    falha se ele faltar.)*
+19. **Restos já conhecidos:** o plugin de gravação não tem tradução (~70
     textos); nome padrão de camada nova em português; Prova de Cores global e
     fora do arquivo; `add_panel` conhece os ids `navigator`/`layers`;
     persistência das gavetas (decisão do usuário).

@@ -4,7 +4,7 @@
 
 ## Porta de entrada
 
-`ci.yml`: em push na `main`, em pull request e à mão (`workflow_dispatch`). Push novo cancela o run anterior do mesmo ref.
+`ci.yml`, só à mão: aba Actions → Lumenia CI → Run workflow (`workflow_dispatch`). Push e pull request não disparam nada.
 
 ## Arquivos
 
@@ -15,6 +15,9 @@
 ## Regras
 
 - Passo novo de build ou teste entra aqui e no guia de build (`docs/03-guias/02-build-e-release.md`).
-- Até 2026-09-25 rodava em todo push: o mesmo commit na branch de trabalho e na
-  `main` gastava o dobro de minutos, e a cota do Actions acabou (jobs
-  falhando em 2 s, sem runner). Branch sem PR roda à mão pela aba Actions.
+- Até 2026-09-25 rodava em todo push: cada commit gastava 5 jobs Windows (o
+  dobro, com a branch de trabalho), a cota do Actions do repositório privado
+  acabou e todo commit ficava com X vermelho (jobs falhando em 2 s, sem
+  runner). Desde então, por decisão do dono do projeto, roda só à mão; quem
+  confere cada commit é o agente (AGENTS.md, seção 5.1). Útil rodar à mão antes
+  de um release, com minutos disponíveis.

@@ -136,7 +136,7 @@ script de build encontra o compilador sozinho).
    `python tests/run_all_tests.py`.
 
 São os mesmos passos que o CI (`.github/workflows/ci.yml`) executa a partir de
-um clone limpo em cada commit.
+um clone limpo quando é disparado à mão (aba Actions → Lumenia CI → Run workflow).
 
 ### Opção B: Versão Portátil Autônoma (Sem Instalação)
 

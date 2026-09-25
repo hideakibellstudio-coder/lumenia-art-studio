@@ -1,15 +1,13 @@
 name: Lumenia CI
 
 on:
-  # O agente publica o mesmo commit na branch de trabalho e na main: rodar só
-  # na main (e em PR) evita dois runs idênticos, e cada run gasta 5 jobs
-  # Windows (minutos contam em dobro no plano do repositório privado).
-  push:
-    branches: [main]
-  pull_request:
+  # Só à mão (aba Actions > Lumenia CI > Run workflow), por decisão do dono do
+  # projeto em 2026-09-25: push e PR não disparam nada. Cada run são 5 jobs
+  # Windows e os minutos do repositório privado acabavam. A conferência de
+  # cada commit é a do agente, antes de commitar (AGENTS.md, seção 5.1).
   workflow_dispatch:
 
-# Push novo no mesmo ref cancela o run que ficou para trás.
+# Run novo no mesmo ref cancela o que ficou para trás.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

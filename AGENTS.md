@@ -304,11 +304,13 @@ Regras de código que valem pelo mesmo motivo:
 - C++ que depende da plataforma fica atrás de `#ifdef _WIN32` e é conferido
   pelo script acima.
 
-**Minutos do CI:** o repositório é privado e cada run na `main` são 5 jobs
-Windows (os minutos contam em dobro). O CI roda em push na `main`, em PR e à
-mão; agrupe o trabalho e publique uma vez por tarefa concluída, não a cada
-passo. Job que falha em 2 segundos, sem runner e sem log, é cota esgotada
-(GitHub → Settings → Billing), não erro do código.
+**CI só à mão (decisão do dono do projeto, 2026-09-25):** push e PR não
+disparam o GitHub Actions — cada run são 5 jobs Windows e a cota do repositório
+privado acabava, deixando todo commit com X vermelho. A conferência de cada
+commit é a desta seção, feita pelo agente antes de commitar; o workflow
+(`.github/workflows/ci.yml`) continua disponível em Actions → Lumenia CI → Run
+workflow, útil antes de um release. Job que falha em 2 segundos, sem runner e
+sem log, é cota esgotada (GitHub → Settings → Billing), não erro do código.
 
 ## 🛠️ 6. COMANDOS CANÔNICOS OFICIAIS
 

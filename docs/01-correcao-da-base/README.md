@@ -16,6 +16,7 @@
 | `04-testes-e-qualidade.md` | Suíte de Testes Automatizados e Qualidade |
 | `05-fluxo-lumenia-navigator.md` | Relatório: o fluxo Lumenia ↔ ARCcC-Navigator |
 | `06-auditoria-orbital-decomposta.md` | Metodologia de Auditoria Orbital Descomposta (Concentric Satellite Peeling) |
+| `07-analise-arccc-decomposta.md` | Análise ARCcC decomposta de 2026-09-26: cada nó do sistema medido, fluxos ponta a ponta, defeitos D1–D13, riscos, prontidão para features e o plano de solidificação S0–S4 |
 
 ## Regras
 

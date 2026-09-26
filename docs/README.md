@@ -49,6 +49,24 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-26 — Análise ARCcC decomposta
+**Base:** pedido do usuário (Claude Code): usar a decomposição do ARCcC para
+analisar o projeto inteiro em detalhe, com o objetivo de solidificar a base
+para receber features e competir com o mercado.
+**Documento:** `01-correcao-da-base/07-analise-arccc-decomposta.md`.
+**Achados principais (medidos em `bd07511`, Linux):**
+- A repintura em zoom ≥ 100% copia o canvas inteiro duas vezes: 34 ms em 4K.
+- Salvar 4K com 10 camadas trava a interface 4,1 s (+609 MB), e o salvamento
+  automático repete isso a cada 60 s.
+- O pixel é fixo em RGBA8 desde `engine/utils`.
+- Os 9 motores de pincel duplicam a rasterização (CCN 25–71).
+- A ponta borracha da caneta liga o Borrar (D1).
+- A falha ao criar contexto do motor é engolida (D2).
+
+**Plano:** S0 defeitos → S1 exibição e arquivo → S2 contratos de extensão →
+S3 cor e profundidade → S4 distribuição. Próxima task registrada em
+`01-correcao-da-base/01-pendencias-atuais.md`.
+
 ### 2026-09-25 — Estrutura física do ARCcC, conferência do Windows e próximas tasks
 **Base:** pedidos do usuário nesta sessão (Claude Code): terminar a estrutura
 física do ARCcC (passos 1 a 5 de `02-arquitetura/07-auditoria-da-estrutura-fisica.md`),

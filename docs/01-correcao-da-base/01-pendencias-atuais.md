@@ -11,6 +11,28 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
+## 🔎 Análise ARCcC decomposta (2026-09-26)
+
+`07-analise-arccc-decomposta.md` mediu cada nó do sistema e os fluxos ponta a
+ponta e achou 13 defeitos (D1–D13) e 10 riscos estruturais. O plano de
+solidificação tem cinco fases, nesta ordem: **S0** defeitos; **S1** exibição
+e arquivo sem travar; **S2** contratos de extensão; **S3** profundidade e
+pipeline de cor; **S4** distribuição.
+
+**Próxima task: S0.**
+- S0.1: ponta borracha da caneta liga o Borrar (id 6); enum `EngineType` em
+  Python.
+- S0.2: falha ao criar contexto do motor é engolida; limite único de
+  documento.
+- S0.3: histórico-sombra, compressão sem chamador, `PluginType` sem extensão.
+- S0.4: curvas Bézier fora do `BrushState`.
+- S0.5: documento do framework ARCcC desatualizado.
+
+Os itens desta lista (1–19) continuam valendo; os que se sobrepõem ao plano
+estão citados lá.
+
+---
+
 ## 🔜 Próximas tasks — profissionalizar a base sem feature (registradas em 2026-09-25)
 
 Origem: relatório de estado do projeto pedido pelo usuário em 2026-09-25

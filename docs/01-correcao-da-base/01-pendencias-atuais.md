@@ -11,25 +11,68 @@ código, remove ambiguidade, ou adiciona verificação. Nada aqui é estético.
 
 ---
 
-## 🔎 Análise ARCcC decomposta (2026-09-26)
+## 🏁 Linha de chegada da base (decisão do dono, 2026-09-26)
 
-`07-analise-arccc-decomposta.md` mediu cada nó do sistema e os fluxos ponta a
-ponta e achou 13 defeitos (D1–D13) e 10 riscos estruturais. O plano de
-solidificação tem cinco fases, nesta ordem: **S0** defeitos; **S1** exibição
-e arquivo sem travar; **S2** contratos de extensão; **S3** profundidade e
-pipeline de cor; **S4** distribuição.
+**Por que existe:** o trabalho de organização parecia infinito. Toda análise
+acha coisas (`07-analise-arccc-decomposta.md` achou 16 defeitos e 11 riscos);
+se o critério for "não sobrou nada para melhorar", nunca acaba. O critério
+passa a ser: **o que prejudica o usuário hoje ou impede a próxima feature.**
 
-**Próxima task: S0.**
-- S0.1: ponta borracha da caneta liga o Borrar (id 6); enum `EngineType` em
-  Python.
-- S0.2: falha ao criar contexto do motor é engolida; limite único de
-  documento.
-- S0.3: histórico-sombra, compressão sem chamador, `PluginType` sem extensão.
-- S0.4: curvas Bézier fora do `BrushState`.
-- S0.5: documento do framework ARCcC desatualizado.
+**A base está pronta quando estes quatro grupos estiverem feitos.** A lista é
+fechada: só diminui.
 
-Os itens desta lista (1–19) continuam valendo; os que se sobrepõem ao plano
-estão citados lá.
+1. **S0.1–S0.5** (relatório, Seção 10):
+   - S0.1: ponta borracha da caneta liga o Borrar (D1); enum `EngineType` em
+     Python.
+   - S0.2: falha ao criar contexto do motor é engolida (D2); limite único de
+     documento (D13).
+   - S0.3: histórico-sombra, compressão sem chamador, `PluginType` sem
+     extensão (D7–D9).
+   - S0.4: curvas Bézier fora do `BrushState` (D5).
+   - S0.5: documento do framework ARCcC desatualizado (D10).
+2. **S0.7 — três achados do estudo externo** (Apêndice F do relatório),
+   conferidos no código:
+   - D14: a interface dos motores promete ler a imagem composta
+     (`compositeBuffer`) e nenhum dos 8 motores lê;
+   - D15: o Borrar lê e escreve a mesma camada no mesmo dab (resultado depende
+     da ordem de varredura);
+   - D16: o medidor "Blit" da telemetria não conta a cópia do canvas, o maior
+     custo da repintura.
+3. **S0.6 — referência de pixel (golden) para os 9 motores de pincel** (R11).
+   Hoje só o Pincel tem; nenhum teste pinta com Borrar ou Desfoque. Vem
+   **antes** de qualquer mudança em motor, S0.7 incluída.
+4. **S1.1–S1.3:** repintar só a região alterada (D4); salvar e abrir sem
+   travar (D3); salvamento automático sem travar.
+
+Os grupos 1 a 3 são pequenos (até uma sessão cada); o grupo 4 é médio a
+grande.
+
+**Achado novo depois de hoje** só entra nesta lista se for defeito que o
+usuário sente hoje: comportamento errado, perda de dado ou travamento.
+Melhoria, abstração nova ou verificação extra vai para "puxado por feature".
+
+**Puxado por feature (fora da base):** S1.4–S1.5, S2, S3 e o roteiro "Aladyn
+Engine 2.0" do estudo externo. Cada item entra junto da feature que precisar
+dele. Exemplo: o "Borrar profissional" traz S2.1 (núcleo comum de dab) e o
+reservatório espacial do estudo, protegido pelo golden do grupo 3. As catracas
+impedem que o que já foi arrumado volte a bagunçar, então não há rodada de
+"reorganizar de novo".
+
+**Estado:** registrado; **nada implementado ainda** (o dono pediu para parar
+no registro). Quando liberar, a ordem é S0.6 (golden) e depois S0.1.
+
+**Itens ainda abertos da lista de 2026-09-25 (abaixo) ficam fora da linha de
+chegada:**
+- 13 (147 cores fixas) e 14 (6 funções acima de 20): têm catraca que impede
+  piorar e caem quando alguém mexer no arquivo. As funções do serializador
+  estão em S2.6. A duplicação da perspectiva curvilínea (Lei do Rio 2) entra
+  com a próxima feature de perspectiva.
+- 16 (medir a latência com mesa no Windows): medição na máquina do dono.
+- 17 (controles sem nome acessível): melhoria contínua.
+- 19 (Prova de Cores por documento, gavetas lembradas): decisões de produto
+  do dono.
+
+O dono pode puxar qualquer um deles para dentro da linha.
 
 ---
 

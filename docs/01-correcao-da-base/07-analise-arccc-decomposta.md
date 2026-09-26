@@ -39,6 +39,7 @@
 - [Apêndice C — cobertura por pacote](#apêndice-c--cobertura-por-pacote)
 - [Apêndice D — acoplamento e dívida medida](#apêndice-d--acoplamento-e-dívida-medida)
 - [Apêndice E — documentação desatualizada](#apêndice-e--documentação-desatualizada)
+- [Apêndice F — estudo externo do motor (avaliado em 2026-09-26)](#apêndice-f--estudo-externo-do-motor-avaliado-em-2026-09-26)
 
 ---
 
@@ -837,6 +838,9 @@ compilação para Windows com MinGW (69/69 arquivos, `-Werror`).
 | **D11** | Prévia da transformação (bilinear, Qt) diferente do resultado (bicúbico, motor) | 7.6 | Baixa | Lei do Rio 2 (duas implementações da mesma conta) | Prévia pelo motor em baixa resolução, ou mesmo amostrador |
 | **D12** | Forma e texto: `QImage` do canvas inteiro por confirmação (96 MB em 6000×4000), sem pincel, sem edição posterior | 6.9 | Média (memória em canvas grande) | Pixel pintado fora do motor e depois colado | Rasterizar só a caixa da forma; forma pelo motor de pincel no futuro |
 | **D13** | Tamanho máximo de documento sem contrato único: novo documento até 16384; "Tamanho do Canvas" oferece até 32000 e a operação recusa acima de 2 GB; abrir imagem é barrado pelo Qt em 256 MB com mensagem que culpa o arquivo; aritmética do motor em `int` | 4.8, 6.8, 7.3 | Média | Limite sem dono | O motor declara o máximo e os diálogos e ações consultam; `size_t` antes de multiplicar; mensagem certa ao abrir |
+| **D14** | A interface dos motores promete ler a imagem composta e nenhum motor lê: o comentário de `IBrushEngine::renderDab` diz que Desfoque e Borrar leem o `compositeBuffer`; os 8 `renderDab` o recebem como `/*compositeBuffer*/`, e o orquestrador passa `&outputBuffer` mesmo assim | `IBrushEngine.hpp` (comentário do parâmetro e de `usesScratchLayer`); `StrokeOrchestratorSegment.cpp:125`. Achado pelo estudo externo (Apêndice F), conferido no código | Baixa hoje; alta para o próximo motor que acreditar no comentário | Contrato que promete o que não faz (mesmo caso do `gapClosingPx` do balde) | Tirar o parâmetro, ou declarar no contrato que a fonte é a camada ativa |
+| **D15** | O Borrar lê e escreve a mesma camada no mesmo dab: a amostra do rastro (`getTilePixel(tileGrid, ...)`) pode ler um pixel já reescrito naquele dab, e o resultado depende da ordem de varredura. O Desfoque faz certo: copia a área antes | `SmudgeEngine.cpp` (amostra do rastro e `buffer.setPixel` na mesma grade). Achado pelo estudo externo, conferido lendo o código; **não medido** | Média (qualidade do Borrar) | Fonte e destino sem política de leitura | Ler de uma cópia da área tirada antes do dab, como o `BlurEngine` |
+| **D16** | O medidor "Apresentação Blit Qt" da telemetria cronometra só o `drawImage`. A cópia do canvas (`get_qimage_lod`, o custo do D4: 34 ms em 4K) acontece antes do cronômetro, e `qt_paint_total_ms` é publicado sem medidor que o mostre | `viewport_renderer.py` (cronômetro depois de `get_qimage_lod`), `telemetry_meters.py`, `telemetry_report.py`. Achado pelo estudo externo, conferido no código | Média (o instrumento esconde o maior custo da tela) | Número que não mede o que o nome diz | Medir a aquisição da imagem à parte e mostrar o total do paint |
 
 ### 8.2 Riscos estruturais (quebram ao receber feature)
 
@@ -852,6 +856,7 @@ compilação para Windows com MinGW (69/69 arquivos, `-Werror`).
 | **R8** | Ferramentas, filtros e formatos sem registro | `tools.py`, `FilterType`, `document_actions` | Ferramenta nova, filtro novo, PSD/TIFF/ORA |
 | **R9** | Plugin com acesso total e sem isolamento | `PluginContext` | Plugins de terceiros |
 | **R10** | Distribuição sem assinatura e sem atualização | `scripts` | Qualquer venda |
+| **R11** | Referência de pixel (golden) só para o motor padrão: `stroke_golden.json` cobre o Pincel; nenhum teste pinta com Borrar ou Desfoque; os outros 6 motores só têm asserções de comportamento ("deixou tinta") | `tests/golden/`, `tests/test_lowlevel_brush_raster.py` | Qualquer mudança em motor de pincel, S2.1, S3.1 |
 
 ---
 
@@ -895,6 +900,8 @@ script pode conferir.
 | S0.3 | Remover histórico-sombra (D7); decidir `compress_inactive_layers` (D8); remover os `PluginType` sem extensão (D9) | Catraca de acoplamento igual ou menor; grep limpo |
 | S0.4 | Curvas Bézier como parâmetros do `BrushState` e do preset, com um escritor (D5) | Trocar de pincel e voltar preserva a curva; `curve_window` não chama o backend |
 | S0.5 | Atualizar `02-arquitetura/01-framework-arccc.md` (D10) | Nenhuma afirmação do Apêndice E continua falsa |
+| S0.6 | **Antes de qualquer outra mudança em motor:** referência de pixel (golden) de traço para os 9 motores, Borrar e Desfoque incluídos (R11) | `stroke_golden.json` com uma célula por motor; o teste falha se um motor mudar um pixel |
+| S0.7 | Contrato do `compositeBuffer` (D14); Borrar lendo de uma cópia (D15); telemetria com a aquisição da imagem e o total do paint (D16) | `IBrushEngine` sem parâmetro que nenhum motor lê (ou comentário que bate com os 8); golden do Borrar regravado com a mudança explicada no commit; medidor da aquisição e teste que confere que as parcelas não passam do total |
 
 ### S1 — Desempenho que o usuário sente (M–G)
 
@@ -1139,3 +1146,41 @@ rascunho da sessão (não versionados). Mediana de 3 a 10 repetições.
 
 O documento é o contrato do método; enquanto contradisser o código, cada
 agente novo recebe instruções erradas logo na porta de entrada (S0.5).
+
+---
+
+## Apêndice F — estudo externo do motor (avaliado em 2026-09-26)
+
+O dono do projeto trouxe um estudo do motor feito fora desta sessão
+(`ESTUDO_MOTOR_C_v1`, fora do repositório): 632 arquivos e 73 mil linhas, com
+137 documentos, 40 patches, 315 arquivos C++ (cópias de trechos do motor e
+testes isolados), 44 JSON e 58 relatórios de validação. A pergunta era se ele
+eleva o motor. Conferido contra o código em `f535371`:
+
+| Pergunta | Resposta medida |
+|---|---|
+| Sobre qual versão | Uma cópia do projeto de 2026-09-23/24. Os patches apontam para caminhos anteriores à reorganização de 2026-09-25 (`fc08f11`): `engine/boundary/public-api/internal/`, `engine/core/bindings/`, `engine/core/canvas/TileUndoManager.*` |
+| Algo chegou ao repositório | Não. `StrokeSample`, `BrushFootprint`, `DabRenderWorkspace`, `FilterSampling`, `PixelSurfaceView`, `SmudgeReservoir`, `TileRuntime`, `RuntimeMemoryBudget`: 0 ocorrências em `engine/` e `bridge/` |
+| Como foi validado | Cada incremento sobre o incremento anterior, num ambiente isolado. Os próprios relatórios dizem que o módulo Python não foi compilado ("pybind11 headers are unavailable"); não rodou a suíte do projeto nem a conferência de Windows. O baseline de desempenho é sintético, e o estudo avisa |
+| Veredito do próprio estudo | "Current release decision: NOT_READY", com os 8 portões pendentes |
+| Tamanho | Os patches acrescentam 11.325 linhas (com repetição entre incrementos empilhados); o motor inteiro tem 17.565 |
+
+**Adotado** (conferido no código de hoje): D14, D15, D16 e R11, com as tarefas
+S0.6 e S0.7. O estudo também tem razão em que o Borrar carrega uma cor só
+(`m_carriedColor`) e por isso não arrasta textura; corrigir isso é melhorar o
+pincel, e entra junto da feature "Borrar profissional", não da base.
+
+**Não adotado como base:**
+- O roteiro "Aladyn Engine 2.0" (reservatório espacial do Borrar, umidade,
+  aquarela e óleo novos, superfície de cor profunda, estados de residência de
+  tile, canais de simulação no histórico). São capacidades novas: entram quando
+  uma feature pedir, e aí S2.1 (núcleo comum de dab) e S3.1 (formato de pixel)
+  são o lugar delas.
+- Portões de release, níveis de confiança, esquemas JSON, SHA256 e matrizes de
+  evidência. Seriam um segundo sistema de verificação, paralelo à suíte, às
+  catracas, ao golden e à conferência de Windows, sem medir o motor real.
+
+**Não aplicar os patches do estudo:** foram feitos sobre caminhos que não
+existem mais, empilhados entre si e sem passar pela suíte do projeto. Uma ideia
+dele que valer para uma feature é reescrita sobre o motor atual, com golden
+antes.

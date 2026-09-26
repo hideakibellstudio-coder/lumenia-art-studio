@@ -49,6 +49,35 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-09-26 — Estudo externo do motor avaliado e linha de chegada da base
+**Base:** o dono trouxe um estudo do motor C++ feito fora desta sessão
+(`ESTUDO_MOTOR_C_v1`, fora do repositório) e perguntou se ele eleva o motor,
+porque o trabalho de organização sem feature parecia não ter fim.
+**Documentos:** `01-correcao-da-base/07-analise-arccc-decomposta.md`
+(Apêndice F, D14–D16, R11, S0.6–S0.7) e
+`01-correcao-da-base/01-pendencias-atuais.md` (linha de chegada).
+**Conferido contra o código (`f535371`):**
+- O estudo foi feito sobre uma cópia de 2026-09-23/24, anterior à
+  reorganização do motor.
+- Nenhum incremento dele está no repositório, e os patches apontam para
+  caminhos que não existem mais.
+- Foi validado fora do build real (sem o módulo Python, sem a suíte, sem
+  Windows), e o próprio estudo conclui "NOT_READY".
+**Adotado:** três defeitos conferidos no código e uma lacuna de teste:
+- D14: `compositeBuffer` prometido e ignorado pelos 8 motores;
+- D15: o Borrar lê e escreve a mesma camada no mesmo dab;
+- D16: o medidor "Blit" não conta a cópia do canvas;
+- R11: golden só para o motor padrão.
+**Não adotado como base:** o roteiro "Aladyn Engine 2.0" (capacidades novas,
+entram com a feature que pedir) e o sistema paralelo de portões de release.
+**Decisão:** a base tem linha de chegada fechada. São quatro grupos:
+- S0.1–S0.5;
+- S0.7 (D14–D16);
+- S0.6 (golden dos 9 motores, antes de mexer em motor);
+- S1.1–S1.3.
+O resto é puxado por feature. Achado novo só entra se o usuário sentir hoje.
+Registrado sem implementar, a pedido do dono.
+
 ### 2026-09-26 — Análise ARCcC decomposta
 **Base:** pedido do usuário (Claude Code): usar a decomposição do ARCcC para
 analisar o projeto inteiro em detalhe, com o objetivo de solidificar a base

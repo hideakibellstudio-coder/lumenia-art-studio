@@ -118,8 +118,11 @@ fundacionais**, que toda feature futura vai herdar:
   continua ativo no motor, e o que o usuário fizer no documento novo vai para
   o anterior.
 
-Os dois nascem de raízes ARCcC: um número mágico no lugar de um contrato
-tipado (Lei do Rio nº 4), e uma falha de contrato que não chega a quem chamou.
+Nenhum dos dois é consequência das regras: os dois são lugares onde elas não
+foram seguidas. D1 é um número solto onde o ARCcC e a Lei do Rio nº 4 pedem um
+enum tipado; D2 é uma falha que não chega a quem chamou, onde o contrato do
+ARCcC pede que o erro seja devolvido. (As Leis do Rio detalham o ARCcC; não
+concorrem com ele.)
 
 **O que está sólido e deve ser preservado (Seção 11):**
 - Motor em camadas com `#include` só para baixo.

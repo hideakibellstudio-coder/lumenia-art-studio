@@ -115,6 +115,7 @@ def test_aladyn_mdi_render_options_guard_granular_fallback():
         def set_deep_color(self, val): self.deep_color = val
         def set_undo_memory_limit_mb(self, mb): pass
         def set_undo_max_steps(self, steps): pass
+        def set_layer_name(self, index, name): pass
         def get_canvas_texture(self): return None
         def get_width(self): return 800
         def get_height(self): return 600

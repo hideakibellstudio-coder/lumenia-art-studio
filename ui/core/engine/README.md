@@ -18,7 +18,7 @@
 | `backend_protocols.py` | ui.core.engine.backend_protocols -- EngineBackend decomposto em Protocols por papel. |
 | `backend_protocols_selection.py` | ui.core.engine.backend_protocols_selection -- papel "SelectionTransform". |
 | `engine_type.py` | `EngineType`: id canônico do motor de pincel (Brush, Pencil, Inker, Eraser, Marker, Blur, Smudge, Watercolor, OilImpasto), igual ao enum nativo; contrato em `tests/test_engine_type_contract.py`. |
-| `errors.py` | ui.core.engine.errors — Exceções padronizadas da camada de motor. |
+| `errors.py` | ui.core.engine.errors — Exceções padronizadas da camada de motor (`EngineContextError`: o motor não criou o contexto de um documento). |
 | `registry.py` | ui.core.engine.registry — EngineRegistry. |
 | `telemetry_dto.py` | `TelemetrySnapshot`: DTO da telemetria; lê a struct nativa campo a campo sem valor padrão (contrato em `tests/test_telemetry_contract.py`). |
 | `telemetry_meters.py` | Os 20 medidores (chave, título, leitura com nível semântico), usados pelo cockpit e pelo relatório. |

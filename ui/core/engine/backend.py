@@ -97,7 +97,11 @@ class EngineBackend(ABC):
         """Renderiza o quadro atual com a câmera informada."""
 
     def set_active_document_context(self, uid: Any, width: int, height: int) -> None:
-        """Sincroniza o contexto de execução nativo com a aba/documento ativa."""
+        """Sincroniza o contexto de execução nativo com a aba/documento ativa.
+
+        Levanta `EngineContextError` se o motor não conseguir criar o contexto
+        (falta de memória); o contexto ativo antes da chamada continua ativo.
+        """
         pass
 
     def close_document_context(self, uid: Any) -> None:

@@ -754,7 +754,9 @@
     "filter_layer_created": "Adjustment layer '{name}' created.",
     "not_filter_layer": "Layer '{name}' is not an adjustment layer.",
     "engine_ready_hint": "Lumenia Engine ready. Drag with the middle button to pan, scroll to zoom.",
-    "zoom": "Zoom: {percent}%"
+    "zoom": "Zoom: {percent}%",
+    "doc_context_failed": "The engine could not create the document '{name}' ({w}×{h} px): {reason}. The current document was kept.",
+    "engine_out_of_memory": "not enough memory"
   },
   "tool_options": {
     "sample_size": "Sample Size",

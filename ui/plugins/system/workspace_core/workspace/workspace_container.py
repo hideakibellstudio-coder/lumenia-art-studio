@@ -171,6 +171,7 @@ class WorkspaceContainer(QtWidgets.QWidget):
             self.canvas_widget, self.viewport_container.sync_active_tab, self._dm,
             brush_state, brush_sync, backend, self,
         )
+        self._view_sync.contextFailed.connect(lambda message: self.show_status(message, 10000))
 
         # ── Durante o traço: gavetas quietas; depois, miniaturas ────────────
         canvas = self.canvas_widget

@@ -18,6 +18,7 @@ from ui.core.dialogs.telemetry_benchmark import run_stroke_benchmark
 from ui.core.dialogs.telemetry_common import clear_undo_history, copy_report
 from ui.core.dialogs.telemetry_diagnostics_cards import StatCard
 from ui.core.document.manager import DocumentManager
+from ui.core.engine.errors import EngineContextError
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_meters import ENGINE_NAMES, simd_text
 from ui.core.engine.telemetry_tracker import TelemetryTracker
@@ -371,7 +372,13 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         QtWidgets.QApplication.processEvents()
 
         doc = DocumentManager.instance().active_document()
-        result = run_stroke_benchmark(backend, (doc.width, doc.height) if doc is not None else None)
+        try:
+            result = run_stroke_benchmark(backend, (doc.width, doc.height) if doc is not None else None)
+        except EngineContextError as exc:
+            self.lbl_bench_result.setStyleSheet(
+                f"font-size: 11px; font-style: italic; color: {tm.get_color('danger', '#ef4444')};")
+            self.lbl_bench_result.setText(f"Não foi possível preparar o teste: {exc}")
+            return
         self.lbl_bench_result.setStyleSheet(
             f"font-size: 11px; font-style: italic; color: {tm.get_color('success', '#10b981')};")
         self.lbl_bench_result.setText(

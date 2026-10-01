@@ -754,7 +754,9 @@
     "filter_layer_created": "Capa de ajuste '{name}' creada.",
     "not_filter_layer": "La capa '{name}' no es una capa de ajuste.",
     "engine_ready_hint": "Lumenia Engine lista. Arrastra con el botón central para mover, usa la rueda para el zoom.",
-    "zoom": "Zoom: {percent}%"
+    "zoom": "Zoom: {percent}%",
+    "doc_context_failed": "El motor no pudo crear el documento '{name}' ({w}×{h} px): {reason}. Se mantuvo el documento actual.",
+    "engine_out_of_memory": "memoria insuficiente"
   },
   "tool_options": {
     "sample_size": "Tamaño de Muestra",

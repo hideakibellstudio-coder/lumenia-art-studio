@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 from ui.core.document.local_layer import default_layer_name
+from ui.core.engine.errors import EngineContextError
 
 from .native_fallback import native_has
 from .aladyn_base import AladynBackendBase
@@ -44,6 +45,10 @@ class AladynMdiMixin(AladynBackendBase):
         """
         Alterna o contexto ativo de execução C++ para o documento especificado em tempo O(1).
         Se a PaintEngineFacade para o documento ainda não existir, ela é alocada imediatamente.
+
+        Levanta `EngineContextError` se o motor não conseguir alocá-la; o contexto
+        que estava ativo continua ativo (antes de 2026-10-01 a falha só ia para o
+        log e o chamador seguia escrevendo no documento errado).
         """
         if self._native is None:
             return
@@ -71,7 +76,10 @@ class AladynMdiMixin(AladynBackendBase):
                 logger.info(f"[AladynBackend] Nova PaintEngineFacade C++ criada para doc '{uid}' ({w}×{h}).")
             except Exception as e:
                 logger.error(f"[AladynBackend] Falha ao alocar PaintEngineFacade para doc '{uid}': {e}")
-                return
+                raise EngineContextError(
+                    f"o motor não conseguiu criar o contexto de {w}×{h} px: {e}",
+                    out_of_memory=isinstance(e, MemoryError),
+                ) from e
 
         # Sincroniza o cache de pincel com o estado REAL do facade que esta
         # saindo, ANTES de trocar.

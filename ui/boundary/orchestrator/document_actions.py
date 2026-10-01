@@ -60,6 +60,8 @@ class DocumentActions(ShellActions):
         # (DocumentViewSync). Até 2026-09-24 esta ação também escrevia o papel
         # direto no motor e limpava a tela nova, e o documento nascia sujo.
         doc = self._dm.new_document(width=w, height=h, name=name, bg_color=bg_color, dpi=dpi)
+        if not self._hosted(doc):
+            return
         if paper_tex > 0:
             doc.set_paper(texture_id=paper_tex, texture_enabled=True)  # carrega o relevo do preset
         backend = self._backend()
@@ -76,6 +78,18 @@ class DocumentActions(ShellActions):
                      name=doc.name, w=w, h=h, dpi=dpi, profile=prof_name), 3000)
 
     # ── Abrir ─────────────────────────────────────────────────────────────
+
+    def _hosted(self, doc: Document) -> bool:
+        """True quando o contexto ativo do motor é o do documento novo.
+
+        Falso se o motor não pôde criá-lo: a vista vai fechar o documento e dizer o
+        motivo, mas seguir daqui escreveria no documento que estava aberto (a
+        colagem da imagem e a restauração de arquivo agem no contexto ativo).
+        Sem motor (modo casca) não há contexto a conferir."""
+        backend = self._backend()
+        if not backend_ready(backend):
+            return True
+        return backend.get_active_document_context() == doc.uid
 
     def open_file(self) -> None:
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -101,6 +115,8 @@ class DocumentActions(ShellActions):
         width, height = qimg.width(), qimg.height()
         dpi = max(1, round(qimg.dotsPerMeterX() * 0.0254))  # a resolução gravada na imagem
         doc = self._dm.new_document(width=width, height=height, name=name, dpi=dpi)
+        if not self._hosted(doc):
+            return
         rgba = qimg.convertToFormat(QtGui.QImage.Format_RGBA8888)
         raw_bytes = bytes(rgba.constBits()[: width * height * 4])
         backend = self._backend()
@@ -132,8 +148,9 @@ class DocumentActions(ShellActions):
             height=int(manifest.get("height", 1)),
             name=str(manifest.get("name", os.path.basename(filename))),
             bg_color=tuple(int(x) for x in color[:4]),
-            paper_texture_id=int(paper.get("texture_id", 0)),
-        )
+        )  # a textura do papel vem do arquivo, em restore_document
+        if not self._hosted(doc):
+            return False
         doc.paper_visible = bool(paper.get("visible", True))
         doc.paper_texture_enabled = bool(paper.get("texture_enabled", False))
         backend = self._backend()

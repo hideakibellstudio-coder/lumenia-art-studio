@@ -89,6 +89,19 @@ fechar os selos do `08-analise-arccc-v1-1-e-forma-de-trabalho.md`):
   não corresponde ao arquivo"). Agora colar sobre pixel vazio copia a origem
   exata, a mesclagem arredonda, e o restore ignora o RGB de pixel totalmente
   transparente. `tests/test_document_pixel_fidelity.py`.
+- **Defeito achado pelo S0.2 e corrigido** (2026-10-01): abrir um `.lmn`
+  pela interface dava `TypeError` desde 2026-09-24. O commit `23c503a` tirou
+  `paper_texture_id` de `DocumentManager.new_document` e `open_native_document`
+  continuou passando o argumento; o teste do serializador e o do restore rodavam
+  separados, e nenhum passava pela ação "Abrir". Mesma lição do item anterior: o
+  caminho inteiro precisa de um teste de ponta a ponta
+  (`tests/test_document_open_actions.py`).
+- ~~D2~~ *(feito em 2026-10-01: a falha ao criar o contexto vira
+  `EngineContextError`; a vista recusa e fecha o documento depois da emissão do
+  sinal, avisa o usuário com a causa, e as ações de novo documento, abrir
+  imagem e abrir `.lmn` só seguem se o contexto ativo do motor é o do
+  documento novo. Antes, abrir uma imagem colava os pixels na camada do documento
+  aberto e abrir um `.lmn` removia as camadas dele.)* Faltam D13 e D17.
 - Ordem: S0.6 ✅, S0.8 ✅, S0.1–S0.5 e S0.7, S1.
 - Os 4 pontos de decisão da Seção 8 do documento 08 foram aplicados: ciclo no
   `AGENTS.md` (5.0), assunto de commit em inglês, limiar de complexidade 20

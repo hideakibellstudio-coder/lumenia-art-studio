@@ -13,6 +13,7 @@ papel do painel de camadas por dentro.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable, Optional
 
 from PySide6 import QtCore
@@ -20,9 +21,13 @@ from PySide6 import QtCore
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.paper_backend_sync import sync_paper_to_backend
+from ui.core.engine.errors import EngineContextError
+from ui.infrastructure.i18n import tr
 from ui.core.state import BrushEngineSync, BrushState
 
 from .canvas.render_widget import RenderWidget
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentViewSync(QtCore.QObject):
@@ -33,6 +38,8 @@ class DocumentViewSync(QtCore.QObject):
     canvasSizeChanged = QtCore.Signal(int, int)
     # zoom, x e y normalizados, rotação, espelho h/v, fração visível w/h
     viewportChanged = QtCore.Signal(float, float, float, float, bool, bool, float, float)
+    # O motor não conseguiu criar o contexto do documento: texto para o usuário.
+    contextFailed = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -77,7 +84,11 @@ class DocumentViewSync(QtCore.QObject):
 
         backend = self._backend()
         if backend is not None:
-            backend.set_active_document_context(doc.uid, doc.width, doc.height)
+            try:
+                backend.set_active_document_context(doc.uid, doc.width, doc.height)
+            except EngineContextError as exc:
+                self._reject_document(doc, exc)
+                return
         sync_paper_to_backend(doc)
         canvas = self._canvas
         canvas.setEnabled(True)
@@ -107,6 +118,29 @@ class DocumentViewSync(QtCore.QObject):
         # A facade nativa deste documento recebeu do adaptador o perfil da aba
         # anterior; reenvia os valores do BrushState por cima.
         self._brush_sync.resync()
+
+    def _reject_document(self, doc: Document, error: EngineContextError) -> None:
+        """O motor não pode hospedar `doc`: ele não fica aberto nem ativo.
+
+        Um documento sem contexto próprio faria traços, colagens e a restauração
+        de arquivo caírem no contexto que estava ativo, o documento do usuário.
+        Quem cria o documento confere `get_active_document_context() == doc.uid`
+        antes de seguir; o fechamento fica para depois desta emissão do sinal,
+        porque os outros ouvintes de `activeDocumentChanged` ainda vão receber
+        `doc` e fechá-lo aqui os faria observar um documento já removido.
+        """
+        logger.error("[DocumentViewSync] Documento '%s' recusado: %s", doc.uid, error)
+        reason = tr("status.engine_out_of_memory", "memória insuficiente") if error.out_of_memory else str(error)
+        message = tr(
+            "status.doc_context_failed",
+            "O motor não conseguiu criar o documento '{name}' ({w}×{h} px): {reason}. "
+            "O documento atual foi mantido.",
+            name=doc.name, w=doc.width, h=doc.height, reason=reason)
+        QtCore.QTimer.singleShot(0, self, lambda: self._finish_rejection(doc.uid, message))
+
+    def _finish_rejection(self, uid: str, message: str) -> None:
+        self._dm.close_document(uid)
+        self.contextFailed.emit(message)
 
     def _capture_view(self, doc: Optional[Document]) -> None:
         if doc is None:

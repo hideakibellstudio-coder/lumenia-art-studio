@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 from PIL import Image
 
+from ui.core.engine.errors import EngineContextError
 from .document import Document
 from .serializer import DocumentSerializer, DocumentFormatError
 from .restore import restore_document
@@ -60,9 +61,10 @@ def change_geometry(document: Document, backend, width, height, *, anchor=(1, 1)
     profile = backend.get_color_profile()
     options = backend.get_render_options()
     try:
-        backend.set_active_document_context(prepared_uid, width, height)
-        if backend.get_active_document_context() != prepared_uid:
-            raise DocumentFormatError("falha ao preparar contexto de geometria")
+        try:
+            backend.set_active_document_context(prepared_uid, width, height)
+        except EngineContextError as exc:
+            raise DocumentFormatError("falha ao preparar contexto de geometria") from exc
         backend.set_render_options(**options)
         backend.set_color_profile(profile)
         restore_document(shadow, backend, manifest, payloads)

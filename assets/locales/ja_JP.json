@@ -754,7 +754,9 @@
     "filter_layer_created": "調整レイヤー '{name}' を作成しました。",
     "not_filter_layer": "レイヤー '{name}' は調整レイヤーではありません。",
     "engine_ready_hint": "Lumenia Engine 準備完了。中ボタンのドラッグで移動、スクロールでズーム。",
-    "zoom": "ズーム: {percent}%"
+    "zoom": "ズーム: {percent}%",
+    "doc_context_failed": "エンジンがドキュメント「{name}」（{w}×{h} px）を作成できませんでした: {reason}。現在のドキュメントは保持されました。",
+    "engine_out_of_memory": "メモリが不足しています"
   },
   "tool_options": {
     "sample_size": "サンプルサイズ",

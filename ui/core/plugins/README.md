@@ -14,7 +14,7 @@ ServiceRegistry, PluginManager, PluginContext, WorkspaceService`.
 | `__init__.py` | Porta de entrada: reexporta as classes do contrato de plugin. |
 | `base.py` | `BasePlugin`: ciclo de vida (`activate`/`deactivate`) e acesso ao `PluginContext`. |
 | `canvas_access.py` | canvas_access — Caminho canônico para alcançar o canvas ativo. |
-| `context.py` | `PluginContext`: o que um plugin recebe da casca (registro de serviços, fachada do motor). |
+| `context.py` | `PluginContext`: o que um plugin recebe da casca: o registro de serviços e a janela principal (o motor não vai no contexto: um plugin que precisa dele recebe um serviço). |
 | `discovery.py` | Shared helpers for registering plugin classes from imported modules. |
 | `lifecycle.py` | Transações de ativação e encerramento de plugins. |
 | `manager.py` | PluginManager — Gerenciador do Ciclo de Vida e Descoberta de Plugins (Lumenia V2). |
@@ -48,7 +48,6 @@ Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
 pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
-- `ui/core/engine`
 - `ui/infrastructure`
 - `ui/infrastructure/config`
 - `ui/infrastructure/logging`

@@ -136,6 +136,7 @@
 | `test_pre_commit_hook.py` | O gancho `.githooks/pre-commit` chama `scripts/pre_commit.py`, a lista rápida só tem testes que existem e o gancho é executável no índice. |
 | `test_pyi_contract_matches_binary.py` | Regressao para F-024/3.3: garante que bridge/boundary/contracts/aladyn_engine_native.pyi descreve exatamente a superficie do modulo nativo compilado, nas duas direcoes. |
 | `test_pyi_signatures_match_binary.py` | Cada método do `.pyi` recebe o que o binário recebe: quantidade e tipo dos argumentos, lidos da assinatura que o pybind11 publica (achou 11 divergências em 192 métodos). |
+| `test_plugin_context_contract.py` | A superfície do `PluginContext` (só `service_registry`, `main_window` e `attach_main_window`; sem o motor) e que nenhum plugin lê outro membro: o contexto já não entrega o `EngineBackend` inteiro a plugins de terceiros (R9). |
 | `test_python_lint.py` | Linter Python: zero achados do ruff com as regras de `[tool.ruff]` do `pyproject.toml` (pula se o ruff não estiver instalado). |
 | `test_recording_contracts.py` | Contratos do plugin de gravação: quadro vem do documento ativo e do motor; barra flutuante só emite sinais. |
 | `test_recording_engine.py` | Motor de gravação: ciclo da sessão, captura assíncrona, exportação ZIP, marca d'água e guias na captura. |

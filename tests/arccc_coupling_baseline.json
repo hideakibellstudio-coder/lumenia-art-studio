@@ -134,10 +134,6 @@
  "ui/core/engine/telemetry_tracker.py": {
   "registry_lookup": 1
  },
- "ui/core/plugins/context.py": {
-  "door_bypass": 1,
-  "registry_lookup": 1
- },
  "ui/core/plugins/discovery.py": {
   "foreign_private": 1
  },

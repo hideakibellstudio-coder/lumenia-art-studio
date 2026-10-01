@@ -31,6 +31,9 @@ class CoreLifecycleProtocol(Protocol):
     @property
     def available(self) -> bool:
         ...
+    @property
+    def load_error(self) -> str:
+        ...
     def get_capabilities(self) -> Dict[str, Any]:
         ...
     def supports_capability(self, capability: str) -> bool:

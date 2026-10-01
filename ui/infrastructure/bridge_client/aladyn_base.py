@@ -22,6 +22,7 @@ from ui.core.color.proofing import SoftProofConfig
 class AladynBackendBase:
     # ── Binário e facade ativa ────────────────────────────────────────────
     _native: Any                       # módulo aladyn_engine_native, ou None (modo casca)
+    _load_error: str                   # por que o motor não carregou; "" quando carregou
     _facade: Any                       # PaintEngineFacade do documento ativo, ou None
     _width: int
     _height: int
@@ -55,6 +56,7 @@ class AladynBackendBase:
     def _init_backend_state(self) -> None:
         """Inicializa todo o estado compartilhado com os valores padrão."""
         self._native = None
+        self._load_error = ""
         self._facade = None
         self._width = 800
         self._height = 600

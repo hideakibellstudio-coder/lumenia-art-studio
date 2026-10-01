@@ -1031,7 +1031,10 @@
     "plugin_install_error": "No se pudo extraer y validar el paquete .zip del plugin.",
     "shortcut_conflict_title": "Conflicto de atajos",
     "save_failed_title": "Error al guardar",
-    "persistence_error": "No se pudo escribir la configuración"
+    "persistence_error": "No se pudo escribir la configuración",
+    "engine_unavailable_title": "Motor de pintura no disponible",
+    "engine_unavailable_unknown": "no se encontró el motor",
+    "engine_unavailable": "El motor de pintura (ALADYN) no se cargó y Lumenia se abrirá sin lienzo.\n\nCausa: {detail}\n\nReinstala Lumenia. En una copia de desarrollo, recompila el motor: python scripts/build_native.py"
   },
   "recording": {
     "status_idle": "INACTIVO",

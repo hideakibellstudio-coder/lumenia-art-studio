@@ -37,6 +37,7 @@ class EngineRegistry:
 
     def __init__(self) -> None:
         self._backend: Optional[EngineBackend] = None
+        self._load_error = ""
         self._document_modified_listeners: list[Callable[[str, str], None]] = []
 
     # ── Configuração ─────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ class EngineRegistry:
             try:
                 if backend.available:
                     self._backend = backend
+                    self._load_error = ""
                     logger.info(
                         f"[EngineRegistry] Backend de motor ativo: '{backend.name}'."
                     )
@@ -62,10 +64,10 @@ class EngineRegistry:
                     f"indisponível: {e}"
                 )
         self._backend = None
-        logger.info(
-            "[EngineRegistry] Nenhum backend de motor disponível. "
-            "A interface roda em modo casca (canvas vazio)."
-        )
+        self._load_error = "; ".join(error for error in (b.load_error for b in backends) if error)
+        logger.error(
+            "[EngineRegistry] Nenhum backend de motor disponível (%s). "
+            "A interface roda em modo casca (canvas vazio).", self._load_error or "sem causa registrada")
         return None
 
     def set_backend(self, backend: Optional[EngineBackend]) -> None:
@@ -73,6 +75,11 @@ class EngineRegistry:
         self._backend = backend
 
     # ── Consulta ─────────────────────────────────────────────────────────
+
+    @property
+    def load_error(self) -> str:
+        """Por que nenhum motor foi ativado em `setup` ("" se algum foi)."""
+        return self._load_error
 
     def get_backend(self) -> Optional[EngineBackend]:
         """Retorna o backend ativo, ou None se a casca estiver sem motor."""

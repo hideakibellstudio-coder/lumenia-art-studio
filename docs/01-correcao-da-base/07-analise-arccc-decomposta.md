@@ -896,7 +896,7 @@ script pode conferir.
 | Item | O quê | Pronto quando |
 |---|---|---|
 | S0.1 ✅ | Enum `EngineType` canônico em Python espelhando o C++ (como `LayerBlendMode`); roteador e presets usam o enum; ponta borracha → Borracha (D1) | Teste da ponta borracha espera Borracha; nenhum número solto de motor em `ui/` (catraca) |
-| S0.2 | Falha ao criar contexto vira erro que `show_document` trata (D2). Limite único de documento: o motor declara o máximo, e o diálogo de novo documento, "Tamanho do Canvas" e abrir imagem consultam. `size_t` antes de multiplicar (D13) | Teste com falha simulada de alocação: o documento anterior não recebe nada e o usuário vê o erro; diálogos com o mesmo máximo |
+| S0.2 ✅ | Falha ao criar contexto vira erro que `show_document` trata (D2). Limite único de documento: o motor declara o máximo, e o diálogo de novo documento, "Tamanho do Canvas" e abrir imagem consultam. `size_t` antes de multiplicar (D13) | Teste com falha simulada de alocação: o documento anterior não recebe nada e o usuário vê o erro; diálogos com o mesmo máximo |
 | S0.3 | Remover histórico-sombra (D7); decidir `compress_inactive_layers` (D8); remover os `PluginType` sem extensão (D9) | Catraca de acoplamento igual ou menor; grep limpo |
 | S0.4 | Curvas Bézier como parâmetros do `BrushState` e do preset, com um escritor (D5) | Trocar de pincel e voltar preserva a curva; `curve_window` não chama o backend |
 | S0.5 ✅ | Atualizar `02-arquitetura/01-framework-arccc.md` (D10) | Nenhuma afirmação do Apêndice E continua falsa |

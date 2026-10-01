@@ -14,6 +14,7 @@ from ui.infrastructure.logging import setup_senior_logging, get_logger
 from ui.core.components.splash_screen import LumeniaSplashScreen
 from ui.infrastructure.app_info import APP_DISPLAY_VERSION, APP_NAME, APP_VERSION
 from ui.infrastructure.runtime_paths import resource_path
+from ui.boundary.orchestrator.engine_failure import report_engine_failure
 from ui.boundary.orchestrator.main_window import MainWindow
 
 
@@ -75,6 +76,7 @@ def launch(args: list[str] | None = None) -> int:
     # 5. Construção da Janela Principal e Transição
     window = MainWindow()
     splash.finish(window)
+    report_engine_failure(window)
 
     logger.info("✨ %s %s inicializado e pronto para interação do usuário.", APP_NAME, APP_VERSION)
     return app.exec()

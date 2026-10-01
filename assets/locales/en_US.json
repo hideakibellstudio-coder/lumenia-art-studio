@@ -1031,7 +1031,10 @@
     "plugin_install_error": "Could not extract and validate the plugin .zip package.",
     "shortcut_conflict_title": "Shortcut conflict",
     "save_failed_title": "Save failed",
-    "persistence_error": "Could not write the settings"
+    "persistence_error": "Could not write the settings",
+    "engine_unavailable_title": "Painting engine unavailable",
+    "engine_unavailable_unknown": "the engine was not found",
+    "engine_unavailable": "The painting engine (ALADYN) did not load, and Lumenia will open without a canvas.\n\nCause: {detail}\n\nReinstall Lumenia. In a development copy, rebuild the engine: python scripts/build_native.py"
   },
   "recording": {
     "status_idle": "IDLE",

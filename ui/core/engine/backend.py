@@ -56,6 +56,11 @@ class EngineBackend(ABC):
         """True se o binário/recursos do motor puderem ser carregados."""
         return True
 
+    @property
+    def load_error(self) -> str:
+        """Por que o motor não carregou ("" quando carregou). A casca mostra isto ao usuário."""
+        return ""
+
     def get_capabilities(self) -> Dict[str, Any]:
         """Recursos efetivos do backend, sem inferência pela presença da UI."""
         return {

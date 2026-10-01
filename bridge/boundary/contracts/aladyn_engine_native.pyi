@@ -37,6 +37,10 @@ def render_stroke_preview(profile: BrushProfile, width: int = 260, height: int =
     ...
 
 
+# Version of this contract. The interface refuses a binary whose value differs.
+# Bump it (bridge/infrastructure/ContractVersion.hpp and EXPECTED_CONTRACT_VERSION) when this file changes.
+CONTRACT_VERSION: int
+
 class PaintEngineFacade:
     def __init__(self, width: int, height: int) -> None: ...  # ValueError outside 1..max_canvas_dimension()
     @staticmethod

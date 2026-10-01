@@ -112,7 +112,18 @@ fechar os selos do `08-analise-arccc-v1-1-e-forma-de-trabalho.md`):
   demais diz o limite em vez de culpar o arquivo, e o Qt deixa de recusar imagem
   acima de 256 MB que o motor aceita. Mudança visível: "Tamanho do Canvas"
   oferecia até 32000 px e agora oferece 16384; acima de ~23000 px por lado a
-  operação já falhava.)* Falta D17.
+  operação já falhava.)*
+- ~~D17~~ *(feito em 2026-10-01: o módulo nativo expõe `CONTRACT_VERSION`
+  (`bridge/infrastructure/ContractVersion.hpp`); o `AladynBackend` confere com
+  `EXPECTED_CONTRACT_VERSION` ao carregar e recusa binário ausente, sem versão
+  ou de outra versão, guardando a causa em `load_error` (log de erro, não INFO);
+  o `EngineRegistry` guarda o motivo e o `app_runner` mostra um diálogo na
+  partida (`report_engine_failure`). O `.pyi` fica preso à versão por
+  `tests/golden/bridge_contract.json`: mudar o contrato sem subir a versão
+  reprova o teste. Consequência: quem tem um `.pyd` anterior a esta mudança vê o
+  aviso e precisa recompilar. Os caminhos de `native_fallback.py`, que toleravam
+  binário antigo método a método, deixam de ser alcançáveis com binário real:
+  candidatos à remoção.)* **S0.2 completo (D2, D13, D17).**
 - Ordem: S0.6 ✅, S0.8 ✅, S0.1–S0.5 e S0.7, S1.
 - Os 4 pontos de decisão da Seção 8 do documento 08 foram aplicados: ciclo no
   `AGENTS.md` (5.0), assunto de commit em inglês, limiar de complexidade 20

@@ -16,6 +16,7 @@
 | `workspace_port.py` | Contrato (`ShellWorkspace`, `ShellCanvas`): tudo que a casca usa do workspace e do canvas, conferido por teste. |
 | `shell_actions.py` | `ShellActions`: base dos colaboradores (sinal `statusMessage`) e `backend_ready`. |
 | `document_actions.py` | `DocumentActions`: novo, abrir (imagem ou `.lmn`), salvar, salvar como, fechar com confirmação, fechar tudo ao sair. |
+| `engine_failure.py` | `report_engine_failure`: na partida do app, diz ao usuário por que o motor não carregou (causa do `EngineRegistry.load_error`). |
 | `edit_actions.py` | `EditActions`: copiar, recortar, colar, preencher, selecionar tudo, inverter, desmarcar, modificar seleção. |
 | `layer_actions.py` | `LayerActions`: menu Camada sobre o `LayerCommands` do documento ativo + diálogo de propriedades. |
 | `image_actions.py` | `ImageActions`: exportar, tamanho do canvas/imagem, recorte, rotação da camada, rotação/espelho da vista, grade, réguas, prova de cores. |

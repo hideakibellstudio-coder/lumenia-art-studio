@@ -1031,7 +1031,10 @@
     "plugin_install_error": "プラグインの .zip パッケージを展開・検証できませんでした。",
     "shortcut_conflict_title": "ショートカットの競合",
     "save_failed_title": "保存に失敗しました",
-    "persistence_error": "設定を書き込めませんでした"
+    "persistence_error": "設定を書き込めませんでした",
+    "engine_unavailable_title": "ペイントエンジンを利用できません",
+    "engine_unavailable_unknown": "エンジンが見つかりませんでした",
+    "engine_unavailable": "ペイントエンジン（ALADYN）を読み込めませんでした。Lumenia はキャンバスなしで起動します。\n\n原因: {detail}\n\nLumenia を再インストールしてください。開発用のコピーではエンジンを再ビルドしてください: python scripts/build_native.py"
   },
   "recording": {
     "status_idle": "停止中",

@@ -1031,7 +1031,10 @@
     "plugin_install_error": "Falha ao extrair e validar o pacote .zip do plugin.",
     "shortcut_conflict_title": "Conflito de atalhos",
     "save_failed_title": "Falha ao salvar",
-    "persistence_error": "Erro de persistência"
+    "persistence_error": "Erro de persistência",
+    "engine_unavailable_title": "Motor de pintura indisponível",
+    "engine_unavailable_unknown": "o motor não foi encontrado",
+    "engine_unavailable": "O motor de pintura (ALADYN) não foi carregado, e o Lumenia vai abrir sem canvas.\n\nCausa: {detail}\n\nReinstale o Lumenia. Numa cópia de desenvolvimento, recompile o motor: python scripts/build_native.py"
   },
   "recording": {
     "status_idle": "INATIVO",

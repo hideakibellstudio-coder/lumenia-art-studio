@@ -13,6 +13,7 @@
 | `__init__.py` | `create_backends()`: fábrica dos backends disponíveis para o `EngineRegistry`. |
 | `aladyn.py` | AladynBackend — Adaptador do ALADYN ENGINE (C++ PyBind11 / aladyn_engine_native). |
 | `aladyn_base.py` | AladynBackendBase — estado e serviços compartilhados por todos os mixins do AladynBackend. |
+| `contract_version.py` | `EXPECTED_CONTRACT_VERSION`: a versão do contrato que esta interface espera; o `AladynBackend` recusa um binário de outra versão ao carregar. |
 | `aladyn_brush_mixin.py` | AladynBrushMixin — Mapeamento Atômico de Perfis, Presets e Parâmetros de Pincéis para o AladynBackend. |
 | `aladyn_brush_profiles.py` | AladynBrushProfiles — Serialização e Mapeamento de Parâmetros de Pincel. |
 | `aladyn_buffers.py` | Pixel format conversion at the canonical RGBA / native intensity boundary. |

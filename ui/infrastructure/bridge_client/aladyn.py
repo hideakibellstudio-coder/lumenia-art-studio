@@ -26,6 +26,8 @@ os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
 
 from PySide6.QtGui import QImage
 from ui.core.engine.backend import EngineBackend, PointerEvent
+from ui.core.engine.errors import EngineContextError
+from .contract_version import EXPECTED_CONTRACT_VERSION
 
 from .aladyn_mdi_mixin import PLACEHOLDER_CONTEXT, AladynMdiMixin
 from .aladyn_selection_mixin import AladynSelectionMixin
@@ -75,17 +77,51 @@ class AladynBackend(
         except Exception:
             logger.debug("[AladynBackend] Configuração de renderização indisponível; usando padrões.", exc_info=True)
 
+        self._load_native_module()
+
+    def _load_native_module(self) -> None:
+        """Carrega o módulo nativo e confere a versão do contrato.
+
+        Qualquer falha (binário ausente, de outra versão, sem uma DLL) fica em
+        `load_error` e no log de erro, e o backend segue indisponível; a casca
+        avisa o usuário na partida (`report_engine_failure`). Até 2026-10-01 isto
+        ia para um log INFO e o app abria com o canvas vazio, sem explicação.
+        """
         try:
             import aladyn_engine_native
-            self._native = aladyn_engine_native
-            logger.info("[AladynBackend] Módulo nativo aladyn_engine_native carregado com sucesso.")
-            self.set_active_document_context(PLACEHOLDER_CONTEXT, self._width, self._height)
-        except Exception as e:
-            logger.info(
-                f"[AladynBackend] aladyn_engine_native indisponível "
-                f"({type(e).__name__}: {e}). Modo casca pura mantido."
+        except Exception as exc:
+            self._reject_native(f"{type(exc).__name__}: {exc}")
+            return
+        try:
+            version = aladyn_engine_native.CONTRACT_VERSION
+        except AttributeError:
+            self._reject_native(
+                "o módulo nativo não informa a versão do contrato (compilação antiga). "
+                "Recompile: python scripts/build_native.py"
             )
-            self._native = None
+            return
+        if version != EXPECTED_CONTRACT_VERSION:
+            self._reject_native(
+                f"o módulo nativo é da versão de contrato {version} e a interface espera "
+                f"{EXPECTED_CONTRACT_VERSION}. Recompile: python scripts/build_native.py"
+            )
+            return
+        self._native = aladyn_engine_native
+        try:
+            self.set_active_document_context(PLACEHOLDER_CONTEXT, self._width, self._height)
+        except EngineContextError as exc:
+            self._reject_native(str(exc))
+            return
+        logger.info("[AladynBackend] Módulo nativo aladyn_engine_native carregado (contrato v%s).", version)
+
+    def _reject_native(self, reason: str) -> None:
+        self._native = None
+        self._load_error = reason
+        logger.error("[AladynBackend] Motor nativo indisponível: %s. Modo casca (canvas vazio).", reason)
+
+    @property
+    def load_error(self) -> str:
+        return self._load_error
 
     # ── Disponibilidade & ciclo de vida ──────────────────────────────────
 

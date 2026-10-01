@@ -22,6 +22,7 @@
 | `arccc_package_docs.py` | Documentação por pasta (ARCcC): TODA pasta do repositório tem README.md. |
 | `test_accessibility_names.py` | Nomes acessíveis: botão só com ícone e controle deslizante recebem a dica ou o rótulo ligado como nome, acompanham a troca de idioma e não sobrescrevem nome dado à mão; na janela principal nenhum controle com dica fica sem nome. |
 | `test_advanced_geometry_dialog.py` | Tests for Phase 3: AdvancedGeometryDialog ARCcC v2 decomposition. |
+| `test_app_benchmark_runner.py` | O benchmark de aplicação exporta resultado comparável: formato, comparação e uma rodada rápida (S0.8). |
 | `test_app_version.py` | A versão do produto tem fonte única (`ui/infrastructure/app_info.py`): confere `pyproject.toml`, `setup.py`, instalador, README, EULA e a janela "Sobre", e barra versão escrita à mão na interface. |
 | `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
 | `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ (plugins incluídos) pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `ui.plugins.*` fora dos plugins e do carregador do que já tinha. |

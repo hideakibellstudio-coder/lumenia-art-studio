@@ -66,15 +66,29 @@ impedem que o que já foi arrumado volte a bagunçar, então não há rodada de
 **Estado:** registrado; **nada implementado ainda** (o dono pediu para parar
 no registro). Quando liberar, a ordem é S0.6 (golden) e depois S0.1.
 
-**Proposta em análise (2026-10-01, aguarda decisão do dono):**
-`08-analise-arccc-v1-1-e-forma-de-trabalho.md` propõe duas mudanças nesta
-linha: **D17** (falha ao carregar o motor chega à tela, e o módulo expõe a
-versão do contrato) entra em S0.2; e nasce **S0.8**, benchmark versionado em
-`benchmarks/`, porque as metas numéricas de S1 só são verificáveis com a
-medição no repositório. Ordem recomendada: S0.6, S0.8, S0.1–S0.5 e S0.7, S1.
-Também traz o laço de trabalho (ARCcC 4.4), as regras de parada e 4 decisões
-do dono (Seção 8 do documento). Enquanto não for aprovada, a lista acima vale
-como está.
+**Aprovada em 2026-10-01 e em execução** (decisão do dono: aplicar tudo e
+fechar os selos do `08-analise-arccc-v1-1-e-forma-de-trabalho.md`):
+- D17 (falha ao carregar o motor chega à tela; o módulo expõe a versão do
+  contrato) entra em S0.2.
+- ~~S0.8 — benchmark versionado.~~ *(feito em 2026-10-01: `benchmarks/`
+  ganhou `run_app_benchmarks.py` com os cenários `engine`, `ui` e `files`, um
+  processo por cenário, JSON comparável e `--compare` com tolerância e piso de
+  ruído; o ramo Windows da leitura de memória não rodou no Linux do agente.
+  Linha de base do Linux, 4 núcleos: cópia do canvas 4K 36,6 ms, repintura a
+  100% em 4K 40,5 ms, salvar 4K com 10 camadas 3,3 s e +692 MB.)*
+- **Defeito achado pelo S0.8 e corrigido** (2026-10-01): abrir um arquivo
+  salvo não reproduzia os pixels gravados. `paste_rgba_buffer_on_active_layer`
+  truncava em vez de arredondar (azul 14 com alfa 227 voltava 13) e o
+  `restore_document` exigia igualdade byte a byte, inclusive no RGB de pixel
+  com alfa 0 (que as bordas de pincel suave deixam e o motor não cola). Um
+  documento com traço suave na cor padrão não abria ("restauração de pixels
+  não corresponde ao arquivo"). Agora colar sobre pixel vazio copia a origem
+  exata, a mesclagem arredonda, e o restore ignora o RGB de pixel totalmente
+  transparente. `tests/test_document_pixel_fidelity.py`.
+- Ordem: S0.6 ✅, S0.8 ✅, S0.1–S0.5 e S0.7, S1.
+- Os 4 pontos de decisão da Seção 8 do documento 08 foram aplicados: ciclo no
+  `AGENTS.md` (5.0), assunto de commit em inglês, limiar de complexidade 20
+  com alerta 10, ARCcC v1.1.0 em `02-arquitetura/`.
 
 **Itens ainda abertos da lista de 2026-09-25 (abaixo) ficam fora da linha de
 chegada:**

@@ -19,6 +19,7 @@ SOURCES = [
     "engine/core/document/LayerMerger.cpp", "engine/core/document/FilterLayer.cpp",
     "engine/core/document/Compositor.cpp",
     "engine/core/document/CompositeRegionSupport.cpp",
+    "engine/core/document/LayerCompositePass.cpp",
     "engine/core/document/filters/FilterApplier.cpp",
     "engine/core/document/filters/PointFilters.cpp",
     "engine/core/document/filters/AreaFilters.cpp",

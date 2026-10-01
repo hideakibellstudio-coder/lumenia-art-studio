@@ -33,6 +33,7 @@
 | `test_arccc_package_docs.py` | Toda pasta do repositório tem README com arquivos e dependências verdadeiros. |
 | `test_arccc_root_layout.py` | Raiz reservada aos pilares (`ui/`, `bridge/`, `engine/`), arquivos de build/entrada e a exceção declarada (`tests/`, `docs/`, `assets/`, `scripts/`, `benchmarks/`); plugins só em `ui/plugins/`. |
 | `test_backend_capabilities.py` | Contrato de capacidades reais entre a UI e os backends de pintura. |
+| `test_blend_pixel_pins.py` | `blendPixel` dá os mesmos pixels em todo modo × gama × profundidade: roda o harness nativo `tests/native/blend_pixel_pins.cpp` (52 combinações de 4096 casos, hashes gravados antes de dividir a função de complexidade 32); mutações da equação Add e do atalho sRGB o reprovam. |
 | `test_bridge_contract_version.py` | O contrato da ponte tem versão: o binário de outra versão, sem versão ou que não importa é recusado com a causa; o registro guarda o motivo; o usuário é avisado na partida; o `.pyi` fica preso à versão (S0.2, D17). |
 | `test_bridge_error_policy.py` | Política de erros da ponte: entrada inválida no motor e buffer fora das dimensões viram `ValueError`, sem `try/catch` repetido nos bindings. |
 | `test_brush_advanced_panel.py` | Painel avançado do pincel: seções com estado próprio e dois caminhos claros. |
@@ -100,6 +101,7 @@
 | `test_layer_drop_plan.py` | Arrastar e soltar na árvore de camadas: onde as camadas movidas ficam. |
 | `test_layer_manager_history.py` | Histórico estrutural do gerenciador de camadas: renomear/reordenar preservam uids; camada 0 nunca vira máscara de recorte. |
 | `test_layer_projection_divergence.py` | Deteccao de ordem divergente entre Document e motor (Achado #5). |
+| `test_layer_merge_pixels.py` | Mesclar para baixo e achatar grupo dão os mesmos pixels de antes da divisão de `LayerMerger` (CCN 32 e 19): opacidade e modo da camada de cima, máscara de recorte, camada de filtro rasterizada e grupo com subgrupo, filho oculto e grupo oculto; resumos gravados com o binário anterior, e mutações do recorte e da regra do grupo oculto os reprovam. |
 | `test_layers_basic_operations.py` | Suite de Testes Padrão Ouro — Fase 1: Operações Básicas de Camadas Testa adição, exclusão, reordenação Drag & Drop C++, Alpha Lock, Clipping Mask e Merge Down. |
 | `test_layers_groups_hierarchy.py` | Suite de Testes Padrão Ouro — Fase 2: Grupos de Camadas e Estrutura Hierárquica Testa criação de grupos, aninhamento de sub-grupos, modo Atravessar (Pass-Through) e opacidade/visibilidade efetiva recursivas. |
 | `test_layers_plugin_structure.py` | Tests for Phase 4: Layers Plugin (paper & panel) ARCcC v2 decomposition. |

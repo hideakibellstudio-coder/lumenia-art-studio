@@ -7,6 +7,114 @@
 
 namespace aladyn::engine::document {
 
+namespace {
+
+// Compõe `source` sobre `target` pixel a pixel, tile a tile. Com `clipToBase`, só mexe onde o
+// destino já tem tile e pixel (máscara de recorte); sem ele, cria os tiles que faltarem.
+void blendGridInto(
+    canvas::TileGrid& source,
+    canvas::TileGrid& target,
+    double opacity,
+    LayerBlendMode mode,
+    bool clipToBase,
+    bool linearGamma,
+    bool deepColor
+) {
+    for (int ty = 0; ty < source.getTilesCountY(); ++ty) {
+        for (int tx = 0; tx < source.getTilesCountX(); ++tx) {
+            canvas::Tile* sourceTile = source.getTile(tx, ty);
+            if (!sourceTile) continue;
+
+            canvas::Tile* targetTile = clipToBase ? target.getTile(tx, ty) : target.getOrCreateTile(tx, ty);
+            if (!targetTile) continue;
+
+            canvas::PixelBuffer& sourceBuffer = sourceTile->getBuffer();
+            canvas::PixelBuffer& targetBuffer = targetTile->getBuffer();
+            for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
+                for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
+                    const utils::ColorRGBA src = sourceBuffer.getPixel(px, py);
+                    if (src.a == 0) continue;
+
+                    const utils::ColorRGBA dst = targetBuffer.getPixel(px, py);
+                    // Não mescla fora da silhueta da camada base
+                    if (clipToBase && dst.a == 0) continue;
+
+                    targetBuffer.setPixel(px, py, blending::blendPixel(src, opacity, dst, mode, linearGamma, deepColor));
+                }
+            }
+        }
+    }
+}
+
+bool isDescendantOf(const LayerNode* node, const LayerNode* ancestor) {
+    for (const LayerNode* current = node->getParent(); current; current = current->getParent()) {
+        if (current == ancestor) return true;
+    }
+    return false;
+}
+
+std::vector<int> descendantIndices(const std::vector<std::unique_ptr<Layer>>& layers, int groupIndex) {
+    const LayerNode* group = layers[groupIndex].get();
+    std::vector<int> indices;
+    for (int i = 0; i < static_cast<int>(layers.size()); ++i) {
+        if (i != groupIndex && layers[i] && isDescendantOf(layers[i].get(), group)) indices.push_back(i);
+    }
+    return indices;
+}
+
+// A opacidade de `layer` dentro do grupo que está sendo achatado: o produto das opacidades dela e
+// dos grupos entre ela e `group`; um grupo invisível no caminho zera a camada.
+double opacityWithinGroup(const Layer& layer, const LayerNode* group) {
+    double opacity = layer.getOpacity();
+    for (const LayerNode* current = layer.getParent(); current && current != group; current = current->getParent()) {
+        if (!current->isVisible()) return 0.0;
+        opacity *= current->getOpacity();
+    }
+    return opacity;
+}
+
+// A camada raster que ocupa o lugar do grupo: mesmo nome, opacidade, visibilidade e pai; o modo
+// Atravessar (padrão dos grupos) vira Normal porque agora há uma imagem só.
+std::unique_ptr<Layer> emptyLayerLike(const Layer& group, int width, int height) {
+    auto flattened = std::make_unique<Layer>(group.getName(), width, height, false);
+    flattened->setOpacity(group.getOpacity());
+    flattened->setVisible(group.isVisible());
+    flattened->setParent(const_cast<LayerNode*>(group.getParent()));
+    const LayerBlendMode blend = group.getBlendMode();
+    flattened->setBlendMode(blend == LayerBlendMode::PassThrough ? LayerBlendMode::Normal : blend);
+    return flattened;
+}
+
+void paintDescendants(
+    const std::vector<std::unique_ptr<Layer>>& layers,
+    const std::vector<int>& descendants,
+    const Layer& group,
+    Layer& flattened,
+    bool linearGamma,
+    bool deepColor
+) {
+    for (const int index : descendants) {
+        Layer* layer = layers[index].get();
+        if (!layer || layer->isGroup() || !layer->isVisible()) continue;
+
+        const double opacity = opacityWithinGroup(*layer, &group);
+        if (opacity <= 0.0) continue;
+
+        blendGridInto(layer->getTileGrid(), flattened.getTileGrid(), opacity, LayerBlendMode::Normal,
+                      /*clipToBase=*/false, linearGamma, deepColor);
+    }
+}
+
+// Rasteriza o filtro sobre os tiles da camada que ele afeta.
+void rasterizeFilterInto(const FilterLayer& filter, Layer& target) {
+    target.getTileGrid().forEachTile([&](const auto& /*idx*/, canvas::Tile& tile) {
+        Compositor::applyFilterToBuffer(filter, tile.getBuffer());
+        tile.setDirty(true);
+    });
+}
+
+}  // namespace
+
 bool LayerMerger::flattenGroup(
     std::vector<std::unique_ptr<Layer>>& drawingLayers,
     int& activeIndex,
@@ -21,82 +129,21 @@ bool LayerMerger::flattenGroup(
     if (!drawingLayers[index] || !drawingLayers[index]->isGroup()) return false;
 
     const Layer* groupNode = drawingLayers[index].get();
-    std::string groupName = groupNode->getName();
-    double groupOpacity = groupNode->getOpacity();
-    bool groupVis = groupNode->isVisible();
-    LayerBlendMode groupBlend = groupNode->getBlendMode();
     const LayerNode* groupParent = groupNode->getParent();
+    const std::vector<int> descendants = descendantIndices(drawingLayers, index);
 
-    std::vector<int> descendantIndices;
-    for (int i = 0; i < count; ++i) {
-        if (i == index || !drawingLayers[i]) continue;
-        const LayerNode* curr = drawingLayers[i]->getParent();
-        while (curr) {
-            if (curr == groupNode) {
-                descendantIndices.push_back(i);
-                break;
-            }
-            curr = curr->getParent();
-        }
-    }
+    auto flattened = emptyLayerLike(*groupNode, width, height);
+    paintDescendants(drawingLayers, descendants, *groupNode, *flattened, linearGamma, deepColor);
 
-    auto flattened = std::make_unique<Layer>(groupName, width, height, false);
-    flattened->setOpacity(groupOpacity);
-    flattened->setVisible(groupVis);
-    flattened->setParent(const_cast<LayerNode*>(groupParent));
-    flattened->setBlendMode(groupBlend == LayerBlendMode::PassThrough ? LayerBlendMode::Normal : groupBlend);
-
-    for (int dIdx : descendantIndices) {
-        Layer* dLayer = drawingLayers[dIdx].get();
-        if (!dLayer || dLayer->isGroup() || !dLayer->isVisible()) continue;
-
-        double relOpacity = dLayer->getOpacity();
-        const LayerNode* curr = dLayer->getParent();
-        while (curr && curr != groupNode) {
-            if (!curr->isVisible()) { relOpacity = 0.0; break; }
-            relOpacity *= curr->getOpacity();
-            curr = curr->getParent();
-        }
-        if (relOpacity <= 0.0) continue;
-
-        auto& srcGrid = dLayer->getTileGrid();
-        auto& dstGrid = flattened->getTileGrid();
-        const int tilesY = srcGrid.getTilesCountY();
-        const int tilesX = srcGrid.getTilesCountX();
-
-        for (int ty = 0; ty < tilesY; ++ty) {
-            for (int tx = 0; tx < tilesX; ++tx) {
-                canvas::Tile* sTile = srcGrid.getTile(tx, ty);
-                if (!sTile) continue;
-                canvas::Tile* dTile = dstGrid.getOrCreateTile(tx, ty);
-                if (!dTile) continue;
-
-                canvas::PixelBuffer& sBuf = sTile->getBuffer();
-                canvas::PixelBuffer& dBuf = dTile->getBuffer();
-
-                for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
-                    for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
-                        utils::ColorRGBA src = sBuf.getPixel(px, py);
-                        if (src.a == 0) continue;
-
-                        utils::ColorRGBA dst = dBuf.getPixel(px, py);
-                        dBuf.setPixel(px, py, blending::blendPixel(
-                            src, relOpacity, dst, LayerBlendMode::Normal, linearGamma, deepColor));
-                    }
-                }
-            }
-        }
-    }
+    std::vector<bool> removed(count, false);
+    for (const int descendant : descendants) removed[descendant] = true;
 
     std::vector<std::unique_ptr<Layer>> newLayers;
     newLayers.reserve(drawingLayers.size());
-
     for (int i = 0; i < count; ++i) {
         if (i == index) {
             newLayers.push_back(std::move(flattened));
-        } else if (std::find(descendantIndices.begin(), descendantIndices.end(), i) != descendantIndices.end()) {
-            continue;
-        } else {
+        } else if (!removed[i]) {
             newLayers.push_back(std::move(drawingLayers[i]));
         }
     }
@@ -105,9 +152,9 @@ bool LayerMerger::flattenGroup(
     activeIndex = std::min(index, static_cast<int>(drawingLayers.size()) - 1);
 
     // Reassocia ponteiros de pais
-    for (auto& l : drawingLayers) {
-        if (l && l->getParent() == groupNode) {
-            l->setParent(const_cast<LayerNode*>(groupParent));
+    for (auto& layer : drawingLayers) {
+        if (layer && layer->getParent() == groupNode) {
+            layer->setParent(const_cast<LayerNode*>(groupParent));
         }
     }
     return true;
@@ -131,58 +178,13 @@ bool LayerMerger::mergeLayerDown(
     Layer* lowerLayer = drawingLayers[index - 1].get();
     if (!upperLayer || !lowerLayer) return false;
 
-    // Se a camada superior for uma FilterLayer, rasteriza o filtro sobre os tiles da camada inferior
     if (upperLayer->isFilter()) {
-        const auto* filterLayer = dynamic_cast<const FilterLayer*>(upperLayer);
-        if (filterLayer) {
-            auto& lowerGrid = lowerLayer->getTileGrid();
-            lowerGrid.forEachTile([&](const auto& /*idx*/, canvas::Tile& tile) {
-                Compositor::applyFilterToBuffer(*filterLayer, tile.getBuffer());
-                tile.setDirty(true);
-            });
+        if (const auto* filterLayer = dynamic_cast<const FilterLayer*>(upperLayer)) {
+            rasterizeFilterInto(*filterLayer, *lowerLayer);
         }
-        drawingLayers.erase(drawingLayers.begin() + index);
-        activeIndex = index - 1;
-        return true;
-    }
-
-    const double upperOpacity = upperLayer->getOpacity();
-
-    auto& upperGrid = upperLayer->getTileGrid();
-    auto& lowerGrid = lowerLayer->getTileGrid();
-
-    const int tilesY = upperGrid.getTilesCountY();
-    const int tilesX = upperGrid.getTilesCountX();
-
-    const LayerBlendMode upperBlend = upperLayer->getBlendMode();
-    const bool upperIsClipping = upperLayer->isClippingMask();
-
-    for (int ty = 0; ty < tilesY; ++ty) {
-        for (int tx = 0; tx < tilesX; ++tx) {
-            canvas::Tile* uTile = upperGrid.getTile(tx, ty);
-            if (!uTile) continue;
-
-            // Se for clipping mask, só opera onde a camada base já tem tile
-            canvas::Tile* lTile = upperIsClipping ? lowerGrid.getTile(tx, ty) : lowerGrid.getOrCreateTile(tx, ty);
-            if (!lTile) continue;
-
-            canvas::PixelBuffer& uBuf = uTile->getBuffer();
-            canvas::PixelBuffer& lBuf = lTile->getBuffer();
-
-            for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
-                for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
-                    utils::ColorRGBA src = uBuf.getPixel(px, py);
-                    if (src.a == 0) continue;
-
-                    utils::ColorRGBA dst = lBuf.getPixel(px, py);
-                    // Não mescla fora da silhueta da camada base
-                    if (upperIsClipping && dst.a == 0) continue;
-
-                    utils::ColorRGBA blended = blending::blendPixel(src, upperOpacity, dst, upperBlend, linearGamma, deepColor);
-                    lBuf.setPixel(px, py, blended);
-                }
-            }
-        }
+    } else {
+        blendGridInto(upperLayer->getTileGrid(), lowerLayer->getTileGrid(), upperLayer->getOpacity(),
+                      upperLayer->getBlendMode(), upperLayer->isClippingMask(), linearGamma, deepColor);
     }
 
     drawingLayers.erase(drawingLayers.begin() + index);

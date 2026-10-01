@@ -12,6 +12,11 @@ namespace aladyn::engine::document {
 
 class FilterLayer;
 
+namespace internal {
+struct CompositePolicy;
+struct ScratchOverlay;
+} // namespace internal
+
 class Compositor {
 public:
     Compositor(int width, int height);
@@ -58,6 +63,15 @@ public:
     }
 
 private:
+    void compositeLayers(
+        const std::vector<const Layer*>& layers,
+        const utils::Rect2D& region,
+        canvas::PixelBuffer& outputBuffer,
+        const utils::ColorRGBA& bgColor,
+        const internal::CompositePolicy& policy,
+        const internal::ScratchOverlay* scratch
+    );
+
     int m_width{0};
     int m_height{0};
     canvas::DamageRect m_damage;

@@ -1,6 +1,7 @@
 #include "Compositor.hpp"
 #include "FilterLayer.hpp"
 #include "CompositeRegionSupport.hpp"
+#include "LayerCompositePass.hpp"
 #include "blending/BlendEquations.hpp"
 #include "filters/FilterApplier.hpp"
 
@@ -63,71 +64,41 @@ void Compositor::composite(
     composite(rawPtrs, outputBuffer, bgColor);
 }
 
-// compositeRegion/compositeRegionWithScratch delegam o calculo de limites de
-// regiao e o par blendGroupToDestination/composeTileGrid para
-// internal::CompositeRegionSupport (ver esse arquivo) — as duas sobrecargas
-// duplicavam esse bloco byte a byte (Achado "Compositor.cpp estourou o teto
-// de LOC" do panorama de camadas de 2026-09-19). `snapToBlockSize` e
-// `parallelRowThreshold` preservam as duas divergencias de comportamento que
-// ja existiam entre as sobrecargas antes desta extracao.
+// As duas sobrecargas de região compartilham `compositeLayers`; o que sempre as distinguiu
+// (alinhar a região ao bloco de pixelize, o limiar de paralelização do fundo e o overlay do
+// traço ativo) chega como `CompositePolicy` e `ScratchOverlay`. O alcance dos limites e o par
+// grupo/tile moram em `internal::CompositeRegionSupport`, e o laço sobre as camadas em
+// `internal::LayerCompositePass`.
+void Compositor::compositeLayers(
+    const std::vector<const Layer*>& layers,
+    const utils::Rect2D& region,
+    canvas::PixelBuffer& outputBuffer,
+    const utils::ColorRGBA& bgColor,
+    const internal::CompositePolicy& policy,
+    const internal::ScratchOverlay* scratch
+) {
+    if (layers.empty()) return;
+
+    const auto bgReach = internal::computeBackgroundAndReach(layers, bgColor);
+    const auto bounds = internal::computeRegionBounds(
+        region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, policy.snapToBlockSize);
+    if (bounds.empty) return;
+    m_damage.add(bounds.minX, bounds.minY, bounds.maxX + 1, bounds.maxY + 1);
+
+    internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, policy.parallelRowThreshold);
+
+    internal::LayerCompositePass pass(outputBuffer, bounds, m_linearGamma, m_deepColor);
+    for (const Layer* layer : layers) pass.add(layer, scratch);
+    pass.finish();
+}
+
 void Compositor::compositeRegion(
     const std::vector<const Layer*>& layers,
     const utils::Rect2D& region,
     canvas::PixelBuffer& outputBuffer,
     const utils::ColorRGBA& bgColor
 ) {
-    if (layers.empty()) return;
-
-    const auto bgReach = internal::computeBackgroundAndReach(layers, bgColor);
-    const auto bounds = internal::computeRegionBounds(
-        region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, /*snapToBlockSize=*/true);
-    if (bounds.empty) return;
-    m_damage.add(bounds.minX, bounds.minY, bounds.maxX + 1, bounds.maxY + 1);
-
-    internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/32);
-
-    internal::GroupBlender blender(outputBuffer, bounds, m_linearGamma, m_deepColor);
-    const Layer* activeGroup = nullptr;
-
-    for (const Layer* layerPtr : layers) {
-        if (!layerPtr || !layerPtr->isVisible() || layerPtr->getEffectiveOpacity() <= 0.0) {
-            continue;
-        }
-
-        const Layer* isoGroup = internal::getIsolatedGroupAncestor(layerPtr);
-        if (isoGroup != activeGroup) {
-            if (activeGroup != nullptr) {
-                blender.blendGroupToDestination(activeGroup);
-            }
-            if (isoGroup != nullptr) {
-                blender.beginGroup();
-            }
-            activeGroup = isoGroup;
-        }
-
-        if (layerPtr->isFilter()) {
-            const FilterLayer* filterLayer = dynamic_cast<const FilterLayer*>(layerPtr);
-            if (filterLayer) {
-                if (activeGroup != nullptr) {
-                    blender.applyFilterToGroup(*filterLayer);
-                } else {
-                    applyFilterToBuffer(*filterLayer, outputBuffer, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
-                }
-            }
-            continue;
-        }
-
-        const Layer& layer = *layerPtr;
-        const double layerOpacity = activeGroup ? internal::getRelativeOpacity(&layer, activeGroup) : layer.getEffectiveOpacity();
-        const LayerBlendMode blendMode = layer.getBlendMode();
-        const Layer* clipBaseLayer = internal::resolveClipBase(layer);
-
-        blender.composeTileGrid(layer.getTileGrid(), layerOpacity, blendMode, clipBaseLayer, activeGroup != nullptr);
-    }
-
-    if (activeGroup != nullptr) {
-        blender.blendGroupToDestination(activeGroup);
-    }
+    compositeLayers(layers, region, outputBuffer, bgColor, internal::CompositePolicy{/*snapToBlockSize=*/true, /*parallelRowThreshold=*/32}, nullptr);
 }
 
 void Compositor::compositeRegion(
@@ -154,62 +125,8 @@ void Compositor::compositeRegionWithScratch(
     LayerBlendMode scratchBlendMode,
     double scratchOpacity
 ) {
-    if (layers.empty()) return;
-
-    const auto bgReach = internal::computeBackgroundAndReach(layers, bgColor);
-    const auto bounds = internal::computeRegionBounds(
-        region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, /*snapToBlockSize=*/false);
-    if (bounds.empty) return;
-    m_damage.add(bounds.minX, bounds.minY, bounds.maxX + 1, bounds.maxY + 1);
-
-    internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/64);
-
-    internal::GroupBlender blender(outputBuffer, bounds, m_linearGamma, m_deepColor);
-    const Layer* activeGroup = nullptr;
-
-    for (const Layer* layerPtr : layers) {
-        if (!layerPtr || !layerPtr->isVisible() || layerPtr->getEffectiveOpacity() <= 0.0) {
-            continue;
-        }
-
-        const Layer* isoGroup = internal::getIsolatedGroupAncestor(layerPtr);
-        if (isoGroup != activeGroup) {
-            if (activeGroup != nullptr) {
-                blender.blendGroupToDestination(activeGroup);
-            }
-            if (isoGroup != nullptr) {
-                blender.beginGroup();
-            }
-            activeGroup = isoGroup;
-        }
-
-        if (layerPtr->isFilter()) {
-            const FilterLayer* filterLayer = dynamic_cast<const FilterLayer*>(layerPtr);
-            if (filterLayer) {
-                if (activeGroup != nullptr) {
-                    blender.applyFilterToGroup(*filterLayer);
-                } else {
-                    applyFilterToBuffer(*filterLayer, outputBuffer, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
-                }
-            }
-            continue;
-        }
-
-        const Layer& layer = *layerPtr;
-        const double layerOpacity = activeGroup ? internal::getRelativeOpacity(&layer, activeGroup) : layer.getEffectiveOpacity();
-        const LayerBlendMode blendMode = layer.getBlendMode();
-        const Layer* clipBaseLayer = internal::resolveClipBase(layer);
-
-        blender.composeTileGrid(layer.getTileGrid(), layerOpacity, blendMode, clipBaseLayer, activeGroup != nullptr);
-
-        if (layerPtr == activeLayerTarget && scratchOpacity > 0.0) {
-            blender.composeTileGrid(scratchGrid, scratchOpacity, scratchBlendMode, clipBaseLayer, activeGroup != nullptr);
-        }
-    }
-
-    if (activeGroup != nullptr) {
-        blender.blendGroupToDestination(activeGroup);
-    }
+    const internal::ScratchOverlay scratch{scratchGrid, activeLayerTarget, scratchBlendMode, scratchOpacity};
+    compositeLayers(layers, region, outputBuffer, bgColor, internal::CompositePolicy{/*snapToBlockSize=*/false, /*parallelRowThreshold=*/64}, &scratch);
 }
 
 } // namespace aladyn::engine::document

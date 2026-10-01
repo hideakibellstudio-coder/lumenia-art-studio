@@ -11,14 +11,16 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `Compositor.hpp` | Compositor: modos de mesclagem, filtros, opções do pipeline e o retângulo que ele escreveu desde a última leitura (`takeDamage`: toda escrita no buffer de saída passa por aqui, então só ele sabe o que mudou) (declaração). |
-| `Compositor.cpp` | Composição total e por região, delegando limites e grupos a `CompositeRegionSupport`. |
+| `Compositor.cpp` | Composição total e por região: as duas sobrecargas de região chamam `compositeLayers` (limites, fundo, dano) e a passada sobre as camadas é de `LayerCompositePass`. |
 | `CompositeRegionSupport.hpp` | Parte privada do compositor (namespace `document::internal`): alcance dos filtros, base de recorte, fundo, grupos isolados (declaração). |
 | `CompositeRegionSupport.cpp` | Implementação; veio da antiga subpasta `internal/`, que incluía esta pasta (ciclo). |
+| `LayerCompositePass.hpp` | Uma passada de composição (`LayerCompositePass`): recebe as camadas de baixo para cima e carrega de uma para a seguinte o grupo isolado aberto; `CompositePolicy` e `ScratchOverlay` são o que distingue as duas sobrecargas de região (declaração). |
+| `LayerCompositePass.cpp` | Grupo, filtro e tile de cada camada, mais o overlay do traço ativo logo acima da camada que ele sobrepõe. Era o laço duplicado em `Compositor.cpp` (CCN 17 e 12 numa só função). |
 | `FilterLayer.hpp` | Camada de ajuste: tipo de filtro, parâmetros e `settings()` para `filters/` (declaração). |
 | `FilterLayer.cpp` | Valores padrão de cada filtro. |
 | `Layer.hpp` | Camada raster: nó + `TileGrid` + compressão de tiles inativos. |
 | `LayerMerger.hpp` | Achatar grupo e mesclar para baixo (declaração). |
-| `LayerMerger.cpp` | Implementação, reassociando pais e validando índices. |
+| `LayerMerger.cpp` | Implementação, reassociando pais e validando índices; mesclar para baixo e achatar grupo usam a mesma passada `blendGridInto` (com ou sem recorte à base). |
 | `LayerNode.hpp` | Nó comum da árvore de camadas: tipo, modo de mesclagem, opacidade, visibilidade, travas, recorte. |
 | `LayerStack.hpp` | Pilha de camadas (camada 0 = papel): adicionar, remover, redimensionar, restaurar (declaração). |
 | `LayerStack.cpp` | Implementação; aloca tudo antes de mexer na pilha viva. |

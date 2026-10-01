@@ -8,6 +8,7 @@ import logging
 from typing import Optional
 from .local_layer import LocalLayer
 from .layer_blend_mode import LayerBlendMode
+from . import layer_properties
 from .layer_backend_sync import (
     perform_reorder_and_reparent,
     sync_backend_flatten_group,
@@ -97,12 +98,8 @@ class LayerTreeOpsMixin:
                 is_group=bool(record.get("is_group", False)),
                 is_filter=bool(record.get("is_filter", False)),
             )
-            layer.visible = bool(record.get("visible", True))
-            layer.locked = bool(record.get("locked", False))
-            layer.opacity = max(0.0, min(1.0, float(record.get("opacity", 1.0))))
-            layer.blend_mode = LayerBlendMode.coerce(record.get("blend_mode", LayerBlendMode.PASS_THROUGH if layer.is_group else LayerBlendMode.NORMAL))
-            layer.alpha_locked = bool(record.get("alpha_locked", False))
-            layer.clipping_mask = bool(record.get("clipping_mask", False))
+            for prop in layer_properties.TABLE.record:
+                setattr(layer, prop.name, prop.from_record(record, layer.is_group))
             new_layers.append(layer)
         self.order_about_to_change.emit()
         self.layers = new_layers

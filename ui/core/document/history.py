@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from functools import wraps
 from .local_layer import LocalLayer
+from . import layer_properties
 
 logger = logging.getLogger(__name__)
 
@@ -179,20 +180,10 @@ class DocumentHistory:
                 live = backend.get_layer_info(index) if can_diff_live_state else None
                 if not isinstance(live, dict):
                     live = None
-                if live is None or live.get("name") != layer.name:
-                    backend.set_layer_name(index, layer.name)
-                if live is None or live.get("opacity") != layer.opacity:
-                    backend.set_layer_opacity(index, layer.opacity)
-                if live is None or live.get("blend_mode") != layer.blend_mode:
-                    backend.set_layer_blend_mode(index, layer.blend_mode)
-                if live is None or live.get("visible") != layer.visible:
-                    backend.set_layer_visibility(index, layer.visible)
-                if live is None or live.get("locked") != layer.locked:
-                    backend.set_layer_lock(index, layer.locked)
-                if live is None or live.get("alpha_locked") != layer.alpha_locked:
-                    backend.set_layer_alpha_lock(index, layer.alpha_locked)
-                if live is None or live.get("clipping_mask") != layer.clipping_mask:
-                    backend.set_layer_clipping_mask(index, layer.clipping_mask)
+                for prop in layer_properties.TABLE.engine:
+                    value = getattr(layer, prop.name)
+                    if live is None or live.get(prop.live) != value:
+                        layer_properties.apply_to_engine(backend, index, prop, value)
             indices = {layer.uid: index for index, layer in enumerate(layers)}
             parents = [indices.get(layer.parent_uid, -1) for layer in layers]
             if not backend.set_layer_parents(parents):

@@ -17,6 +17,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 from .document import Document
+from . import layer_properties
 from .save_capture import MAX_PAYLOAD_BYTES, SaveCapture, capture_document
 from .schema import CURRENT_VERSION, DocumentFormatError, migrate, validate_auxiliary
 
@@ -244,7 +245,7 @@ class DocumentSerializer:
             opacity = float(record.get("opacity", 1.0))
             if not math.isfinite(opacity) or not 0 <= opacity <= 1:
                 raise DocumentFormatError("opacidade inválida")
-            for key in ("is_group", "is_filter", "visible", "locked", "alpha_locked", "clipping_mask"):
+            for key in ("is_group", "is_filter", *layer_properties.TABLE.flag_keys):
                 if key in record and type(record[key]) is not bool:
                     raise DocumentFormatError(f"flag inválido: {key}")
             if record.get("is_group") and record.get("is_filter"):

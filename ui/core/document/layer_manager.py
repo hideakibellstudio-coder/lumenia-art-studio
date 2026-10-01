@@ -7,7 +7,7 @@ from ui.infrastructure.i18n import tr
 logger = logging.getLogger(__name__)
 
 from .local_layer import LocalLayer, default_layer_name
-from .layer_blend_mode import LayerBlendMode
+from . import layer_properties
 from .layer_backend_sync import (
     sync_backend_add,
     sync_backend_add_filter,
@@ -52,11 +52,10 @@ class LocalLayerManager(QtCore.QObject, LayerTreeOpsMixin):
         self._backend = value
 
     def _snapshot(self):
+        keys = ("uid", "name", "parent_uid", "is_group", "is_filter") + tuple(
+            prop.name for prop in layer_properties.TABLE.all if not prop.in_constructor)
         return {
-            "layers": [{k: getattr(layer, k) for k in (
-                "uid", "name", "parent_uid", "is_group", "is_filter", "visible",
-                "locked", "opacity", "blend_mode", "alpha_locked", "clipping_mask", "collapsed"
-            )} for layer in self.layers],
+            "layers": [{k: getattr(layer, k) for k in keys} for layer in self.layers],
             "active_uid": self._active_uid,
             "next_uid": self._next_uid,
         }
@@ -65,8 +64,11 @@ class LocalLayerManager(QtCore.QObject, LayerTreeOpsMixin):
         self._history_guard = True
         try:
             self.replace_layers(snapshot["layers"])
+            # O que o arquivo não guarda (a pasta aberta) só o instantâneo do histórico carrega.
             for layer, record in zip(self.layers, snapshot["layers"]):
-                layer.collapsed = bool(record.get("collapsed", False))
+                for prop in layer_properties.TABLE.all:
+                    if not prop.saved:
+                        setattr(layer, prop.name, prop.from_record(record, layer.is_group))
             self._next_uid = max(self._next_uid, int(snapshot["next_uid"]))
             self.set_active_layer(snapshot["active_uid"])
             self._last_structural_snapshot = snapshot
@@ -218,12 +220,9 @@ class LocalLayerManager(QtCore.QObject, LayerTreeOpsMixin):
 
         new_layer: LocalLayer = LocalLayer(new_uid, f"{layer.name} Copiar", is_filter=layer.is_filter)
         new_layer.parent_uid = layer.parent_uid
-        new_layer.visible = layer.visible
-        new_layer.locked = layer.locked
-        new_layer.opacity = layer.opacity
-        new_layer.blend_mode = layer.blend_mode
-        new_layer.alpha_locked = layer.alpha_locked
-        new_layer.clipping_mask = layer.clipping_mask
+        for prop in layer_properties.TABLE.all:
+            if prop.duplicated:
+                setattr(new_layer, prop.name, getattr(layer, prop.name))
 
         idx = self.layers.index(layer) + 1
         self.layers.insert(idx, new_layer)
@@ -300,39 +299,34 @@ class LocalLayerManager(QtCore.QObject, LayerTreeOpsMixin):
                 sync_backend_property(self, 0, "clipping_mask", False)
             self.layer_property_changed.emit(self.layers[0].uid)
 
-    def set_clipping_mask(self, idx: int, enabled: bool) -> None:
+    def set_property(self, idx: int, name: str, value) -> bool:
+        """Muda uma propriedade da tabela `LAYER_PROPERTIES` e avisa o motor e quem escuta.
+
+        Os setters abaixo (`set_alpha_lock`, `set_layer_opacity`...) existem pelos nomes que os
+        chamadores já usam; uma propriedade nova entra na tabela e é mudada por aqui.
+        """
         layer = self.get_layer_at_index(idx)
-        if layer:
-            if self.layers.index(layer) == 0 and enabled:
-                enabled = False
-            layer.clipping_mask = bool(enabled)
-            sync_backend_property(self, idx, "clipping_mask", layer.clipping_mask)
-            self.layer_property_changed.emit(layer.uid)
-            self.content_changed.emit("clipping_mask")
+        if not layer:
+            return False
+        prop = layer_properties.TABLE.by_name[name]
+        setattr(layer, name, prop.coerce(value))
+        sync_backend_property(self, idx, prop.sync, getattr(layer, name))
+        self.layer_property_changed.emit(layer.uid)
+        self.content_changed.emit(prop.change_reason)
+        return True
+
+    def set_clipping_mask(self, idx: int, enabled: bool) -> None:
+        # A primeira camada não tem base para recortar.
+        self.set_property(idx, "clipping_mask", bool(enabled) and idx != 0)
 
     def set_alpha_lock(self, idx: int, enabled: bool) -> None:
-        layer = self.get_layer_at_index(idx)
-        if layer:
-            layer.alpha_locked = bool(enabled)
-            sync_backend_property(self, idx, "alpha_locked", layer.alpha_locked)
-            self.layer_property_changed.emit(layer.uid)
-            self.content_changed.emit("alpha_lock")
+        self.set_property(idx, "alpha_locked", enabled)
 
     def set_layer_lock(self, idx: int, locked: bool) -> None:
-        layer = self.get_layer_at_index(idx)
-        if layer:
-            layer.locked = bool(locked)
-            sync_backend_property(self, idx, "locked", layer.locked)
-            self.layer_property_changed.emit(layer.uid)
-            self.content_changed.emit("lock")
+        self.set_property(idx, "locked", locked)
 
     def set_layer_visibility(self, idx: int, visible: bool) -> None:
-        layer = self.get_layer_at_index(idx)
-        if layer:
-            layer.visible = bool(visible)
-            sync_backend_property(self, idx, "visibility", layer.visible)
-            self.layer_property_changed.emit(layer.uid)
-            self.content_changed.emit("visibility")
+        self.set_property(idx, "visible", visible)
 
     def rename_layer(self, uid: int, name: str) -> bool:
         layer = self.get_layer_by_uid(uid)
@@ -353,23 +347,7 @@ class LocalLayerManager(QtCore.QObject, LayerTreeOpsMixin):
         return self.rename_layer(layer.uid, name) if layer else False
 
     def set_layer_opacity(self, idx: int, opacity: float) -> bool:
-        layer = self.get_layer_at_index(idx)
-        if not layer:
-            return False
-        layer.opacity = max(0.0, min(1.0, float(opacity)))
-        sync_backend_property(self, idx, "opacity", layer.opacity)
-        self.layer_property_changed.emit(layer.uid)
-        self.content_changed.emit("opacity")
-        return True
+        return self.set_property(idx, "opacity", opacity)
 
     def set_layer_blend_mode(self, idx: int, blend_mode) -> bool:
-        layer = self.get_layer_at_index(idx)
-        if not layer:
-            return False
-        mode = LayerBlendMode.coerce(blend_mode)
-        layer.blend_mode = mode
-        sync_backend_property(self, idx, "blend_mode", mode)
-        self.layer_property_changed.emit(layer.uid)
-        self.content_changed.emit("blend_mode")
-        return True
-
+        return self.set_property(idx, "blend_mode", blend_mode)

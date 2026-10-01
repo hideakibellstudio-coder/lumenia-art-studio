@@ -4,6 +4,7 @@ import numpy as np
 
 from .document import Document
 from .serializer import DocumentFormatError
+from . import layer_properties
 from .schema import CURRENT_VERSION, decode_guides
 from PySide6.QtGui import QColor
 
@@ -91,13 +92,8 @@ def _restore_into_engine(document: Document, backend, manifest, payloads, prepar
         _restore_pixels(document, backend, index, record, payloads, prepared)
         if record.get("is_filter"):
             backend.set_filter_params(index, record.get("filter_params", []))
-        backend.set_layer_name(index, record.get("name", "Camada"))
-        backend.set_layer_blend_mode(index, record.get("blend_mode", "Normal"))
-        backend.set_layer_opacity(index, record.get("opacity", 1.0))
-        backend.set_layer_visibility(index, record.get("visible", True))
-        backend.set_layer_lock(index, record.get("locked", False))
-        backend.set_layer_alpha_lock(index, record.get("alpha_locked", False))
-        backend.set_layer_clipping_mask(index, record.get("clipping_mask", False))
+        for prop in layer_properties.TABLE.engine:
+            layer_properties.apply_to_engine(backend, index, prop, prop.from_record(record, bool(record.get("is_group"))))
     parents = [indices.get(r.get("parent_uid"), -1) for r in records]
     if not backend.set_layer_parents(parents):
         raise DocumentFormatError("falha ao restaurar hierarquia")

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from .document import Document
+from . import layer_properties
 from .local_layer import LocalLayer
 from .schema import CURRENT_VERSION, DocumentFormatError, encode_guides
 
@@ -66,17 +67,13 @@ def _layer_entries(document: Document, backend, snapshot) -> tuple[list[dict[str
     for index, layer in enumerate(layers_model):
         entry: dict[str, Any] = {
             "uid": int(layer.uid),
-            "name": str(layer.name),
             "parent_uid": layer.parent_uid,
             "is_group": bool(layer.is_group),
             "is_filter": bool(layer.is_filter),
-            "visible": bool(layer.visible),
-            "locked": bool(layer.locked),
-            "opacity": float(layer.opacity),
-            "blend_mode": layer.blend_mode,
-            "alpha_locked": bool(layer.alpha_locked),
-            "clipping_mask": bool(layer.clipping_mask),
         }
+        for prop in layer_properties.TABLE.all:
+            if prop.saved:
+                entry[prop.name] = prop.coerce(getattr(layer, prop.name))
         if not layer.is_group and not layer.is_filter:
             if not snapshot.has_pixels(index):
                 raise DocumentFormatError(f"pixels da camada {layer.uid} indisponíveis")

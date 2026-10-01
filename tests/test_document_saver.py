@@ -83,7 +83,10 @@ def test_the_event_loop_keeps_running_while_a_slow_file_is_written(qapp):
     timer.stop()
     assert len(ticks) > 40, f"only {len(ticks)} timer ticks in half a second: the event loop was starved"
     longest_gap = max(b - a for a, b in zip(ticks, ticks[1:]))
-    assert longest_gap < 0.05, f"the event loop stopped for {longest_gap * 1000:.0f} ms during the write"
+    # A write that blocked the interface would leave a gap of about 500 ms (the length of the write).
+    # 100 ms keeps a 20x margin over that and does not fail when a loaded machine pauses the process
+    # for a scheduler slice (it did once in the full suite at 50 ms).
+    assert longest_gap < 0.1, f"the event loop stopped for {longest_gap * 1000:.0f} ms during the write"
 
 
 def test_a_failed_write_reaches_the_caller_with_its_capture(qapp):

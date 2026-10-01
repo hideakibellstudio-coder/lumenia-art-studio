@@ -25,6 +25,7 @@
 | `layer_blend_mode.py` | LayerBlendMode -- enum canonico para o modo de mesclagem de camadas. |
 | `layer_manager.py` | `LocalLayerManager`: pilha de camadas do documento; toda alteração passa por aqui e é espelhada no motor por `layer_backend_sync`. |
 | `layer_manager_tree_ops.py` | Operações estruturais da pilha de camadas: achatar grupo/imagem, reordenar com reparentamento e substituir a lista inteira (restauração). |
+| `layer_properties.py` | `LAYER_PROPERTIES`: a tabela única das propriedades de camada (visível, travada, opacidade, modo de mesclagem, trava de alfa, máscara de recorte, pasta aberta): valor padrão, método do motor que a recebe, se vai para o arquivo e se a cópia a herda. A camada, o instantâneo do histórico, a duplicação, o registro salvo, a validação do arquivo, o envio ao motor e a confirmação do histórico percorrem a tabela; propriedade nova entra só aqui (contrato em `tests/test_layer_property_registry.py`). |
 | `local_layer.py` | `LocalLayer` (camada, grupo ou filtro) e `default_layer_name`, o nome padrão de camada no idioma atual — o mesmo que a ponte dá à camada inicial do motor. |
 | `manager.py` | `DocumentManager` (singleton): documentos abertos, documento ativo e sinais de troca. |
 | `paper_backend_sync.py` | `sync_paper_to_backend`: leva cor, visibilidade, textura e grão do papel do documento ao motor (único escritor fora da restauração). |

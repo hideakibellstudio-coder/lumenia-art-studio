@@ -10,6 +10,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional, List
 
+from . import layer_properties
+
 logger = logging.getLogger(__name__)
 
 
@@ -174,20 +176,9 @@ def sync_backend_property(manager, idx: int, prop_name: str, value: Any) -> None
     backend = get_active_backend(manager)
     if not backend or idx < 0 or idx >= backend.get_drawing_layer_count():
         return
-    if prop_name == "opacity":
-        backend.set_layer_opacity(idx, float(value))
-    elif prop_name == "blend_mode":
-        backend.set_layer_blend_mode(idx, value)
-    elif prop_name == "visibility":
-        backend.set_layer_visibility(idx, bool(value))
-    elif prop_name == "locked":
-        backend.set_layer_lock(idx, bool(value))
-    elif prop_name == "alpha_locked":
-        backend.set_layer_alpha_lock(idx, bool(value))
-    elif prop_name == "clipping_mask":
-        backend.set_layer_clipping_mask(idx, bool(value))
-    elif prop_name == "name":
-        backend.set_layer_name(idx, str(value))
+    prop = layer_properties.TABLE.by_sync_name.get(prop_name)
+    if prop and prop.engine_setter:
+        layer_properties.apply_to_engine(backend, idx, prop, value)
     notify_canvas_repaint(prop_name)
 
 

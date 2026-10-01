@@ -18,6 +18,7 @@
 | `06-auditoria-orbital-decomposta.md` | Metodologia de Auditoria Orbital Descomposta (Concentric Satellite Peeling) |
 | `07-analise-arccc-decomposta.md` | Análise ARCcC decomposta de 2026-09-26: cada nó do sistema medido, fluxos ponta a ponta, defeitos D1–D16, riscos R1–R11, prontidão para features, o plano de solidificação S0–S4 e a avaliação do estudo externo do motor (Apêndice F) |
 | `08-analise-arccc-v1-1-e-forma-de-trabalho.md` | Análise de 2026-10-01 sob o ARCcC v1.1.0: o que a nova versão pede, medições novas (portas de entrada, superfície pública, mecanismos sem entrega, complexidade, multi-pilar, 7 portas), defeito D17, as 5 famílias de defeito, o laço de trabalho, regras de parada e os pontos de extensão registrados |
+| `09-analise-arccc-segunda-rodada.md` | Segunda rodada de 2026-10-01: os contratos da base falsificados por execução (arquivo hostil, argumento extremo, desfazer, composição por região, salvar e abrir, ciclo de vida). Dois defeitos de motor e três de arquivo e plataforma achados e corrigidos (D19–D23), um registrado (D24), o que se sustentou, os resíduos e o veredito sobre começar features. |
 
 ## Regras
 

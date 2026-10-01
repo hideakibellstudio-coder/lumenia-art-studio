@@ -138,6 +138,14 @@ não há rodada de "reorganizar de novo".
   na adoção). Fecha com: documento construído fora da thread da interface e
   anexado em tempo constante (motor e ponte, versão 7), ou composição sob demanda
   por região.
+- **Segunda rodada (2026-10-01, `09-analise-arccc-segunda-rodada.md`):** D19 e D20
+  (motor) e D21 a D23 (arquivo e plataforma) achados por execução e corrigidos
+  com teste. **Registrado e aberto:** D24, processo morto deixa o arquivo de
+  paginação do desfazer na pasta temporária (4,4 MB na sondagem), sem varredura na
+  partida; entra junto de feature que aumente o histórico em disco. **Custo
+  assumido:** traço sob filtro de área 1,7× a 2,7× mais caro em raio 20 a 100
+  (S1.5, cache da composição pré-filtro, vem com a primeira feature que use
+  filtro de área). Veredito do relatório: é hora de feature.
 - **D11 (prévia da transformação): não tratado.**
 - Estado completo dos selos, com commit e número: relatório 08, Seção 9.
 

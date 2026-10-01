@@ -49,6 +49,43 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-10-01 — Segunda rodada de análise: os contratos falsificados por execução
+**Base:** o dono pediu uma segunda rodada, com o ARCcC aplicado à análise, para
+achar problemas escondidos e confirmar se já é hora de feature.
+**Documento:** `01-correcao-da-base/09-analise-arccc-segunda-rodada.md`.
+**Feito, com a medição (Seção 3 e 4 do relatório):**
+- método: cada promessa da base virou uma sondagem com oráculo independente,
+  em processo filho isolado, e só valeu a que reprovou sem a correção;
+- D19 e D20 (motor, `fd8453d`): `select_rect(2**31 - 1, 0, 1, 1)` derrubava o
+  processo (1 queda em 173 métodos × 12 sementes); depois de um traço ao lado de
+  filtro de área a tela diferia da composição inteira em até 53 níveis (56 de 400
+  pilhas, agora 0), ao custo de 1,7× a 2,7× no traço sob desfoque de raio 20 a 100;
+- D21 a D23 (`a1ab625`): manifesto hostil vira "arquivo inválido" (1200 mutantes,
+  8 inesperados → 0), o manifesto não grava mais o caminho absoluto do autor, o
+  arquivo de paginação do desfazer abre em pasta fora da página ANSI do Windows
+  (conferido por compilação cruzada, não por execução);
+- D24 registrado, não corrigido: processo morto deixa o arquivo de paginação na
+  pasta temporária (4,4 MB na sondagem), sem varredura na partida;
+- sustentaram-se: 720 documentos salvos e reabertos sem diferença, composição
+  idêntica com 1 a 16 threads e em AVX2, salvar com corrida (6 de 6), 40 ciclos
+  sem vazar;
+- veredito: é hora de feature, com três condições na primeira feature que tocar o
+  assunto (S1.5, abrir documento denso, sondagem de contrato como porta).
+**Suíte:** 1826 testes, saída 0; `check_windows_build.py` 76/76 escalar e AVX2.
+**Seis perguntas da 4.4.7:**
+- A responsabilidade ficou no lugar certo? Sim: a validação do papel mora em
+  `validate_auxiliary`, o contexto da região no compositor (`RegionMargin`), o
+  caminho do arquivo de paginação no próprio gerenciador.
+- Algum contrato ficou grande demais? Não: nenhum método entrou nem saiu da
+  superfície pública.
+- Algum componente passou a conhecer o que não devia? Não; o manifesto deixou de
+  carregar um dado do ambiente do autor.
+- Algum dado é convertido mais de uma vez? Não.
+- Nasceu uma responsabilidade nova? `RegionMargin` (devolve a faixa de contexto
+  do compositor), com estado próprio e uma só tarefa.
+- Alguma abstração criada antes deixou de fazer sentido? `compositeRegionWithScratch`
+  segue sem chamador e fica para o S1.5 decidir.
+
 ### 2026-10-01 — S2.3 fechado: o contrato do motor só tem o que a interface chama, e cada papel tem quem o consuma
 **Base:** o dono apontou que o selo `EngineBackend` (S2.3) do relatório 08 não
 estava concluído; estava aberto desde a rodada dos selos (178 métodos, 10 dos 11

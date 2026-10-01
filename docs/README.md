@@ -49,6 +49,44 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-10-01 — Selos do relatório 08 aplicados: o que fechou e o que não
+**Base:** o dono aprovou as quatro decisões do relatório 08 e pediu os selos
+fechados. Todo o trabalho foi feito em fatias do laço da 4.4, cada uma com a
+medição na mensagem do commit (assunto em inglês).
+**Documentos:** `01-correcao-da-base/08-analise-arccc-v1-1-e-forma-de-trabalho.md`
+(Seção 9: estado dos selos, medido) e `01-correcao-da-base/01-pendencias-atuais.md`.
+**Feito, com a evidência no commit:**
+- S0.1–S0.8, S1.1 (exibição por região, repintura a 100% em 4K de 34 ms para
+  0,5 ms; com perfil de cor, de 392 ms para 0,59 ms), S1.2 e S1.3 (salvar e
+  salvar automático sem travar: captura de 0,8 a 2,4 ms; abrir lê e decodifica
+  em outra thread);
+- núcleo comum de dab nos 9 motores (`renderDab` de 129–273 linhas e
+  complexidade 25–71 para 19–57 e 6–15, 108 pinos de pixel);
+- `blendPixel`, as sobrecargas do compositor e o `LayerMerger` divididos sem mudar
+  um pixel; tabela única de propriedades de camada (8 lugares viraram 1);
+- catraca de acoplamento com pedido global do motor (49) e importação que
+  contorna a porta (238); `PluginContext` sem o motor; política do GIL travada;
+  4 harnesses nativos isolados; a lupa do conta-gotas e o zoom afastado com perfil
+  de cor deixaram de copiar o canvas inteiro.
+**Não fechou:** abrir um documento denso ainda para a janela por 0,2 a 0,7 s
+(composição única na adoção); a prévia da transformação (D11); o contrato do
+`EngineBackend` (178 métodos, 10 dos 11 sub-protocolos sem consumidor); as
+importações e pedidos globais existentes (congelados, só descem).
+**Seis perguntas da 4.4.7, sobre o conjunto:**
+- A responsabilidade ficou no lugar certo? Sim: pegada, permissão e forma da ponta
+  no núcleo de dab; a tabela de propriedades no documento; o tracker como porta da
+  telemetria.
+- Algum contrato ficou grande demais? O `EngineBackend` segue (178); o resto
+  encolheu (contexto de plugin de 5 nomes para 3).
+- Algum componente passou a conhecer o que não devia? Não novo; as catracas
+  barram o que existia e não deixam crescer.
+- Algum dado é convertido mais de uma vez? A aritmética de aspecto dos 3 motores
+  antigos agora é a do núcleo (2 pinos regravados, ≤ 2 níveis).
+- Nasceu uma responsabilidade nova? A composição sob demanda ou fora da thread da
+  interface (para fechar o Arquivo), registrada na Seção 9 do relatório 08.
+- Alguma abstração criada antes deixou de fazer sentido? Os 10 sub-protocolos do
+  backend sem consumidor seguem sem fazer sentido; decisão fica com a próxima feature.
+
 ### 2026-10-01 — Análise sob o ARCcC v1.1.0 e forma de trabalho
 **Base:** o dono atualizou o documento do ARCcC (v1.1.0, 2026-09-29) e pediu
 uma nova análise do projeto e de como trabalhar nele.

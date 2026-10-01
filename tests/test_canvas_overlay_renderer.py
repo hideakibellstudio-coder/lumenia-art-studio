@@ -137,3 +137,69 @@ def test_eyedrop_loupe_shows_both_colors(canvas):
     reds = sum(1 for c in pixels if c.red() > 150 and c.green() < 30 and c.blue() < 30)
     blues = sum(1 for c in pixels if c.blue() > 150 and c.red() < 30 and c.green() < 30)
     assert reds > 50 and blues > 50, "meio anel com a cor nova, meio com a antiga"
+
+
+# -- the loupe shows the canvas under the cursor, asking the engine for that patch only --------
+
+def _paint_block(backend, x, y, size, color):
+    assert backend.paste_rgba_buffer_on_active_layer(x, y, size, size, bytes(color + (255,)) * (size * size))
+
+
+class _CountingBackend:
+    """The real backend, with the reads of the canvas counted."""
+
+    def __init__(self, backend):
+        self._backend = backend
+        self.whole_canvas_reads = 0
+        self.regions = []
+
+    def get_qimage(self):
+        self.whole_canvas_reads += 1
+        return self._backend.get_qimage()
+
+    def get_display_image(self, zoom, region):
+        self.regions.append(QtCore.QRect(region))
+        return self._backend.get_display_image(zoom, region)
+
+
+def _screen_of(canvas, world_x, world_y):
+    """The screen position that `to_canvas` maps to (world_x, world_y): the widget has the one direction only."""
+    origin = canvas.to_canvas(0.0, 0.0, 1.0, 0.0)
+    step = canvas.to_canvas(100.0, 100.0, 1.0, 0.0)
+    scale_x, scale_y = (step.x - origin.x) / 100.0, (step.y - origin.y) / 100.0
+    return QtCore.QPointF((world_x - origin.x) / scale_x, (world_y - origin.y) / scale_y)
+
+
+def test_the_loupe_magnifies_the_pixels_under_the_cursor(canvas):
+    backend = EngineRegistry.instance().get_backend()
+    _paint_block(backend, 100, 100, 40, (30, 200, 60))
+    image = draw(OverlayRenderer.render_color_loupe, _screen_of(canvas, 120.0, 120.0), canvas, backend,
+                 QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255))
+    # The loupe shades its content (a vignette), so look for "clearly green", not the exact colour.
+    greens = sum(1 for y in range(0, SIZE, 2) for x in range(0, SIZE, 2)
+                 if (c := image.pixelColor(x, y)).green() > 60 and c.green() > 2 * c.red() and c.green() > 2 * c.blue())
+    assert greens > 100, "the magnified patch should be the green block under the cursor"
+
+
+def test_the_loupe_reads_the_patch_and_not_the_whole_canvas(canvas):
+    backend = _CountingBackend(EngineRegistry.instance().get_backend())
+    draw(OverlayRenderer.render_color_loupe, _screen_of(canvas, 120.0, 120.0), canvas, backend,
+         QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255))
+    assert backend.whole_canvas_reads == 0, "the loupe copied the whole canvas to crop 18 pixels"
+    assert len(backend.regions) == 1 and backend.regions[0].width() <= 18 and backend.regions[0].height() <= 18
+
+
+def test_the_loupe_at_the_canvas_edge_asks_only_for_what_is_inside(canvas):
+    backend = _CountingBackend(EngineRegistry.instance().get_backend())
+    draw(OverlayRenderer.render_color_loupe, _screen_of(canvas, 2.0, 2.0), canvas, backend,
+         QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255))
+    assert backend.regions, "a corner of the canvas is still inside it"
+    assert all(QtCore.QRect(0, 0, SIZE, SIZE).contains(region) for region in backend.regions)
+    assert backend.regions[0].width() < 18 or backend.regions[0].height() < 18, "the patch was clipped to the canvas"
+
+
+def test_the_loupe_far_outside_the_canvas_asks_for_nothing(canvas):
+    backend = _CountingBackend(EngineRegistry.instance().get_backend())
+    draw(OverlayRenderer.render_color_loupe, _screen_of(canvas, -500.0, -500.0), canvas, backend,
+         QtGui.QColor(255, 0, 0), QtGui.QColor(0, 0, 255))
+    assert backend.regions == [] and backend.whole_canvas_reads == 0

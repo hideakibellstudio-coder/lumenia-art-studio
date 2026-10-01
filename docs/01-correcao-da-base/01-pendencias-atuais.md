@@ -102,10 +102,32 @@ Melhoria, abstração nova ou verificação extra vai para "puxado por feature".
 
 **Puxado por feature (fora da base):** S1.4–S1.5, S2, S3 e o roteiro "Aladyn
 Engine 2.0" do estudo externo. Cada item entra junto da feature que precisar
-dele. Exemplo: o "Borrar profissional" traz S2.1 (núcleo comum de dab) e o
-reservatório espacial do estudo, protegido pelo golden do grupo 3. As catracas
-impedem que o que já foi arrumado volte a bagunçar, então não há rodada de
-"reorganizar de novo".
+dele. As catracas impedem que o que já foi arrumado volte a bagunçar, então
+não há rodada de "reorganizar de novo".
+
+**Atualização de 2026-10-01 (o dono pediu os selos do relatório 08 fechados):**
+- ~~S2.1 núcleo comum de dab~~ *(feito: `DabFootprint`, `PixelPermission`,
+  `TipShape`, `StraightOver`; `renderDab` de 129–273 linhas e complexidade 25–71
+  para 19–57 e 6–15; 108 pinos de pixel; o "Borrar profissional" já nasce com ele.
+  Dois pinos de ponta achatada (Óleo e Borrar) regravados de propósito, no máximo
+  2 níveis em 0,3% dos bytes.)*
+- ~~S2.2 descritor único de propriedade de camada~~ *(feito: `layer_properties.py`;
+  8 lugares viraram 1; `tests/test_layer_property_registry.py`.)*
+- **S2.3 backend segregado: parcial.** Feito: `PersistenceBackend`, o
+  `TelemetryTracker` como porta da telemetria (14 pedidos globais viraram 1),
+  `PluginContext` sem o motor, catraca `registry_lookup` (49 hoje, só desce).
+  **Aberto:** o contrato continua com 178 métodos e 10 dos 11 sub-protocolos sem
+  consumidor; migrar os 49 pedidos para injeção, arquivo por arquivo, junto da
+  feature que o tocar.
+- **Porta única:** catraca `door_bypass` (238 importações que contornam a porta
+  do pacote, congeladas; nenhuma nova entra).
+- **Arquivo (salvar e abrir): 🟡.** Salvar não trava. Abrir um documento 4K com
+  10 camadas todas pintadas ainda para a janela por 0,2 a 0,7 s (composição única
+  na adoção). Fecha com: documento construído fora da thread da interface e
+  anexado em tempo constante (motor e ponte, versão 7), ou composição sob demanda
+  por região.
+- **D11 (prévia da transformação): não tratado.**
+- Estado completo dos selos, com commit e número: relatório 08, Seção 9.
 
 **Estado:** registrado; **nada implementado ainda** (o dono pediu para parar
 no registro). Quando liberar, a ordem é S0.6 (golden) e depois S0.1.

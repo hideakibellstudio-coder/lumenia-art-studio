@@ -16,6 +16,11 @@
 > ponto numerado (a regra 15.4, duas vezes); a Seção 4.4 inteira (o fluxo de
 > construção) não aparece em lugar nenhum.
 >
+> **Atualizado em 2026-10-01, depois de `4e5ee70`:** a Seção 9 traz o estado dos
+> selos medido de novo (o que passou a 🟢, com o commit e o número, e o que
+> continua 🟡 ou 🟠 e por quê). As Seções 2, 3.6 e 4 mostram o selo atual e,
+> entre parênteses, o de antes.
+>
 > Relacionados: `07-analise-arccc-decomposta.md` (análise de 2026-09-26, da
 > qual esta parte), `01-pendencias-atuais.md` (lista viva e linha de chegada),
 > `../02-arquitetura/01-framework-arccc.md` (o documento do método no
@@ -62,14 +67,14 @@
 | Seção do ARCcC | O que pede | No projeto | Situação |
 |---|---|---|---|
 | 2.1, 4.1 regras 1–2 (isolamento, sem dependência entre irmãos) | Pasta só importa de subpastas ou de infraestrutura contratada; irmãs não se importam | Lei 1 do `AGENTS.md` (plugins), catraca de camadas do C++, catraca de acoplamento | 🟢 |
-| 2.3, 4.1 regra 5 (ponto único de entrada) | Cada pasta tem uma porta; o resto é privado | `__init__.py` em 60 pastas de `ui/`, README com "Porta de entrada" | 🟠 convenção sem trava (Seção 3.1) |
+| 2.3, 4.1 regra 5 (ponto único de entrada) | Cada pasta tem uma porta; o resto é privado | `__init__.py` em 60 pastas de `ui/`, README com "Porta de entrada"; catraca `door_bypass` (238 congeladas, nenhuma nova entra) | 🟡 com trava (era 🟠: convenção sem trava) (Seção 3.1) |
 | 3.3 (arquivos essenciais) | `index`, `manifest.json`, `README.md`, `testes/` por pasta | README em toda pasta, com bloco `arccc:deps` **medido**; testes em `tests/` (exceção declarada) | 🟢 (o bloco medido substitui o `manifest.json` escrito à mão) |
 | 4.2 (teste da caixa preta) | Trocar o interior de uma pasta não quebra ninguém | Vale para o motor e a ponte; não vale para as pastas de `ui/` (Seção 3.1) | 🟠 |
-| **4.4 (fluxo de construção)** | Ciclo de 10 passos, fatia vertical, retorno à fundação, benchmark → evidência → arquitetura, 7 portas, "pronto arquitetural" | Não citado em nenhum documento nem teste | 🔴 ausente (Seções 3.7, 4 e 6) |
-| 4.4.4, 4.4.9 (responsabilidade antes de estrutura; sem mecanismo vazio) | Nada de gerente, registro ou protocolo "para depois" | 11 sub-protocolos do backend sem consumidor; 4 tipos de plugin sem ponto de extensão; um parâmetro de motor que ninguém lê | 🟠 (Seção 3.2) |
-| 7.1 (gatilhos automáticos) | Dividir acima de 500 linhas, 5 métodos públicos, complexidade 10 | Zonas de 300/450 linhas (mais rígidas), complexidade 20 | 🟡 limiares diferentes (Seção 3.3) |
-| 14 (idioma) | Todo identificador em inglês; branches, commits e tags também | Catraca de identificadores em 0 para os nomes; mensagens de commit em português | 🟡 (Seção 3.5) |
-| 15 (multi-pilar) | Raiz só de pilares; só pela ponte; contrato único **e versionado**; ponte sem regra de negócio; testes de contrato | 5 de 6 regras cumpridas; falta a versão do contrato | 🟡 (Seção 3.6) |
+| **4.4 (fluxo de construção)** | Ciclo de 10 passos, fatia vertical, retorno à fundação, benchmark → evidência → arquitetura, 7 portas, "pronto arquitetural" | `AGENTS.md` 5.0 (o ciclo, as 6 perguntas e as regras de parada); 29 commits seguidos desde então seguem o ciclo, cada um com a medição na mensagem | 🟢 (era 🔴 ausente) |
+| 4.4.4, 4.4.9 (responsabilidade antes de estrutura; sem mecanismo vazio) | Nada de gerente, registro ou protocolo "para depois" | Saíram: 4 tipos de plugin sem extensão (D9), o parâmetro `compositeBuffer` (D14), `PluginContext.backend` e `get_logger`. Falta: 10 dos 11 sub-protocolos do backend sem consumidor (`TelemetryProtocol` agora tem o `TelemetryTracker`) | 🟡 (era 🟠) (Seção 3.2) |
+| 7.1 (gatilhos automáticos) | Dividir acima de 500 linhas, 5 métodos públicos, complexidade 10 | Zonas de 300/450 linhas (mais rígidas), complexidade 20 (decisão do dono: barreira em 20, alerta em 10). Medido de novo: C++ acima de 15 de 38 para 26 e acima de 20 de 25 para 15; Python acima de 20 de 21 para 20 | 🟡 limiares diferentes, por decisão (Seção 3.3) |
+| 14 (idioma) | Todo identificador em inglês; branches, commits e tags também | Catraca de identificadores em 0 para os nomes; assunto de commit em inglês desde 2026-10-01 (29 seguidos, `git log`); branches já em inglês | 🟢 (era 🟡) (Seção 3.5) |
+| 15 (multi-pilar) | Raiz só de pilares; só pela ponte; contrato único **e versionado**; ponte sem regra de negócio; testes de contrato | 5 de 6 regras 🟢 (a do contrato versionado fechou: versão 6, `.pyi` preso por hash); a regra 5 (release independente) segue 🟡 com 4 harnesses nativos isolados | 🟡 (Seção 3.6) |
 
 ---
 
@@ -199,9 +204,9 @@ isso a proposta é catraca de contagem, não proibição.
 |---|---|---|
 | 1 | Raiz reservada aos pilares | 🟢 `tests/test_arccc_root_layout.py`; exceção declarada (`tests`, `docs`, `assets`, `scripts`, `benchmarks`) |
 | 2 | Comunicação só pela ponte | 🟢 os 3 imports de `aladyn_engine_native` em `ui/` estão todos em `ui/infrastructure/bridge_client/` (`aladyn.py`, `aladyn_brush_mixin.py`, `aladyn_resources_mixin.py`); fora dali, só teste de caixa-branca declarado |
-| 3 | Contrato **único e versionado** | 🟠 único: sim (2 `.pyi`, 573 linhas, comparados com o binário em teste). **Versionado: não** (Seção 3.4) |
+| 3 | Contrato **único e versionado** | 🟢 (era 🟠) único: sim (2 `.pyi`, comparados com o binário em teste, inclusive a assinatura de cada método); **versionado: sim**, `kContractVersion` = 6 no binário e `EXPECTED_CONTRACT_VERSION` na interface, `.pyi` preso por hash em `tests/golden/bridge_contract.json`; binário de outra versão é recusado na partida com a causa na tela |
 | 4 | Ponte sem regra de negócio | 🟢 9 funções, nenhuma acima de 10; 1.438 linhas contando os `.pyi` |
-| 5 | Pilar com release independente | 🟡 o motor só tem 1 teste nativo isolado (`tests/native/history_faults.cpp`); 58 dos 137 arquivos de teste precisam do módulo nativo |
+| 5 | Pilar com release independente | 🟡 4 harnesses nativos isolados (era 1): falhas do histórico, ordem do Borrar, 52 pinos do `blendPixel`, núcleo de dab com o codec de tiles; o resto dos testes do motor ainda passa pela ponte |
 | 6 | Testes de contrato na ponte | 🟢 `test_pyi_contract_matches_binary.py`, `test_bridge_error_policy.py` (ficam em `tests/`, exceção declarada) |
 
 ### 3.7 As 7 portas de validação (4.4.10) contra o que o projeto automatiza
@@ -233,6 +238,21 @@ Selos herdados do relatório 07, revistos com a nova lente:
 
 | Componente | Selo | O que falta para "pronto" |
 |---|:---:|---|
+| Camadas, tiles e histórico do motor | 🟢 | Nada de estrutural. Tem teste nativo isolado e injeção de falha em disco; agora também o codec de tiles do arquivo, conferido sem a ponte |
+| Estado compartilhado (`ui/core/state`) | 🟢 | Nada. Um escritor por assunto, valor igual não emite |
+| Compositor e mesclagem | 🟢 (era 🟡) | Nada. `blendPixel` de complexidade 32 para 13, as duas sobrecargas de região unificadas (`Compositor.cpp` de 215 para 130 linhas, complexidade máxima 6) e `LayerMerger` de 32 e 19 para 12; nenhum pixel mudou (60 milhões de casos contra a versão anterior, 52 hashes de 4096 casos, 4 resumos de mesclagem e achatamento, golden de composição). `477ec19` |
+| Seleção e transformação | 🟡 | Prévia (Qt) diferente do resultado (motor): D11, **não tratado**. Fechar pede uma prévia pelo amostrador do motor, um método novo na ponte e a decisão de custo por movimento do mouse; severidade baixa, fica para quando a feature de transformação for mexida |
+| Ponte | 🟢 (era 🟡) | Nada. Contrato versionado e preso (versão 6); GIL solto em 3 lugares, cada um com a razão na política de `bridge/README.md` e travado por `tests/test_bridge_gil_policy.py`; a tela pede só a região (`get_display_region`), e as cópias de canvas inteiro que sobram (4 chamadas de `get_qimage` na interface: copiar para a área de transferência, gravação, prévia do traço e exportar a imagem) são de caminhos que precisam do canvas inteiro; a lupa do conta-gotas, que copiava o canvas para recortar 18×18 pixels (50 ms em 4K a cada movimento do mouse), passou a pedir só esses pixels (0,45 ms). `28bb597` |
+| Telemetria do motor | 🟢 | Instrumento certo |
+| Telemetria da tela (medidores) | 🟢 (era 🟠) | Nada. O medidor 6 conta a cópia do canvas e o `drawImage` (D16, `tests/test_viewport_paint_telemetry.py`) e as telas passam pelo `TelemetryTracker` para chegar ao motor. `0487eff`, `4e5ee70` |
+| `EngineBackend` | 🟡 (era 🟠) | Contrato com 178 métodos, o tamanho da facade. Feito: a gravação e a abertura ganharam o contrato estreito `PersistenceBackend` em vez de 6 métodos a mais; o `TelemetryProtocol` tem consumidor (o tracker, 14 pedidos ao registro viraram 1); o `PluginContext` deixou de entregar o motor inteiro a todo plugin; a catraca `registry_lookup` congela os pedidos globais do motor (49 hoje) e só deixa descer. Falta: 10 dos 11 sub-protocolos sem consumidor e migrar os 49 pedidos para injeção, arquivo por arquivo, junto da feature que o tocar |
+| Motores de pincel (9) | 🟢 (era 🟠) | Nada. D14 saiu; 108 pinos de pixel (12 variações por motor, inclusive textura, elipse girada, dureza 0 e 1, modos de dab e parâmetros de cada motor); o núcleo comum (`DabFootprint`, `PixelPermission`, `TipShape`, `StraightOver`) fez cada `renderDab` ir de 129–273 linhas e complexidade 25–71 para 19–57 linhas e 6–15; 2 pinos regravados de propósito (Óleo e Borrar em ponta achatada: 132 e 186 de 49152 bytes, no máximo 2 níveis). `4101a56`, `230f77c` |
+| Documento e camadas | 🟢 (era 🟡) | Nada no documento: as 6 propriedades de camada são uma tabela (`layer_properties.py`) e os 8 lugares que as repetiam a percorrem; uma propriedade nova entra só ali (`tests/test_layer_property_registry.py` acrescenta uma e confere cada lugar; tirá-la de qualquer consumidor reprova). A interface (painel, menu, diálogo) e o método do motor continuam sendo da propriedade. `f9e8ad1` |
+| Plugins | 🟢 (era 🟠) | Nada de arquitetura. Os 4 tipos sem extensão saíram (D9) e o `PluginContext` tem 3 nomes (`service_registry`, `main_window`, `attach_main_window`), sem o motor e sem logger, travados por `tests/test_plugin_context_contract.py`. Limite que não é de arquitetura: um plugin segue sendo código Python no mesmo processo; isolar pede decisão de produto (gatilho: o 1º plugin externo). `22ea776` |
+| Exibição | 🟢 (era 🔴) | Nada. A tela pede só a região (`get_display_region`, `get_display_lod_region`); repintura a 100% em 4K de 34 ms para 0,5 ms; zoom afastado depois de uma mudança 0,28 ms; com perfil de cor ≠ sRGB, de 392 ms para 0,59 ms (o resíduo da D18, fechado). `a5d7fc5`, `1abc684`, `e16a315` |
+| Arquivo (salvar e abrir) | 🟡 (era 🔴) | Salvar e salvar automático não travam (captura de 0,8 a 2,4 ms, maior intervalo sem tratar evento durante a gravação de 5,6 a 12,6 ms em 4K com 10 camadas; formato `.lmn` v3 por tiles). Abrir lê e decodifica numa thread de fundo; sobra a composição única na adoção: 0,22 a 0,32 s em 4K com 10 camadas todas pintadas (0,66 s na pior rodada do benchmark), 75 ms no esparso. O "pronto quando" de S1.2 (abrir 4K/10 em menos de 1 s) está cumprido; o de "sem travar" para o documento denso, não. Para fechar: montar o documento fora da thread da interface (um estado de documento construído na thread de fundo e anexado em tempo constante) ou compor sob demanda por região. `3222644`, `0f878cd` |
+
+---|:---:|---|
 | Camadas, tiles e histórico do motor | 🟢 | Nada de estrutural. Tem teste nativo isolado e injeção de falha em disco |
 | Estado compartilhado (`ui/core/state`) | 🟢 | Nada. Um escritor por assunto, valor igual não emite |
 | Compositor e mesclagem | 🟡 | `BlendEquations` com complexidade 32; golden dos 8 cenários existe |
@@ -343,13 +363,13 @@ substitui "S2/S3 como obra de base".
 | Ponto de extensão | Hoje | O que não pode acontecer | Gatilho para implementar |
 |---|---|---|---|
 | Formato de pixel (16 bits, HDR) | RGBA8 em `utils/ColorRGBA`; 49 linhas do motor fora de `PixelBuffer` e `ColorRGBA` fazem aritmética de 4 bytes por pixel (`AreaFilters` 18, `MipmapPyramid` 6, `PointFilters` 4...) | Esse número subir | Decisão do dono (S3.1) |
-| Exibição por região ou GPU | 6 chamadas de cópia do canvas na `ui/` (`get_qimage`/`get_qimage_lod`: viewport 2, prévia de traço, overlay, gravação, edição) | Uma 7ª | S1.1 |
-| Nova propriedade de camada (máscara) | A trava de alfa está em 34 arquivos | Mais uma propriedade seguindo o mesmo caminho disperso | A feature "máscara de camada" (traz S2.2) |
+| Exibição por região ou GPU | **S1.1 feita.** A tela pede só a região; sobram 4 cópias do canvas inteiro na `ui/` (`get_qimage`: copiar, gravação, prévia do traço, exportar), todas de caminhos que precisam dele | Uma 5ª | A GPU: quando a tela deixar de copiar para a CPU |
+| Nova propriedade de camada (máscara) | **S2.2 feita.** As propriedades de camada são `layer_properties.TABLE`; uma nova entra ali e no que a mostra | Uma propriedade escrita à mão num dos 8 lugares que a tabela já percorre | A feature "máscara de camada" |
 | Registro de ferramentas, filtros e formatos | Dicionário e `enum` | Criar o registro vazio | O 2º formato de arquivo real (PSD) ou a 1ª ferramenta feita por terceiros |
 | Biblioteca de pincéis em arquivo | Presets em código | Nova propriedade de pincel fora de `BrushState`/`BrushProfile` (como as curvas, D5) | A feature de importar e salvar pincel |
-| Plugins de terceiros | `PluginContext` largo | Dar ao plugin mais acesso ao backend | O 1º plugin externo |
-| Operações longas fora da thread da interface | GIL liberado em 1 lugar | Nova operação longa na thread da interface | S1.2 |
-| Núcleo comum de rasterização | 9 motores repetem a rasterização (CCN 25–71) | Um 10º motor copiado dos outros | O próximo motor, ou qualquer mudança transversal de pincel (aí a responsabilidade existe: R2) |
+| Plugins de terceiros | **R9 feita.** `PluginContext` com 3 nomes, sem o motor e sem logger (`tests/test_plugin_context_contract.py`) | Dar ao plugin acesso ao motor inteiro: ele recebe um serviço pelo contrato que usa | O 1º plugin externo (aí decidir o isolamento) |
+| Operações longas fora da thread da interface | **S1.2 feita** para salvar e abrir (a composição da abertura de um documento denso, 0,2 a 0,7 s, ainda roda na thread da interface). GIL solto em 3 lugares, com política escrita e travada | Nova operação longa na thread da interface; soltar o GIL numa chamada da fachada | Documento montado fora da thread da interface |
+| Núcleo comum de rasterização | **S2.1 feita.** `DabFootprint`, `PixelPermission`, `TipShape` e `StraightOver`; cada `renderDab` com 19–57 linhas e complexidade 6–15 | Um 10º motor com laço de tiles e bloco de seleção/recorte próprios | O próximo motor, que já nasce com o núcleo |
 
 ### 6.5 Mudança proposta no `AGENTS.md` (não aplicada)
 
@@ -417,6 +437,62 @@ a tabela da 6.4 dizendo o que cada um **não pode** piorar enquanto espera.
    nele (ou ao lado) uma seção "como o ARCcC se aplica ao Lumenia" com as
    zonas de 300/450, `ui/plugins/`, mixins só no backend e as exceções
    declaradas. Isso fecha o S0.5 com a fonte certa.
+
+---
+
+## 9. Estado dos selos em 2026-10-01 (medido depois de `4e5ee70`)
+
+O dono pediu os selos deste relatório fechados. Esta seção diz o que fechou,
+com o commit e o número, e **o que não fechou e por quê**. Só marquei 🟢 onde há
+teste ou medição que o sustente; o que ficou aberto está dito sem adjetivo.
+
+### 9.1 O que fechou
+
+| Selo | De → para | Evidência (commit, número) |
+|---|---|---|
+| Exibição | 🔴 → 🟢 | Repintura a 100% em 4K: 34 ms → 0,5 ms; zoom afastado depois de uma mudança 0,28 ms (era 5,1); com perfil de cor ≠ sRGB 392 ms → 0,59 ms. Oráculo independente em numpy depois de cada operação e em 40 sequências; `a5d7fc5`, `1abc684`, `e16a315` |
+| Telemetria da tela | 🟠 → 🟢 | O medidor 6 conta a cópia do canvas e o `drawImage`; `tests/test_viewport_paint_telemetry.py`; as telas passam pelo `TelemetryTracker`. `0487eff`, `4e5ee70` |
+| Compositor e mesclagem | 🟡 → 🟢 | `blendPixel` 32 → 13, `LayerMerger` 32 e 19 → 12, `Compositor.cpp` 215 → 130 linhas; 60 milhões de casos iguais à versão anterior, 52 hashes, 4 resumos de mesclagem; desempenho dentro do ruído. `477ec19` |
+| Motores de pincel | 🟠 → 🟢 | 108 pinos (era 36); `renderDab` 129–273 linhas e complexidade 25–71 → 19–57 e 6–15; 2 pinos regravados de propósito (≤ 2 níveis em 0,3% dos bytes). `4101a56`, `230f77c` |
+| Documento e camadas | 🟡 → 🟢 | 8 lugares que repetiam as propriedades → 1 tabela; o teste de contrato acrescenta uma propriedade e confere cada lugar. `f9e8ad1` |
+| Ponte | 🟡 → 🟢 | Versão 6 presa por hash; política do GIL escrita e travada; 4 harnesses nativos isolados. `28bb597` |
+| Plugins | 🟠 → 🟢 | Contexto com 3 nomes, sem motor; os 4 tipos sem extensão saíram. `22ea776` |
+| 4.4 fluxo de construção | 🔴 → 🟢 | `AGENTS.md` 5.0; 29 commits seguidos com as 6 perguntas e a medição |
+| 14 idioma | 🟡 → 🟢 | Assunto de commit em inglês (29 seguidos); identificadores com catraca em 0 |
+| 15.4 nº 3 contrato versionado | 🟠 → 🟢 | Ver Ponte |
+
+Defeitos achados pelo caminho e corrigidos (cada um com teste): abrir um arquivo
+salvo não reproduzia os pixels; o `.pyi` mentia sobre 11 assinaturas; abrir um
+`.lmn` dava `TypeError` desde 2026-09-24; a lupa do conta-gotas copiava o canvas
+a cada movimento do mouse (50 ms → 0,45 ms em 4K); com perfil de cor a leitura
+do zoom afastado custava 392 ms; o cache de granulação do pincel padrão podia
+ser montado por duas threads ao mesmo tempo.
+
+### 9.2 O que não fechou
+
+| Selo | Fica | Por quê, e o que fecha |
+|---|---|---|
+| Arquivo (salvar e abrir) | 🟡 (era 🔴) | Salvar não trava (captura de 0,8 a 2,4 ms). Abrir um documento 4K com 10 camadas todas pintadas ainda para a janela por 0,22 a 0,32 s (0,66 s numa rodada do benchmark) na composição única da adoção; esparso 75 ms. O "pronto quando" de S1.2 (abrir em menos de 1 s) está cumprido; "sem travar" para o documento denso não. Fecha: construir o documento fora da thread da interface e anexá-lo em tempo constante, ou compor sob demanda por região; é mudança de motor e de ponte (versão 7) |
+| Seleção e transformação | 🟡 | D11 (prévia pelo Qt, resultado pelo motor) **não tratado**: pede um método novo de prévia na ponte e a decisão de custo por movimento do mouse; severidade baixa |
+| `EngineBackend` | 🟡 (era 🟠) | Continua com 178 métodos e 10 dos 11 sub-protocolos sem consumidor; a injeção dos 49 pedidos globais do motor fica arquivo por arquivo (catraca: só descem). Quanto o contrato diminui, não medi: não diminuiu |
+| 2.3 porta única | 🟡 (era 🟠) | Trava de catraca (238 importações que contornam a porta, congeladas), mas as 238 existem; reescrevê-las em massa arrisca ciclo de importação escondido |
+| 4.2 caixa preta | 🟠 | Vale para o motor e a ponte, não para as pastas de `ui/` (49 pedidos globais e 238 contornos congelados) |
+| 4.4.4 e 4.4.9 mecanismos vazios | 🟡 (era 🟠) | 10 sub-protocolos sem consumidor (ver `EngineBackend`) |
+| 7.1 limiares | 🟡 | Por decisão do dono (barreira em 20, alerta em 10). Medido de novo: C++ acima de 10 de 64 para 57, acima de 15 de 38 para 26, acima de 20 de 25 para 15; Python acima de 15 de 37 para 36 e acima de 20 de 21 para 20 |
+| 15 multi-pilar | 🟡 | A regra 5 (release independente): 4 harnesses nativos isolados, mas a maior parte dos testes do motor ainda passa pela ponte |
+
+### 9.3 O que mudou nas medições da Seção 3
+
+- 3.1: as 239 importações que contornam a porta são 238 (uma saiu com o
+  `PluginContext`) e agora há catraca; as 86 que a porta não exporta continuam
+  sem tratamento (alargar a porta é decisão por pasta).
+- 3.2: `EngineBackend` 178 métodos (eram 176): entraram `get_display_image`
+  (S1.1), `load_error` (D17) e `max_canvas_dimension` (D13) e saiu
+  `get_qimage_lod`. Os métodos de gravação e abertura não entraram: ficaram no
+  `PersistenceBackend`. Pedidos globais do motor fora do registro e da ponte:
+  49 em 29 arquivos (eram 60 quando a catraca os contou pela primeira vez).
+- 3.3: ver 7.1 acima.
+- 3.6: regra 3 🟢; regra 5 🟡 com 4 harnesses.
 
 ---
 

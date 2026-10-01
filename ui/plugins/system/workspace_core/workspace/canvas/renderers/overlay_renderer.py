@@ -25,27 +25,31 @@ class OverlayRenderer:
         painter.drawEllipse(QtCore.QPointF(cx, cy + 4), r_outer + 2, r_outer + 2)
 
         # 2. Miniatura ampliada do canvas sob a retícula (Zoom 4x)
-        qimg = backend.get_qimage() if backend else None
-
         painter.save()
         clip_path = QtGui.QPainterPath()
         clip_path.addEllipse(QtCore.QPointF(cx, cy), r_inner, r_inner)
         painter.setClipPath(clip_path)
         painter.fillRect(QtCore.QRectF(cx - r_inner, cy - r_inner, r_inner * 2, r_inner * 2), QtGui.QColor(*OverlayPalette.LOUPE_BACKGROUND))
 
-        if qimg and not qimg.isNull():
+        if backend:
             world_evt = widget.to_canvas(screen_pos.x(), screen_pos.y(), 1.0, 0.0)
             wx, wy = int(world_evt.x), int(world_evt.y)
 
             src_size = 18
-            src_x = wx - src_size // 2
-            src_y = wy - src_size // 2
-            src_rect = QtCore.QRect(src_x, src_y, src_size, src_size)
+            src_rect = QtCore.QRect(wx - src_size // 2, wy - src_size // 2, src_size, src_size)
             target_rect = QtCore.QRectF(cx - r_inner, cy - r_inner, r_inner * 2, r_inner * 2)
 
-            cropped = qimg.copy(src_rect)
-            if not cropped.isNull():
-                painter.drawImage(target_rect, cropped)
+            # Só os 18x18 pixels sob a mira, não o canvas inteiro (eram 34 ms em 4K a cada movimento
+            # do mouse). Fora do canvas a lupa fica no fundo, como a cópia recortada ficava transparente.
+            visible = src_rect.intersected(QtCore.QRect(0, 0, widget.canvas_w, widget.canvas_h))
+            display = backend.get_display_image(1.0, visible) if not visible.isEmpty() else None
+            if display is not None and not display.image.isNull():
+                magnification = target_rect.width() / src_size
+                destination = QtCore.QRectF(
+                    target_rect.x() + (visible.x() - src_rect.x()) * magnification,
+                    target_rect.y() + (visible.y() - src_rect.y()) * magnification,
+                    visible.width() * magnification, visible.height() * magnification)
+                painter.drawImage(destination, display.image, display.source_rect(visible))
 
         # 3. Retículo de Mira Central
         painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.LOUPE_RETICLE), 1.5))

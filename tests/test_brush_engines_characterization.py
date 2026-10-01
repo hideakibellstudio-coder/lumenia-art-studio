@@ -19,6 +19,20 @@ Each cell is one engine x one variant:
   clipped       layer 1 (clipping mask over layer 0) carries the bars; the
                 stroke goes on layer 1
 
+and, added before the nine `renderDab` were rebuilt on a common core (S2.1), the
+brush shapes the first four never reached (the engines had texture, ellipse and
+hardness paths that no pin touched):
+
+  textured      a bristle shape texture, brush grain and canvas grain (all procedural)
+  elliptical    a flattened, rotated tip (aspect 0.45, angle 35) with pressure-to-aspect
+  soft, hard    hardness 0.0 and 1.0 (the other cells use 0.6)
+  multiply,     the dab blend modes (only the default engine reads them; the others
+  additive      must keep ignoring them)
+  engine_params every engine-specific parameter away from its default (graphite
+                hardness, ink flow, solvent, blur radius, pickup, water, impasto...)
+  textured_params  the two above together: grain-driven branches (watercolor
+                granulation, oil bristle grooves) only run with both
+
 The digest covers the composite and the active layer buffer. Delete
 `tests/golden/engines_golden.json` to record everything again, only when the
 pixel change is deliberate and you know what it is.
@@ -50,11 +64,24 @@ ENGINES = {
     "watercolor": native.EngineType.Watercolor,
     "oil": native.EngineType.OilImpasto,
 }
-VARIANTS = ("plain", "alpha_locked", "selected", "clipped")
+SCENE_VARIANTS = ("plain", "alpha_locked", "selected", "clipped")
+BRUSH_VARIANTS = ("textured", "elliptical", "soft", "hard", "multiply", "additive", "engine_params", "textured_params")
+VARIANTS = SCENE_VARIANTS + BRUSH_VARIANTS
 CELLS = [(engine, variant) for engine in ENGINES for variant in VARIANTS]
 # A stroke that changes nothing, on purpose: alpha lock protects exactly what
 # the eraser changes.
 NO_OP_BY_DESIGN = {("eraser", "alpha_locked")}
+
+# The engines that do not read a brush variant, as measured when the variants were added: their
+# cell equals the "plain" one. Recording them keeps a pin from pinning nothing, and a future
+# engine that starts reading a setting has to update this table on purpose.
+IGNORED_BY_DESIGN = {
+    "textured": {"inker", "marker", "blur", "smudge", "oil"},
+    "elliptical": {"blur"},
+    "multiply": set(ENGINES) - {"brush"},
+    "additive": set(ENGINES) - {"brush"},
+    "engine_params": {"brush", "eraser"},
+}
 
 # Three horizontal bars (colour, y): content for Blur, Smudge and Eraser to act on.
 BARS = (((220, 40, 40), 28), ((40, 80, 220), 48), ((230, 200, 40), 68))
@@ -80,6 +107,80 @@ def _use_engine(eng, engine_type, color, size, opacity=1.0, hardness=0.6):
     profile.opacity = opacity
     profile.hardness = hardness
     profile.base_color = native.ColorRGBA(*color, 255)
+
+
+def _texture_the_brush(eng):
+    eng.set_shape_preset(2)  # dry bristles
+    eng.set_brush_height_preset(3)  # noise grain
+    profile = eng.get_brush_profile()
+    profile.brush_grain_enabled = True
+    profile.brush_grain_scale = 3.0
+    profile.brush_grain_contrast = 1.4
+    eng.set_canvas_height_preset(1)  # watercolor paper
+    canvas_texture = eng.get_canvas_texture()
+    canvas_texture.canvas_grain_enabled = True
+    canvas_texture.canvas_grain_scale = 1.5
+    canvas_texture.invalidate_lut()
+
+
+def _move_engine_params(eng):
+    profile = eng.get_brush_profile()
+    profile.pencil_params.graphite_hardness = 0.85
+    profile.pencil_params.tilt_shading_enabled = True
+    profile.inker_params.ink_flow_rate = 0.6
+    profile.inker_params.taper_smoothing = 0.8
+    profile.marker_params.solvent_wetness = 0.9
+    profile.marker_params.edge_darkening = 0.7
+    profile.blur_params.blur_radius = 4
+    profile.blur_params.blur_strength = 0.4
+    profile.smudge_params.color_pickup = 0.4
+    profile.smudge_params.mix_ratio = 0.8
+    profile.smudge_params.smudge_stretch = 1.6
+    profile.watercolor_params.water_level = 0.9
+    profile.watercolor_params.pigment_bleed = 0.8
+    profile.watercolor_params.fringe_intensity = 0.7
+    profile.watercolor_params.granulation = 0.8
+    profile.oil_params.impasto_depth = 0.9
+    profile.oil_params.bristle_grooves = 0.8
+    profile.oil_params.viscosity = 0.3
+    profile.oil_params.specular_brilliance = 0.8
+
+
+def _textured_with_params(eng):
+    _texture_the_brush(eng)
+    _move_engine_params(eng)
+
+
+def _flatten_the_tip(eng):
+    profile = eng.get_brush_profile()
+    profile.tip.aspect_ratio = 0.45
+    profile.tip.angle = 35.0
+    profile.pressure_to_aspect = 0.3
+
+
+def _set_hardness(value):
+    def apply(eng):
+        eng.get_brush_profile().hardness = value
+    return apply
+
+
+def _set_dab_blend(mode):
+    def apply(eng):
+        eng.get_brush_profile().blend_mode = mode
+    return apply
+
+
+# What each brush variant does to the profile after the engine is chosen.
+BRUSH_SETUP = {
+    "textured": _texture_the_brush,
+    "elliptical": _flatten_the_tip,
+    "soft": _set_hardness(0.0),
+    "hard": _set_hardness(1.0),
+    "multiply": _set_dab_blend(native.DabBlendMode.Multiply),
+    "additive": _set_dab_blend(native.DabBlendMode.Additive),
+    "engine_params": _move_engine_params,
+    "textured_params": _textured_with_params,
+}
 
 
 def _paint_bars(eng, shift_x=0.0):
@@ -115,6 +216,8 @@ def _scenario(engine, variant):
 
     if engine is not None:
         _use_engine(eng, ENGINES[engine], TESTED_COLOR, size=18.0)
+        if variant in BRUSH_SETUP:
+            BRUSH_SETUP[variant](eng)
         _stroke(eng, SAMPLES)
     return _digest(eng, active)
 
@@ -185,4 +288,16 @@ def test_engines_are_distinguishable():
         "two engines produced identical pixels: "
         + ", ".join(sorted(engine for engine in digests
                            if list(digests.values()).count(digests[engine]) > 1))
+    )
+
+
+@pytest.mark.parametrize("variant", BRUSH_VARIANTS)
+@pytest.mark.parametrize("engine", list(ENGINES))
+def test_brush_variants_reach_the_engines_that_read_them(engine, variant):
+    """Each brush variant changes the pixels of the engines that read that setting, and only those."""
+    changed = _scenario(engine, variant) != _scenario(engine, "plain")
+    ignored = engine in IGNORED_BY_DESIGN.get(variant, set())
+    assert changed != ignored, (
+        f"{engine} {'ignored' if not changed else 'reacted to'} '{variant}'; "
+        f"update IGNORED_BY_DESIGN if that is the new, intended behaviour"
     )

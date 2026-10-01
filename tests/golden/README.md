@@ -12,7 +12,7 @@ Lidos por `tests/test_compositing_characterization.py`, `tests/test_stroke_chara
 |---|---|
 | `compositing_golden.json` | Hash dos pixels compostos por cenário (modos, filtros, grupos). |
 | `stroke_golden.json` | Hash dos pixels do traço por combinação de latência e estabilizador. |
-| `engines_golden.json` | Hash dos pixels dos 9 motores de pincel, 4 variações cada (simples, trava de alfa, seleção, máscara de recorte). |
+| `engines_golden.json` | Hash dos pixels dos 9 motores de pincel, 12 variações cada (simples, trava de alfa, seleção, máscara de recorte, textura, elipse, dureza 0 e 1, multiplicar, aditivo, parâmetros do motor, textura com parâmetros). |
 | `bridge_contract.json` | A versão do contrato da ponte e o hash dos `.pyi`: mudar o contrato sem subir a versão reprova o teste. |
 
 ## Regras

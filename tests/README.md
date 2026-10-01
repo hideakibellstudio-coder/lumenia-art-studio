@@ -38,7 +38,7 @@
 | `test_bridge_error_policy.py` | Política de erros da ponte: entrada inválida no motor e buffer fora das dimensões viram `ValueError`, sem `try/catch` repetido nos bindings. |
 | `test_brush_advanced_panel.py` | Painel avançado do pincel: seções com estado próprio e dois caminhos claros. |
 | `test_brush_curves_state.py` | As curvas Bézier do pincel moram no `BrushState` e só o `BrushEngineSync` as escreve no motor: estado, sincronizador (inclui preset e troca de documento), janela de curvas sem motor e trava de segundo escritor (S0.4, D5). |
-| `test_brush_engines_characterization.py` | Caracterização de pixel dos 9 motores de pincel (S0.6): 4 variações por motor (traço simples, trava de alfa, seleção, máscara de recorte). |
+| `test_brush_engines_characterization.py` | Caracterização de pixel dos 9 motores de pincel (S0.6): 12 variações por motor, 108 pinos (traço simples, trava de alfa, seleção, máscara de recorte; e as formas de pincel que nenhum pino alcançava: texturas, elipse girada, dureza 0 e 1, modos de dab, parâmetros de cada motor); uma tabela diz quais motores ignoram cada variação. |
 | `test_brush_panel_structure.py` | BrushSettingsPanel e seus componentes como views do BrushState. |
 | `test_brush_param_contract.py` | Contrato dos parâmetros de pincel — o motor define, a interface exibe. |
 | `test_brush_presets_catalog.py` | Unit tests for Camada 4 - Fase 1: Modularização do Catálogo de Presets de Pincéis. |

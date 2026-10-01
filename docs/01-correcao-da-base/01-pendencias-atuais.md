@@ -61,6 +61,16 @@ impedem que o que já foi arrumado volte a bagunçar, então não há rodada de
 **Estado:** registrado; **nada implementado ainda** (o dono pediu para parar
 no registro). Quando liberar, a ordem é S0.6 (golden) e depois S0.1.
 
+**Proposta em análise (2026-10-01, aguarda decisão do dono):**
+`08-analise-arccc-v1-1-e-forma-de-trabalho.md` propõe duas mudanças nesta
+linha: **D17** (falha ao carregar o motor chega à tela, e o módulo expõe a
+versão do contrato) entra em S0.2; e nasce **S0.8**, benchmark versionado em
+`benchmarks/`, porque as metas numéricas de S1 só são verificáveis com a
+medição no repositório. Ordem recomendada: S0.6, S0.8, S0.1–S0.5 e S0.7, S1.
+Também traz o laço de trabalho (ARCcC 4.4), as regras de parada e 4 decisões
+do dono (Seção 8 do documento). Enquanto não for aprovada, a lista acima vale
+como está.
+
 **Itens ainda abertos da lista de 2026-09-25 (abaixo) ficam fora da linha de
 chegada:**
 - 13 (147 cores fixas) e 14 (6 funções acima de 20): têm catraca que impede

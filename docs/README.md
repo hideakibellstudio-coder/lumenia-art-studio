@@ -49,6 +49,30 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-10-01 — Análise sob o ARCcC v1.1.0 e forma de trabalho
+**Base:** o dono atualizou o documento do ARCcC (v1.1.0, 2026-09-29) e pediu
+uma nova análise do projeto e de como trabalhar nele.
+**Documento:** `01-correcao-da-base/08-analise-arccc-v1-1-e-forma-de-trabalho.md`.
+**Achados medidos (`92e4543`, Linux):**
+- A Seção 4.4 do ARCcC (fluxo de construção) não é citada nem aplicada em
+  lugar nenhum do projeto; só a regra 15.4 é citada.
+- 325 dos 606 imports que vêm de fora de uma pasta com porta passam por cima
+  dela; em 239 a porta já exportava o que foi importado.
+- Os 11 sub-protocolos do backend não têm consumidor (mecanismo sem entrega).
+- 149 funções passam de complexidade 10 (limiar do documento); 46 passam de 20.
+- D17: se o motor não carrega, o app abre com o canvas vazio e só registra um
+  log INFO; o módulo nativo não expõe versão.
+- Os 17 defeitos caem em 5 famílias; três delas (promessa sem entrega, falha
+  que não chega a quem chamou, valor solto no lugar de tipo) não têm trava
+  automática, e por isso cada rodada de análise acha instâncias novas.
+**Proposto (aguarda decisão do dono, nada implementado):**
+- D17 entra em S0.2 e nasce S0.8 (benchmark versionado), as duas únicas
+  mudanças na linha de chegada;
+- o laço de trabalho da 4.4 e as regras de parada;
+- os pontos de extensão registrados em vez de implementados;
+- 4 decisões do dono (idioma dos commits, limiar de complexidade, texto do
+  `AGENTS.md`, onde guardar o ARCcC).
+
 ### 2026-09-26 — Estudo externo do motor avaliado e linha de chegada da base
 **Base:** o dono trouxe um estudo do motor C++ feito fora desta sessão
 (`ESTUDO_MOTOR_C_v1`, fora do repositório) e perguntou se ele eleva o motor,

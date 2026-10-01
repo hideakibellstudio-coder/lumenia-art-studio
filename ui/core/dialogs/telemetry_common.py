@@ -9,7 +9,7 @@ Cockpit em grade, painel de telemetria e diálogo de diagnóstico são views do
   histórico do documento ativo (`DocumentHistory.clear` → motor nativo).
 
 Até 2026-09-24 os dois botões "Limpar Undo" esvaziavam listas privadas do
-backend (`backend._action_stack`) e diziam "limpa com sucesso" sem tocar no
+backend (`_action_stack`, removida em 2026-10-01) e diziam "limpa com sucesso" sem tocar no
 histórico do motor, que continuava ocupando a mesma RAM.
 """
 from __future__ import annotations

@@ -30,8 +30,13 @@ fechada: só diminui.
      Borracha.)*
    - S0.2: falha ao criar contexto do motor é engolida (D2); limite único de
      documento (D13).
-   - S0.3: histórico-sombra, compressão sem chamador, `PluginType` sem
-     extensão (D7–D9).
+   - ~~S0.3: histórico-sombra, compressão sem chamador, `PluginType` sem
+     extensão (D7–D9).~~ *(feito em 2026-10-01: D7 `_action_stack`, `_redo_stack` e
+     `_is_filling` saíram do backend (eram escritos e nunca lidos); D9 os tipos
+     BRUSH, FILTER, TOOL e IO saíram de `PluginType`; D8 `compress_inactive_layers`
+     é capacidade do motor com teste e fica sem chamador de produção de propósito,
+     registrado em `bridge/README.md`: a política de quando comprimir só entra com
+     benchmark.)*
    - S0.4: curvas Bézier fora do `BrushState` (D5).
    - ~~S0.5: documento do framework ARCcC desatualizado (D10).~~ *(feito em
      2026-10-01: `01-framework-arccc.md` reescrito; método universal v1.1.0 em

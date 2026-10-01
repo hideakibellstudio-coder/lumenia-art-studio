@@ -32,7 +32,7 @@ class PluginMetadata:
     version: str
     author: str
     description: str
-    plugin_type: PluginType = PluginType.UI   # SYSTEM, UI, BRUSH, FILTER, TOOL, IO
+    plugin_type: PluginType = PluginType.UI   # SYSTEM ou UI (BRUSH/FILTER/TOOL/IO saíram em 2026-10-01, sem ponto de extensão)
     dependencies: List[str] = field(default_factory=list)
     icon: Optional[str] = None
 ```

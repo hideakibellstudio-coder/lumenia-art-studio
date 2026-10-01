@@ -3,12 +3,13 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 
 class PluginType(Enum):
+    """Tipos de plugin que o carregador sabe tratar. BRUSH, FILTER, TOOL e IO foram
+    declarados sem ponto de extensão e saíram em 2026-10-01 (ARCcC 4.4.9: nada de
+    mecanismo para possibilidade que não existe); entram junto da feature que os
+    carregar de verdade (ferramenta, filtro ou formato feito por plugin)."""
+
     SYSTEM = auto()      # Plugins estruturais de infraestrutura
     UI = auto()          # Docks, painéis ou abas adicionais
-    BRUSH = auto()       # Dinâmicas e pontas de pincel
-    FILTER = auto()      # Processamento de imagem e filtros
-    TOOL = auto()        # Ferramentas extras de pintura
-    IO = auto()          # Importadores e exportadores de arquivos
 
 @dataclass
 class PluginMetadata:

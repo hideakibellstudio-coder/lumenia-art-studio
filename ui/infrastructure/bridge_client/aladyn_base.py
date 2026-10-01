@@ -35,11 +35,8 @@ class AladynBackendBase:
     _last_brush_preset: dict[str, Any]
 
     # ── Histórico ─────────────────────────────────────────────────────────
-    _action_stack: list[tuple[str, int]]
-    _redo_stack: list[tuple[str, int]]
     _undo_memory_limit_mb: int
     _undo_max_steps: int
-    _is_filling: bool
     _last_x: Optional[float]
     _last_y: Optional[float]
 
@@ -65,11 +62,8 @@ class AladynBackendBase:
         self._active_doc_uid = None
         self._last_brush_preset = {}
 
-        self._action_stack = []
-        self._redo_stack = []
         self._undo_memory_limit_mb = 512
         self._undo_max_steps = 50
-        self._is_filling = False
         # Último ponto do traço (end_stroke sem coordenadas usa este).
         self._last_x: Optional[float] = None
         self._last_y: Optional[float] = None

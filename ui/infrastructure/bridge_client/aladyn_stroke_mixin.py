@@ -117,12 +117,7 @@ class AladynStrokeMixin(AladynBackendBase):
                         f"Taxa: {snap.total_dabs_per_second:.0f} dabs/s{breakdown}"
                     )
 
-        if not self._is_filling:
-            self._action_stack.append(("stroke", 1))
-            if len(self._action_stack) > self._undo_max_steps:
-                self._action_stack.pop(0)
-            self._redo_stack.clear()
-            self._mark_document_dirty("stroke")
+        self._mark_document_dirty("stroke")
         return res or []
 
     def begin_stroke_raw(

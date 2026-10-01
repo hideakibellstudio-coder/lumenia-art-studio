@@ -831,9 +831,9 @@ compilação para Windows com MinGW (69/69 arquivos, `-Werror`).
 | **D4** | Repintura em zoom ≥ 100% copia o canvas inteiro duas vezes | 7.1 | **Alta** | Contrato de exibição "canvas inteiro" | S1.1 |
 | **D5** | Curvas Bézier da janela de curvas escrevem direto no motor: segundo escritor da dinâmica do pincel; a curva não é salva com o pincel | `curve_window.sync_to_engine` → `backend.set_curve_control_points`; nada em `ui/core/state` | Média | Um escritor por assunto (AGENTS 4.2, caminho 4) | Curvas viram parâmetro do `BrushState` e do preset |
 | **D6** | Perfis de cor nativos com nome de padrão e fórmula aproximada; dois pipelines de cor | 4.12, 7.7 | Média (alta para impressão) | Lei do Rio 2 (algoritmo duplicado divergente); promessa da interface | S3.2 |
-| **D7** | Histórico-sombra `_action_stack`/`_redo_stack` escrito e nunca lido; `_is_filling` nunca vira `True` | grep: só escritas | Baixa | Estado morto (segunda cópia de estado) | Remover |
-| **D8** | `compress_inactive_layers` existe na ponte e ninguém chama | grep | Baixa (custo de memória) | Capacidade sem dono | Decidir: política de memória que chame, ou remover |
-| **D9** | `PluginType.BRUSH/FILTER/TOOL/IO` declarados sem ponto de extensão | 0 usos | Baixa (promessa de API) | A interface não promete o que não faz | Remover até existir, ou implementar S2.4 |
+| **D7** ✅ | Histórico-sombra `_action_stack`/`_redo_stack` escrito e nunca lido; `_is_filling` nunca vira `True` | grep: só escritas | Baixa | Estado morto (segunda cópia de estado) | Remover |
+| **D8** ✅ | `compress_inactive_layers` existe na ponte e ninguém chama | grep | Baixa (custo de memória) | Capacidade sem dono | Decidir: política de memória que chame, ou remover |
+| **D9** ✅ | `PluginType.BRUSH/FILTER/TOOL/IO` declarados sem ponto de extensão | 0 usos | Baixa (promessa de API) | A interface não promete o que não faz | Remover até existir, ou implementar S2.4 |
 | **D10** | O documento do framework ARCcC contradiz o código (zonas 250/300, `plugins/` na raiz, "a UI não pinta pixels") | Apêndice E | Baixa | Documentação como contrato | Atualizar |
 | **D11** | Prévia da transformação (bilinear, Qt) diferente do resultado (bicúbico, motor) | 7.6 | Baixa | Lei do Rio 2 (duas implementações da mesma conta) | Prévia pelo motor em baixa resolução, ou mesmo amostrador |
 | **D12** | Forma e texto: `QImage` do canvas inteiro por confirmação (96 MB em 6000×4000), sem pincel, sem edição posterior | 6.9 | Média (memória em canvas grande) | Pixel pintado fora do motor e depois colado | Rasterizar só a caixa da forma; forma pelo motor de pincel no futuro |
@@ -897,7 +897,7 @@ script pode conferir.
 |---|---|---|
 | S0.1 ✅ | Enum `EngineType` canônico em Python espelhando o C++ (como `LayerBlendMode`); roteador e presets usam o enum; ponta borracha → Borracha (D1) | Teste da ponta borracha espera Borracha; nenhum número solto de motor em `ui/` (catraca) |
 | S0.2 ✅ | Falha ao criar contexto vira erro que `show_document` trata (D2). Limite único de documento: o motor declara o máximo, e o diálogo de novo documento, "Tamanho do Canvas" e abrir imagem consultam. `size_t` antes de multiplicar (D13) | Teste com falha simulada de alocação: o documento anterior não recebe nada e o usuário vê o erro; diálogos com o mesmo máximo |
-| S0.3 | Remover histórico-sombra (D7); decidir `compress_inactive_layers` (D8); remover os `PluginType` sem extensão (D9) | Catraca de acoplamento igual ou menor; grep limpo |
+| S0.3 ✅ | Remover histórico-sombra (D7); decidir `compress_inactive_layers` (D8); remover os `PluginType` sem extensão (D9) | Catraca de acoplamento igual ou menor; grep limpo |
 | S0.4 | Curvas Bézier como parâmetros do `BrushState` e do preset, com um escritor (D5) | Trocar de pincel e voltar preserva a curva; `curve_window` não chama o backend |
 | S0.5 ✅ | Atualizar `02-arquitetura/01-framework-arccc.md` (D10) | Nenhuma afirmação do Apêndice E continua falsa |
 | S0.6 ✅ | **Antes de qualquer outra mudança em motor:** referência de pixel (golden) de traço para os 9 motores, Borrar e Desfoque incluídos (R11) | `stroke_golden.json` com uma célula por motor; o teste falha se um motor mudar um pixel |

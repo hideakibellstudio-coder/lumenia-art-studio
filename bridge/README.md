@@ -23,6 +23,15 @@ Pilar 2 do ARCcC multi-pilar (`ui/` → `bridge/` → `engine/`): só serializa,
 - Mudou o `.pyi`? Suba `kContractVersion` (`infrastructure/ContractVersion.hpp`) e `EXPECTED_CONTRACT_VERSION` (`ui/infrastructure/bridge_client/contract_version.py`), recompile, e atualize os dois campos de `tests/golden/bridge_contract.json`. A interface recusa, na partida, um binário de outra versão.
 - A UI só alcança o módulo por `ui/infrastructure/bridge_client/` (Lei nº 2 do AGENTS.md).
 
+## API exposta sem chamador de produção (de propósito)
+
+- `compress_inactive_layers` e `decompress_all_layers`: capacidade do motor (compressão LZ4 dos
+  tiles de camadas inativas), coberta por `tests/test_lowlevel_memory_scalability.py`, que é a
+  única forma de exercitar esse caminho. A interface não chama: a política de quando comprimir
+  (ao trocar de camada? por orçamento de memória?) só entra com benchmark que a justifique
+  (`benchmarks/`, S1.5). Não remova sem substituir essa cobertura; decisão registrada em
+  2026-10-01 (D8 do relatório 07).
+
 ## Dívida conhecida (medida em 2026-09-25)
 
 - Nenhuma registrada. `infrastructure/` existe desde 2026-09-25 (antes o

@@ -262,8 +262,6 @@ class AladynLayerMixin(AladynBackendBase):
         """Descarta desfazer/refazer do documento ativo no motor (o "Limpar Undo")."""
         if not self._facade or not self._facade.clear_history():
             return False
-        self._action_stack.clear()
-        self._redo_stack.clear()
         return True
 
     def get_undo_max_steps(self) -> int:

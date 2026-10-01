@@ -15,7 +15,7 @@
 |---|---|
 | `__init__.py` | Reexporta `Document` e `DocumentManager`. |
 | `document.py` | Document — Representação de um documento aberto no Lumenia. |
-| `geometry.py` | Atomic geometry changes: prepare all pixels before committing the new context. |
+| `geometry.py` | Atomic geometry changes: prepare all pixels before committing the new context (pede ao motor o RGBA de cada camada; não passa mais por um arquivo temporário). |
 | `history.py` | One timeline for native pixels and the document's layer metadata. |
 | `layer_backend_sync.py` | layer_backend_sync — Sincronizador de Estado e Projeção C++ para LocalLayerManager. |
 | `layer_commands.py` | `LayerCommands`: comandos de camada iniciados pela interface (painel de camadas e menu Camada), cada um uma `layer_transaction`. |
@@ -26,9 +26,10 @@
 | `manager.py` | `DocumentManager` (singleton): documentos abertos, documento ativo e sinais de troca. |
 | `paper_backend_sync.py` | `sync_paper_to_backend`: leva cor, visibilidade, textura e grão do papel do documento ao motor (único escritor fora da restauração). |
 | `recovery.py` | Session-scoped recovery snapshots, independent of the user's saved file. |
-| `restore.py` | Restore a validated document into a newly allocated backend context. |
-| `schema.py` | Explicit migrations and portable document state for the LMN container. |
-| `serializer.py` | Persistência do formato editável nativo do Lumenia. |
+| `restore.py` | Restore a validated document into a newly allocated backend context, num lote do motor (compõe uma vez no fim). |
+| `save_capture.py` | `SaveCapture` e `capture_document`: a primeira metade de salvar, que precisa da thread do documento (conferências, manifesto, instantâneo das camadas em poucos ms). A segunda, `DocumentSerializer.write`, roda em qualquer thread. |
+| `schema.py` | Explicit migrations and portable document state for the LMN container (versão atual: 3). |
+| `serializer.py` | Persistência do formato editável nativo do Lumenia: `write` (comprime e grava), `read` (valida) e `save` (as duas metades de uma vez). Camada = bloco de tiles desde a v3; v1 e v2 (RGBA do canvas inteiro) seguem abrindo. |
 
 ## Regras
 

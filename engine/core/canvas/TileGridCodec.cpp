@@ -145,17 +145,30 @@ void decode(const uint8_t* data, size_t size, TileGrid& grid) {
     }
     if (offset != size) bad("bytes after the last tile");
 
-    // Second pass: decode into a grid of its own, and replace the layer only when all of it decoded.
-    TileGrid decoded(grid.getWidth(), grid.getHeight());
-    for (const EntryView& entry : entries) {
-        Tile* tile = decoded.getOrCreateTile(entry.tx, entry.ty);
-        if (!tile) bad("tile could not be created");
-        PixelBuffer& buffer = tile->getBuffer();
+    // Second pass: decode every tile into a buffer of its own, in parallel (each one is a
+    // separate 64 KB block: opening a dense 4K document is ten layers of 510 tiles), then put
+    // them in a grid of its own and replace the layer only when all of it decoded.
+    std::vector<std::shared_ptr<PixelBuffer>> buffers(entries.size());
+    std::vector<char> decodedOk(entries.size(), 0);
+    const int total = static_cast<int>(entries.size());
+    #pragma omp parallel for schedule(static) if(total >= 16)
+    for (int i = 0; i < total; ++i) {
+        const EntryView& entry = entries[static_cast<size_t>(i)];
+        auto buffer = std::make_shared<PixelBuffer>(Tile::TILE_SIZE, Tile::TILE_SIZE, utils::ColorRGBA{0, 0, 0, 0});
+        bool ok = true;
         if (entry.codec == kCodecRaw) {
-            std::memcpy(buffer.getData(), entry.data, Tile::TILE_BYTES);
-        } else if (!compression::Lz4Codec::decompressBlock(entry.data, entry.size, buffer.getData(), Tile::TILE_BYTES)) {
-            bad("compressed tile is corrupt");
+            std::memcpy(buffer->getData(), entry.data, Tile::TILE_BYTES);
+        } else {
+            ok = compression::Lz4Codec::decompressBlock(entry.data, entry.size, buffer->getData(), Tile::TILE_BYTES);
         }
+        buffers[static_cast<size_t>(i)] = std::move(buffer);
+        decodedOk[static_cast<size_t>(i)] = ok ? 1 : 0;
+    }
+    if (std::find(decodedOk.begin(), decodedOk.end(), 0) != decodedOk.end()) bad("compressed tile is corrupt");
+
+    TileGrid decoded(grid.getWidth(), grid.getHeight());
+    for (size_t i = 0; i < entries.size(); ++i) {
+        if (!decoded.adoptTile(entries[i].tx, entries[i].ty, std::move(buffers[i]))) bad("tile could not be created");
     }
     grid = std::move(decoded);
 }

@@ -1,14 +1,33 @@
 """Atomic geometry changes: prepare all pixels before committing the new context."""
 
-import tempfile
+import copy
 import uuid
 from pathlib import Path
 from PIL import Image
 
 from ui.core.engine.errors import EngineContextError
 from .document import Document
-from .serializer import DocumentSerializer, DocumentFormatError
 from .restore import restore_document
+from .save_capture import capture_document
+from .schema import DocumentFormatError
+
+
+def _raw_document(document: Document, backend):
+    """O manifesto do documento e o RGBA de cada camada, para recortar ou redimensionar com o PIL.
+
+    Até 2026-10-01 isto gravava um `.lmn` numa pasta temporária e o lia de volta só para obter
+    estes bytes. O arquivo guarda blocos de tiles (v3), que o PIL não lê; aqui se pede ao motor
+    o buffer de cada camada, sem arquivo nenhum no meio.
+    """
+    capture = capture_document(document, backend, Path("geometry.lmn"))
+    manifest = copy.deepcopy(capture.manifest)
+    payloads = dict(capture.extras)
+    for index, _name in capture.raster_layers:
+        record = manifest["layers"][index]
+        del record["tiles_payload"]
+        record["pixel_payload"] = f"layers/{record['uid']}.rgba"
+        payloads[record["pixel_payload"]] = bytes(backend.get_layer_pixel_buffer(index))
+    return manifest, payloads
 
 
 def change_geometry(document: Document, backend, width, height, *, anchor=(1, 1), crop=None, resample=None):
@@ -26,9 +45,7 @@ def change_geometry(document: Document, backend, width, height, *, anchor=(1, 1)
         x, y = map(int, crop)
         if x < 0 or y < 0 or x + width > document.width or y + height > document.height:
             raise ValueError("recorte fora dos limites do documento")
-    with tempfile.TemporaryDirectory(prefix="lumenia-geometry-") as directory:
-        path = DocumentSerializer.save(document, backend, Path(directory) / "before.lmn")
-        manifest, payloads = DocumentSerializer.read(path)
+    manifest, payloads = _raw_document(document, backend)
     original_size = (document.width, document.height)
     def transform(image, interpolation):
         if crop is not None:

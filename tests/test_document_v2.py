@@ -51,7 +51,7 @@ def test_native_round_trip_preserves_mask_profile_texture_curve_and_guides(drawi
     document.zoom, document.rotation = 1.75, 20.0
     path = DocumentSerializer.save(document, backend, tmp_path / "drawing.lmn")
     manifest, payloads = DocumentSerializer.read(path)
-    assert manifest["version"] == 2
+    assert manifest["version"] == 3
     assert manifest["guide_state"]["p0"] == [1.5, 2.5]
     other: Document = Document("v2-copy", "Cópia", 4, 4)
     backend.set_active_document_context(other.uid, 4, 4)
@@ -72,10 +72,19 @@ def test_native_round_trip_preserves_mask_profile_texture_curve_and_guides(drawi
     assert backend.get_selection_mask_buffer() == mask
 
 
-@pytest.mark.parametrize("version", [True, "1", 1.5, -1, 3])
+@pytest.mark.parametrize("version", [True, "1", 1.5, -1, 4])
 def test_rejects_invalid_or_future_version(version):
     with pytest.raises(DocumentFormatError):
         migrate({"version": version})
+
+
+def test_a_v2_manifest_becomes_v3_unchanged_but_for_the_version():
+    """v3 adds the tile-block payload next to the raw one; a v2 file already describes its layers."""
+    source = {"version": 2, "layers": [{"uid": 1, "pixel_payload": "layers/1.rgba"}], "name": "old"}
+    before = copy.deepcopy(source)
+    result = migrate(source)
+    assert source == before
+    assert result == {**before, "version": 3}
 
 
 @pytest.mark.parametrize("version", [0, 1])
@@ -84,7 +93,7 @@ def test_migration_chain_does_not_modify_source(version):
     before = copy.deepcopy(source)
     result = migrate(source)
     assert source == before
-    assert result["version"] == 2
+    assert result["version"] == 3
     assert result["layers"][0]["empty"] is True
     assert result["selection_payload"] is None
     assert result["color_profile_id"] == 0
@@ -268,13 +277,11 @@ from PySide6.QtWidgets import QApplication
 from ui.core.document.document import Document
 from ui.core.document.recovery import RecoveryStore
 app = QApplication([])
-class Backend:
-    available = True
-    def get_layer_pixel_buffer(self, index): return bytes([1, 2, 3, 255])
+from tests.persistence_doubles import BackendDouble
 doc = Document('crashed', 'Recovered after crash', 1, 1)
 doc.layer_manager.add_layer('Paint')
 store = RecoveryStore(sys.argv[1])
-assert store.capture(doc, Backend())
+assert store.capture(doc, BackendDouble(doc))
 os._exit(0)
 """
     result = subprocess.run([sys.executable, "-c", script, str(tmp_path)],
@@ -286,7 +293,7 @@ os._exit(0)
         assert len(candidates) == 1
         manifest, payloads = DocumentSerializer.read(candidates[0])
         assert manifest["name"] == "Recovered after crash"
-        assert list(payloads.values()) == [bytes([1, 2, 3, 255])]
+        assert [name for name in payloads] == ['layers/1.tiles']
     finally:
         reader.close()
 

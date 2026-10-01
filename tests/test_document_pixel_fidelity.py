@@ -116,6 +116,7 @@ def test_a_document_with_soft_strokes_opens_again(backend, tmp_path):
         for j in range(20):
             engine.update_stroke_raw(30 + layer * 30 + j * 6, 30 + j * 5, 0.8, j * 0.004)
         engine.end_stroke()
+    wanted_layers = [bytes(engine.get_layer_pixel_buffer(index)) for index in range(3)]
     path = tmp_path / "fidelity.lmn"
     DocumentSerializer.save(doc, engine, path)
 
@@ -124,8 +125,8 @@ def test_a_document_with_soft_strokes_opens_again(backend, tmp_path):
     engine.set_active_document_context(reopened.uid, SIZE * 4, SIZE * 4)
     restore_document(reopened, engine, manifest, payloads)
 
-    for index, record in enumerate(manifest["layers"]):
-        wanted = payloads[record["pixel_payload"]]
+    for index in range(len(manifest["layers"])):
+        wanted = wanted_layers[index]
         got = bytes(engine.get_layer_pixel_buffer(index))
         visible_wanted = [wanted[i:i + 4] for i in range(0, len(wanted), 4) if wanted[i + 3]]
         visible_got = [got[i:i + 4] for i in range(0, len(got), 4) if got[i + 3]]

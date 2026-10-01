@@ -33,10 +33,6 @@
  "ui/core/document/restore.py": {
   "hasattr": 1
  },
- "ui/core/document/serializer.py": {
-  "getattr_literal": 14,
-  "hasattr": 3
- },
  "ui/core/engine/registry.py": {
   "getattr_literal": 1
  },

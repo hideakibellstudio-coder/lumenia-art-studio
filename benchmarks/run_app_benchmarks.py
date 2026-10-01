@@ -32,13 +32,17 @@ SCENARIOS = {
     "engine": "benchmarks.app_engine_paths",
     "ui": "benchmarks.app_ui_paths",
     "files": "benchmarks.app_file_paths",
+    "files_dense": "benchmarks.app_file_paths",
 }
+# Arguments a scenario always gets (two scenarios can share a module).
+FIXED_ARGS = {"files_dense": ["--content", "dense"]}
 # Scenario-specific knobs, as command-line arguments of the scenario module.
 SIZE_FLAG = "--sizes"
 QUICK_ARGS = {
     "engine": ["--sizes", "256x256", "--repeats", "2"],
     "ui": ["--sizes", "256x256", "--strokes", "1"],
     "files": ["--sizes", "256x256", "--layers", "3"],
+    "files_dense": ["--sizes", "256x256", "--layers", "3"],
 }
 
 
@@ -47,7 +51,7 @@ def run_scenario(name: str, extra_args: list[str], config_dir: str) -> dict:
     env.setdefault("QT_QPA_PLATFORM", "offscreen")
     env["LUMENIA_CONFIG_PATH"] = os.path.join(config_dir, f"{name}.json")
     completed = subprocess.run(
-        [sys.executable, "-m", SCENARIOS[name], *extra_args],
+        [sys.executable, "-m", SCENARIOS[name], *FIXED_ARGS.get(name, []), *extra_args],
         cwd=ROOT, env=env, capture_output=True, text=True, check=False,
     )
     if completed.returncode:

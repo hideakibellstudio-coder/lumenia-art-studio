@@ -35,6 +35,14 @@ Tile* TileGrid::getOrCreateTile(int tileX, int tileY) {
     return ptr;
 }
 
+Tile* TileGrid::adoptTile(int tileX, int tileY, std::shared_ptr<PixelBuffer> buffer) {
+    if (tileX < 0 || tileX >= m_tilesX || tileY < 0 || tileY >= m_tilesY) return nullptr;
+    auto tile = std::make_unique<Tile>(tileX, tileY, std::move(buffer));
+    Tile* ptr = tile.get();
+    m_tiles[TileIndex{tileX, tileY}] = std::move(tile);
+    return ptr;
+}
+
 void TileGrid::clearAll(utils::ColorRGBA color) {
     for (auto& [idx, tile] : m_tiles) {
         tile->getBuffer().fill(color);

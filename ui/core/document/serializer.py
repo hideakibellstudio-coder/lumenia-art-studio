@@ -1,8 +1,9 @@
 """Persistência do formato editável nativo do Lumenia.
 
-O formato é um ZIP versionado com manifesto JSON e snapshots RGBA por camada.
-Os buffers são copiados antes da escrita para não depender da vida útil de
-memoryviews expostos pelo backend.
+O formato é um ZIP versionado com manifesto JSON e uma entrada por camada. Desde a versão 3
+(2026-10-01) a camada é um bloco de tiles (só os tiles pintados, em LZ4); as versões 1 e 2
+guardavam o RGBA do canvas inteiro e continuam abrindo. Salvar tem duas metades
+(`save_capture.py`): congelar o documento na thread dele e gravar em qualquer thread.
 """
 
 from __future__ import annotations
@@ -16,157 +17,48 @@ import zipfile
 from pathlib import Path
 from typing import Any
 from .document import Document
-from .local_layer import LocalLayer
-from .schema import CURRENT_VERSION, DocumentFormatError, encode_guides, migrate, validate_auxiliary
+from .save_capture import MAX_PAYLOAD_BYTES, SaveCapture, capture_document
+from .schema import CURRENT_VERSION, DocumentFormatError, migrate, validate_auxiliary
 
 
 class DocumentSerializer:
     FORMAT_ID = "lmn"
     FORMAT_VERSION = CURRENT_VERSION
     MAX_MANIFEST_BYTES = 8 * 1024 * 1024
-    MAX_PAYLOAD_BYTES = 2 * 1024 * 1024 * 1024
-
-    @staticmethod
-    def _color_tuple(color: Any) -> list[int]:
-        return [int(color.red()), int(color.green()), int(color.blue()), int(color.alpha())]
+    MAX_PAYLOAD_BYTES = MAX_PAYLOAD_BYTES
+    # Cabeçalho de um bloco de tiles (engine/core/canvas/TileGridCodec.hpp) e o maior registro
+    # de um tile: 12 bytes de cabeçalho + o tile cru de 128 x 128 x 4.
+    TILE_BLOCK_MAGIC = b"LMNT"
+    TILE_BLOCK_HEADER = 24
+    TILE_BLOCK_ENTRY = 12 + 128 * 128 * 4
 
     @classmethod
-    def save(cls, document: Document, backend, path: str | os.PathLike[str]) -> str:  # noqa: C901 -- dívida registrada (pendências, item 14)
-        if not backend or not getattr(backend, "available", False):
-            raise DocumentFormatError("motor indisponível; salvamento cancelado para preservar o documento")
-        context = getattr(backend, "get_active_document_context", None)
-        if context and context() != document.uid:
-            raise DocumentFormatError("contexto ativo não corresponde ao documento")
-        if getattr(backend, "is_transform_active", lambda: False)():
-            raise DocumentFormatError("confirme ou cancele a transformação antes de salvar")
-        history = getattr(document, "history", None)
-        if history is not None and hasattr(history, "assert_projection"):
-            try:
-                history.assert_projection(backend)
-            except RuntimeError as exc:
-                raise DocumentFormatError(str(exc)) from exc
-        if document.width * document.height * 4 > min(cls.MAX_PAYLOAD_BYTES, 2**31 - 1):
-            raise DocumentFormatError("dimensões excedem o limite do motor")
-        target = Path(path).expanduser().resolve()
-        if target.suffix.lower() != ".lmn":
-            target = target.with_suffix(".lmn")
+    def save(cls, document: Document, backend, path: str | os.PathLike[str]) -> str:
+        """Captura e grava de uma vez, na thread de quem chama.
+
+        A interface usa as duas metades em separado (`capture_document` na thread dela,
+        `write` numa thread de gravação); isto serve a quem não tem interface a proteger.
+        """
+        return cls.write(capture_document(document, backend, path))
+
+    @classmethod
+    def write(cls, capture: SaveCapture) -> str:
+        """A metade que roda em qualquer thread: comprime os tiles, grava, confere e troca o arquivo."""
+        target = capture.target
         target.parent.mkdir(parents=True, exist_ok=True)
-
-        layers: list[dict[str, Any]] = []
-        payloads: dict[str, bytes] = {}
-        manager = document.layer_manager
-        expected_size = int(document.width) * int(document.height) * 4
-        layer: LocalLayer
-        for index, layer in enumerate(manager.layers):
-            entry: dict[str, Any] = {
-                "uid": int(layer.uid),
-                "name": str(layer.name),
-                "parent_uid": layer.parent_uid,
-                "is_group": bool(layer.is_group),
-                "is_filter": bool(layer.is_filter),
-                "visible": bool(layer.visible),
-                "locked": bool(layer.locked),
-                "opacity": float(layer.opacity),
-                "blend_mode": layer.blend_mode,
-                "alpha_locked": bool(layer.alpha_locked),
-                "clipping_mask": bool(layer.clipping_mask),
-            }
-            if backend and getattr(backend, "available", False):
-                raw = backend.get_layer_pixel_buffer(index)
-                if not raw and not layer.is_group and not layer.is_filter:
-                    raise DocumentFormatError(f"pixels da camada {layer.uid} indisponíveis")
-                if raw:
-                    raw_bytes = bytes(raw)
-                    if len(raw_bytes) != expected_size:
-                        raise DocumentFormatError(
-                            f"buffer da camada {layer.uid} tem tamanho inválido ({len(raw_bytes)} != {expected_size})"
-                        )
-                    name = f"layers/{int(layer.uid)}.rgba"
-                    payloads[name] = raw_bytes
-                    entry["pixel_payload"] = name
-                if layer.is_filter and hasattr(backend, "get_filter_type"):
-                    entry["filter_type"] = int(backend.get_filter_type(index))
-                    entry["filter_params"] = list(backend.get_filter_params(index))
-            layers.append(entry)
-
-        manifest = {
-            "format": cls.FORMAT_ID,
-            "version": cls.FORMAT_VERSION,
-            "name": str(document.name),
-            "width": int(document.width),
-            "height": int(document.height),
-            "dpi": int(document.dpi),
-            "file_path": str(target),
-            "paper": {
-                "color": cls._color_tuple(document.paper_color),
-                "visible": bool(document.paper_visible),
-                "texture_id": int(getattr(document, "paper_texture_id", 0)),
-                "texture_enabled": bool(getattr(document, "paper_texture_enabled", False)),
-            },
-            "layers": layers,
-            "active_uid": manager.get_active_layer().uid if manager.get_active_layer() else None,
-            "zoom": float(document.zoom),
-            "pan_x": float(document.pan_x),
-            "pan_y": float(document.pan_y),
-            "rotation": float(document.rotation),
-            "guide_state": encode_guides(getattr(document, "guide_state", {}) or {}),
-            "sym_state": dict(getattr(document, "sym_state", {}) or {}),
-            "color_profile_id": getattr(backend, "get_color_profile", lambda: 0)(),
-            "color_profile_payload": None,
-            "selection_payload": None,
-            "canvas_resource": None,
-        }
-        active_prof = manifest["color_profile_id"]
-        custom_icc = getattr(document, "color_profile_icc_bytes", None)
-        if not custom_icc and hasattr(backend, "get_active_profile_icc_bytes") and active_prof >= 100:
-            custom_icc = backend.get_active_profile_icc_bytes()
-        if custom_icc and active_prof >= 100:
-            manifest["color_profile_payload"] = "profiles/document.icc"
-            payloads["profiles/document.icc"] = bytes(custom_icc)
-            if getattr(document, "color_profile_name", None):
-                manifest["color_profile_name"] = str(document.color_profile_name)
-        if getattr(backend, "has_selection", lambda: False)():
-            raw = backend.get_selection_mask_buffer()
-            if raw is None or len(raw) != document.width * document.height:
-                raise DocumentFormatError("máscara de seleção indisponível ou inválida")
-            manifest["selection_payload"] = "masks/selection.gray"
-            payloads[manifest["selection_payload"]] = bytes(raw)
-        resource = getattr(backend, "get_canvas_resource", lambda: None)()
-        if resource is not None:
-            resource = dict(resource)
-            payloads["assets/canvas.gray"] = bytes(resource.pop("pixels"))
-            resource["payload"] = "assets/canvas.gray"
-            manifest["canvas_resource"] = resource
-        cls._validate_manifest(manifest)
-
+        cls._validate_manifest(capture.manifest)
+        manifest_bytes = json.dumps(capture.manifest, ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8")
         fd, temp_name = tempfile.mkstemp(prefix=f".{target.stem}.", suffix=".tmp", dir=str(target.parent))
         os.close(fd)
         try:
-            with zipfile.ZipFile(temp_name, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-                archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8"))
-                for name, data in payloads.items():
-                    archive.writestr(name, data)
-            # Verify the completed archive before replacing the user's file.
-            cls.read(temp_name)
-            with open(temp_name, "r+b") as stream:
-                os.fsync(stream.fileno())
-            if target.exists():
-                try:
-                    cls.read(target)
-                except DocumentFormatError:
-                    pass  # Never replace a valid backup with a corrupt source.
-                else:
-                    backup_fd, backup_name = tempfile.mkstemp(prefix=".lmn-backup-", dir=target.parent)
-                    os.close(backup_fd)
-                    try:
-                        shutil.copyfile(target, backup_name)
-                        with open(backup_name, "r+b") as backup:
-                            os.fsync(backup.fileno())
-                        os.replace(backup_name, str(target) + ".bak")
-                    finally:
-                        if os.path.exists(backup_name):
-                            os.unlink(backup_name)
-            os.replace(temp_name, target)
+            # Os blocos de tiles já vêm comprimidos (LZ4): guardados, não comprimidos de novo.
+            with zipfile.ZipFile(temp_name, "w", compression=zipfile.ZIP_STORED) as archive:
+                for index, name in capture.raster_layers:
+                    archive.writestr(name, capture.snapshot.encode_layer(index))
+                for name, data in capture.extras.items():
+                    archive.writestr(name, data, compress_type=zipfile.ZIP_DEFLATED)
+                archive.writestr("manifest.json", manifest_bytes, compress_type=zipfile.ZIP_DEFLATED)
+            cls._publish(temp_name, target)
         except Exception:
             try:
                 os.unlink(temp_name)
@@ -174,6 +66,30 @@ class DocumentSerializer:
                 pass
             raise
         return str(target)
+
+    @classmethod
+    def _publish(cls, temp_name: str, target: Path) -> None:
+        """Confere o arquivo pronto, guarda a cópia `.bak` do anterior e o troca de forma atômica."""
+        cls.read(temp_name)  # a estrutura e o CRC de cada entrada, antes de tocar no arquivo do usuário
+        with open(temp_name, "r+b") as stream:
+            os.fsync(stream.fileno())
+        if target.exists():
+            try:
+                cls.read(target)
+            except DocumentFormatError:
+                pass  # Never replace a valid backup with a corrupt source.
+            else:
+                backup_fd, backup_name = tempfile.mkstemp(prefix=".lmn-backup-", dir=target.parent)
+                os.close(backup_fd)
+                try:
+                    shutil.copyfile(target, backup_name)
+                    with open(backup_name, "r+b") as backup:
+                        os.fsync(backup.fileno())
+                    os.replace(backup_name, str(target) + ".bak")
+                finally:
+                    if os.path.exists(backup_name):
+                        os.unlink(backup_name)
+        os.replace(temp_name, target)
 
     @classmethod
     def read(cls, path: str | os.PathLike[str]) -> tuple[dict[str, Any], dict[str, bytes]]:  # noqa: C901 -- dívida registrada (pendências, item 14)
@@ -216,24 +132,31 @@ class DocumentSerializer:
                     if uid in seen_uids:
                         raise DocumentFormatError("UID de camada duplicado")
                     seen_uids.add(uid)
-                    payload_name = layer.get("pixel_payload")
+                    if layer.get("pixel_payload") and layer.get("tiles_payload"):
+                        raise DocumentFormatError("camada declara pixels de dois jeitos")
+                    payload_name = layer.get("pixel_payload") or layer.get("tiles_payload")
                     if payload_name:
+                        is_tiles = bool(layer.get("tiles_payload"))
                         # Impede entradas ZIP que escapem do namespace de camadas.
-                        if payload_name != f"layers/{uid}.rgba":
+                        if payload_name != f"layers/{uid}.{'tiles' if is_tiles else 'rgba'}":
                             raise DocumentFormatError("payload de camada fora do namespace permitido")
                         if payload_name in payloads:
                             raise DocumentFormatError("payload de camada duplicado")
                         referenced_payloads.add(str(payload_name))
+                        tiles_limit = cls.TILE_BLOCK_HEADER + (-(-width // 128)) * (-(-height // 128)) * cls.TILE_BLOCK_ENTRY
                         try:
                             size = archive.getinfo(payload_name).file_size
                             total_size += size
-                            if size != expected_size or total_size > cls.MAX_PAYLOAD_BYTES:
+                            bad_size = not cls.TILE_BLOCK_HEADER <= size <= tiles_limit if is_tiles else size != expected_size
+                            if bad_size or total_size > cls.MAX_PAYLOAD_BYTES:
                                 raise DocumentFormatError("tamanho de payload inválido ou acima do limite")
                             data = archive.read(payload_name)
                         except KeyError as exc:
                             raise DocumentFormatError(f"payload ausente: {payload_name}") from exc
-                        if len(data) != expected_size:
+                        if len(data) != size:
                             raise DocumentFormatError("payload de camada com tamanho inválido")
+                        if is_tiles and data[:4] != cls.TILE_BLOCK_MAGIC:
+                            raise DocumentFormatError("bloco de tiles inválido")
                         payloads[payload_name] = data
                 extras = []
                 if manifest.get("selection_payload"):
@@ -296,7 +219,7 @@ class DocumentSerializer:
             if "name" in record and not isinstance(record["name"], str):
                 raise DocumentFormatError("nome de camada inválido")
             if manifest.get("version") == CURRENT_VERSION and not record.get("is_group") and not record.get("is_filter"):
-                if not record.get("pixel_payload") and record.get("empty") is not True:
+                if not record.get("pixel_payload") and not record.get("tiles_payload") and record.get("empty") is not True:
                     raise DocumentFormatError("camada raster sem declaração de pixels")
             opacity = float(record.get("opacity", 1.0))
             if not math.isfinite(opacity) or not 0 <= opacity <= 1:
@@ -306,7 +229,7 @@ class DocumentSerializer:
                     raise DocumentFormatError(f"flag inválido: {key}")
             if record.get("is_group") and record.get("is_filter"):
                 raise DocumentFormatError("camada não pode ser grupo e filtro")
-            if record.get("pixel_payload") and (record.get("is_group") or record.get("is_filter")):
+            if (record.get("pixel_payload") or record.get("tiles_payload")) and (record.get("is_group") or record.get("is_filter")):
                 raise DocumentFormatError("grupo/filtro não pode conter payload raster")
             if record.get("is_filter"):
                 if type(record.get("filter_type", 0)) is not int:

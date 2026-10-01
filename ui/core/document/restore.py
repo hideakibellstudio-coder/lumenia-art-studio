@@ -23,9 +23,42 @@ def same_visible_pixels(restored: bytes, expected: bytes) -> bool:
     return not bool((differs & ~both_transparent).any())
 
 
-def restore_document(document: Document, backend, manifest, payloads):  # noqa: C901 -- dívida registrada (pendências, item 14)
+def _restore_pixels(document: Document, backend, index: int, record, payloads) -> None:
+    """Os pixels de uma camada: um bloco de tiles (v3) ou o RGBA do canvas inteiro (v1 e v2)."""
+    tiles = record.get("tiles_payload")
+    if tiles:
+        try:
+            backend.restore_layer_tiles(index, payloads[tiles])
+        except ValueError as exc:
+            raise DocumentFormatError(f"camada {record['uid']}: {exc}") from exc
+        return
+    payload = record.get("pixel_payload")
+    if not payload:
+        return
+    if not backend.select_layer(index):
+        raise DocumentFormatError("falha ao selecionar camada")
+    backend.paste_rgba_buffer_on_active_layer(0, 0, document.width, document.height, payloads[payload])
+    if not same_visible_pixels(bytes(backend.get_layer_pixel_buffer(index) or b""), payloads[payload]):
+        raise DocumentFormatError("restauração de pixels não corresponde ao arquivo")
+
+
+def restore_document(document: Document, backend, manifest, payloads):
+    """Reconstrói o documento no contexto ativo do motor.
+
+    Tudo dentro de um lote do motor: abrir um arquivo muda dezenas de propriedades de
+    camada em sequência e cada uma recompunha o canvas inteiro (50 recomposições, 0,6 s
+    num 4K de dez camadas); no lote o canvas é composto uma vez, no fim.
+    """
     if not backend or not backend.available:
         raise DocumentFormatError("motor indisponível para restaurar os pixels")
+    backend.begin_batch()
+    try:
+        _restore_into_engine(document, backend, manifest, payloads)
+    finally:
+        backend.end_batch()
+
+
+def _restore_into_engine(document: Document, backend, manifest, payloads):  # noqa: C901 -- dívida registrada (pendências, item 14)
     records = manifest["layers"]
     backend.clear_selection()
     # Keep the bootstrap layer until every replacement node exists. This also
@@ -48,15 +81,8 @@ def restore_document(document: Document, backend, manifest, payloads):  # noqa: 
         raise DocumentFormatError("quantidade de camadas inconsistente")
     indices = {record["uid"]: i for i, record in enumerate(records)}
     for index, record in enumerate(records):
-        payload = record.get("pixel_payload")
         # Restore pixels before locks/opacity/clipping can influence paste.
-        if payload:
-            if not backend.select_layer(index):
-                raise DocumentFormatError("falha ao selecionar camada")
-            backend.paste_rgba_buffer_on_active_layer(
-                0, 0, document.width, document.height, payloads[payload])
-            if not same_visible_pixels(bytes(backend.get_layer_pixel_buffer(index) or b""), payloads[payload]):
-                raise DocumentFormatError("restauração de pixels não corresponde ao arquivo")
+        _restore_pixels(document, backend, index, record, payloads)
         if record.get("is_filter"):
             backend.set_filter_params(index, record.get("filter_params", []))
         backend.set_layer_name(index, record.get("name", "Camada"))

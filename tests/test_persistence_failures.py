@@ -94,17 +94,17 @@ def test_rejects_invalid_layer_metadata(records):
 
 def test_recovery_keeps_dirty_state_and_skips_active_sessions(tmp_path):
     from ui.core.document.recovery import RecoveryStore
-    from tests.test_document_serializer_integrity import _Backend
+    from tests.persistence_doubles import BackendDouble
     document: Document = Document("doc", "Drawing", 2, 2)
     document.layer_manager.add_layer("Paint")
     document.file_path = "original.lmn"
     store = RecoveryStore(tmp_path)
     other = RecoveryStore(tmp_path)
     try:
-        assert store.capture(document, _Backend())
+        assert store.capture(document, BackendDouble(document))
         assert document.is_dirty
         assert document.file_path == "original.lmn"
-        assert not store.capture(document, _Backend())
+        assert not store.capture(document, BackendDouble(document))
         assert other.candidates() == []
         store.close()
         assert other.candidates() == [store.path_for("doc")]
@@ -119,12 +119,12 @@ def test_recovery_keeps_dirty_state_and_skips_active_sessions(tmp_path):
 
 
 def test_document_backup_retains_previous_generation(tmp_path):
-    from tests.test_document_serializer_integrity import _Backend
+    from tests.persistence_doubles import BackendDouble
     document = Document("doc", "Previous", 2, 2)
     document.layer_manager.add_layer("Paint")
-    path = DocumentSerializer.save(document, _Backend(), tmp_path / "drawing.lmn")
+    path = DocumentSerializer.save(document, BackendDouble(document), tmp_path / "drawing.lmn")
     document.name = "Current"
-    DocumentSerializer.save(document, _Backend(), path)
+    DocumentSerializer.save(document, BackendDouble(document), path)
     assert DocumentSerializer.read(path)[0]["name"] == "Current"
     assert DocumentSerializer.read(path + ".bak")[0]["name"] == "Previous"
 

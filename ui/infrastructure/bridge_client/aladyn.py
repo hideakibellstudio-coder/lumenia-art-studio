@@ -14,6 +14,7 @@ Herda recursivamente de mixins atômicos especializados por domínio:
 - AladynBrushMixin: Parâmetros de pincéis, curvas dinâmicas e presets.
 - AladynStrokeMixin: Ciclo de vida do traço, fast-path raw, flood fill e telemetria.
 - AladynColorMixin: Amostragem de cor e perfis ICC.
+- AladynPersistenceMixin: Instantâneo das camadas, restauração por tiles e composição em lote.
 """
 
 from __future__ import annotations
@@ -41,6 +42,7 @@ from .aladyn_brush_mixin import AladynBrushMixin
 from .aladyn_stroke_mixin import AladynStrokeMixin
 from .aladyn_color_mixin import AladynColorMixin
 from .aladyn_resources_mixin import AladynResourcesMixin
+from .aladyn_persistence_mixin import AladynPersistenceMixin
 from .aladyn_capabilities_mixin import AladynCapabilitiesMixin
 from .native_fallback import native_has
 
@@ -57,6 +59,7 @@ class AladynBackend(
     AladynStrokeMixin,
     AladynColorMixin,
     AladynResourcesMixin,
+    AladynPersistenceMixin,
     AladynCapabilitiesMixin,
     EngineBackend,
 ):

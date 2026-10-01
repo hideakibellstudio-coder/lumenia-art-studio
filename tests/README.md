@@ -15,6 +15,7 @@
 | `main_window_fixture.py` | Acesso compartilhado à MainWindow dos testes de integração. |
 | `qt_windows.py` | Enumeração segura das janelas de topo do Qt nos testes. |
 | `run_all_tests.py` | Runner da suíte: executa tudo (ou uma suíte nomeada) com saída UTF-8 no Windows, cobertura e `--junit` para o relatório de testes. |
+| `persistence_doubles.py` | Dublês da gravação: um motor que responde o que `capture_document` pergunta (instantâneo com blocos de tiles vazios e válidos), sem o módulo nativo. |
 | `recording_doubles.py` | Dublês compartilhados pelos testes do plugin de gravação (canvas, backend, workspace e motor de teste). |
 | `arccc_coupling_metrics.py` | Mede, arquivo por arquivo, os padrões de acoplamento que transformaram a UI em espaguete, e mantém a catraca (`arccc_coupling_baseline.json`) usada por `tests/test_arccc_coupling_ratchet.py`. |
 | `arccc_identifier_language.py` | Conta identificadores com palavra em português por arquivo e mantém a catraca `arccc_identifier_baseline.json` (seção 14 do ARCcC). |
@@ -63,6 +64,7 @@
 | `test_dock_system_structure.py` | Comprehensive unit tests for Camada 3 - Fase 3: Dock System Decomposition. |
 | `test_document_close_releases_memory.py` | Fechar um documento libera o documento e os widgets da aba. |
 | `test_document_format_fuzz.py` | Deterministic malformed-file fuzzing for the untrusted LMN reader. |
+| `test_document_format_v3.py` | O `.lmn` v3 (S1.2): camada = bloco de tiles, abre aos mesmos pixels visíveis e propriedades; v2 com payload cru escrito à mão segue abrindo e salvar de novo vira v3; o arquivo custa o que está pintado (8 camadas 4000×3000 vazias: 24 bytes cada); o leitor recusa payload mentiroso e a restauração recusa bloco que não bate; e a segunda metade de salvar roda em outra thread enquanto se pinta e grava o documento como estava na captura. |
 | `test_document_history_integration.py` | Exercise native pixels and document UIDs in the same history timeline. |
 | `test_document_open_actions.py` | As ações que abrem documentos: abrir `.lmn` funciona (quebrado de 24/09 a 01/10 por um argumento removido) e o que o motor não consegue hospedar é recusado sem tocar o documento aberto (S0.2, D2). |
 | `test_document_pixel_fidelity.py` | Abrir um documento salvo reproduz os pixels gravados: colar sobre camada vazia é exato e o restore ignora o RGB de pixel transparente. |

@@ -27,6 +27,9 @@ public:
 
     Tile* getTile(int tileX, int tileY);
     Tile* getOrCreateTile(int tileX, int tileY);
+    // Coloca na grade um tile que já tem o buffer pronto (a abertura de um arquivo decodifica
+    // os buffers em paralelo e só aqui os insere). Fora da grade: nullptr, nada é inserido.
+    Tile* adoptTile(int tileX, int tileY, std::shared_ptr<PixelBuffer> buffer);
 
     void clearAll(utils::ColorRGBA color = {0, 0, 0, 0});
     // Redimensiona preservando os pixels existentes no offset informado.

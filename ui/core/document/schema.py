@@ -4,7 +4,7 @@ import copy
 import math
 from PySide6.QtCore import QPointF
 
-CURRENT_VERSION = 2
+CURRENT_VERSION = 3
 POINT_KEYS = {"p0", "p1", "p2", "p3", "vpA", "vpB", "vpC"}
 
 
@@ -47,7 +47,16 @@ def _v1_to_v2(manifest):
     return manifest
 
 
-MIGRATIONS = {0: _v0_to_v1, 1: _v1_to_v2}
+def _v2_to_v3(manifest):
+    # v3 stores a raster layer as a block of tiles (`tiles_payload`, only the painted tiles,
+    # LZ4) instead of full-canvas RGBA (`pixel_payload`). A v2 manifest already describes its
+    # layers validly and `restore_document` reads both, so nothing is rewritten: the file is
+    # upgraded the next time it is saved.
+    manifest["version"] = 3
+    return manifest
+
+
+MIGRATIONS = {0: _v0_to_v1, 1: _v1_to_v2, 2: _v2_to_v3}
 
 
 def migrate(manifest):

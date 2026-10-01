@@ -22,6 +22,7 @@
 | `aladyn_geometry_mixin.py` | AladynGeometryMixin — Integração com Guias, Réguas e Simetria C++ do ALADYN ENGINE. |
 | `aladyn_layer_mixin.py` | AladynLayerMixin — Gerenciador Atômico de Camadas, Grupos e Filtros para o AladynBackend. |
 | `aladyn_mdi_mixin.py` | AladynMdiMixin — Gerenciador de Contextos MDI Multi-Documento para o AladynBackend. |
+| `aladyn_persistence_mixin.py` | Persistência do documento ativo (S1.2): instantâneo das camadas, restauração de uma camada por bloco de tiles e o lote que compõe uma vez. |
 | `aladyn_resources_mixin.py` | Document-owned canvas assets crossing the canonical backend boundary. |
 | `aladyn_selection_mixin.py` | Selection operations mixin for AladynBackend. |
 | `aladyn_stroke_mixin.py` | AladynStrokeMixin — Gerenciador Atômico de Traços, Fast-Path e Telemetria para o AladynBackend. |

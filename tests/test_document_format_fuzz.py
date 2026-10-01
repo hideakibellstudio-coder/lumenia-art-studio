@@ -11,20 +11,14 @@ import pytest
 
 from ui.core.document.document import Document
 from ui.core.document.serializer import DocumentFormatError, DocumentSerializer
-
-
-class _Backend:
-    available = True
-
-    def get_layer_pixel_buffer(self, _index):
-        return bytes([10, 20, 30, 255]) * 4
+from tests.persistence_doubles import BackendDouble
 
 
 def _valid_archive(tmp_path):
     document = Document("fuzz", "Fuzz seed", 2, 2)
     document.layer_manager.add_layer("Paint")
     path = tmp_path / "seed.lmn"
-    DocumentSerializer.save(document, _Backend(), path)
+    DocumentSerializer.save(document, BackendDouble(document), path)
     with zipfile.ZipFile(path) as archive:
         manifest = json.loads(archive.read("manifest.json"))
         payloads = {name: archive.read(name) for name in archive.namelist() if name != "manifest.json"}
@@ -40,7 +34,7 @@ def _write_archive(path, manifest, payloads):
 
 @pytest.mark.parametrize("field, invalid_values", [
     ("format", [None, "zip", 4]),
-    ("version", [None, True, -1, 3, "2"]),
+    ("version", [None, True, -1, 4, "2"]),
     ("width", [None, True, -1, 0, 100_001, "2"]),
     ("height", [None, True, -1, 0, 100_001, "2"]),
     ("layers", [None, {}, "layers", [], [{}]]),

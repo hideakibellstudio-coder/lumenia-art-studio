@@ -12,13 +12,7 @@ app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(["--platform",
 
 from ui.core.document.document import Document
 from ui.core.document.serializer import DocumentFormatError, DocumentSerializer
-
-
-class _Backend:
-    available = True
-
-    def get_layer_pixel_buffer(self, _index):
-        return bytes([10, 20, 30, 255]) * 4
+from tests.persistence_doubles import BackendDouble
 
 
 class TestDocumentSerializerIntegrity(unittest.TestCase):
@@ -26,12 +20,12 @@ class TestDocumentSerializerIntegrity(unittest.TestCase):
         doc = Document("doc", "Teste", 2, 2)
         doc.layer_manager.add_layer("Pintura")
         with tempfile.TemporaryDirectory() as tmp:
-            path = DocumentSerializer.save(doc, _Backend(), Path(tmp) / "teste")
+            path = DocumentSerializer.save(doc, BackendDouble(doc), Path(tmp) / "teste")
             manifest, payloads = DocumentSerializer.read(path)
         self.assertEqual(manifest["format"], "lmn")
         self.assertEqual(manifest["version"], DocumentSerializer.FORMAT_VERSION)
-        self.assertEqual(len(payloads), 1)
-        self.assertEqual(len(next(iter(payloads.values()))), 16)
+        self.assertEqual(list(payloads), ["layers/1.tiles"])
+        self.assertTrue(payloads["layers/1.tiles"].startswith(b"LMNT"))
 
     def test_rejects_duplicate_uids(self):
         manifest = {"format": "lmn", "version": 1, "width": 1, "height": 1,

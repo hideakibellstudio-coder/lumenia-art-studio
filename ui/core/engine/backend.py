@@ -146,6 +146,17 @@ class EngineBackend(ABC):
         return None
 
 
+    def snapshot_layers(self) -> Optional[Any]:
+        """As camadas do documento ativo congeladas (custa os tiles); legível de outra thread. None sem motor."""
+        return None
+
+    def restore_layer_tiles(self, index: int, data: bytes) -> None:
+        """Troca os pixels da camada `index` do documento ativo por um bloco de tiles."""
+        raise NotImplementedError("este motor não restaura camadas por blocos de tiles")
+
+    def begin_batch(self) -> None: """Abre um lote: o canvas não é recomposto até o `end_batch` que o fecha."""
+    def end_batch(self) -> None: """Fecha um lote; o último compõe uma vez."""
+
     def get_display_image(self, zoom: float, region: Any) -> Optional[DisplayImage]:
         """A imagem que a tela pinta: só a `region` (QRect em pixels do canvas), no nível que o zoom pede."""
         return None

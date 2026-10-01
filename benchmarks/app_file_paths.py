@@ -1,8 +1,16 @@
 """Scenario "files": saving and opening a .lmn document with many layers.
 
-Save and open run on the calling thread today, so these times are the time the
-interface is frozen. The peak-memory growth is the working set the operation
-adds on top of what was already resident.
+Saving has two halves (ui/core/document/save_capture.py): `save_capture_ms` is the first,
+the only part that must run on the interface thread, so it is the freeze a save causes
+(the file used to be written on that thread: `save_s` is both halves, as before);
+`save_write_s` is the second, which the application runs on another thread. Opening runs
+on the interface thread: `open_read_s` plus `open_restore_s` is the time it is frozen.
+The peak-memory growth is the working set the operation adds on top of what was already
+resident (monotonic peak: it shows only when the operation raised it).
+
+Two kinds of content: `sparse` (a few strokes per layer, as a sketch) and `dense` (every
+layer fully painted: a smooth fill with grain, the case where the file really has to hold
+a layer's worth of pixels).
 """
 
 from __future__ import annotations
@@ -28,12 +36,30 @@ def _fill_layers(backend, layers: int) -> None:
         backend.end_stroke()
 
 
-def measure(sizes: list[tuple[int, int]], layers: int) -> dict:
+def _paint_dense(backend, layers: int, width: int, height: int) -> None:
+    """Every layer fully painted: a smooth gradient with a little grain (the grain keeps LZ4 honest)."""
+    import numpy as np
+
+    rng = np.random.default_rng(1)
+    ramp = (np.add.outer(np.arange(height), np.arange(width)) % 256).astype(np.uint8)
+    for i in range(layers):
+        backend.select_layer(i)
+        pixels = np.empty((height, width, 4), dtype=np.uint8)
+        pixels[:, :, 0] = ramp
+        pixels[:, :, 1] = np.roll(ramp, 40 * i, axis=1)
+        pixels[:, :, 2] = 255 - ramp
+        pixels[:, :, 3] = 255
+        pixels[:, :, :3] += rng.integers(0, 6, size=(height, width, 3), dtype=np.uint8)
+        backend.paste_rgba_buffer_on_active_layer(0, 0, width, height, pixels.tobytes())
+
+
+def measure(sizes: list[tuple[int, int]], layers: int, content: str = "sparse") -> dict:
     from PySide6 import QtWidgets
 
     QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     from ui.core.document.manager import DocumentManager
     from ui.core.document.restore import restore_document
+    from ui.core.document.save_capture import capture_document
     from ui.core.document.serializer import DocumentSerializer
     from ui.core.engine.registry import EngineRegistry
     from ui.infrastructure.bridge_client.aladyn import AladynBackend
@@ -49,13 +75,21 @@ def measure(sizes: list[tuple[int, int]], layers: int) -> dict:
             backend.set_active_document_context(doc.uid, width, height)
             for i in range(layers - 1):
                 doc.layer_manager.add_layer(f"L{i}")
-            _fill_layers(backend, layers)
+            if content == "dense":
+                _paint_dense(backend, layers, width, height)
+            else:
+                _fill_layers(backend, layers)
 
             path = os.path.join(folder, f"bench-{tag}.lmn")
             before = peak_memory_mb()
             started = time.perf_counter()
-            DocumentSerializer.save(doc, backend, path)
-            metrics[f"save_s.{tag}"] = round(time.perf_counter() - started, 2)
+            capture = capture_document(doc, backend, path)
+            captured = time.perf_counter()
+            DocumentSerializer.write(capture)
+            finished = time.perf_counter()
+            metrics[f"save_capture_ms.{tag}"] = round((captured - started) * 1000.0, 1)
+            metrics[f"save_write_s.{tag}"] = round(finished - captured, 2)
+            metrics[f"save_s.{tag}"] = round(finished - started, 2)
             after = peak_memory_mb()
             metrics[f"save_peak_memory_growth_mb.{tag}"] = (
                 round(after - before, 1) if before is not None and after is not None else None
@@ -78,8 +112,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sizes", default=DEFAULT_SIZES)
     parser.add_argument("--layers", type=int, default=LAYERS)
+    parser.add_argument("--content", choices=("sparse", "dense"), default="sparse")
     args = parser.parse_args()
-    emit(measure(parse_sizes(args.sizes), args.layers))
+    emit(measure(parse_sizes(args.sizes), args.layers, args.content))
     return 0
 
 

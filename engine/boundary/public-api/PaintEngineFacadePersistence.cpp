@@ -1,4 +1,5 @@
 #include "PaintEngineFacade.hpp"
+#include "DecodedLayer.hpp"
 #include "LayerSnapshot.hpp"
 #include "../orchestrator/DocumentContext.hpp"
 #include "../../core/canvas/TileGridCodec.hpp"
@@ -25,6 +26,20 @@ void PaintEngineFacade::restoreLayerTiles(int layerIndex, const uint8_t* data, s
         throw std::invalid_argument("layer has no pixels to restore");
     }
     canvas::TileGridCodec::decode(data, size, layer->getTileGrid());
+    const auto ctx = docContext();
+    ctx.compositeAll();
+    ctx.touch();
+}
+
+void PaintEngineFacade::adoptDecodedLayer(int layerIndex, DecodedLayer& decoded) {
+    document::Layer* layer = m_layerStack.getDrawingLayer(layerIndex);
+    if (!layer || layer->isGroup() || layer->isFilter()) {
+        throw std::invalid_argument("layer has no pixels to restore");
+    }
+    if (decoded.width() != m_width || decoded.height() != m_height) {
+        throw std::invalid_argument("decoded layer has another canvas size");
+    }
+    layer->getTileGrid() = decoded.take();
     const auto ctx = docContext();
     ctx.compositeAll();
     ctx.touch();

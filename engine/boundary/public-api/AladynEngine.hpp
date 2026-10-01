@@ -7,6 +7,7 @@
 
 #include "PaintEngineFacade.hpp"   // fachada; traz BrushProfile, CanvasTexture, enums de camada, seleção e guias
 #include "BrushPreviews.hpp"
+#include "DecodedLayer.hpp"        // pixels de uma camada decodificados fora do documento (abrir sem travar)
 #include "LayerSnapshot.hpp"      // instantaneo das camadas: a gravacao em segundo plano le dele
 
 #include "../../utils/Point2D.hpp"

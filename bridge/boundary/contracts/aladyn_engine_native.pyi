@@ -56,6 +56,20 @@ class LayerSnapshot:
     def encode_layer(self, index: int) -> bytes: ...
 
 
+class DecodedLayer:
+    """The pixels of a layer decoded from a tile block, outside any document. Adopted once."""
+    @property
+    def width(self) -> int: ...
+    @property
+    def height(self) -> int: ...
+
+
+# Decodes a tile block on the calling thread, without the GIL and without touching any document:
+# the worker that reads a file calls this, and the interface thread only adopts the result.
+# ValueError for a malformed block or an illegal canvas size.
+def decode_layer_tiles(width: int, height: int, data: bytes) -> DecodedLayer: ...
+
+
 class PaintEngineFacade:
     def __init__(self, width: int, height: int) -> None: ...  # ValueError outside 1..max_canvas_dimension()
     @staticmethod
@@ -88,6 +102,8 @@ class PaintEngineFacade:
     def restore_layer_tiles(self, layer_index: int, data: bytes) -> None: ...
     # While a batch is open the canvas is not recomposited; closing the last one composites once.
     # Opening a file changes dozens of layer properties in a row: each one recomposited all of it.
+    # O(1): replaces the layer's pixels with the decoded ones (once); ValueError if the canvas size differs.
+    def adopt_decoded_layer(self, layer_index: int, decoded: DecodedLayer) -> None: ...
     def begin_batch(self) -> None: ...
     def end_batch(self) -> None: ...  # RuntimeError without a matching begin_batch
     def get_layer_info(self, index: int) -> dict: ...

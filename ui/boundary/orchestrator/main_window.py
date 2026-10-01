@@ -40,6 +40,7 @@ from ui.core.shortcut_registry import ShortcutRegistry
 from ui.core.state import install_app_state
 
 from .dialog_actions import DialogActions
+from ui.core.document.document_loader import DocumentLoader
 from ui.core.document.document_saver import DocumentSaver
 from .document_actions import DocumentActions
 from .edit_actions import EditActions
@@ -97,7 +98,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Colaboradores.
         self.saver = DocumentSaver(self)
-        self.documents = DocumentActions(self, self.dm, backend, self.app_state.brush_sync, self.workspace, self.saver)
+        self.loader = DocumentLoader(self)
+        self.documents = DocumentActions(self, self.dm, backend, self.app_state.brush_sync, self.workspace, self.saver, self.loader)
         self.layer_actions = LayerActions(self, self.dm)
         self.edit_actions = EditActions(self, backend, self.app_state.brush, self.canvas_widget,
                                         self.layer_actions.commands)
@@ -161,6 +163,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtCore.QTimer.singleShot(0, self, self.reset_view)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self.documents.wait_for_opens()  # um arquivo sendo aberto aparece antes de a janela fechar, não depois
         if not self.documents.close_all_for_exit():
             event.ignore()
             return

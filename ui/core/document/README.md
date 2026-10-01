@@ -15,6 +15,8 @@
 |---|---|
 | `__init__.py` | Reexporta `Document` e `DocumentManager`. |
 | `document_saver.py` | `DocumentSaver`: a segunda metade de salvar numa thread própria (uma gravação por vez, na ordem pedida); o resultado volta na thread da interface por callback; `wait_idle` espera a fila ao sair. |
+| `background_queue.py` | `BackgroundQueue`: uma fila de trabalhos numa thread só, na ordem pedida, com resultado e erro de volta na thread do dono por sinal. Base do `DocumentSaver` e do `DocumentLoader`. |
+| `document_loader.py` | `DocumentLoader` e `load_document`: a primeira metade de abrir (ler o arquivo e decodificar os blocos de tiles em objetos do motor sem documento) numa thread de fundo; `restore_document` adota o resultado na thread da interface. |
 | `document.py` | Document — Representação de um documento aberto no Lumenia. |
 | `geometry.py` | Atomic geometry changes: prepare all pixels before committing the new context (pede ao motor o RGBA de cada camada; não passa mais por um arquivo temporário). |
 | `history.py` | One timeline for native pixels and the document's layer metadata. |

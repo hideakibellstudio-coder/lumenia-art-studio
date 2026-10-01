@@ -70,6 +70,7 @@
 | `test_document_open_actions.py` | As ações que abrem documentos: abrir `.lmn` funciona (quebrado de 24/09 a 01/10 por um argumento removido) e o que o motor não consegue hospedar é recusado sem tocar o documento aberto (S0.2, D2). |
 | `test_document_pixel_fidelity.py` | Abrir um documento salvo reproduz os pixels gravados: colar sobre camada vazia é exato e o restore ignora o RGB de pixel transparente. |
 | `test_document_profile_and_dpi.py` | Perfil de cor por documento, DPI no Document e o fluxo "Novo documento". |
+| `test_document_loader.py` | Abrir sem travar a interface (S1.2): os pixels que saem são os que entraram, atravessando a thread; o trabalhador não precisa de documento nem de contexto do motor; arquivo ilegível avisa e não abre nada; o laço de eventos segue durante uma leitura lenta; arquivo v1/v2 ainda abre e a ação termina no mesmo documento que o artista salvou. |
 | `test_document_saver.py` | A gravação em segundo plano (S1.2): callback na thread da interface e escrita noutra, uma por vez e em ordem, o laço de eventos não para durante uma escrita lenta (maior intervalo < 50 ms), falha chega a quem pediu, callback com defeito não derruba a fila, `wait_idle`. |
 | `test_document_serializer_integrity.py` | Regressões de integridade do formato editável .lmn. |
 | `test_document_v2.py` | Native LMN v2 persistence, migrations and recovery failure regressions. |

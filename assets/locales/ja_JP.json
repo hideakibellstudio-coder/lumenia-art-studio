@@ -695,6 +695,7 @@
     "image_opened": "画像 '{name}'({w}×{h})を開きました。",
     "doc_open_failed": "ドキュメントを開けませんでした: {error}",
     "doc_restore_failed": "ドキュメントを復元できませんでした: {error}",
+    "doc_opening": "'{name}' を開いています...",
     "doc_opened": "ドキュメント '{name}' を開きました。",
     "no_doc_to_save": "保存するドキュメントがありません。",
     "doc_save_failed": "'{name}' を保存できませんでした: {error}",

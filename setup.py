@@ -82,6 +82,7 @@ cpp_sources = [
     "engine/boundary/public-api/PaintEngineFacadeDisplay.cpp",
     "engine/boundary/public-api/PaintEngineFacadePersistence.cpp",
     "engine/boundary/public-api/LayerSnapshot.cpp",
+    "engine/boundary/public-api/DecodedLayer.cpp",
     "engine/boundary/public-api/BrushPreviews.cpp",
     "bridge/core/bindings/bind_math_brush.cpp",
     "bridge/core/bindings/bind_canvas.cpp",

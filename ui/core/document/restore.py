@@ -23,12 +23,15 @@ def same_visible_pixels(restored: bytes, expected: bytes) -> bool:
     return not bool((differs & ~both_transparent).any())
 
 
-def _restore_pixels(document: Document, backend, index: int, record, payloads) -> None:
-    """Os pixels de uma camada: um bloco de tiles (v3) ou o RGBA do canvas inteiro (v1 e v2)."""
+def _restore_pixels(document: Document, backend, index: int, record, payloads, prepared) -> None:
+    """Os pixels de uma camada: um bloco de tiles (v3, já decodificado ou não) ou o RGBA do canvas inteiro (v1 e v2)."""
     tiles = record.get("tiles_payload")
     if tiles:
         try:
-            backend.restore_layer_tiles(index, payloads[tiles])
+            if tiles in prepared:
+                backend.adopt_decoded_layer(index, prepared[tiles])
+            else:
+                backend.restore_layer_tiles(index, payloads[tiles])
         except ValueError as exc:
             raise DocumentFormatError(f"camada {record['uid']}: {exc}") from exc
         return
@@ -42,8 +45,11 @@ def _restore_pixels(document: Document, backend, index: int, record, payloads) -
         raise DocumentFormatError("restauração de pixels não corresponde ao arquivo")
 
 
-def restore_document(document: Document, backend, manifest, payloads):
+def restore_document(document: Document, backend, manifest, payloads, prepared=None):
     """Reconstrói o documento no contexto ativo do motor.
+
+    `prepared` são as camadas de tiles já decodificadas em outra thread (`document_loader`),
+    pelo nome do payload; as que faltam aí são decodificadas aqui, a partir de `payloads`.
 
     Tudo dentro de um lote do motor: abrir um arquivo muda dezenas de propriedades de
     camada em sequência e cada uma recompunha o canvas inteiro (50 recomposições, 0,6 s
@@ -53,12 +59,12 @@ def restore_document(document: Document, backend, manifest, payloads):
         raise DocumentFormatError("motor indisponível para restaurar os pixels")
     backend.begin_batch()
     try:
-        _restore_into_engine(document, backend, manifest, payloads)
+        _restore_into_engine(document, backend, manifest, payloads, prepared or {})
     finally:
         backend.end_batch()
 
 
-def _restore_into_engine(document: Document, backend, manifest, payloads):  # noqa: C901 -- dívida registrada (pendências, item 14)
+def _restore_into_engine(document: Document, backend, manifest, payloads, prepared):  # noqa: C901 -- dívida registrada (pendências, item 14)
     records = manifest["layers"]
     backend.clear_selection()
     # Keep the bootstrap layer until every replacement node exists. This also
@@ -82,7 +88,7 @@ def _restore_into_engine(document: Document, backend, manifest, payloads):  # no
     indices = {record["uid"]: i for i, record in enumerate(records)}
     for index, record in enumerate(records):
         # Restore pixels before locks/opacity/clipping can influence paste.
-        _restore_pixels(document, backend, index, record, payloads)
+        _restore_pixels(document, backend, index, record, payloads, prepared)
         if record.get("is_filter"):
             backend.set_filter_params(index, record.get("filter_params", []))
         backend.set_layer_name(index, record.get("name", "Camada"))

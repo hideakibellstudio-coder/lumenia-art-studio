@@ -36,6 +36,18 @@ void bind_persistence(py::module_& m, FacadeClass& facade) {
             return out;
         }, py::arg("index"));
 
+    // Decoded on any thread, adopted by a layer in constant time: opening a document does not
+    // make the interface thread decompress its tiles.
+    py::class_<boundary::DecodedLayer, std::shared_ptr<boundary::DecodedLayer>>(m, "DecodedLayer")
+        .def_property_readonly("width", &boundary::DecodedLayer::width)
+        .def_property_readonly("height", &boundary::DecodedLayer::height);
+    m.def("decode_layer_tiles", [](int width, int height, py::bytes data) {
+        const auto* bytes = reinterpret_cast<const uint8_t*>(PyBytes_AS_STRING(data.ptr()));
+        const auto size = static_cast<size_t>(PyBytes_GET_SIZE(data.ptr()));
+        py::gil_scoped_release release;  // `data` is held by the caller for the length of the call
+        return std::make_shared<boundary::DecodedLayer>(width, height, bytes, size);
+    }, py::arg("width"), py::arg("height"), py::arg("data"));
+
     facade
         .def("snapshot_layers", &boundary::PaintEngineFacade::snapshotLayers)
         .def("restore_layer_tiles", [](boundary::PaintEngineFacade& self, int index, py::bytes data) {
@@ -43,6 +55,9 @@ void bind_persistence(py::module_& m, FacadeClass& facade) {
             self.restoreLayerTiles(index, reinterpret_cast<const uint8_t*>(PyBytes_AS_STRING(data.ptr())),
                                    static_cast<size_t>(PyBytes_GET_SIZE(data.ptr())));
         }, py::arg("layer_index"), py::arg("data"))
+        .def("adopt_decoded_layer", [](boundary::PaintEngineFacade& self, int index, boundary::DecodedLayer& decoded) {
+            self.adoptDecodedLayer(index, decoded);
+        }, py::arg("layer_index"), py::arg("decoded"))
         .def("begin_batch", &boundary::PaintEngineFacade::beginBatch)
         .def("end_batch", &boundary::PaintEngineFacade::endBatch);
 }

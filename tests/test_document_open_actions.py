@@ -128,7 +128,8 @@ def test_opening_a_native_document_the_engine_cannot_hold_leaves_the_open_docume
     documents_before = [doc.uid for doc in window.dm.documents()]
 
     _limit_memory(monkeypatch)
-    assert window.documents.open_native_document(os.fspath(path)) is False
+    assert window.documents.open_native_document(os.fspath(path)) is True  # the read starts; the engine refuses at the end
+    assert window.documents.wait_for_opens()
     QtWidgets.QApplication.processEvents()
 
     assert [doc.uid for doc in window.dm.documents()] == documents_before
@@ -149,9 +150,58 @@ def test_a_saved_document_opens_through_the_open_action(window, tmp_path):
     backend.close_document_context(original.uid)
 
     assert window.documents.open_native_document(os.fspath(path)) is True
+    assert window.documents.wait_for_opens()
 
     reopened = window.dm.active_document()
     assert reopened is not None and reopened.uid != original.uid
     assert [layer.name for layer in reopened.layer_manager.layers][-1] == "second"
     assert backend.get_drawing_layer_count() == 2
     assert _digest(backend.get_layer_pixel_buffer(0)) == ink, "the stroke did not come back as saved"
+
+
+def test_a_file_that_cannot_be_read_is_reported_and_opens_nothing(window, tmp_path):
+    from PySide6 import QtWidgets
+
+    backend, previous, ink = _open_document_with_ink(window)
+    broken = tmp_path / "broken.lmn"
+    broken.write_bytes(b"this is not a zip")
+    documents_before = [doc.uid for doc in window.dm.documents()]
+
+    assert window.documents.open_native_document(os.fspath(broken)) is True
+    assert window.documents.wait_for_opens()
+    QtWidgets.QApplication.processEvents()
+
+    assert [doc.uid for doc in window.dm.documents()] == documents_before
+    assert "Falha ao abrir" in window.status_bar.currentMessage()
+    assert _digest(backend.get_layer_pixel_buffer(0)) == ink
+
+
+def test_the_then_callback_runs_with_the_opened_document(window, tmp_path):
+    from ui.core.document.serializer import DocumentSerializer
+
+    backend, original, _ink = _open_document_with_ink(window)
+    path = tmp_path / "then.lmn"
+    DocumentSerializer.save(original, backend, path)
+    window.dm.close_document(original.uid)
+    backend.close_document_context(original.uid)
+    opened = []
+    assert window.documents.open_native_document(os.fspath(path), then=opened.append) is True
+    assert window.documents.wait_for_opens()
+    assert opened == [window.dm.active_document()]
+    assert not opened[0].is_dirty and opened[0].file_path == os.fspath(path)
+
+
+def test_a_recovered_document_is_dirty_and_has_no_file(window, tmp_path):
+    """The recovery offer opens a copy through the same action and then makes it a new, unsaved document."""
+    from ui.core.document.serializer import DocumentSerializer
+
+    backend, original, _ink = _open_document_with_ink(window)
+    copy = tmp_path / "recovery-copy.lmn"
+    DocumentSerializer.save(original, backend, copy)
+    window.dm.close_document(original.uid)
+    backend.close_document_context(original.uid)
+    window.documents.open_native_document(
+        os.fspath(copy), then=lambda doc: window.recovery.adopt_recovered(doc, copy))
+    assert window.documents.wait_for_opens()
+    recovered = window.dm.active_document()
+    assert recovered.is_dirty and recovered.file_path is None and recovered.dirty_reason == "recovery"

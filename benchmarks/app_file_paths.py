@@ -87,6 +87,56 @@ def _event_loop_gap_during_save(doc, backend, folder: str, tag: str) -> float:
     return round(max(gaps + [capture_ms]), 1)
 
 
+def _open_in_background(manager, backend, path: str, width: int, height: int, tag: str) -> dict:
+    """Opening the way the application does it: the file is read and decoded on a worker thread and
+    the interface thread only creates the document and adopts the decoded layers.
+
+    `open_interface_s` is that second half, the only time the window is not handling events;
+    `open_event_loop_max_gap_ms` is the longest time without an event over the whole open;
+    `open_s` is from the request to the document being ready.
+    """
+    from PySide6 import QtCore, QtWidgets
+
+    from ui.core.document.document_loader import DocumentLoader
+    from ui.core.document.restore import restore_document
+
+    app = QtWidgets.QApplication.instance()
+    loader = DocumentLoader()
+    ticks: list[float] = []
+    timer = QtCore.QTimer()
+    timer.setInterval(5)
+    timer.timeout.connect(lambda: ticks.append(time.perf_counter()))
+    timer.start()
+    app.processEvents()
+    ticks.append(time.perf_counter())
+    done: dict[str, float] = {}
+
+    def adopt(loaded) -> None:
+        began = time.perf_counter()
+        document = manager.new_document(width, height, f"bench-{tag}-async")
+        backend.set_active_document_context(document.uid, width, height)
+        restore_document(document, backend, loaded.manifest, loaded.payloads, loaded.prepared)
+        done["interface"] = time.perf_counter() - began
+        done["end"] = time.perf_counter()
+
+    requested = time.perf_counter()
+    loader.submit(path, backend, adopt, lambda _path, exc: done.update(error=exc))
+    while loader.is_busy():
+        app.processEvents()
+        time.sleep(0.001)
+    timer.stop()
+    if "error" in done:
+        raise done["error"]
+    gaps = [(b - a) * 1000.0 for a, b in zip(ticks, ticks[1:])]
+    # the adoption runs inside the loop, so no tick can fire during it: it counts as a gap of its own
+    gaps.append(done["interface"] * 1000.0)
+    return {
+        f"open_interface_s.{tag}": round(done["interface"], 3),
+        f"open_event_loop_max_gap_ms.{tag}": round(max(gaps), 1),
+        f"open_s.{tag}": round(done["end"] - requested, 2),
+    }
+
+
 def measure(sizes: list[tuple[int, int]], layers: int, content: str = "sparse") -> dict:
     from PySide6 import QtWidgets
 
@@ -139,6 +189,7 @@ def measure(sizes: list[tuple[int, int]], layers: int, content: str = "sparse") 
             started = time.perf_counter()
             restore_document(reopened, backend, manifest, payloads)
             metrics[f"open_restore_s.{tag}"] = round(time.perf_counter() - started, 2)
+            metrics.update(_open_in_background(manager, backend, path, width, height, tag))
     return metrics
 
 

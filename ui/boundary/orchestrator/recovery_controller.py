@@ -105,14 +105,15 @@ class RecoveryController(ShellActions):
         if answer != QtWidgets.QMessageBox.Yes:
             return
         for path in candidates:
-            if not self._documents.open_native_document(str(path)):
-                continue
-            document: Document = self._dm.active_document()
-            document.file_path = None
-            document.mark_dirty("recovery")
-            # Mantém a cópia original até existir um snapshot novo e durável.
-            try:
-                self.store.capture(document, self._backend())
-                self.store.discard_candidate(path)
-            except Exception as exc:
-                self._say(tr("status.recovery_opened_kept", "Recuperação aberta; cópia original mantida: {error}", error=exc), 5000)
+            self._documents.open_native_document(str(path), then=lambda document, source=path: self.adopt_recovered(document, source))
+
+    def adopt_recovered(self, document: Document, source: Path) -> None:
+        """Uma cópia reaberta é um documento novo e sujo, sem arquivo: o artista decide onde salvar."""
+        document.file_path = None
+        document.mark_dirty("recovery")
+        # Mantém a cópia original até existir um snapshot novo e durável.
+        try:
+            self.store.capture(document, self._backend())
+            self.store.discard_candidate(source)
+        except Exception as exc:
+            self._say(tr("status.recovery_opened_kept", "Recuperação aberta; cópia original mantida: {error}", error=exc), 5000)

@@ -79,8 +79,10 @@ fechada: só diminui.
      numa única composição. 4K com dez camadas: a interface para 0,8 ms (esparso)
      ou 2,2 ms (todas pintadas) para capturar, e nunca mais de 12,6 ms sem tratar
      evento durante a gravação; gravar 3,34 s → 0,02 s esparso; pico de memória
-     +692 MB → +2,3 MB esparso e +67 MB denso; abrir 2,0 s → 0,06 s esparso e
-     1,2 s denso. Resíduo: abrir um documento denso segue na thread da interface.)*
+     +692 MB → +2,3 MB esparso e +67 MB denso; abrir 2,0 s → 0,06 s esparso; denso,
+     1,2 s na thread da interface → ler e decodificar em outra thread
+     (`DocumentLoader`, `DecodedLayer`), sobrando a composição única (0,22 a 0,32 s).
+     Resíduo: a janela ainda para de 0,2 a 0,7 s ao abrir um documento denso de 4K.)*
    - ~~S1.1: repintar só a região alterada (D4).~~ *(feito em 2026-10-01:
      `get_display_image` → `get_display_region` (zoom de trabalho) e
      `get_display_lod_region` (zoom afastado); contrato do módulo nativo na versão

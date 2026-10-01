@@ -15,11 +15,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ui.infrastructure.i18n import tr
 from ui.core.engine.limits import max_canvas_dimension
 from ui.core.document.document import Document
+from ui.core.document.document_loader import DocumentLoader, LoadedDocument
 from ui.core.document.document_saver import DocumentSaver
 from ui.core.document.save_capture import SaveCapture, capture_document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.restore import restore_document
-from ui.core.document.serializer import DocumentFormatError, DocumentSerializer
 from ui.core.state import BrushEngineSync
 
 from .shell_actions import BackendProvider, ShellActions, backend_ready
@@ -38,6 +38,7 @@ class DocumentActions(ShellActions):
         brush_sync: BrushEngineSync,
         workspace: Optional[ShellWorkspace],
         saver: DocumentSaver,
+        loader: DocumentLoader,
     ) -> None:
         super().__init__(window)
         self._window = window
@@ -46,6 +47,7 @@ class DocumentActions(ShellActions):
         self._brush_sync = brush_sync
         self._workspace = workspace
         self._saver = saver
+        self._loader = loader
         # Onde cada documento está sendo salvo pela primeira vez: `file_path` só vale depois da
         # gravação terminar, e um segundo Ctrl+S nesse meio tempo não deve reabrir o diálogo.
         self._saving_to: dict[str, str] = {}
@@ -145,7 +147,12 @@ class DocumentActions(ShellActions):
         self._reset_view()
         self._say(tr("status.image_opened", "Imagem '{name}' ({w}×{h}) aberta.", name=name, w=width, h=height), 3000)
 
-    def open_native_document(self, filename: str | None = None) -> bool:
+    def open_native_document(self, filename: str | None = None, then: Optional[Callable[[Document], None]] = None) -> bool:
+        """Começa a abrir um `.lmn`. True se a leitura foi iniciada; `then(doc)` roda com o documento aberto.
+
+        Ler e decodificar o arquivo (quase todo o tempo) roda numa thread de fundo; aqui, na thread
+        da interface, só se cria o documento e se adotam os pixels já decodificados. Falhas chegam
+        pela barra de status, como antes, e deixam aberto o que estava aberto."""
         if not filename:
             filename, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self._window, tr("file_dialogs.open_document", "Abrir Documento Lumenia"), "",
@@ -153,12 +160,24 @@ class DocumentActions(ShellActions):
             )
         if not filename:
             return False
-        try:
-            manifest, payloads = DocumentSerializer.read(filename)
-        except (OSError, DocumentFormatError, ValueError) as exc:
-            self._say(tr("status.doc_open_failed", "Falha ao abrir documento: {error}", error=exc), 5000)
+        backend = self._backend()
+        if not backend_ready(backend):
+            self._say(tr("status.doc_open_failed", "Falha ao abrir documento: {error}", error="motor indisponível"), 5000)
             return False
+        self._say(tr("status.doc_opening", "Abrindo '{name}'...", name=os.path.basename(filename)), 0)
+        self._loader.submit(
+            filename, backend,
+            on_done=lambda loaded: self._finish_open(loaded, then),
+            on_error=self._on_open_failed,
+        )
+        return True
 
+    def _on_open_failed(self, _filename: str, error: Exception) -> None:
+        self._say(tr("status.doc_open_failed", "Falha ao abrir documento: {error}", error=error), 5000)
+
+    def _finish_open(self, loaded: LoadedDocument, then: Optional[Callable[[Document], None]]) -> None:
+        """A metade que precisa da thread do documento: cria o documento e adota os pixels."""
+        manifest, filename = loaded.manifest, loaded.path
         previous = self._dm.active_document()
         paper = manifest.get("paper", {})
         color = paper.get("color", [255, 255, 255, 255])
@@ -169,12 +188,12 @@ class DocumentActions(ShellActions):
             bg_color=tuple(int(x) for x in color[:4]),
         )  # a textura do papel vem do arquivo, em restore_document
         if not self._hosted(doc):
-            return False
+            return
         doc.paper_visible = bool(paper.get("visible", True))
         doc.paper_texture_enabled = bool(paper.get("texture_enabled", False))
         backend = self._backend()
         try:
-            restore_document(doc, backend, manifest, payloads)
+            restore_document(doc, backend, manifest, loaded.payloads, loaded.prepared)
         except Exception as exc:
             self._dm.close_document(doc.uid)
             if backend:
@@ -182,7 +201,7 @@ class DocumentActions(ShellActions):
             if previous:
                 self._dm.set_active_document(previous.uid)
             self._say(tr("status.doc_restore_failed", "Falha ao restaurar documento: {error}", error=exc), 5000)
-            return False
+            return
 
         doc.zoom = float(manifest.get("zoom", 1.0))
         doc.pan_x = float(manifest.get("pan_x", 0.0))
@@ -192,7 +211,12 @@ class DocumentActions(ShellActions):
             self._workspace.refresh_document_state(doc)
         doc.mark_saved(filename)
         self._say(tr("status.doc_opened", "Documento '{name}' aberto.", name=doc.name), 3000)
-        return True
+        if then is not None:
+            then(doc)
+
+    def wait_for_opens(self, timeout_ms: int = 120_000) -> bool:
+        """Espera as aberturas em andamento (ao sair, e nos testes)."""
+        return self._loader.wait_idle(timeout_ms)
 
     # ── Salvar ────────────────────────────────────────────────────────────
 

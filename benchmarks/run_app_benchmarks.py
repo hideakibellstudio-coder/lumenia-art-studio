@@ -49,6 +49,11 @@ QUICK_ARGS = {
 def run_scenario(name: str, extra_args: list[str], config_dir: str) -> dict:
     env = dict(os.environ)
     env.setdefault("QT_QPA_PLATFORM", "offscreen")
+    # glibc raises its mmap threshold after the first large buffer is freed, and from then on each
+    # 30 MB layer read in a worker thread comes out of a thread arena at five times the cost (a second
+    # open of the same file took 1.4 s instead of 0.3 s). Pinning it makes a run repeatable on Linux;
+    # Windows, where the application is used, has no such behaviour.
+    env.setdefault("MALLOC_MMAP_THRESHOLD_", "1048576")
     env["LUMENIA_CONFIG_PATH"] = os.path.join(config_dir, f"{name}.json")
     completed = subprocess.run(
         [sys.executable, "-m", SCENARIOS[name], *FIXED_ARGS.get(name, []), *extra_args],

@@ -695,6 +695,7 @@
     "image_opened": "Imagem '{name}' ({w}×{h}) aberta.",
     "doc_open_failed": "Falha ao abrir documento: {error}",
     "doc_restore_failed": "Falha ao restaurar documento: {error}",
+    "doc_opening": "Abrindo '{name}'...",
     "doc_opened": "Documento '{name}' aberto.",
     "no_doc_to_save": "Nenhum documento ativo para salvar.",
     "doc_save_failed": "Falha ao salvar '{name}': {error}",

@@ -19,6 +19,7 @@ import time
 import pytest
 from PySide6 import QtWidgets
 
+from ui.core.document.document_loader import DocumentLoader
 from ui.core.document.document_saver import DocumentSaver
 from ui.core.document.serializer import DocumentSerializer
 
@@ -74,7 +75,7 @@ def session(qapp, tmp_path, monkeypatch):
         return DocumentSerializer.write(capture)
 
     env.saver = DocumentSaver(window, writer=writer)
-    env.actions = DocumentActions(window, manager, lambda: backend, None, None, env.saver)
+    env.actions = DocumentActions(window, manager, lambda: backend, None, None, env.saver, DocumentLoader(window))
     env.actions.statusMessage.connect(lambda text, _ms: messages.append(text))
     env.saved = []
     env.actions.documentSaved.connect(env.saved.append)

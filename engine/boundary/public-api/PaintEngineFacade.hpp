@@ -40,6 +40,7 @@ namespace orchestrator {
 }
 
 class LayerSnapshot;
+class DecodedLayer;
 
 struct TelemetryData {
     double pressure{0.0};
@@ -343,6 +344,7 @@ public:
     // ─── PERSISTENCIA (S1.2): instantaneo das camadas, restauracao por tiles, lote ──
     [[nodiscard]] std::shared_ptr<LayerSnapshot> snapshotLayers() const;
     void restoreLayerTiles(int layerIndex, const uint8_t* data, size_t size);
+    void adoptDecodedLayer(int layerIndex, DecodedLayer& decoded);  // O(1): os tiles ja foram decodificados em outra thread
     void beginBatch() noexcept { ++m_compositeHold; }
     void endBatch();
     // ─── SAIDA PARA A TELA: TILES SUJOS E LOD (PaintEngineFacadeDisplay.cpp) ──

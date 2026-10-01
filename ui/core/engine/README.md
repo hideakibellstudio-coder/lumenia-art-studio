@@ -21,6 +21,7 @@
 | `display_image.py` | `DisplayImage` (a imagem que a tela pinta, a escala e a origem dela no canvas) e `region_to_request`: o que o `EngineBackend.get_display_image` entrega à viewport em lugar do canvas inteiro. |
 | `errors.py` | ui.core.engine.errors — Exceções padronizadas da camada de motor (`EngineContextError`: o motor não criou o contexto de um documento). |
 | `limits.py` | `max_canvas_dimension()`: o maior lado de canvas, perguntado ao motor (valor de modo casca se não há motor). Diálogos e ações usam isto; ninguém repete o número. |
+| `persistence_backend.py` | `PersistenceBackend` (Protocol): o que gravar e abrir um documento pedem ao motor (`snapshot_layers`, `restore_layer_tiles`, `decode_layer_tiles`, `adopt_decoded_layer`), do tamanho do que `save_capture`, `restore` e `document_loader` usam, em vez de mais métodos no `EngineBackend`. |
 | `registry.py` | ui.core.engine.registry — EngineRegistry. |
 | `telemetry_dto.py` | `TelemetrySnapshot`: DTO da telemetria; lê a struct nativa campo a campo sem valor padrão (contrato em `tests/test_telemetry_contract.py`). |
 | `telemetry_meters.py` | Os 20 medidores (chave, título, leitura com nível semântico), usados pelo cockpit e pelo relatório; `presentation_ms` é a conta única do medidor 6 (cópia do canvas + `drawImage`). |

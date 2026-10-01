@@ -331,3 +331,53 @@ def test_restoring_tiles_inside_a_batch_composites_at_the_end():
     assert bytes(target.get_pixel_buffer()) != bytes(source.get_pixel_buffer())
     target.end_batch()
     assert bytes(target.get_pixel_buffer()) == bytes(source.get_pixel_buffer())
+
+
+# -- decoded away from the document ------------------------------------------------------------
+
+def test_a_layer_decoded_on_another_thread_is_adopted_with_the_same_pixels():
+    source = _painted(301, 203, seed=50)
+    blob = source.snapshot_layers().encode_layer(0)
+    decoded = []
+    worker = threading.Thread(target=lambda: decoded.append(native.decode_layer_tiles(301, 203, blob)))
+    worker.start()
+    worker.join()
+    assert decoded[0].width == 301 and decoded[0].height == 203
+    target = native.PaintEngineFacade(301, 203)
+    target.adopt_decoded_layer(0, decoded[0])
+    assert _same_visible(_layer(target), _layer(source))
+    assert bytes(target.get_pixel_buffer()) == bytes(source.get_pixel_buffer()), "the canvas is recomposited on adoption"
+
+
+def test_a_decoded_layer_can_be_adopted_only_once():
+    blob = _painted(130, 130, seed=51).snapshot_layers().encode_layer(0)
+    decoded = native.decode_layer_tiles(130, 130, blob)
+    native.PaintEngineFacade(130, 130).adopt_decoded_layer(0, decoded)
+    with pytest.raises(RuntimeError):
+        native.PaintEngineFacade(130, 130).adopt_decoded_layer(0, decoded)
+
+
+def test_a_decoded_layer_of_another_canvas_size_or_for_a_layer_without_pixels_is_refused():
+    blob = _painted(130, 130, seed=52).snapshot_layers().encode_layer(0)
+    decoded = native.decode_layer_tiles(130, 130, blob)
+    with pytest.raises(ValueError):
+        native.PaintEngineFacade(131, 130).adopt_decoded_layer(0, decoded)
+    engine = native.PaintEngineFacade(130, 130)
+    group = engine.add_group("g")
+    with pytest.raises(ValueError):
+        engine.adopt_decoded_layer(group, decoded)
+    engine.adopt_decoded_layer(0, decoded)  # the refusals must not have used it up
+
+
+@pytest.mark.parametrize("width, height", [(0, 10), (10, 0), (-1, 10), (16385, 10), (2**31 - 1, 10)])
+def test_an_illegal_canvas_size_is_refused_before_anything_is_allocated(width, height):
+    with pytest.raises(ValueError):
+        native.decode_layer_tiles(width, height, b"LMNT" + bytes(20))
+
+
+def test_a_malformed_block_is_refused_at_decode_not_at_adoption():
+    blob = _painted(130, 130, seed=53).snapshot_layers().encode_layer(0)
+    with pytest.raises(ValueError):
+        native.decode_layer_tiles(130, 130, blob[:-4])
+    with pytest.raises(ValueError):
+        native.decode_layer_tiles(131, 130, blob)

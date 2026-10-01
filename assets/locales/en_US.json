@@ -695,6 +695,7 @@
     "image_opened": "Image '{name}' ({w}×{h}) opened.",
     "doc_open_failed": "Failed to open document: {error}",
     "doc_restore_failed": "Failed to restore document: {error}",
+    "doc_opening": "Opening '{name}'...",
     "doc_opened": "Document '{name}' opened.",
     "no_doc_to_save": "No active document to save.",
     "doc_save_failed": "Failed to save '{name}': {error}",

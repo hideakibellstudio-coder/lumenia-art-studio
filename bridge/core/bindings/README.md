@@ -15,6 +15,7 @@
 | `bind_math_brush.cpp` | Tipos de matemática e pincel (`Point2D`, curvas, perfil, parâmetros por motor) e a prévia do traço. |
 | `bind_canvas.cpp` | Canvas: redimensionar, limpar, papel, perfis de cor, buffers de exibição e exportação. |
 | `bind_layers.cpp` | Camadas: adicionar, grupos, camadas de ajuste, reordenar, propriedades. |
+| `bind_persistence.cpp` | Persistência (S1.2): `LayerSnapshot` (o instantâneo das camadas; `encode_layer` roda sem o GIL), `snapshot_layers`, `restore_layer_tiles` e a composição em lote (`begin_batch`/`end_batch`). |
 | `bind_stroke.cpp` | Traço, texturas e prévias da ponta, telemetria (métricas em tempo real, diagnóstico). |
 | `bind_tools.cpp` | Ferramentas: balde, seleção, transformação, guias e snap. |
 

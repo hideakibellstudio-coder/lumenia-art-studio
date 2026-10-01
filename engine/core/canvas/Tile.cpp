@@ -1,6 +1,7 @@
 #include "Tile.hpp"
 #include "../../infrastructure/compression/Lz4Codec.hpp"
 #include <algorithm>
+#include <atomic>
 
 namespace aladyn::engine::canvas {
 
@@ -35,6 +36,11 @@ void Tile::ensureDecompressed() const noexcept {
 void Tile::ensureUnique() {
     if (m_buffer && m_buffer.use_count() > 1) {
         m_buffer = std::make_shared<PixelBuffer>(*m_buffer);
+    } else {
+        // Contagem 1 pode ser a de um instantâneo que outra thread acabou de soltar
+        // (gravação em segundo plano): a fence garante que as leituras dela terminaram
+        // antes da nossa escrita.
+        std::atomic_thread_fence(std::memory_order_acquire);
     }
 }
 

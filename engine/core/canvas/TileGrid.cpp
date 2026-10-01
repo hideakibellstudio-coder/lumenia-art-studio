@@ -116,6 +116,9 @@ void TileGrid::copyFrom(const TileGrid& src) {
     m_tiles.clear();
     for (const auto& [idx, tile] : src.m_tiles) {
         if (tile) {
+            // Um tile comprimido não tem buffer para compartilhar (o buffer foi liberado):
+            // sem descomprimir antes, a cópia saía em branco, em silêncio.
+            tile->ensureDecompressed();
             // Copy-on-Write (COW): compartilha o buffer com zero alocação de 64KB!
             auto dupTile = std::make_unique<Tile>(idx.x, idx.y, tile->getSharedBuffer());
             dupTile->setDirty(tile->isDirty());

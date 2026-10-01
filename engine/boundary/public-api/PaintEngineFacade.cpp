@@ -65,7 +65,7 @@ PaintEngineFacade::~PaintEngineFacade() = default;
 orchestrator::DocumentContext PaintEngineFacade::docContext() noexcept {
     return orchestrator::DocumentContext{
         m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-        m_documentGeneration, m_mipmapPyramid, m_linearGamma, m_deepColor
+        m_documentGeneration, m_mipmapPyramid, m_compositeHold, m_compositePending, m_linearGamma, m_deepColor
     };
 }
 
@@ -393,11 +393,28 @@ std::vector<double> PaintEngineFacade::stepSnapLock(
         attractionRadius, breakawayRadius, commitFrames, scoreSharpness);
 }
 
+bool PaintEngineFacade::setLayerDocumentUid(int index, uint64_t uid) {
+    if (uid == 0) return false;
+    auto* layer = m_layerStack.getDrawingLayer(index);
+    if (!layer) return false;
+    layer->setDocumentUid(uid);
+    return true;
+}
+
+bool PaintEngineFacade::clearHistory() noexcept {
+    if (m_isDrawing || m_undoManager.recordingStructure()) return false;
+    m_undoManager.clear();
+    return !m_undoManager.canUndo() && !m_undoManager.canRedo();
+}
+
 // ─── ESCALABILIDADE DE MEMORIA ────────────────────────────────────────────
 
 size_t PaintEngineFacade::compressInactiveLayers() { return orchestrator::MemoryOrchestrator::compressInactiveLayers(m_layerStack); }
 size_t PaintEngineFacade::decompressAllLayers() { return orchestrator::MemoryOrchestrator::decompressAllLayers(m_layerStack); }
 double PaintEngineFacade::getTotalTileMemoryMB() const { return orchestrator::MemoryOrchestrator::getTotalTileMemoryMB(m_layerStack); }
 size_t PaintEngineFacade::getCowSharedTilesCount() const { return orchestrator::MemoryOrchestrator::getCowSharedTilesCount(m_layerStack); }
+double PaintEngineFacade::getScratchDiskUsageMB() const noexcept {
+    return static_cast<double>(m_undoManager.getScratchDiskBytes()) / (1024.0 * 1024.0);
+}
 
 } // namespace aladyn::engine::boundary

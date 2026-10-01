@@ -36,6 +36,11 @@ struct DocumentContext {
     const utils::ColorRGBA& bgColor;
     uint64_t&                documentGeneration;
     canvas::MipmapPyramid&   mipmapPyramid;
+    // Composicao em lote (beginBatch/endBatch da fachada): com `compositeHold` > 0 as
+    // composicoes ficam pendentes e uma so roda no fim. Abrir um arquivo muda dezenas de
+    // propriedades de camada em sequencia, e cada uma recompunha o canvas inteiro.
+    int&                     compositeHold;
+    bool&                    compositePending;
     bool                     linearGamma{true};
     bool                     deepColor{false};
 
@@ -48,10 +53,12 @@ struct DocumentContext {
     }
 
     void compositeAll() const {
+        if (compositeHold > 0) { compositePending = true; return; }
         compositor.composite(layerStack.getAllLayersForComposition(), outputBuffer, bgColor);
     }
 
     void compositeRegion(const utils::Rect2D& dirty) const {
+        if (compositeHold > 0) { compositePending = true; return; }
         compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirty, outputBuffer, bgColor);
     }
 };

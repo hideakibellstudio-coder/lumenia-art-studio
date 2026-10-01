@@ -21,6 +21,8 @@
 | `SpatialCuller.cpp` | Implementação do recorte espacial. |
 | `Tile.hpp` | Um tile: pixels com COW e compressão sob demanda (declaração). |
 | `Tile.cpp` | Descompressão e cópia única (`ensureUnique`). |
+| `TileGridCodec.hpp` | O bloco de bytes de uma camada para o arquivo `.lmn` v3: só os tiles com pixel visível, cada um em LZ4 (ou cru). `encode` lê uma grade (de um instantâneo, de outra thread); `decode` valida tudo antes de trocar a grade e recusa o malformado inteiro (declaração e formato). |
+| `TileGridCodec.cpp` | Implementação: duas passadas no `decode` (estrutura, depois descompressão numa grade própria) para nunca deixar a camada pela metade. |
 | `TileGrid.hpp` | Grade de tiles de uma camada: obter/criar, redimensionar preservando, podar vazios, comprimir inativos. |
 | `TileGrid.cpp` | Implementação da grade. |
 

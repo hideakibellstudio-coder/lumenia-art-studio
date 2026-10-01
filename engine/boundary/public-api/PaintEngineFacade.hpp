@@ -39,6 +39,8 @@ namespace orchestrator {
     struct RawStrokeContext;
 }
 
+class LayerSnapshot;
+
 struct TelemetryData {
     double pressure{0.0};
     double velocity{0.0};
@@ -77,11 +79,7 @@ public:
     bool reorderLayer(int fromIndex, int toIndex);
     bool reorderLayers(const std::vector<int>& newOrder);
     bool setLayerParents(const std::vector<int>& parentIndices);
-    bool setLayerDocumentUid(int index, uint64_t uid) {
-        if (uid == 0) return false;
-        if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setDocumentUid(uid); return true; }
-        return false;
-    }
+    bool setLayerDocumentUid(int index, uint64_t uid);
     void setLayerName(int index, const std::string& name) { if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setName(name); touchDocument(); } }
     [[nodiscard]] std::string getLayerName(int index) const { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->getName() : std::string{}; }
     void setLayerOpacity(int index, double opacity);
@@ -118,11 +116,7 @@ public:
     void setUndoMaxSteps(size_t steps) noexcept { m_undoManager.setMaxSteps(steps); }
     // Descarta todo o histórico (desfazer e refazer) e a paginação em disco.
     // Recusa no meio de um traço ou de uma transação de camadas.
-    bool clearHistory() noexcept {
-        if (m_isDrawing || m_undoManager.recordingStructure()) return false;
-        m_undoManager.clear();
-        return !m_undoManager.canUndo() && !m_undoManager.canRedo();
-    }
+    bool clearHistory() noexcept;
     [[nodiscard]] size_t getUndoMaxSteps() const noexcept { return m_undoManager.getMaxSteps(); }
 
     [[nodiscard]] int getActiveLayerIndex() const noexcept { return m_layerStack.getActiveIndex(); }
@@ -345,9 +339,12 @@ public:
     void setScratchDiskEnabled(bool enabled) { m_undoManager.setScratchDiskEnabled(enabled); }
     [[nodiscard]] bool isScratchDiskEnabled() const noexcept { return m_undoManager.isScratchDiskEnabled(); }
     [[nodiscard]] size_t getUndoPagedStepsCount() const noexcept { return m_undoManager.getPagedStepsCount(); }
-    [[nodiscard]] double getScratchDiskUsageMB() const noexcept {
-        return static_cast<double>(m_undoManager.getScratchDiskBytes()) / (1024.0 * 1024.0);
-    }
+    [[nodiscard]] double getScratchDiskUsageMB() const noexcept;
+    // ─── PERSISTENCIA (S1.2): instantaneo das camadas, restauracao por tiles, lote ──
+    [[nodiscard]] std::shared_ptr<LayerSnapshot> snapshotLayers() const;
+    void restoreLayerTiles(int layerIndex, const uint8_t* data, size_t size);
+    void beginBatch() noexcept { ++m_compositeHold; }
+    void endBatch();
     // ─── SAIDA PARA A TELA: TILES SUJOS E LOD (PaintEngineFacadeDisplay.cpp) ──
     [[nodiscard]] std::vector<std::pair<int, int>> getDirtyTileIndices() const;
     void clearDirtyTiles() noexcept;
@@ -380,6 +377,8 @@ private:
     bool m_linearGamma{true};
     bool m_deepColor{false};
     uint64_t m_documentGeneration{0};
+    int m_compositeHold{0};
+    bool m_compositePending{false};
 
     stroke::VelocityTracker   m_velocityTracker;
     stroke::DynamicStabilizer m_stabilizer;

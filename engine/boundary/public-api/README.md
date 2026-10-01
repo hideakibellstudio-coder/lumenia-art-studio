@@ -14,6 +14,9 @@
 | `PaintEngineFacade.hpp` | Declaração da fachada: traço, camadas, seleção, transformação, guias/snap, histórico, exportação e telemetria (`TelemetryData`). |
 | `PaintEngineFacade.cpp` | Implementação: monta os contextos e delega aos orquestradores de `../orchestrator/` (tradução, não lógica). |
 | `PaintEngineFacadeDisplay.cpp` | Saída para a tela: perfil de cor, buffer de exibição inteiro ou por região, níveis de detalhe (LOD) por região e `clearHistory`; separado em 2026-09-24 pelo teto de 450 linhas. |
+| `LayerSnapshot.hpp` | As camadas de um documento congeladas num instante (S1.2): custa o número de tiles (compartilha buffers copy-on-write) e pode ser lido de outra thread enquanto o artista pinta. Entrada da gravação em segundo plano. |
+| `LayerSnapshot.cpp` | Tira o instantâneo e codifica uma camada em bloco de tiles. |
+| `PaintEngineFacadePersistence.cpp` | Persistência da fachada: `snapshotLayers`, `restoreLayerTiles` e a composição em lote (`beginBatch`/`endBatch`) que abrir um arquivo usa. |
 | `BrushPreviews.hpp` | Prévias do painel de pincel: `renderStrokePreview` e `renderRoundTipMask` (declaração). |
 | `BrushPreviews.cpp` | Delegação para `orchestrator/StrokePreviewRenderer`. |
 

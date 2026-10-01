@@ -11,6 +11,7 @@ PYBIND11_MODULE(aladyn_engine_native, m) {
     aladyn::bridge::bind_math_brush(m, facade);
     aladyn::bridge::bind_canvas(m, facade);
     aladyn::bridge::bind_layers(m, facade);
+    aladyn::bridge::bind_persistence(m, facade);
     aladyn::bridge::bind_stroke(m, facade);
     aladyn::bridge::bind_tools(m, facade);
 }

@@ -15,6 +15,7 @@ using FacadeClass = py::class_<engine::boundary::PaintEngineFacade>;
 void bind_math_brush(py::module_& m, FacadeClass& facade);
 void bind_canvas(py::module_& m, FacadeClass& facade);
 void bind_layers(py::module_& m, FacadeClass& facade);
+void bind_persistence(py::module_& m, FacadeClass& facade);
 void bind_stroke(py::module_& m, FacadeClass& facade);
 void bind_tools(py::module_& m, FacadeClass& facade);
 

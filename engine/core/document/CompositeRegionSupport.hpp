@@ -84,6 +84,28 @@ void fillBackground(
     int parallelRowThreshold
 );
 
+// Guarda a margem de uma regiao composta: a regiao pedida (`inner`) e' inflada pelo alcance dos filtros
+// (`outer`) so para dar vizinhos ao filtro. Na margem o filtro le para fora da regiao e escreve um valor
+// errado; ate 2026-10-01 isso ia direto para o buffer de saida e uma pincelada deixava uma faixa de pixels
+// diferentes da composicao inteira, ate a proxima recomposicao total. A margem e' salva antes de compor e
+// devolvida depois: so o que foi pedido muda.
+class RegionMargin {
+public:
+    RegionMargin(canvas::PixelBuffer& buffer, const RegionBounds& outer, const RegionBounds& inner);
+
+    // Devolve ao buffer os pixels da margem como estavam antes da composicao.
+    void restore();
+
+private:
+    template <typename Visit>
+    void forEachSegment(Visit&& visit) const;
+
+    canvas::PixelBuffer& m_buffer;
+    RegionBounds m_outer;
+    RegionBounds m_inner;
+    std::vector<uint32_t> m_saved;
+};
+
 // Concentra o par blendGroupToDestination/composeTileGrid que
 // compositeRegion e compositeRegionWithScratch duplicavam: compoe tiles de
 // camada para o buffer de saida ou para o acumulador de um grupo isolado, e

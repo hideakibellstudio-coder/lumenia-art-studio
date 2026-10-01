@@ -83,6 +83,7 @@
 | `test_engine_benchmark_runner.py` | O runner de benchmarks do motor exporta a linha de base em formato legível por máquina. |
 | `test_engine_boundary_color_and_signals.py` | Test Engine Boundary Round 11 — Validação da Fronteira Nativa C++ / Python. |
 | `test_engine_document_boundary.py` | Fronteira motor ↔ documento: um caminho só, sem o motor conhecer o modelo. |
+| `test_composite_region_filters.py` | Depois de uma pincelada, a região composta é a composição da tela inteira, com filtro de área (desfoque, nitidez, pixelizar) na pilha: casos dirigidos (pincelada acima e abaixo do filtro) e 40 pilhas aleatórias de camadas, grupos e filtros; sem o recorte da margem falha com diferenças de 33 a 47 níveis. |
 | `test_engine_contract_surface.py` | O contrato do motor só tem o que a interface chama (nenhum método do `EngineBackend` sem chamador em `ui/`: 19 de 178 saíram em 2026-10-01), cada papel (`Protocol`) tem consumidor em produção e ninguém fora do pacote do contrato importa o `EngineBackend` inteiro; os detectores são testados contra o que não podem deixar passar. |
 | `test_engine_type_contract.py` | `EngineType` é o enum canônico do motor de pincel: mesmos membros e valores do nativo, e nenhum número solto de motor em `ui/` (S0.1, D1). |
 | `test_floating_toolbar_structure.py` | Testes de Regressão e Contrato para a Decomposição da Fase 2 da Camada 5 (ARCcC v2) Valida o desacoplamento de ToolbarLivePreview, ToolToggleCard e FloatingToolbarSettingsDialog. |
@@ -153,6 +154,7 @@
 | `test_runner_suite_selection.py` | As suítes nomeadas do runner apontam para arquivos de teste existentes e únicos. |
 | `test_runtime_paths.py` | Raiz de recursos em desenvolvimento (repositório) e empacotado (pasta do executável). |
 | `test_secondary_toolbar_structure.py` | Contrato da barra secundária (ui/plugins/system/workspace_core/workspace/secondary_tool_bar). |
+| `test_selection_extreme_coordinates.py` | Retângulo, elipse e polígono de seleção sobrevivem a qualquer coordenada que o `int` carrega (antes, `select_rect(2**31 - 1, 0, 1, 1)` derrubava o processo): as chamadas extremas rodam num processo filho, e 800 cenários sãos conferem o hash da implementação de 32 bits. |
 | `test_selection_modify.py` | Seleção -> Modificar (Expandir, Contrair, Suavizar Borda) -- 2026-09-23. |
 | `test_shape_paths.py` | Geometria da ferramenta Formas (`shape_paths.py`): Shift e Alt no retângulo, na elipse e na linha; vértices do polígono e da estrela; forma pequena ou desconhecida sem caminho. |
 | `test_shortcut_registry.py` | Registro de atalhos: remapear/desativar/conflito atômicos, contexto do editor de texto e do canvas. |

@@ -154,6 +154,41 @@ void fillBackground(
     }
 }
 
+// Os trechos (linha, de x0 a x1) de `outer` que ficam fora de `inner`: as linhas acima e abaixo inteiras e,
+// nas linhas de `inner`, a faixa da esquerda e a da direita.
+template <typename Visit>
+void RegionMargin::forEachSegment(Visit&& visit) const {
+    for (int y = m_outer.minY; y <= m_outer.maxY; ++y) {
+        if (y < m_inner.minY || y > m_inner.maxY) {
+            visit(y, m_outer.minX, m_outer.maxX);
+            continue;
+        }
+        if (m_inner.minX > m_outer.minX) visit(y, m_outer.minX, m_inner.minX - 1);
+        if (m_inner.maxX < m_outer.maxX) visit(y, m_inner.maxX + 1, m_outer.maxX);
+    }
+}
+
+RegionMargin::RegionMargin(canvas::PixelBuffer& buffer, const RegionBounds& outer, const RegionBounds& inner)
+    : m_buffer(buffer), m_outer(outer), m_inner(inner) {
+    const uint32_t* data = reinterpret_cast<const uint32_t*>(m_buffer.getData());
+    const size_t stride = static_cast<size_t>(m_buffer.getWidth());
+    forEachSegment([&](int y, int x0, int x1) {
+        const uint32_t* row = data + static_cast<size_t>(y) * stride + x0;
+        m_saved.insert(m_saved.end(), row, row + (x1 - x0 + 1));
+    });
+}
+
+void RegionMargin::restore() {
+    uint32_t* data = reinterpret_cast<uint32_t*>(m_buffer.getData());
+    const size_t stride = static_cast<size_t>(m_buffer.getWidth());
+    size_t at = 0;
+    forEachSegment([&](int y, int x0, int x1) {
+        const size_t count = static_cast<size_t>(x1 - x0 + 1);
+        std::memcpy(data + static_cast<size_t>(y) * stride + x0, m_saved.data() + at, count * sizeof(uint32_t));
+        at += count;
+    });
+}
+
 GroupBlender::GroupBlender(canvas::PixelBuffer& outputBuffer, const RegionBounds& bounds, bool linearGamma, bool deepColor)
     : m_outputBuffer(outputBuffer),
       m_bounds(bounds),

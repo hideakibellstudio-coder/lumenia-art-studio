@@ -4,6 +4,7 @@
 #include "LayerCompositePass.hpp"
 #include "blending/BlendEquations.hpp"
 #include "filters/FilterApplier.hpp"
+#include <optional>
 
 namespace aladyn::engine::document {
 
@@ -80,16 +81,30 @@ void Compositor::compositeLayers(
     if (layers.empty()) return;
 
     const auto bgReach = internal::computeBackgroundAndReach(layers, bgColor);
+    const int reach = bgReach.totalReach;
+
+    // Um filtro de area espalha uma mudanca por `reach` pixels em volta: essa e' a area que muda (`inner`).
+    // Para calcula-la certo o filtro precisa dos vizinhos de cada pixel dela, mais `reach` para fora (`bounds`).
+    // Os pixels dessa ultima faixa saem errados do filtro (faltam vizinhos) e nao podem ficar no buffer de saida:
+    // a faixa e' devolvida como estava (ate 2026-10-01 ela era escrita, e a tela mostrava uma composicao
+    // diferente da inteira ate a proxima recomposicao total).
     const auto bounds = internal::computeRegionBounds(
-        region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, policy.snapToBlockSize);
+        region, 2 * reach, bgReach.maxBlockSize, m_width, m_height, policy.snapToBlockSize);
     if (bounds.empty) return;
-    m_damage.add(bounds.minX, bounds.minY, bounds.maxX + 1, bounds.maxY + 1);
+    const auto inner = reach > 0
+        ? internal::computeRegionBounds(region, reach, bgReach.maxBlockSize, m_width, m_height, policy.snapToBlockSize)
+        : bounds;
+    if (inner.empty) return;
+    std::optional<internal::RegionMargin> margin;
+    if (reach > 0) margin.emplace(outputBuffer, bounds, inner);
+    m_damage.add(inner.minX, inner.minY, inner.maxX + 1, inner.maxY + 1);
 
     internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, policy.parallelRowThreshold);
 
     internal::LayerCompositePass pass(outputBuffer, bounds, m_linearGamma, m_deepColor);
     for (const Layer* layer : layers) pass.add(layer, scratch);
     pass.finish();
+    if (margin) margin->restore();
 }
 
 void Compositor::compositeRegion(

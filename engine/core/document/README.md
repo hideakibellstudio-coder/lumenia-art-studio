@@ -11,8 +11,8 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `Compositor.hpp` | Compositor: modos de mesclagem, filtros, opções do pipeline e o retângulo que ele escreveu desde a última leitura (`takeDamage`: toda escrita no buffer de saída passa por aqui, então só ele sabe o que mudou) (declaração). |
-| `Compositor.cpp` | Composição total e por região: as duas sobrecargas de região chamam `compositeLayers` (limites, fundo, dano) e a passada sobre as camadas é de `LayerCompositePass`. |
-| `CompositeRegionSupport.hpp` | Parte privada do compositor (namespace `document::internal`): alcance dos filtros, base de recorte, fundo, grupos isolados (declaração). |
+| `Compositor.cpp` | Composição total e por região: as duas sobrecargas de região chamam `compositeLayers` (limites, fundo, dano) e a passada sobre as camadas é de `LayerCompositePass`. Com filtro de área na pilha, a região é composta com o dobro do alcance como contexto e só a área que a mudança pode alterar (a região mais um alcance) vai para o buffer de saída; a faixa de fora volta como estava (`tests/test_composite_region_filters.py`). |
+| `CompositeRegionSupport.hpp` | Parte privada do compositor (namespace `document::internal`): alcance dos filtros, base de recorte, fundo, grupos isolados e `RegionMargin` (a margem que o filtro pede para ter vizinhos e que volta ao buffer como estava) (declaração). |
 | `CompositeRegionSupport.cpp` | Implementação; veio da antiga subpasta `internal/`, que incluía esta pasta (ciclo). |
 | `LayerCompositePass.hpp` | Uma passada de composição (`LayerCompositePass`): recebe as camadas de baixo para cima e carrega de uma para a seguinte o grupo isolado aberto; `CompositePolicy` e `ScratchOverlay` são o que distingue as duas sobrecargas de região (declaração). |
 | `LayerCompositePass.cpp` | Grupo, filtro e tile de cada camada, mais o overlay do traço ativo logo acima da camada que ele sobrepõe. Era o laço duplicado em `Compositor.cpp` (CCN 17 e 12 numa só função). |

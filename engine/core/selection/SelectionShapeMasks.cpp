@@ -5,6 +5,7 @@
 #include <deque>
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 
 namespace aladyn::engine::selection {
@@ -58,37 +59,40 @@ std::vector<uint8_t> SelectionEngine::generateRectMask(
     int cornerRadiusPx
 ) {
     if (width <= 0 || height <= 0) return {};
-    std::vector<uint8_t> mask(static_cast<size_t>(width * height), 0);
+    std::vector<uint8_t> mask(static_cast<size_t>(width) * static_cast<size_t>(height), 0);
 
-    if (w < 0) { x += w; w = -w; }
-    if (h < 0) { y += h; h = -h; }
-    if (w == 0 || h == 0) return mask;
+    // 64 bits: x + w, -w e o quadrado do raio estouram `int` com coordenadas extremas
+    // (select_rect(INT_MAX, 0, 1, 1) derrubava o processo ate 2026-10-01).
+    int64_t left = x, top = y, span = w, rise = h;
+    if (span < 0) { left += span; span = -span; }
+    if (rise < 0) { top += rise; rise = -rise; }
+    if (span == 0 || rise == 0) return mask;
 
-    int x1 = std::max(0, x);
-    int y1 = std::max(0, y);
-    int x2 = std::min(width - 1, x + w - 1);
-    int y2 = std::min(height - 1, y + h - 1);
+    const int64_t x1 = std::max<int64_t>(0, left);
+    const int64_t y1 = std::max<int64_t>(0, top);
+    const int64_t x2 = std::min<int64_t>(width - 1, left + span - 1);
+    const int64_t y2 = std::min<int64_t>(height - 1, top + rise - 1);
 
     if (x1 > x2 || y1 > y2) return mask;
 
-    int cr = std::clamp(cornerRadiusPx, 0, std::min(w, h) / 2);
+    const int64_t cr = std::clamp<int64_t>(cornerRadiusPx, 0, std::min(span, rise) / 2);
 
-    for (int py = y1; py <= y2; ++py) {
-        const size_t rowOff = static_cast<size_t>(py * width);
-        for (int px = x1; px <= x2; ++px) {
+    for (int64_t py = y1; py <= y2; ++py) {
+        const size_t rowOff = static_cast<size_t>(py) * static_cast<size_t>(width);
+        for (int64_t px = x1; px <= x2; ++px) {
             if (cr > 0) {
-                int dx = 0, dy = 0;
-                if (px < x + cr) dx = (x + cr) - px;
-                else if (px > x + w - 1 - cr) dx = px - (x + w - 1 - cr);
+                int64_t dx = 0, dy = 0;
+                if (px < left + cr) dx = (left + cr) - px;
+                else if (px > left + span - 1 - cr) dx = px - (left + span - 1 - cr);
 
-                if (py < y + cr) dy = (y + cr) - py;
-                else if (py > y + h - 1 - cr) dy = py - (y + h - 1 - cr);
+                if (py < top + cr) dy = (top + cr) - py;
+                else if (py > top + rise - 1 - cr) dy = py - (top + rise - 1 - cr);
 
                 if (dx > 0 && dy > 0) {
                     if (dx * dx + dy * dy > cr * cr) continue;
                 }
             }
-            mask[rowOff + px] = 255;
+            mask[rowOff + static_cast<size_t>(px)] = 255;
         }
     }
 
@@ -110,29 +114,30 @@ std::vector<uint8_t> SelectionEngine::generateEllipseMask(
     int featherPx
 ) {
     if (width <= 0 || height <= 0) return {};
-    std::vector<uint8_t> mask(static_cast<size_t>(width * height), 0);
+    std::vector<uint8_t> mask(static_cast<size_t>(width) * static_cast<size_t>(height), 0);
 
-    rx = std::abs(rx);
-    ry = std::abs(ry);
-    if (rx <= 0 || ry <= 0) return mask;
+    // 64 bits: |INT_MIN|, cx - rx - 1 e px - cx estouram `int` com coordenadas extremas.
+    const int64_t radiusX = std::llabs(static_cast<int64_t>(rx));
+    const int64_t radiusY = std::llabs(static_cast<int64_t>(ry));
+    if (radiusX <= 0 || radiusY <= 0) return mask;
 
-    int x1 = std::max(0, cx - rx - 1);
-    int y1 = std::max(0, cy - ry - 1);
-    int x2 = std::min(width - 1, cx + rx + 1);
-    int y2 = std::min(height - 1, cy + ry + 1);
+    const int x1 = static_cast<int>(std::max<int64_t>(0, static_cast<int64_t>(cx) - radiusX - 1));
+    const int y1 = static_cast<int>(std::max<int64_t>(0, static_cast<int64_t>(cy) - radiusY - 1));
+    const int x2 = static_cast<int>(std::min<int64_t>(width - 1, static_cast<int64_t>(cx) + radiusX + 1));
+    const int y2 = static_cast<int>(std::min<int64_t>(height - 1, static_cast<int64_t>(cy) + radiusY + 1));
 
     if (x1 > x2 || y1 > y2) return mask;
 
-    const double invRx2 = 1.0 / (static_cast<double>(rx) * rx);
-    const double invRy2 = 1.0 / (static_cast<double>(ry) * ry);
+    const double invRx2 = 1.0 / (static_cast<double>(radiusX) * static_cast<double>(radiusX));
+    const double invRy2 = 1.0 / (static_cast<double>(radiusY) * static_cast<double>(radiusY));
 
     for (int py = y1; py <= y2; ++py) {
-        const size_t rowOff = static_cast<size_t>(py * width);
-        double dy = (py - cy + 0.5);
+        const size_t rowOff = static_cast<size_t>(py) * static_cast<size_t>(width);
+        double dy = (static_cast<double>(py) - cy + 0.5);
         double dy2 = dy * dy * invRy2;
 
         for (int px = x1; px <= x2; ++px) {
-            double dx = (px - cx + 0.5);
+            double dx = (static_cast<double>(px) - cx + 0.5);
             double val = dx * dx * invRx2 + dy2;
 
             if (val <= 1.0) {
@@ -176,7 +181,7 @@ std::vector<uint8_t> SelectionEngine::generatePolygonMask(
     int featherPx
 ) {
     if (width <= 0 || height <= 0 || points.size() < 3) return {};
-    std::vector<uint8_t> mask(static_cast<size_t>(width * height), 0);
+    std::vector<uint8_t> mask(static_cast<size_t>(width) * static_cast<size_t>(height), 0);
 
     int minY = height, maxY = 0;
     for (const auto& pt : points) {
@@ -228,15 +233,17 @@ std::vector<uint8_t> SelectionEngine::generatePolygonMask(
             double xJ = points[j].first;
 
             if ((yI < scanY && yJ >= scanY) || (yJ < scanY && yI >= scanY)) {
-                int intersectX = static_cast<int>(xI + (scanY - yI) / (yJ - yI) * (xJ - xI) + 0.5);
-                nodeX.push_back(intersectX);
+                // O corte pode cair muito fora do canvas (pontos extremos): convertido para `int` so
+                // depois de preso ao canvas, que e' o que importa; a conversao direta e' indefinida.
+                const double crossing = xI + (scanY - yI) / (yJ - yI) * (xJ - xI) + 0.5;
+                nodeX.push_back(static_cast<int>(std::clamp(crossing, -1.0, static_cast<double>(width) + 1.0)));
             }
             j = i;
         }
 
         std::sort(nodeX.begin(), nodeX.end());
 
-        const size_t rowOff = static_cast<size_t>(y * width);
+        const size_t rowOff = static_cast<size_t>(y) * static_cast<size_t>(width);
         for (size_t k = 0; k + 1 < nodeX.size(); k += 2) {
             // Centro do pixel dentro do contorno: [início, fim). Até 2026-09-25 o
             // fim era inclusivo e o laço ganhava uma coluna à direita.

@@ -33,6 +33,7 @@
 | `test_backend_capabilities.py` | Contrato de capacidades reais entre a UI e os backends de pintura. |
 | `test_bridge_error_policy.py` | Política de erros da ponte: entrada inválida no motor e buffer fora das dimensões viram `ValueError`, sem `try/catch` repetido nos bindings. |
 | `test_brush_advanced_panel.py` | Painel avançado do pincel: seções com estado próprio e dois caminhos claros. |
+| `test_brush_engines_characterization.py` | Caracterização de pixel dos 9 motores de pincel (S0.6): 4 variações por motor (traço simples, trava de alfa, seleção, máscara de recorte). |
 | `test_brush_panel_structure.py` | BrushSettingsPanel e seus componentes como views do BrushState. |
 | `test_brush_param_contract.py` | Contrato dos parâmetros de pincel — o motor define, a interface exibe. |
 | `test_brush_presets_catalog.py` | Unit tests for Camada 4 - Fase 1: Modularização do Catálogo de Presets de Pincéis. |

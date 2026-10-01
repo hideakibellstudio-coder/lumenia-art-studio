@@ -856,7 +856,7 @@ compilação para Windows com MinGW (69/69 arquivos, `-Werror`).
 | **R8** | Ferramentas, filtros e formatos sem registro | `tools.py`, `FilterType`, `document_actions` | Ferramenta nova, filtro novo, PSD/TIFF/ORA |
 | **R9** | Plugin com acesso total e sem isolamento | `PluginContext` | Plugins de terceiros |
 | **R10** | Distribuição sem assinatura e sem atualização | `scripts` | Qualquer venda |
-| **R11** | Referência de pixel (golden) só para o motor padrão: `stroke_golden.json` cobre o Pincel; nenhum teste pinta com Borrar ou Desfoque; os outros 6 motores só têm asserções de comportamento ("deixou tinta") | `tests/golden/`, `tests/test_lowlevel_brush_raster.py` | Qualquer mudança em motor de pincel, S2.1, S3.1 |
+| **R11** ✅ | (resolvido em 2026-10-01: S0.6) Referência de pixel (golden) só para o motor padrão: `stroke_golden.json` cobre o Pincel; nenhum teste pinta com Borrar ou Desfoque; os outros 6 motores só têm asserções de comportamento ("deixou tinta") | `tests/golden/`, `tests/test_lowlevel_brush_raster.py` | Qualquer mudança em motor de pincel, S2.1, S3.1 |
 
 ---
 
@@ -900,7 +900,7 @@ script pode conferir.
 | S0.3 | Remover histórico-sombra (D7); decidir `compress_inactive_layers` (D8); remover os `PluginType` sem extensão (D9) | Catraca de acoplamento igual ou menor; grep limpo |
 | S0.4 | Curvas Bézier como parâmetros do `BrushState` e do preset, com um escritor (D5) | Trocar de pincel e voltar preserva a curva; `curve_window` não chama o backend |
 | S0.5 ✅ | Atualizar `02-arquitetura/01-framework-arccc.md` (D10) | Nenhuma afirmação do Apêndice E continua falsa |
-| S0.6 | **Antes de qualquer outra mudança em motor:** referência de pixel (golden) de traço para os 9 motores, Borrar e Desfoque incluídos (R11) | `stroke_golden.json` com uma célula por motor; o teste falha se um motor mudar um pixel |
+| S0.6 ✅ | **Antes de qualquer outra mudança em motor:** referência de pixel (golden) de traço para os 9 motores, Borrar e Desfoque incluídos (R11) | `stroke_golden.json` com uma célula por motor; o teste falha se um motor mudar um pixel |
 | S0.7 | Contrato do `compositeBuffer` (D14); Borrar lendo de uma cópia (D15); telemetria com a aquisição da imagem e o total do paint (D16) | `IBrushEngine` sem parâmetro que nenhum motor lê (ou comentário que bate com os 8); golden do Borrar regravado com a mudança explicada no commit; medidor da aquisição e teste que confere que as parcelas não passam do total |
 
 ### S1 — Desempenho que o usuário sente (M–G)

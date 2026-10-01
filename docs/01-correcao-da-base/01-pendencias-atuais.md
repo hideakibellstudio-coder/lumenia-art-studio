@@ -41,9 +41,11 @@ fechada: só diminui.
      da ordem de varredura);
    - D16: o medidor "Blit" da telemetria não conta a cópia do canvas, o maior
      custo da repintura.
-3. **S0.6 — referência de pixel (golden) para os 9 motores de pincel** (R11).
-   Hoje só o Pincel tem; nenhum teste pinta com Borrar ou Desfoque. Vem
-   **antes** de qualquer mudança em motor, S0.7 incluída.
+3. ~~**S0.6 — referência de pixel (golden) para os 9 motores de pincel** (R11).~~
+   *(feito em 2026-10-01: `tests/test_brush_engines_characterization.py`, 36
+   pinos em `tests/golden/engines_golden.json` = 9 motores × 4 variações (simples,
+   trava de alfa, seleção, máscara de recorte); determinísticos entre processos.
+   Vem antes de qualquer mudança em motor, S0.7 incluída.)*
 4. **S1.1–S1.3:** repintar só a região alterada (D4); salvar e abrir sem
    travar (D3); salvamento automático sem travar.
 

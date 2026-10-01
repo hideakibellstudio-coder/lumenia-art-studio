@@ -245,7 +245,7 @@ Selos herdados do relatório 07, revistos com a nova lente:
 | Ponte | 🟢 (era 🟡) | Nada. Contrato versionado e preso (versão 6); GIL solto em 3 lugares, cada um com a razão na política de `bridge/README.md` e travado por `tests/test_bridge_gil_policy.py`; a tela pede só a região (`get_display_region`), e as cópias de canvas inteiro que sobram (4 chamadas de `get_qimage` na interface: copiar para a área de transferência, gravação, prévia do traço e exportar a imagem) são de caminhos que precisam do canvas inteiro; a lupa do conta-gotas, que copiava o canvas para recortar 18×18 pixels (50 ms em 4K a cada movimento do mouse), passou a pedir só esses pixels (0,45 ms). `28bb597` |
 | Telemetria do motor | 🟢 | Instrumento certo |
 | Telemetria da tela (medidores) | 🟢 (era 🟠) | Nada. O medidor 6 conta a cópia do canvas e o `drawImage` (D16, `tests/test_viewport_paint_telemetry.py`) e as telas passam pelo `TelemetryTracker` para chegar ao motor. `0487eff`, `4e5ee70` |
-| `EngineBackend` | 🟢 (era 🟠) | Nada do que S2.3 pedia: o contrato foi de 178 para 159 métodos e nenhum método fica sem chamador em `ui/` (eram 19: os apelidos `*_raw`, `flood_fill`, `flip_active_layer`, os leitores de contagem e limite do histórico...); os 11 papéis têm consumidor em produção (era 1) e ninguém fora do pacote do contrato importa o `EngineBackend` inteiro (eram 2). `RenderWidget.backend` é a porta do canvas até o motor e cada colaborador declara no contrato dele (`StrokeCanvas`, `SelectionCanvas`...) o papel que usa; as ações da casca, o documento (gravar, abrir, histórico, camadas, papel) e os estados do pincel recebem `RoleProvider[Papel]`. Pedidos globais ao registro: 49 para 21. `tests/test_engine_contract_surface.py` trava os três números. Não diz: o contrato continua espelhando a facade (159 contra 173 declarações no `.pyi`), e restam 21 pedidos globais (congelados na catraca; ver 4.2). `cfd7a13` e o commit que o segue |
+| `EngineBackend` | 🟢 (era 🟠) | Nada do que S2.3 pedia: o contrato foi de 178 para 159 métodos e nenhum método fica sem chamador em `ui/` (eram 19: os apelidos `*_raw`, `flood_fill`, `flip_active_layer`, os leitores de contagem e limite do histórico...); os 11 papéis têm consumidor em produção (era 1) e ninguém fora do pacote do contrato importa o `EngineBackend` inteiro (eram 2). `RenderWidget.backend` é a porta do canvas até o motor e cada colaborador declara no contrato dele (`StrokeCanvas`, `SelectionCanvas`...) o papel que usa; as ações da casca, o documento (gravar, abrir, histórico, camadas, papel) e os estados do pincel recebem `RoleProvider[Papel]`. Pedidos globais ao registro: 49 para 21. `tests/test_engine_contract_surface.py` trava os três números. Não diz: o contrato continua espelhando a facade (159 contra 173 declarações no `.pyi`), e restam 21 pedidos globais (congelados na catraca; ver 4.2). `cfd7a13` e `afd3ca6` |
 | Motores de pincel (9) | 🟢 (era 🟠) | Nada. D14 saiu; 108 pinos de pixel (12 variações por motor, inclusive textura, elipse girada, dureza 0 e 1, modos de dab e parâmetros de cada motor); o núcleo comum (`DabFootprint`, `PixelPermission`, `TipShape`, `StraightOver`) fez cada `renderDab` ir de 129–273 linhas e complexidade 25–71 para 19–57 linhas e 6–15; 2 pinos regravados de propósito (Óleo e Borrar em ponta achatada: 132 e 186 de 49152 bytes, no máximo 2 níveis). `4101a56`, `230f77c` |
 | Documento e camadas | 🟢 (era 🟡) | Nada no documento: as 6 propriedades de camada são uma tabela (`layer_properties.py`) e os 8 lugares que as repetiam a percorrem; uma propriedade nova entra só ali (`tests/test_layer_property_registry.py` acrescenta uma e confere cada lugar; tirá-la de qualquer consumidor reprova). A interface (painel, menu, diálogo) e o método do motor continuam sendo da propriedade. `f9e8ad1` |
 | Plugins | 🟢 (era 🟠) | Nada de arquitetura. Os 4 tipos sem extensão saíram (D9) e o `PluginContext` tem 3 nomes (`service_registry`, `main_window`, `attach_main_window`), sem o motor e sem logger, travados por `tests/test_plugin_context_contract.py`. Limite que não é de arquitetura: um plugin segue sendo código Python no mesmo processo; isolar pede decisão de produto (gatilho: o 1º plugin externo). `22ea776` |
@@ -440,7 +440,7 @@ a tabela da 6.4 dizendo o que cada um **não pode** piorar enquanto espera.
 
 ---
 
-## 9. Estado dos selos em 2026-10-01 (medido depois de `4e5ee70` e do S2.3, `cfd7a13` e o commit que o segue)
+## 9. Estado dos selos em 2026-10-01 (medido depois de `4e5ee70` e do S2.3, `cfd7a13` e `afd3ca6`)
 
 O dono pediu os selos deste relatório fechados. Esta seção diz o que fechou,
 com o commit e o número, e **o que não fechou e por quê**. Só marquei 🟢 onde há
@@ -457,7 +457,7 @@ teste ou medição que o sustente; o que ficou aberto está dito sem adjetivo.
 | Documento e camadas | 🟡 → 🟢 | 8 lugares que repetiam as propriedades → 1 tabela; o teste de contrato acrescenta uma propriedade e confere cada lugar. `f9e8ad1` |
 | Ponte | 🟡 → 🟢 | Versão 6 presa por hash; política do GIL escrita e travada; 4 harnesses nativos isolados. `28bb597` |
 | Plugins | 🟠 → 🟢 | Contexto com 3 nomes, sem motor; os 4 tipos sem extensão saíram. `22ea776` |
-| `EngineBackend` | 🟡 → 🟢 | Contrato 178 → 159 métodos; 0 sem chamador em `ui/` (eram 19); 11 de 11 papéis com consumidor em produção (era 1); 0 módulos importam o contrato inteiro (eram 2); pedidos globais ao registro 49 → 21. `python -m tests.arccc_engine_roles`; `tests/test_engine_contract_surface.py` (o detector é testado com mutação). `cfd7a13` e o commit que o segue |
+| `EngineBackend` | 🟡 → 🟢 | Contrato 178 → 159 métodos; 0 sem chamador em `ui/` (eram 19); 11 de 11 papéis com consumidor em produção (era 1); 0 módulos importam o contrato inteiro (eram 2); pedidos globais ao registro 49 → 21. `python -m tests.arccc_engine_roles`; `tests/test_engine_contract_surface.py` (o detector é testado com mutação). `cfd7a13` e `afd3ca6` |
 | 4.4 fluxo de construção | 🔴 → 🟢 | `AGENTS.md` 5.0; 29 commits seguidos com as 6 perguntas e a medição |
 | 14 idioma | 🟡 → 🟢 | Assunto de commit em inglês (29 seguidos); identificadores com catraca em 0 |
 | 15.4 nº 3 contrato versionado | 🟠 → 🟢 | Ver Ponte |
@@ -490,7 +490,7 @@ ser montado por duas threads ao mesmo tempo.
 - 3.2: `EngineBackend` 178 métodos (eram 176): entraram `get_display_image`
   (S1.1), `load_error` (D17) e `max_canvas_dimension` (D13) e saiu
   `get_qimage_lod`. Os métodos de gravação e abertura não entraram: ficaram no
-  `PersistenceBackend`. Depois do S2.3 (`cfd7a13` e o commit que o segue):
+  `PersistenceBackend`. Depois do S2.3 (`cfd7a13` e `afd3ca6`):
   159 métodos, nenhum sem chamador em `ui/` (19 saíram); pedidos globais do
   motor fora do registro e da ponte: 21 em 18 arquivos (49 em 29 antes do S2.3;
   60 quando a catraca os contou pela primeira vez).

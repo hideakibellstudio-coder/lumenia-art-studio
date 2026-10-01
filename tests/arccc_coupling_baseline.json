@@ -1,40 +1,142 @@
 {
+ "ui/boundary/orchestrator/app_runner.py": {
+  "door_bypass": 1
+ },
+ "ui/boundary/orchestrator/dialog_actions.py": {
+  "door_bypass": 3
+ },
+ "ui/boundary/orchestrator/document_actions.py": {
+  "door_bypass": 4
+ },
+ "ui/boundary/orchestrator/edit_actions.py": {
+  "door_bypass": 1
+ },
+ "ui/boundary/orchestrator/engine_failure.py": {
+  "door_bypass": 1,
+  "registry_lookup": 1
+ },
+ "ui/boundary/orchestrator/image_actions.py": {
+  "door_bypass": 2
+ },
+ "ui/boundary/orchestrator/layer_actions.py": {
+  "door_bypass": 2
+ },
+ "ui/boundary/orchestrator/main_window.py": {
+  "door_bypass": 7
+ },
+ "ui/boundary/orchestrator/recovery_controller.py": {
+  "door_bypass": 3
+ },
  "ui/core/color/cms_engine.py": {
   "getattr_literal": 4
  },
+ "ui/core/components/__init__.py": {
+  "door_bypass": 1
+ },
+ "ui/core/components/menu_bar/window_menu.py": {
+  "door_bypass": 2
+ },
+ "ui/core/components/tool_sidebar/sidebar.py": {
+  "door_bypass": 2
+ },
+ "ui/core/dialogs/base_dialog.py": {
+  "door_bypass": 1
+ },
  "ui/core/dialogs/canvas_size_dialog.py": {
+  "door_bypass": 1,
   "getattr_literal": 2,
   "hasattr": 4
  },
+ "ui/core/dialogs/diagnostics_dialog.py": {
+  "door_bypass": 3,
+  "registry_lookup": 1
+ },
  "ui/core/dialogs/layer_properties_dialog.py": {
+  "door_bypass": 1,
   "hasattr": 1
  },
  "ui/core/dialogs/modify_selection_dialog.py": {
+  "door_bypass": 1,
   "hasattr": 1
  },
+ "ui/core/dialogs/render_color_management_components.py": {
+  "door_bypass": 3,
+  "registry_lookup": 1
+ },
  "ui/core/dialogs/render_settings_components.py": {
+  "door_bypass": 2,
   "getattr_literal": 2,
-  "hasattr": 5
+  "hasattr": 5,
+  "registry_lookup": 1
  },
  "ui/core/dialogs/render_settings_dialog.py": {
-  "hasattr": 2
+  "door_bypass": 2,
+  "hasattr": 2,
+  "registry_lookup": 5
+ },
+ "ui/core/dialogs/telemetry_common.py": {
+  "door_bypass": 3,
+  "registry_lookup": 2
+ },
+ "ui/core/dialogs/telemetry_diagnostics_cards.py": {
+  "door_bypass": 1
+ },
+ "ui/core/dialogs/telemetry_diagnostics_dialog.py": {
+  "door_bypass": 3,
+  "registry_lookup": 5
+ },
+ "ui/core/dialogs/telemetry_grid_window.py": {
+  "door_bypass": 3,
+  "registry_lookup": 2
+ },
+ "ui/core/dialogs/telemetry_state_history_dialog.py": {
+  "door_bypass": 1
+ },
+ "ui/core/dialogs/test_report_dialog.py": {
+  "door_bypass": 1
  },
  "ui/core/dialogs/user_guide_dialog.py": {
+  "door_bypass": 1,
   "hasattr": 2
  },
  "ui/core/document/history.py": {
+  "door_bypass": 1,
   "foreign_private": 2,
-  "hasattr": 3
+  "hasattr": 3,
+  "registry_lookup": 1
  },
  "ui/core/document/layer_backend_sync.py": {
+  "door_bypass": 1,
   "getattr_literal": 5,
-  "hasattr": 1
+  "hasattr": 1,
+  "registry_lookup": 1
+ },
+ "ui/core/document/layer_commands.py": {
+  "door_bypass": 1,
+  "registry_lookup": 1
+ },
+ "ui/core/document/manager.py": {
+  "door_bypass": 1
+ },
+ "ui/core/document/paper_backend_sync.py": {
+  "door_bypass": 1,
+  "registry_lookup": 1
  },
  "ui/core/document/restore.py": {
   "hasattr": 1
  },
+ "ui/core/engine/limits.py": {
+  "registry_lookup": 1
+ },
  "ui/core/engine/registry.py": {
   "getattr_literal": 1
+ },
+ "ui/core/engine/telemetry_tracker.py": {
+  "registry_lookup": 1
+ },
+ "ui/core/plugins/context.py": {
+  "door_bypass": 1,
+  "registry_lookup": 1
  },
  "ui/core/plugins/discovery.py": {
   "foreign_private": 1
@@ -47,48 +149,152 @@
   "getattr_literal": 2
  },
  "ui/core/screens/about_dialog.py": {
+  "door_bypass": 2,
   "hasattr": 1
  },
+ "ui/core/screens/close_document_dialog.py": {
+  "door_bypass": 2
+ },
+ "ui/core/screens/cursor_settings_dialog.py": {
+  "door_bypass": 2
+ },
  "ui/core/screens/curve_window.py": {
+  "door_bypass": 2,
   "hasattr": 1
  },
  "ui/core/screens/dock_settings_dialog.py": {
+  "door_bypass": 2,
   "hasattr": 1
  },
  "ui/core/screens/filters/filter_adjustment_dialog.py": {
+  "door_bypass": 2,
   "hasattr": 2
  },
+ "ui/core/screens/filters/filter_card.py": {
+  "door_bypass": 1
+ },
+ "ui/core/screens/filters/filter_edit_popup.py": {
+  "door_bypass": 2
+ },
+ "ui/core/screens/filters/filter_inspector.py": {
+  "door_bypass": 2
+ },
+ "ui/core/screens/floating_toolbar_components.py": {
+  "door_bypass": 1
+ },
  "ui/core/screens/floating_toolbar_settings_dialog.py": {
+  "door_bypass": 2,
   "hasattr": 1
  },
  "ui/core/screens/keyboard_shortcuts_dialog.py": {
+  "door_bypass": 2,
   "getattr_literal": 1,
   "hasattr": 2
  },
+ "ui/core/screens/new_document/preset_card.py": {
+  "door_bypass": 1
+ },
+ "ui/core/screens/new_document_dialog.py": {
+  "door_bypass": 2
+ },
+ "ui/core/screens/plugins/components/plugin_card.py": {
+  "door_bypass": 2
+ },
  "ui/core/screens/plugins/components/plugin_inspector.py": {
+  "door_bypass": 3,
   "getattr_literal": 2
  },
  "ui/core/screens/plugins/dialog.py": {
+  "door_bypass": 3,
   "hasattr": 3
+ },
+ "ui/core/screens/settings/components/interface_tweaks_group.py": {
+  "door_bypass": 1
+ },
+ "ui/core/screens/settings/components/theme_card.py": {
+  "door_bypass": 1
+ },
+ "ui/core/screens/settings/theme_dialog.py": {
+  "door_bypass": 2
  },
  "ui/core/shortcut_bindings.py": {
   "foreign_private": 1
  },
+ "ui/core/shortcut_registry.py": {
+  "door_bypass": 1
+ },
+ "ui/core/state/__init__.py": {
+  "door_bypass": 1
+ },
+ "ui/core/state/brush_engine_sync.py": {
+  "door_bypass": 1
+ },
+ "ui/core/widgets/card_box.py": {
+  "door_bypass": 1
+ },
  "ui/core/widgets/color_picker/color_swatch_widgets.py": {
+  "door_bypass": 3,
   "hasattr": 2
  },
+ "ui/core/widgets/color_picker/color_wheel.py": {
+  "door_bypass": 2
+ },
+ "ui/core/widgets/color_picker/harmony_widgets.py": {
+  "door_bypass": 2
+ },
+ "ui/core/widgets/color_picker/picker.py": {
+  "door_bypass": 4
+ },
  "ui/core/widgets/compact_slider.py": {
+  "door_bypass": 2,
   "foreign_private": 2
  },
+ "ui/core/widgets/metric_card.py": {
+  "door_bypass": 1
+ },
+ "ui/core/widgets/pipeline_bar.py": {
+  "door_bypass": 1
+ },
+ "ui/core/widgets/shape_dropdown.py": {
+  "door_bypass": 1
+ },
+ "ui/core/widgets/slider/labeled_slider.py": {
+  "door_bypass": 2
+ },
+ "ui/core/widgets/slider/step_button.py": {
+  "door_bypass": 1
+ },
  "ui/core/widgets/toggle/toggle_switch.py": {
+  "door_bypass": 2,
   "foreign_private": 1
+ },
+ "ui/core/widgets/tool_options/base.py": {
+  "door_bypass": 1
+ },
+ "ui/core/widgets/tool_options/eyedrop_options.py": {
+  "door_bypass": 1
+ },
+ "ui/infrastructure/bridge_client/__init__.py": {
+  "door_bypass": 1
+ },
+ "ui/infrastructure/bridge_client/aladyn.py": {
+  "door_bypass": 2
+ },
+ "ui/infrastructure/bridge_client/aladyn_base.py": {
+  "door_bypass": 2
  },
  "ui/infrastructure/bridge_client/aladyn_brush_mixin.py": {
   "hasattr": 3
  },
+ "ui/infrastructure/bridge_client/aladyn_brush_profiles.py": {
+  "door_bypass": 1
+ },
  "ui/infrastructure/bridge_client/aladyn_buffers.py": {
   "getattr_literal": 1,
   "hasattr": 7
+ },
+ "ui/infrastructure/bridge_client/aladyn_color_mixin.py": {
+  "door_bypass": 3
  },
  "ui/infrastructure/bridge_client/aladyn_stroke_mixin.py": {
   "getattr_literal": 7
@@ -105,56 +311,234 @@
  "ui/infrastructure/theme/manager.py": {
   "getattr_literal": 2
  },
+ "ui/infrastructure/theme/qss_icons.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/brush_plugin/__init__.py": {
+  "door_bypass": 3
+ },
+ "ui/plugins/panels/brush_plugin/advanced_panel/engine_params_widget.py": {
+  "door_bypass": 1,
+  "registry_lookup": 1
+ },
+ "ui/plugins/panels/brush_plugin/advanced_panel/panel.py": {
+  "door_bypass": 3
+ },
+ "ui/plugins/panels/brush_plugin/brush_dropdown.py": {
+  "door_bypass": 1
+ },
  "ui/plugins/panels/brush_plugin/brush_selector_popup.py": {
+  "door_bypass": 1,
   "getattr_literal": 4
+ },
+ "ui/plugins/panels/brush_plugin/components/quick_sliders_section.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/brush_plugin/components/tool_selection_column.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/brush_plugin/panel.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/brush_plugin/stroke_preview.py": {
+  "door_bypass": 1,
+  "registry_lookup": 1
+ },
+ "ui/plugins/panels/color_plugin/__init__.py": {
+  "door_bypass": 3
+ },
+ "ui/plugins/panels/geometry_plugin/components/advanced_settings_dialog.py": {
+  "door_bypass": 2
+ },
+ "ui/plugins/panels/geometry_plugin/components/geometry_selector.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/geometry_plugin/panel.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/geometry_plugin/plugin.py": {
+  "door_bypass": 3
+ },
+ "ui/plugins/panels/layers_plugin/__init__.py": {
+  "door_bypass": 3
  },
  "ui/plugins/panels/layers_plugin/delegate.py": {
   "hasattr": 1
  },
+ "ui/plugins/panels/layers_plugin/filter_layer_flow.py": {
+  "door_bypass": 1,
+  "registry_lookup": 4
+ },
+ "ui/plugins/panels/layers_plugin/header.py": {
+  "door_bypass": 4
+ },
  "ui/plugins/panels/layers_plugin/model.py": {
   "getattr_literal": 3
  },
+ "ui/plugins/panels/layers_plugin/panel.py": {
+  "door_bypass": 2,
+  "registry_lookup": 1
+ },
+ "ui/plugins/panels/layers_plugin/panel_filter_dialogs.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/layers_plugin/panel_rename_popup.py": {
+  "door_bypass": 1
+ },
  "ui/plugins/panels/layers_plugin/panel_theme.py": {
+  "door_bypass": 1,
   "hasattr": 3
+ },
+ "ui/plugins/panels/layers_plugin/paper.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/layers_plugin/paper_texture_dialog.py": {
+  "door_bypass": 2,
+  "registry_lookup": 1
  },
  "ui/plugins/panels/layers_plugin/view.py": {
   "hasattr": 2
  },
+ "ui/plugins/panels/navigator_plugin/__init__.py": {
+  "door_bypass": 3
+ },
  "ui/plugins/panels/navigator_plugin/components/navigator_preview.py": {
+  "door_bypass": 2,
   "foreign_private": 1,
   "hasattr": 2
  },
+ "ui/plugins/panels/navigator_plugin/panel.py": {
+  "door_bypass": 2
+ },
+ "ui/plugins/panels/recording_plugin/__init__.py": {
+  "door_bypass": 3
+ },
+ "ui/plugins/panels/recording_plugin/components/export_dialog.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/recording_plugin/components/recording_floating_bar.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/recording_plugin/engine/frame_source.py": {
+  "door_bypass": 2,
+  "registry_lookup": 1
+ },
+ "ui/plugins/panels/recording_plugin/panel.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/panels/telemetry_plugin/__init__.py": {
+  "door_bypass": 3
+ },
+ "ui/plugins/panels/telemetry_plugin/panel.py": {
+  "door_bypass": 2,
+  "registry_lookup": 3
+ },
+ "ui/plugins/panels/telemetry_plugin/panel_theme.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/__init__.py": {
+  "door_bypass": 3
+ },
  "ui/plugins/system/workspace_core/workspace/canvas/render_widget.py": {
+  "door_bypass": 4,
   "foreign_private": 1,
-  "getattr_literal": 1
+  "getattr_literal": 1,
+  "registry_lookup": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/geometry_overlay_renderer.py": {
   "hasattr": 2
  },
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/perspective_grid_renderer.py": {
+  "door_bypass": 1,
   "getattr_literal": 4,
   "hasattr": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/ruler_grid_renderer.py": {
+  "door_bypass": 1,
   "getattr_literal": 2,
   "hasattr": 2
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/eyedrop_tool_controller.py": {
   "getattr_literal": 1
  },
+ "ui/plugins/system/workspace_core/workspace/canvas/tools/geometry_tool_controller.py": {
+  "door_bypass": 2,
+  "registry_lookup": 3
+ },
+ "ui/plugins/system/workspace_core/workspace/canvas/tools/selection_tool_controller.py": {
+  "door_bypass": 3,
+  "registry_lookup": 8
+ },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/shape_tool_controller.py": {
-  "getattr_literal": 1
+  "door_bypass": 1,
+  "getattr_literal": 1,
+  "registry_lookup": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/text_overlay_editor.py": {
+  "door_bypass": 1,
   "getattr_literal": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/text_tool_controller.py": {
-  "getattr_literal": 1
+  "door_bypass": 1,
+  "getattr_literal": 1,
+  "registry_lookup": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/canvas/tools/tool_manager.py": {
+  "door_bypass": 1,
+  "registry_lookup": 2
+ },
+ "ui/plugins/system/workspace_core/workspace/canvas/tools/transform_tool_controller.py": {
+  "door_bypass": 1,
+  "registry_lookup": 3
+ },
+ "ui/plugins/system/workspace_core/workspace/canvas/viewport/camera_controller.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/canvas/viewport/key_router.py": {
+  "door_bypass": 1,
+  "registry_lookup": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/canvas/viewport/viewport_renderer.py": {
+  "door_bypass": 3,
+  "registry_lookup": 2
+ },
+ "ui/plugins/system/workspace_core/workspace/dock/dock_animator.py": {
+  "door_bypass": 2
+ },
+ "ui/plugins/system/workspace_core/workspace/dock/drawer_content_container.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/dock/drawer_header.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/dock/sidebar_button.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/dock/sidebar_widget.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/document_view_sync.py": {
+  "door_bypass": 2
  },
  "ui/plugins/system/workspace_core/workspace/floating_toolbar.py": {
+  "door_bypass": 1,
   "foreign_private": 1
  },
+ "ui/plugins/system/workspace_core/workspace/floating_toolbar_button.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/pill_handle.py": {
+  "door_bypass": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/secondary_tool_bar/views/eyedrop_transform_views.py": {
+  "door_bypass": 1
+ },
  "ui/plugins/system/workspace_core/workspace/viewport_container.py": {
+  "door_bypass": 5,
   "foreign_private": 1
+ },
+ "ui/plugins/system/workspace_core/workspace/workspace_container.py": {
+  "door_bypass": 2,
+  "registry_lookup": 1
  }
 }

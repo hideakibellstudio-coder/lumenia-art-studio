@@ -24,6 +24,8 @@ Medido em 2026-09-24 (ui/ + plugins/, `python -m tests.arccc_coupling_metrics`):
 | `outro._privado` | 349 | um objeto mexendo no estado interno de outro |
 | `except Exception: pass` | 15 | erro engolido sem rastro |
 | `ui/` importando `plugins/` | 2 | núcleo dependendo das folhas |
+| `get_backend()` fora do registro e da ponte | 60 (medido em 2026-10-01) | busca global do motor em vez de injeção |
+| importação que contorna a porta do pacote | 239 (medido em 2026-10-01) | o `__init__.py` já exportava o que se importou de dentro |
 
 A catraca `tests/test_arccc_coupling_ratchet.py` impede que qualquer arquivo
 piore e obriga a registrar cada melhoria. Os números atuais estão em

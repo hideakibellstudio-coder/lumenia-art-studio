@@ -35,6 +35,15 @@ _HOW_TO_FIX = {
         "ui/ não importa ui/plugins/: o núcleo não depende das folhas. Publique um "
         "contrato em ui/core/ e deixe o plugin registrá-lo no ServiceRegistry."
     ),
+    "registry_lookup": (
+        "Não peça o motor ao registro global: receba-o pelo construtor (ou por um provedor "
+        "`Callable[[], Optional[...]]` que quem criou o componente entrega) e declare só o papel "
+        "que usa (ui/core/engine/backend_protocols.py)."
+    ),
+    "door_bypass": (
+        "O pacote já exporta isso no `__init__.py`: importe `from ui.pacote import Nome`, não do "
+        "módulo de dentro. Se a porta não exporta o que você precisa, acrescente na porta."
+    ),
 }
 
 

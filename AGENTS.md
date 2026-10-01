@@ -194,6 +194,11 @@ reais de antes/depois: `docs/02-arquitetura/06-contratos-entre-componentes.md`.
 - Regra entre estados implementada em cada tela que a conhece: ela mora num
   lugar só (`ui/core/state/state_links.py`).
 - `except Exception: pass` (catraca `silent_except` está em 0).
+- Pedir o motor ao registro global (`EngineRegistry.instance().get_backend()`)
+  em código novo: receba-o pelo construtor (caminho 2). E importar do módulo
+  de dentro de um pacote o que o `__init__` dele já exporta: use a porta.
+  Os que existiam em 2026-10-01 (60 pedidos ao registro, 239 importações que
+  contornam a porta) estão congelados na catraca e só diminuem.
 
 **Toda pasta tem README** — todas mesmo: `ui/` (com `ui/plugins/`), o motor C++
 (`engine/`), a ponte (`bridge/`), `tests/`, `scripts/`, `docs/`, `assets/` —
@@ -277,9 +282,12 @@ Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
    - Execute a suíte de testes completa ou relevante para garantir que todos os testes permaneçam **100% GREEN**.
    - **Catracas locais (rodam dentro da suíte):**
      - acoplamento (`tests/test_arccc_coupling_ratchet.py`): `hasattr`,
-       `getattr` literal, acesso privado alheio, `except` silencioso e núcleo
-       importando plugin, contados por arquivo. Subiu → você acoplou; caiu →
-       registre com `python -m tests.arccc_coupling_metrics --tighten`;
+       `getattr` literal, acesso privado alheio, `except` silencioso, núcleo
+       importando plugin, pedido do motor ao registro global (`get_backend()`
+       fora do registro e da ponte) e importação que contorna a porta do pacote
+       (`from ui.pacote.modulo import X` quando o `__init__` já exporta `X`),
+       contados por arquivo. Subiu → você acoplou; caiu → registre com
+       `python -m tests.arccc_coupling_metrics --tighten`;
      - documentação por pasta (`tests/test_arccc_package_docs.py`);
      - idioma dos nomes (`tests/test_arccc_identifier_language_ratchet.py`):
        identificador com palavra em português não pode aumentar em nenhum

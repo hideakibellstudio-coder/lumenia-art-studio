@@ -38,6 +38,18 @@ reverse_import
     Módulo de ui/ fora de ui/plugins/ importando `ui.plugins.*`. O núcleo não
     pode depender das folhas; só o carregador (ui/core/plugins/) conhece o
     pacote de plugins.
+registry_lookup
+    `....get_backend()` fora do registro e da ponte. Quem precisa do motor o
+    recebe pelo construtor (contrato 2 de 4.2); pedir ao registro global é a
+    busca global que a regra proíbe. Eram 82 chamadas em 33 arquivos em
+    2026-10-01, congeladas na catraca: a lista só encolhe, e cada chamada que
+    some vira uma injeção.
+door_bypass
+    `from ui.pacote.modulo import X` de fora do pacote, quando o `__init__` do
+    pacote já exporta X: a porta existe e foi contornada (ARCcC 2.3, ponto
+    único de entrada). Eram 239 em 2026-10-01, congeladas. A porta que não
+    exporta o que os de fora usam (114 importações) é dívida de outro tipo:
+    alargar a porta, não contorná-la.
 
 Uso
 ---
@@ -60,7 +72,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = Path(__file__).resolve().parent / "arccc_coupling_baseline.json"
 SCANNED_ROOTS = ("ui",)
-CATEGORIES = ("hasattr", "getattr_literal", "foreign_private", "silent_except", "reverse_import")
+CATEGORIES = ("hasattr", "getattr_literal", "foreign_private", "silent_except", "reverse_import",
+              "registry_lookup", "door_bypass")
 
 # Receptores das guardas sobre o binário nativo (catraca própria em
 # test_river_ratchets.py::NATIVE_GUARDS_PERMITIDOS).
@@ -69,6 +82,8 @@ _SELF_NAMES = {"self", "cls"}
 # O carregador de plugins é o único ponto de ui/ que pode conhecer `ui.plugins.*`.
 _PLUGIN_LOADER_DIR = "ui/core/plugins/"
 _PLUGINS_DIR = "ui/plugins/"
+# Quem é dono do registro de motores: só ali e na ponte `get_backend()` não é busca global.
+_REGISTRY_OWNERS = ("ui/core/engine/registry.py", "ui/infrastructure/bridge_client/")
 
 
 @dataclass(frozen=True)
@@ -105,6 +120,59 @@ def _imported_modules(node: ast.AST) -> list[str]:
     return []
 
 
+_DOOR_CACHE: dict[str, frozenset[str]] = {}
+
+
+def _door_exports(package: str) -> frozenset[str]:
+    """Os nomes que o `__init__.py` de `package` (a porta) exporta; vazio se não houver porta com conteúdo."""
+    if package not in _DOOR_CACHE:
+        init = ROOT / Path(*package.split(".")) / "__init__.py"
+        names: set[str] = set()
+        if init.exists():
+            for node in ast.parse(init.read_text(encoding="utf-8")).body:
+                names |= _door_names(node)
+        _DOOR_CACHE[package] = frozenset(names)
+    return _DOOR_CACHE[package]
+
+
+def _door_names(node: ast.stmt) -> set[str]:
+    if isinstance(node, ast.ImportFrom):
+        return {alias.asname or alias.name for alias in node.names}
+    if isinstance(node, ast.Import):
+        return {(alias.asname or alias.name).split(".")[0] for alias in node.names}
+    if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+        return {node.name}
+    if isinstance(node, ast.Assign):
+        for target in node.targets:
+            if getattr(target, "id", "") == "__all__" and isinstance(node.value, (ast.List, ast.Tuple)):
+                return {item.value for item in node.value.elts if isinstance(item, ast.Constant)}
+    return set()
+
+
+def _module_of(rel: str) -> str:
+    parts = list(Path(rel).with_suffix("").parts)
+    if parts[-1] == "__init__":
+        parts = parts[:-1]
+    return ".".join(parts)
+
+
+def _bypasses_the_door(node: ast.AST, rel: str) -> str | None:
+    """O módulo importado, se `node` entra por dentro de um pacote cuja porta já exporta o que ele pede."""
+    if not (isinstance(node, ast.ImportFrom) and node.level == 0 and node.module and node.module.startswith("ui.")):
+        return None
+    if (ROOT / Path(*node.module.split("."))).is_dir():
+        return None  # já importa o pacote
+    package = node.module.rsplit(".", 1)[0]
+    importer = _module_of(rel)
+    importer_package = importer if rel.endswith("__init__.py") else importer.rsplit(".", 1)[0]
+    if importer_package == package or importer_package.startswith(package + "."):
+        return None
+    exports = _door_exports(package)
+    if exports and {alias.name for alias in node.names} <= exports:
+        return node.module
+    return None
+
+
 def scan_file(path: Path) -> list[Occurrence]:
     rel = path.relative_to(ROOT).as_posix()
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=rel)
@@ -137,6 +205,12 @@ def scan_file(path: Path) -> list[Occurrence]:
             for module in _imported_modules(node):
                 if module == "ui.plugins" or module.startswith("ui.plugins."):
                     add(node, "reverse_import", module)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "get_backend":
+            if not rel.startswith(_REGISTRY_OWNERS):
+                add(node, "registry_lookup", ast.unparse(node))
+        bypassed = _bypasses_the_door(node, rel)
+        if bypassed:
+            add(node, "door_bypass", bypassed)
     return found
 
 
@@ -199,6 +273,18 @@ def tighten() -> dict[str, int]:
     return totals(tightened)
 
 
+def adopt(category: str) -> dict[str, int]:
+    """Registra na catraca, pela primeira vez, uma categoria nova: o que existe hoje fica congelado."""
+    baseline = load_baseline()
+    if any(category in cats for cats in baseline.values()):
+        raise SystemExit(f"{category} já está na catraca; use --tighten")
+    for path, cats in count_by_file(scan_all()).items():
+        if category in cats:
+            baseline.setdefault(path, {})[category] = cats[category]
+    save_baseline(baseline)
+    return totals(baseline)
+
+
 def rename(old: str, new: str) -> None:
     """Carrega a catraca de um arquivo movido/renomeado para o novo caminho."""
     baseline = load_baseline()
@@ -213,11 +299,15 @@ def rename(old: str, new: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--tighten", action="store_true", help="baixa a catraca até o valor atual")
+    parser.add_argument("--adopt", metavar="CATEGORIA", help="congela na catraca uma categoria nova, como está hoje")
     parser.add_argument("--rename", nargs=2, metavar=("VELHO", "NOVO"), help="carrega a catraca de um arquivo movido")
     parser.add_argument("--top", type=int, default=10, help="quantos arquivos listar por categoria")
     args = parser.parse_args()
     if args.rename:
         rename(*args.rename)
+        return 0
+    if args.adopt:
+        print("catraca:", adopt(args.adopt))
         return 0
     if args.tighten:
         print("catraca:", tighten())

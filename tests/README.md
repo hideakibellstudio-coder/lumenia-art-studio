@@ -26,7 +26,7 @@
 | `test_app_benchmark_runner.py` | O benchmark de aplicação exporta resultado comparável: formato, comparação e uma rodada rápida (S0.8). |
 | `test_app_version.py` | A versão do produto tem fonte única (`ui/infrastructure/app_info.py`): confere `pyproject.toml`, `setup.py`, instalador, README, EULA e a janela "Sobre", e barra versão escrita à mão na interface. |
 | `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
-| `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ (plugins incluídos) pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso ou import de `ui.plugins.*` fora dos plugins e do carregador do que já tinha. |
+| `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ (plugins incluídos) pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso, import de `ui.plugins.*` fora dos plugins e do carregador, pedido do motor ao registro global (`get_backend()`) ou importação que contorna a porta do pacote do que já tinha. |
 | `test_arccc_cpp_and_docs_governance.py` | Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++). |
 | `test_arccc_cxx_layers.py` | Camadas do pilar C++: sem ciclo de pasta, subpasta sem incluir a mãe, inclusão só para baixo (utils → infrastructure → core em ordem → orchestrator → public-api) e a ponte só por `AladynEngine.hpp`. |
 | `test_arccc_identifier_language_ratchet.py` | Catraca de idioma: nenhum arquivo ganha identificador com palavra em português. |

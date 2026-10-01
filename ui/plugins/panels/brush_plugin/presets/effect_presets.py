@@ -3,11 +3,13 @@
 Decoupled under ARCcC v2.
 """
 
+from ui.core.engine.engine_type import EngineType
+
 MARKER_CATEGORY = {
     "id": "marker",
     "label": "Marcador & Feltro",
     "icon_key": "marker",
-    "engine_type": 4,  # EngineType.Marker
+    "engine_type": EngineType.MARKER,
     "available": True,
     "blend_mode_enabled": False,
     "visible_groups": {"size_opacity", "geometry", "marker_params"},
@@ -43,7 +45,7 @@ BLUR_CATEGORY = {
     "id": "blur",
     "label": "Blur / Desfoque",
     "icon_key": "blur",
-    "engine_type": 5,  # EngineType.Blur
+    "engine_type": EngineType.BLUR,
     "available": True,
     "blend_mode_enabled": False,
     "visible_groups": {"size_opacity", "blur_params"},
@@ -76,7 +78,7 @@ SMUDGE_CATEGORY = {
     "id": "smudge",
     "label": "Smudge / Arrasto",
     "icon_key": "smudge",
-    "engine_type": 6,  # EngineType.Smudge
+    "engine_type": EngineType.SMUDGE,
     "available": True,
     "blend_mode_enabled": False,
     "visible_groups": {"size_opacity", "geometry", "smudge_params"},

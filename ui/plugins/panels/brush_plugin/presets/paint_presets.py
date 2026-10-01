@@ -3,11 +3,13 @@
 Decoupled under ARCcC v2.
 """
 
+from ui.core.engine.engine_type import EngineType
+
 WATERCOLOR_CATEGORY = {
     "id": "watercolor",
     "label": "Aquarela Realista",
     "icon_key": "watercolor",
-    "engine_type": 7,  # EngineType.Watercolor
+    "engine_type": EngineType.WATERCOLOR,
     "available": True,
     "blend_mode_enabled": False,
     "visible_groups": {"size_opacity", "geometry", "textures", "watercolor_params"},
@@ -71,7 +73,7 @@ OIL_CATEGORY = {
     "id": "oil",
     "label": "Óleo 3D & Impasto",
     "icon_key": "oil_impasto",
-    "engine_type": 8,  # EngineType.OilImpasto
+    "engine_type": EngineType.OIL_IMPASTO,
     "available": True,
     "blend_mode_enabled": False,
     "visible_groups": {"size_opacity", "geometry", "textures", "oil_params"},

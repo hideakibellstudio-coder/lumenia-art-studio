@@ -22,8 +22,12 @@ passa a ser: **o que prejudica o usuário hoje ou impede a próxima feature.**
 fechada: só diminui.
 
 1. **S0.1–S0.5** (relatório, Seção 10):
-   - S0.1: ponta borracha da caneta liga o Borrar (D1); enum `EngineType` em
-     Python.
+   - ~~S0.1: ponta borracha da caneta liga o Borrar (D1); enum `EngineType` em
+     Python.~~ *(feito em 2026-10-01: `ui/core/engine/engine_type.py`; roteador, 9
+     categorias de preset, painel de parâmetros e pré-visualização usam o enum;
+     `tests/test_engine_type_contract.py` confere o enum com o nativo e barra
+     número solto de motor em `ui/`; o teste da ponta borracha agora espera a
+     Borracha.)*
    - S0.2: falha ao criar contexto do motor é engolida (D2); limite único de
      documento (D13).
    - S0.3: histórico-sombra, compressão sem chamador, `PluginType` sem

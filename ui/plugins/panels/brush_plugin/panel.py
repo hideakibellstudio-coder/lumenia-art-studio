@@ -21,6 +21,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.icons import get_icon
+from ui.core.engine.engine_type import EngineType
 from ui.core.state import BrushParam, BrushState, ToolState, is_shape_tool
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.widgets.card_box import PanelCardBox
@@ -112,7 +113,7 @@ class BrushSettingsPanel(QtWidgets.QWidget):
     def _on_preset_selected(self, _tool_id: str, _name: str, data: dict) -> None:
         self.stroke_preview.update_brush_state(
             hardness=data.get("hardness", 0.85),
-            engine_type=data.get("engine_type", 0),
+            engine_type=data.get("engine_type", EngineType.BRUSH),
         )
         if self._adv_panel is not None:
             self._adv_panel.sync_from_engine_profile()

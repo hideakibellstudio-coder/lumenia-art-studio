@@ -69,6 +69,7 @@
 | `test_engine_benchmark_runner.py` | O runner de benchmarks do motor exporta a linha de base em formato legível por máquina. |
 | `test_engine_boundary_color_and_signals.py` | Test Engine Boundary Round 11 — Validação da Fronteira Nativa C++ / Python. |
 | `test_engine_document_boundary.py` | Fronteira motor ↔ documento: um caminho só, sem o motor conhecer o modelo. |
+| `test_engine_type_contract.py` | `EngineType` é o enum canônico do motor de pincel: mesmos membros e valores do nativo, e nenhum número solto de motor em `ui/` (S0.1, D1). |
 | `test_floating_toolbar_structure.py` | Testes de Regressão e Contrato para a Decomposição da Fase 2 da Camada 5 (ARCcC v2) Valida o desacoplamento de ToolbarLivePreview, ToolToggleCard e FloatingToolbarSettingsDialog. |
 | `test_fullscreen_mode.py` | Tela cheia pelo F11 e pelo menu: entrar, sair e restaurar o estado anterior da janela. |
 | `test_geometry_c35_native_anchor.py` | Regressao Fase C3.5 (refinamento) -- ver claude/fase-c3-consolidacao-snap-nativo.md no projeto Lumenia (Projects tool) para o diagnostico completo. |

@@ -2,6 +2,7 @@
 
 from PySide6 import QtWidgets
 from ui.core.widgets.slider import LabeledSlider
+from ui.core.engine.engine_type import EngineType
 from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.i18n import tr, I18nManager
 
@@ -13,7 +14,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(6)
-        self._current_engine_type = 0
+        self._current_engine_type = EngineType.BRUSH
         self._build_empty()
         I18nManager.instance().languageChanged.connect(self.retranslate_ui)
 
@@ -36,7 +37,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
 
         backend = self._get_backend()
 
-        if engine_type == 1:  # Pencil
+        if engine_type == EngineType.PENCIL:
             lbl = QtWidgets.QLabel(tr("engine_params.pencil_title", "Parâmetros de Lápis & Carvão"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
@@ -49,7 +50,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             chk_tilt.stateChanged.connect(lambda s: self._set_pencil_tilt(chk_tilt.isChecked()))
             self.layout.addWidget(chk_tilt)
 
-        elif engine_type == 2:  # Inker
+        elif engine_type == EngineType.INKER:
             lbl = QtWidgets.QLabel(tr("engine_params.inker_title", "Parâmetros de Caneta & Nanquim"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
@@ -62,7 +63,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             sl_taper.valueChanged.connect(lambda v: self._set_inker_taper(v / 100.0))
             self.layout.addWidget(sl_taper)
 
-        elif engine_type == 4:  # Marker
+        elif engine_type == EngineType.MARKER:
             lbl = QtWidgets.QLabel(tr("engine_params.marker_title", "Parâmetros de Marcador & Feltro"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
@@ -75,7 +76,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             sl_edge.valueChanged.connect(lambda v: self._set_marker_edge(v / 100.0))
             self.layout.addWidget(sl_edge)
 
-        elif engine_type == 5:  # Blur
+        elif engine_type == EngineType.BLUR:
             lbl = QtWidgets.QLabel(tr("engine_params.blur_title", "Parâmetros de Blur / Desfoque"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
@@ -88,7 +89,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             sl_str.valueChanged.connect(lambda v: self._set_blur_strength(v / 100.0))
             self.layout.addWidget(sl_str)
 
-        elif engine_type == 6:  # Smudge
+        elif engine_type == EngineType.SMUDGE:
             lbl = QtWidgets.QLabel(tr("engine_params.smudge_title", "Parâmetros de Smudge / Arrasto"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
@@ -105,7 +106,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             sl_str.valueChanged.connect(lambda v: self._set_smudge_stretch(v / 100.0))
             self.layout.addWidget(sl_str)
 
-        elif engine_type == 7:  # Watercolor
+        elif engine_type == EngineType.WATERCOLOR:
             lbl = QtWidgets.QLabel(tr("engine_params.watercolor_title", "Parâmetros de Aquarela Realista"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)
@@ -126,7 +127,7 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             sl_gran.valueChanged.connect(lambda v: self._set_wc_gran(v / 100.0))
             self.layout.addWidget(sl_gran)
 
-        elif engine_type == 8:  # OilImpasto
+        elif engine_type == EngineType.OIL_IMPASTO:
             lbl = QtWidgets.QLabel(tr("engine_params.oil_title", "Parâmetros de Óleo 3D & Impasto"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
             self.layout.addWidget(lbl)

@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
+from ui.core.engine.engine_type import EngineType
 
 
 @dataclass(frozen=True)
@@ -179,7 +180,7 @@ class EngineBackend(ABC):
     # ── Mini-Motores & Perfis Dinâmicos ───────────────────────────────────
 
     def set_engine_type(self, engine_type_id: int) -> None: ...
-    def get_active_engine_type(self) -> int: return 0
+    def get_active_engine_type(self) -> int: return EngineType.BRUSH
 
     def set_brush_param(self, group: str, param: str, value: Any) -> None: ...
     def get_brush_profile_dict(self) -> Dict[str, Any]: return {}

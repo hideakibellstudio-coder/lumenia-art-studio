@@ -3,11 +3,13 @@
 Decoupled under ARCcC v2.
 """
 
+from ui.core.engine.engine_type import EngineType
+
 PENCIL_CATEGORY = {
     "id": "pencil",
     "label": "Lápis & Carvão",
     "icon_key": "pencil",
-    "engine_type": 1,  # EngineType.Pencil
+    "engine_type": EngineType.PENCIL,
     "available": True,
     "blend_mode_enabled": True,
     "visible_groups": {"size_opacity", "geometry", "jitters", "textures", "velocity", "pencil_params"},
@@ -84,7 +86,7 @@ INKER_CATEGORY = {
     "id": "inker",
     "label": "Caneta & Nanquim",
     "icon_key": "pen_tool",
-    "engine_type": 2,  # EngineType.Inker
+    "engine_type": EngineType.INKER,
     "available": True,
     "blend_mode_enabled": True,
     "visible_groups": {"size_opacity", "geometry", "inker_params"},

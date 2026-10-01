@@ -8,6 +8,7 @@ Fallback gracioso para renderização vetorial caso o nativo esteja indisponíve
 import math
 from PySide6 import QtWidgets, QtCore, QtGui
 
+from ui.core.engine.engine_type import EngineType
 from ui.core.engine.registry import EngineRegistry
 
 
@@ -20,7 +21,7 @@ class StrokePreview(QtWidgets.QWidget):
         self.setMinimumWidth(80)
 
         # Estado do pincel
-        self._engine_type = 0
+        self._engine_type = EngineType.BRUSH
         self._size     = 40.0
         self._opacity  = 1.0
         self._hardness = 0.85

@@ -17,6 +17,7 @@
 | `backend.py` | ui.core.engine.backend — Contrato Canônico EngineBackend + PointerEvent. |
 | `backend_protocols.py` | ui.core.engine.backend_protocols -- EngineBackend decomposto em Protocols por papel. |
 | `backend_protocols_selection.py` | ui.core.engine.backend_protocols_selection -- papel "SelectionTransform". |
+| `engine_type.py` | `EngineType`: id canônico do motor de pincel (Brush, Pencil, Inker, Eraser, Marker, Blur, Smudge, Watercolor, OilImpasto), igual ao enum nativo; contrato em `tests/test_engine_type_contract.py`. |
 | `errors.py` | ui.core.engine.errors — Exceções padronizadas da camada de motor. |
 | `registry.py` | ui.core.engine.registry — EngineRegistry. |
 | `telemetry_dto.py` | `TelemetrySnapshot`: DTO da telemetria; lê a struct nativa campo a campo sem valor padrão (contrato em `tests/test_telemetry_contract.py`). |
@@ -26,6 +27,9 @@
 
 ## Regras
 
+- Id de motor de pincel é `EngineType`, nunca número com comentário: a catraca
+  `tests/test_engine_type_contract.py` barra literal em `ui/` (a ponta borracha
+  da caneta pedia o id 6, que é o Borrar, até 2026-10-01).
 - Lei nº 2/3: fora de `ui/infrastructure/bridge_client` ninguém importa
   `aladyn_engine_native` nem acessa `_facade`/`_native`. Precisa de algo do
   motor? Declare o método em `EngineBackend` e implemente no backend.

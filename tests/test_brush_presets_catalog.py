@@ -4,6 +4,7 @@ Tests modular presets under ARCcC v2.
 """
 
 import unittest
+from ui.core.engine.engine_type import EngineType
 from ui.plugins.panels.brush_plugin.presets_data import (
     BRUSH_CATEGORIES,
     PARAM_GROUPS,
@@ -30,10 +31,21 @@ class TestBrushPresetsModular(unittest.TestCase):
 
     def test_engine_type_mapping(self):
         """ENGINE_TYPE_TO_CATEGORY correctly maps all 9 engine indices (0 to 8)."""
-        self.assertEqual(len(ENGINE_TYPE_TO_CATEGORY), 9)
-        for engine_type in range(9):
+        self.assertEqual(len(ENGINE_TYPE_TO_CATEGORY), len(EngineType))
+        for engine_type in EngineType:
             self.assertIn(engine_type, ENGINE_TYPE_TO_CATEGORY)
             self.assertEqual(ENGINE_TYPE_TO_CATEGORY[engine_type]["engine_type"], engine_type)
+
+    def test_each_category_uses_the_engine_of_its_own_name(self):
+        """The id a category hands the engine is the one its name says (D1 was an eraser asking for Smudge)."""
+        expected = {
+            "brush": EngineType.BRUSH, "pencil": EngineType.PENCIL, "inker": EngineType.INKER,
+            "eraser": EngineType.ERASER, "marker": EngineType.MARKER, "blur": EngineType.BLUR,
+            "smudge": EngineType.SMUDGE, "watercolor": EngineType.WATERCOLOR, "oil": EngineType.OIL_IMPASTO,
+        }
+        self.assertEqual({cat["id"]: cat["engine_type"] for cat in BRUSH_CATEGORIES}, expected)
+        for cat in BRUSH_CATEGORIES:
+            self.assertIsInstance(cat["engine_type"], EngineType)
 
     def test_defaults_injected(self):
         """Category defaults for stabilizer_weight and stroke_taper_enabled are present in all presets."""

@@ -6,6 +6,8 @@ O teclado é do `CanvasKeyRouter` (`key_router.py`), separado em 2026-09-25.
 from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore
 
+from ui.core.engine.engine_type import EngineType
+
 
 @runtime_checkable
 class RouterCanvas(Protocol):
@@ -189,7 +191,7 @@ class CanvasInputRouter:
         w = self.widget
         if is_eraser_tip and w.backend:
             self._previous_engine_type = w.backend.get_active_engine_type()
-            w.backend.set_engine_type(6)  # aladyn::engine::brush::EngineType::Eraser
+            w.backend.set_engine_type(EngineType.ERASER)
         p0 = w.stroke.last_end_screen
         if (modifiers & QtCore.Qt.ShiftModifier) and p0 is not None:
             # Linha reta desde o fim do último traço.

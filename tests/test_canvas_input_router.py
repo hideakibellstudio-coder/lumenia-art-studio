@@ -16,6 +16,7 @@ from PySide6 import QtCore, QtGui
 
 pytest.importorskip("aladyn_engine_native")
 
+from ui.core.engine.engine_type import EngineType  # noqa: E402
 from ui.core.engine.registry import EngineRegistry  # noqa: E402
 from ui.infrastructure.bridge_client.aladyn import AladynBackend  # noqa: E402
 from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget  # noqa: E402
@@ -204,9 +205,10 @@ def test_brush_stroke_press_move_release(canvas):
 def test_eraser_tip_switches_the_engine_only_during_the_stroke(canvas):
     backend = EngineRegistry.instance().get_backend()
     before = backend.get_active_engine_type()
-    assert before != 6
+    assert before != EngineType.ERASER
     press(canvas, 100, 100, is_eraser_tip=True)
-    assert backend.get_active_engine_type() == 6
+    # Era 6, o Borrar: o teste cravava o valor errado do código (D1, 2026-10-01).
+    assert backend.get_active_engine_type() == EngineType.ERASER
     release(canvas, 120, 100)
     assert backend.get_active_engine_type() == before
 

@@ -3,11 +3,13 @@
 Decoupled under ARCcC v2.
 """
 
+from ui.core.engine.engine_type import EngineType
+
 BRUSH_CATEGORY = {
     "id": "brush",
     "label": "Pincel Básico",
     "icon_key": "brush",
-    "engine_type": 0,  # EngineType.Brush
+    "engine_type": EngineType.BRUSH,
     "available": True,
     "blend_mode_enabled": True,
     "visible_groups": {"size_opacity", "geometry", "jitters", "scatter", "textures", "velocity"},
@@ -56,7 +58,7 @@ ERASER_CATEGORY = {
     "id": "eraser",
     "label": "Borracha",
     "icon_key": "eraser",
-    "engine_type": 3,  # EngineType.Eraser
+    "engine_type": EngineType.ERASER,
     "available": True,
     "blend_mode_enabled": False,
     "visible_groups": {"size_opacity", "geometry"},

@@ -8,22 +8,27 @@ estado do documento aberto; pode ser None sem plugins).
 from __future__ import annotations
 
 import os
-from typing import Callable, Optional
+from typing import Callable, Optional, Protocol
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.i18n import tr
+from ui.core.engine.backend_protocols import RoleProvider
 from ui.core.engine.limits import max_canvas_dimension
 from ui.core.document.document import Document
 from ui.core.document.document_loader import DocumentLoader, LoadedDocument
 from ui.core.document.document_saver import DocumentSaver
-from ui.core.document.save_capture import SaveCapture, capture_document
+from ui.core.document.save_capture import CaptureEngine, SaveCapture, capture_document
 from ui.core.document.manager import DocumentManager
-from ui.core.document.restore import restore_document
+from ui.core.document.restore import RestoreEngine, restore_document
 from ui.core.state import BrushEngineSync
 
-from .shell_actions import BackendProvider, ShellActions, backend_ready
+from .shell_actions import ShellActions, backend_ready
 from .workspace_port import ShellWorkspace
+
+
+class DocumentEngine(CaptureEngine, RestoreEngine, Protocol):
+    """Abrir reconstrói o documento no motor (`RestoreEngine`); salvar o lê de lá (`CaptureEngine`)."""
 
 
 class DocumentActions(ShellActions):
@@ -34,7 +39,7 @@ class DocumentActions(ShellActions):
         self,
         window: QtWidgets.QWidget,
         dm: DocumentManager,
-        backend: BackendProvider,
+        backend: RoleProvider[DocumentEngine],
         brush_sync: BrushEngineSync,
         workspace: Optional[ShellWorkspace],
         saver: DocumentSaver,

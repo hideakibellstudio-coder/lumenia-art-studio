@@ -31,7 +31,6 @@ import unittest
 
 sys.path.insert(0, _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "..")))
 
-from ui.core.engine.registry import EngineRegistry
 from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import (
     GeometryToolController,
 )
@@ -54,6 +53,9 @@ class GeometryConfigSink:
 class DummyWidget:
     canvas_w = 4000
     canvas_h = 4000
+
+    def __init__(self, backend):
+        self.backend = backend
 
 
 class TestGeometryC35NativeAnchor(unittest.TestCase):
@@ -144,14 +146,11 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             {"point": (0.0, 0.0), "dir": (1.0, 0.0)},
             {"point": (2000.0, 0.0), "dir": (0.0, 1.0)},
         ]
-        registry = EngineRegistry.instance()
-        prev_backend = registry.get_backend()
         prev_env = _os.environ.get("LUMENIA_SNAP_NATIVE_CURVILINEAR")
         try:
             _os.environ["LUMENIA_SNAP_NATIVE_CURVILINEAR"] = "1"
-            registry.set_backend(FakeNativeBackend(candidates))
 
-            ctrl: GeometryToolController = GeometryToolController(DummyWidget())
+            ctrl: GeometryToolController = GeometryToolController(DummyWidget(FakeNativeBackend(candidates)))
             self.assertTrue(ctrl.native_snap.use_curvilinear)
             ctrl.guide_state["type"] = "curvilinear"
             ctrl.start_stroke_snap((0.0, 0.0))
@@ -190,7 +189,6 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             ctrl.mouse_release()
             self.assertIsNone(ctrl.native_snap.curv_anchor)
         finally:
-            registry.set_backend(prev_backend)
             if prev_env is None:
                 _os.environ.pop("LUMENIA_SNAP_NATIVE_CURVILINEAR", None)
             else:
@@ -218,15 +216,12 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
                 t = (raw_x - start_x) * 0.0 + (raw_y - start_y) * 1.0
                 return (start_x, start_y + t, True, 0.0, 1.0)
 
-        registry = EngineRegistry.instance()
-        prev_backend = registry.get_backend()
         prev_env = _os.environ.get("LUMENIA_SNAP_NATIVE_PERSPECTIVE")
         try:
             _os.environ["LUMENIA_SNAP_NATIVE_PERSPECTIVE"] = "1"
             backend = RecordingFakeBackend()
-            registry.set_backend(backend)
 
-            ctrl = GeometryToolController(DummyWidget())
+            ctrl = GeometryToolController(DummyWidget(backend))
             self.assertTrue(ctrl.native_snap.use_perspective)
             ctrl.guide_state["type"] = "one_point"
             ctrl.start_stroke_snap((0.0, 0.0))
@@ -246,7 +241,6 @@ class TestGeometryC35NativeAnchor(unittest.TestCase):
             ctrl.mouse_release()
             self.assertIsNone(ctrl.native_snap.persp_anchor)
         finally:
-            registry.set_backend(prev_backend)
             if prev_env is None:
                 _os.environ.pop("LUMENIA_SNAP_NATIVE_PERSPECTIVE", None)
             else:

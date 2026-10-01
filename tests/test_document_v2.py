@@ -221,12 +221,10 @@ def test_paper_ui_updates_model_without_replacing_embedded_texture(drawing, monk
 def test_guide_switch_resets_old_modes_and_restores_points(drawing, monkeypatch):
     from types import SimpleNamespace
     from ui.core.document.manager import DocumentManager
-    from ui.core.engine.registry import EngineRegistry
     from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryToolController
     document, backend = drawing
     monkeypatch.setattr(DocumentManager.instance(), "active_document", lambda: document)
-    monkeypatch.setattr(EngineRegistry.instance(), "get_backend", lambda: backend)
-    controller = GeometryToolController(SimpleNamespace())
+    controller = GeometryToolController(SimpleNamespace(backend=backend))
     # `guide_state`/`sym_state` do controller sao SyncedDict (Fase pos-C5,
     # item P1 #2): qualquer escrita -- inclusive uma unica chave -- propaga
     # imediatamente para o documento ativo. Por isso o "estado anterior" e

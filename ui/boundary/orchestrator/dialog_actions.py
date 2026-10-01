@@ -8,25 +8,29 @@ curvas, telemetria (F12), feedback e "sobre". Colaborador da `MainWindow`
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.runtime_paths import resource_path
+from ui.core.engine.backend_protocols import RoleProvider
 from ui.core.state import BrushState
 from ui.core.shortcut_registry import ShortcutRegistry
 from ui.infrastructure.theme import ThemeManager
 
-from .shell_actions import BackendProvider, ShellActions
+from .shell_actions import ShellActions
 from .workspace_port import ShellWorkspace
+
+if TYPE_CHECKING:  # o diálogo só é importado quando o usuário o abre
+    from ui.core.dialogs.render_settings_dialog import RenderSettingsEngine
 
 
 class DialogActions(ShellActions):
     def __init__(
         self,
         window: QtWidgets.QWidget,
-        backend: BackendProvider,
+        backend: RoleProvider[RenderSettingsEngine],
         workspace: Optional[ShellWorkspace],
         shortcuts: ShortcutRegistry,
         brush: BrushState,
@@ -119,7 +123,7 @@ class DialogActions(ShellActions):
 
     def open_render_settings(self) -> None:
         from ui.core.dialogs.render_settings_dialog import RenderSettingsDialog
-        dialog = RenderSettingsDialog(self._window)
+        dialog = RenderSettingsDialog(self._backend, self._window)
         dialog.profileChanged.connect(self._on_color_profile_changed)
         dialog.exec()
 

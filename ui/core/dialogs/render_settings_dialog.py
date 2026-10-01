@@ -9,11 +9,13 @@ Interface moderna de 2 colunas no padrão Lumenia V2:
 
 from __future__ import annotations
 
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Protocol
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.theme.manager import ThemeManager
-from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.backend_protocols import (
+    ColorProtocol, CoreLifecycleProtocol, HistoryProtocol, RenderPipelineProtocol, RoleProvider,
+)
 from ui.infrastructure.icons import get_icon
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from .render_settings_components import (
@@ -38,12 +40,17 @@ __all__ = [
 
 # ── DIÁLOGO PRINCIPAL (2 COLUNAS) ───────────────────────────────────────────
 
+class RenderSettingsEngine(ColorProtocol, CoreLifecycleProtocol, HistoryProtocol, RenderPipelineProtocol, Protocol):
+    """O que o diálogo pede ao motor: perfis e prova de cor (`Color`), capacidades (`CoreLifecycle`), os limites
+    do desfazer (`History`) e as opções de render (`RenderPipeline`)."""
+
+
 class RenderSettingsDialog(BaseFramelessDialog):
     """Central de Renderização e Prova de Cores em 2 colunas."""
 
     profileChanged = QtCore.Signal(int)
 
-    def __init__(self, parent=None):
+    def __init__(self, backend: RoleProvider[RenderSettingsEngine], parent=None):
         from ui.infrastructure.i18n import tr, I18nManager
         super().__init__(title=tr("dialogs.render_title", "Configurações de Renderização & Modos de Cor"), icon_name="settings", parent=parent, modal=True)
         self.setObjectName("RenderSettingsDialog")
@@ -53,6 +60,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self._cards: List[ProfileCard] = []
         self._selected_profile: dict = {}
         self._active_profile_id: int = 0
+        self._backend = backend
         self._saved_cfg: dict = load_render_settings()
         self._capabilities: Dict[str, Any] = {}
 
@@ -65,7 +73,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self.retranslate_ui()
 
     def _load_data(self):
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._backend()
         if backend:
             self._capabilities = backend.get_capabilities()
         if backend and self._capabilities.get("color_profiles", False):
@@ -193,7 +201,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         lbl_bar.setStyleSheet("font-size: 11px; font-weight: bold; margin-top: 4px;")
         right_layout.addWidget(lbl_bar)
 
-        self.preview_bar = ProofingPreviewBar()
+        self.preview_bar = ProofingPreviewBar(self._backend)
         right_layout.addWidget(self.preview_bar)
 
         # Grupo de Configurações Avançadas do Motor
@@ -206,7 +214,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         right_layout.addWidget(self.engine_group)
 
         # Grupo de Gestão Profissional de Cor (LittleCMS & Prova)
-        self.color_group = ColorManagementGroup(self._saved_cfg, self)
+        self.color_group = ColorManagementGroup(self._saved_cfg, self._backend, self)
         self.color_group.profileImported.connect(self._on_custom_profile_imported)
         self.color_group.softProofChanged.connect(self._on_soft_proof_changed)
         right_layout.addWidget(self.color_group)
@@ -272,7 +280,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         }
         self._saved_cfg = cfg
         save_render_settings(cfg)
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._backend()
         capabilities = backend.get_capabilities() if backend else {}
         if backend and capabilities.get("history", False):
             backend.set_undo_memory_limit_mb(mb)
@@ -351,7 +359,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
             self.btn_apply.setEnabled(True)
 
     def _on_custom_profile_imported(self, new_id: int) -> None:
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._backend()
         if backend and self._capabilities.get("color_profiles", False):
             self._all_profiles = backend.get_available_color_profiles()
             self._build_cards()
@@ -361,7 +369,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
                     break
 
     def _on_soft_proof_changed(self, proof_config: dict) -> None:
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._backend()
         if backend:
             backend.set_soft_proofing(proof_config)
             self.preview_bar.update()
@@ -382,7 +390,7 @@ class RenderSettingsDialog(BaseFramelessDialog):
         self._saved_cfg = cfg
         save_render_settings(cfg)
 
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._backend()
         capabilities = backend.get_capabilities() if backend else {}
         if backend and capabilities.get("color_profiles", False):
             backend.set_color_profile(pid)

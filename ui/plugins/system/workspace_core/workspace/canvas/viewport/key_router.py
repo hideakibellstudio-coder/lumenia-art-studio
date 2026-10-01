@@ -5,8 +5,10 @@ Separado de `input_router.py` em 2026-09-25, quando o roteador de ponteiro e
 teclado chegou à parede dos 450 linhas; cada um tem o seu contrato com o canvas.
 """
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui
+
+from ui.core.engine.backend_protocols import SelectionTransformProtocol
 
 
 @runtime_checkable
@@ -17,6 +19,7 @@ class KeyCanvas(Protocol):
     is_panning: bool
     is_space_held: bool
     active_text_editor: Any
+    backend: Optional[SelectionTransformProtocol]
     cursor_ctrl: Any
     selection_ctrl: Any
     transform_ctrl: Any
@@ -40,8 +43,7 @@ class CanvasKeyRouter:
         """Devolve se a tecla foi consumida. Ordem: teclas da transformação ativa,
         atalhos (transformar, desmarcar, inverter, selecionar tudo), espaço,
         Delete/Backspace. Dividido em passos em 2026-09-25 (complexidade 24)."""
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if self.widget.transform_ctrl.active and self._transform_key(event):
             return True
         if self._shortcut(event, backend):
@@ -75,7 +77,7 @@ class CanvasKeyRouter:
             return True
         return False
 
-    def _shortcut(self, event: QtGui.QKeyEvent, backend: Any) -> bool:
+    def _shortcut(self, event: QtGui.QKeyEvent, backend: Optional[SelectionTransformProtocol]) -> bool:
         from ui.core.shortcut_bindings import ShortcutBindings
         w = self.widget
         if ShortcutBindings.matches("tool_transform", event):
@@ -112,7 +114,7 @@ class CanvasKeyRouter:
             w.update()
         return True
 
-    def _delete_selection(self, backend: Any) -> bool:
+    def _delete_selection(self, backend: Optional[SelectionTransformProtocol]) -> bool:
         w = self.widget
         if not (backend and backend.has_selection()):
             return False

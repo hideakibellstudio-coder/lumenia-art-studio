@@ -7,10 +7,15 @@ workspace, cada um com seu subconjunto de campos.
 """
 from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Protocol
 
+from ui.core.engine.backend_protocols import CanvasResourceProtocol, CoreLifecycleProtocol, RenderPipelineProtocol
 from ui.core.engine.registry import EngineRegistry
 from ui.core.plugins.canvas_access import request_canvas_repaint
+
+
+class PaperEngine(CanvasResourceProtocol, CoreLifecycleProtocol, RenderPipelineProtocol, Protocol):
+    """O papel vai ao motor (`CanvasResource`), se o contexto ativo é o do documento (`RenderPipeline`)."""
 
 
 def sync_paper_to_backend(document, changed: Optional[Iterable[str]] = None) -> None:
@@ -19,7 +24,7 @@ def sync_paper_to_backend(document, changed: Optional[Iterable[str]] = None) -> 
     Só age se o contexto ativo do motor for este documento. `changed` são os
     campos alterados; trocar `texture_id` recarrega o relevo do preset.
     """
-    backend = EngineRegistry.instance().get_backend()
+    backend: Optional[PaperEngine] = EngineRegistry.instance().get_backend()
     if backend is None or not backend.available:
         return
     if backend.get_active_document_context() != document.uid:

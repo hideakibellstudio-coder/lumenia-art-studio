@@ -1,6 +1,6 @@
 # `ui/core/engine/` — contrato do motor
 
-**Responsabilidade:** a fronteira entre interface e motor: o contrato `EngineBackend` (e os `Protocol`s por papel), o `EngineRegistry` que guarda o backend ativo, o DTO de telemetria e as exceções. A interface conversa com o motor só por aqui.
+**Responsabilidade:** a fronteira entre interface e motor: o contrato `EngineBackend` (e os `Protocol`s por papel, que é o que os consumidores declaram), o `EngineRegistry` que guarda o backend ativo, o DTO de telemetria e as exceções. A interface conversa com o motor só por aqui.
 
 ## Porta de entrada
 
@@ -15,7 +15,7 @@
 |---|---|
 | `__init__.py` | ui.core.engine — Contratos de Motor (Shell Engine-Agnóstica). |
 | `backend.py` | ui.core.engine.backend — Contrato Canônico EngineBackend + PointerEvent. |
-| `backend_protocols.py` | ui.core.engine.backend_protocols -- EngineBackend decomposto em Protocols por papel. |
+| `backend_protocols.py` | ui.core.engine.backend_protocols -- EngineBackend decomposto em Protocols por papel (11 papéis, cada um com consumidor em produção) e `RoleProvider[Papel]`: o tipo de quem entrega o motor a um colaborador. |
 | `backend_protocols_selection.py` | ui.core.engine.backend_protocols_selection -- papel "SelectionTransform". |
 | `engine_type.py` | `EngineType`: id canônico do motor de pincel (Brush, Pencil, Inker, Eraser, Marker, Blur, Smudge, Watercolor, OilImpasto), igual ao enum nativo; contrato em `tests/test_engine_type_contract.py`. |
 | `display_image.py` | `DisplayImage` (a imagem que a tela pinta, a escala e a origem dela no canvas) e `region_to_request`: o que o `EngineBackend.get_display_image` entrega à viewport em lugar do canvas inteiro. |
@@ -38,7 +38,14 @@
   motor? Declare o método em `EngineBackend` e implemente no backend.
 - Método novo no contrato: adicione em `backend.py` (com implementação padrão
   segura quando fizer sentido) e no `Protocol` do papel em
-  `backend_protocols*.py`.
+  `backend_protocols*.py`, **junto de quem o chama**: `tests/test_engine_contract_surface.py`
+  reprova método sem chamador em `ui/` (19 de 178 saíram em 2026-10-01).
+- Consumidor declara o papel que usa, nunca o `EngineBackend` inteiro: o
+  contrato dele com o motor é `RoleProvider[LayerProtocol]` (injetado pelo
+  construtor), ou, na pasta do canvas, `backend: Optional[SelectionTransformProtocol]`
+  no `*Canvas` que ele declara. Quem usa mais de um papel compõe os que usa
+  (`class X(ColorProtocol, LayerProtocol, Protocol)`, bases em ordem alfabética
+  para o MRO fechar). Importar `EngineBackend` fora deste pacote reprova.
 - Motor → documento: o backend não conhece o modelo de documentos; avisa
   `EngineRegistry.notify_document_modified(uid, motivo)` e o `DocumentManager`
   (que escuta) suja o documento. Um caminho só até o motor: não há fachada

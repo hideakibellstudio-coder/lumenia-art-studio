@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.core.engine.backend_protocols import ColorProtocol, RoleProvider
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
@@ -55,9 +56,10 @@ def save_render_settings(cfg_dict: dict) -> None:
 class ProofingPreviewBar(QtWidgets.QWidget):
     """Renderiza uma barra de degradê espectral comparativa simulando o perfil ativo em tempo real."""
 
-    def __init__(self, parent=None):
+    def __init__(self, backend: RoleProvider[ColorProtocol], parent=None):
         super().__init__(parent)
         self.setFixedHeight(34)
+        self._backend = backend
         self._profile_id = 0
 
     def set_profile(self, profile_id: int):
@@ -92,16 +94,14 @@ class ProofingPreviewBar(QtWidgets.QWidget):
         img_painter.fillRect(0, 0, w, h, QtGui.QBrush(grad))
         img_painter.end()
 
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        transform = getattr(backend, "transform_rgba_for_profile", None) if backend else None
+        backend = self._backend()
         sp_active = False
         if backend:
             sp = backend.get_soft_proofing()
             sp_active = bool(sp and getattr(sp, "enabled", False))
 
-        if (self._profile_id != 0 or sp_active) and transform:
-            raw = transform(bytes(img.bits()), self._profile_id)
+        if (self._profile_id != 0 or sp_active) and backend:
+            raw = backend.transform_rgba_for_profile(bytes(img.bits()), self._profile_id)
             img = QtGui.QImage(raw, w, h, w * 4, QtGui.QImage.Format_RGBA8888).copy()
 
         p.drawImage(0, 0, img)

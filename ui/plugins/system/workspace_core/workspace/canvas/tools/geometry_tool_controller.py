@@ -17,11 +17,11 @@ escritor único no motor e no documento: escuta o estado e sincroniza.
 """
 
 import math
-from typing import Optional
+from typing import Optional, Protocol, runtime_checkable
 
 from PySide6 import QtCore
 from ui.core.document.manager import DocumentManager
-from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.backend_protocols import GeometryProtocol
 from ui.core.state import GeometryState
 from ..math.camera_3d_projector import closest_point_on_curve
 from .geometry_engine_sync import push_guides, push_symmetry
@@ -29,10 +29,17 @@ from .geometry_native_snap import NativeGeometrySnap, first_not_none
 from .geometry_snapping_engine import GeometrySnappingEngine
 
 
+@runtime_checkable
+class GeometryCanvas(Protocol):
+    """O que o controlador de geometria usa do canvas. Membro novo usado aqui entra neste contrato;
+    `tests/test_canvas_contracts.py` confere que o `RenderWidget` o cumpre."""
+    backend: Optional[GeometryProtocol]
+
+
 class GeometryToolController:
     """Unified UI controller for symmetry, rulers, and 6P curvilinear perspective."""
 
-    def __init__(self, widget, state: Optional[GeometryState] = None):
+    def __init__(self, widget: GeometryCanvas, state: Optional[GeometryState] = None):
         self.widget = widget
         # Sem estado injetado (testes do controlador isolado), um próprio.
         self.state = state if state is not None else GeometryState()
@@ -55,7 +62,7 @@ class GeometryToolController:
         self.current_stroke_pts = []
 
         # Snap pelo motor C++ (toggle de comparação da Fase C3.2).
-        self.native_snap = NativeGeometrySnap(lambda: EngineRegistry.instance().get_backend())
+        self.native_snap = NativeGeometrySnap(lambda: self.widget.backend)
         # Durante load_document_state o documento não é reescrito com o que
         # ele mesmo acabou de entregar.
         self._loading_document = False
@@ -267,10 +274,10 @@ class GeometryToolController:
         document = self._active_document()
         if document is not None:
             document.store_sym_state(self.sym_state)
-        push_symmetry(EngineRegistry.instance().get_backend(), self.sym_state)
+        push_symmetry(self.widget.backend, self.sym_state)
 
     def sync_guides_to_engine(self):
         document = self._active_document()
         if document is not None:
             document.store_guide_state(self.guide_state)
-        push_guides(EngineRegistry.instance().get_backend(), self.guide_state)
+        push_guides(self.widget.backend, self.guide_state)

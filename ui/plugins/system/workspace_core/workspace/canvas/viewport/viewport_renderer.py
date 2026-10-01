@@ -11,19 +11,23 @@ from __future__ import annotations
 import collections
 import time
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui
 
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.document.manager import DocumentManager
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, SelectionTransformProtocol
 from ui.core.engine.display_image import region_to_request
-from ui.core.engine.registry import EngineRegistry
 
 from ..renderers.overlay_renderer import OverlayRenderer
 from ..renderers.geometry_overlay_renderer import GeometryOverlayRenderer
 from ..renderers.canvas_background_renderer import CanvasBackgroundRenderer
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
 
+
+
+class ViewportEngine(CoreLifecycleProtocol, SelectionTransformProtocol, Protocol):
+    """Do motor, a pintura da tela usa a imagem de exibição (ciclo de vida) e a seleção (formigas)."""
 
 
 @runtime_checkable
@@ -43,6 +47,7 @@ class ViewportCanvas(Protocol):
     current_brush_radius: float
     paper_color: QtGui.QColor
     paper_visible: bool
+    backend: Optional[ViewportEngine]
     cursor_ctrl: Any
     eyedrop_ctrl: Any
     geometry_ctrl: Any
@@ -115,7 +120,7 @@ class ViewportRenderer:
             return
 
         widget.canvas_w, widget.canvas_h = active_doc.width, active_doc.height
-        backend = EngineRegistry.instance().get_backend()
+        backend = widget.backend
         t = widget.canvas_transform()
         canvas_rect = QtCore.QRectF(0, 0, widget.canvas_w, widget.canvas_h)
 
@@ -202,7 +207,7 @@ class ViewportRenderer:
         composite.fill(widget.paper_color if widget.paper_visible else QtCore.Qt.transparent)
 
         p = QtGui.QPainter(composite)
-        backend = EngineRegistry.instance().get_backend()
+        backend = widget.backend
         if backend:
             qimg = backend.get_qimage()
             if qimg and not qimg.isNull():

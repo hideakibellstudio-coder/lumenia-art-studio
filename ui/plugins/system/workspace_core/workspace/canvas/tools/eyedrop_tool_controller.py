@@ -1,12 +1,33 @@
 """Eyedropper Tool and Color Sampling Controller."""
 
+from typing import Any, Optional, Protocol, runtime_checkable
+
 from PySide6 import QtCore, QtGui
+from ui.core.engine.backend_protocols import ColorProtocol, LayerProtocol
 from ui.core.tool_settings import default_tool_settings
+
+
+class EyedropEngine(ColorProtocol, LayerProtocol, Protocol):
+    """A amostra vem do motor (`Color`), da camada ativa quando "todas as camadas" está desligado (`Layer`)."""
+
+
+@runtime_checkable
+class EyedropCanvas(Protocol):
+    """O que o conta-gotas usa do canvas. Membro novo usado aqui entra neste contrato;
+    `tests/test_canvas_contracts.py` confere que o `RenderWidget` o cumpre."""
+    canvas_w: int
+    canvas_h: int
+    backend: Optional[EyedropEngine]
+    colorPicked: Any
+
+    def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> Any: ...
+    def get_canvas_image(self, apply_proofing: bool = True) -> Any: ...
+
 
 class EyedropToolController:
     """Controlador de amostragem de cor e HUD de lupa do Conta-Gotas."""
 
-    def __init__(self, widget):
+    def __init__(self, widget: EyedropCanvas):
         self.widget = widget
         self.active: bool = False
         self.pos: QtCore.QPointF = QtCore.QPointF()
@@ -21,7 +42,7 @@ class EyedropToolController:
 
         # Delegate sampling to the backend when available so the “all layers”
         # option has real semantics and matches the native compositor.
-        backend = getattr(self.widget, "backend", None)
+        backend = self.widget.backend
         if backend is not None:
             radius = int(self.settings.get("sample_radius", 0))
             try:

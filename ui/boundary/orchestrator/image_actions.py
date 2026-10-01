@@ -12,11 +12,13 @@ from PySide6 import QtWidgets
 
 from ui.infrastructure.i18n import tr
 from ui.core.dialogs.canvas_size_dialog import CanvasSizeDialog
-from ui.core.document.geometry import change_geometry
+from ui.core.document.geometry import GeometryChangeEngine, change_geometry
 from ui.core.document.manager import DocumentManager
+from ui.core.engine.backend_protocols import RoleProvider
 
-from .shell_actions import BackendProvider, ShellActions, backend_ready
+from .shell_actions import ShellActions, backend_ready
 from .workspace_port import ShellCanvas, ShellWorkspace
+
 
 
 class ImageActions(ShellActions):
@@ -24,7 +26,7 @@ class ImageActions(ShellActions):
         self,
         window: QtWidgets.QWidget,
         dm: DocumentManager,
-        backend: BackendProvider,
+        backend: RoleProvider[GeometryChangeEngine],
         workspace: Optional[ShellWorkspace],
     ) -> None:
         super().__init__(window)

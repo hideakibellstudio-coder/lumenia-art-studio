@@ -14,9 +14,11 @@ e rápido a corda até a pressão fica desatualizada e o re-lock errava.
 from __future__ import annotations
 
 import os
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from PySide6 import QtCore
+
+from ui.core.engine.backend_protocols import GeometryProtocol
 
 
 def first_not_none(*values):
@@ -30,7 +32,7 @@ def first_not_none(*values):
 
 
 class NativeGeometrySnap:
-    def __init__(self, backend: Callable[[], Any]) -> None:
+    def __init__(self, backend: Callable[[], Optional[GeometryProtocol]]) -> None:
         self._backend = backend
         self.use_perspective = os.environ.get("LUMENIA_SNAP_NATIVE_PERSPECTIVE", "0") == "1"
         self.use_curvilinear = os.environ.get("LUMENIA_SNAP_NATIVE_CURVILINEAR", "0") == "1"

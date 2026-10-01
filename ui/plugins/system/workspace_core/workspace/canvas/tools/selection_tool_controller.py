@@ -1,10 +1,9 @@
 """Selection Tool Controller (Magic Wand, Rect, Ellipse, Lasso)."""
 
 import logging
-from typing import Optional, List
+from typing import Any, List, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtWidgets
-from ui.core.engine.backend import EngineBackend
-from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.backend_protocols import SelectionTransformProtocol
 from ui.core.tool_settings import default_tool_settings
 from ui.core.document.history import layer_transaction
 from ui.core.document.manager import DocumentManager
@@ -12,10 +11,25 @@ from ui.core.document.manager import DocumentManager
 logger = logging.getLogger(__name__)
 
 
+@runtime_checkable
+class SelectionCanvas(Protocol):
+    """O que as ferramentas de seleção usam do canvas (que também é o pai do timer das formigas).
+
+    Membro novo usado aqui entra neste contrato; `tests/test_canvas_contracts.py` confere que o
+    `RenderWidget` o cumpre."""
+    active_tool: str
+    canvas_w: int
+    canvas_h: int
+    backend: Optional[SelectionTransformProtocol]
+
+    def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> Any: ...
+    def update(self) -> None: ...
+
+
 class SelectionToolController:
     """Controlador de ferramentas de seleção e confinamento da máscara nativa C++."""
 
-    def __init__(self, widget):
+    def __init__(self, widget: SelectionCanvas):
         self.widget = widget
         self.wand_settings = default_tool_settings("wand")
         self.geom_select_settings = default_tool_settings("rect_select")
@@ -33,7 +47,7 @@ class SelectionToolController:
         self.selection_timer.timeout.connect(self._on_timer_tick)
 
     def _on_timer_tick(self):
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if backend and backend.has_selection():
             self.selection_dash_offset = (self.selection_dash_offset + 1.0) % 16.0
             self.widget.update()
@@ -41,7 +55,7 @@ class SelectionToolController:
             self.selection_timer.stop()
 
     def do_magic_wand_select(self, screen_x: float, screen_y: float):
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if not backend:
             return
 
@@ -88,7 +102,7 @@ class SelectionToolController:
         self.widget.update()
 
     def finish_geom_selection(self):
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if not backend:
             return
 
@@ -156,7 +170,7 @@ class SelectionToolController:
         self.widget.update()
 
     def finish_lasso_selection(self):
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if not backend or len(self.lasso_points) < 3:
             self.lasso_points = []
             self.widget.update()
@@ -195,7 +209,7 @@ class SelectionToolController:
 
     def clear_selection(self) -> None:
         """Limpa a seleção ativa e interrompe o timer de marching ants."""
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if backend:
             backend.clear_selection()
         if self.selection_timer.isActive():
@@ -204,7 +218,7 @@ class SelectionToolController:
 
     def select_all(self) -> None:
         """Seleciona todo o canvas e inicia a animação de marching ants."""
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if backend:
             backend.select_all()
         if not self.selection_timer.isActive():
@@ -213,7 +227,7 @@ class SelectionToolController:
 
     def invert_selection(self) -> None:
         """Inverte a seleção ativa e sincroniza o timer de animação."""
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if backend:
             backend.invert_selection()
         self._sync_marching_ants(backend)
@@ -237,7 +251,7 @@ class SelectionToolController:
         Dentro de uma transação de documento: o motor grava a máscara antes e
         depois, então Desfazer/Refazer voltam a seleção anterior.
         """
-        backend: Optional[EngineBackend] = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         operations = {
             "expand": backend.expand_selection,
             "contract": backend.contract_selection,

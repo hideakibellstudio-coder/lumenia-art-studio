@@ -15,6 +15,8 @@ from typing import Any, Callable
 
 from PySide6 import QtCore, QtGui
 
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, RoleProvider
+
 logger = logging.getLogger("Workspace.StrokePreviewSync")
 
 _DEBOUNCE_MS = 100
@@ -26,7 +28,7 @@ class StrokePreviewSync(QtCore.QObject):
 
     def __init__(
         self,
-        backend_provider: Callable[[], Any],
+        backend_provider: RoleProvider[CoreLifecycleProtocol],
         document_provider: Callable[[], Any],
         parent: QtCore.QObject | None = None,
     ) -> None:

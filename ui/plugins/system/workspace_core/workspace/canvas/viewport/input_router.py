@@ -6,6 +6,7 @@ O teclado é do `CanvasKeyRouter` (`key_router.py`), separado em 2026-09-25.
 from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore
 
+from ui.core.engine.backend_protocols import BrushProtocol
 from ui.core.engine.engine_type import EngineType
 
 
@@ -30,7 +31,7 @@ class RouterCanvas(Protocol):
     pan_y: float
     zoom: float
     active_text_editor: Any
-    backend: Any
+    backend: Optional[BrushProtocol]
     stroke: Any
     cursor_ctrl: Any
     eyedrop_ctrl: Any

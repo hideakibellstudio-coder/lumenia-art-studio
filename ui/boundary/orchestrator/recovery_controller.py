@@ -15,12 +15,13 @@ from ui.infrastructure.i18n import tr
 from ui.infrastructure.config.manager import ConfigManager
 from ui.core.document.document import Document
 from ui.core.document.document_saver import DocumentSaver
-from ui.core.document.save_capture import SaveCapture
+from ui.core.document.save_capture import CaptureEngine, SaveCapture
 from ui.core.document.manager import DocumentManager
 from ui.core.document.recovery import RecoveryStore
+from ui.core.engine.backend_protocols import RoleProvider
 
 from .document_actions import DocumentActions
-from .shell_actions import BackendProvider, ShellActions
+from .shell_actions import ShellActions
 from .workspace_port import ShellCanvas
 
 _INTERVAL_MS = 60000
@@ -31,7 +32,7 @@ class RecoveryController(ShellActions):
         self,
         window: QtWidgets.QWidget,
         dm: DocumentManager,
-        backend: BackendProvider,
+        backend: RoleProvider[CaptureEngine],
         canvas: Optional[ShellCanvas],
         documents: DocumentActions,
         saver: DocumentSaver,

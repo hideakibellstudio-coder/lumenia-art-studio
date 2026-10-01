@@ -4,7 +4,8 @@ Até 2026-09-25 os colaboradores do canvas (`canvas/tools`, `canvas/viewport`)
 importavam o `RenderWidget` da pasta mãe só para anotar tipo: os dois ciclos
 Python que restavam (canvas ↔ tools, canvas ↔ viewport). Agora cada um declara
 o contrato que usa (`RouterCanvas`, `KeyCanvas`, `ViewportCanvas`,
-`StrokeCanvas`, `CursorCanvas`, `TextCanvas`, `ToolCanvas`) e este teste
+`StrokeCanvas`, `CursorCanvas`, `TextCanvas`, `ToolCanvas`, `SelectionCanvas`,
+`TransformCanvas`, `ShapeCanvas`, `EyedropCanvas`, `GeometryCanvas`) e este teste
 confere que o `RenderWidget` cumpre todos.
 
 O segundo teste é a catraca do ARCcC "subpasta não importa a mãe" para o
@@ -19,8 +20,13 @@ from pathlib import Path
 
 import pytest
 
+from ui.plugins.system.workspace_core.workspace.canvas.tools.eyedrop_tool_controller import EyedropCanvas
+from ui.plugins.system.workspace_core.workspace.canvas.tools.geometry_tool_controller import GeometryCanvas
+from ui.plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionCanvas
+from ui.plugins.system.workspace_core.workspace.canvas.tools.shape_tool_controller import ShapeCanvas
 from ui.plugins.system.workspace_core.workspace.canvas.tools.text_tool_controller import TextCanvas
 from ui.plugins.system.workspace_core.workspace.canvas.tools.tool_manager import ToolCanvas
+from ui.plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformCanvas
 from ui.plugins.system.workspace_core.workspace.canvas.viewport.canvas_stroke_pipeline import StrokeCanvas
 from ui.plugins.system.workspace_core.workspace.canvas.viewport.cursor_controller import CursorCanvas
 from ui.plugins.system.workspace_core.workspace.canvas.viewport.input_router import RouterCanvas
@@ -28,7 +34,10 @@ from ui.plugins.system.workspace_core.workspace.canvas.viewport.key_router impor
 from ui.plugins.system.workspace_core.workspace.canvas.viewport.viewport_renderer import ViewportCanvas
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACTS = (RouterCanvas, KeyCanvas, ViewportCanvas, StrokeCanvas, CursorCanvas, TextCanvas, ToolCanvas)
+CONTRACTS = (
+    RouterCanvas, KeyCanvas, ViewportCanvas, StrokeCanvas, CursorCanvas, TextCanvas, ToolCanvas,
+    SelectionCanvas, TransformCanvas, ShapeCanvas, EyedropCanvas, GeometryCanvas,
+)
 
 # Subpasta que importa módulo solto da pasta mãe (dívida conhecida em 2026-09-25).
 KNOWN_PARENT_IMPORTS = {

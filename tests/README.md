@@ -83,7 +83,7 @@
 | `test_engine_benchmark_runner.py` | O runner de benchmarks do motor exporta a linha de base em formato legível por máquina. |
 | `test_engine_boundary_color_and_signals.py` | Test Engine Boundary Round 11 — Validação da Fronteira Nativa C++ / Python. |
 | `test_engine_document_boundary.py` | Fronteira motor ↔ documento: um caminho só, sem o motor conhecer o modelo. |
-| `test_engine_contract_surface.py` | O contrato do motor só tem o que a interface chama: nenhum método do `EngineBackend` sem chamador em `ui/` (19 de 178 saíram em 2026-10-01), com o detector testado contra o que não pode deixar passar. |
+| `test_engine_contract_surface.py` | O contrato do motor só tem o que a interface chama (nenhum método do `EngineBackend` sem chamador em `ui/`: 19 de 178 saíram em 2026-10-01), cada papel (`Protocol`) tem consumidor em produção e ninguém fora do pacote do contrato importa o `EngineBackend` inteiro; os detectores são testados contra o que não podem deixar passar. |
 | `test_engine_type_contract.py` | `EngineType` é o enum canônico do motor de pincel: mesmos membros e valores do nativo, e nenhum número solto de motor em `ui/` (S0.1, D1). |
 | `test_floating_toolbar_structure.py` | Testes de Regressão e Contrato para a Decomposição da Fase 2 da Camada 5 (ARCcC v2) Valida o desacoplamento de ToolbarLivePreview, ToolToggleCard e FloatingToolbarSettingsDialog. |
 | `test_fullscreen_mode.py` | Tela cheia pelo F11 e pelo menu: entrar, sair e restaurar o estado anterior da janela. |

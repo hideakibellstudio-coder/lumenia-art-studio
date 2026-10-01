@@ -19,6 +19,8 @@ from typing import Any, Optional, Protocol, runtime_checkable
 
 from PySide6 import QtCore, QtGui
 
+from ui.core.engine.backend_protocols import StrokeProtocol
+
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
 
 
@@ -34,7 +36,7 @@ class StrokeCanvas(Protocol):
     drawing: bool
     zoom: float
     current_brush_radius: float
-    backend: Any
+    backend: Optional[StrokeProtocol]
     cursor_ctrl: Any
     geometry_ctrl: Any
     strokeStarted: Any

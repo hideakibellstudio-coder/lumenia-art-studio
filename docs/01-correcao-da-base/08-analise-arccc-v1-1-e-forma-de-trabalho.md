@@ -245,7 +245,7 @@ Selos herdados do relatório 07, revistos com a nova lente:
 | Ponte | 🟢 (era 🟡) | Nada. Contrato versionado e preso (versão 6); GIL solto em 3 lugares, cada um com a razão na política de `bridge/README.md` e travado por `tests/test_bridge_gil_policy.py`; a tela pede só a região (`get_display_region`), e as cópias de canvas inteiro que sobram (4 chamadas de `get_qimage` na interface: copiar para a área de transferência, gravação, prévia do traço e exportar a imagem) são de caminhos que precisam do canvas inteiro; a lupa do conta-gotas, que copiava o canvas para recortar 18×18 pixels (50 ms em 4K a cada movimento do mouse), passou a pedir só esses pixels (0,45 ms). `28bb597` |
 | Telemetria do motor | 🟢 | Instrumento certo |
 | Telemetria da tela (medidores) | 🟢 (era 🟠) | Nada. O medidor 6 conta a cópia do canvas e o `drawImage` (D16, `tests/test_viewport_paint_telemetry.py`) e as telas passam pelo `TelemetryTracker` para chegar ao motor. `0487eff`, `4e5ee70` |
-| `EngineBackend` | 🟡 (era 🟠) | Contrato com 178 métodos, o tamanho da facade. Feito: a gravação e a abertura ganharam o contrato estreito `PersistenceBackend` em vez de 6 métodos a mais; o `TelemetryProtocol` tem consumidor (o tracker, 14 pedidos ao registro viraram 1); o `PluginContext` deixou de entregar o motor inteiro a todo plugin; a catraca `registry_lookup` congela os pedidos globais do motor (49 hoje) e só deixa descer. Falta: 10 dos 11 sub-protocolos sem consumidor e migrar os 49 pedidos para injeção, arquivo por arquivo, junto da feature que o tocar |
+| `EngineBackend` | 🟢 (era 🟠) | Nada do que S2.3 pedia: o contrato foi de 178 para 159 métodos e nenhum método fica sem chamador em `ui/` (eram 19: os apelidos `*_raw`, `flood_fill`, `flip_active_layer`, os leitores de contagem e limite do histórico...); os 11 papéis têm consumidor em produção (era 1) e ninguém fora do pacote do contrato importa o `EngineBackend` inteiro (eram 2). `RenderWidget.backend` é a porta do canvas até o motor e cada colaborador declara no contrato dele (`StrokeCanvas`, `SelectionCanvas`...) o papel que usa; as ações da casca, o documento (gravar, abrir, histórico, camadas, papel) e os estados do pincel recebem `RoleProvider[Papel]`. Pedidos globais ao registro: 49 para 21. `tests/test_engine_contract_surface.py` trava os três números. Não diz: o contrato continua espelhando a facade (159 contra 173 declarações no `.pyi`), e restam 21 pedidos globais (congelados na catraca; ver 4.2). `cfd7a13` e o commit que o segue |
 | Motores de pincel (9) | 🟢 (era 🟠) | Nada. D14 saiu; 108 pinos de pixel (12 variações por motor, inclusive textura, elipse girada, dureza 0 e 1, modos de dab e parâmetros de cada motor); o núcleo comum (`DabFootprint`, `PixelPermission`, `TipShape`, `StraightOver`) fez cada `renderDab` ir de 129–273 linhas e complexidade 25–71 para 19–57 linhas e 6–15; 2 pinos regravados de propósito (Óleo e Borrar em ponta achatada: 132 e 186 de 49152 bytes, no máximo 2 níveis). `4101a56`, `230f77c` |
 | Documento e camadas | 🟢 (era 🟡) | Nada no documento: as 6 propriedades de camada são uma tabela (`layer_properties.py`) e os 8 lugares que as repetiam a percorrem; uma propriedade nova entra só ali (`tests/test_layer_property_registry.py` acrescenta uma e confere cada lugar; tirá-la de qualquer consumidor reprova). A interface (painel, menu, diálogo) e o método do motor continuam sendo da propriedade. `f9e8ad1` |
 | Plugins | 🟢 (era 🟠) | Nada de arquitetura. Os 4 tipos sem extensão saíram (D9) e o `PluginContext` tem 3 nomes (`service_registry`, `main_window`, `attach_main_window`), sem o motor e sem logger, travados por `tests/test_plugin_context_contract.py`. Limite que não é de arquitetura: um plugin segue sendo código Python no mesmo processo; isolar pede decisão de produto (gatilho: o 1º plugin externo). `22ea776` |
@@ -440,7 +440,7 @@ a tabela da 6.4 dizendo o que cada um **não pode** piorar enquanto espera.
 
 ---
 
-## 9. Estado dos selos em 2026-10-01 (medido depois de `4e5ee70`)
+## 9. Estado dos selos em 2026-10-01 (medido depois de `4e5ee70` e do S2.3, `cfd7a13` e o commit que o segue)
 
 O dono pediu os selos deste relatório fechados. Esta seção diz o que fechou,
 com o commit e o número, e **o que não fechou e por quê**. Só marquei 🟢 onde há
@@ -457,6 +457,7 @@ teste ou medição que o sustente; o que ficou aberto está dito sem adjetivo.
 | Documento e camadas | 🟡 → 🟢 | 8 lugares que repetiam as propriedades → 1 tabela; o teste de contrato acrescenta uma propriedade e confere cada lugar. `f9e8ad1` |
 | Ponte | 🟡 → 🟢 | Versão 6 presa por hash; política do GIL escrita e travada; 4 harnesses nativos isolados. `28bb597` |
 | Plugins | 🟠 → 🟢 | Contexto com 3 nomes, sem motor; os 4 tipos sem extensão saíram. `22ea776` |
+| `EngineBackend` | 🟡 → 🟢 | Contrato 178 → 159 métodos; 0 sem chamador em `ui/` (eram 19); 11 de 11 papéis com consumidor em produção (era 1); 0 módulos importam o contrato inteiro (eram 2); pedidos globais ao registro 49 → 21. `python -m tests.arccc_engine_roles`; `tests/test_engine_contract_surface.py` (o detector é testado com mutação). `cfd7a13` e o commit que o segue |
 | 4.4 fluxo de construção | 🔴 → 🟢 | `AGENTS.md` 5.0; 29 commits seguidos com as 6 perguntas e a medição |
 | 14 idioma | 🟡 → 🟢 | Assunto de commit em inglês (29 seguidos); identificadores com catraca em 0 |
 | 15.4 nº 3 contrato versionado | 🟠 → 🟢 | Ver Ponte |
@@ -474,23 +475,25 @@ ser montado por duas threads ao mesmo tempo.
 |---|---|---|
 | Arquivo (salvar e abrir) | 🟡 (era 🔴) | Salvar não trava (captura de 0,8 a 2,4 ms). Abrir um documento 4K com 10 camadas todas pintadas ainda para a janela por 0,22 a 0,32 s (0,66 s numa rodada do benchmark) na composição única da adoção; esparso 75 ms. O "pronto quando" de S1.2 (abrir em menos de 1 s) está cumprido; "sem travar" para o documento denso não. Fecha: construir o documento fora da thread da interface e anexá-lo em tempo constante, ou compor sob demanda por região; é mudança de motor e de ponte (versão 7) |
 | Seleção e transformação | 🟡 | D11 (prévia pelo Qt, resultado pelo motor) **não tratado**: pede um método novo de prévia na ponte e a decisão de custo por movimento do mouse; severidade baixa |
-| `EngineBackend` | 🟡 (era 🟠) | Continua com 178 métodos e 10 dos 11 sub-protocolos sem consumidor; a injeção dos 49 pedidos globais do motor fica arquivo por arquivo (catraca: só descem). Quanto o contrato diminui, não medi: não diminuiu |
-| 2.3 porta única | 🟡 (era 🟠) | Trava de catraca (238 importações que contornam a porta, congeladas), mas as 238 existem; reescrevê-las em massa arrisca ciclo de importação escondido |
-| 4.2 caixa preta | 🟠 | Vale para o motor e a ponte, não para as pastas de `ui/` (49 pedidos globais e 238 contornos congelados) |
-| 4.4.4 e 4.4.9 mecanismos vazios | 🟡 (era 🟠) | 10 sub-protocolos sem consumidor (ver `EngineBackend`) |
+| 2.3 porta única | 🟡 (era 🟠) | Trava de catraca (225 importações que contornam a porta, congeladas; eram 238), mas as 225 existem; reescrevê-las em massa arrisca ciclo de importação escondido |
+| 4.2 caixa preta | 🟠 | Vale para o motor e a ponte, não para as pastas de `ui/` (21 pedidos globais do motor, eram 49, e 225 contornos da porta, congelados). A pasta do canvas e as ações da casca já recebem o motor por porta única ou por construtor; faltam painéis de camadas e pincel, telemetria e o documento |
+| 4.4.4 e 4.4.9 mecanismos vazios | 🟡 (era 🟠) | No contrato do backend: 0 métodos sem chamador e os 11 papéis com consumidor. Na facade nativa: 173 métodos no `.pyi`, 29 sem uso no cliente da ponte (11 sem uso nenhum, 18 só em testes de caixa-branca): sair é mudança de motor e ponte (versão 7), junto da feature que precisar |
 | 7.1 limiares | 🟡 | Por decisão do dono (barreira em 20, alerta em 10). Medido de novo: C++ acima de 10 de 64 para 57, acima de 15 de 38 para 26, acima de 20 de 25 para 15; Python acima de 15 de 37 para 36 e acima de 20 de 21 para 20 |
 | 15 multi-pilar | 🟡 | A regra 5 (release independente): 4 harnesses nativos isolados, mas a maior parte dos testes do motor ainda passa pela ponte |
 
 ### 9.3 O que mudou nas medições da Seção 3
 
-- 3.1: as 239 importações que contornam a porta são 238 (uma saiu com o
-  `PluginContext`) e agora há catraca; as 86 que a porta não exporta continuam
-  sem tratamento (alargar a porta é decisão por pasta).
+- 3.1: as 239 importações que contornam a porta são 225 (uma saiu com o
+  `PluginContext`, as outras 13 com o S2.3, quando o canvas e as ações da casca
+  deixaram de importar o registro) e há catraca; as 86 que a porta não exporta
+  continuam sem tratamento (alargar a porta é decisão por pasta).
 - 3.2: `EngineBackend` 178 métodos (eram 176): entraram `get_display_image`
   (S1.1), `load_error` (D17) e `max_canvas_dimension` (D13) e saiu
   `get_qimage_lod`. Os métodos de gravação e abertura não entraram: ficaram no
-  `PersistenceBackend`. Pedidos globais do motor fora do registro e da ponte:
-  49 em 29 arquivos (eram 60 quando a catraca os contou pela primeira vez).
+  `PersistenceBackend`. Depois do S2.3 (`cfd7a13` e o commit que o segue):
+  159 métodos, nenhum sem chamador em `ui/` (19 saíram); pedidos globais do
+  motor fora do registro e da ponte: 21 em 18 arquivos (49 em 29 antes do S2.3;
+  60 quando a catraca os contou pela primeira vez).
 - 3.3: ver 7.1 acima.
 - 3.6: regra 3 🟢; regra 5 🟡 com 4 harnesses.
 

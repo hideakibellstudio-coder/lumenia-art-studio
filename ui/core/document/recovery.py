@@ -7,7 +7,7 @@ import weakref
 from pathlib import Path
 from PySide6.QtCore import QLockFile
 
-from .save_capture import SaveCapture, capture_document
+from .save_capture import CaptureEngine, SaveCapture, capture_document
 from .serializer import DocumentSerializer, DocumentFormatError
 
 
@@ -34,7 +34,7 @@ class RecoveryStore:
         key = hashlib.sha256(str(uid).encode()).hexdigest()[:24]
         return self.directory / f"{self.session}-{key}.lmn"
 
-    def prepare(self, document, backend) -> SaveCapture | None:
+    def prepare(self, document, backend: CaptureEngine) -> SaveCapture | None:
         """A primeira metade de gravar a cópia (na thread do documento); None se não há o que gravar.
 
         Não há o que gravar quando o documento está limpo, já tem uma cópia desta revisão, ou
@@ -59,7 +59,7 @@ class RecoveryStore:
         elif written:
             self.revisions[capture.uid] = capture.revision
 
-    def capture(self, document, backend):
+    def capture(self, document, backend: CaptureEngine):
         """Prepara e grava de uma vez, na thread de quem chama (a recuperação da interface usa as metades)."""
         capture = self.prepare(document, backend)
         if capture is None:

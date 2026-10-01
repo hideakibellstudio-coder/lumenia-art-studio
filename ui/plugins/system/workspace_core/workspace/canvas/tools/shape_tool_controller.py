@@ -1,8 +1,9 @@
 """Vector and Geometric Shape Tool Controller."""
 
 import logging
+from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui, QtWidgets
-from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, SelectionTransformProtocol
 from ui.core.tool_settings import default_tool_settings
 
 from .shape_paths import build_shape_path
@@ -10,10 +11,26 @@ from .shape_paths import build_shape_path
 logger = logging.getLogger("Workspace.ShapeTool")
 
 
+class ShapeEngine(CoreLifecycleProtocol, SelectionTransformProtocol, Protocol):
+    """A forma entra na camada ativa colada (`SelectionTransform`) e só se o motor está disponível (`CoreLifecycle`)."""
+
+
+@runtime_checkable
+class ShapeCanvas(Protocol):
+    """O que a ferramenta de forma usa do canvas. Membro novo usado aqui entra neste contrato;
+    `tests/test_canvas_contracts.py` confere que o `RenderWidget` o cumpre."""
+    canvas_w: int
+    canvas_h: int
+    backend: Optional[ShapeEngine]
+    strokeFinished: Any
+
+    def update(self) -> None: ...
+
+
 class ShapeToolController:
     """Controlador de desenho e rasterização de formas vetoriais no ALADYN ENGINE."""
 
-    def __init__(self, widget):
+    def __init__(self, widget: ShapeCanvas):
         self.widget = widget
         self.settings = default_tool_settings("shapes")
         self.drag_active: bool = False
@@ -67,8 +84,8 @@ class ShapeToolController:
         ptr = shape_rgba.constBits()
         px_bytes = ptr.tobytes()
 
-        backend = EngineRegistry.instance().get_backend()
-        if backend and getattr(backend, "available", False):
+        backend = self.widget.backend
+        if backend and backend.available:
             backend.paste_rgba_buffer_on_active_layer(0, 0, self.widget.canvas_w, self.widget.canvas_h, px_bytes)
             self.widget.update()
             self.widget.strokeFinished.emit()

@@ -154,13 +154,12 @@ class _Backend:
         return True
 
 
-def test_controlador_no_modo_distorcer(monkeypatch):
+def test_controlador_no_modo_distorcer():
     from ui.plugins.system.workspace_core.workspace.canvas.tools import transform_tool_controller as mod
 
     backend = _Backend()
-    monkeypatch.setattr(mod.EngineRegistry, "instance",
-                        classmethod(lambda cls: type("R", (), {"get_backend": lambda self: backend})()))
-    class W(QtCore.QObject):  # o que o controlador usa do canvas (contrato ToolCanvas)
+
+    class W(QtCore.QObject):  # o que o controlador usa do canvas (contrato TransformCanvas)
         strokeStarted = QtCore.Signal()
         strokeFinished = QtCore.Signal()
 
@@ -168,6 +167,7 @@ def test_controlador_no_modo_distorcer(monkeypatch):
             pass
 
     widget = W()
+    widget.backend = backend
     ctrl: TransformToolController = mod.TransformToolController(widget)
     ctrl.active = True
     ctrl.source_rect = QtCore.QRectF(0, 0, 100, 100)

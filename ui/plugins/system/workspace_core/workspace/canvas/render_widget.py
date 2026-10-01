@@ -15,7 +15,7 @@ CanvasBrushBinding; a ferramenta ativa, do ToolState pelo CanvasToolBinding.
 import os
 import time
 import math
-from typing import Optional, ClassVar
+from typing import Optional, ClassVar, Protocol
 from PySide6 import QtWidgets, QtCore, QtGui
 
 try:
@@ -29,6 +29,10 @@ _BaseCanvasWidget = QOpenGLWidget if _OPENGL_ENABLED else QtWidgets.QWidget
 
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.backend import PointerEvent
+from ui.core.engine.backend_protocols import (
+    BrushProtocol, ColorProtocol, CoreLifecycleProtocol, GeometryProtocol, LayerProtocol,
+    SelectionTransformProtocol, StrokeProtocol,
+)
 from ui.core.state import GeometryState
 
 from .viewport.camera_controller import CameraController
@@ -41,6 +45,14 @@ from .viewport.canvas_stroke_pipeline import CanvasStrokePipeline
 from .viewport.pointer_sample import PointerSample, event_time
 from .renderers.tool_cursor_renderer import ToolCursorRenderer
 from .tools.tool_manager import ToolManager
+
+
+class CanvasEngine(
+    BrushProtocol, ColorProtocol, CoreLifecycleProtocol, GeometryProtocol, LayerProtocol, SelectionTransformProtocol,
+    StrokeProtocol, Protocol,
+):
+    """Os papéis do motor que os colaboradores do canvas pedem pela porta `RenderWidget.backend`;
+    cada colaborador declara, no contrato dele com o canvas, só o papel que usa."""
 
 
 class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
@@ -199,7 +211,8 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
 
     # ── Stroke & Brush Radius Delegation ──
     @property
-    def backend(self):
+    def backend(self) -> Optional[CanvasEngine]:
+        """A porta do canvas até o motor: os colaboradores (ferramentas, teclado, traço, pintura) leem daqui."""
         from ui.core.engine.registry import EngineRegistry
         return EngineRegistry.instance().get_backend()
 

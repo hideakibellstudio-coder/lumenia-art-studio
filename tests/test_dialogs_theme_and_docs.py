@@ -53,7 +53,7 @@ class TestDialogsThemeAndDocs(unittest.TestCase):
 
     def test_02_render_settings_dialog_theme_and_i18n(self):
         """Valida que RenderSettingsDialog e ProfileCard recebem themeChanged sem TypeError."""
-        dialog = RenderSettingsDialog()
+        dialog = RenderSettingsDialog(lambda: None)
         self.assertIsNotNone(dialog)
 
         for theme_name in ["dark_default", "light_default", "lumenia_purple"]:

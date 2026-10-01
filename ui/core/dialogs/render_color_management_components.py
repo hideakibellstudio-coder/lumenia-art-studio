@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 from PySide6 import QtCore, QtWidgets
+from ui.core.engine.backend_protocols import ColorProtocol, RoleProvider
 from ui.infrastructure.i18n import tr
 from ui.infrastructure.icons import get_icon
 from ui.core.widgets.toggle.toggle_switch import ToggleSwitch
@@ -28,9 +29,10 @@ class ColorManagementGroup(QtWidgets.QGroupBox):
     softProofChanged = QtCore.Signal(dict)
     renderingIntentChanged = QtCore.Signal(int, bool)
 
-    def __init__(self, saved_cfg: Dict[str, Any], parent=None):
+    def __init__(self, saved_cfg: Dict[str, Any], backend: RoleProvider[ColorProtocol], parent=None):
         super().__init__("Gestão Profissional de Cor & LittleCMS", parent)
         self._saved_cfg = saved_cfg
+        self._backend = backend
         self._soft_proof_config = SoftProofConfig()
         self._build_ui()
         self._load_state()
@@ -145,7 +147,6 @@ class ColorManagementGroup(QtWidgets.QGroupBox):
         self.switch_gamut.setChecked(bool(self._saved_cfg.get("gamut_warning", False)))
 
     def _on_import_icc_clicked(self):
-        from ui.core.engine.registry import EngineRegistry
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             tr("file_dialogs.import_icc", "Importar Perfil ICC / ICM"),
@@ -156,7 +157,7 @@ class ColorManagementGroup(QtWidgets.QGroupBox):
         if not path:
             return
 
-        backend = EngineRegistry.instance().get_backend()
+        backend = self._backend()
         if not backend:
             QtWidgets.QMessageBox.warning(
                 self, tr("messages.warning", "Aviso"),

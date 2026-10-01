@@ -1,4 +1,4 @@
-"""O contrato do motor só tem o que a interface chama (ARCcC 4.4.9, S2.3).
+"""O contrato do motor só tem o que a interface chama, e cada papel tem quem o consuma (ARCcC 4.4.9, S2.3).
 
 O `EngineBackend` espelha a facade do motor, e a facade tem uma capacidade para cada coisa que o motor
 sabe fazer. Um método do contrato que nenhum código de produção chama é um mecanismo sem entrega: custa
@@ -10,7 +10,9 @@ saíram, e este teste barra a volta. Precisa de um deles? Chame-o de onde for us
 
 from __future__ import annotations
 
-from tests.arccc_engine_roles import contract_methods, production_texts, unused_methods
+from tests.arccc_engine_roles import (
+    contract_methods, production_texts, role_consumers, role_members, unused_methods, whole_contract_users,
+)
 
 
 def test_every_contract_method_has_a_caller_in_production():
@@ -41,3 +43,27 @@ def test_the_bridge_and_the_contract_files_do_not_count_as_callers():
     assert "ui/core/engine/backend.py" not in texts
     assert "ui/core/engine/backend_protocols.py" not in texts
     assert "ui/core/engine/backend_protocols_selection.py" not in texts
+
+
+def test_every_role_of_the_contract_has_a_consumer_in_production():
+    """Um `Protocol` por papel só existe para quem o declara. Sem consumidor é um mecanismo sem entrega
+    (eram 10 dos 11 em 2026-10-01); com ele, o consumidor mostra o que de fato pede ao motor."""
+    consumers = role_consumers(role_members(), production_texts())
+    orphans = [role for role, files in consumers.items() if not files]
+    assert orphans == [], f"papéis do motor sem consumidor em produção: {orphans}"
+
+
+def test_no_module_outside_the_contract_depends_on_the_whole_engine_backend():
+    """Quem usa o motor declara o papel (`LayerProtocol`...), não o `EngineBackend` inteiro."""
+    users = whole_contract_users(production_texts())
+    assert users == [], f"importam o EngineBackend inteiro: {users}"
+
+
+def test_the_consumer_detector_sees_a_role_and_a_whole_contract_import():
+    texts = {
+        "ui/a.py": "from ui.core.engine.backend_protocols import LayerProtocol\n",
+        "ui/b.py": "from ui.core.engine.backend import EngineBackend, PointerEvent\n",
+        "ui/core/engine/registry.py": "from ui.core.engine.backend import EngineBackend\n",
+    }
+    assert role_consumers(["LayerProtocol", "StrokeProtocol"], texts) == {"LayerProtocol": ["ui/a.py"], "StrokeProtocol": []}
+    assert whole_contract_users(texts) == ["ui/b.py"]

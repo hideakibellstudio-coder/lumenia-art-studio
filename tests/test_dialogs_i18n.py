@@ -129,7 +129,7 @@ class TestDialogsI18nRetranslation(unittest.TestCase):
 
     def test_04_render_settings_dialog_retranslation(self):
         """Valida que o diálogo de configurações de renderização traduz categorias e busca."""
-        dialog = RenderSettingsDialog()
+        dialog = RenderSettingsDialog(lambda: None)
         try:
             # pt_BR
             self.assertEqual(dialog.combo_cat.itemText(0), "Todas as Categorias")

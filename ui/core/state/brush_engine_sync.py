@@ -14,19 +14,19 @@ Quando o documento ativo muda, quem trocou o contexto do motor chama
 """
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Callable
 
 from PySide6 import QtCore, QtGui
 
-from ui.core.engine.backend import EngineBackend
+from ui.core.engine.backend_protocols import BrushProtocol, RoleProvider
 
 from .brush_curves import BrushCurve, CurveSetting
 from .brush_params import BrushParam
 from .brush_state import BrushState
 
-BackendProvider = Callable[[], Optional[EngineBackend]]
+BackendProvider = RoleProvider[BrushProtocol]
 
-_SETTERS: dict[BrushParam, Callable[[EngineBackend, float | bool], None]] = {
+_SETTERS: dict[BrushParam, Callable[[BrushProtocol, float | bool], None]] = {
     BrushParam.SIZE: lambda b, v: b.set_brush_size(float(v)),
     BrushParam.OPACITY: lambda b, v: b.set_brush_opacity(float(v)),
     BrushParam.PRESSURE: lambda b, v: b.set_brush_pressure(float(v)),
@@ -94,14 +94,14 @@ class BrushEngineSync(QtCore.QObject):
         if backend is not None:
             self._apply_curve(backend, curve, setting)
 
-    def _apply_edited_curves(self, backend: EngineBackend) -> None:
+    def _apply_edited_curves(self, backend: BrushProtocol) -> None:
         for curve, setting in self._state.edited_curves().items():
             self._apply_curve(backend, curve, setting)
 
     @staticmethod
-    def _apply_curve(backend: EngineBackend, curve: BrushCurve, setting: CurveSetting) -> None:
+    def _apply_curve(backend: BrushProtocol, curve: BrushCurve, setting: CurveSetting) -> None:
         backend.set_curve_control_points(curve.value, [tuple(point) for point in setting.points], setting.enabled)
 
     @staticmethod
-    def _apply_color(backend: EngineBackend, color: QtGui.QColor) -> None:
+    def _apply_color(backend: BrushProtocol, color: QtGui.QColor) -> None:
         backend.set_brush_color(color.redF(), color.greenF(), color.blueF())

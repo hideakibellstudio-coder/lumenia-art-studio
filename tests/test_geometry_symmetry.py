@@ -103,6 +103,7 @@ class TestGeometrySymmetry(unittest.TestCase):
         class DummyWidget:
             canvas_w = 2480
             canvas_h = 3508
+            backend = None
 
         ctrl = GeometryToolController(DummyWidget())
 
@@ -135,6 +136,7 @@ class TestGeometrySymmetry(unittest.TestCase):
         class DummyWidget:
             canvas_w = 1920
             canvas_h = 1080
+            backend = None
 
         # 1. Teste de Traço Horizontal (movimento para a direita: dx=30, dy=0)
         ctrl_h = GeometryToolController(DummyWidget())

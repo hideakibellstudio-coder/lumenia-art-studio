@@ -49,6 +49,45 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-10-01 — S2.3 fechado: o contrato do motor só tem o que a interface chama, e cada papel tem quem o consuma
+**Base:** o dono apontou que o selo `EngineBackend` (S2.3) do relatório 08 não
+estava concluído; estava aberto desde a rodada dos selos (178 métodos, 10 dos 11
+papéis sem consumidor).
+**Documentos:** `01-correcao-da-base/08-analise-arccc-v1-1-e-forma-de-trabalho.md`
+(Seções 4, 9.1, 9.2 e 9.3) e `01-correcao-da-base/01-pendencias-atuais.md`.
+**Feito, com a medição (`python -m tests.arccc_engine_roles`):**
+- 19 métodos do contrato sem chamador em `ui/` saíram do contrato, dos papéis e
+  da ponte (178 → 159): os apelidos `*_raw` do traço, `flood_fill` (só o
+  `fill_area` o usava), `flip_active_layer`, os leitores de contagem e limite do
+  histórico, os de nome, trava de alfa e máscara de recorte da camada, o par de
+  tiles sujos, `clear_guide`/`clear_symmetry`, `get_selection_mask_qimage`,
+  `get_pixel_buffer` e `set_brush_grain_contrast`;
+- os 11 papéis têm consumidor em produção (era 1) e ninguém fora do pacote do
+  contrato importa o `EngineBackend` inteiro (eram 2): o canvas lê o motor por
+  `RenderWidget.backend` e cada colaborador declara no contrato dele (`StrokeCanvas`,
+  `SelectionCanvas`, `TransformCanvas`, `ShapeCanvas`, `EyedropCanvas`,
+  `GeometryCanvas`...) o papel que usa; as ações da casca, o diálogo de
+  renderização, o documento (gravar, abrir, histórico, geometria, camadas, papel)
+  e os estados do pincel recebem `RoleProvider[Papel]`;
+- pedidos globais do motor 49 → 21; contornos da porta do pacote 238 → 225;
+  `getattr` literal 48 → 44; `hasattr` 59 → 58 (catraca apertada).
+**Não fechou:** 21 pedidos globais em 18 arquivos (camadas, pincel, telemetria,
+documento); a facade nativa (173 métodos no `.pyi`, 29 sem uso no cliente da
+ponte, 11 sem uso nenhum) é mudança de motor e ponte.
+**Seis perguntas da 4.4.7:**
+- A responsabilidade ficou no lugar certo? Sim: cada módulo declara o papel do
+  motor que usa, na pasta dele; o canvas tem uma porta só.
+- Algum contrato ficou grande demais? Não: o do backend encolheu 11%; os
+  contratos do canvas ganharam o membro `backend` com o papel de cada um.
+- Algum componente passou a conhecer o que não devia? Não: os que liam o registro
+  global passaram a ler o que lhes foi entregue.
+- Algum dado é convertido mais de uma vez? Não.
+- Nasceu uma responsabilidade nova? `RoleProvider` (um alias de tipo) e 15
+  composições de papéis nos módulos que usam mais de um; nenhuma classe com
+  estado.
+- Alguma abstração criada antes deixou de fazer sentido? Os 10 papéis sem
+  consumidor passaram a ter; os 19 métodos que sobravam saíram.
+
 ### 2026-10-01 — Selos do relatório 08 aplicados: o que fechou e o que não
 **Base:** o dono aprovou as quatro decisões do relatório 08 e pediu os selos
 fechados. Todo o trabalho foi feito em fatias do laço da 4.4, cada uma com a

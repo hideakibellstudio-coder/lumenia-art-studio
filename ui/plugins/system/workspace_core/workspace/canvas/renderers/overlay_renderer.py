@@ -1,6 +1,9 @@
 """Canvas Overlays Renderer (Selection Marching Ants, Transform Gizmo, Shape Preview, Loupe HUD)."""
 
+from typing import Optional
+
 from PySide6 import QtCore, QtGui, QtWidgets
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, SelectionTransformProtocol
 from ui.infrastructure.theme.overlay_palette import OverlayPalette
 from ui.plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
 from ui.plugins.system.workspace_core.workspace.canvas.tools.selection_tool_controller import SelectionToolController
@@ -9,7 +12,7 @@ class OverlayRenderer:
     """Renderizador de Overlays e Elementos de Interface Visual sobre o Canvas."""
 
     @staticmethod
-    def render_color_loupe(painter: QtGui.QPainter, screen_pos: QtCore.QPointF, widget, backend, cur_color: QtGui.QColor, old_color: QtGui.QColor):
+    def render_color_loupe(painter: QtGui.QPainter, screen_pos: QtCore.QPointF, widget, backend: Optional[CoreLifecycleProtocol], cur_color: QtGui.QColor, old_color: QtGui.QColor):
         cx = screen_pos.x()
         cy = screen_pos.y() - 55.0
 
@@ -95,7 +98,7 @@ class OverlayRenderer:
         painter.drawText(badge_rect, QtCore.Qt.AlignCenter, cur_color.name().upper())
 
     @staticmethod
-    def render_selection_overlay(painter: QtGui.QPainter, backend, zoom: float, dash_offset: float, canvas_w: int, canvas_h: int):
+    def render_selection_overlay(painter: QtGui.QPainter, backend: SelectionTransformProtocol, zoom: float, dash_offset: float, canvas_w: int, canvas_h: int):
         bounds = backend.get_selection_bounds()
         bx, by, bw, bh = bounds
         if bw <= 0 or bh <= 0:

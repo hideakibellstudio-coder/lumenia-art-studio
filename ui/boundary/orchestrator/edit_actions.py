@@ -6,24 +6,29 @@ um traço (documento sujo, miniaturas, desfazer).
 """
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Protocol
 
 from PySide6 import QtGui, QtWidgets
 
 from ui.core.dialogs.modify_selection_dialog import ModifySelectionDialog
 from ui.core.document.layer_commands import LayerCommands
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, RoleProvider, SelectionTransformProtocol
 from ui.infrastructure.i18n import tr
 from ui.core.state import BrushState
 
-from .shell_actions import BackendProvider, ShellActions, backend_ready
+from .shell_actions import ShellActions, backend_ready
 from .workspace_port import ShellCanvas
+
+
+class EditEngine(CoreLifecycleProtocol, SelectionTransformProtocol, Protocol):
+    """Copiar lê a imagem (`CoreLifecycle`); colar, preencher e selecionar mexem na camada ativa (`SelectionTransform`)."""
 
 
 class EditActions(ShellActions):
     def __init__(
         self,
         window: QtWidgets.QWidget,
-        backend: BackendProvider,
+        backend: RoleProvider[EditEngine],
         brush: BrushState,
         canvas: Optional[ShellCanvas],
         layers: LayerCommands,

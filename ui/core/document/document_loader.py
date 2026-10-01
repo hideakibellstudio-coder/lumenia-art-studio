@@ -17,6 +17,8 @@ from typing import Any, Callable, Optional
 
 from PySide6 import QtCore
 
+from ui.core.engine.persistence_backend import PersistenceBackend
+
 from .background_queue import BackgroundQueue
 from .schema import DocumentFormatError
 from .serializer import DocumentSerializer
@@ -30,7 +32,7 @@ class LoadedDocument:
     prepared: dict[str, Any]     # nome do payload de tiles -> camada decodificada pelo motor
 
 
-def load_document(path: str | Path, backend) -> LoadedDocument:
+def load_document(path: str | Path, backend: PersistenceBackend) -> LoadedDocument:
     """Lê, valida e decodifica. Roda em qualquer thread: só usa `backend.decode_layer_tiles`."""
     manifest, payloads = DocumentSerializer.read(path)
     prepared: dict[str, Any] = {}
@@ -57,7 +59,7 @@ class DocumentLoader(QtCore.QObject):
     def submit(
         self,
         path: str,
-        backend,
+        backend: PersistenceBackend,
         on_done: Callable[[LoadedDocument], None],
         on_error: Callable[[str, Exception], None],
     ) -> None:

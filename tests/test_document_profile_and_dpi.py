@@ -123,7 +123,7 @@ def test_opening_render_settings_does_not_change_the_document_profile(main_windo
     backend = main_window.documents._backend()
     try:
         assert backend.get_color_profile() == 0
-        dialog = RenderSettingsDialog()
+        dialog = RenderSettingsDialog(main_window.documents._backend)
         dialog.deleteLater()
         assert backend.get_color_profile() == 0
         assert not doc.is_dirty, doc.dirty_reason

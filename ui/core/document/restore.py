@@ -1,12 +1,26 @@
 """Restore a validated document into a newly allocated backend context."""
 
+from typing import Protocol
+
 import numpy as np
+
+from ui.core.engine.backend_protocols import (
+    CanvasResourceProtocol, ColorProtocol, CoreLifecycleProtocol, LayerProtocol, SelectionTransformProtocol,
+)
+from ui.core.engine.persistence_backend import PersistenceBackend
 
 from .document import Document
 from .serializer import DocumentFormatError
 from . import layer_properties
 from .schema import CURRENT_VERSION, decode_guides
 from PySide6.QtGui import QColor
+
+
+class RestoreEngine(
+    CanvasResourceProtocol, ColorProtocol, CoreLifecycleProtocol, LayerProtocol, PersistenceBackend,
+    SelectionTransformProtocol, Protocol,
+):
+    """O que reconstruir um documento pede ao motor: camadas e blocos de tiles, seleção, perfil de cor e papel."""
 
 
 def same_visible_pixels(restored: bytes, expected: bytes) -> bool:
@@ -24,7 +38,7 @@ def same_visible_pixels(restored: bytes, expected: bytes) -> bool:
     return not bool((differs & ~both_transparent).any())
 
 
-def _restore_pixels(document: Document, backend, index: int, record, payloads, prepared) -> None:
+def _restore_pixels(document: Document, backend: RestoreEngine, index: int, record, payloads, prepared) -> None:
     """Os pixels de uma camada: um bloco de tiles (v3, já decodificado ou não) ou o RGBA do canvas inteiro (v1 e v2)."""
     tiles = record.get("tiles_payload")
     if tiles:
@@ -46,7 +60,7 @@ def _restore_pixels(document: Document, backend, index: int, record, payloads, p
         raise DocumentFormatError("restauração de pixels não corresponde ao arquivo")
 
 
-def restore_document(document: Document, backend, manifest, payloads, prepared=None):
+def restore_document(document: Document, backend: RestoreEngine, manifest, payloads, prepared=None):
     """Reconstrói o documento no contexto ativo do motor.
 
     `prepared` são as camadas de tiles já decodificadas em outra thread (`document_loader`),
@@ -65,7 +79,7 @@ def restore_document(document: Document, backend, manifest, payloads, prepared=N
         backend.end_batch()
 
 
-def _restore_into_engine(document: Document, backend, manifest, payloads, prepared):  # noqa: C901 -- dívida registrada (pendências, item 14)
+def _restore_into_engine(document: Document, backend: RestoreEngine, manifest, payloads, prepared):  # noqa: C901 -- dívida registrada (pendências, item 14)
     records = manifest["layers"]
     backend.clear_selection()
     # Keep the bootstrap layer until every replacement node exists. This also
@@ -133,8 +147,7 @@ def _restore_into_engine(document: Document, backend, manifest, payloads, prepar
         prof_name = manifest.get("color_profile_name")
         document.color_profile_icc_bytes = raw_icc
         document.color_profile_name = prof_name
-        if hasattr(backend, "register_custom_color_profile"):
-            backend.register_custom_color_profile(raw_icc, name=prof_name)
+        backend.register_custom_color_profile(raw_icc, name=prof_name)
     profile = manifest.get("color_profile_id", 0)
     backend.set_color_profile(profile)
     if backend.get_color_profile() != profile:

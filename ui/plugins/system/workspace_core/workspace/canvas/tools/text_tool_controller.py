@@ -9,11 +9,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, SelectionTransformProtocol
 from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
 
 from .text_overlay_editor import TextOverlayEditor
 
 logger = logging.getLogger("Workspace.TextTool")
+
+
+class TextEngine(CoreLifecycleProtocol, SelectionTransformProtocol, Protocol):
+    """O texto entra na camada ativa colado (`SelectionTransform`) e só se o motor está disponível (`CoreLifecycle`)."""
 
 
 @runtime_checkable
@@ -27,6 +32,7 @@ class TextCanvas(Protocol):
     """
     canvas_w: int
     canvas_h: int
+    backend: Optional[TextEngine]
     strokeStarted: Any
     strokeFinished: Any
 
@@ -88,9 +94,8 @@ class TextToolController:
                 p.end()
                 text_rgba = text_img.convertToFormat(QtGui.QImage.Format_RGBA8888)
                 px_bytes = text_rgba.constBits().tobytes()
-                from ui.core.engine.registry import EngineRegistry
-                b = EngineRegistry.instance().get_backend()
-                if b and getattr(b, "available", False):
+                b = self.widget.backend
+                if b and b.available:
                     b.paste_rgba_buffer_on_active_layer(0, 0, w, h, px_bytes)
                 else:
                     logger.warning(

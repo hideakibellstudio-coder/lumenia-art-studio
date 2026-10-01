@@ -113,12 +113,24 @@ não há rodada de "reorganizar de novo".
   2 níveis em 0,3% dos bytes.)*
 - ~~S2.2 descritor único de propriedade de camada~~ *(feito: `layer_properties.py`;
   8 lugares viraram 1; `tests/test_layer_property_registry.py`.)*
-- **S2.3 backend segregado: parcial.** Feito: `PersistenceBackend`, o
-  `TelemetryTracker` como porta da telemetria (14 pedidos globais viraram 1),
-  `PluginContext` sem o motor, catraca `registry_lookup` (49 hoje, só desce).
-  **Aberto:** o contrato continua com 178 métodos e 10 dos 11 sub-protocolos sem
-  consumidor; migrar os 49 pedidos para injeção, arquivo por arquivo, junto da
-  feature que o tocar.
+- ~~S2.3 backend segregado~~ *(feito em 2026-10-01, medido por
+  `python -m tests.arccc_engine_roles` e travado por
+  `tests/test_engine_contract_surface.py`: o contrato foi de 178 para 159
+  métodos, 0 sem chamador em `ui/` (eram 19); os 11 papéis têm consumidor em
+  produção (eram 1) e ninguém fora do pacote do contrato importa o
+  `EngineBackend` inteiro (eram 2); os pedidos globais do motor foram de 49 para
+  21: o canvas e as ferramentas leem o motor por uma porta só,
+  `RenderWidget.backend`, e cada colaborador declara o papel que usa no contrato
+  dele com o canvas (`StrokeCanvas`, `SelectionCanvas`...); as ações da casca, o
+  diálogo de renderização, o documento (gravar, abrir, histórico, camadas, papel)
+  e os estados do pincel recebem `RoleProvider[Papel]`.)* **Resto, medido e fora
+  deste selo:** 21 pedidos globais ao registro em 18 arquivos (painéis de camadas
+  e pincel, telemetria, `layer_commands`, `history.layer_transaction`,
+  `paper_backend_sync`, `limits`...), congelados na catraca; e no outro lado da ponte, a
+  facade nativa declara 173 métodos no `.pyi` e 29 deles não aparecem no
+  cliente da ponte (11 sem uso nenhum, 18 só em testes de caixa-branca): sair
+  da facade é mudança de motor e ponte (versão 7), feita junto da feature que
+  precisar.
 - **Porta única:** catraca `door_bypass` (238 importações que contornam a porta
   do pacote, congeladas; nenhuma nova entra).
 - **Arquivo (salvar e abrir): 🟡.** Salvar não trava. Abrir um documento 4K com

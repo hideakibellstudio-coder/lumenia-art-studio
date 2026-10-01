@@ -1,16 +1,27 @@
 """Free Transform 2D Interactive Tool Controller."""
 
 import math
-from typing import Optional
+from typing import Any, Optional, Protocol, runtime_checkable
 from PySide6 import QtCore, QtGui
-from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.backend_protocols import SelectionTransformProtocol
 from ui.core.tool_settings import default_tool_settings
 from . import transform_distort as distort_geometry
+
+@runtime_checkable
+class TransformCanvas(Protocol):
+    """O que a transformação livre usa do canvas. Membro novo usado aqui entra neste contrato;
+    `tests/test_canvas_contracts.py` confere que o `RenderWidget` o cumpre."""
+    backend: Optional[SelectionTransformProtocol]
+    strokeStarted: Any
+    strokeFinished: Any
+
+    def update(self) -> None: ...
+
 
 class TransformToolController:
     """Controlador de Transformação Livre (Bounding Box, Escala, Rotação e Translação)."""
 
-    def __init__(self, widget):
+    def __init__(self, widget: TransformCanvas):
         self.widget = widget
         self.active: bool = False
         self.source_qimage: Optional[QtGui.QImage] = None
@@ -36,7 +47,7 @@ class TransformToolController:
         self.press_params: dict = {}
 
     def start_mode(self) -> bool:
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if not backend:
             return False
 
@@ -66,7 +77,7 @@ class TransformToolController:
     def commit(self):
         if not self.active:
             return
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if backend and self.quad is not None:
             backend.commit_transform_distort(distort_geometry.flatten(self.quad), interp_mode=self.interp_mode)
         elif backend:
@@ -91,7 +102,7 @@ class TransformToolController:
     def cancel(self):
         if not self.active:
             return
-        backend = EngineRegistry.instance().get_backend()
+        backend = self.widget.backend
         if backend:
             backend.cancel_transform()
         self.active = False

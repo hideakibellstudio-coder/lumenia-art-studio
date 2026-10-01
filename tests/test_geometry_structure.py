@@ -168,7 +168,7 @@ class TestGeometryDecomposedIntegration(unittest.TestCase):
     def test_facade_and_controller_integration(self):
         """GeometryOverlayRenderer and GeometryToolController work together without errors."""
         class MockWidget:
-            pass
+            backend = None
 
         ctrl = GeometryToolController(MockWidget())
         ctrl.center_on_document(1920, 1080)

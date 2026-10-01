@@ -22,6 +22,11 @@
   ferramenta e opções do `ToolState` (via `CanvasToolBinding`).
 - Colaboradores leem o widget por atributos públicos; nenhum escreve atributo
   privado dele.
+- O motor chega aos colaboradores por uma porta só, `RenderWidget.backend`
+  (o único pedido ao registro global nesta pasta). Cada colaborador declara no
+  contrato dele com o canvas (`StrokeCanvas`, `SelectionCanvas`...) só o papel
+  do motor que usa (`StrokeProtocol`, `SelectionTransformProtocol`...); nenhum
+  chama `EngineRegistry` nem importa o `EngineBackend` inteiro.
 - A janela principal usa o canvas só pelo contrato `ShellCanvas`
   (`ui/boundary/orchestrator/workspace_port.py`): `run_as_stroke`,
   `forward_key`, `is_busy`, `toggle_grid`, `toggle_rulers`, seleção e câmera.

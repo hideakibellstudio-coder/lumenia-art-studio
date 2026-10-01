@@ -8,10 +8,21 @@ import logging
 from contextlib import contextmanager
 from copy import deepcopy
 from functools import wraps
+from typing import Protocol
+
+from ui.core.engine.backend_protocols import (
+    CoreLifecycleProtocol, HistoryProtocol, LayerProtocol, RenderPipelineProtocol,
+)
+
 from .local_layer import LocalLayer
 from . import layer_properties
 
 logger = logging.getLogger(__name__)
+
+
+class HistoryEngine(CoreLifecycleProtocol, HistoryProtocol, LayerProtocol, RenderPipelineProtocol, Protocol):
+    """O que o histórico do documento pede ao motor: os passos nativos (`History`), as camadas que ele confere
+    e restaura (`Layer`), a geração do documento (`CoreLifecycle`) e o contexto ativo (`RenderPipeline`)."""
 
 
 class LayerTransactionCancelled(Exception):
@@ -29,7 +40,7 @@ class DocumentHistory:
         self.entries = {}
         self.recording = False
 
-    def _check_context(self, backend):
+    def _check_context(self, backend: HistoryEngine):
         if backend.get_active_document_context() != self.document.uid:
             raise RuntimeError("O documento ativo não corresponde ao motor.")
 
@@ -46,7 +57,7 @@ class DocumentHistory:
         return tuple((bool(layer.is_group), bool(layer.is_filter), indices.get(layer.parent_uid, -1))
                      for layer in manager.layers)
 
-    def _native_projection_signature(self, backend):
+    def _native_projection_signature(self, backend: HistoryEngine):
         if not hasattr(backend, "get_layer_info"):
             return None
         infos = [backend.get_layer_info(index) for index in range(backend.get_drawing_layer_count())]
@@ -66,14 +77,14 @@ class DocumentHistory:
                            bool(info.get("is_filter", False)), parent_uid))
         return tuple(result)
 
-    def assert_projection(self, backend):
+    def assert_projection(self, backend: HistoryEngine):
         native = self._native_projection_signature(backend)
         if native is not None and native != self._model_projection_signature():
             if native == self._bootstrap_projection_signature():
                 return
             raise RuntimeError("projeção de camadas divergente entre Document e motor")
 
-    def _native_document_uids(self, backend):
+    def _native_document_uids(self, backend: HistoryEngine):
         """UIDs de documento que o motor carrega hoje, por índice.
 
         None quando o backend não expõe get_layer_info (dublês de teste) ou
@@ -90,7 +101,7 @@ class DocumentHistory:
             uids.append(info["document_uid"])
         return uids
 
-    def _warn_if_order_diverged(self, backend, model_uids):
+    def _warn_if_order_diverged(self, backend: HistoryEngine, model_uids):
         """Registra (sem interromper) a única divergência que escapa aos guards.
 
         Quando esta função roda, transaction() já conferiu contagem, tipo de
@@ -124,7 +135,7 @@ class DocumentHistory:
             self.document.uid, model_uids, native_uids,
         )
 
-    def bind_projection_identities(self, backend):
+    def bind_projection_identities(self, backend: HistoryEngine):
         """Bind immutable document UIDs to the aligned native layer stack."""
         manager = self.document.layer_manager
         if backend.get_drawing_layer_count() != len(manager.layers):
@@ -135,7 +146,7 @@ class DocumentHistory:
                 raise RuntimeError("não foi possível vincular a identidade da camada nativa")
 
     @contextmanager
-    def transaction(self, backend):
+    def transaction(self, backend: HistoryEngine):
         if self.recording:
             yield
             return
@@ -223,7 +234,7 @@ class DocumentHistory:
         finally:
             manager.backend_projection_restoring = False
 
-    def clear(self, backend) -> bool:
+    def clear(self, backend: HistoryEngine) -> bool:
         """Descarta todo o histórico do documento (motor e metadados de camadas)."""
         self._check_context(backend)
         if self.recording or not backend.clear_history():
@@ -232,13 +243,13 @@ class DocumentHistory:
         self.document.history_cleared.emit()
         return True
 
-    def undo(self, backend):
+    def undo(self, backend: HistoryEngine):
         return self._move(backend, False)
 
-    def redo(self, backend):
+    def redo(self, backend: HistoryEngine):
         return self._move(backend, True)
 
-    def _move(self, backend, redo):
+    def _move(self, backend: HistoryEngine, redo):
         self._check_context(backend)
         if self.recording:
             return False

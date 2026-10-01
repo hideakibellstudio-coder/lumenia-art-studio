@@ -9,11 +9,11 @@ que se liam uns aos outros por `self` (`self.status_bar`, `self.workspace`,
 """
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Optional
 
 from PySide6 import QtCore
 
-BackendProvider = Callable[[], Any]
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol
 
 
 class ShellActions(QtCore.QObject):
@@ -23,6 +23,6 @@ class ShellActions(QtCore.QObject):
         self.statusMessage.emit(text, timeout_ms)
 
 
-def backend_ready(backend: Any) -> bool:
+def backend_ready(backend: Optional[CoreLifecycleProtocol]) -> bool:
     """Motor presente e utilizável (sem ele as ações só avisam)."""
     return bool(backend is not None and backend.available)

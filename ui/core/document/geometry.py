@@ -3,16 +3,23 @@
 import copy
 import uuid
 from pathlib import Path
+from typing import Protocol
+
 from PIL import Image
 
 from ui.core.engine.errors import EngineContextError
 from .document import Document
-from .restore import restore_document
-from .save_capture import capture_document
+from .restore import RestoreEngine, restore_document
+from .save_capture import CaptureEngine, capture_document
 from .schema import DocumentFormatError
 
 
-def _raw_document(document: Document, backend):
+class GeometryChangeEngine(CaptureEngine, RestoreEngine, Protocol):
+    """Mudar a geometria lê o documento do motor (`CaptureEngine`), prepara outro contexto e o reconstrói
+    (`RestoreEngine`) antes de trocar."""
+
+
+def _raw_document(document: Document, backend: CaptureEngine):
     """O manifesto do documento e o RGBA de cada camada, para recortar ou redimensionar com o PIL.
 
     Até 2026-10-01 isto gravava um `.lmn` numa pasta temporária e o lia de volta só para obter
@@ -30,7 +37,7 @@ def _raw_document(document: Document, backend):
     return manifest, payloads
 
 
-def change_geometry(document: Document, backend, width, height, *, anchor=(1, 1), crop=None, resample=None):
+def change_geometry(document: Document, backend: GeometryChangeEngine, width, height, *, anchor=(1, 1), crop=None, resample=None):
     width, height = int(width), int(height)
     limit = backend.max_canvas_dimension() if backend else None
     if width <= 0 or height <= 0 or (limit is not None and (width > limit or height > limit)):

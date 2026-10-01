@@ -14,13 +14,14 @@ papel do painel de camadas por dentro.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from typing import Callable, Optional, Protocol
 
 from PySide6 import QtCore
 
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.paper_backend_sync import sync_paper_to_backend
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, LayerProtocol, RoleProvider
 from ui.core.engine.errors import EngineContextError
 from ui.infrastructure.i18n import tr
 from ui.core.state import BrushEngineSync, BrushState
@@ -28,6 +29,10 @@ from ui.core.state import BrushEngineSync, BrushState
 from .canvas.render_widget import RenderWidget
 
 logger = logging.getLogger(__name__)
+
+
+class ViewSyncEngine(CoreLifecycleProtocol, LayerProtocol, Protocol):
+    """Trocar o documento mostrado abre e fecha contextos (`CoreLifecycle`) e seleciona a camada ativa (`Layer`)."""
 
 
 class DocumentViewSync(QtCore.QObject):
@@ -48,7 +53,7 @@ class DocumentViewSync(QtCore.QObject):
         dm: DocumentManager,
         brush: BrushState,
         brush_sync: BrushEngineSync,
-        backend: Callable[[], Any],
+        backend: RoleProvider[ViewSyncEngine],
         parent: QtCore.QObject | None = None,
     ) -> None:
         super().__init__(parent)

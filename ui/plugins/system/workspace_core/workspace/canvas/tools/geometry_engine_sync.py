@@ -11,13 +11,14 @@ from typing import Any, Mapping, Optional
 
 from PySide6 import QtCore
 
+from ui.core.engine.backend_protocols import GeometryProtocol
 from ui.core.geometry.guide_type import GuideType
 from ui.core.geometry.symmetry_mode import SymmetryMode
 
 _SNAP_MODES = {"auto": 0, "v": 1, "h": 2, "d": 3}
 
 
-def push_symmetry(backend: Optional[Any], sym: Mapping[str, Any]) -> None:
+def push_symmetry(backend: Optional[GeometryProtocol], sym: Mapping[str, Any]) -> None:
     if backend is None:
         return
     mode = sym["mode"]
@@ -28,7 +29,7 @@ def push_symmetry(backend: Optional[Any], sym: Mapping[str, Any]) -> None:
     )
 
 
-def push_guides(backend: Optional[Any], guide: Mapping[str, Any]) -> None:
+def push_guides(backend: Optional[GeometryProtocol], guide: Mapping[str, Any]) -> None:
     if backend is None:
         return
     point = QtCore.QPointF

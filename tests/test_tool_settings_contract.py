@@ -10,7 +10,6 @@ from ui.plugins.system.workspace_core.workspace.canvas.tools.selection_tool_cont
 from ui.plugins.system.workspace_core.workspace.canvas.tools.tool_manager import ToolManager
 from ui.plugins.system.workspace_core.workspace.canvas.tools.transform_tool_controller import TransformToolController
 from ui.plugins.panels.brush_plugin.panel import BrushSettingsPanel
-from ui.core.engine.registry import EngineRegistry
 from ui.core.tool_settings import TOOL_SETTING_DEFAULTS, default_tool_settings, normalize_tool_settings
 from ui.core.widgets.tool_options import BucketOptionsWidget, TransformOptionsWidget
 
@@ -185,47 +184,36 @@ class _BackendSpy:
         self.calls.append(("transform", kwargs))
 
 
-def _with_backend(backend):
-    registry = EngineRegistry.instance()
-    previous = registry.get_backend()
-    registry.set_backend(backend)
-    return registry, previous
-
-
 def test_bucket_and_eyedrop_controls_reach_the_backend_with_canonical_values():
     backend = _BackendSpy()
-    registry, previous = _with_backend(backend)
-    try:
-        color = QtGui.QColor(12, 34, 56, 255)
-        widget = SimpleNamespace(
-            active_color=color,
-            to_canvas=lambda *_: SimpleNamespace(x=12, y=18),
-            strokeStarted=_Signal(),
-            strokeFinished=_Signal(),
-            update=lambda: None,
-        )
-        manager = SimpleNamespace(widget=widget, bucket_settings=normalize_tool_settings("bucket", {"expansion": -3}))
-        ToolManager.do_flood_fill(manager, 0, 0)
-        kind, fill = backend.calls[-1]
-        assert kind == "fill"
-        assert fill["fill_color"] == color and fill["expand_px"] == -3
-        assert widget.strokeStarted.count == widget.strokeFinished.count == 1
+    color = QtGui.QColor(12, 34, 56, 255)
+    widget = SimpleNamespace(
+        backend=backend,
+        active_color=color,
+        to_canvas=lambda *_: SimpleNamespace(x=12, y=18),
+        strokeStarted=_Signal(),
+        strokeFinished=_Signal(),
+        update=lambda: None,
+    )
+    manager = SimpleNamespace(widget=widget, bucket_settings=normalize_tool_settings("bucket", {"expansion": -3}))
+    ToolManager.do_flood_fill(manager, 0, 0)
+    kind, fill = backend.calls[-1]
+    assert kind == "fill"
+    assert fill["fill_color"] == color and fill["expand_px"] == -3
+    assert widget.strokeStarted.count == widget.strokeFinished.count == 1
 
-        widget.backend = backend
-        widget.canvas_w, widget.canvas_h = 64, 64
-        widget.colorPicked = _Signal()
-        eyedrop = EyedropToolController(widget)
-        eyedrop.settings = normalize_tool_settings("eyedrop", {"sample_all": False, "sample_radius": 2})
-        assert eyedrop.do_sample(0, 0) == QtGui.QColor(40, 50, 60, 255)
-        assert backend.calls[-1] == ("pick_layer", (3, 12, 18, 2))
-    finally:
-        registry.set_backend(previous)
+    widget.canvas_w, widget.canvas_h = 64, 64
+    widget.colorPicked = _Signal()
+    eyedrop = EyedropToolController(widget)
+    eyedrop.settings = normalize_tool_settings("eyedrop", {"sample_all": False, "sample_radius": 2})
+    assert eyedrop.do_sample(0, 0) == QtGui.QColor(40, 50, 60, 255)
+    assert backend.calls[-1] == ("pick_layer", (3, 12, 18, 2))
 
 
 def test_selection_and_transform_controllers_forward_the_normalized_options():
     backend = _BackendSpy()
-    registry, previous = _with_backend(backend)
     canvas: QtWidgets.QWidget = QtWidgets.QWidget()
+    canvas.backend = backend
     canvas.canvas_w, canvas.canvas_h = 100, 100
     canvas.active_tool = "rect_select"
     canvas.to_canvas = lambda *_: SimpleNamespace(x=25, y=30)
@@ -255,5 +243,4 @@ def test_selection_and_transform_controllers_forward_the_normalized_options():
         assert backend.calls[-1][0] == "transform"
         assert backend.calls[-1][1]["interp_mode"] == 1
     finally:
-        registry.set_backend(previous)
         canvas.deleteLater()

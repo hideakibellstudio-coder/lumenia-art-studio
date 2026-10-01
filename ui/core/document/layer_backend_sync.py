@@ -8,14 +8,20 @@ Implementa a sincronização Single Source of Truth (SSOT) entre o LocalLayerMan
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Protocol
+
+from ui.core.engine.backend_protocols import LayerProtocol, RenderPipelineProtocol
 
 from . import layer_properties
 
 logger = logging.getLogger(__name__)
 
 
-def get_active_backend(manager) -> Optional[Any]:
+class LayerSyncEngine(LayerProtocol, RenderPipelineProtocol, Protocol):
+    """O modelo de camadas projeta no motor (`Layer`), e só no contexto do documento dele (`RenderPipeline`)."""
+
+
+def get_active_backend(manager) -> Optional[LayerSyncEngine]:
     """Obtém o backend ativo aplicável ao LocalLayerManager."""
     if getattr(manager, "backend_projection_restoring", False) or getattr(manager, "_history_guard", False):
         return None

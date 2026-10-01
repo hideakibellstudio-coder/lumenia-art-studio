@@ -9,7 +9,7 @@ from typing import Any, Optional, Protocol, runtime_checkable
 
 from PySide6 import QtGui
 
-from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.backend_protocols import CoreLifecycleProtocol, SelectionTransformProtocol
 from ui.core.state import GeometryState
 from ui.core.tool_settings import default_tool_settings, normalize_tool_settings
 from ui.core.tools import ToolCommand
@@ -23,6 +23,10 @@ from .text_tool_controller import TextToolController
 
 
 
+class ToolEngine(CoreLifecycleProtocol, SelectionTransformProtocol, Protocol):
+    """O balde preenche (`SelectionTransform`) e "limpar canvas" é do ciclo de vida do documento (`CoreLifecycle`)."""
+
+
 @runtime_checkable
 class ToolCanvas(Protocol):
     """O que o gerenciador de ferramentas usa do canvas (os controladores que ele
@@ -34,6 +38,7 @@ class ToolCanvas(Protocol):
     `RenderWidget` o cumpre.
     """
     active_color: QtGui.QColor
+    backend: Optional[ToolEngine]
     strokeStarted: Any
     strokeFinished: Any
 
@@ -158,7 +163,7 @@ class ToolManager:
         evt = self.widget.to_canvas(screen_x, screen_y, 1.0, 0.0)
         self.widget.strokeStarted.emit()
         try:
-            b = EngineRegistry.instance().get_backend()
+            b = self.widget.backend
             if b:
                 opts = self.bucket_settings
                 ok = b.fill_area(
@@ -178,7 +183,7 @@ class ToolManager:
     def clear_canvas(self) -> None:
         self.widget.strokeStarted.emit()
         try:
-            b = EngineRegistry.instance().get_backend()
+            b = self.widget.backend
             if b:
                 b.clear_canvas()
             self.shape_ctrl.drag_active = False

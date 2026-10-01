@@ -15,7 +15,12 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
+
+from ui.core.engine.backend_protocols import (
+    ColorProtocol, CoreLifecycleProtocol, HistoryProtocol, LayerProtocol, RenderPipelineProtocol, SelectionTransformProtocol,
+)
+from ui.core.engine.persistence_backend import PersistenceBackend
 
 from .document import Document
 from . import layer_properties
@@ -23,6 +28,14 @@ from .local_layer import LocalLayer
 from .schema import CURRENT_VERSION, DocumentFormatError, encode_guides
 
 MAX_PAYLOAD_BYTES = 2 * 1024 * 1024 * 1024
+
+
+class CaptureEngine(
+    ColorProtocol, CoreLifecycleProtocol, HistoryProtocol, LayerProtocol, PersistenceBackend, RenderPipelineProtocol,
+    SelectionTransformProtocol, Protocol,
+):
+    """O que tirar o documento do motor pede: o instantâneo das camadas, o contexto ativo, o perfil de cor,
+    a seleção e o papel; e o histórico (que a captura confere contra o documento)."""
 
 
 @dataclass(frozen=True)
@@ -42,7 +55,7 @@ def _color_tuple(color: Any) -> list[int]:
     return [int(color.red()), int(color.green()), int(color.blue()), int(color.alpha())]
 
 
-def _check_ready(document: Document, backend) -> None:
+def _check_ready(document: Document, backend: CaptureEngine) -> None:
     if not backend or not backend.available:
         raise DocumentFormatError("motor indisponível; salvamento cancelado para preservar o documento")
     if backend.get_active_document_context() != document.uid:
@@ -57,7 +70,7 @@ def _check_ready(document: Document, backend) -> None:
         raise DocumentFormatError("dimensões excedem o limite do motor")
 
 
-def _layer_entries(document: Document, backend, snapshot) -> tuple[list[dict[str, Any]], list[tuple[int, str]]]:
+def _layer_entries(document: Document, backend: CaptureEngine, snapshot) -> tuple[list[dict[str, Any]], list[tuple[int, str]]]:
     layers_model = document.layer_manager.layers
     if snapshot is None or snapshot.layer_count != len(layers_model):
         raise DocumentFormatError("camadas do documento e do motor divergem; salvamento cancelado")
@@ -87,7 +100,7 @@ def _layer_entries(document: Document, backend, snapshot) -> tuple[list[dict[str
     return entries, raster
 
 
-def _extras(document: Document, backend, manifest: dict[str, Any]) -> dict[str, bytes]:
+def _extras(document: Document, backend: CaptureEngine, manifest: dict[str, Any]) -> dict[str, bytes]:
     extras: dict[str, bytes] = {}
     profile = manifest["color_profile_id"]
     icc = document.color_profile_icc_bytes
@@ -113,7 +126,7 @@ def _extras(document: Document, backend, manifest: dict[str, Any]) -> dict[str, 
     return extras
 
 
-def capture_document(document: Document, backend, path: str | os.PathLike[str]) -> SaveCapture:
+def capture_document(document: Document, backend: CaptureEngine, path: str | os.PathLike[str]) -> SaveCapture:
     """A metade da gravação que precisa da thread do documento. Levanta `DocumentFormatError`."""
     _check_ready(document, backend)
     target = Path(path).expanduser().resolve()

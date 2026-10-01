@@ -60,19 +60,16 @@
   "hasattr": 1
  },
  "ui/core/dialogs/render_color_management_components.py": {
-  "door_bypass": 3,
-  "registry_lookup": 1
+  "door_bypass": 2
  },
  "ui/core/dialogs/render_settings_components.py": {
-  "door_bypass": 2,
-  "getattr_literal": 2,
-  "hasattr": 5,
-  "registry_lookup": 1
+  "door_bypass": 1,
+  "getattr_literal": 1,
+  "hasattr": 5
  },
  "ui/core/dialogs/render_settings_dialog.py": {
-  "door_bypass": 2,
-  "hasattr": 2,
-  "registry_lookup": 5
+  "door_bypass": 1,
+  "hasattr": 2
  },
  "ui/core/dialogs/telemetry_common.py": {
   "door_bypass": 3,
@@ -120,9 +117,6 @@
  "ui/core/document/paper_backend_sync.py": {
   "door_bypass": 1,
   "registry_lookup": 1
- },
- "ui/core/document/restore.py": {
-  "hasattr": 1
  },
  "ui/core/engine/limits.py": {
   "registry_lookup": 1
@@ -219,9 +213,6 @@
   "door_bypass": 1
  },
  "ui/core/state/__init__.py": {
-  "door_bypass": 1
- },
- "ui/core/state/brush_engine_sync.py": {
   "door_bypass": 1
  },
  "ui/core/widgets/card_box.py": {
@@ -452,49 +443,21 @@
   "getattr_literal": 2,
   "hasattr": 2
  },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/eyedrop_tool_controller.py": {
-  "getattr_literal": 1
- },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/geometry_tool_controller.py": {
-  "door_bypass": 2,
-  "registry_lookup": 3
+  "door_bypass": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/selection_tool_controller.py": {
-  "door_bypass": 3,
-  "registry_lookup": 8
- },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/shape_tool_controller.py": {
-  "door_bypass": 1,
-  "getattr_literal": 1,
-  "registry_lookup": 1
+  "door_bypass": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/text_overlay_editor.py": {
   "door_bypass": 1,
   "getattr_literal": 1
  },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/text_tool_controller.py": {
-  "door_bypass": 1,
-  "getattr_literal": 1,
-  "registry_lookup": 1
- },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/tool_manager.py": {
-  "door_bypass": 1,
-  "registry_lookup": 2
- },
- "ui/plugins/system/workspace_core/workspace/canvas/tools/transform_tool_controller.py": {
-  "door_bypass": 1,
-  "registry_lookup": 3
- },
  "ui/plugins/system/workspace_core/workspace/canvas/viewport/camera_controller.py": {
   "door_bypass": 1
  },
- "ui/plugins/system/workspace_core/workspace/canvas/viewport/key_router.py": {
-  "door_bypass": 1,
-  "registry_lookup": 1
- },
  "ui/plugins/system/workspace_core/workspace/canvas/viewport/viewport_renderer.py": {
-  "door_bypass": 3,
-  "registry_lookup": 2
+  "door_bypass": 2
  },
  "ui/plugins/system/workspace_core/workspace/dock/dock_animator.py": {
   "door_bypass": 2

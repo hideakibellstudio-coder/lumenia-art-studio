@@ -17,12 +17,19 @@ sem precisar herdar dele explicitamente.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, TypeVar, runtime_checkable
 
 from ui.core.engine.backend import PointerEvent
 from ui.core.engine.display_image import DisplayImage
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from ui.core.engine.backend_protocols_selection import SelectionTransformProtocol  # noqa: F401 (reexportado)
+
+RoleT = TypeVar("RoleT")
+
+# Quem entrega o motor a um colaborador: uma chamada que devolve o motor ativo, ou None na casca sem motor.
+# O colaborador declara o papel que usa (`RoleProvider[LayerProtocol]`); quem o monta (a casca) passa
+# `registry.get_backend`, que cumpre qualquer papel. Nenhum colaborador pede o registro global.
+RoleProvider = Callable[[], Optional[RoleT]]
 
 
 @runtime_checkable

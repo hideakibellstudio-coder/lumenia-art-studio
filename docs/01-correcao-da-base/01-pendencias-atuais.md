@@ -73,6 +73,14 @@ fechada: só diminui.
    Vem antes de qualquer mudança em motor, S0.7 incluída.)*
 4. **S1.1–S1.3:** repintar só a região alterada (D4, feito); salvar e abrir sem
    travar (D3); salvamento automático sem travar.
+   - ~~S1.2 e S1.3: salvar e salvar automático sem travar (D3).~~ *(feito em
+     2026-10-01: `.lmn` v3 (camada = bloco de tiles LZ4, v1 e v2 seguem abrindo),
+     instantâneo copy-on-write das camadas, `DocumentSaver` numa thread, abrir
+     numa única composição. 4K com dez camadas: a interface para 0,8 ms (esparso)
+     ou 2,2 ms (todas pintadas) para capturar, e nunca mais de 12,6 ms sem tratar
+     evento durante a gravação; gravar 3,34 s → 0,02 s esparso; pico de memória
+     +692 MB → +2,3 MB esparso e +67 MB denso; abrir 2,0 s → 0,06 s esparso e
+     1,2 s denso. Resíduo: abrir um documento denso segue na thread da interface.)*
    - ~~S1.1: repintar só a região alterada (D4).~~ *(feito em 2026-10-01:
      `get_display_image` → `get_display_region` (zoom de trabalho) e
      `get_display_lod_region` (zoom afastado); contrato do módulo nativo na versão

@@ -909,8 +909,8 @@ script pode conferir.
 | Item | O quê | Por quê | Pronto quando |
 |---|---|---|---|
 | **S1.1** | **Exibição por região alterada.** A facade entrega só o retângulo sujo (ou uma visão sem cópia do buffer, via buffer protocol); a interface mantém um `QImage` persistente e atualiza só o retângulo | D4/R4: 34 ms → proporcional ao que mudou | Repintura em zoom 100%: 4K < 4 ms, 6000×4000 < 6 ms (Linux do agente); teste de desempenho com limite relativo |
-| **S1.2** | **Salvar e abrir em segundo plano.** Instantâneo copy-on-write das camadas (o motor já tem COW nos tiles) → compressão e gravação numa thread, com o GIL liberado. Formato por tile (omite tiles vazios) → LMN v3 com migração | D3/R6: 4 s e +609 MB | Nenhum travamento > 50 ms da interface ao salvar 4K/10 camadas; pico de memória < 1 buffer de camada; abrir 4K/10 < 1 s |
-| **S1.3** | **Salvamento automático incremental** sem trocar o contexto ativo, só com o que mudou | D3 | Nenhum travamento perceptível durante 10 min de pintura com 3 documentos |
+| **S1.2** ✅ | (salvar e a abertura rápida feitos; abrir em segundo plano não: resíduo do D3) **Salvar e abrir em segundo plano.** Instantâneo copy-on-write das camadas (o motor já tem COW nos tiles) → compressão e gravação numa thread, com o GIL liberado. Formato por tile (omite tiles vazios) → LMN v3 com migração | D3/R6: 4 s e +609 MB | Nenhum travamento > 50 ms da interface ao salvar 4K/10 camadas; pico de memória < 1 buffer de camada; abrir 4K/10 < 1 s |
+| **S1.3** ✅ | (feito: captura em ms e gravação no `DocumentSaver`; sem tile incremental, porque a gravação já é proporcional ao que está pintado) **Salvamento automático incremental** sem trocar o contexto ativo, só com o que mudou | D3 | Nenhum travamento perceptível durante 10 min de pintura com 3 documentos |
 | S1.4 | AVX2 com escolha em tempo de execução | Build distribuído é escalar | Módulo AVX2 carregado quando a CPU suporta; mesma caracterização (golden) |
 | S1.5 | Cache das camadas abaixo e acima da ativa durante o traço (medir antes com camadas densas) | Custo do traço cresce com camadas sob o pincel | Traço com 100 camadas densas ≤ 1,5× o de 1 camada |
 

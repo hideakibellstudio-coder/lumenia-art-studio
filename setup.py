@@ -31,6 +31,7 @@ cpp_sources = [
     "engine/core/raster/DabInterpolator.cpp",
     "engine/core/raster/LargeBrushOptimizer.cpp",
     "engine/core/raster/DabRenderer.cpp",
+    "engine/core/raster/DabFootprint.cpp",
     "engine/core/raster/FloodFill.cpp",
     "engine/core/selection/SelectionEngine.cpp",
     "engine/core/selection/SelectionShapeMasks.cpp",

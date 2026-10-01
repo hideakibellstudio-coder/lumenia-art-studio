@@ -1,16 +1,17 @@
 #include "BlurEngine.hpp"
-#include "../canvas/SpatialCuller.hpp"
-#include "../../utils/Rect2D.hpp"
-#include "../document/Layer.hpp"
-#include "../raster/PixelContext.hpp"
-#include <cmath>
+#include "../raster/DabFootprint.hpp"
+#include "../raster/LargeBrushOptimizer.hpp"
+#include "../raster/PixelPermission.hpp"
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 namespace aladyn::engine::engines {
 
+namespace {
+
 // Amostra segura na TileGrid da camada ativa
-static inline utils::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
+utils::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
     if (globalX < 0 || globalX >= tileGrid.getWidth() || globalY < 0 || globalY >= tileGrid.getHeight()) {
         return {0, 0, 0, 0};
     }
@@ -22,6 +23,154 @@ static inline utils::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, in
     const canvas::Tile* t = const_cast<canvas::TileGrid&>(tileGrid).getTile(tx, ty);
     return t ? t->getBuffer().getPixel(lpx, lpy) : utils::ColorRGBA{0, 0, 0, 0};
 }
+
+struct Region {
+    int minX, maxX, minY, maxY;
+    [[nodiscard]] int width() const { return maxX - minX + 1; }
+    [[nodiscard]] int height() const { return maxY - minY + 1; }
+    [[nodiscard]] bool empty() const { return width() <= 0 || height() <= 0; }
+    [[nodiscard]] bool contains(int x, int y) const { return x >= minX && x <= maxX && y >= minY && y <= maxY; }
+};
+
+// Resultado do passe horizontal de um pixel do snapshot.
+struct HorizontalSum {
+    float r{0.0f}, g{0.0f}, b{0.0f}, a{0.0f};
+    float alphaWeight{0.0f}, totalWeight{0.0f};
+};
+
+// O desfoque gaussiano de uma região: uma cópia contígua da área da camada (com a borda do kernel),
+// o passe horizontal já feito e `blurredAt`, que faz o vertical de um pixel. Lê só da cópia: o resultado
+// de um pixel não depende de os vizinhos já terem sido pintados.
+class BlurredRegion {
+public:
+    BlurredRegion(const canvas::TileGrid& grid, const Region& roi, int kernelRadius, double sigma)
+        : m_kernelRadius(kernelRadius),
+          m_snap{std::max(0, roi.minX - kernelRadius), std::min(grid.getWidth() - 1, roi.maxX + kernelRadius),
+                 std::max(0, roi.minY - kernelRadius), std::min(grid.getHeight() - 1, roi.maxY + kernelRadius)} {
+        m_width = m_snap.width();
+        m_height = m_snap.height();
+        if (m_snap.empty()) return;
+
+        copyFrom(grid);
+        buildWeights(sigma);
+        blurRows();
+    }
+
+    [[nodiscard]] bool empty() const { return m_snap.empty(); }
+
+    // O pixel original, na cópia.
+    [[nodiscard]] utils::ColorRGBA originalAt(int globalX, int globalY) const {
+        return m_source[static_cast<size_t>((globalY - m_snap.minY) * m_width + (globalX - m_snap.minX))];
+    }
+
+    struct Blurred {
+        float r, g, b, a;
+        float alphaWeight, totalWeight;
+    };
+
+    // Passe vertical sobre os resultados do horizontal.
+    [[nodiscard]] Blurred blurredAt(int globalX, int globalY) const {
+        const int snapX = globalX - m_snap.minX;
+        const int snapY = globalY - m_snap.minY;
+        Blurred sum{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+        for (int k = -m_kernelRadius; k <= m_kernelRadius; ++k) {
+            const int ky = std::clamp(snapY + k, 0, m_height - 1);
+            const float w = m_weights[static_cast<size_t>(k + m_kernelRadius)];
+            const HorizontalSum& sample = m_rows[static_cast<size_t>(ky * m_width + snapX)];
+            sum.r += sample.r * w;
+            sum.g += sample.g * w;
+            sum.b += sample.b * w;
+            sum.a += sample.a * w;
+            sum.alphaWeight += sample.alphaWeight * w;
+            sum.totalWeight += sample.totalWeight * w;
+        }
+        return sum;
+    }
+
+private:
+    void copyFrom(const canvas::TileGrid& grid) {
+        m_source.resize(static_cast<size_t>(m_width * m_height));
+        for (int sy = 0; sy < m_height; ++sy) {
+            for (int sx = 0; sx < m_width; ++sx) {
+                m_source[static_cast<size_t>(sy * m_width + sx)] = getTilePixel(grid, m_snap.minX + sx, m_snap.minY + sy);
+            }
+        }
+    }
+
+    // Pesos gaussianos 1D (LUT).
+    void buildWeights(double sigma) {
+        m_weights.resize(static_cast<size_t>(2 * m_kernelRadius + 1));
+        for (int k = -m_kernelRadius; k <= m_kernelRadius; ++k) {
+            m_weights[static_cast<size_t>(k + m_kernelRadius)] = static_cast<float>(std::exp(-(k * k) / (2.0 * sigma * sigma)));
+        }
+    }
+
+    // Convolução separável em dois passes: O(2K) em vez de O(K²).
+    void blurRows() {
+        m_rows.resize(static_cast<size_t>(m_width * m_height));
+        for (int sy = 0; sy < m_height; ++sy) {
+            for (int sx = 0; sx < m_width; ++sx) {
+                m_rows[static_cast<size_t>(sy * m_width + sx)] = horizontalSum(sx, sy);
+            }
+        }
+    }
+
+    HorizontalSum horizontalSum(int sx, int sy) const {
+        HorizontalSum sum;
+        for (int k = -m_kernelRadius; k <= m_kernelRadius; ++k) {
+            const int kx = std::clamp(sx + k, 0, m_width - 1);
+            const float w = m_weights[static_cast<size_t>(k + m_kernelRadius)];
+            const utils::ColorRGBA px = m_source[static_cast<size_t>(sy * m_width + kx)];
+
+            const float alpha = static_cast<float>(px.a) / 255.0f;
+            if (px.a > 0) {
+                sum.r += static_cast<float>(px.r) * alpha * w;
+                sum.g += static_cast<float>(px.g) * alpha * w;
+                sum.b += static_cast<float>(px.b) * alpha * w;
+                sum.alphaWeight += alpha * w;
+            }
+            sum.a += static_cast<float>(px.a) * w;
+            sum.totalWeight += w;
+        }
+        return sum;
+    }
+
+    int m_kernelRadius;
+    Region m_snap;
+    int m_width{0};
+    int m_height{0};
+    std::vector<utils::ColorRGBA> m_source;
+    std::vector<float> m_weights;
+    std::vector<HorizontalSum> m_rows;
+};
+
+// Mistura o pixel original com o desfocado na proporção `mix`; com Alpha Lock o alfa fica.
+utils::ColorRGBA mixTowardBlur(
+    utils::ColorRGBA original, const BlurredRegion::Blurred& blurred, double mix, bool alphaLocked
+) {
+    float targetR = static_cast<float>(original.r);
+    float targetG = static_cast<float>(original.g);
+    float targetB = static_cast<float>(original.b);
+    if (blurred.alphaWeight > 0.0f) {
+        targetR = blurred.r / blurred.alphaWeight;
+        targetG = blurred.g / blurred.alphaWeight;
+        targetB = blurred.b / blurred.alphaWeight;
+    }
+    const auto toward = [mix](uint8_t from, float to) {
+        return static_cast<double>(from) * (1.0 - mix) + static_cast<double>(to) * mix;
+    };
+    double outA = static_cast<double>(original.a);
+    if (!alphaLocked) {
+        const double smoothedA = (blurred.totalWeight > 0.0f) ? static_cast<double>(blurred.a / blurred.totalWeight)
+                                                              : static_cast<double>(original.a);
+        outA = static_cast<double>(original.a) * (1.0 - mix) + smoothedA * mix;
+    }
+    const auto byte = [](double v) { return static_cast<uint8_t>(std::clamp(v, 0.0, 255.0)); };
+    return utils::ColorRGBA{byte(toward(original.r, targetR)), byte(toward(original.g, targetG)),
+                            byte(toward(original.b, targetB)), byte(outA)};
+}
+
+} // namespace
 
 void BlurEngine::renderDab(
     const utils::Dab& dab,
@@ -36,218 +185,54 @@ void BlurEngine::renderDab(
     const double aspect = std::max(0.05, profile.tip.aspectRatio);
     const double maxR   = r / aspect + 2.0;
 
-    const int blurRadiusCfg = std::clamp(profile.blurParams.blurRadius, 1, 5);
-    const double blurStr    = std::clamp(profile.blurParams.blurStrength, 0.0, 1.0);
+    const int blurRadiusSetting = std::clamp(profile.blurParams.blurRadius, 1, 5);
+    const double strength       = std::clamp(profile.blurParams.blurStrength, 0.0, 1.0);
 
     // Raio do kernel proporcional ao dab (mínimo 2px, máximo 20px)
-    const int kernelR = std::clamp(
-        static_cast<int>(std::round(r * 0.20 * static_cast<double>(blurRadiusCfg))),
-        2, 20
-    );
-    const double sigma = std::max(0.8, static_cast<double>(kernelR) * (0.35 + blurStr * 0.45));
+    const int kernelRadius = std::clamp(
+        static_cast<int>(std::round(r * 0.20 * static_cast<double>(blurRadiusSetting))), 2, 20);
+    const double sigma = std::max(0.8, static_cast<double>(kernelRadius) * (0.35 + strength * 0.45));
 
-    // Bounding Box do Dab expandida com margem de segurança do kernel
-    const int roiMinX = std::max(0, static_cast<int>(std::floor(dab.position.x - maxR)));
-    const int roiMaxX = std::min(tileGrid.getWidth() - 1, static_cast<int>(std::ceil(dab.position.x + maxR)));
-    const int roiMinY = std::max(0, static_cast<int>(std::floor(dab.position.y - maxR)));
-    const int roiMaxY = std::min(tileGrid.getHeight() - 1, static_cast<int>(std::ceil(dab.position.y + maxR)));
+    // Caixa do dab com a margem do kernel, para a cópia da área
+    const Region roi{
+        std::max(0, static_cast<int>(std::floor(dab.position.x - maxR))),
+        std::min(tileGrid.getWidth() - 1, static_cast<int>(std::ceil(dab.position.x + maxR))),
+        std::max(0, static_cast<int>(std::floor(dab.position.y - maxR))),
+        std::min(tileGrid.getHeight() - 1, static_cast<int>(std::ceil(dab.position.y + maxR)))};
+    if (roi.empty()) return;
 
-    const int roiW = roiMaxX - roiMinX + 1;
-    const int roiH = roiMaxY - roiMinY + 1;
-    if (roiW <= 0 || roiH <= 0) return;
+    const BlurredRegion region(tileGrid, roi, kernelRadius, sigma);
+    if (region.empty()) return;
 
-    // Snapshot expandido contíguo em RAM (inclui a borda kernelR para amostragem ultrarrápida O(1))
-    const int snapMinX = std::max(0, roiMinX - kernelR);
-    const int snapMaxX = std::min(tileGrid.getWidth() - 1, roiMaxX + kernelR);
-    const int snapMinY = std::max(0, roiMinY - kernelR);
-    const int snapMaxY = std::min(tileGrid.getHeight() - 1, roiMaxY + kernelR);
-
-    const int snapW = snapMaxX - snapMinX + 1;
-    const int snapH = snapMaxY - snapMinY + 1;
-    if (snapW <= 0 || snapH <= 0) return;
-
-    std::vector<utils::ColorRGBA> srcBlock(static_cast<size_t>(snapW * snapH));
-    for (int sy = 0; sy < snapH; ++sy) {
-        const int gy = snapMinY + sy;
-        for (int sx = 0; sx < snapW; ++sx) {
-            const int gx = snapMinX + sx;
-            srcBlock[static_cast<size_t>(sy * snapW + sx)] = getTilePixel(tileGrid, gx, gy);
-        }
-    }
-
-    // ─── 1. PRÉ-CÁLCULO DOS PESOS GAUSSIANOS 1D (LUT) ─────────────────────────
-    const int kernelSize = 2 * kernelR + 1;
-    std::vector<float> kernelWeights(static_cast<size_t>(kernelSize));
-    for (int k = -kernelR; k <= kernelR; ++k) {
-        kernelWeights[static_cast<size_t>(k + kernelR)] =
-            static_cast<float>(std::exp(-(k * k) / (2.0 * sigma * sigma)));
-    }
-
-    // ─── 2. CONVOLUÇÃO SEPARÁVEL EM 2 PASSES (HORIZONTAL + VERTICAL) ──────────
-    // Reduz a complexidade de O(K^2) para O(2*K) — 12.5x mais rápido!
-
-    // Buffer intermediário (resultado do passe horizontal)
-    struct IntermediateSample {
-        float r{0.0f}, g{0.0f}, b{0.0f}, a{0.0f};
-        float alphaW{0.0f}, totalW{0.0f};
-    };
-    std::vector<IntermediateSample> tempBlock(static_cast<size_t>(snapW * snapH));
-
-    // Passo Horizontal (1D)
-    for (int sy = 0; sy < snapH; ++sy) {
-        const int rowOffset = sy * snapW;
-        for (int sx = 0; sx < snapW; ++sx) {
-            float sumR = 0.0f, sumG = 0.0f, sumB = 0.0f, sumA = 0.0f;
-            float aWSum = 0.0f, tWSum = 0.0f;
-
-            for (int k = -kernelR; k <= kernelR; ++k) {
-                const int kx = std::clamp(sx + k, 0, snapW - 1);
-                const float w = kernelWeights[static_cast<size_t>(k + kernelR)];
-                const utils::ColorRGBA px = srcBlock[static_cast<size_t>(rowOffset + kx)];
-
-                const float aNorm = static_cast<float>(px.a) / 255.0f;
-                if (px.a > 0) {
-                    sumR += static_cast<float>(px.r) * aNorm * w;
-                    sumG += static_cast<float>(px.g) * aNorm * w;
-                    sumB += static_cast<float>(px.b) * aNorm * w;
-                    aWSum += aNorm * w;
-                }
-                sumA += static_cast<float>(px.a) * w;
-                tWSum += w;
-            }
-
-            tempBlock[static_cast<size_t>(rowOffset + sx)] = IntermediateSample{
-                sumR, sumG, sumB, sumA, aWSum, tWSum
-            };
-        }
-    }
-
-    // Passo Vertical (1D) + Aplicação do Dab na TileGrid
-    const utils::Rect2D bounds{
-        dab.position.x - maxR, dab.position.y - maxR,
-        maxR * 2.0, maxR * 2.0
-    };
-    const auto tileIndices = canvas::SpatialCuller::getIntersectingTiles(
-        bounds, tileGrid.getWidth(), tileGrid.getHeight()
-    );
+    // O desfoque ignora a rotação e o achatamento da ponta: o dab é sempre um círculo.
+    utils::Dab disc = dab;
+    disc.angle = 0.0;
+    const raster::DabFootprint footprint(disc, r, 1.0, tileGrid);
+    if (footprint.empty()) return;
 
     const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
     const double spanInv  = 1.0 / std::max(0.001, r - hardSpan);
+    const raster::PixelPermission permission(ctx);
+    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+        if (!roi.contains(pixel.gx, pixel.gy)) return false;  // fora da cópia e do canvas
 
-    for (const auto& idx : tileIndices) {
-        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
-        if (!tile) continue;
+        // Falloff smoothstep
+        const double dist = std::sqrt(pixel.distSq);
+        const double shape = dist > hardSpan ? raster::LargeBrushOptimizer::smoothHermite((r - dist) * spanInv) : 1.0;
+        double mix = dab.opacity * shape * strength;
+        if (shape <= 0.0 || mix <= 0.0) return false;
 
-        canvas::PixelBuffer& buffer = tile->getBuffer();
-        const int tilePixelX = tile->getPixelX();
-        const int tilePixelY = tile->getPixelY();
+        // Pixel fora da cópia (borda do canvas) não existe; um pixel vazio sem tinta em volta não muda
+        const utils::ColorRGBA original = region.originalAt(pixel.gx, pixel.gy);
+        const BlurredRegion::Blurred blurred = region.blurredAt(pixel.gx, pixel.gy);
+        if (original.a == 0 && blurred.alphaWeight <= 0.0f) return false;
+        if (ctx.alphaLocked && original.a == 0) return false;
 
-        const int minX = std::max(0, roiMinX - tilePixelX);
-        const int maxX = std::min(canvas::Tile::TILE_SIZE - 1, roiMaxX - tilePixelX);
-        const int minY = std::max(0, roiMinY - tilePixelY);
-        const int maxY = std::min(canvas::Tile::TILE_SIZE - 1, roiMaxY - tilePixelY);
+        if (!permission.apply(pixel.gx, pixel.gy, mix) || mix <= 0.0) return false;
 
-        bool tileModified = false;
-
-        for (int py = minY; py <= maxY; ++py) {
-            const int globalY = tilePixelY + py;
-            const double dy   = static_cast<double>(globalY) + 0.5 - dab.position.y;
-            const int snapY   = globalY - snapMinY;
-
-            for (int px = minX; px <= maxX; ++px) {
-                const int globalX = tilePixelX + px;
-                const double dx   = static_cast<double>(globalX) + 0.5 - dab.position.x;
-                const int snapX   = globalX - snapMinX;
-
-                const double dist = std::sqrt(dx * dx + dy * dy);
-                if (dist > r + 1.0) continue;
-
-                // Falloff smoothstep
-                double shapeAlpha = 1.0;
-                if (dist > hardSpan) {
-                    const double t = std::clamp((r - dist) * spanInv, 0.0, 1.0);
-                    shapeAlpha = t * t * (3.0 - 2.0 * t);
-                }
-                if (shapeAlpha <= 0.0) continue;
-
-                const double mixFactor = dab.opacity * shapeAlpha * blurStr;
-                if (mixFactor <= 0.0) continue;
-
-                const utils::ColorRGBA origPx = srcBlock[static_cast<size_t>(snapY * snapW + snapX)];
-
-                // Acumulação vertical dos resultados intermediários
-                float sumR = 0.0f, sumG = 0.0f, sumB = 0.0f, sumA = 0.0f;
-                float aWSum = 0.0f, tWSum = 0.0f;
-
-                for (int k = -kernelR; k <= kernelR; ++k) {
-                    const int ky = std::clamp(snapY + k, 0, snapH - 1);
-                    const float w = kernelWeights[static_cast<size_t>(k + kernelR)];
-                    const IntermediateSample& sample = tempBlock[static_cast<size_t>(ky * snapW + snapX)];
-
-                    sumR += sample.r * w;
-                    sumG += sample.g * w;
-                    sumB += sample.b * w;
-                    sumA += sample.a * w;
-                    aWSum += sample.alphaW * w;
-                    tWSum += sample.totalW * w;
-                }
-
-                // Se não há tinta e o pixel é vazio, ignora
-                if (origPx.a == 0 && aWSum <= 0.0f) continue;
-                if (ctx.alphaLocked && origPx.a == 0) continue;
-
-                double curMixFactor = mixFactor;
-                if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
-                    const uint8_t sVal = ctx.selectionMask->getValue(globalX, globalY);
-                    if (sVal == 0) continue;
-                    if (sVal < 255) {
-                        curMixFactor *= (static_cast<double>(sVal) / 255.0);
-                    }
-                }
-
-                if (ctx.clipBaseLayer) {
-                    const int bTx = globalX / canvas::Tile::TILE_SIZE;
-                    const int bTy = globalY / canvas::Tile::TILE_SIZE;
-                    const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(ctx.clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
-                    if (!bTile) continue;
-                    const double baseA = static_cast<double>(bTile->getBuffer().getPixel(
-                        globalX % canvas::Tile::TILE_SIZE,
-                        globalY % canvas::Tile::TILE_SIZE).a) / 255.0;
-                    if (baseA <= 0.0) continue;
-                    curMixFactor *= baseA;
-                }
-                if (curMixFactor <= 0.0) continue;
-
-                float targetR = static_cast<float>(origPx.r);
-                float targetG = static_cast<float>(origPx.g);
-                float targetB = static_cast<float>(origPx.b);
-                if (aWSum > 0.0f) {
-                    targetR = sumR / aWSum;
-                    targetG = sumG / aWSum;
-                    targetB = sumB / aWSum;
-                }
-
-                const double outR = static_cast<double>(origPx.r) * (1.0 - curMixFactor) + static_cast<double>(targetR) * curMixFactor;
-                const double outG = static_cast<double>(origPx.g) * (1.0 - curMixFactor) + static_cast<double>(targetG) * curMixFactor;
-                const double outB = static_cast<double>(origPx.b) * (1.0 - curMixFactor) + static_cast<double>(targetB) * curMixFactor;
-
-                double outA = static_cast<double>(origPx.a);
-                if (!ctx.alphaLocked) {
-                    const double smoothedA = (tWSum > 0.0f) ? static_cast<double>(sumA / tWSum) : static_cast<double>(origPx.a);
-                    outA = static_cast<double>(origPx.a) * (1.0 - curMixFactor) + smoothedA * curMixFactor;
-                }
-
-                buffer.setPixel(px, py, utils::ColorRGBA{
-                    static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
-                    static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
-                    static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
-                    static_cast<uint8_t>(std::clamp(outA, 0.0, 255.0))
-                });
-                tileModified = true;
-            }
-        }
-        if (tileModified) tile->setDirty(true);
-    }
+        dst = mixTowardBlur(original, blurred, mix, ctx.alphaLocked);
+        return true;
+    });
 }
 
 } // namespace aladyn::engine::engines

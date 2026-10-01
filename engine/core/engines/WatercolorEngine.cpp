@@ -1,12 +1,116 @@
 #include "WatercolorEngine.hpp"
-#include "../canvas/SpatialCuller.hpp"
-#include "../../utils/Rect2D.hpp"
-#include "../document/Layer.hpp"
-#include "../raster/PixelContext.hpp"
-#include <cmath>
+#include "../raster/DabFootprint.hpp"
+#include "../raster/PixelPermission.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace aladyn::engine::engines {
+
+namespace {
+
+constexpr double kPi = 3.14159265358979323846;
+
+uint8_t toByte(double unit) {
+    return static_cast<uint8_t>(std::clamp(unit * 255.0, 0.0, 255.0));
+}
+
+// Uma mancha de aquarela: miolo aquoso, anel escuro de secagem na borda (Coffee Ring), pigmento
+// que se acumula nos vales do papel (granulação) e uma veladura subtrativa ao compor.
+class WatercolorWash {
+public:
+    WatercolorWash(const utils::Dab& dab, const brush::BrushProfile& profile, const canvas::CanvasTexture& paper)
+        : m_color(dab.color), m_opacity(dab.opacity),
+          m_radius(reach(dab, profile)),
+          m_safeRadius(std::max(0.001, m_radius)),
+          m_hardSpan(std::clamp(profile.hardness, 0.0, 0.99) * m_safeRadius),
+          m_water(std::clamp(profile.watercolorParams.waterLevel, 0.0, 1.0)),
+          m_fringe(std::clamp(profile.watercolorParams.fringeIntensity, 0.0, 1.0)),
+          m_granulation(std::clamp(profile.watercolorParams.granulation, 0.0, 1.0)),
+          m_paper(paper.canvasHeightTexture.get()),
+          m_srcR(static_cast<double>(dab.color.r) / 255.0),
+          m_srcG(static_cast<double>(dab.color.g) / 255.0),
+          m_srcB(static_cast<double>(dab.color.b) / 255.0) {}
+
+    // No modo Wet-on-Wet (sangramento alto) o raio de expansão cresce com pigmentBleed e a água.
+    static double reach(const utils::Dab& dab, const brush::BrushProfile& profile) {
+        const double bleed = std::clamp(profile.watercolorParams.pigmentBleed, 0.0, 1.0);
+        const double water = std::clamp(profile.watercolorParams.waterLevel, 0.0, 1.0);
+        return dab.radius * (1.0 + bleed * water * 0.4);
+    }
+
+    // A opacidade da mancha neste pixel; 0 quando ele não é tocado.
+    double strengthAt(const raster::DabPixel& pixel) const {
+        const double dist = std::sqrt(pixel.distSq);
+        const double normalizedDist = dist / m_safeRadius;
+
+        // Falloff procedural com miolo aquoso suave
+        double shape = 1.0;
+        if (dist > m_hardSpan) {
+            shape = std::clamp((m_safeRadius - dist) / std::max(0.001, m_safeRadius - m_hardSpan), 0.0, 1.0);
+        }
+        if (shape <= 0.0) return 0.0;
+
+        return std::clamp(
+            m_opacity * shape * fringe(normalizedDist) * granulation(pixel) * (0.4 + m_water * 0.6),
+            0.0, 1.0);
+    }
+
+    // Veladura translúcida: a tinta tinge o que está embaixo em vez de cobri-lo. true se mudou o pixel.
+    bool blend(utils::ColorRGBA& dst, double strength, bool alphaLocked) const {
+        if (!alphaLocked && dst.a == 0) {
+            dst = utils::ColorRGBA{m_color.r, m_color.g, m_color.b, toByte(strength)};
+            return true;
+        }
+        if (alphaLocked && dst.a == 0) return false;
+
+        const double dstR = static_cast<double>(dst.r) / 255.0;
+        const double dstG = static_cast<double>(dst.g) / 255.0;
+        const double dstB = static_cast<double>(dst.b) / 255.0;
+        const double dstA = static_cast<double>(dst.a) / 255.0;
+        const auto mix = [&](double src, double under) {
+            // Com Alpha Lock, só o filtro do pigmento; fora dele, a diluição pela água.
+            const double glaze = alphaLocked ? src * under : dilutedGlaze(src, under);
+            return under * (1.0 - strength) + glaze * strength;
+        };
+        const uint8_t alpha = alphaLocked ? dst.a : toByte(std::clamp(dstA + strength * (1.0 - dstA) * 0.4, 0.0, 1.0));
+        dst = utils::ColorRGBA{toByte(mix(m_srcR, dstR)), toByte(mix(m_srcG, dstG)), toByte(mix(m_srcB, dstB)), alpha};
+        return true;
+    }
+
+private:
+    // Coffee Ring Effect: anel escuro de secagem no bordo capilar da mancha.
+    double fringe(double normalizedDist) const {
+        if (!(m_fringe > 0.0 && normalizedDist >= 0.6)) return 1.0;
+        const double ring = (normalizedDist - 0.6) / 0.4;
+        return 1.0 + std::sin(ring * kPi) * m_fringe * 1.5;
+    }
+
+    // Granulação: os vales do papel (altura < 0.5) acumulam mais pigmento; as cristas retêm menos.
+    double granulation(const raster::DabPixel& pixel) const {
+        if (!(m_granulation > 0.0 && m_paper)) return 1.0;
+        const double height = m_paper->sampleNormalized(pixel.gx * 0.02, pixel.gy * 0.02);
+        const double valleyDepth = (1.0 - height) - 0.5;
+        return 1.0 + valleyDepth * m_granulation * 1.2;
+    }
+
+    // Veladura subtrativa ponderada por difusão, com diluição pela água (waterLevel).
+    double dilutedGlaze(double src, double under) const {
+        return (src * under) * (1.0 - m_water * 0.3) + (src * 0.5 + under * 0.5) * (m_water * 0.3);
+    }
+
+    utils::ColorRGBA m_color;
+    double m_opacity;
+    double m_radius;
+    double m_safeRadius;
+    double m_hardSpan;
+    double m_water;
+    double m_fringe;
+    double m_granulation;
+    const texture::Texture2D* m_paper;
+    double m_srcR, m_srcG, m_srcB;
+};
+
+} // namespace
 
 void WatercolorEngine::renderDab(
     const utils::Dab& dab,
@@ -17,196 +121,17 @@ void WatercolorEngine::renderDab(
 ) {
     if (dab.radius <= 0.0 || dab.color.a == 0) return;
 
-    const double r = dab.radius;
     const double aspect = std::max(0.05, profile.tip.aspectRatio);
+    const raster::DabFootprint footprint(dab, WatercolorWash::reach(dab, profile), aspect, tileGrid);
+    if (footprint.empty()) return;
 
-    // No modo Wet-on-Wet (sangramento alto), o raio de expansão cresce proporcionalmente a pigmentBleed
-    const double bleedRatio = std::clamp(profile.watercolorParams.pigmentBleed, 0.0, 1.0);
-    const double waterLevel = std::clamp(profile.watercolorParams.waterLevel, 0.0, 1.0);
-    const double fringeInt  = std::clamp(profile.watercolorParams.fringeIntensity, 0.0, 1.0);
-    const double granulate  = std::clamp(profile.watercolorParams.granulation, 0.0, 1.0);
-
-    const double effectiveRadius = r * (1.0 + bleedRatio * waterLevel * 0.4);
-    const double maxR = effectiveRadius / aspect + 2.0;
-
-    const utils::Rect2D bounds{
-        dab.position.x - maxR, dab.position.y - maxR,
-        maxR * 2.0, maxR * 2.0
-    };
-
-    const auto tileIndices = canvas::SpatialCuller::getIntersectingTiles(
-        bounds, tileGrid.getWidth(), tileGrid.getHeight()
-    );
-
-    const double radAngle = -dab.angle * (3.14159265358979323846 / 180.0);
-    const double cosA = std::cos(radAngle);
-    const double sinA = std::sin(radAngle);
-
-    const auto heightTex = canvasTexture.canvasHeightTexture;
-
-    for (const auto& idx : tileIndices) {
-        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
-        if (!tile) continue;
-
-        canvas::PixelBuffer& buffer = tile->getBuffer();
-        const int tilePixelX = tile->getPixelX();
-        const int tilePixelY = tile->getPixelY();
-
-        const int minX = std::max(0, static_cast<int>(std::floor(bounds.getLeft())) - tilePixelX);
-        const int maxX = std::min(canvas::Tile::TILE_SIZE - 1, static_cast<int>(std::ceil(bounds.getRight())) - tilePixelX);
-        const int minY = std::max(0, static_cast<int>(std::floor(bounds.getTop())) - tilePixelY);
-        const int maxY = std::min(canvas::Tile::TILE_SIZE - 1, static_cast<int>(std::ceil(bounds.getBottom())) - tilePixelY);
-
-        bool tileModified = false;
-
-        for (int py = minY; py <= maxY; ++py) {
-            const int globalY = tilePixelY + py;
-            const double dy = static_cast<double>(globalY) + 0.5 - dab.position.y;
-
-            for (int px = minX; px <= maxX; ++px) {
-                const int globalX = tilePixelX + px;
-                const double dx = static_cast<double>(globalX) + 0.5 - dab.position.x;
-
-                const double rotX = dx * cosA - dy * sinA;
-                const double rotY = dx * sinA + dy * cosA;
-                const double scaledY = rotY / aspect;
-                const double dist = std::sqrt(rotX * rotX + scaledY * scaledY);
-
-                const double safeEffRadius = std::max(0.001, effectiveRadius);
-                const double normDist = dist / safeEffRadius;
-
-                // 1. Falloff procedural com miolo aquoso suave
-                double shapeAlpha = 1.0;
-                const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * safeEffRadius;
-                if (dist > hardSpan) {
-                    shapeAlpha = std::clamp((safeEffRadius - dist) / std::max(0.001, safeEffRadius - hardSpan), 0.0, 1.0);
-                }
-                if (shapeAlpha <= 0.0) continue;
-
-                // 2. Coffee Ring Effect (Anel de Borda Escura de Secagem)
-                double fringeFactor = 1.0;
-                if (fringeInt > 0.0 && normDist >= 0.6) {
-                    const double ringRatio = (normDist - 0.6) / 0.4;
-                    // Curva de acúmulo no bordo capilar da mancha
-                    fringeFactor += std::sin(ringRatio * 3.14159265358979323846) * fringeInt * 1.5;
-                }
-
-                // 3. Granulação no Papel (Deposição nos vales)
-                double granFactor = 1.0;
-                if (granulate > 0.0 && heightTex) {
-                    const double paperH = heightTex->sampleNormalized(globalX * 0.02, globalY * 0.02);
-                    // Vales (paperH < 0.5) acumulam mais pigmento; cristas (paperH > 0.5) retêm menos
-                    const double valleyDepth = (1.0 - paperH) - 0.5;
-                    granFactor = 1.0 + valleyDepth * granulate * 1.2;
-                }
-
-                // 4. Modulação da Opacidade Efetiva da Mancha de Aquarela
-                const double effectiveOpacity = std::clamp(
-                    dab.opacity * shapeAlpha * fringeFactor * granFactor * (0.4 + waterLevel * 0.6),
-                    0.0, 1.0
-                );
-                double curEffectiveOpacity = effectiveOpacity;
-                if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
-                    const int gx = tilePixelX + px;
-                    const int gy = tilePixelY + py;
-                    const uint8_t sVal = ctx.selectionMask->getValue(gx, gy);
-                    if (sVal == 0) continue;
-                    if (sVal < 255) {
-                        curEffectiveOpacity *= (static_cast<double>(sVal) / 255.0);
-                    }
-                }
-
-                if (ctx.clipBaseLayer) {
-                    const int bTx = (tilePixelX + px) / canvas::Tile::TILE_SIZE;
-                    const int bTy = (tilePixelY + py) / canvas::Tile::TILE_SIZE;
-                    const int bPx = (tilePixelX + px) % canvas::Tile::TILE_SIZE;
-                    const int bPy = (tilePixelY + py) % canvas::Tile::TILE_SIZE;
-                    const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(ctx.clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
-                    if (!bTile) continue;
-                    const double baseA = static_cast<double>(bTile->getBuffer().getPixel(bPx, bPy).a) / 255.0;
-                    if (baseA <= 0.0) continue;
-                    curEffectiveOpacity *= baseA;
-                }
-
-                if (curEffectiveOpacity <= 0.0) continue;
-
-                // 5. Compositing Transparente Estilo Veladura (Glaze)
-                const utils::ColorRGBA dst = buffer.getPixel(px, py);
-
-                if (ctx.alphaLocked) {
-                    if (dst.a == 0) continue;
-                    const double srcR = static_cast<double>(dab.color.r) / 255.0;
-                    const double srcG = static_cast<double>(dab.color.g) / 255.0;
-                    const double srcB = static_cast<double>(dab.color.b) / 255.0;
-
-                    const double dstR = static_cast<double>(dst.r) / 255.0;
-                    const double dstG = static_cast<double>(dst.g) / 255.0;
-                    const double dstB = static_cast<double>(dst.b) / 255.0;
-
-                    const double glazeR = srcR * dstR;
-                    const double glazeG = srcG * dstG;
-                    const double glazeB = srcB * dstB;
-
-                    const double mixR = dstR * (1.0 - curEffectiveOpacity) + glazeR * curEffectiveOpacity;
-                    const double mixG = dstG * (1.0 - curEffectiveOpacity) + glazeG * curEffectiveOpacity;
-                    const double mixB = dstB * (1.0 - curEffectiveOpacity) + glazeB * curEffectiveOpacity;
-
-                    buffer.setPixel(px, py, utils::ColorRGBA{
-                        static_cast<uint8_t>(std::clamp(mixR * 255.0, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(mixG * 255.0, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(mixB * 255.0, 0.0, 255.0)),
-                        dst.a
-                    });
-                    tileModified = true;
-                    continue;
-                }
-
-                if (dst.a == 0) {
-                    // Deposição em transparência pura
-                    buffer.setPixel(px, py, utils::ColorRGBA{
-                        dab.color.r,
-                        dab.color.g,
-                        dab.color.b,
-                        static_cast<uint8_t>(std::clamp(curEffectiveOpacity * 255.0, 0.0, 255.0))
-                    });
-                } else {
-                    // Glaze: Sobreposição física de aquarela (Veladura subtrativa ponderada por difusão)
-                    const double srcR = static_cast<double>(dab.color.r) / 255.0;
-                    const double srcG = static_cast<double>(dab.color.g) / 255.0;
-                    const double srcB = static_cast<double>(dab.color.b) / 255.0;
-
-                    const double dstR = static_cast<double>(dst.r) / 255.0;
-                    const double dstG = static_cast<double>(dst.g) / 255.0;
-                    const double dstB = static_cast<double>(dst.b) / 255.0;
-                    const double dstA = static_cast<double>(dst.a) / 255.0;
-
-                    // Blend de pigmentos aquosos com suporte a diluição úmida (waterLevel)
-                    const double subR = srcR * dstR;
-                    const double subG = srcG * dstG;
-                    const double subB = srcB * dstB;
-
-                    const double glazeR = subR * (1.0 - waterLevel * 0.3) + (srcR * 0.5 + dstR * 0.5) * (waterLevel * 0.3);
-                    const double glazeG = subG * (1.0 - waterLevel * 0.3) + (srcG * 0.5 + dstG * 0.5) * (waterLevel * 0.3);
-                    const double glazeB = subB * (1.0 - waterLevel * 0.3) + (srcB * 0.5 + dstB * 0.5) * (waterLevel * 0.3);
-
-                    const double mixR = dstR * (1.0 - curEffectiveOpacity) + glazeR * curEffectiveOpacity;
-                    const double mixG = dstG * (1.0 - curEffectiveOpacity) + glazeG * curEffectiveOpacity;
-                    const double mixB = dstB * (1.0 - curEffectiveOpacity) + glazeB * curEffectiveOpacity;
-
-                    const double outA = std::clamp(dstA + curEffectiveOpacity * (1.0 - dstA) * 0.4, 0.0, 1.0);
-
-                    buffer.setPixel(px, py, utils::ColorRGBA{
-                        static_cast<uint8_t>(std::clamp(mixR * 255.0, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(mixG * 255.0, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(mixB * 255.0, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
-                    });
-                }
-                tileModified = true;
-            }
-        }
-        if (tileModified) tile->setDirty(true);
-    }
+    const WatercolorWash wash(dab, profile, canvasTexture);
+    const raster::PixelPermission permission(ctx);
+    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+        double strength = wash.strengthAt(pixel);
+        if (strength <= 0.0 || !permission.apply(pixel.gx, pixel.gy, strength) || strength <= 0.0) return false;
+        return wash.blend(dst, strength, ctx.alphaLocked);
+    });
 }
 
 } // namespace aladyn::engine::engines

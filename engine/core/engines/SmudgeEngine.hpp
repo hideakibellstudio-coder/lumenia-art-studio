@@ -47,6 +47,9 @@ public:
     }
 
 private:
+    // Coleta da tela a cor sob o dab e a mistura à que o pincel já carrega; sem cor sob ele, a carregada esmaece.
+    void carryColor(const utils::ColorRGBA& sampled, double pickup, double stretch) noexcept;
+
     bool              m_hasCarriedColor{false};
     utils::ColorRGBA m_carriedColor{0, 0, 0, 0};
     utils::Point2D     m_lastPosition{0.0, 0.0};

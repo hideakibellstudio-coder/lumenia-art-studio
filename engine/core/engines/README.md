@@ -30,7 +30,8 @@
 
 ## Regras
 
-- Motor novo: herda `IBrushEngine`, entra no `BrushEngineFactory` e no `EngineType` de `brush/BrushProfile.hpp`.
+- Motor novo: herda `IBrushEngine`, entra no `BrushEngineFactory` e no `EngineType` de `brush/BrushProfile.hpp`. O `renderDab` não escreve laço de tiles nem bloco de seleção/recorte: monta uma `raster::DabFootprint`, uma `raster::PixelPermission` e passa um `kernel` (a cor de um pixel) para `forEachPixel`; a física do motor mora numa classe pequena do `.cpp` (como `GraphiteDeposit` no Lápis).
+- O `kernel` roda em várias threads (um tile por vez): não escreve em estado compartilhado; só o `Smudge` guarda estado entre dabs, e o lê já pronto.
 - Módulo mais alto de `engine/core`: pode incluir qualquer módulo abaixo, e nenhum módulo do núcleo o inclui.
 
 ## Dependências internas
@@ -41,7 +42,6 @@ dependência nova entre pastas entra nesta lista no mesmo commit.
 <!-- arccc:deps -->
 - `engine/core/brush`
 - `engine/core/canvas`
-- `engine/core/document`
 - `engine/core/raster`
 - `engine/utils`
 <!-- /arccc:deps -->

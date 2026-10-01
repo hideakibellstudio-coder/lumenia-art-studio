@@ -13,6 +13,7 @@ BINARY = binary_path("smudge_source_snapshot")
 SOURCES = [
     "tests/native/smudge_source_snapshot.cpp",
     "engine/core/engines/SmudgeEngine.cpp",
+    "engine/core/raster/DabFootprint.cpp",
     "engine/core/canvas/Tile.cpp", "engine/core/canvas/TileGrid.cpp",
     "engine/core/canvas/SpatialCuller.cpp",
     "engine/infrastructure/compression/Lz4Codec.cpp",

@@ -1,9 +1,9 @@
 #include "SmudgeEngine.hpp"
 #include "../canvas/GridSnapshot.hpp"
-#include "../canvas/SpatialCuller.hpp"
-#include "../../utils/Rect2D.hpp"
-#include "../document/Layer.hpp"
-#include "../raster/PixelContext.hpp"
+#include "../raster/DabFootprint.hpp"
+#include "../raster/LargeBrushOptimizer.hpp"
+#include "../raster/PixelPermission.hpp"
+#include "../raster/StraightOver.hpp"
 #include <cmath>
 #include <algorithm>
 #include <vector>
@@ -75,6 +75,55 @@ static utils::ColorRGBA sampleDabArea(
     };
 }
 
+namespace {
+
+uint8_t mixChannel(uint8_t kept, uint8_t incoming, double rate) {
+    return static_cast<uint8_t>(kept * (1.0 - rate) + incoming * rate);
+}
+
+utils::ColorRGBA mixColors(utils::ColorRGBA kept, utils::ColorRGBA incoming, double rate) {
+    return utils::ColorRGBA{
+        mixChannel(kept.r, incoming.r, rate), mixChannel(kept.g, incoming.g, rate),
+        mixChannel(kept.b, incoming.b, rate), mixChannel(kept.a, incoming.a, rate)};
+}
+
+// O rastro direcional: a cor que o pincel carrega, puxada para o que estava atrás do dab. Lê de
+// uma foto da camada tirada antes de o dab pintar (D15), para o resultado não depender da ordem
+// em que os pixels são visitados.
+struct SmearTrail {
+    bool active;
+    double offsetX;
+    double offsetY;
+    double mix;
+    const canvas::GridSnapshot* source;
+
+    utils::ColorRGBA colorAt(utils::ColorRGBA carried, int globalX, int globalY) const {
+        if (!active) return carried;
+        const int sampleX = static_cast<int>(std::round(static_cast<double>(globalX) + offsetX));
+        const int sampleY = static_cast<int>(std::round(static_cast<double>(globalY) + offsetY));
+        const utils::ColorRGBA behind = source->at(sampleX, sampleY);
+        return behind.a > 0 ? mixColors(carried, behind, mix) : carried;
+    }
+};
+
+} // namespace
+
+void SmudgeEngine::carryColor(const utils::ColorRGBA& sampled, double pickup, double stretch) noexcept {
+    if (!m_hasCarriedColor) {
+        m_carriedColor = sampled;
+        m_hasCarriedColor = true;
+        return;
+    }
+    if (sampled.a == 0) {
+        const double decay = 0.92 + stretch * 0.07;
+        m_carriedColor.a = static_cast<uint8_t>(std::clamp(static_cast<double>(m_carriedColor.a) * decay, 0.0, 255.0));
+    } else if (m_carriedColor.a == 0) {
+        m_carriedColor = sampled;
+    } else {
+        m_carriedColor = mixColors(m_carriedColor, sampled, pickup * (1.0 - stretch * 0.6) * 0.4);
+    }
+}
+
 void SmudgeEngine::renderDab(
     const utils::Dab& dab,
     const brush::BrushProfile& profile,
@@ -85,43 +134,14 @@ void SmudgeEngine::renderDab(
     if (dab.radius <= 0.0) return;
 
     const double r       = dab.radius;
-    const double aspect  = std::max(0.05, profile.tip.aspectRatio);
-    const double maxR    = r / aspect + 2.0;
-
     const double pickup  = std::clamp(profile.smudgeParams.colorPickup, 0.0, 1.0);
     const double mixRate = std::clamp(profile.smudgeParams.mixRatio, 0.0, 1.0);
     const double stretch = std::clamp(profile.smudgeParams.smudgeStretch, 0.0, 1.0);
 
-    // Amostragem da camada ativa
-    const utils::ColorRGBA sampledColor = sampleDabArea(dab.position.x, dab.position.y, r, tileGrid);
-
-    // Lógica de Coleta e Arrasto
-    if (!m_hasCarriedColor) {
-        m_carriedColor    = sampledColor;
-        m_lastPosition    = dab.position;
-        m_hasCarriedColor = true;
-    } else {
-        if (sampledColor.a > 0) {
-            if (m_carriedColor.a == 0) {
-                m_carriedColor = sampledColor;
-            } else {
-                const double blendRate = pickup * (1.0 - stretch * 0.6) * 0.4;
-                m_carriedColor.r = static_cast<uint8_t>(
-                    m_carriedColor.r * (1.0 - blendRate) + sampledColor.r * blendRate);
-                m_carriedColor.g = static_cast<uint8_t>(
-                    m_carriedColor.g * (1.0 - blendRate) + sampledColor.g * blendRate);
-                m_carriedColor.b = static_cast<uint8_t>(
-                    m_carriedColor.b * (1.0 - blendRate) + sampledColor.b * blendRate);
-                m_carriedColor.a = static_cast<uint8_t>(
-                    m_carriedColor.a * (1.0 - blendRate) + sampledColor.a * blendRate);
-            }
-        } else {
-            const double decay = 0.92 + stretch * 0.07;
-            m_carriedColor.a   = static_cast<uint8_t>(
-                std::clamp(static_cast<double>(m_carriedColor.a) * decay, 0.0, 255.0));
-        }
-    }
-
+    // Lógica de coleta e arrasto: a cor sob o primeiro dab do traço, misturada à do caminho
+    const bool firstDab = !m_hasCarriedColor;
+    carryColor(sampleDabArea(dab.position.x, dab.position.y, r, tileGrid), pickup, stretch);
+    if (firstDab) m_lastPosition = dab.position;
     if (m_carriedColor.a == 0) {
         m_lastPosition = dab.position;
         return;
@@ -130,166 +150,44 @@ void SmudgeEngine::renderDab(
     const double moveDX   = dab.position.x - m_lastPosition.x;
     const double moveDY   = dab.position.y - m_lastPosition.y;
     const double moveDist = std::sqrt(moveDX * moveDX + moveDY * moveDY);
-    const double smearOffsetX = (moveDist > 0.01) ? (-moveDX / moveDist * r * stretch * 0.5) : 0.0;
-    const double smearOffsetY = (moveDist > 0.01) ? (-moveDY / moveDist * r * stretch * 0.5) : 0.0;
+    const bool moving = moveDist > 0.01;
+    const double smearOffsetX = moving ? (-moveDX / moveDist * r * stretch * 0.5) : 0.0;
+    const double smearOffsetY = moving ? (-moveDY / moveDist * r * stretch * 0.5) : 0.0;
     m_lastPosition = dab.position;
 
-    const utils::Rect2D bounds{
-        dab.position.x - maxR, dab.position.y - maxR,
-        maxR * 2.0, maxR * 2.0
-    };
-    const auto tileIndices = canvas::SpatialCuller::getIntersectingTiles(
-        bounds, tileGrid.getWidth(), tileGrid.getHeight()
-    );
+    const double aspect = std::max(0.05, profile.tip.aspectRatio);
+    const raster::DabFootprint footprint(dab, r, aspect, tileGrid);
+    if (footprint.empty()) return;
 
-    // O rastro lê o que estava sob o dab ANTES de ele pintar. Lendo a grade viva,
-    // o pixel já escrito entra na amostra do vizinho e o resultado passa a depender
-    // de por onde os tiles e as linhas são varridos (achado D15, 2026-10-01).
+    // O rastro lê o que estava sob o dab ANTES de ele pintar. Lendo a grade viva, o pixel já escrito
+    // entra na amostra do vizinho e o resultado passa a depender de por onde os tiles e as linhas
+    // são varridos (achado D15, 2026-10-01).
     const bool smearsTrail = moveDist > 0.5 && stretch > 0.05;
     if (smearsTrail) {
+        const utils::Rect2D& box = footprint.bounds();
         const int reach = static_cast<int>(std::ceil(std::max(std::abs(smearOffsetX), std::abs(smearOffsetY)))) + 1;
         m_trailSource.capture(
             tileGrid,
-            static_cast<int>(std::floor(bounds.getLeft())) - reach,
-            static_cast<int>(std::floor(bounds.getTop())) - reach,
-            static_cast<int>(std::ceil(bounds.getRight())) + reach,
-            static_cast<int>(std::ceil(bounds.getBottom())) + reach);
+            static_cast<int>(std::floor(box.getLeft())) - reach,
+            static_cast<int>(std::floor(box.getTop())) - reach,
+            static_cast<int>(std::ceil(box.getRight())) + reach,
+            static_cast<int>(std::ceil(box.getBottom())) + reach);
     }
-
-    const double radAngle = -dab.angle * (3.14159265358979323846 / 180.0);
-    const double cosA     = std::cos(radAngle);
-    const double sinA     = std::sin(radAngle);
+    const SmearTrail trail{smearsTrail, smearOffsetX, smearOffsetY, stretch * 0.4, &m_trailSource};
 
     const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
     const double spanInv  = 1.0 / std::max(0.001, r - hardSpan);
+    const raster::PixelPermission permission(ctx);
+    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+        const double dist = std::sqrt(pixel.distSq);
+        const double shape = dist > hardSpan ? raster::LargeBrushOptimizer::smoothHermite((r - dist) * spanInv) : 1.0;
 
-    for (const auto& idx : tileIndices) {
-        canvas::Tile* tile = tileGrid.getOrCreateTile(idx.x, idx.y);
-        if (!tile) continue;
+        double deposit = dab.opacity * shape * mixRate;
+        if (deposit <= 0.0 || !permission.apply(pixel.gx, pixel.gy, deposit) || deposit <= 0.0) return false;
 
-        canvas::PixelBuffer& buffer = tile->getBuffer();
-        const int tilePixelX = tile->getPixelX();
-        const int tilePixelY = tile->getPixelY();
-
-        const int minX = std::max(0, static_cast<int>(std::floor(bounds.getLeft()))  - tilePixelX);
-        const int maxX = std::min(canvas::Tile::TILE_SIZE - 1, static_cast<int>(std::ceil(bounds.getRight()))  - tilePixelX);
-        const int minY = std::max(0, static_cast<int>(std::floor(bounds.getTop()))   - tilePixelY);
-        const int maxY = std::min(canvas::Tile::TILE_SIZE - 1, static_cast<int>(std::ceil(bounds.getBottom())) - tilePixelY);
-
-        bool tileModified = false;
-
-        for (int py = minY; py <= maxY; ++py) {
-            const int globalY = tilePixelY + py;
-            const double dy   = static_cast<double>(globalY) + 0.5 - dab.position.y;
-
-            for (int px = minX; px <= maxX; ++px) {
-                const int globalX = tilePixelX + px;
-                const double dx   = static_cast<double>(globalX) + 0.5 - dab.position.x;
-
-                const double rotX   = dx * cosA - dy * sinA;
-                const double rotY   = dx * sinA + dy * cosA;
-                const double scaledY = rotY / aspect;
-                const double distSq = rotX * rotX + scaledY * scaledY;
-
-                if (distSq > (r + 1.0) * (r + 1.0)) continue;
-                const double dist = std::sqrt(distSq);
-
-                double shapeAlpha = 1.0;
-                if (dist > hardSpan) {
-                    const double t = std::clamp((r - dist) * spanInv, 0.0, 1.0);
-                    shapeAlpha = t * t * (3.0 - 2.0 * t);
-                }
-
-                const double depositFactor = dab.opacity * shapeAlpha * mixRate;
-                if (depositFactor <= 0.0) continue;
-
-                double curDepositFactor = depositFactor;
-                if (ctx.selectionMask && ctx.selectionMask->hasSelection()) {
-                    const uint8_t sVal = ctx.selectionMask->getValue(globalX, globalY);
-                    if (sVal == 0) continue;
-                    if (sVal < 255) {
-                        curDepositFactor *= (static_cast<double>(sVal) / 255.0);
-                    }
-                }
-
-                if (ctx.clipBaseLayer) {
-                    const int bTx = globalX / canvas::Tile::TILE_SIZE;
-                    const int bTy = globalY / canvas::Tile::TILE_SIZE;
-                    const canvas::Tile* bTile = const_cast<canvas::TileGrid&>(ctx.clipBaseLayer->getTileGrid()).getTile(bTx, bTy);
-                    if (!bTile) continue;
-                    const double baseA = static_cast<double>(bTile->getBuffer().getPixel(
-                        globalX % canvas::Tile::TILE_SIZE,
-                        globalY % canvas::Tile::TILE_SIZE).a) / 255.0;
-                    if (baseA <= 0.0) continue;
-                    curDepositFactor *= baseA;
-                }
-                if (curDepositFactor <= 0.0) continue;
-
-                // Lookup O(1) do rastro direcional, na foto tirada antes do dab
-                utils::ColorRGBA sourceColorForSmear = m_carriedColor;
-                if (smearsTrail) {
-                    const int sampleX = static_cast<int>(std::round(static_cast<double>(globalX) + smearOffsetX));
-                    const int sampleY = static_cast<int>(std::round(static_cast<double>(globalY) + smearOffsetY));
-                    const utils::ColorRGBA trailSample = m_trailSource.at(sampleX, sampleY);
-
-                    if (trailSample.a > 0) {
-                        const double trailMix = stretch * 0.4;
-                        sourceColorForSmear.r = static_cast<uint8_t>(
-                            m_carriedColor.r * (1.0 - trailMix) + trailSample.r * trailMix);
-                        sourceColorForSmear.g = static_cast<uint8_t>(
-                            m_carriedColor.g * (1.0 - trailMix) + trailSample.g * trailMix);
-                        sourceColorForSmear.b = static_cast<uint8_t>(
-                            m_carriedColor.b * (1.0 - trailMix) + trailSample.b * trailMix);
-                        sourceColorForSmear.a = static_cast<uint8_t>(
-                            m_carriedColor.a * (1.0 - trailMix) + trailSample.a * trailMix);
-                    }
-                }
-
-                const utils::ColorRGBA dst = buffer.getPixel(px, py);
-
-                if (ctx.alphaLocked) {
-                    if (dst.a == 0) continue;
-                    const double srcA    = (static_cast<double>(sourceColorForSmear.a) / 255.0) * curDepositFactor;
-                    const double dstA    = static_cast<double>(dst.a) / 255.0;
-                    const double invSrcA = 1.0 - srcA;
-                    const double denom   = srcA + dstA * invSrcA;
-                    if (denom <= 0.0) continue;
-
-                    const double outR = (sourceColorForSmear.r * srcA + dst.r * dstA * invSrcA) / denom;
-                    const double outG = (sourceColorForSmear.g * srcA + dst.g * dstA * invSrcA) / denom;
-                    const double outB = (sourceColorForSmear.b * srcA + dst.b * dstA * invSrcA) / denom;
-
-                    buffer.setPixel(px, py, utils::ColorRGBA{
-                        static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
-                        dst.a
-                    });
-                    tileModified = true;
-                    continue;
-                }
-
-                const double srcA = (static_cast<double>(sourceColorForSmear.a) / 255.0) * curDepositFactor;
-                const double dstA = static_cast<double>(dst.a) / 255.0;
-                const double outA = srcA + dstA * (1.0 - srcA);
-
-                if (outA > 0.0) {
-                    const double outR = (sourceColorForSmear.r * srcA + dst.r * dstA * (1.0 - srcA)) / outA;
-                    const double outG = (sourceColorForSmear.g * srcA + dst.g * dstA * (1.0 - srcA)) / outA;
-                    const double outB = (sourceColorForSmear.b * srcA + dst.b * dstA * (1.0 - srcA)) / outA;
-
-                    buffer.setPixel(px, py, utils::ColorRGBA{
-                        static_cast<uint8_t>(std::clamp(outR, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(outG, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(outB, 0.0, 255.0)),
-                        static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
-                    });
-                    tileModified = true;
-                }
-            }
-        }
-        if (tileModified) tile->setDirty(true);
-    }
+        const utils::ColorRGBA source = trail.colorAt(m_carriedColor, pixel.gx, pixel.gy);
+        return raster::straightOver(dst, source, (static_cast<double>(source.a) / 255.0) * deposit, ctx.alphaLocked);
+    });
 }
 
 } // namespace aladyn::engine::engines

@@ -77,20 +77,26 @@ void PaintEngineFacade::clearDirtyTiles() noexcept {
 }
 
 uint8_t* PaintEngineFacade::getDisplayPixelBufferLOD(int level, int& outW, int& outH) noexcept {
-    // Resolve o buffer de exibicao (aplica o perfil de cor) antes de ler.
-    (void)getDisplayRawPixelData();
+    // O nivel 0 e' o buffer de exibicao inteiro: o resolve (aplica o perfil de cor) por completo.
+    if (level <= 0) (void)getDisplayRawPixelData();
     // O que o compositor escreveu desde a ultima leitura e' o que a piramide refaz. Ate
     // 2026-10-01 isto olhava as bandeiras de tile sujo da camada ativa, que ninguem
     // limpava: depois do primeiro traco a piramide inteira era refeita a cada leitura,
     // mesmo sem mudanca nenhuma (D18).
     const canvas::DamageRect damage = m_compositor.takeDamage();
     m_mipmapPyramid.markDirtyRegion(damage.x0(), damage.y0(), damage.x1(), damage.y1());
-    // Build from the same buffer returned to the display.  With the
-    // default sRGB profile getDisplayRawPixelData() aliases outputBuffer;
-    // using the untouched display scratch buffer would otherwise yield a
-    // stale white pyramid.
-    const auto& displayBase = (m_colorProfileId == 0) ? m_outputBuffer : m_displayBuffer;
-    return m_mipmapPyramid.getLODData(level, displayBase, outW, outH);
+    // Build from the same buffer returned to the display.  With the default sRGB profile that is
+    // the output buffer itself.  With another profile it is the converted copy, and the pyramid
+    // reads it only where it is about to rebuild: convert exactly that region (the whole canvas
+    // the first time, after a profile or size change, and the damaged rectangle after that).
+    // Converting the whole canvas on every read cost 390 ms at 4K.
+    if (m_colorProfileId == 0) return m_mipmapPyramid.getLODData(level, m_outputBuffer, outW, outH);
+    if (level > 0) {
+        const canvas::DamageRect pending = m_mipmapPyramid.pendingRegion(level, m_displayBuffer);
+        orchestrator::RasterExportOrchestrator::convertDisplayRegion(
+            m_colorProfileId, m_outputBuffer, m_displayBuffer, pending.x0(), pending.y0(), pending.x1(), pending.y1());
+    }
+    return m_mipmapPyramid.getLODData(level, m_displayBuffer, outW, outH);
 }
 
 void PaintEngineFacade::copyDisplayLodRegion(int level, int x, int y, int w, int h, uint8_t* dst, size_t dstSize) {

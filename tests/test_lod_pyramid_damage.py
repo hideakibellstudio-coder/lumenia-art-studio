@@ -53,9 +53,13 @@ def _actual_level(engine, number: int) -> np.ndarray:
 
 
 def _assert_pyramid_is_current(engine, context: str) -> None:
+    # The pyramid is read BEFORE the oracle asks for the full display buffer: with a colour profile that
+    # request converts the whole canvas as a side effect, and an oracle that repairs the thing it checks
+    # hides a pyramid that converted too little (a mutation that dropped 8 columns passed once).
+    actual_levels = {number: _actual_level(engine, number) for number in LEVELS}
     expected = _expected_levels(engine)
     for number in LEVELS:
-        actual = _actual_level(engine, number)
+        actual = actual_levels[number]
         assert actual.shape == expected[number].shape, f"{context}: level {number} has the wrong size"
         if not np.array_equal(actual, expected[number]):
             wrong = np.argwhere(np.any(actual != expected[number], axis=2))
@@ -257,6 +261,41 @@ def test_after_each_operation_every_level_matches_a_fresh_filter_of_the_canvas(n
     if name == "undo":
         engine.redo()
         _assert_pyramid_is_current(engine, "redo")
+
+
+@pytest.mark.parametrize("profile", (1, 3, 8, 12))
+@pytest.mark.parametrize("name", sorted(OPERATIONS))
+def test_with_a_colour_profile_every_operation_is_followed_by_converting_only_what_changed(name, profile):
+    """With a profile other than sRGB the pyramid reads a converted copy of the canvas, converted only
+    where the pyramid is about to rebuild (it was the whole canvas on every read: 390 ms at 4K)."""
+    engine = _scene()
+    rng = random.Random(23)
+    engine.set_color_profile(profile)
+    _assert_pyramid_is_current(engine, f"profile {profile} just set")
+    _stroke(engine, rng)
+    _assert_pyramid_is_current(engine, f"profile {profile}, a stroke")
+    OPERATIONS[name](engine, rng)
+    _assert_pyramid_is_current(engine, f"profile {profile}, {name}")
+
+
+def test_with_a_colour_profile_changes_piling_up_between_two_reads_are_all_converted():
+    engine = _scene()
+    rng = random.Random(5)
+    engine.set_color_profile(3)
+    _assert_pyramid_is_current(engine, "profile set")
+    for _ in range(4):
+        _stroke(engine, rng)
+        _paste(engine, rng)
+    _assert_pyramid_is_current(engine, "four strokes and four pastes between two reads")
+
+
+def test_switching_the_profile_back_and_forth_never_leaves_a_converted_pixel_behind():
+    engine = _scene()
+    rng = random.Random(9)
+    for profile in (3, 0, 8, 3, 0):
+        engine.set_color_profile(profile)
+        _stroke(engine, rng)
+        _assert_pyramid_is_current(engine, f"profile {profile}")
 
 
 # -- 2. random sequences, with unread changes piling up ------------------------

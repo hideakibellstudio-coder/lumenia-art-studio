@@ -29,6 +29,24 @@ public:
     void markDirtyRegion(int x0, int y0, int x1, int y1) noexcept { m_damage.add(x0, y0, x1, y1); }
     [[nodiscard]] bool isDirty() const noexcept { return m_rebuildAll || !m_damage.empty(); }
 
+    // A parte de `baseBuffer` que a próxima leitura de `level` vai ler: o buffer inteiro se os
+    // níveis precisam ser refeitos por completo (primeira leitura, tudo mudou, outro tamanho),
+    // senão o retângulo que mudou. Quem mantém `baseBuffer` como cópia convertida do canvas
+    // (o buffer de exibição com perfil de cor) converte só isso antes de ler.
+    [[nodiscard]] DamageRect pendingRegion(int level, const PixelBuffer& baseBuffer) const noexcept {
+        DamageRect region;
+        const int targetLevel = std::clamp(level, 1, MAX_LOD_LEVELS);
+        const bool everything = m_rebuildAll || m_baseWidth != baseBuffer.getWidth() ||
+                                m_baseHeight != baseBuffer.getHeight() || m_levels.size() < static_cast<size_t>(targetLevel);
+        if (everything) {
+            region.add(0, 0, baseBuffer.getWidth(), baseBuffer.getHeight());
+        } else if (!m_damage.empty()) {
+            region.add(std::max(0, m_damage.x0()), std::max(0, m_damage.y0()),
+                       std::min(baseBuffer.getWidth(), m_damage.x1()), std::min(baseBuffer.getHeight(), m_damage.y1()));
+        }
+        return region;
+    }
+
     /**
      * @brief Tamanho do nível (1..3) para um buffer base de baseW x baseH: metade por nível,
      * nunca menos de 1. Única definição, usada pela reconstrução e por quem pergunta.

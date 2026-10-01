@@ -123,6 +123,26 @@ uint8_t* RasterExportOrchestrator::resolveDisplayBuffer(
     return displayBuffer.getData();
 }
 
+void RasterExportOrchestrator::convertDisplayRegion(
+    int colorProfileId, const canvas::PixelBuffer& outputBuffer, canvas::PixelBuffer& displayBuffer,
+    int x0, int y0, int x1, int y1
+) {
+    x0 = std::max(0, x0);
+    y0 = std::max(0, y0);
+    x1 = std::min(std::min(outputBuffer.getWidth(), displayBuffer.getWidth()), x1);
+    y1 = std::min(std::min(outputBuffer.getHeight(), displayBuffer.getHeight()), y1);
+    if (x0 >= x1 || y0 >= y1) return;
+
+    const size_t rowPixels = static_cast<size_t>(x1 - x0);
+    const size_t outputStride = static_cast<size_t>(outputBuffer.getWidth()) * 4u;
+    const size_t displayStride = static_cast<size_t>(displayBuffer.getWidth()) * 4u;
+    for (int y = y0; y < y1; ++y) {
+        uint8_t* target = displayBuffer.getData() + static_cast<size_t>(y) * displayStride + static_cast<size_t>(x0) * 4u;
+        std::memcpy(target, outputBuffer.getData() + static_cast<size_t>(y) * outputStride + static_cast<size_t>(x0) * 4u, rowPixels * 4u);
+        applyColorProfile(target, rowPixels, colorProfileId);
+    }
+}
+
 void RasterExportOrchestrator::copyBufferRegion(
     const uint8_t* src, int srcW, int srcH,
     int x, int y, int w, int h, uint8_t* dst, size_t dstSize

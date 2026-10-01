@@ -89,9 +89,9 @@ fechada: só diminui.
      4. Repintura a 100% com `drawImage` real: 7,3 / 34,0 / 115,0 ms → 0,5 ms em
      1080p / 4K / 6000×4000. Zoom afastado (D18, achado pelo caminho): a pirâmide
      refaz só o retângulo que o compositor escreveu; repintura depois de uma
-     mudança 0,36 / 0,28 / 0,24 ms contra 1,4 / 5,1 / 11,6 ms. Resíduo: com perfil
-     de cor ≠ sRGB o buffer de exibição inteiro ainda é convertido a cada leitura do
-     LOD.)*
+     mudança 0,36 / 0,28 / 0,24 ms contra 1,4 / 5,1 / 11,6 ms. Com perfil de cor
+     ≠ sRGB o buffer de exibição inteiro era convertido a cada leitura do LOD
+     (392 ms em 4K); agora só o que a pirâmide vai reler: 0,59 ms.)*
 
 Os grupos 1 a 3 são pequenos (até uma sessão cada); o grupo 4 é médio a
 grande.

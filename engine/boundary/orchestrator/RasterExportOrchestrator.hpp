@@ -37,6 +37,15 @@ public:
         int colorProfileId, canvas::PixelBuffer& outputBuffer, canvas::PixelBuffer& displayBuffer
     );
 
+    // Atualiza em displayBuffer so o retangulo [x0, x1) x [y0, y1) a partir do buffer de saida,
+    // com o perfil de cor aplicado (o resto de displayBuffer fica como estava). A piramide de LOD
+    // le o buffer de exibicao so dentro do que mudou, entao converter o canvas inteiro a cada
+    // leitura custava 390 ms em 4K com um perfil que nao e' sRGB.
+    static void convertDisplayRegion(
+        int colorProfileId, const canvas::PixelBuffer& outputBuffer, canvas::PixelBuffer& displayBuffer,
+        int x0, int y0, int x1, int y1
+    );
+
     // Copia o retangulo [x, x+w) x [y, y+h) do buffer de saida para `dst`
     // (w*h*4 bytes, linhas contiguas), ja com o perfil de cor aplicado. O custo e'
     // proporcional ao retangulo e nao ao canvas: e' o que a tela pede a cada

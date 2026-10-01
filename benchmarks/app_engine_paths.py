@@ -49,6 +49,7 @@ def _zoomed_out(backend, width: int, height: int, tag: str, repeats: int) -> dic
     a 32x32 patch is pasted and the repaint asks for the 128x128 rectangle around it, as a
     pen stroke does. `lod_whole_rebuild_reference`: what every repaint cost before D18 (the
     whole pyramid rebuilt and the whole level copied), measured on the engine directly.
+    `display_lod_after_change_with_profile`: the same change with a colour profile active.
     """
     import aladyn_engine_native as native
     from PySide6.QtCore import QRect
@@ -63,13 +64,20 @@ def _zoomed_out(backend, width: int, height: int, tag: str, repeats: int) -> dic
 
     reference = native.PaintEngineFacade(width, height)
     reference.get_display_pixel_buffer_lod(1)
-    return {
+    metrics = {
         f"display_lod_fit_clean.{tag}": summary(repeat_ms(lambda: backend.get_display_image(zoom, whole), repeats)),
         f"display_lod_after_change.{tag}": summary(repeat_ms(after_change, repeats)),
         f"lod_whole_rebuild_reference.{tag}": summary(
             repeat_ms(lambda: (reference.mark_lod_dirty(), reference.get_display_pixel_buffer_lod(1)), repeats)
         ),
     }
+    # A colour profile other than sRGB: the pyramid reads a converted copy of the canvas, converted
+    # only where it rebuilds (the whole canvas on every read cost 390 ms at 4K).
+    backend.set_color_profile(3)
+    backend.get_display_image(zoom, whole)
+    metrics[f"display_lod_after_change_with_profile.{tag}"] = summary(repeat_ms(after_change, repeats))
+    backend.set_color_profile(0)
+    return metrics
 
 
 def measure(sizes: list[tuple[int, int]], repeats: int) -> dict:

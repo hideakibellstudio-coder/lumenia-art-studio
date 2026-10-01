@@ -13,6 +13,7 @@ from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.i18n import tr
+from ui.core.engine.limits import max_canvas_dimension
 from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.restore import restore_document
@@ -107,11 +108,22 @@ class DocumentActions(ShellActions):
         self.open_image(filename)
 
     def open_image(self, filename: str) -> None:
-        qimg = QtGui.QImage(filename)
+        name = os.path.splitext(os.path.basename(filename))[0]
+        limit = max_canvas_dimension()
+        reader = QtGui.QImageReader(filename)
+        size = reader.size()  # lê só o cabeçalho; inválido em formato que não o declara
+        if size.isValid() and (size.width() > limit or size.height() > limit):
+            self._say(tr("status.image_too_large",
+                         "A imagem '{name}' ({w}×{h} px) passa do tamanho máximo do canvas ({max}×{max} px).",
+                         name=name, w=size.width(), h=size.height(), max=limit), 6000)
+            return
+        # O Qt recusa por padrão qualquer imagem acima de 256 MB e a recusa parece
+        # defeito do arquivo. O teto de verdade é o do motor (um lado de `limit`, 4 bytes por pixel).
+        reader.setAllocationLimit(limit * limit * 4 // (1024 * 1024) + 64)
+        qimg = reader.read()
         if qimg.isNull():
             self._say(tr("status.image_read_failed", "Não foi possível ler a imagem '{name}'.", name=filename), 4000)
             return
-        name = os.path.splitext(os.path.basename(filename))[0]
         width, height = qimg.width(), qimg.height()
         dpi = max(1, round(qimg.dotsPerMeterX() * 0.0254))  # a resolução gravada na imagem
         doc = self._dm.new_document(width=width, height=height, name=name, dpi=dpi)

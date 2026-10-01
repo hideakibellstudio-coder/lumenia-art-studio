@@ -6,6 +6,7 @@
 #include "../../core/stroke/VelocityTracker.hpp"
 #include "../../core/stroke/DynamicStabilizer.hpp"
 #include "../../core/brush/BrushProfile.hpp"
+#include "../../core/canvas/CanvasLimits.hpp"
 #include "../../core/canvas/CanvasTexture.hpp"
 #include "../../utils/Rect2D.hpp"
 #include "../../core/canvas/PixelBuffer.hpp"
@@ -46,8 +47,12 @@ struct TelemetryData {
 
 class PaintEngineFacade {
 public:
+    // Throws std::invalid_argument when a side is outside 1..maxCanvasDimension().
     PaintEngineFacade(int width, int height);
     ~PaintEngineFacade();
+
+    // Largest canvas side the engine accepts; the interface asks, never repeats the number.
+    [[nodiscard]] static constexpr int maxCanvasDimension() noexcept { return canvas::kMaxCanvasDimension; }
 
     void resizeCanvas(int width, int height);
     void clearCanvas();

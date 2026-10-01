@@ -101,7 +101,18 @@ fechar os selos do `08-analise-arccc-v1-1-e-forma-de-trabalho.md`):
   sinal, avisa o usuário com a causa, e as ações de novo documento, abrir
   imagem e abrir `.lmn` só seguem se o contexto ativo do motor é o do
   documento novo. Antes, abrir uma imagem colava os pixels na camada do documento
-  aberto e abrir um `.lmn` removia as camadas dele.)* Faltam D13 e D17.
+  aberto e abrir um `.lmn` removia as camadas dele.)* 
+- ~~D13~~ *(feito em 2026-10-01: o motor declara o maior lado de canvas
+  (`engine/core/canvas/CanvasLimits.hpp`, 16384 px: uma camada cheia são 1 GiB e
+  o índice de pixel ainda cabe em 32 bits), recusa com `ValueError` antes de
+  alocar (construtor e `resize_canvas`), e o `PixelBuffer` multiplica em
+  `size_t`; antes, 32000×32000 estourava `int` (comportamento indefinido).
+  "Novo documento", "Tamanho do Canvas", a troca de geometria e "Abrir imagem"
+  perguntam o valor ao motor (`ui/core/engine/limits.py`); abrir imagem grande
+  demais diz o limite em vez de culpar o arquivo, e o Qt deixa de recusar imagem
+  acima de 256 MB que o motor aceita. Mudança visível: "Tamanho do Canvas"
+  oferecia até 32000 px e agora oferece 16384; acima de ~23000 px por lado a
+  operação já falhava.)* Falta D17.
 - Ordem: S0.6 ✅, S0.8 ✅, S0.1–S0.5 e S0.7, S1.
 - Os 4 pontos de decisão da Seção 8 do documento 08 foram aplicados: ciclo no
   `AGENTS.md` (5.0), assunto de commit em inglês, limiar de complexidade 20

@@ -13,8 +13,9 @@ from .restore import restore_document
 
 def change_geometry(document: Document, backend, width, height, *, anchor=(1, 1), crop=None, resample=None):
     width, height = int(width), int(height)
-    if width <= 0 or height <= 0 or width * height * 4 > DocumentSerializer.MAX_PAYLOAD_BYTES:
-        raise ValueError("dimensões fora do limite suportado")
+    limit = backend.max_canvas_dimension() if backend else None
+    if width <= 0 or height <= 0 or (limit is not None and (width > limit or height > limit)):
+        raise ValueError(f"dimensões fora do limite suportado (1 a {limit} px por lado)")
     if not backend or not backend.available or backend.get_active_document_context() != document.uid:
         raise DocumentFormatError("contexto ativo não corresponde ao documento")
     if tuple(anchor) not in {(r, c) for r in range(3) for c in range(3)}:

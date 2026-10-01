@@ -8,6 +8,7 @@ using namespace aladyn::engine;
 void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
     facade
         .def("resize_canvas", &boundary::PaintEngineFacade::resizeCanvas)
+        .def_static("max_canvas_dimension", &boundary::PaintEngineFacade::maxCanvasDimension)
         .def("clear_canvas",  &boundary::PaintEngineFacade::clearCanvas)
         .def("get_width",     &boundary::PaintEngineFacade::getWidth)
         .def("get_height",    &boundary::PaintEngineFacade::getHeight)

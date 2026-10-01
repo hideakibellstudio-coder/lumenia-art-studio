@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from PySide6 import QtWidgets
+from ui.core.engine.limits import max_canvas_dimension
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.infrastructure.i18n import tr
@@ -44,7 +45,7 @@ class CanvasSizeDialog(BaseFramelessDialog):
         self.lbl_w = QtWidgets.QLabel(f"{tr('dialogs.width', 'Largura')}:")
         form_layout.addWidget(self.lbl_w, 0, 0)
         self.width_spin = QtWidgets.QSpinBox()
-        self.width_spin.setRange(1, 32000)
+        self.width_spin.setRange(1, max_canvas_dimension())
         self.width_spin.setValue(self.orig_w)
         self.width_spin.setSuffix(" px")
         self.width_spin.valueChanged.connect(self._on_width_changed)
@@ -54,7 +55,7 @@ class CanvasSizeDialog(BaseFramelessDialog):
         self.lbl_h = QtWidgets.QLabel(f"{tr('dialogs.height', 'Altura')}:")
         form_layout.addWidget(self.lbl_h, 1, 0)
         self.height_spin = QtWidgets.QSpinBox()
-        self.height_spin.setRange(1, 32000)
+        self.height_spin.setRange(1, max_canvas_dimension())
         self.height_spin.setValue(self.orig_h)
         self.height_spin.setSuffix(" px")
         self.height_spin.valueChanged.connect(self._on_height_changed)

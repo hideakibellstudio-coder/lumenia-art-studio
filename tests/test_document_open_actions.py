@@ -46,6 +46,7 @@ def _limit_memory(monkeypatch):
             raise MemoryError("simulated out of memory")
         return real(width, height)
 
+    facade.max_canvas_dimension = real.max_canvas_dimension  # the engine's own limit stays visible
     monkeypatch.setattr(native, "PaintEngineFacade", facade)
 
 

@@ -26,13 +26,17 @@ SIZE = 300
 def canvas(qapp):
     if EngineRegistry.instance().get_backend() is None:
         EngineRegistry.instance().setup([AladynBackend()])
+    # O teste cria o contexto que usa: depender do que sobrou de outro teste
+    # quebrava quando um teste anterior fechava todos os documentos.
+    backend = EngineRegistry.instance().get_backend()
+    backend.set_active_document_context("overlay-renderer-test", SIZE, SIZE)
     widget = RenderWidget()
     widget.resize(SIZE, SIZE)
     yield widget
-    backend = EngineRegistry.instance().get_backend()
     if widget.transform_ctrl.active:
         widget.transform_ctrl.cancel()
     backend.clear_selection()
+    backend.close_document_context("overlay-renderer-test")
     widget.close()
     widget.deleteLater()
 

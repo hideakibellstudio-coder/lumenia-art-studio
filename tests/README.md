@@ -45,6 +45,7 @@
 | `test_canvas_contracts.py` | Contratos dos colaboradores do canvas (`RouterCanvas`, `ViewportCanvas`, `StrokeCanvas`, `CursorCanvas`, `TextCanvas`, `ToolCanvas`) cumpridos pelo `RenderWidget`, e catraca "subpasta não importa a mãe" no Python. |
 | `test_canvas_cursor_interactions.py` | Testes de Regressão e Contrato para o Sistema de Cursor do Canvas (ARCcC v2) Valida o comportamento dos cursores de viewport, renderizadores de ferramentas, feedback tátil de pan/zoom e sincronização reativa do raio de pincel. |
 | `test_canvas_input_router.py` | Entrada da caneta e do teclado no canvas (`CanvasInputRouter`) com o `RenderWidget` e o motor reais: pan, zoom por arraste, conta-gotas, balde, varinha, seleções, laço, formas, transformação, traço (ponta borracha, linha com Shift) e teclas. |
+| `test_canvas_limit_contract.py` | Um só limite de canvas, declarado pelo motor: ele recusa acima do limite antes de alocar, os diálogos oferecem exatamente esse valor e abrir imagem grande demais diz o limite (S0.2, D13). |
 | `test_canvas_overlay_renderer.py` | Sobreposições do canvas (`OverlayRenderer`) desenhadas num QImage: formigas da seleção, prévias de seleção e laço, alças da transformação e do Distorcer, prévia de formas e lupa do conta-gotas. |
 | `test_color_harmony.py` | Harmonias no painel "Cores & Harmonias" -- 2026-09-23. |
 | `test_color_management_cms.py` | Test Suite: LittleCMS Professional Color Management, ICC Profiles, Soft-Proofing & LMN Persistence. |

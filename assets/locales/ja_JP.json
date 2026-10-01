@@ -756,7 +756,8 @@
     "engine_ready_hint": "Lumenia Engine 準備完了。中ボタンのドラッグで移動、スクロールでズーム。",
     "zoom": "ズーム: {percent}%",
     "doc_context_failed": "エンジンがドキュメント「{name}」（{w}×{h} px）を作成できませんでした: {reason}。現在のドキュメントは保持されました。",
-    "engine_out_of_memory": "メモリが不足しています"
+    "engine_out_of_memory": "メモリが不足しています",
+    "image_too_large": "画像「{name}」（{w}×{h} px）はキャンバスの最大サイズ（{max}×{max} px）を超えています。"
   },
   "tool_options": {
     "sample_size": "サンプルサイズ",

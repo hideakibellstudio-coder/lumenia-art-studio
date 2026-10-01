@@ -756,7 +756,8 @@
     "engine_ready_hint": "Lumenia Engine Pronta. Arraste com o botão do meio para mover, use Scroll para zoom.",
     "zoom": "Zoom: {percent}%",
     "doc_context_failed": "O motor não conseguiu criar o documento '{name}' ({w}×{h} px): {reason}. O documento atual foi mantido.",
-    "engine_out_of_memory": "memória insuficiente"
+    "engine_out_of_memory": "memória insuficiente",
+    "image_too_large": "A imagem '{name}' ({w}×{h} px) passa do tamanho máximo do canvas ({max}×{max} px)."
   },
   "tool_options": {
     "sample_size": "Tamanho da Amostra",

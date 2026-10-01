@@ -12,13 +12,13 @@ namespace aladyn::engine::canvas {
 class PixelBuffer {
 public:
     PixelBuffer(int width, int height, utils::ColorRGBA fillColor = {255, 255, 255, 255})
-        : m_width(width), m_height(height), m_data(static_cast<size_t>(width * height * 4)) {
+        : m_width(width), m_height(height), m_data(byteCount(width, height)) {
         fill(fillColor);
     }
 
     void fill(utils::ColorRGBA color) {
         uint8_t* ptr = m_data.data();
-        const size_t totalPixels = static_cast<size_t>(m_width * m_height);
+        const size_t totalPixels = static_cast<size_t>(m_width) * static_cast<size_t>(m_height);
         for (size_t i = 0; i < totalPixels; ++i) {
             ptr[i * 4 + 0] = color.r;
             ptr[i * 4 + 1] = color.g;
@@ -34,7 +34,7 @@ public:
     void resize(int width, int height, utils::ColorRGBA fillColor = {0, 0, 0, 0}) {
         m_width = width;
         m_height = height;
-        m_data.assign(static_cast<size_t>(width * height * 4), 0);
+        m_data.assign(byteCount(width, height), 0);
         if (fillColor.r != 0 || fillColor.g != 0 || fillColor.b != 0 || fillColor.a != 0) {
             fill(fillColor);
         }
@@ -62,6 +62,11 @@ public:
     }
 
 private:
+    // Widen before multiplying: `width * height * 4` in int overflows past ~23170 px per side.
+    static size_t byteCount(int width, int height) noexcept {
+        return static_cast<size_t>(width) * static_cast<size_t>(height) * 4u;
+    }
+
     int m_width{0};
     int m_height{0};
     std::vector<uint8_t> m_data;

@@ -17,6 +17,7 @@ from PySide6 import QtCore, QtWidgets
 
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon
+from ui.core.engine.limits import max_canvas_dimension
 from ui.core.dialogs.base_dialog import BaseFramelessDialog
 from ui.infrastructure.i18n import tr
 from .new_document import (
@@ -89,7 +90,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         lbl_w = QtWidgets.QLabel(f"{tr('dialogs.width', 'Largura')}:")
         lbl_w.setStyleSheet("font-size: 10px;")
         self.spn_width = QtWidgets.QSpinBox()
-        self.spn_width.setRange(100, 16384)
+        self.spn_width.setRange(100, max_canvas_dimension())
         self.spn_width.setValue(2480)
         self.spn_width.setSuffix(" px")
         self.spn_width.setFixedHeight(26)
@@ -115,7 +116,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         lbl_h = QtWidgets.QLabel(f"{tr('dialogs.height', 'Altura')}:")
         lbl_h.setStyleSheet("font-size: 10px;")
         self.spn_height = QtWidgets.QSpinBox()
-        self.spn_height.setRange(100, 16384)
+        self.spn_height.setRange(100, max_canvas_dimension())
         self.spn_height.setValue(3508)
         self.spn_height.setSuffix(" px")
         self.spn_height.setFixedHeight(26)

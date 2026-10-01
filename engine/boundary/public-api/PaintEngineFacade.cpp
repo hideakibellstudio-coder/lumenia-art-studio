@@ -37,7 +37,7 @@
 namespace aladyn::engine::boundary {
 
 PaintEngineFacade::PaintEngineFacade(int width, int height)
-    : m_width(width), m_height(height),
+    : m_width(canvas::checkedCanvasDimension(width)), m_height(canvas::checkedCanvasDimension(height)),
       m_layerStack(width, height),
       m_compositor(width, height),
       m_outputBuffer(width, height, {255, 255, 255, 255}),

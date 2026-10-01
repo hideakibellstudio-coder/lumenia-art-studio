@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 from ui.core.document.local_layer import default_layer_name
+from ui.core.engine.backend import SHELL_MODE_MAX_CANVAS_DIMENSION
 from ui.core.engine.errors import EngineContextError
 
 from .native_fallback import native_has
@@ -40,6 +41,12 @@ class AladynMdiMixin(AladynBackendBase):
             setter = getattr(facade, f"set_{key}", None)
             if setter:
                 setter(value)
+
+    def max_canvas_dimension(self) -> int:
+        """O maior lado de canvas que o motor aceita (`PaintEngineFacade.maxCanvasDimension`)."""
+        if self._native is None:
+            return SHELL_MODE_MAX_CANVAS_DIMENSION
+        return int(self._native.PaintEngineFacade.max_canvas_dimension())
 
     def set_active_document_context(self, uid: str, width: int, height: int) -> None:
         """

@@ -756,7 +756,8 @@
     "engine_ready_hint": "Lumenia Engine ready. Drag with the middle button to pan, scroll to zoom.",
     "zoom": "Zoom: {percent}%",
     "doc_context_failed": "The engine could not create the document '{name}' ({w}×{h} px): {reason}. The current document was kept.",
-    "engine_out_of_memory": "not enough memory"
+    "engine_out_of_memory": "not enough memory",
+    "image_too_large": "The image '{name}' ({w}×{h} px) exceeds the maximum canvas size ({max}×{max} px)."
   },
   "tool_options": {
     "sample_size": "Sample Size",

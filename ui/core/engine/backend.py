@@ -15,6 +15,13 @@ from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from ui.core.engine.engine_type import EngineType
 
 
+# Maior lado de canvas que a casca assume enquanto NÃO há motor registrado (modo
+# casca). Com motor, quem manda é `max_canvas_dimension()` dele; o número do motor
+# mora em engine/core/canvas/CanvasLimits.hpp e `tests/test_canvas_limit_contract.py`
+# confere que esta constante é igual a ele.
+SHELL_MODE_MAX_CANVAS_DIMENSION = 16384
+
+
 @dataclass(frozen=True)
 class PointerEvent:
     """Ponto já convertido para o espaço do canvas (resultado de to_canvas)."""
@@ -95,6 +102,10 @@ class EngineBackend(ABC):
     @abstractmethod
     def render(self, pan_x: float, pan_y: float, zoom: float, rotation_rad: float) -> None:
         """Renderiza o quadro atual com a câmera informada."""
+
+    def max_canvas_dimension(self) -> int:
+        """Maior lado de canvas, em px, que o motor aceita. Diálogos e ações perguntam aqui."""
+        return SHELL_MODE_MAX_CANVAS_DIMENSION
 
     def set_active_document_context(self, uid: Any, width: int, height: int) -> None:
         """Sincroniza o contexto de execução nativo com a aba/documento ativa.

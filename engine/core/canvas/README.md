@@ -10,6 +10,7 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
+| `CanvasLimits.hpp` | O maior lado de canvas (`kMaxCanvasDimension`, 16384) e `checkedCanvasDimension`, que recusa com `std::invalid_argument` antes de alocar. A interface pergunta o valor ao motor e não o repete. |
 | `CanvasTexture.hpp` | Textura do papel aplicada à pintura (relevo, escala, contraste). |
 | `MipmapPyramid.hpp` | Níveis 1/2, 1/4, 1/8 de um buffer para exibição com zoom afastado (declaração). |
 | `MipmapPyramid.cpp` | Reconstrução dos níveis quando o buffer base muda. |

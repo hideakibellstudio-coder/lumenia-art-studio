@@ -1,10 +1,14 @@
 #include "DocumentStateOrchestrator.hpp"
+#include "../../core/canvas/CanvasLimits.hpp"
 
 #include <utility>
 
 namespace aladyn::engine::boundary::orchestrator {
 
 void DocumentStateOrchestrator::resizeCanvas(const EngineStateContext& ctx, int width, int height) {
+    // Refuse before touching anything: a canvas outside the limit leaves the document as it was.
+    canvas::checkedCanvasDimension(width);
+    canvas::checkedCanvasDimension(height);
     ctx.width = width;
     ctx.height = height;
     ctx.doc.layerStack.resize(width, height);

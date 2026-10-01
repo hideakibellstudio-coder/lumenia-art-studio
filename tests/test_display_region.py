@@ -108,11 +108,22 @@ def test_a_region_entirely_outside_the_canvas_gives_nothing(backend):
     assert backend.get_display_image(1.0, QtCore.QRect(WIDTH + 5, 0, 10, 10)) is None
 
 
-def test_zoomed_out_it_is_still_the_prefiltered_level(backend):
-    display = backend.get_display_image(0.25, QtCore.QRect(0, 0, 10, 10))
-    reference, scale = backend.get_qimage_lod(0.25)
-    assert display.scale == scale < 1.0 and display.origin == (0, 0)
-    assert _bits(display.image) == _bits(reference)
+def test_zoomed_out_it_is_the_prefiltered_level_cut_to_the_region(backend):
+    level_bytes, level_w, level_h, scale = backend._facade.get_display_pixel_buffer_lod(2)
+    display = backend.get_display_image(0.25, QtCore.QRect(40, 20, 100, 60))
+    assert display.scale == scale == 0.25
+    x, y = display.origin
+    assert (x, y) == (10, 5)
+    w, h = display.image.width(), display.image.height()
+    rows = (level_bytes[((y + r) * level_w + x) * 4:((y + r) * level_w + x + w) * 4] for r in range(h))
+    assert _bits(display.image) == b"".join(rows)
+    assert (w, h) == (25, 15)  # the region at 1/4 scale: 100/4 x 60/4
+
+
+def test_zoomed_out_a_region_that_overhangs_is_cut_to_the_level(backend):
+    display = backend.get_display_image(0.25, QtCore.QRect(-50, -50, WIDTH + 100, HEIGHT + 100))
+    level_w, level_h = backend._facade.get_lod_size(2)
+    assert (display.image.width(), display.image.height()) == (level_w, level_h) and display.origin == (0, 0)
 
 
 def test_the_image_survives_after_the_native_buffer_could_have_been_reused(backend):
@@ -151,8 +162,12 @@ class _WholeCanvasBackend:
         return getattr(self._real, name)
 
     def get_display_image(self, zoom, region):
-        level, scale = self._real.get_qimage_lod(zoom)
-        return DisplayImage(level, scale)
+        facade = self._real._facade
+        level = facade.get_best_lod_level(zoom)
+        if level == 0:
+            return DisplayImage(self._real.get_qimage(), 1.0)
+        data, width, height, scale = facade.get_display_pixel_buffer_lod(level)
+        return DisplayImage(QtGui.QImage(data, width, height, width * 4, QtGui.QImage.Format_RGBA8888).copy(), scale)
 
 
 @pytest.fixture

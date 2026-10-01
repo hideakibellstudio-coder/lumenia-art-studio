@@ -3,7 +3,7 @@
 Display acquisition: the whole-canvas copy (`get_qimage`, what the viewport made on
 every repaint at zoom >= 100% until S1.1, and what recording and export still ask
 for), the region the viewport asks for today (a 1600x900 window and a 128x128
-stroke rectangle), the same acquisition from the LOD pyramid, a 120-sample
+stroke rectangle), the zoomed-out view (the pyramid, whole and after a change), a 120-sample
 stroke, the same stroke over 20 layers, an opacity change and an undo/redo
 pair. Everything goes through the public backend contract, as the UI does.
 """
@@ -42,6 +42,36 @@ def _toggle_opacity(backend, layer_index: int) -> None:
     backend.set_layer_opacity(layer_index, 0.5 if current == 1.0 else 1.0)
 
 
+def _zoomed_out(backend, width: int, height: int, tag: str, repeats: int) -> dict:
+    """The fit view of a large document: what a repaint costs zoomed out (D18).
+
+    `display_lod_fit_clean`: nothing changed since the last read. `display_lod_after_change`:
+    a 32x32 patch is pasted and the repaint asks for the 128x128 rectangle around it, as a
+    pen stroke does. `lod_whole_rebuild_reference`: what every repaint cost before D18 (the
+    whole pyramid rebuilt and the whole level copied), measured on the engine directly.
+    """
+    import aladyn_engine_native as native
+    from PySide6.QtCore import QRect
+
+    zoom = 0.4
+    whole, patch_area, patch = QRect(0, 0, width, height), QRect(100, 100, 128, 128), bytes([10, 20, 30, 255]) * 1024
+    backend.get_display_image(zoom, whole)  # builds the pyramid
+
+    def after_change():
+        backend.paste_rgba_buffer_on_active_layer(100, 100, 32, 32, patch)
+        backend.get_display_image(zoom, patch_area)
+
+    reference = native.PaintEngineFacade(width, height)
+    reference.get_display_pixel_buffer_lod(1)
+    return {
+        f"display_lod_fit_clean.{tag}": summary(repeat_ms(lambda: backend.get_display_image(zoom, whole), repeats)),
+        f"display_lod_after_change.{tag}": summary(repeat_ms(after_change, repeats)),
+        f"lod_whole_rebuild_reference.{tag}": summary(
+            repeat_ms(lambda: (reference.mark_lod_dirty(), reference.get_display_pixel_buffer_lod(1)), repeats)
+        ),
+    }
+
+
 def measure(sizes: list[tuple[int, int]], repeats: int) -> dict:
     from PySide6.QtCore import QRect
 
@@ -58,9 +88,7 @@ def measure(sizes: list[tuple[int, int]], repeats: int) -> dict:
             metrics[f"display_region_{label}.{tag}"] = summary(
                 repeat_ms(lambda region=region: backend.get_display_image(1.0, region), repeats)
             )
-        metrics[f"get_qimage_lod025.{tag}"] = summary(
-            repeat_ms(lambda: backend.get_qimage_lod(0.25), repeats)
-        )
+        metrics.update(_zoomed_out(backend, width, height, tag, repeats))
         backend.set_brush_size(40.0)
         metrics[f"stroke120.{tag}"] = summary(repeat_ms(lambda: _stroke(backend), max(3, repeats // 2)))
         _add_dense_layers(backend)

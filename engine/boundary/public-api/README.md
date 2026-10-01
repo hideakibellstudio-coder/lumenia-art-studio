@@ -13,7 +13,7 @@
 | `AladynEngine.hpp` | Porta única: inclui a fachada, as prévias e os tipos de valor que a ponte liga ao Python (tipo novo exposto entra aqui). |
 | `PaintEngineFacade.hpp` | Declaração da fachada: traço, camadas, seleção, transformação, guias/snap, histórico, exportação e telemetria (`TelemetryData`). |
 | `PaintEngineFacade.cpp` | Implementação: monta os contextos e delega aos orquestradores de `../orchestrator/` (tradução, não lógica). |
-| `PaintEngineFacadeDisplay.cpp` | Saída para a tela: buffer de exibição, níveis de detalhe (LOD) e `clearHistory`; separado em 2026-09-24 pelo teto de 450 linhas. |
+| `PaintEngineFacadeDisplay.cpp` | Saída para a tela: perfil de cor, buffer de exibição inteiro ou por região, níveis de detalhe (LOD) por região e `clearHistory`; separado em 2026-09-24 pelo teto de 450 linhas. |
 | `BrushPreviews.hpp` | Prévias do painel de pincel: `renderStrokePreview` e `renderRoundTipMask` (declaração). |
 | `BrushPreviews.cpp` | Delegação para `orchestrator/StrokePreviewRenderer`. |
 
@@ -22,6 +22,13 @@
 - Método público novo: declarado aqui, implementado num orquestrador de `../orchestrator/`, exposto em `bridge/core/bindings` e descrito em `bridge/boundary/contracts/aladyn_engine_native.pyi`.
 - A fachada não guarda regra de negócio: monta o contexto e chama o orquestrador.
 - Os contextos dos orquestradores (`DocumentContext`, `EngineStateContext`, `RawStrokeContext`) são só declarados aqui; o cabeçalho público não inclui `orchestrator/`.
+
+## Dívida conhecida (medida em 2026-10-01)
+
+- `PaintEngineFacade.hpp` tem 427 linhas (zona amarela, a 3 da parede dos 430). A saída para a
+  tela (perfil de cor, buffer de exibição, pirâmide de LOD, retângulo danificado) cresceu três
+  vezes em S1.1 e tem dono implícito espalhado pela fachada. O próximo método de exibição começa
+  por extrair um colaborador `DisplayOutput` com esse estado (e não por mover corpos para o `.cpp`).
 
 ## Dependências internas
 

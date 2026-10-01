@@ -47,6 +47,13 @@ public:
         int colorProfileId, const canvas::PixelBuffer& outputBuffer,
         int x, int y, int w, int h, uint8_t* dst, size_t dstSize
     );
+
+    // O mesmo recorte, sem perfil de cor, de um buffer RGBA qualquer de srcW x srcH
+    // (um nivel da piramide de LOD, que ja nasce do buffer de exibicao). Mesmos erros.
+    static void copyBufferRegion(
+        const uint8_t* src, int srcW, int srcH,
+        int x, int y, int w, int h, uint8_t* dst, size_t dstSize
+    );
 };
 
 } // namespace aladyn::engine::boundary::orchestrator

@@ -1,6 +1,7 @@
 #ifndef ALADYN_ENGINE_MIPMAP_PYRAMID_HPP
 #define ALADYN_ENGINE_MIPMAP_PYRAMID_HPP
 
+#include "DamageRect.hpp"
 #include "PixelBuffer.hpp"
 #include <vector>
 #include <cstdint>
@@ -21,8 +22,25 @@ public:
     MipmapPyramid();
     ~MipmapPyramid() = default;
 
-    void markDirty() noexcept { m_isDirty = true; }
-    [[nodiscard]] bool isDirty() const noexcept { return m_isDirty; }
+    // Tudo mudou (ou não se sabe o quê): a próxima leitura refaz os três níveis.
+    void markDirty() noexcept { m_rebuildAll = true; }
+    // Só [x0, x1) x [y0, y1), em pixels do buffer base, mudou: a próxima leitura refaz
+    // só essa parte de cada nível (D18). Quem escreve no buffer base avisa por aqui.
+    void markDirtyRegion(int x0, int y0, int x1, int y1) noexcept { m_damage.add(x0, y0, x1, y1); }
+    [[nodiscard]] bool isDirty() const noexcept { return m_rebuildAll || !m_damage.empty(); }
+
+    /**
+     * @brief Tamanho do nível (1..3) para um buffer base de baseW x baseH: metade por nível,
+     * nunca menos de 1. Única definição, usada pela reconstrução e por quem pergunta.
+     */
+    static void levelSize(int level, int baseW, int baseH, int& outW, int& outH) noexcept {
+        outW = baseW;
+        outH = baseH;
+        for (int l = 0; l < level; ++l) {
+            outW = std::max(1, outW / 2);
+            outH = std::max(1, outH / 2);
+        }
+    }
 
     /**
      * @brief Retorna o ponteiro para o buffer no nível de detalhe (LOD) requisitado.
@@ -59,10 +77,14 @@ public:
     void updatePyramid(const PixelBuffer& baseBuffer);
 
 private:
-    static void downscale2x(const uint8_t* src, int srcW, int srcH, uint8_t* dst, int dstW, int dstH) noexcept;
+    // Refaz [x0, x1) x [y0, y1) do destino (em pixels do destino) a partir de `src`.
+    static void downscale2x(const uint8_t* src, int srcW, int srcH, uint8_t* dst, int dstW, int dstH,
+                            int x0, int y0, int x1, int y1) noexcept;
+    void updatePyramidRegion(const PixelBuffer& baseBuffer);
 
     std::vector<PixelBuffer> m_levels;
-    bool m_isDirty{true};
+    bool m_rebuildAll{true};
+    DamageRect m_damage;
     int m_baseWidth{0};
     int m_baseHeight{0};
 };

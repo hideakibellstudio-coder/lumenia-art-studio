@@ -71,12 +71,17 @@ fechada: só diminui.
    pinos em `tests/golden/engines_golden.json` = 9 motores × 4 variações (simples,
    trava de alfa, seleção, máscara de recorte); determinísticos entre processos.
    Vem antes de qualquer mudança em motor, S0.7 incluída.)*
-4. **S1.1–S1.3:** repintar só a região alterada (D4); salvar e abrir sem
+4. **S1.1–S1.3:** repintar só a região alterada (D4, feito); salvar e abrir sem
    travar (D3); salvamento automático sem travar.
-   - S1.1, zoom de trabalho: *(feito em 2026-10-01: `get_display_image` e
-     `get_display_region`, contrato do módulo nativo na versão 3. Repintura a 100%
-     com `drawImage` real: 7,3 / 34,0 / 115,0 ms → 0,5 ms em 1080p / 4K /
-     6000×4000, mesma máquina e mesmo comando. Falta o zoom afastado: D18.)*
+   - ~~S1.1: repintar só a região alterada (D4).~~ *(feito em 2026-10-01:
+     `get_display_image` → `get_display_region` (zoom de trabalho) e
+     `get_display_lod_region` (zoom afastado); contrato do módulo nativo na versão
+     4. Repintura a 100% com `drawImage` real: 7,3 / 34,0 / 115,0 ms → 0,5 ms em
+     1080p / 4K / 6000×4000. Zoom afastado (D18, achado pelo caminho): a pirâmide
+     refaz só o retângulo que o compositor escreveu; repintura depois de uma
+     mudança 0,36 / 0,28 / 0,24 ms contra 1,4 / 5,1 / 11,6 ms. Resíduo: com perfil
+     de cor ≠ sRGB o buffer de exibição inteiro ainda é convertido a cada leitura do
+     LOD.)*
 
 Os grupos 1 a 3 são pequenos (até uma sessão cada); o grupo 4 é médio a
 grande.

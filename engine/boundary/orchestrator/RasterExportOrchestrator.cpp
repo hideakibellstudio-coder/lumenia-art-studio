@@ -123,27 +123,31 @@ uint8_t* RasterExportOrchestrator::resolveDisplayBuffer(
     return displayBuffer.getData();
 }
 
+void RasterExportOrchestrator::copyBufferRegion(
+    const uint8_t* src, int srcW, int srcH,
+    int x, int y, int w, int h, uint8_t* dst, size_t dstSize
+) {
+    if (w <= 0 || h <= 0 || x < 0 || y < 0 || x > srcW - w || y > srcH - h) {
+        throw std::invalid_argument("Display region lies outside the canvas");
+    }
+    const size_t rowBytes = static_cast<size_t>(w) * 4u;
+    if (!src || !dst || dstSize != rowBytes * static_cast<size_t>(h)) {
+        throw std::invalid_argument("Display region buffer does not match the region size");
+    }
+    const size_t srcRowBytes = static_cast<size_t>(srcW) * 4u;
+    for (int row = 0; row < h; ++row) {
+        std::memcpy(
+            dst + static_cast<size_t>(row) * rowBytes,
+            src + static_cast<size_t>(y + row) * srcRowBytes + static_cast<size_t>(x) * 4u,
+            rowBytes);
+    }
+}
+
 void RasterExportOrchestrator::copyDisplayRegion(
     int colorProfileId, const canvas::PixelBuffer& outputBuffer,
     int x, int y, int w, int h, uint8_t* dst, size_t dstSize
 ) {
-    const int canvasW = outputBuffer.getWidth();
-    const int canvasH = outputBuffer.getHeight();
-    if (w <= 0 || h <= 0 || x < 0 || y < 0 || x > canvasW - w || y > canvasH - h) {
-        throw std::invalid_argument("Display region lies outside the canvas");
-    }
-    const size_t rowBytes = static_cast<size_t>(w) * 4u;
-    if (!dst || dstSize != rowBytes * static_cast<size_t>(h)) {
-        throw std::invalid_argument("Display region buffer does not match the region size");
-    }
-    const uint8_t* src = outputBuffer.getData();
-    const size_t canvasRowBytes = static_cast<size_t>(canvasW) * 4u;
-    for (int row = 0; row < h; ++row) {
-        std::memcpy(
-            dst + static_cast<size_t>(row) * rowBytes,
-            src + static_cast<size_t>(y + row) * canvasRowBytes + static_cast<size_t>(x) * 4u,
-            rowBytes);
-    }
+    copyBufferRegion(outputBuffer.getData(), outputBuffer.getWidth(), outputBuffer.getHeight(), x, y, w, h, dst, dstSize);
     if (colorProfileId != 0) applyColorProfile(dst, static_cast<size_t>(w) * static_cast<size_t>(h), colorProfileId);
 }
 

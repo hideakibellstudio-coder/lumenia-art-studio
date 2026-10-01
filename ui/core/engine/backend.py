@@ -145,10 +145,9 @@ class EngineBackend(ABC):
         """Retorna um snapshot RGBA independente para persistência."""
         return None
 
-    def get_qimage_lod(self, zoom: float) -> Tuple[Optional[Any], float]: return (None, 1.0)
 
     def get_display_image(self, zoom: float, region: Any) -> Optional[DisplayImage]:
-        """As imagens que a tela pinta: a `region` (QRect do canvas) em zoom de trabalho, ou o nível LOD afastado."""
+        """A imagem que a tela pinta: só a `region` (QRect em pixels do canvas), no nível que o zoom pede."""
         return None
 
     def get_dirty_tile_indices(self) -> List[Tuple[int, int]]: return []

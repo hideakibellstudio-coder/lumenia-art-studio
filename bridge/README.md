@@ -32,6 +32,13 @@ Pilar 2 do ARCcC multi-pilar (`ui/` → `bridge/` → `engine/`): só serializa,
   (`benchmarks/`, S1.5). Não remova sem substituir essa cobertura; decisão registrada em
   2026-10-01 (D8 do relatório 07).
 
+- `get_display_pixel_buffer_lod`, `get_dirty_tile_indices` e `clear_dirty_tiles`: a tela deixou de
+  usá-los (pede `get_display_region` e `get_display_lod_region`), mas o nível inteiro da pirâmide
+  e as bandeiras de tile sujo seguem expostos porque os testes de baixo nível
+  (`tests/test_lowlevel_viewport_lod_antialiasing.py`, `tests/test_lod_pyramid_damage.py`,
+  `tests/test_render_options_and_native_dirty_tracking.py`) os usam para conferir o motor
+  por dentro. Quem quiser tirá-los precisa trocar essa cobertura.
+
 ## Dívida conhecida (medida em 2026-09-25)
 
 - Nenhuma registrada. `infrastructure/` existe desde 2026-09-25 (antes o

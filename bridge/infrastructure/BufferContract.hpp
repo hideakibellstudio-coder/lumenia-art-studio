@@ -24,6 +24,17 @@ inline void validateRasterInput(const std::string& data, int width, int height, 
     }
 }
 
+// A Python bytes of `size` bytes filled in place by `fill(uint8_t* dst, size_t size)`: one
+// copy, with no std::vector in between. If `fill` throws, the bytes are released.
+template <typename Fill>
+inline pybind11::bytes filledBytes(size_t size, Fill&& fill) {
+    PyObject* raw = PyBytes_FromStringAndSize(nullptr, static_cast<Py_ssize_t>(size));
+    if (!raw) throw pybind11::error_already_set();
+    pybind11::bytes out = pybind11::reinterpret_steal<pybind11::bytes>(raw);
+    fill(reinterpret_cast<uint8_t*>(PyBytes_AS_STRING(raw)), size);
+    return out;
+}
+
 // Python owns the immutable copy; no facade pointer can escape through a view.
 inline pybind11::bytes pixelSnapshot(const uint8_t* data, size_t size) {
     if (size == 0) return pybind11::bytes();

@@ -299,10 +299,7 @@ public:
     [[nodiscard]] bool getDeepColor() const noexcept { return m_deepColor; }
     void setRenderOptions(bool lowLatency, bool linearGamma, bool deepColor);
 
-    void setColorProfile(int profileId) noexcept {
-        if (!color::ColorProfileManager::isProfileValid(profileId)) return;
-        if (m_colorProfileId != profileId) { m_colorProfileId = profileId; touchDocument(); }
-    }
+    void setColorProfile(int profileId) noexcept;  // PaintEngineFacadeDisplay.cpp
     [[nodiscard]] int getColorProfile() const noexcept { return m_colorProfileId; }
     [[nodiscard]] std::string transformRgbaForProfile(const std::string& buffer, int profileId) const;
     [[nodiscard]] std::vector<uint8_t> getLayerThumbnailBuffer(int layerIdx, int thumbW, int thumbH) const;
@@ -329,8 +326,7 @@ public:
 
     [[nodiscard]] uint8_t* getDisplayRawPixelData() noexcept;
     [[nodiscard]] size_t getDisplayPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
-    // So o retangulo pedido, com o perfil de cor aplicado (S1.1): a repintura em zoom de
-    // trabalho nao copia mais o canvas inteiro. Fora do canvas: std::invalid_argument.
+    // So o retangulo pedido, com o perfil de cor aplicado (S1.1). Fora do canvas: std::invalid_argument.
     void copyDisplayRegion(int x, int y, int w, int h, uint8_t* dst, size_t dstSize) const;
     [[nodiscard]] std::vector<uint8_t> getLayerPixelBuffer(int layerIndex) const;
 
@@ -356,6 +352,9 @@ public:
     [[nodiscard]] std::vector<std::pair<int, int>> getDirtyTileIndices() const;
     void clearDirtyTiles() noexcept;
     [[nodiscard]] uint8_t* getDisplayPixelBufferLOD(int level, int& outW, int& outH) noexcept;
+    // So o retangulo de um nivel (1..3), em pixels do nivel (D18). Invalido: std::invalid_argument.
+    void copyDisplayLodRegion(int level, int x, int y, int w, int h, uint8_t* dst, size_t dstSize);
+    void getLodSize(int level, int& outW, int& outH) const noexcept;
     [[nodiscard]] static int getBestLODLevel(double zoom) noexcept { return canvas::MipmapPyramid::getBestLODLevel(zoom); }
     [[nodiscard]] static double getLODScale(int level) noexcept { return canvas::MipmapPyramid::getLODScale(level); }
     void markLODDirty() noexcept { m_mipmapPyramid.markDirty(); }
@@ -369,7 +368,7 @@ private:
     orchestrator::DocumentContext    docContext() noexcept;
     orchestrator::EngineStateContext stateContext() noexcept;
     orchestrator::RawStrokeContext   strokeContext() noexcept;
-    void touchDocument() noexcept { ++m_documentGeneration; m_mipmapPyramid.markDirty(); }
+    void touchDocument() noexcept { ++m_documentGeneration; }
     bool touchedIf(bool changed) noexcept { if (changed) touchDocument(); return changed; }
     void initEngine(brush::EngineType type);
 

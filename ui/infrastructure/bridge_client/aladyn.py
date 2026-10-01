@@ -18,8 +18,9 @@ Herda recursivamente de mixins atômicos especializados por domínio:
 
 from __future__ import annotations
 
-import os
 import logging
+import math
+import os
 from typing import Optional
 
 os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
@@ -264,36 +265,33 @@ class AladynBackend(
     def get_history_step_ids(self) -> list[int]:
         return list(self._facade.get_history_step_ids()) if self._facade else []
 
-    def get_qimage_lod(self, zoom: float) -> tuple[Optional[QImage], float]:
-        """Retorna QImage pré-filtrada por Box Filter correspondente ao nível LOD ideal para o zoom."""
-        if not self._facade:
-            return None, 1.0
-        if native_has(self._facade, "get_best_lod_level", "zoom afastado desenha em resolução cheia (mais lento)"):
-            level = self._facade.get_best_lod_level(zoom)
-            if level > 0:
-                res = self._facade.get_display_pixel_buffer_lod(level)
-                if res is not None:
-                    memview, lod_w, lod_h, scale = res
-                    return QImage(memview, lod_w, lod_h, lod_w * 4, QImage.Format_RGBA8888).copy(), scale
-        return self.get_qimage(), 1.0
-
     def get_display_image(self, zoom: float, region: QRect) -> Optional[DisplayImage]:
-        """A imagem que a tela pinta: o nível LOD (zoom afastado) ou só a `region` (zoom de trabalho).
+        """A imagem que a tela pinta: só a `region` (pixels do canvas) no nível que o zoom pede.
 
-        A região é recortada ao canvas do documento ativo; o custo da cópia é o da
-        região, não o do canvas (S1.1). Região vazia depois do recorte: None.
+        Em zoom de trabalho é o canvas em 1:1; afastado, é o nível pré-filtrado da pirâmide
+        (1/2, 1/4 ou 1/8). Nos dois casos a cópia custa o tamanho da região, não o do canvas
+        (S1.1), e a pirâmide refaz só o que mudou (D18). A região é recortada ao nível; vazia
+        depois do recorte: None.
         """
         if not self._facade:
             return None
-        if self._facade.get_best_lod_level(zoom) > 0:
-            image, scale = self.get_qimage_lod(zoom)
-            return None if image is None else DisplayImage(image, scale)
-        area = region.intersected(QRect(0, 0, self._facade.get_width(), self._facade.get_height()))
+        level = self._facade.get_best_lod_level(zoom)
+        scale = self._facade.get_lod_scale(level)
+        level_w, level_h = self._facade.get_lod_size(level)
+        wanted = QRect(
+            math.floor(region.left() * scale), math.floor(region.top() * scale),
+            math.ceil((region.right() + 1) * scale) - math.floor(region.left() * scale),
+            math.ceil((region.bottom() + 1) * scale) - math.floor(region.top() * scale),
+        )
+        area = wanted.intersected(QRect(0, 0, level_w, level_h))
         if area.isEmpty():
             return None
-        pixels = self._facade.get_display_region(area.x(), area.y(), area.width(), area.height())
+        if level == 0:
+            pixels = self._facade.get_display_region(area.x(), area.y(), area.width(), area.height())
+        else:
+            pixels = self._facade.get_display_lod_region(level, area.x(), area.y(), area.width(), area.height())
         image = QImage(pixels, area.width(), area.height(), area.width() * 4, QImage.Format_RGBA8888)
-        return DisplayImage(image, 1.0, (area.x(), area.y()), pixels)
+        return DisplayImage(image, scale, (area.x(), area.y()), pixels)
 
     def get_dirty_tile_indices(self) -> list[tuple[int, int]]:
         if self._facade:

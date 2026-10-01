@@ -110,6 +110,7 @@
 | `test_lowlevel_undo_tile_stress.py` | Low-Level Test Suite: Tile Boundary Crossing, Multi-Step Undo/Redo & Memory Stress Validates dirty tile tracking across 64x64 boundaries, undo snapshot accuracy, and memory limits. |
 | `test_lowlevel_viewport_lod_antialiasing.py` | Nível de detalhe (LOD) do viewport e antisserrilhamento por filtro de caixa. |
 | `test_lowlevel_viewport_pipeline.py` | Pipeline do viewport para 120 FPS e aceleração de hardware. |
+| `test_lod_pyramid_damage.py` | A pirâmide de LOD refaz só onde o canvas mudou e nunca mostra pixel velho (D18): oráculo independente em numpy conferido depois de cada operação (traços de 9 motores lidos amostra a amostra, colar, balde, seleção, transformação, desfazer, camadas, filtros com alcance e pixelate, perfil de cor, redimensionar) e em 40 sequências aleatórias com mudanças acumuladas entre leituras; região de um nível; níveis e retângulos inválidos recusados. |
 | `test_main_window_actions.py` | Contrato da casca: colaboradores da MainWindow e a porta do workspace. |
 | `test_mdi_multidoc_lifecycle.py` | Test MDI Multi-Document Lifecycle & C++ Facade Isolation. |
 | `test_menu_bar_complete_wiring.py` | Test Menu Bar Complete Wiring & Dialogs — Validação de Todas as Ações do Menu. |

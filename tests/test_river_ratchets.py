@@ -46,7 +46,6 @@ WARNED_GUARDS: dict[tuple[str, str], str] = {
     ("aladyn_geometry_mixin.py", "snap_curvilinear"): "snap curvilíneo",
     ("aladyn_geometry_mixin.py", "snap_perspective"): "snap de perspectiva",
     ("aladyn.py", "get_display_pixel_buffer"): "buffer de exibição",
-    ("aladyn.py", "get_best_lod_level"): "LOD no zoom afastado",
     ("aladyn.py", "refresh_display"): "atualização da tela",
     ("aladyn_mdi_mixin.py", "set_render_options"): "opções de render (único ponto: _push_render_options)",
     ("aladyn_brush_mixin.py", "render_stroke_preview"): "prévia nativa do pincel",

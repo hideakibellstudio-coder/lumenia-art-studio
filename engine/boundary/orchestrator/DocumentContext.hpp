@@ -39,10 +39,12 @@ struct DocumentContext {
     bool                     linearGamma{true};
     bool                     deepColor{false};
 
-    // Equivalente exato de PaintEngineFacade::touchDocument().
+    // Equivalente exato de PaintEngineFacade::touchDocument(): o documento mudou (a geracao
+    // sobe). Nao invalida a piramide de LOD: o que muda na tela passa pelo compositor, que
+    // registra o retangulo escrito, e a piramide refaz so isso (D18). Ate 2026-10-01 isto
+    // invalidava tudo, e cada fim de traco custava a reconstrucao inteira.
     void touch() const noexcept {
         ++documentGeneration;
-        mipmapPyramid.markDirty();
     }
 
     void compositeAll() const {

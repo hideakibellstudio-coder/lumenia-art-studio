@@ -12,9 +12,10 @@
 |---|---|
 | `CanvasLimits.hpp` | O maior lado de canvas (`kMaxCanvasDimension`, 16384) e `checkedCanvasDimension`, que recusa com `std::invalid_argument` antes de alocar. A interface pergunta o valor ao motor e não o repete. |
 | `CanvasTexture.hpp` | Textura do papel aplicada à pintura (relevo, escala, contraste). |
+| `DamageRect.hpp` | A união dos pixels que mudaram desde a última leitura (um retângulo ou vazio): o compositor soma o que escreve, a pirâmide de LOD lê, refaz só isso e limpa. Errar para mais custa trabalho; errar para menos mostraria pixel velho. Só o cabeçalho. |
 | `GridSnapshot.hpp` | Foto de um retângulo da `TileGrid` tirada antes de escrever. O pincel que lê o que ele mesmo pinta (Borrar) lê dela e não da grade viva, e o resultado deixa de depender da ordem em que os tiles são varridos. Só o cabeçalho. |
-| `MipmapPyramid.hpp` | Níveis 1/2, 1/4, 1/8 de um buffer para exibição com zoom afastado (declaração). |
-| `MipmapPyramid.cpp` | Reconstrução dos níveis quando o buffer base muda. |
+| `MipmapPyramid.hpp` | Níveis 1/2, 1/4, 1/8 de um buffer para exibição com zoom afastado; refaz só a região avisada por `markDirtyRegion` e tudo se avisada por `markDirty` (declaração). |
+| `MipmapPyramid.cpp` | Reconstrução dos níveis: inteira (tamanho novo, cor de tela nova) ou só a região danificada, nível a nível. |
 | `PixelBuffer.hpp` | Buffer RGBA contíguo (preencher, limpar). |
 | `SpatialCuller.hpp` | Quais tiles um retângulo cruza (declaração). |
 | `SpatialCuller.cpp` | Implementação do recorte espacial. |

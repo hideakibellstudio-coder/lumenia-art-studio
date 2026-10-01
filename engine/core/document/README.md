@@ -10,7 +10,7 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `Compositor.hpp` | Compositor: modos de mesclagem, filtros, opções do pipeline (declaração). |
+| `Compositor.hpp` | Compositor: modos de mesclagem, filtros, opções do pipeline e o retângulo que ele escreveu desde a última leitura (`takeDamage`: toda escrita no buffer de saída passa por aqui, então só ele sabe o que mudou) (declaração). |
 | `Compositor.cpp` | Composição total e por região, delegando limites e grupos a `CompositeRegionSupport`. |
 | `CompositeRegionSupport.hpp` | Parte privada do compositor (namespace `document::internal`): alcance dos filtros, base de recorte, fundo, grupos isolados (declaração). |
 | `CompositeRegionSupport.cpp` | Implementação; veio da antiga subpasta `internal/`, que incluía esta pasta (ciclo). |

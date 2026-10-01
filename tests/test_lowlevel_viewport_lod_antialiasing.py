@@ -88,24 +88,27 @@ class TestViewportLODAntiAliasing(unittest.TestCase):
         unique_vals = len(np.unique(line_slice))
         self.assertGreaterEqual(unique_vals, 2, "Deve haver níveis intermediários de anti-aliasing")
 
-    def test_04_aladyn_backend_get_qimage_lod(self):
-        """Verifica a integração com o AladynBackend e a entrega de QImage adaptativa."""
+    def test_04_aladyn_backend_get_display_image(self):
+        """Verifica a integração com o AladynBackend e a entrega da imagem adaptativa ao zoom."""
+        from PySide6.QtCore import QRect
+
         backend = AladynBackend()
         backend.init_renderer(0, 800, 600, 800, 600)
+        whole = QRect(0, 0, 800, 600)
 
         # Zoom 100% -> escala 1.0
-        qimg0, scale0 = backend.get_qimage_lod(1.0)
-        self.assertIsNotNone(qimg0)
-        self.assertAlmostEqual(scale0, 1.0)
-        self.assertEqual(qimg0.width(), 800)
-        self.assertEqual(qimg0.height(), 600)
+        display0 = backend.get_display_image(1.0, whole)
+        self.assertIsNotNone(display0)
+        self.assertAlmostEqual(display0.scale, 1.0)
+        self.assertEqual(display0.image.width(), 800)
+        self.assertEqual(display0.image.height(), 600)
 
         # Zoom 25% -> escala 0.25
-        qimg2, scale2 = backend.get_qimage_lod(0.25)
-        self.assertIsNotNone(qimg2)
-        self.assertAlmostEqual(scale2, 0.25)
-        self.assertEqual(qimg2.width(), 200)
-        self.assertEqual(qimg2.height(), 150)
+        display2 = backend.get_display_image(0.25, whole)
+        self.assertIsNotNone(display2)
+        self.assertAlmostEqual(display2.scale, 0.25)
+        self.assertEqual(display2.image.width(), 200)
+        self.assertEqual(display2.image.height(), 150)
 
 
 if __name__ == "__main__":

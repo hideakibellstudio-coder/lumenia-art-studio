@@ -2,6 +2,7 @@
 #define ALADYN_ENGINE_COMPOSITOR_HPP
 
 #include "Layer.hpp"
+#include "../canvas/DamageRect.hpp"
 #include "../canvas/PixelBuffer.hpp"
 #include "../canvas/TileGrid.hpp"
 #include <vector>
@@ -47,9 +48,19 @@ public:
         double scratchOpacity
     );
 
+    // Os pixels do buffer de saída que mudaram desde a última chamada. Toda escrita no
+    // buffer de saída passa por uma das funções acima, então este é o único lugar que
+    // sabe o que mudou: a pirâmide de LOD refaz só isso (D18). Devolve e zera.
+    [[nodiscard]] canvas::DamageRect takeDamage() noexcept {
+        const canvas::DamageRect damage = m_damage;
+        m_damage.clear();
+        return damage;
+    }
+
 private:
     int m_width{0};
     int m_height{0};
+    canvas::DamageRect m_damage;
     // Mantém o comportamento histórico (mistura linear) para facades
     // construídas diretamente; a camada de configuração aplica o perfil
     // escolhido pelo usuário assim que cria o contexto do documento.

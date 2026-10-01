@@ -5,6 +5,7 @@ import weakref
 
 import pytest
 import aladyn_engine_native as native
+from PySide6.QtCore import QRect
 from PySide6.QtWidgets import QApplication
 from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
@@ -104,7 +105,8 @@ def test_backend_images_and_buffers_survive_mdi_close():
     assert backend.paste_rgba_buffer_on_active_layer(0, 0, 8, 8, bytes([90, 60, 30, 255]) * 64)
     backend.select_rect(1, 1, 4, 4)
     raw = backend.get_pixel_buffer()
-    images = [backend.get_qimage(), backend.get_qimage_lod(0.25)[0],
+    display = backend.get_display_image(0.25, QRect(0, 0, 8, 8))  # the image points into display.pixels: keep both
+    images = [backend.get_qimage(), display.image,
               backend.get_selection_mask_qimage()]
     assert backend.begin_transform()
     images.append(backend.get_transform_source_qimage())

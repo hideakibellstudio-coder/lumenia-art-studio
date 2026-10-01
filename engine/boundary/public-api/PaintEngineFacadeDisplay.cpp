@@ -1,4 +1,6 @@
 #include "PaintEngineFacade.hpp"
+#include <algorithm>
+#include <stdexcept>
 #include "../orchestrator/DocumentContext.hpp"
 #include "../orchestrator/RasterExportOrchestrator.hpp"
 
@@ -32,6 +34,15 @@ void PaintEngineFacade::setRenderOptions(bool lowLatency, bool linearGamma, bool
         ctx.compositeAll();
         ctx.touch();
     }
+}
+
+void PaintEngineFacade::setColorProfile(int profileId) noexcept {
+    if (!color::ColorProfileManager::isProfileValid(profileId)) return;
+    if (m_colorProfileId == profileId) return;
+    m_colorProfileId = profileId;
+    touchDocument();
+    // O perfil muda cada pixel da tela sem o compositor escrever nada: a piramide inteira.
+    m_mipmapPyramid.markDirty();
 }
 
 uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
@@ -68,17 +79,31 @@ void PaintEngineFacade::clearDirtyTiles() noexcept {
 uint8_t* PaintEngineFacade::getDisplayPixelBufferLOD(int level, int& outW, int& outH) noexcept {
     // Resolve o buffer de exibicao (aplica o perfil de cor) antes de ler.
     (void)getDisplayRawPixelData();
-    if (const auto* layer = m_layerStack.getActiveLayer()) {
-        if (!layer->getTileGrid().getDirtyTileIndices().empty()) {
-            m_mipmapPyramid.markDirty();
-        }
-    }
+    // O que o compositor escreveu desde a ultima leitura e' o que a piramide refaz. Ate
+    // 2026-10-01 isto olhava as bandeiras de tile sujo da camada ativa, que ninguem
+    // limpava: depois do primeiro traco a piramide inteira era refeita a cada leitura,
+    // mesmo sem mudanca nenhuma (D18).
+    const canvas::DamageRect damage = m_compositor.takeDamage();
+    m_mipmapPyramid.markDirtyRegion(damage.x0(), damage.y0(), damage.x1(), damage.y1());
     // Build from the same buffer returned to the display.  With the
     // default sRGB profile getDisplayRawPixelData() aliases outputBuffer;
     // using the untouched display scratch buffer would otherwise yield a
     // stale white pyramid.
     const auto& displayBase = (m_colorProfileId == 0) ? m_outputBuffer : m_displayBuffer;
     return m_mipmapPyramid.getLODData(level, displayBase, outW, outH);
+}
+
+void PaintEngineFacade::copyDisplayLodRegion(int level, int x, int y, int w, int h, uint8_t* dst, size_t dstSize) {
+    if (level < 1 || level > canvas::MipmapPyramid::MAX_LOD_LEVELS) {
+        throw std::invalid_argument("LOD level must be between 1 and the number of pyramid levels");
+    }
+    int levelW = 0, levelH = 0;
+    const uint8_t* data = getDisplayPixelBufferLOD(level, levelW, levelH);
+    orchestrator::RasterExportOrchestrator::copyBufferRegion(data, levelW, levelH, x, y, w, h, dst, dstSize);
+}
+
+void PaintEngineFacade::getLodSize(int level, int& outW, int& outH) const noexcept {
+    canvas::MipmapPyramid::levelSize(std::clamp(level, 0, canvas::MipmapPyramid::MAX_LOD_LEVELS), m_width, m_height, outW, outH);
 }
 
 } // namespace aladyn::engine::boundary

@@ -14,7 +14,7 @@
 |---|---|
 | `run_engine_benchmarks.py` | Mede e exporta a linha de base do motor nativo (formato conferido por `tests/test_engine_benchmark_runner.py`). |
 | `run_app_benchmarks.py` | Roda cada cenário da aplicação num processo próprio e junta o JSON; opção `--compare`. |
-| `app_engine_paths.py` | Cenário `engine`: cópia do canvas inteiro, a região que a tela pede (1600×900 e 128×128), LOD, traço de 120 amostras (1 e 20 camadas), opacidade, desfazer e refazer, pelo contrato público do backend. |
+| `app_engine_paths.py` | Cenário `engine`: cópia do canvas inteiro, a região que a tela pede (1600×900 e 128×128), a vista afastada (pirâmide limpa, depois de uma mudança, e a reconstrução inteira de referência), traço de 120 amostras (1 e 20 camadas), opacidade, desfazer e refazer, pelo contrato público do backend. |
 | `app_ui_paths.py` | Cenário `ui`: abertura até a janela, documento novo, custo de cada amostra da caneta pelo roteador real e repintura do canvas (ajustado e a 100%). |
 | `app_file_paths.py` | Cenário `files`: salvar e abrir um `.lmn` com várias camadas; tempo, tamanho e crescimento do pico de memória. |
 | `compare_runs.py` | Compara dois resultados: medianas e totais, tolerância relativa e piso de ruído por unidade. |

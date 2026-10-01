@@ -82,6 +82,7 @@ void Compositor::compositeRegion(
     const auto bounds = internal::computeRegionBounds(
         region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, /*snapToBlockSize=*/true);
     if (bounds.empty) return;
+    m_damage.add(bounds.minX, bounds.minY, bounds.maxX + 1, bounds.maxY + 1);
 
     internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/32);
 
@@ -159,6 +160,7 @@ void Compositor::compositeRegionWithScratch(
     const auto bounds = internal::computeRegionBounds(
         region, bgReach.totalReach, bgReach.maxBlockSize, m_width, m_height, /*snapToBlockSize=*/false);
     if (bounds.empty) return;
+    m_damage.add(bounds.minX, bounds.minY, bounds.maxX + 1, bounds.maxY + 1);
 
     internal::fillBackground(outputBuffer, bounds, bgReach.bgFill, m_width, m_height, /*parallelRowThreshold=*/64);
 

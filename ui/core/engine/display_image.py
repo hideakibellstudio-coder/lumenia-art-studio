@@ -4,8 +4,10 @@ The viewport used to ask for the whole canvas on every repaint and then draw onl
 the dirty rectangle: at zoom 100% on a 4K document that was 34 ms of copying to
 paint a few pixels (D4, found 2026-09-26). It now asks for what it paints:
 `EngineBackend.get_display_image(zoom, region)` returns a `DisplayImage` that
-covers `region` at working zoom, or the pre-filtered pyramid level when zoomed
-out (the pyramid level is small and shared, so it still comes whole).
+covers `region` at the level the zoom asks for: the canvas 1:1 at working zoom,
+or a pre-filtered pyramid level (1/2, 1/4, 1/8) when zoomed out. In both cases
+the copy costs the size of the region, and the pyramid refreshes only what
+changed (D18).
 
 `source_rect` is the one place that maps "the canvas rectangle I am painting" to
 "the rectangle of this image", so the viewport does not repeat the scale and

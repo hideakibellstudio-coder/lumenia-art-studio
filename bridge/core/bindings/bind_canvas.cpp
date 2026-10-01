@@ -60,13 +60,21 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         })
         .def("get_display_region", [](boundary::PaintEngineFacade& self, int x, int y, int w, int h) {
             // One copy, straight into the Python bytes: the screen asks for the rectangle it paints.
-            const size_t bytes = checkedRasterBytes(w, h, 4);
-            PyObject* raw = PyBytes_FromStringAndSize(nullptr, static_cast<Py_ssize_t>(bytes));
-            if (!raw) throw py::error_already_set();
-            py::bytes out = py::reinterpret_steal<py::bytes>(raw);
-            self.copyDisplayRegion(x, y, w, h, reinterpret_cast<uint8_t*>(PyBytes_AS_STRING(raw)), bytes);
-            return out;
+            return filledBytes(checkedRasterBytes(w, h, 4), [&](uint8_t* dst, size_t size) {
+                self.copyDisplayRegion(x, y, w, h, dst, size);
+            });
         }, py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"))
+        .def("get_display_lod_region", [](boundary::PaintEngineFacade& self, int level, int x, int y, int w, int h) {
+            // The same for a level of the zoomed-out pyramid, which is refreshed only where it changed.
+            return filledBytes(checkedRasterBytes(w, h, 4), [&](uint8_t* dst, size_t size) {
+                self.copyDisplayLodRegion(level, x, y, w, h, dst, size);
+            });
+        }, py::arg("level"), py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"))
+        .def("get_lod_size", [](boundary::PaintEngineFacade& self, int level) {
+            int w = 0, h = 0;
+            self.getLodSize(level, w, h);
+            return py::make_tuple(w, h);
+        }, py::arg("level"))
         .def("get_layer_pixel_buffer", [](boundary::PaintEngineFacade& self, int layerIdx) -> py::object {
             auto data = self.getLayerPixelBuffer(layerIdx);
             if (data.empty()) return py::none();

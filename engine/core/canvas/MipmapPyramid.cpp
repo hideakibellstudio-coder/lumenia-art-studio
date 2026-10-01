@@ -20,9 +20,12 @@ uint8_t* MipmapPyramid::getLODData(int level, const PixelBuffer& baseBuffer, int
 
     const int targetLevel = std::clamp(level, 1, MAX_LOD_LEVELS);
 
-    // Recompila os níveis se o buffer base foi modificado ou redimensionado
-    if (m_isDirty || m_baseWidth != baseBuffer.getWidth() || m_baseHeight != baseBuffer.getHeight() || m_levels.size() < static_cast<size_t>(targetLevel)) {
+    // Refaz tudo se não se sabe o que mudou ou se o buffer base foi redimensionado;
+    // se só uma região mudou, refaz só ela.
+    if (m_rebuildAll || m_baseWidth != baseBuffer.getWidth() || m_baseHeight != baseBuffer.getHeight() || m_levels.size() < static_cast<size_t>(targetLevel)) {
         updatePyramid(baseBuffer);
+    } else if (!m_damage.empty()) {
+        updatePyramidRegion(baseBuffer);
     }
 
     const size_t idx = static_cast<size_t>(targetLevel - 1);
@@ -43,7 +46,8 @@ void MipmapPyramid::updatePyramid(const PixelBuffer& baseBuffer) {
     const int baseH = baseBuffer.getHeight();
 
     if (baseW <= 0 || baseH <= 0 || baseBuffer.getData() == nullptr) {
-        m_isDirty = false;
+        m_rebuildAll = false;
+        m_damage.clear();
         return;
     }
 
@@ -52,45 +56,75 @@ void MipmapPyramid::updatePyramid(const PixelBuffer& baseBuffer) {
 
     if (m_levels.size() != static_cast<size_t>(MAX_LOD_LEVELS)) {
         m_levels.clear();
-        int curW = baseW;
-        int curH = baseH;
-        for (int l = 0; l < MAX_LOD_LEVELS; ++l) {
-            curW = std::max(1, curW / 2);
-            curH = std::max(1, curH / 2);
-            m_levels.emplace_back(curW, curH);
+        for (int l = 1; l <= MAX_LOD_LEVELS; ++l) {
+            int levelW = 0, levelH = 0;
+            levelSize(l, baseW, baseH, levelW, levelH);
+            m_levels.emplace_back(levelW, levelH);
         }
     } else {
         // Verifica se dimensões mudaram
-        int curW = baseW;
-        int curH = baseH;
-        for (int l = 0; l < MAX_LOD_LEVELS; ++l) {
-            curW = std::max(1, curW / 2);
-            curH = std::max(1, curH / 2);
-            if (m_levels[l].getWidth() != curW || m_levels[l].getHeight() != curH) {
-                m_levels[l].resize(curW, curH);
-            }
+        for (int l = 1; l <= MAX_LOD_LEVELS; ++l) {
+            int levelW = 0, levelH = 0;
+            levelSize(l, baseW, baseH, levelW, levelH);
+            PixelBuffer& level = m_levels[static_cast<size_t>(l - 1)];
+            if (level.getWidth() != levelW || level.getHeight() != levelH) level.resize(levelW, levelH);
         }
     }
 
     // Nível 1 é gerado do buffer base (Nível 0)
     downscale2x(baseBuffer.getData(), baseW, baseH,
-                m_levels[0].getData(), m_levels[0].getWidth(), m_levels[0].getHeight());
+                m_levels[0].getData(), m_levels[0].getWidth(), m_levels[0].getHeight(),
+                0, 0, m_levels[0].getWidth(), m_levels[0].getHeight());
 
     // Níveis subsequentes são gerados a partir do nível anterior (alta performance)
     for (size_t l = 1; l < m_levels.size(); ++l) {
         downscale2x(m_levels[l - 1].getData(), m_levels[l - 1].getWidth(), m_levels[l - 1].getHeight(),
-                    m_levels[l].getData(), m_levels[l].getWidth(), m_levels[l].getHeight());
+                    m_levels[l].getData(), m_levels[l].getWidth(), m_levels[l].getHeight(),
+                    0, 0, m_levels[l].getWidth(), m_levels[l].getHeight());
     }
 
-    m_isDirty = false;
+    m_rebuildAll = false;
+    m_damage.clear();
+}
+
+void MipmapPyramid::updatePyramidRegion(const PixelBuffer& baseBuffer) {
+    // A região que mudou, em pixels do buffer base, recortada ao buffer.
+    int x0 = std::max(0, m_damage.x0());
+    int y0 = std::max(0, m_damage.y0());
+    int x1 = std::min(baseBuffer.getWidth(), m_damage.x1());
+    int y1 = std::min(baseBuffer.getHeight(), m_damage.y1());
+    m_damage.clear();
+    if (x0 >= x1 || y0 >= y1) return;
+
+    const uint8_t* src = baseBuffer.getData();
+    int srcW = baseBuffer.getWidth();
+    int srcH = baseBuffer.getHeight();
+    for (PixelBuffer& level : m_levels) {
+        // O pixel (x, y) do nível lê (2x, 2y) a (2x+1, 2y+1) do anterior: os pixels do
+        // nível que mudam são os de floor(x0/2) até floor((x1-1)/2), e o mesmo em y.
+        x0 /= 2;
+        y0 /= 2;
+        x1 = std::min(level.getWidth(), (x1 + 1) / 2);
+        y1 = std::min(level.getHeight(), (y1 + 1) / 2);
+        if (x0 >= x1 || y0 >= y1) return;
+        downscale2x(src, srcW, srcH, level.getData(), level.getWidth(), level.getHeight(), x0, y0, x1, y1);
+        src = level.getData();
+        srcW = level.getWidth();
+        srcH = level.getHeight();
+    }
 }
 
 void MipmapPyramid::downscale2x(const uint8_t* src, int srcW, int srcH,
-                               uint8_t* dst, int dstW, int dstH) noexcept {
+                               uint8_t* dst, int dstW, int dstH,
+                               int x0, int y0, int x1, int y1) noexcept {
     if (!src || !dst || srcW <= 0 || srcH <= 0 || dstW <= 0 || dstH <= 0) return;
+    x0 = std::max(0, x0);
+    y0 = std::max(0, y0);
+    x1 = std::min(dstW, x1);
+    y1 = std::min(dstH, y1);
 
-    #pragma omp parallel for schedule(static) if(dstH >= 64)
-    for (int y = 0; y < dstH; ++y) {
+    #pragma omp parallel for schedule(static) if(y1 - y0 >= 64)
+    for (int y = y0; y < y1; ++y) {
         const int sy0 = y * 2;
         const int sy1 = std::min(sy0 + 1, srcH - 1);
 
@@ -98,7 +132,7 @@ void MipmapPyramid::downscale2x(const uint8_t* src, int srcW, int srcH,
         const uint8_t* row1 = src + static_cast<size_t>(sy1 * srcW * 4);
         uint8_t* dstRow     = dst + static_cast<size_t>(y * dstW * 4);
 
-        for (int x = 0; x < dstW; ++x) {
+        for (int x = x0; x < x1; ++x) {
             const int sx0 = x * 2;
             const int sx1 = std::min(sx0 + 1, srcW - 1);
 

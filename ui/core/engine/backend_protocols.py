@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
 from ui.core.engine.backend import PointerEvent
+from ui.core.engine.display_image import DisplayImage
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
 from ui.core.engine.backend_protocols_selection import SelectionTransformProtocol  # noqa: F401 (reexportado)
 
@@ -61,6 +62,8 @@ class CoreLifecycleProtocol(Protocol):
     def get_layer_pixel_buffer(self, layer_index: int) -> Optional[bytes]:
         ...
     def get_qimage_lod(self, zoom: float) -> Tuple[Optional[Any], float]:
+        ...
+    def get_display_image(self, zoom: float, region: Any) -> Optional[DisplayImage]:
         ...
     def get_dirty_tile_indices(self) -> List[Tuple[int, int]]:
         ...

@@ -13,6 +13,11 @@ _previous_plugins = os.environ.get("LUMENIA_PLUGINS_CONFIG_PATH")
 os.environ["LUMENIA_PLUGINS_CONFIG_PATH"] = str(Path(_profile.name) / "plugins_config.json")
 os.environ["LUMENIA_CONFIG_PATH"] = str(Path(_profile.name) / "config.json")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# The offscreen platform has no OpenGL: a QOpenGLWidget there cannot create its context
+# and every QPainter on it is inactive, so the canvas paint code ran as a silent no-op in
+# the tests (found 2026-10-01, while checking that the viewport draws what it should).
+# The raster widget is the production fallback and it really paints.
+os.environ.setdefault("LUMENIA_DISABLE_OPENGL", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "2")
 
 

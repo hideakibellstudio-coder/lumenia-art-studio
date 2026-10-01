@@ -11,7 +11,7 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Marca o pacote da suíte. |
-| `conftest.py` | Keep application preferences and recovery files out of the real user profile. |
+| `conftest.py` | Keep application preferences and recovery files out of the real user profile; fixture `qapp` único; liga `LUMENIA_DISABLE_OPENGL=1` (a plataforma offscreen não tem OpenGL e o widget GL do canvas virava um no-op de pintura nos testes). |
 | `main_window_fixture.py` | Acesso compartilhado à MainWindow dos testes de integração. |
 | `qt_windows.py` | Enumeração segura das janelas de topo do Qt nos testes. |
 | `run_all_tests.py` | Runner da suíte: executa tudo (ou uma suíte nomeada) com saída UTF-8 no Windows, cobertura e `--junit` para o relatório de testes. |
@@ -69,6 +69,7 @@
 | `test_document_profile_and_dpi.py` | Perfil de cor por documento, DPI no Document e o fluxo "Novo documento". |
 | `test_document_serializer_integrity.py` | Regressões de integridade do formato editável .lmn. |
 | `test_document_v2.py` | Native LMN v2 persistence, migrations and recovery failure regressions. |
+| `test_display_region.py` | A tela pede ao motor o retângulo que pinta, não o canvas inteiro (S1.1, D4): a região é o mesmo recorte do buffer inteiro (com e sem perfil de cor), fora do canvas é recusada, e a repintura da viewport (zoom inteiro e fracionado, com rotação, tela cheia ou parcial) desenha os mesmos pixels que o canvas inteiro desenhava, sem copiá-lo. |
 | `test_engine_backend_protocols.py` | Prova, em runtime, que os Protocols de ui.core.engine.backend_protocols sao cortes fieis de EngineBackend E que o backend concreto (AladynBackend) implementa de fato cada papel. |
 | `test_engine_benchmark_runner.py` | O runner de benchmarks do motor exporta a linha de base em formato legível por máquina. |
 | `test_engine_boundary_color_and_signals.py` | Test Engine Boundary Round 11 — Validação da Fronteira Nativa C++ / Python. |

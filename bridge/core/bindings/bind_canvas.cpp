@@ -58,6 +58,15 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         .def("get_display_pixel_buffer", [](boundary::PaintEngineFacade& self) {
             return pixelSnapshot(self.getDisplayRawPixelData(), self.getDisplayPixelDataSize());
         })
+        .def("get_display_region", [](boundary::PaintEngineFacade& self, int x, int y, int w, int h) {
+            // One copy, straight into the Python bytes: the screen asks for the rectangle it paints.
+            const size_t bytes = checkedRasterBytes(w, h, 4);
+            PyObject* raw = PyBytes_FromStringAndSize(nullptr, static_cast<Py_ssize_t>(bytes));
+            if (!raw) throw py::error_already_set();
+            py::bytes out = py::reinterpret_steal<py::bytes>(raw);
+            self.copyDisplayRegion(x, y, w, h, reinterpret_cast<uint8_t*>(PyBytes_AS_STRING(raw)), bytes);
+            return out;
+        }, py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"))
         .def("get_layer_pixel_buffer", [](boundary::PaintEngineFacade& self, int layerIdx) -> py::object {
             auto data = self.getLayerPixelBuffer(layerIdx);
             if (data.empty()) return py::none();

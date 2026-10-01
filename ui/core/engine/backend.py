@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
+from ui.core.engine.display_image import DisplayImage
 from ui.core.engine.engine_type import EngineType
 
 
@@ -145,6 +146,11 @@ class EngineBackend(ABC):
         return None
 
     def get_qimage_lod(self, zoom: float) -> Tuple[Optional[Any], float]: return (None, 1.0)
+
+    def get_display_image(self, zoom: float, region: Any) -> Optional[DisplayImage]:
+        """As imagens que a tela pinta: a `region` (QRect do canvas) em zoom de trabalho, ou o nível LOD afastado."""
+        return None
+
     def get_dirty_tile_indices(self) -> List[Tuple[int, int]]: return []
     def clear_dirty_tiles(self) -> None: ...
 

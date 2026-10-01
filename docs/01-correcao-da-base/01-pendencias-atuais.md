@@ -73,6 +73,10 @@ fechada: só diminui.
    Vem antes de qualquer mudança em motor, S0.7 incluída.)*
 4. **S1.1–S1.3:** repintar só a região alterada (D4); salvar e abrir sem
    travar (D3); salvamento automático sem travar.
+   - S1.1, zoom de trabalho: *(feito em 2026-10-01: `get_display_image` e
+     `get_display_region`, contrato do módulo nativo na versão 3. Repintura a 100%
+     com `drawImage` real: 7,3 / 34,0 / 115,0 ms → 0,5 ms em 1080p / 4K /
+     6000×4000, mesma máquina e mesmo comando. Falta o zoom afastado: D18.)*
 
 Os grupos 1 a 3 são pequenos (até uma sessão cada); o grupo 4 é médio a
 grande.

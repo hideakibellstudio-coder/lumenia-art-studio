@@ -36,6 +36,17 @@ public:
     static uint8_t* resolveDisplayBuffer(
         int colorProfileId, canvas::PixelBuffer& outputBuffer, canvas::PixelBuffer& displayBuffer
     );
+
+    // Copia o retangulo [x, x+w) x [y, y+h) do buffer de saida para `dst`
+    // (w*h*4 bytes, linhas contiguas), ja com o perfil de cor aplicado. O custo e'
+    // proporcional ao retangulo e nao ao canvas: e' o que a tela pede a cada
+    // repintura em zoom de trabalho. Retangulo vazio, fora do canvas ou `dstSize`
+    // diferente de w*h*4 e' erro de quem chama (std::invalid_argument), nao um
+    // recorte silencioso.
+    static void copyDisplayRegion(
+        int colorProfileId, const canvas::PixelBuffer& outputBuffer,
+        int x, int y, int w, int h, uint8_t* dst, size_t dstSize
+    );
 };
 
 } // namespace aladyn::engine::boundary::orchestrator

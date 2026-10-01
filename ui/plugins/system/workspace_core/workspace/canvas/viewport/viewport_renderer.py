@@ -16,6 +16,7 @@ from PySide6 import QtCore, QtGui
 
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.core.document.manager import DocumentManager
+from ui.core.engine.display_image import region_to_request
 from ui.core.engine.registry import EngineRegistry
 
 from ..renderers.overlay_renderer import OverlayRenderer
@@ -135,21 +136,11 @@ class ViewportRenderer:
 
                     if backend:
                         t_acquire_0 = time.perf_counter()
-                        qimg, lod_scale = backend.get_qimage_lod(widget.zoom)
+                        display = backend.get_display_image(widget.zoom, region_to_request(dirty_canvas, canvas_rect.toRect()))
                         stats.acquire_image_ms = (time.perf_counter() - t_acquire_0) * 1000.0
-                        if qimg and not qimg.isNull():
+                        if display is not None and not display.image.isNull():
                             t_blit_0 = time.perf_counter()
-                            if abs(lod_scale - 1.0) < 1e-4:
-                                painter.drawImage(dirty_canvas, qimg, dirty_canvas)
-                            else:
-                                src_x = int(dirty_canvas.x() * lod_scale)
-                                src_y = int(dirty_canvas.y() * lod_scale)
-                                src_w = max(1, int(dirty_canvas.width() * lod_scale))
-                                src_h = max(1, int(dirty_canvas.height() * lod_scale))
-                                lod_src = QtCore.QRect(src_x, src_y, src_w, src_h).intersected(
-                                    QtCore.QRect(0, 0, qimg.width(), qimg.height())
-                                )
-                                painter.drawImage(dirty_canvas, qimg, lod_src)
+                            painter.drawImage(dirty_canvas, display.image, display.source_rect(dirty_canvas))
                             stats.draw_image_ms = (time.perf_counter() - t_blit_0) * 1000.0
 
                 if backend and backend.has_selection():

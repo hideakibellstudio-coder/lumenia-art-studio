@@ -14,7 +14,7 @@
 |---|---|
 | `run_engine_benchmarks.py` | Mede e exporta a linha de base do motor nativo (formato conferido por `tests/test_engine_benchmark_runner.py`). |
 | `run_app_benchmarks.py` | Roda cada cenário da aplicação num processo próprio e junta o JSON; opção `--compare`. |
-| `app_engine_paths.py` | Cenário `engine`: cópia do canvas, LOD, traço de 120 amostras (1 e 20 camadas), opacidade, desfazer e refazer, pelo contrato público do backend. |
+| `app_engine_paths.py` | Cenário `engine`: cópia do canvas inteiro, a região que a tela pede (1600×900 e 128×128), LOD, traço de 120 amostras (1 e 20 camadas), opacidade, desfazer e refazer, pelo contrato público do backend. |
 | `app_ui_paths.py` | Cenário `ui`: abertura até a janela, documento novo, custo de cada amostra da caneta pelo roteador real e repintura do canvas (ajustado e a 100%). |
 | `app_file_paths.py` | Cenário `files`: salvar e abrir um `.lmn` com várias camadas; tempo, tamanho e crescimento do pico de memória. |
 | `compare_runs.py` | Compara dois resultados: medianas e totais, tolerância relativa e piso de ruído por unidade. |
@@ -24,5 +24,6 @@
 
 - Pode importar `aladyn_engine_native` diretamente (exceção da Lei nº 2 para benchmarks); os cenários da aplicação usam só o contrato público de `EngineBackend`.
 - Sem limite de tempo fixo em teste: o que depende do hardware não é asserção. Os limites de S1 são conferidos comparando duas rodadas na mesma máquina.
+- O cenário `ui` roda com `LUMENIA_DISABLE_OPENGL=1`: a plataforma offscreen não tem OpenGL, e com o widget GL todo `paintEvent` vira um no-op, o que deixaria o `drawImage` fora da repintura medida. As regiões repintadas dependem do recorte que o Qt faz da janela offscreen; o custo da aquisição por região está no cenário `engine` (`display_region_*`).
 - A configuração do usuário não é tocada: cada cenário recebe um `LUMENIA_CONFIG_PATH` temporário.
 - O ramo Windows de `peak_memory_mb` (psapi) não roda no Linux do agente; os números de memória do Windows ainda não foram conferidos.

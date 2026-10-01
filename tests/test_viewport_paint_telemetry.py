@@ -1,8 +1,8 @@
 """The "Blit" meter counts the canvas copy, not only the drawImage call (D16, found 2026-09-26).
 
 The meter called "6. Apresentação Blit Qt" timed `QPainter.drawImage` and nothing
-else. The copy of the canvas to a QImage (`get_qimage_lod`), the biggest cost of a
-repaint (34 ms at 4K on 2026-10-01, the cost of D4), ran before the timer, and
+else. The copy of the canvas to a QImage (`get_qimage_lod`, today `get_display_image`), the
+biggest cost of a repaint (34 ms at 4K on 2026-10-01, the cost of D4), ran before the timer, and
 `qt_paint_total_ms` was published with no meter that showed it.
 
 The painter now times the acquisition on its own, and every screen reads the
@@ -32,9 +32,9 @@ def painted_viewport(qapp):
     from ui.plugins.system.workspace_core.workspace.canvas.render_widget import RenderWidget
 
     class SlowCopyBackend(AladynBackend):
-        def get_qimage_lod(self, zoom):
+        def get_display_image(self, zoom, region):
             time.sleep(SLOW_COPY_S)
-            return super().get_qimage_lod(zoom)
+            return super().get_display_image(zoom, region)
 
     registry = EngineRegistry.instance()
     previous = registry.get_backend()

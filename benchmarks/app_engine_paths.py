@@ -1,7 +1,9 @@
 """Scenario "engine": the paths the application takes through the backend.
 
-Display acquisition (the whole-canvas copy the viewport makes on every repaint
-at zoom >= 100%), the same acquisition from the LOD pyramid, a 120-sample
+Display acquisition: the whole-canvas copy (`get_qimage`, what the viewport made on
+every repaint at zoom >= 100% until S1.1, and what recording and export still ask
+for), the region the viewport asks for today (a 1600x900 window and a 128x128
+stroke rectangle), the same acquisition from the LOD pyramid, a 120-sample
 stroke, the same stroke over 20 layers, an opacity change and an undo/redo
 pair. Everything goes through the public backend contract, as the UI does.
 """
@@ -41,6 +43,8 @@ def _toggle_opacity(backend, layer_index: int) -> None:
 
 
 def measure(sizes: list[tuple[int, int]], repeats: int) -> dict:
+    from PySide6.QtCore import QRect
+
     from ui.infrastructure.bridge_client.aladyn import AladynBackend
 
     metrics: dict[str, dict] = {}
@@ -50,6 +54,10 @@ def measure(sizes: list[tuple[int, int]], repeats: int) -> dict:
         backend = AladynBackend()
         backend.set_active_document_context(uid, width, height)
         metrics[f"get_qimage.{tag}"] = summary(repeat_ms(backend.get_qimage, repeats))
+        for label, region in (("viewport", QRect(0, 0, 1600, 900)), ("stroke", QRect(100, 100, 128, 128))):
+            metrics[f"display_region_{label}.{tag}"] = summary(
+                repeat_ms(lambda region=region: backend.get_display_image(1.0, region), repeats)
+            )
         metrics[f"get_qimage_lod025.{tag}"] = summary(
             repeat_ms(lambda: backend.get_qimage_lod(0.25), repeats)
         )

@@ -22,7 +22,7 @@ Não há porta única: cada orquestrador é incluído pela `PaintEngineFacade.cp
 | `LayerSampleSource.hpp` | De onde o balde e a varinha leem a região: a composição ou só a camada ativa (opção "Todas as Camadas"). |
 | `LayerStackOrchestrator.hpp` | Mutações da pilha de camadas (adicionar, remover, duplicar, reordenar, agrupar) com recomposição e histórico. |
 | `MemoryOrchestrator.hpp` | Compressão de camadas inativas e medidas de memória de tiles (COW). |
-| `RasterExportOrchestrator.hpp` | Saída raster: buffer de camada, miniatura, conversão de perfil de cor, buffer de exibição (declaração). |
+| `RasterExportOrchestrator.hpp` | Saída raster: buffer de camada, miniatura, conversão de perfil de cor, buffer de exibição inteiro ou só um retângulo (`copyDisplayRegion`, o que a repintura pede) (declaração). |
 | `RasterExportOrchestrator.cpp` | Implementação da saída raster. |
 | `SelectionOrchestrator.hpp` | Seleção: varinha, retângulo, elipse, polígono, apagar e preencher a seleção (declaração). |
 | `SelectionOrchestrator.cpp` | Implementação sobre `selection/SelectionEngine`, com histórico. |

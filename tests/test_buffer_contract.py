@@ -17,7 +17,7 @@ def facade():
 
 
 @pytest.mark.parametrize("accessor", [
-    "get_pixel_buffer", "get_display_pixel_buffer", "get_layer_pixel_buffer",
+    "get_pixel_buffer", "get_display_pixel_buffer", "get_display_region", "get_layer_pixel_buffer",
     "get_layer_thumbnail_buffer", "get_display_pixel_buffer_lod",
     "get_selection_mask_buffer", "get_transform_source_buffer",
     "get_shape_preview_buffer", "get_brush_height_preview_buffer",
@@ -30,7 +30,7 @@ def test_native_snapshots_survive_mutation_and_destruction(accessor):
     for name in ("shape", "brush_height", "canvas_height"):
         getattr(engine, f"load_{name}_texture")(3, 2, bytes([23]) * 6)
     args = {"get_layer_pixel_buffer": (0,), "get_layer_thumbnail_buffer": (0, 3, 3),
-            "get_display_pixel_buffer_lod": (1,)}.get(accessor, ())
+            "get_display_pixel_buffer_lod": (1,), "get_display_region": (1, 1, 4, 4)}.get(accessor, ())
     if accessor == "get_transform_source_buffer":
         assert engine.begin_transform()
     result = getattr(engine, accessor)(*args)

@@ -329,6 +329,9 @@ public:
 
     [[nodiscard]] uint8_t* getDisplayRawPixelData() noexcept;
     [[nodiscard]] size_t getDisplayPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
+    // So o retangulo pedido, com o perfil de cor aplicado (S1.1): a repintura em zoom de
+    // trabalho nao copia mais o canvas inteiro. Fora do canvas: std::invalid_argument.
+    void copyDisplayRegion(int x, int y, int w, int h, uint8_t* dst, size_t dstSize) const;
     [[nodiscard]] std::vector<uint8_t> getLayerPixelBuffer(int layerIndex) const;
 
     // ─── TELEMETRIA E DIAGNÓSTICO EM TEMPO REAL ──────────────────────────

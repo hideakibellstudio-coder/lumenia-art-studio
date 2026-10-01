@@ -37,6 +37,9 @@ void PaintEngineFacade::setRenderOptions(bool lowLatency, bool linearGamma, bool
 uint8_t* PaintEngineFacade::getDisplayRawPixelData() noexcept {
     return orchestrator::RasterExportOrchestrator::resolveDisplayBuffer(m_colorProfileId, m_outputBuffer, m_displayBuffer);
 }
+void PaintEngineFacade::copyDisplayRegion(int x, int y, int w, int h, uint8_t* dst, size_t dstSize) const {
+    orchestrator::RasterExportOrchestrator::copyDisplayRegion(m_colorProfileId, m_outputBuffer, x, y, w, h, dst, dstSize);
+}
 std::vector<uint8_t> PaintEngineFacade::getLayerPixelBuffer(int layerIndex) const {
     return orchestrator::RasterExportOrchestrator::getLayerPixelBuffer(m_layerStack, layerIndex, m_width, m_height);
 }

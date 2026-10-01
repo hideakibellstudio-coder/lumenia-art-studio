@@ -24,8 +24,10 @@ from typing import Optional
 
 os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
 
+from PySide6.QtCore import QRect
 from PySide6.QtGui import QImage
 from ui.core.engine.backend import EngineBackend, PointerEvent
+from ui.core.engine.display_image import DisplayImage
 from ui.core.engine.errors import EngineContextError
 from .contract_version import EXPECTED_CONTRACT_VERSION
 
@@ -274,6 +276,24 @@ class AladynBackend(
                     memview, lod_w, lod_h, scale = res
                     return QImage(memview, lod_w, lod_h, lod_w * 4, QImage.Format_RGBA8888).copy(), scale
         return self.get_qimage(), 1.0
+
+    def get_display_image(self, zoom: float, region: QRect) -> Optional[DisplayImage]:
+        """A imagem que a tela pinta: o nível LOD (zoom afastado) ou só a `region` (zoom de trabalho).
+
+        A região é recortada ao canvas do documento ativo; o custo da cópia é o da
+        região, não o do canvas (S1.1). Região vazia depois do recorte: None.
+        """
+        if not self._facade:
+            return None
+        if self._facade.get_best_lod_level(zoom) > 0:
+            image, scale = self.get_qimage_lod(zoom)
+            return None if image is None else DisplayImage(image, scale)
+        area = region.intersected(QRect(0, 0, self._facade.get_width(), self._facade.get_height()))
+        if area.isEmpty():
+            return None
+        pixels = self._facade.get_display_region(area.x(), area.y(), area.width(), area.height())
+        image = QImage(pixels, area.width(), area.height(), area.width() * 4, QImage.Format_RGBA8888)
+        return DisplayImage(image, 1.0, (area.x(), area.y()), pixels)
 
     def get_dirty_tile_indices(self) -> list[tuple[int, int]]:
         if self._facade:

@@ -78,6 +78,9 @@ def measure(sizes: list[tuple[int, int]], strokes: int) -> dict:
 
 def main() -> int:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    # Offscreen has no OpenGL: with the GL canvas widget every paint is a no-op and the
+    # repaint numbers would leave out the drawImage. The raster widget paints for real.
+    os.environ.setdefault("LUMENIA_DISABLE_OPENGL", "1")
     parser = argparse.ArgumentParser()
     parser.add_argument("--sizes", default=DEFAULT_SIZES)
     parser.add_argument("--strokes", type=int, default=3)

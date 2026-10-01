@@ -8,13 +8,15 @@ estado do documento aberto; pode ser None sem plugins).
 from __future__ import annotations
 
 import os
-from typing import Optional
+from typing import Callable, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.i18n import tr
 from ui.core.engine.limits import max_canvas_dimension
 from ui.core.document.document import Document
+from ui.core.document.document_saver import DocumentSaver
+from ui.core.document.save_capture import SaveCapture, capture_document
 from ui.core.document.manager import DocumentManager
 from ui.core.document.restore import restore_document
 from ui.core.document.serializer import DocumentFormatError, DocumentSerializer
@@ -35,6 +37,7 @@ class DocumentActions(ShellActions):
         backend: BackendProvider,
         brush_sync: BrushEngineSync,
         workspace: Optional[ShellWorkspace],
+        saver: DocumentSaver,
     ) -> None:
         super().__init__(window)
         self._window = window
@@ -42,6 +45,10 @@ class DocumentActions(ShellActions):
         self._backend = backend
         self._brush_sync = brush_sync
         self._workspace = workspace
+        self._saver = saver
+        # Onde cada documento está sendo salvo pela primeira vez: `file_path` só vale depois da
+        # gravação terminar, e um segundo Ctrl+S nesse meio tempo não deve reabrir o diálogo.
+        self._saving_to: dict[str, str] = {}
 
     # ── Novo ──────────────────────────────────────────────────────────────
 
@@ -189,14 +196,19 @@ class DocumentActions(ShellActions):
 
     # ── Salvar ────────────────────────────────────────────────────────────
 
-    def save_active(self) -> bool:
+    def save_active(self, then: Optional[Callable[[Document], None]] = None) -> bool:
+        """Começa a salvar o documento ativo. True se a gravação foi iniciada.
+
+        `then(doc)` roda quando o arquivo está gravado e conferido (e não roda se falhar):
+        é como "salvar e fechar" sabe quando fechar sem arriscar o documento."""
         doc = self._dm.active_document()
         if not doc:
             self._say(tr("status.no_doc_to_save", "Nenhum documento ativo para salvar."), 2000)
             return False
-        return self._save_to_path(doc, doc.file_path) if doc.file_path else self.save_active_as()
+        path = doc.file_path or self._saving_to.get(doc.uid)
+        return self._save_to_path(doc, path, then) if path else self.save_active_as(then)
 
-    def save_active_as(self) -> bool:
+    def save_active_as(self, then: Optional[Callable[[Document], None]] = None) -> bool:
         doc = self._dm.active_document()
         if not doc:
             self._say(tr("status.no_doc_to_save", "Nenhum documento ativo para salvar."), 2000)
@@ -205,18 +217,42 @@ class DocumentActions(ShellActions):
             self._window, tr("file_dialogs.save_document", "Salvar Documento Lumenia"), f"{doc.name}.lmn",
             f"{tr('file_dialogs.lumenia_document', 'Documento Lumenia')} (*.lmn)",
         )
-        return bool(filename) and self._save_to_path(doc, filename)
+        return bool(filename) and self._save_to_path(doc, filename, then)
 
-    def _save_to_path(self, doc: Document, path: str) -> bool:
+    def _save_to_path(self, doc: Document, path: str, then: Optional[Callable[[Document], None]] = None) -> bool:
+        """A metade que precisa da thread do documento; a gravação segue no `DocumentSaver`."""
         try:
-            saved_path = DocumentSerializer.save(doc, self._backend(), path)
+            capture = capture_document(doc, self._backend(), path)
         except Exception as exc:
             self._say(tr("status.doc_save_failed", "Falha ao salvar '{name}': {error}", name=doc.name, error=exc), 5000)
             return False
-        doc.mark_saved(saved_path)
+        self._saving_to[doc.uid] = str(capture.target)
+        self._say(tr("status.doc_saving", "Salvando '{name}'...", name=doc.name), 0)
+        self._saver.submit(
+            capture,
+            on_done=lambda done: self._on_saved(done, then),
+            on_error=self._on_save_failed,
+        )
+        return True
+
+    def _on_saved(self, capture: SaveCapture, then: Optional[Callable[[Document], None]]) -> None:
+        self._saving_to.pop(capture.uid, None)
+        doc = self._dm.get_document(capture.uid)
+        if doc is None:  # fechado enquanto gravava: o arquivo está salvo e não há mais o que atualizar
+            return
+        doc.mark_saved(str(capture.target), revision=capture.revision)
         self.documentSaved.emit(doc.uid)
         self._say(tr("status.doc_saved", "Documento '{name}' salvo com sucesso.", name=doc.name), 2500)
-        return True
+        if then is not None:
+            then(doc)
+
+    def _on_save_failed(self, capture: SaveCapture, error: Exception) -> None:
+        self._saving_to.pop(capture.uid, None)
+        self._say(tr("status.doc_save_failed", "Falha ao salvar '{name}': {error}", name=capture.manifest.get("name", ""), error=error), 8000)
+
+    def wait_for_saves(self, timeout_ms: int = 300_000) -> bool:
+        """Espera as gravações em andamento (ao sair). False se passou do prazo."""
+        return self._saver.wait_idle(timeout_ms)
 
     # ── Fechar ────────────────────────────────────────────────────────────
 
@@ -237,11 +273,11 @@ class DocumentActions(ShellActions):
             current = self._dm.active_document()
             if current is not doc:
                 self._dm.set_active_document(uid)
-            saved = self.save_active()
+            # O documento só fecha depois do arquivo gravado e conferido: uma falha na gravação
+            # o deixa aberto, com tudo o que foi pintado.
+            self.save_active(then=lambda saved: self._dm.close_document(saved.uid))
             if current is not None and current is not doc:
                 self._dm.set_active_document(current.uid)
-            if saved:
-                self._dm.close_document(uid)
         elif dialog.result_code == CloseDocumentDialog.DISCARD:
             self._dm.close_document(uid)
 
@@ -253,8 +289,10 @@ class DocumentActions(ShellActions):
         for doc in list(self._dm.documents()):
             if doc.is_dirty:
                 self.close_with_confirmation(doc.uid)
+                self.wait_for_saves()  # "salvar e fechar" fecha quando a gravação termina
                 if self._dm.get_document(doc.uid) is not None:
                     return False
+        self.wait_for_saves()
         for doc in list(self._dm.documents()):
             if self._dm.get_document(doc.uid) is not None:
                 self._dm.close_document(doc.uid)

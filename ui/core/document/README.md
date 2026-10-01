@@ -14,6 +14,7 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Reexporta `Document` e `DocumentManager`. |
+| `document_saver.py` | `DocumentSaver`: a segunda metade de salvar numa thread própria (uma gravação por vez, na ordem pedida); o resultado volta na thread da interface por callback; `wait_idle` espera a fila ao sair. |
 | `document.py` | Document — Representação de um documento aberto no Lumenia. |
 | `geometry.py` | Atomic geometry changes: prepare all pixels before committing the new context (pede ao motor o RGBA de cada camada; não passa mais por um arquivo temporário). |
 | `history.py` | One timeline for native pixels and the document's layer metadata. |

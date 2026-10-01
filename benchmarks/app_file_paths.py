@@ -53,6 +53,40 @@ def _paint_dense(backend, layers: int, width: int, height: int) -> None:
         backend.paste_rgba_buffer_on_active_layer(0, 0, width, height, pixels.tobytes())
 
 
+def _event_loop_gap_during_save(doc, backend, folder: str, tag: str) -> float:
+    """The longest time the interface thread went without handling an event while the application
+    saved the document the way it does (capture here, writing on the DocumentSaver's thread).
+
+    A timer ticks every 5 ms and the loop that waits for the save keeps processing events: the
+    largest distance between two ticks, plus the capture itself, is how long a user would see the
+    window frozen. The target of S1.2 is 50 ms.
+    """
+    from PySide6 import QtCore, QtWidgets
+
+    from ui.core.document.document_saver import DocumentSaver
+    from ui.core.document.save_capture import capture_document
+
+    app = QtWidgets.QApplication.instance()
+    saver = DocumentSaver()
+    ticks: list[float] = []
+    timer = QtCore.QTimer()
+    timer.setInterval(5)
+    timer.timeout.connect(lambda: ticks.append(time.perf_counter()))
+    timer.start()
+    app.processEvents()
+    ticks.append(time.perf_counter())
+    started = time.perf_counter()
+    capture = capture_document(doc, backend, os.path.join(folder, f"async-{tag}.lmn"))
+    capture_ms = (time.perf_counter() - started) * 1000.0
+    saver.submit(capture)
+    while saver.is_busy():
+        app.processEvents()
+        time.sleep(0.001)
+    timer.stop()
+    gaps = [(b - a) * 1000.0 for a, b in zip(ticks, ticks[1:])]
+    return round(max(gaps + [capture_ms]), 1)
+
+
 def measure(sizes: list[tuple[int, int]], layers: int, content: str = "sparse") -> dict:
     from PySide6 import QtWidgets
 
@@ -90,6 +124,7 @@ def measure(sizes: list[tuple[int, int]], layers: int, content: str = "sparse") 
             metrics[f"save_capture_ms.{tag}"] = round((captured - started) * 1000.0, 1)
             metrics[f"save_write_s.{tag}"] = round(finished - captured, 2)
             metrics[f"save_s.{tag}"] = round(finished - started, 2)
+            metrics[f"save_event_loop_max_gap_ms.{tag}"] = _event_loop_gap_during_save(doc, backend, folder, tag)
             after = peak_memory_mb()
             metrics[f"save_peak_memory_growth_mb.{tag}"] = (
                 round(after - before, 1) if before is not None and after is not None else None

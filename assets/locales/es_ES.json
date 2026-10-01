@@ -672,6 +672,7 @@
   },
   "status": {
     "ready": "Listo.",
+    "doc_saving": "Guardando '{name}'...",
     "doc_saved": "Documento '{name}' guardado correctamente.",
     "layer_created": "Capa '{name}' creada.",
     "group_created": "Grupo '{name}' creado correctamente.",

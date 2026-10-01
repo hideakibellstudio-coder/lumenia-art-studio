@@ -672,6 +672,7 @@
   },
   "status": {
     "ready": "Pronto.",
+    "doc_saving": "Salvando '{name}'...",
     "doc_saved": "Documento '{name}' salvo com sucesso.",
     "layer_created": "Camada '{name}' criada.",
     "group_created": "Grupo '{name}' criado com sucesso.",

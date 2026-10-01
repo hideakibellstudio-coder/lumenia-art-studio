@@ -14,6 +14,8 @@ from PySide6 import QtCore, QtWidgets
 from ui.infrastructure.i18n import tr
 from ui.infrastructure.config.manager import ConfigManager
 from ui.core.document.document import Document
+from ui.core.document.document_saver import DocumentSaver
+from ui.core.document.save_capture import SaveCapture
 from ui.core.document.manager import DocumentManager
 from ui.core.document.recovery import RecoveryStore
 
@@ -32,6 +34,7 @@ class RecoveryController(ShellActions):
         backend: BackendProvider,
         canvas: Optional[ShellCanvas],
         documents: DocumentActions,
+        saver: DocumentSaver,
     ) -> None:
         super().__init__(window)
         self._window = window
@@ -39,6 +42,7 @@ class RecoveryController(ShellActions):
         self._backend = backend
         self._canvas = canvas
         self._documents = documents
+        self._saver = saver
         config = ConfigManager.instance()
         self.store = RecoveryStore(Path(config.config_path).parent / "recovery")
         dm.documentClosed.connect(self.discard)
@@ -67,16 +71,27 @@ class RecoveryController(ShellActions):
         backend = self._backend()
         if not active or not backend or not backend.available:
             return
+        # A captura de cada documento leva poucos ms e a gravação roda na thread do `DocumentSaver`:
+        # a interface não trava (eram ~4 s por documento grande, a cada minuto).
         try:
             document: Document
             for document in self._dm.documents():
                 if document.is_dirty:
                     backend.set_active_document_context(document.uid, document.width, document.height)
-                    self.store.capture(document, backend)
+                    capture = self.store.prepare(document, backend)
+                    if capture is not None:
+                        self._saver.submit(capture, on_done=self._written, on_error=self._failed)
         except Exception as exc:
             self._say(tr("status.recovery_create_failed", "Falha ao criar recuperação: {error}", error=exc), 10000)
         finally:
             backend.set_active_document_context(active.uid, active.width, active.height)
+
+    def _written(self, capture: SaveCapture) -> None:
+        self.store.finish(capture, written=True)
+
+    def _failed(self, capture: SaveCapture, error: Exception) -> None:
+        self.store.finish(capture, written=False)
+        self._say(tr("status.recovery_create_failed", "Falha ao criar recuperação: {error}", error=error), 10000)
 
     def offer(self) -> None:
         candidates = self.store.candidates()

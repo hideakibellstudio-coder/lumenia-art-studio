@@ -70,12 +70,12 @@ class DocumentSerializer:
     @classmethod
     def _publish(cls, temp_name: str, target: Path) -> None:
         """Confere o arquivo pronto, guarda a cópia `.bak` do anterior e o troca de forma atômica."""
-        cls.read(temp_name)  # a estrutura e o CRC de cada entrada, antes de tocar no arquivo do usuário
+        cls.verify(temp_name)  # a estrutura e o CRC de cada entrada, antes de tocar no arquivo do usuário
         with open(temp_name, "r+b") as stream:
             os.fsync(stream.fileno())
         if target.exists():
             try:
-                cls.read(target)
+                cls.verify(target)
             except DocumentFormatError:
                 pass  # Never replace a valid backup with a corrupt source.
             else:
@@ -91,8 +91,28 @@ class DocumentSerializer:
                         os.unlink(backup_name)
         os.replace(temp_name, target)
 
+    @staticmethod
+    def _consume(archive: zipfile.ZipFile, name: str, keep: bool) -> bytes:
+        """Lê a entrada inteira (e o ZIP confere o CRC ao chegar no fim). Guarda os bytes só se `keep`;
+        senão devolve os 4 primeiros, o bastante para conferir o bloco, sem ocupar a memória do arquivo."""
+        with archive.open(name) as stream:
+            if keep:
+                return stream.read()
+            head = stream.read(4)
+            while stream.read(1 << 20):
+                pass
+            return head
+
     @classmethod
-    def read(cls, path: str | os.PathLike[str]) -> tuple[dict[str, Any], dict[str, bytes]]:  # noqa: C901 -- dívida registrada (pendências, item 14)
+    def verify(cls, path: str | os.PathLike[str]) -> None:
+        """Confere um arquivo sem carregá-lo: a estrutura, os tamanhos e o CRC de cada entrada.
+
+        Gravar confere o arquivo pronto antes de trocá-lo pelo do usuário; carregar todas as
+        camadas na memória só para isso dobrava o pico (294 MB num 4K denso)."""
+        cls.read(path, keep_payloads=False)
+
+    @classmethod
+    def read(cls, path: str | os.PathLike[str], keep_payloads: bool = True) -> tuple[dict[str, Any], dict[str, bytes]]:  # noqa: C901 -- dívida registrada (pendências, item 14)
         source = Path(path).expanduser().resolve()
         try:
             with zipfile.ZipFile(source, "r") as archive:
@@ -150,10 +170,10 @@ class DocumentSerializer:
                             bad_size = not cls.TILE_BLOCK_HEADER <= size <= tiles_limit if is_tiles else size != expected_size
                             if bad_size or total_size > cls.MAX_PAYLOAD_BYTES:
                                 raise DocumentFormatError("tamanho de payload inválido ou acima do limite")
-                            data = archive.read(payload_name)
+                            data = cls._consume(archive, payload_name, keep_payloads)
                         except KeyError as exc:
                             raise DocumentFormatError(f"payload ausente: {payload_name}") from exc
-                        if len(data) != size:
+                        if keep_payloads and len(data) != size:
                             raise DocumentFormatError("payload de camada com tamanho inválido")
                         if is_tiles and data[:4] != cls.TILE_BLOCK_MAGIC:
                             raise DocumentFormatError("bloco de tiles inválido")
@@ -170,7 +190,7 @@ class DocumentSerializer:
                         total_size += size
                         if size != expected or total_size > cls.MAX_PAYLOAD_BYTES:
                             raise DocumentFormatError("tamanho de recurso inválido ou acima do limite")
-                        payloads[name] = archive.read(name)
+                        payloads[name] = cls._consume(archive, name, keep_payloads)
                     except KeyError as exc:
                         raise DocumentFormatError(f"recurso ausente: {name}") from exc
                     referenced_payloads.add(name)
@@ -183,7 +203,7 @@ class DocumentSerializer:
                         total_size += size
                         if size <= 0 or total_size > cls.MAX_PAYLOAD_BYTES or size > 50 * 1024 * 1024:
                             raise DocumentFormatError("tamanho de perfil ICC inválido ou acima do limite")
-                        payloads[icc_payload] = archive.read(icc_payload)
+                        payloads[icc_payload] = cls._consume(archive, icc_payload, keep_payloads)
                     except KeyError as exc:
                         raise DocumentFormatError(f"recurso ausente: {icc_payload}") from exc
                     referenced_payloads.add(icc_payload)

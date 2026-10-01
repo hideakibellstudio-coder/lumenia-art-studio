@@ -672,6 +672,7 @@
   },
   "status": {
     "ready": "Ready.",
+    "doc_saving": "Saving '{name}'...",
     "doc_saved": "Document '{name}' saved successfully.",
     "layer_created": "Layer '{name}' created.",
     "group_created": "Group '{name}' created successfully.",

@@ -146,8 +146,15 @@ class Document(QtCore.QObject):
         self.dirty_reason = str(reason)
         self.modified.emit(self.dirty_reason)
 
-    def mark_saved(self, file_path: str | None = None) -> None:
+    def mark_saved(self, file_path: str | None = None, revision: int | None = None) -> None:
+        """Grava no documento que ele foi salvo.
+
+        `revision` é a do instante em que a captura foi tirada (`SaveCapture.revision`): a gravação
+        acontece depois, em outra thread, e o artista pode ter editado nesse meio tempo. O arquivo
+        guarda o documento como estava na captura; se o documento já passou disso, continua sujo."""
         if file_path is not None:
             self.file_path = str(file_path)
+        if revision is not None and revision != self.revision:
+            return
         self.is_dirty = False
         self.dirty_reason = None

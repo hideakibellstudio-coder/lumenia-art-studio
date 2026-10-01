@@ -672,6 +672,7 @@
   },
   "status": {
     "ready": "準備完了。",
+    "doc_saving": "'{name}' を保存しています...",
     "doc_saved": "ドキュメント '{name}' を保存しました。",
     "layer_created": "レイヤー '{name}' を作成しました。",
     "group_created": "グループ '{name}' を作成しました。",

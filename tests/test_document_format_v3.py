@@ -302,6 +302,17 @@ def test_a_flipped_byte_on_disk_is_caught_by_the_archive(saved):
         DocumentSerializer.read(path)
 
 
+def test_verify_checks_a_file_without_loading_it_and_catches_a_flipped_byte(saved):
+    _engine, _manager, path = saved
+    assert DocumentSerializer.verify(path) is None
+    data = bytearray(open(path, "rb").read())
+    data[len(data) // 3] ^= 0xFF
+    with open(path, "wb") as stream:
+        stream.write(data)
+    with pytest.raises(DocumentFormatError):
+        DocumentSerializer.verify(path)
+
+
 # -- the two halves of a save --------------------------------------------------------------
 
 def test_the_second_half_runs_on_another_thread_and_writes_the_document_as_it_was_captured(session, tmp_path):

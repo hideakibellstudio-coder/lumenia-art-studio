@@ -40,6 +40,7 @@ from ui.core.shortcut_registry import ShortcutRegistry
 from ui.core.state import install_app_state
 
 from .dialog_actions import DialogActions
+from ui.core.document.document_saver import DocumentSaver
 from .document_actions import DocumentActions
 from .edit_actions import EditActions
 from .image_actions import ImageActions
@@ -95,14 +96,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self._redo_alternate.activated.connect(self.redo)
 
         # Colaboradores.
-        self.documents = DocumentActions(self, self.dm, backend, self.app_state.brush_sync, self.workspace)
+        self.saver = DocumentSaver(self)
+        self.documents = DocumentActions(self, self.dm, backend, self.app_state.brush_sync, self.workspace, self.saver)
         self.layer_actions = LayerActions(self, self.dm)
         self.edit_actions = EditActions(self, backend, self.app_state.brush, self.canvas_widget,
                                         self.layer_actions.commands)
         self.image_actions = ImageActions(self, self.dm, backend, self.workspace)
         self.dialogs = DialogActions(self, backend, self.workspace, self.shortcut_registry,
                                      self.app_state.brush)
-        self.recovery = RecoveryController(self, self.dm, backend, self.canvas_widget, self.documents)
+        self.recovery = RecoveryController(self, self.dm, backend, self.canvas_widget, self.documents, self.saver)
         for collaborator in (self.documents, self.layer_actions, self.edit_actions,
                              self.image_actions, self.dialogs, self.recovery):
             collaborator.statusMessage.connect(self.status_bar.showMessage)
@@ -163,6 +165,7 @@ class MainWindow(QtWidgets.QMainWindow):
             event.ignore()
             return
         event.accept()
+        self.saver.wait_idle()  # uma cópia de recuperação em gravação termina antes de a sessão ser liberada
         self.recovery.close()
         super().closeEvent(event)
 

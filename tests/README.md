@@ -63,12 +63,14 @@
 | `test_dirty_tracking_layers_and_navigator_flip.py` | Sincronização viewport/navegador (incluindo espelhamento) e marcação de alterações nas camadas. |
 | `test_dock_system_structure.py` | Comprehensive unit tests for Camada 3 - Fase 3: Dock System Decomposition. |
 | `test_document_close_releases_memory.py` | Fechar um documento libera o documento e os widgets da aba. |
+| `test_document_actions_saving.py` | Salvar pela interface (S1.2): começa na hora e o documento só fica limpo com o arquivo gravado e conferido; edição feita durante a gravação o mantém sujo; falha mantém o documento aberto e sujo e avisa; "salvar e fechar" só fecha depois do arquivo; sair espera a gravação e não sai por documento não salvo; um segundo Ctrl+S antes do arquivo existir não pede nome de novo; fechar durante a gravação é inofensivo. |
 | `test_document_format_fuzz.py` | Deterministic malformed-file fuzzing for the untrusted LMN reader. |
 | `test_document_format_v3.py` | O `.lmn` v3 (S1.2): camada = bloco de tiles, abre aos mesmos pixels visíveis e propriedades; v2 com payload cru escrito à mão segue abrindo e salvar de novo vira v3; o arquivo custa o que está pintado (8 camadas 4000×3000 vazias: 24 bytes cada); o leitor recusa payload mentiroso e a restauração recusa bloco que não bate; e a segunda metade de salvar roda em outra thread enquanto se pinta e grava o documento como estava na captura. |
 | `test_document_history_integration.py` | Exercise native pixels and document UIDs in the same history timeline. |
 | `test_document_open_actions.py` | As ações que abrem documentos: abrir `.lmn` funciona (quebrado de 24/09 a 01/10 por um argumento removido) e o que o motor não consegue hospedar é recusado sem tocar o documento aberto (S0.2, D2). |
 | `test_document_pixel_fidelity.py` | Abrir um documento salvo reproduz os pixels gravados: colar sobre camada vazia é exato e o restore ignora o RGB de pixel transparente. |
 | `test_document_profile_and_dpi.py` | Perfil de cor por documento, DPI no Document e o fluxo "Novo documento". |
+| `test_document_saver.py` | A gravação em segundo plano (S1.2): callback na thread da interface e escrita noutra, uma por vez e em ordem, o laço de eventos não para durante uma escrita lenta (maior intervalo < 50 ms), falha chega a quem pediu, callback com defeito não derruba a fila, `wait_idle`. |
 | `test_document_serializer_integrity.py` | Regressões de integridade do formato editável .lmn. |
 | `test_document_v2.py` | Native LMN v2 persistence, migrations and recovery failure regressions. |
 | `test_display_region.py` | A tela pede ao motor o retângulo que pinta, não o canvas inteiro (S1.1, D4): a região é o mesmo recorte do buffer inteiro (com e sem perfil de cor), fora do canvas é recusada, e a repintura da viewport (zoom inteiro e fracionado, com rotação, tela cheia ou parcial) desenha os mesmos pixels que o canvas inteiro desenhava, sem copiá-lo. |
@@ -132,6 +134,7 @@
 | `test_recording_contracts.py` | Contratos do plugin de gravação: quadro vem do documento ativo e do motor; barra flutuante só emite sinais. |
 | `test_recording_engine.py` | Motor de gravação: ciclo da sessão, captura assíncrona, exportação ZIP, marca d'água e guias na captura. |
 | `test_recording_plugin.py` | Plugin de gravação: painel, ativação no `WorkspaceService`, FPS, barra flutuante (inclusive soltar o canvas ao desativar), fluxo de parada e zero imports entre plugins. |
+| `test_recovery_async.py` | A cópia de recuperação fora da thread da interface (S1.3): documento com gravação em andamento não é capturado de novo, a revisão só conta depois do arquivo, falha não é registrada, e a cópia que sai depois de o documento ser salvo ou fechado é apagada. |
 | `test_regressions_ui_layout_items.py` | Testes unitários abrangentes para validação dos 8 itens de observação e estabilidade. |
 | `test_regressions_undo_shortcuts_cursor.py` | Test suite for the 5 User Observations Audit and Verification in Lumenia V2. |
 | `test_render_options_and_native_dirty_tracking.py` | Opções de renderização e marcação nativa de regiões alteradas. |

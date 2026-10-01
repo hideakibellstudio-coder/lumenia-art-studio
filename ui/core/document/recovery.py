@@ -7,6 +7,7 @@ import weakref
 from pathlib import Path
 from PySide6.QtCore import QLockFile
 
+from .save_capture import SaveCapture, capture_document
 from .serializer import DocumentSerializer, DocumentFormatError
 
 
@@ -17,6 +18,10 @@ class RecoveryStore:
         self.directory = Path(directory)
         self.session = uuid.uuid4().hex
         self.revisions = {}
+        # Gravações de recuperação em andamento, e as que perderam o sentido no meio do caminho
+        # (o documento foi salvo ou fechado enquanto a cópia era gravada).
+        self._inflight: set[str] = set()
+        self._cancelled: set[str] = set()
         self._lock = None
         self._instances.add(self)
 
@@ -29,9 +34,45 @@ class RecoveryStore:
         key = hashlib.sha256(str(uid).encode()).hexdigest()[:24]
         return self.directory / f"{self.session}-{key}.lmn"
 
-    def capture(self, document, backend):
+    def prepare(self, document, backend) -> SaveCapture | None:
+        """A primeira metade de gravar a cópia (na thread do documento); None se não há o que gravar.
+
+        Não há o que gravar quando o documento está limpo, já tem uma cópia desta revisão, ou
+        uma gravação dele já está em andamento (a próxima volta pega o que mudou)."""
         if not document.is_dirty or self.revisions.get(document.uid) == document.revision:
+            return None
+        if document.uid in self._inflight:
+            return None
+        self._reserve_session()
+        capture = capture_document(document, backend, self.path_for(document.uid))
+        self._inflight.add(document.uid)
+        return capture
+
+    def finish(self, capture: SaveCapture, written: bool) -> None:
+        """A segunda metade terminou (de volta na thread do documento)."""
+        self._inflight.discard(capture.uid)
+        if capture.uid in self._cancelled:
+            # O documento foi salvo ou fechado durante a gravação: a cópia que acabou de sair
+            # seria oferecida na próxima abertura de um documento que não precisa dela.
+            self._cancelled.discard(capture.uid)
+            self._remove_files(capture.uid)
+        elif written:
+            self.revisions[capture.uid] = capture.revision
+
+    def capture(self, document, backend):
+        """Prepara e grava de uma vez, na thread de quem chama (a recuperação da interface usa as metades)."""
+        capture = self.prepare(document, backend)
+        if capture is None:
             return False
+        try:
+            DocumentSerializer.write(capture)
+        except Exception:
+            self.finish(capture, written=False)
+            raise
+        self.finish(capture, written=True)
+        return True
+
+    def _reserve_session(self):
         if self._lock is None:
             self.directory.mkdir(parents=True, exist_ok=True)
             self._lock = QLockFile(str(self.directory / f"{self.session}.lock"))
@@ -39,13 +80,15 @@ class RecoveryStore:
             if not self._lock.tryLock(0):
                 self._lock = None
                 raise OSError("não foi possível reservar a sessão de recuperação")
-        DocumentSerializer.save(document, backend, self.path_for(document.uid))
-        self.revisions[document.uid] = document.revision
-        return True
 
-    def discard(self, uid):
+    def _remove_files(self, uid):
         self.path_for(uid).unlink(missing_ok=True)
         Path(str(self.path_for(uid)) + ".bak").unlink(missing_ok=True)
+
+    def discard(self, uid):
+        if uid in self._inflight:
+            self._cancelled.add(uid)
+        self._remove_files(uid)
         self.revisions.pop(uid, None)
 
     def candidates(self):

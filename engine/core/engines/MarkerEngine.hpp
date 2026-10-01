@@ -29,7 +29,6 @@ public:
         const brush::BrushProfile& profile,
         const canvas::CanvasTexture& canvasTexture,
         canvas::TileGrid& tileGrid,
-        const canvas::PixelBuffer* compositeBuffer = nullptr,
         const raster::PixelContext& ctx = {}
     ) override;
 

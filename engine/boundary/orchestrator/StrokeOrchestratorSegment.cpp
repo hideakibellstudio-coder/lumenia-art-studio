@@ -122,7 +122,7 @@ static void renderDabsPipeline(
     auto tRaster0 = std::chrono::high_resolution_clock::now();
     for (const auto& rDab : finalDabs) {
         if (activeEngine) {
-            activeEngine->renderDab(rDab, brushProfile, canvasTexture, grid, &outputBuffer, pCtx);
+            activeEngine->renderDab(rDab, brushProfile, canvasTexture, grid, pCtx);
         } else {
             raster::DabRenderer::renderDab(rDab, brushProfile, canvasTexture, grid, pCtx);
         }

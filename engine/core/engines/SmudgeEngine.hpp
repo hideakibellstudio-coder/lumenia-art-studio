@@ -2,6 +2,7 @@
 #define ALADYN_ENGINE_SMUDGE_ENGINE_HPP
 
 #include "IBrushEngine.hpp"
+#include "../canvas/GridSnapshot.hpp"
 #include "../../utils/Point2D.hpp"
 
 namespace aladyn::engine::document { class Layer; }
@@ -30,7 +31,6 @@ public:
         const brush::BrushProfile& profile,
         const canvas::CanvasTexture& canvasTexture,
         canvas::TileGrid& tileGrid,
-        const canvas::PixelBuffer* compositeBuffer = nullptr,
         const raster::PixelContext& ctx = {}
     ) override;
 
@@ -50,6 +50,7 @@ private:
     bool              m_hasCarriedColor{false};
     utils::ColorRGBA m_carriedColor{0, 0, 0, 0};
     utils::Point2D     m_lastPosition{0.0, 0.0};
+    canvas::GridSnapshot m_trailSource; // a grade antes do dab: o rastro lê dela, não da grade viva
 };
 
 } // namespace aladyn::engine::engines

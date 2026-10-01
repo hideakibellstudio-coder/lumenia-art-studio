@@ -86,7 +86,7 @@ std::vector<uint8_t> renderStrokePreview(const brush::BrushProfile& profile, int
     const double targetMaxRadius = std::clamp(profile.brushSize * 0.4, 2.0, std::max(2.0, static_cast<double>(height) / 2.0 - 4.0));
 
     auto renderSingleDab = [&](const utils::Dab& d) {
-        if (engine) engine->renderDab(d, profile, canvasTex, grid, nullptr, {});
+        if (engine) engine->renderDab(d, profile, canvasTex, grid, {});
         else raster::DabRenderer::renderDab(d, profile, canvasTex, grid);
     };
 

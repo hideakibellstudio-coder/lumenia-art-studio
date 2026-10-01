@@ -10,7 +10,7 @@ namespace aladyn::engine::engines {
 // ─── MINI-MOTOR DE BLUR / DESFOQUE (BlurEngine) ────────────────────────────
 //
 // Física: Suavização local por amostragem de vizinhança (kernel de desfoque)
-// lendo do buffer composto (compositeBuffer) e escrevendo no tileGrid da camada.
+// lendo a própria camada (uma cópia da área, antes de alterá-la) e escrevendo no tileGrid dela.
 //
 // Parâmetros exclusivos usados:
 //   profile.blurParams.blurRadius   (1 a 5 pixels de raio de vizinhança)
@@ -28,7 +28,6 @@ public:
         const brush::BrushProfile& profile,
         const canvas::CanvasTexture& canvasTexture,
         canvas::TileGrid& tileGrid,
-        const canvas::PixelBuffer* compositeBuffer = nullptr,
         const raster::PixelContext& ctx = {}
     ) override;
 
@@ -36,7 +35,7 @@ public:
         return brush::EngineType::Blur;
     }
 
-    // Blur lê do compositeBuffer e escreve direto na camada ativa — sem scratch.
+    // Blur lê uma cópia da área da camada ativa e escreve direto nela — sem scratch.
     [[nodiscard]] bool usesScratchLayer() const noexcept override { return false; }
 };
 

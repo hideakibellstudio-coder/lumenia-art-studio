@@ -13,7 +13,6 @@ void InkerEngine::renderDab(
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,  // NÃO USADO
     canvas::TileGrid& tileGrid,
-    const canvas::PixelBuffer* /*compositeBuffer*/,
     const raster::PixelContext& ctx
 ) {
     if (dab.radius <= 0.0) return;

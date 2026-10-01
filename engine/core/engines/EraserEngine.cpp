@@ -14,7 +14,6 @@ void EraserEngine::renderDab(
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,  // NÃO USADO
     canvas::TileGrid& tileGrid,
-    const canvas::PixelBuffer* /*compositeBuffer*/,
     const raster::PixelContext& ctx
 ) {
     if (ctx.alphaLocked) return; // Alpha Lock bloqueia alteração de transparência pela borracha

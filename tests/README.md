@@ -139,6 +139,7 @@
 | `test_selection_modify.py` | Seleção -> Modificar (Expandir, Contrair, Suavizar Borda) -- 2026-09-23. |
 | `test_shape_paths.py` | Geometria da ferramenta Formas (`shape_paths.py`): Shift e Alt no retângulo, na elipse e na linha; vértices do polígono e da estrela; forma pequena ou desconhecida sem caminho. |
 | `test_shortcut_registry.py` | Registro de atalhos: remapear/desativar/conflito atômicos, contexto do editor de texto e do canvas. |
+| `test_smudge_source_snapshot.py` | O rastro do Borrar lê a camada como ela estava ao chegar o dab: o mesmo traço, com a cena deslocada para cruzar outras fronteiras de tile, dá a mesma imagem (D15). Roda o harness nativo `tests/native/smudge_source_snapshot.cpp` nos dois sentidos de movimento. |
 | `test_state_links.py` | Regras entre estados (ui/core/state/state_links.py). |
 | `test_stroke_characterization.py` | Caracterização do traço — fixa o comportamento ANTES de mexer no motor. |
 | `test_stroke_pipeline_integrity.py` | Pipeline do traço do canvas: toque isolado, atualização contínua, inclinação/rotação da caneta, direções variadas. |

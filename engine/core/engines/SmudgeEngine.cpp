@@ -1,4 +1,5 @@
 #include "SmudgeEngine.hpp"
+#include "../canvas/GridSnapshot.hpp"
 #include "../canvas/SpatialCuller.hpp"
 #include "../../utils/Rect2D.hpp"
 #include "../document/Layer.hpp"
@@ -79,7 +80,6 @@ void SmudgeEngine::renderDab(
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,
     canvas::TileGrid& tileGrid,
-    const canvas::PixelBuffer* /*compositeBuffer*/,
     const raster::PixelContext& ctx
 ) {
     if (dab.radius <= 0.0) return;
@@ -141,6 +141,20 @@ void SmudgeEngine::renderDab(
     const auto tileIndices = canvas::SpatialCuller::getIntersectingTiles(
         bounds, tileGrid.getWidth(), tileGrid.getHeight()
     );
+
+    // O rastro lê o que estava sob o dab ANTES de ele pintar. Lendo a grade viva,
+    // o pixel já escrito entra na amostra do vizinho e o resultado passa a depender
+    // de por onde os tiles e as linhas são varridos (achado D15, 2026-10-01).
+    const bool smearsTrail = moveDist > 0.5 && stretch > 0.05;
+    if (smearsTrail) {
+        const int reach = static_cast<int>(std::ceil(std::max(std::abs(smearOffsetX), std::abs(smearOffsetY)))) + 1;
+        m_trailSource.capture(
+            tileGrid,
+            static_cast<int>(std::floor(bounds.getLeft())) - reach,
+            static_cast<int>(std::floor(bounds.getTop())) - reach,
+            static_cast<int>(std::ceil(bounds.getRight())) + reach,
+            static_cast<int>(std::ceil(bounds.getBottom())) + reach);
+    }
 
     const double radAngle = -dab.angle * (3.14159265358979323846 / 180.0);
     const double cosA     = std::cos(radAngle);
@@ -211,12 +225,12 @@ void SmudgeEngine::renderDab(
                 }
                 if (curDepositFactor <= 0.0) continue;
 
-                // Lookup ultrarrápido O(1) do rastro direcional (sem aninhamento de loops!)
+                // Lookup O(1) do rastro direcional, na foto tirada antes do dab
                 utils::ColorRGBA sourceColorForSmear = m_carriedColor;
-                if (moveDist > 0.5 && stretch > 0.05) {
+                if (smearsTrail) {
                     const int sampleX = static_cast<int>(std::round(static_cast<double>(globalX) + smearOffsetX));
                     const int sampleY = static_cast<int>(std::round(static_cast<double>(globalY) + smearOffsetY));
-                    const utils::ColorRGBA trailSample = getTilePixel(tileGrid, sampleX, sampleY);
+                    const utils::ColorRGBA trailSample = m_trailSource.at(sampleX, sampleY);
 
                     if (trailSample.a > 0) {
                         const double trailMix = stretch * 0.4;

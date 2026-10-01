@@ -13,7 +13,6 @@ void MarkerEngine::renderDab(
     const brush::BrushProfile& profile,
     const canvas::CanvasTexture& /*canvasTexture*/,
     canvas::TileGrid& tileGrid,
-    const canvas::PixelBuffer* /*compositeBuffer*/,
     const raster::PixelContext& ctx
 ) {
     if (dab.radius <= 0.0 || dab.color.a == 0) return;

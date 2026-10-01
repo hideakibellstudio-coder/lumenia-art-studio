@@ -24,16 +24,17 @@ public:
     virtual ~IBrushEngine() = default;
 
     // Renderiza um único dab na grade de tiles da camada ativa.
-    // compositeBuffer: buffer RGBA já composto de todas as camadas (nullable).
-    //   - Motores de deposição (Pencil, Inker, Eraser, Marker) → ignoram, passam nullptr.
-    //   - BlurEngine  → lê compositeBuffer, aplica kernel Gaussiano, escreve no tileGrid.
-    //   - SmudgeEngine → lê compositeBuffer (coleta cor), deposita cor carregada no tileGrid.
+    //
+    // A grade (`tileGrid`) é a fonte e o destino: nenhum motor lê a imagem composta
+    // das camadas. Até 2026-10-01 o contrato prometia um `compositeBuffer` que o Blur e
+    // o Smudge "leriam"; os oito motores o ignoravam, e a promessa enganava quem fosse
+    // escrever o próximo. Um motor que precise ler a composição pede isso por um
+    // contrato novo, junto da feature (ver docs/01-correcao-da-base/07-*.md, D14).
     virtual void renderDab(
         const utils::Dab& dab,
         const brush::BrushProfile& profile,
         const canvas::CanvasTexture& canvasTexture,
         canvas::TileGrid& tileGrid,
-        const canvas::PixelBuffer* compositeBuffer = nullptr,
         const raster::PixelContext& ctx = {}
     ) = 0;
 
@@ -52,7 +53,7 @@ public:
 
     // Retorna true se este motor deve renderizar dabs no scratch layer temporário
     // (ao invés de direto na camada ativa). Blur e Smudge retornam false porque
-    // precisam ler e escrever diretamente na camada/compositeBuffer.
+    // precisam ler e escrever diretamente na camada.
     [[nodiscard]] virtual bool usesScratchLayer() const noexcept { return true; }
 };
 

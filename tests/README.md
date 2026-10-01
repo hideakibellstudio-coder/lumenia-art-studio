@@ -60,6 +60,7 @@
 | `test_document_close_releases_memory.py` | Fechar um documento libera o documento e os widgets da aba. |
 | `test_document_format_fuzz.py` | Deterministic malformed-file fuzzing for the untrusted LMN reader. |
 | `test_document_history_integration.py` | Exercise native pixels and document UIDs in the same history timeline. |
+| `test_document_pixel_fidelity.py` | Abrir um documento salvo reproduz os pixels gravados: colar sobre camada vazia é exato e o restore ignora o RGB de pixel transparente. |
 | `test_document_profile_and_dpi.py` | Perfil de cor por documento, DPI no Document e o fluxo "Novo documento". |
 | `test_document_serializer_integrity.py` | Regressões de integridade do formato editável .lmn. |
 | `test_document_v2.py` | Native LMN v2 persistence, migrations and recovery failure regressions. |

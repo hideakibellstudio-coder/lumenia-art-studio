@@ -1,9 +1,26 @@
 """Restore a validated document into a newly allocated backend context."""
 
+import numpy as np
+
 from .document import Document
 from .serializer import DocumentFormatError
 from .schema import CURRENT_VERSION, decode_guides
 from PySide6.QtGui import QColor
+
+
+def same_visible_pixels(restored: bytes, expected: bytes) -> bool:
+    """RGBA buffers are equal where it matters: the RGB of a fully transparent
+    pixel is not data (soft brushes leave it on their fringe, and the engine
+    does not paste it)."""
+    if restored == expected:
+        return True
+    if len(restored) != len(expected):
+        return False
+    got = np.frombuffer(restored, dtype=np.uint8).reshape(-1, 4)
+    want = np.frombuffer(expected, dtype=np.uint8).reshape(-1, 4)
+    both_transparent = (got[:, 3] == 0) & (want[:, 3] == 0)
+    differs = (got != want).any(axis=1)
+    return not bool((differs & ~both_transparent).any())
 
 
 def restore_document(document: Document, backend, manifest, payloads):  # noqa: C901 -- dívida registrada (pendências, item 14)
@@ -38,7 +55,7 @@ def restore_document(document: Document, backend, manifest, payloads):  # noqa: 
                 raise DocumentFormatError("falha ao selecionar camada")
             backend.paste_rgba_buffer_on_active_layer(
                 0, 0, document.width, document.height, payloads[payload])
-            if bytes(backend.get_layer_pixel_buffer(index) or b"") != payloads[payload]:
+            if not same_visible_pixels(bytes(backend.get_layer_pixel_buffer(index) or b""), payloads[payload]):
                 raise DocumentFormatError("restauração de pixels não corresponde ao arquivo")
         if record.get("is_filter"):
             backend.set_filter_params(index, record.get("filter_params", []))

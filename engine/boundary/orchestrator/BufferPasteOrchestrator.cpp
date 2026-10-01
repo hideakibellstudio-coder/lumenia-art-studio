@@ -1,7 +1,17 @@
 #include "BufferPasteOrchestrator.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace aladyn::engine::boundary::orchestrator {
+
+namespace {
+// Round to the nearest byte. A plain cast truncates, and `14 * 0.89 / 0.89`
+// is 13.999... in double: blue 14 under alpha 227 came back as 13, so opening a
+// saved document did not reproduce the pixels that were saved.
+uint8_t toByte(double value) {
+    return static_cast<uint8_t>(std::clamp(std::lround(value), 0L, 255L));
+}
+} // namespace
 
 bool BufferPasteOrchestrator::paste(
     int x, int y, int width, int height,
@@ -87,9 +97,9 @@ bool BufferPasteOrchestrator::paste(
 
                     if (activeLayer->isAlphaLocked()) {
                         if (cur.a > 0) {
-                            cur.r = static_cast<uint8_t>(cur.r * (1.0 - srcA) + srcR * srcA);
-                            cur.g = static_cast<uint8_t>(cur.g * (1.0 - srcA) + srcG * srcA);
-                            cur.b = static_cast<uint8_t>(cur.b * (1.0 - srcA) + srcB * srcA);
+                            cur.r = toByte(cur.r * (1.0 - srcA) + srcR * srcA);
+                            cur.g = toByte(cur.g * (1.0 - srcA) + srcG * srcA);
+                            cur.b = toByte(cur.b * (1.0 - srcA) + srcB * srcA);
                             buf.setPixel(px, py, cur);
                             modified = true;
                         }
@@ -97,10 +107,17 @@ bool BufferPasteOrchestrator::paste(
                         double dstA = cur.a / 255.0;
                         double outA = srcA + dstA * (1.0 - srcA);
                         if (outA > 0) {
-                            cur.r = static_cast<uint8_t>((srcR * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
-                            cur.g = static_cast<uint8_t>((srcG * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
-                            cur.b = static_cast<uint8_t>((srcB * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
-                            cur.a = static_cast<uint8_t>(outA * 255.0);
+                            if (cur.a == 0) {
+                                // Nothing underneath: the source colour is the result, bit for bit.
+                                cur.r = srcR;
+                                cur.g = srcG;
+                                cur.b = srcB;
+                            } else {
+                                cur.r = toByte((srcR * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
+                                cur.g = toByte((srcG * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
+                                cur.b = toByte((srcB * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
+                            }
+                            cur.a = toByte(outA * 255.0);
                             buf.setPixel(px, py, cur);
                             modified = true;
                         }

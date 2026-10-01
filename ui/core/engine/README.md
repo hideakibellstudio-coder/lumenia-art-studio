@@ -22,7 +22,7 @@
 | `limits.py` | `max_canvas_dimension()`: o maior lado de canvas, perguntado ao motor (valor de modo casca se não há motor). Diálogos e ações usam isto; ninguém repete o número. |
 | `registry.py` | ui.core.engine.registry — EngineRegistry. |
 | `telemetry_dto.py` | `TelemetrySnapshot`: DTO da telemetria; lê a struct nativa campo a campo sem valor padrão (contrato em `tests/test_telemetry_contract.py`). |
-| `telemetry_meters.py` | Os 20 medidores (chave, título, leitura com nível semântico), usados pelo cockpit e pelo relatório. |
+| `telemetry_meters.py` | Os 20 medidores (chave, título, leitura com nível semântico), usados pelo cockpit e pelo relatório; `presentation_ms` é a conta única do medidor 6 (cópia do canvas + `drawImage`). |
 | `telemetry_report.py` | `build_report`: texto único do relatório de telemetria (os três botões "Copiar"). |
 | `telemetry_tracker.py` | `TelemetryTracker`: fonte única da sessão de telemetria (diagnóstico, transições, picos, última caneta). |
 

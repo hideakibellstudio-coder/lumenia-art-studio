@@ -155,6 +155,7 @@
 | `test_toolbars_geometry_i18n.py` | Test Suite: Toolbars & Geometry I18n Retranslation Valida se as opcoes da barra de ferramentas secundaria e dos paineis/dialogos de geometria acompanham a mudanca de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP). |
 | `test_tools_signal_symmetry_and_flip.py` | Testes automatizados cobrindo a integridade dos subsistemas satélites (Rodada 9). |
 | `test_transform_distort.py` | Transformar -> Distorcer -- 2026-09-23. |
+| `test_viewport_paint_telemetry.py` | O medidor "Blit" conta a cópia do canvas, não só o `drawImage` (D16): a viewport real cronometra a aquisição da imagem à parte, as parcelas não passam do total do paint, pintura sem imagem não herda tempo antigo e todas as telas leem `presentation_ms`. |
 | `test_window_menu_panels.py` | Menu Janela: cada item abre o painel registrado com o mesmo PanelId. |
 | `test_windows_portability.py` | Portabilidade para o Windows, conferida em qualquer sistema: caixa de nomes, nomes inválidos, caminhos longos, UTF-8 sem texto corrompido e `encoding=` em todo texto lido/gravado. |
 

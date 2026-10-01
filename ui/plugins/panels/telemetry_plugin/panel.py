@@ -18,6 +18,7 @@ from ui.core.widgets.card_box import PanelCardBox
 from ui.infrastructure.theme.manager import ThemeManager
 from ui.infrastructure.icons import get_icon
 from ui.core.engine.registry import EngineRegistry
+from ui.core.engine.telemetry_meters import presentation_ms
 from ui.core.engine.telemetry_tracker import TelemetryTracker
 from ui.core.dialogs.telemetry_common import banner_style, copy_report
 from ui.core.dialogs.telemetry_diagnostics_dialog import TelemetryDiagnosticsDialog
@@ -297,7 +298,7 @@ class TelemetryPanel(QtWidgets.QWidget):
             return
 
         vp = EngineRegistry.get_viewport_telemetry()
-        blit_ms = vp.get("qt_draw_image_ms", 0.0)
+        blit_ms = presentation_ms(vp)
         snap = backend.get_telemetry_snapshot()
         # O tracker primeiro: o banner mostra o estado desta leitura, não o da anterior.
         TelemetryTracker.instance().update(snap, vp)

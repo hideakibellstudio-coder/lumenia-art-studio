@@ -20,7 +20,7 @@ from ui.core.dialogs.telemetry_diagnostics_cards import StatCard
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.errors import EngineContextError
 from ui.core.engine.registry import EngineRegistry
-from ui.core.engine.telemetry_meters import ENGINE_NAMES, simd_text
+from ui.core.engine.telemetry_meters import ENGINE_NAMES, presentation_ms, simd_text
 from ui.core.engine.telemetry_tracker import TelemetryTracker
 from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.icons import get_icon
@@ -327,7 +327,7 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.card_stage_dab.set_value(f"{snap.time_raster_dab_us:.1f} µs")
         self.card_stage_und.set_value(f"{snap.time_undo_record_us:.1f} µs")
         self.card_stage_cmp.set_value(f"{snap.time_composite_us:.1f} µs")
-        self.card_stage_blt.set_value(f"{vp.get('qt_draw_image_ms', 0.0):.2f} ms")
+        self.card_stage_blt.set_value(f"{presentation_ms(vp):.2f} ms")
 
         self.card_vp_fps.set_value(f"{vp.get('qt_fps', 0.0):.1f} FPS")
         self.card_vp_dirty.set_value(f"{int(snap.last_dirty_width)} × {int(snap.last_dirty_height)} px")

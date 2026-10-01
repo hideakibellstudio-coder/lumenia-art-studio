@@ -24,7 +24,7 @@ METERS: tuple[tuple[str, str, str], ...] = (
     ("dab", "3. RasterDab (Shaders)", "Carimbo de ponta e papel"),
     ("und", "4. Gravação de Undo", "Cópia de blocos 128x128"),
     ("cmp", "5. Compositor de Camadas", "Mesclagem na região suja"),
-    ("blt", "6. Apresentação Blit Qt", "QPainter.drawImage na tela"),
+    ("blt", "6. Apresentação Blit Qt", "Cópia do canvas + drawImage"),
     ("lat", "7. Latência Total Motor", "Tempo de micro-evento C++"),
     ("fps", "8. Taxa Real da Viewport", "Taxa efetiva de redesenho"),
     ("hz", "9. Frequência da Mesa", "Taxa de eventos do hardware"),
@@ -52,6 +52,16 @@ class MeterReading:
     bar: Optional[int] = None
 
 
+def presentation_ms(vp: dict) -> float:
+    """Custo de levar a imagem do motor à tela: a cópia do canvas + o `drawImage`.
+
+    O medidor "Blit" cronometrava só o `drawImage` e a cópia (`get_qimage_lod`, o
+    maior custo da repintura: 34 ms em 4K em 2026-10-01) ficava fora do número
+    (achado D16). Toda tela e o relatório leem daqui, para não haver duas contas.
+    """
+    return vp.get("qt_acquire_image_ms", 0.0) + vp.get("qt_draw_image_ms", 0.0)
+
+
 def simd_text(snap: TelemetrySnapshot) -> str:
     """O motor informa se foi compilado com AVX2 (`simd_active`)."""
     return "AVX2 (vetorizado)" if snap.simd_active else "Escalar (sem AVX2)"
@@ -59,8 +69,7 @@ def simd_text(snap: TelemetrySnapshot) -> str:
 
 def read_meters(snap: TelemetrySnapshot, vp: dict, last_pen: dict) -> list[MeterReading]:
     """Leitura dos 20 medidores, na ordem de `METERS`."""
-    blit_ms = vp.get("qt_draw_image_ms", 0.0)
-    blit_us = blit_ms * 1000.0
+    blit_ms = presentation_ms(vp)
     fps = vp.get("qt_fps", 0.0)
     kin, itp, dab = snap.time_kinematics_us, snap.time_interpolation_us, snap.time_raster_dab_us
     und, cmp, lat = snap.time_undo_record_us, snap.time_composite_us, snap.last_segment_latency_us
@@ -82,7 +91,9 @@ def read_meters(snap: TelemetrySnapshot, vp: dict, last_pen: dict) -> list[Meter
         MeterReading("dab", f"{dab:.1f} µs", f"{dab/1000.0:.2f} ms", "critical" if dab > 15000 else ""),
         MeterReading("und", f"{und:.1f} µs", f"{und/1000.0:.2f} ms", "critical" if und > 10000 else ""),
         MeterReading("cmp", f"{cmp:.1f} µs", f"{cmp/1000.0:.2f} ms", "critical" if cmp > 10000 else ""),
-        MeterReading("blt", f"{blit_ms:.2f} ms", f"{blit_us:.0f} µs na viewport",
+        MeterReading("blt", f"{blit_ms:.2f} ms",
+                     f"cópia {vp.get('qt_acquire_image_ms', 0.0):.2f} + desenho {vp.get('qt_draw_image_ms', 0.0):.2f} ms"
+                     f" · paint {vp.get('qt_paint_total_ms', 0.0):.2f} ms",
                      "critical" if blit_ms > 16.6 else ("warning" if blit_ms > 10.0 else "")),
         MeterReading("lat", f"{lat:.1f} µs", f"{lat/1000.0:.2f} ms"),
         MeterReading("fps", f"{fps:.1f} FPS", "Fluidez da tela",

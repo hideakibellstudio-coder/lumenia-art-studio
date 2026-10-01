@@ -49,14 +49,23 @@ fechada: só diminui.
      2026-10-01: `01-framework-arccc.md` reescrito; método universal v1.1.0 em
      `08-arccc-metodologia-universal.md`; ciclo de construção no `AGENTS.md`,
      seção 5.0; assunto de commit em inglês desde esta data.)*
-2. **S0.7 — três achados do estudo externo** (Apêndice F do relatório),
-   conferidos no código:
-   - D14: a interface dos motores promete ler a imagem composta
-     (`compositeBuffer`) e nenhum dos 8 motores lê;
-   - D15: o Borrar lê e escreve a mesma camada no mesmo dab (resultado depende
-     da ordem de varredura);
-   - D16: o medidor "Blit" da telemetria não conta a cópia do canvas, o maior
-     custo da repintura.
+2. ~~**S0.7 — três achados do estudo externo** (Apêndice F do relatório),
+   conferidos no código.~~ *(feito em 2026-10-01.)*
+   - ~~D14: a interface dos motores promete ler a imagem composta
+     (`compositeBuffer`) e nenhum dos 8 motores lê.~~ *(o parâmetro saiu da
+     interface, dos 8 motores e dos 2 chamadores; `IBrushEngine` agora diz que a
+     grade é a fonte e o destino. As 32 células do golden que não são do Borrar
+     ficaram iguais.)*
+   - ~~D15: o Borrar lê e escreve a mesma camada no mesmo dab (resultado depende
+     da ordem de varredura).~~ *(o rastro lê um `GridSnapshot` tirado antes do
+     dab. Medido com o harness `tests/native/smudge_source_snapshot.cpp`: antes,
+     1781 pixels diferiam ao deslocar a cena 64 px; depois, 0, nos dois sentidos de
+     movimento. As 4 células do Borrar no golden foram regravadas de propósito.)*
+   - ~~D16: o medidor "Blit" da telemetria não conta a cópia do canvas, o maior
+     custo da repintura.~~ *(a viewport cronometra a aquisição da imagem à parte;
+     o medidor 6 é cópia + `drawImage` e mostra o total do paint;
+     `presentation_ms` é a conta única das 6 telas. Teste:
+     `tests/test_viewport_paint_telemetry.py`.)*
 3. ~~**S0.6 — referência de pixel (golden) para os 9 motores de pincel** (R11).~~
    *(feito em 2026-10-01: `tests/test_brush_engines_characterization.py`, 36
    pinos em `tests/golden/engines_golden.json` = 9 motores × 4 variações (simples,

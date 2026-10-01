@@ -18,6 +18,7 @@ import time
 from typing import Optional
 
 from .telemetry_dto import TelemetrySnapshot
+from .telemetry_meters import presentation_ms
 
 # Chave canônica do estado -> texto do banner.
 STATE_TEXTS = {
@@ -151,7 +152,7 @@ class TelemetryTracker:
         snap = snap if snap is not None else TelemetrySnapshot()
         vp = vp or {}
         self._last_snap, self._last_vp = snap, vp
-        blit_ms = vp.get("qt_draw_image_ms", 0.0)
+        blit_ms = presentation_ms(vp)
         vp_fps = vp.get("qt_fps", 0.0)
 
         if snap.raw_pressure > 0.0 or snap.stroke_velocity > 0.0:

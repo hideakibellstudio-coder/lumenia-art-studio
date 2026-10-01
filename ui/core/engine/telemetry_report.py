@@ -13,7 +13,7 @@ import time
 from typing import TYPE_CHECKING, Optional
 
 from .telemetry_dto import TelemetrySnapshot
-from .telemetry_meters import ENGINE_NAMES, TITLES, read_meters, simd_text
+from .telemetry_meters import ENGINE_NAMES, TITLES, presentation_ms, read_meters, simd_text
 
 if TYPE_CHECKING:
     from .telemetry_tracker import TelemetryTracker
@@ -38,7 +38,7 @@ def build_report(
     peaks = tracker.peaks
     history = tracker.state_history
 
-    blit_ms = vp.get("qt_draw_image_ms", 0.0)
+    blit_ms = presentation_ms(vp)
     blit_us = blit_ms * 1000.0
 
     kin_us = snap.time_kinematics_us

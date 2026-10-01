@@ -21,7 +21,7 @@ from ui.core.dialogs.telemetry_common import banner_style, clear_undo_history, c
 from ui.core.dialogs.telemetry_state_history_dialog import TelemetryStateHistoryDialog
 from ui.core.engine.registry import EngineRegistry
 from ui.core.engine.telemetry_dto import TelemetrySnapshot
-from ui.core.engine.telemetry_meters import METERS, read_meters
+from ui.core.engine.telemetry_meters import METERS, presentation_ms, read_meters
 from ui.core.engine.telemetry_tracker import TelemetryTracker
 from ui.infrastructure.icons import get_icon
 from ui.infrastructure.theme.manager import ThemeManager
@@ -218,7 +218,7 @@ class TelemetryGridWindow(BaseFramelessDialog):
 
     def show_readings(self, snap: TelemetrySnapshot, vp: dict) -> None:
         tm = ThemeManager.instance()
-        blit_us = vp.get("qt_draw_image_ms", 0.0) * 1000.0
+        blit_us = presentation_ms(vp) * 1000.0
         self.pipeline_bar.set_values_us(
             snap.time_kinematics_us, snap.time_interpolation_us, snap.time_raster_dab_us,
             snap.time_undo_record_us, snap.time_composite_us, blit_us)

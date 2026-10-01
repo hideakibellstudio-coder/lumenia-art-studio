@@ -58,6 +58,7 @@ class ViewportPaintStats:
     """Medições da última pintura, expostas pela telemetria da viewport."""
 
     paint_total_ms: float = 0.0
+    acquire_image_ms: float = 0.0
     draw_image_ms: float = 0.0
     cursor_ms: float = 0.0
     fps: float = 0.0
@@ -70,6 +71,7 @@ class ViewportPaintStats:
             "is_gpu_accelerated": gpu_accelerated,
             "renderer_type": "OpenGL" if gpu_accelerated else "Software Raster",
             "qt_paint_total_ms": self.paint_total_ms,
+            "qt_acquire_image_ms": self.acquire_image_ms,
             "qt_draw_image_ms": self.draw_image_ms,
             "qt_cursor_ms": self.cursor_ms,
             "qt_fps": self.fps,
@@ -91,6 +93,8 @@ class ViewportRenderer:
         widget = self._w
         stats = self.stats
         t_paint_start = time.perf_counter()
+        # Uma pintura sem imagem não herda o tempo da anterior.
+        stats.acquire_image_ms = stats.draw_image_ms = stats.cursor_ms = 0.0
 
         painter = QtGui.QPainter(widget)
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
@@ -130,7 +134,9 @@ class ViewportRenderer:
                     painter.fillRect(dirty_canvas, widget.paper_color if widget.paper_visible else self._checker_brush)
 
                     if backend:
+                        t_acquire_0 = time.perf_counter()
                         qimg, lod_scale = backend.get_qimage_lod(widget.zoom)
+                        stats.acquire_image_ms = (time.perf_counter() - t_acquire_0) * 1000.0
                         if qimg and not qimg.isNull():
                             t_blit_0 = time.perf_counter()
                             if abs(lod_scale - 1.0) < 1e-4:

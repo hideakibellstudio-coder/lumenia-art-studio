@@ -210,6 +210,34 @@ README; divergências restantes da estrutura física em
 
 ## 🔄 5. FLUXO DE TRABALHO PADRONIZADO PARA AGENTES (5 PASSOS)
 
+### 5.0 Ciclo de construção (ARCcC 4.4): como produzir o trabalho
+
+Os 5 passos abaixo **verificam** o trabalho. Antes deles, toda tarefa é uma
+**fatia** do ciclo da seção 4.4 do ARCcC
+(`docs/02-arquitetura/08-arccc-metodologia-universal.md`; aplicação ao
+projeto em `docs/02-arquitetura/01-framework-arccc.md`):
+
+1. Escreva a responsabilidade em uma frase e o que **não** pertence a ela.
+2. Escreva o tipo (enum, dataclass, Protocol, entrada no `.pyi`) e o **teste
+   do contrato antes do código**.
+3. Implemente só a responsabilidade presente: nada de registro, protocolo ou
+   gerente para possibilidade que não existe (4.4.4 e 4.4.9).
+4. Valide a fatia inteira (interface → ponte → motor real) e registre o número
+   medido. Desempenho só muda com benchmark antes e depois (`benchmarks/`).
+5. Responda no changelog as 6 perguntas da volta à fundação (4.4.7): a
+   responsabilidade ficou no lugar certo? algum contrato ficou grande demais?
+   algum componente passou a conhecer o que não devia? algum dado é convertido
+   mais de uma vez? nasceu uma responsabilidade nova? alguma abstração criada
+   antes deixou de fazer sentido?
+
+**Regras de parada** (para o trabalho de organização ter fim):
+dívida medida só desce (catraca); achado novo só entra na linha de chegada
+(`docs/01-correcao-da-base/01-pendencias-atuais.md`) se o usuário o sente hoje;
+"pronto" vale para o componente tocado (4.4.11), não para o sistema.
+
+**Mensagem de commit** (ARCcC 14.1): assunto em inglês; corpo livre. O
+histórico anterior, em português, não se reescreve.
+
 Qualquer agente que receba uma tarefa deve seguir este ciclo rigoroso:
 
 ```text

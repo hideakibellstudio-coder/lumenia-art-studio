@@ -899,7 +899,7 @@ script pode conferir.
 | S0.2 | Falha ao criar contexto vira erro que `show_document` trata (D2). Limite único de documento: o motor declara o máximo, e o diálogo de novo documento, "Tamanho do Canvas" e abrir imagem consultam. `size_t` antes de multiplicar (D13) | Teste com falha simulada de alocação: o documento anterior não recebe nada e o usuário vê o erro; diálogos com o mesmo máximo |
 | S0.3 | Remover histórico-sombra (D7); decidir `compress_inactive_layers` (D8); remover os `PluginType` sem extensão (D9) | Catraca de acoplamento igual ou menor; grep limpo |
 | S0.4 | Curvas Bézier como parâmetros do `BrushState` e do preset, com um escritor (D5) | Trocar de pincel e voltar preserva a curva; `curve_window` não chama o backend |
-| S0.5 | Atualizar `02-arquitetura/01-framework-arccc.md` (D10) | Nenhuma afirmação do Apêndice E continua falsa |
+| S0.5 ✅ | Atualizar `02-arquitetura/01-framework-arccc.md` (D10) | Nenhuma afirmação do Apêndice E continua falsa |
 | S0.6 | **Antes de qualquer outra mudança em motor:** referência de pixel (golden) de traço para os 9 motores, Borrar e Desfoque incluídos (R11) | `stroke_golden.json` com uma célula por motor; o teste falha se um motor mudar um pixel |
 | S0.7 | Contrato do `compositeBuffer` (D14); Borrar lendo de uma cópia (D15); telemetria com a aquisição da imagem e o total do paint (D16) | `IBrushEngine` sem parâmetro que nenhum motor lê (ou comentário que bate com os 8); golden do Borrar regravado com a mudança explicada no commit; medidor da aquisição e teste que confere que as parcelas não passam do total |
 
@@ -1146,6 +1146,10 @@ rascunho da sessão (não versionados). Mediana de 3 a 10 repetições.
 
 O documento é o contrato do método; enquanto contradisser o código, cada
 agente novo recebe instruções erradas logo na porta de entrada (S0.5).
+
+**Resolvido em 2026-10-01 (S0.5, D10):** `01-framework-arccc.md` foi
+reescrito como "como o ARCcC se aplica ao Lumenia" e o método universal (v1.1.0,
+do dono) está em `08-arccc-metodologia-universal.md`.
 
 ---
 

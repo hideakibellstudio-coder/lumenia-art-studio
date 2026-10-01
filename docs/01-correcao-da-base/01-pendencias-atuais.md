@@ -29,7 +29,10 @@ fechada: só diminui.
    - S0.3: histórico-sombra, compressão sem chamador, `PluginType` sem
      extensão (D7–D9).
    - S0.4: curvas Bézier fora do `BrushState` (D5).
-   - S0.5: documento do framework ARCcC desatualizado (D10).
+   - ~~S0.5: documento do framework ARCcC desatualizado (D10).~~ *(feito em
+     2026-10-01: `01-framework-arccc.md` reescrito; método universal v1.1.0 em
+     `08-arccc-metodologia-universal.md`; ciclo de construção no `AGENTS.md`,
+     seção 5.0; assunto de commit em inglês desde esta data.)*
 2. **S0.7 — três achados do estudo externo** (Apêndice F do relatório),
    conferidos no código:
    - D14: a interface dos motores promete ler a imagem composta

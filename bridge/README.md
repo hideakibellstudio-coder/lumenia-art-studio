@@ -23,6 +23,24 @@ Pilar 2 do ARCcC multi-pilar (`ui/` → `bridge/` → `engine/`): só serializa,
 - Mudou o `.pyi`? Suba `kContractVersion` (`infrastructure/ContractVersion.hpp`) e `EXPECTED_CONTRACT_VERSION` (`ui/infrastructure/bridge_client/contract_version.py`), recompile, e atualize os dois campos de `tests/golden/bridge_contract.json`. A interface recusa, na partida, um binário de outra versão.
 - A UI só alcança o módulo por `ui/infrastructure/bridge_client/` (Lei nº 2 do AGENTS.md).
 
+## Política do GIL
+
+A thread da interface é a única que chama a fachada do motor (`PaintEngineFacade`), e o GIL é o que
+hoje serializa essas chamadas com as threads de fundo do Python. Soltar o GIL numa chamada da
+fachada abriria a porta a uma thread de fundo mexer no mesmo motor ao mesmo tempo, e a fachada não é
+reentrante. Por isso o GIL só é solto onde o trabalho **não toca a fachada**, em objetos que cada
+chamada possui sozinha, e onde isso devolve a interface a quem a usa:
+
+| Onde | Por que é seguro | O que evita |
+|---|---|---|
+| `LayerSnapshot.encode_layer` (compressão e a cópia do resultado) | o instantâneo é copy-on-write e só leitura | ~120 ms de compressão e dezenas de ms para copiar 30 MB, na thread de gravação |
+| `decode_layer_tiles` | decodifica para um `DecodedLayer` que não pertence a documento algum | a descompressão da abertura, na thread de fundo |
+| `render_stroke_preview` | desenha num buffer próprio, a partir de um perfil copiado | a prévia do painel de pincel |
+
+Nenhuma outra função solta o GIL, de propósito: as demais rodam na thread dona do motor, onde soltar
+não ajuda a interface e tira a exclusão mútua. `tests/test_bridge_gil_policy.py` conta as liberações em
+`core/bindings/` e reprova uma nova que não esteja nesta tabela.
+
 ## API exposta sem chamador de produção (de propósito)
 
 - `compress_inactive_layers` e `decompress_all_layers`: capacidade do motor (compressão LZ4 dos

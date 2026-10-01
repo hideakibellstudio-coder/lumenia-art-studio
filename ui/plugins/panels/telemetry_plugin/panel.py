@@ -57,9 +57,7 @@ class TelemetryPanel(QtWidgets.QWidget):
         self._show_state()
 
         if self._is_capturing:
-            backend = EngineRegistry.instance().get_backend()
-            if backend:
-                backend.set_telemetry_enabled(True)
+            TelemetryTracker.instance().enable_capture()
             self._timer.start()
 
     def _build_ui(self) -> None:
@@ -262,18 +260,16 @@ class TelemetryPanel(QtWidgets.QWidget):
 
     def _on_toggle_capture(self) -> None:
         self._is_capturing = not self._is_capturing
-        backend = EngineRegistry.instance().get_backend()
+        tracker = TelemetryTracker.instance()
 
         if self._is_capturing:
-            if backend:
-                backend.set_telemetry_enabled(True)
+            tracker.enable_capture()
             self.retranslate_ui()
             tm = ThemeManager.instance()
             self.lbl_status.setStyleSheet(f"color: {tm.get_color('success')}; font-weight: bold; font-size: 10px;")
             self._timer.start()
         else:
-            if backend:
-                backend.set_telemetry_enabled(False)
+            tracker.enable_capture(False)
             self._timer.stop()
             self.retranslate_ui()
             tm = ThemeManager.instance()
@@ -293,13 +289,12 @@ class TelemetryPanel(QtWidgets.QWidget):
     def _update_telemetry(self) -> None:
         if not self._is_capturing:
             return
-        backend = EngineRegistry.instance().get_backend()
-        if backend is None:
+        snap = TelemetryTracker.instance().read_snapshot()
+        if snap is None:
             return
 
         vp = EngineRegistry.get_viewport_telemetry()
         blit_ms = presentation_ms(vp)
-        snap = backend.get_telemetry_snapshot()
         # O tracker primeiro: o banner mostra o estado desta leitura, não o da anterior.
         TelemetryTracker.instance().update(snap, vp)
 

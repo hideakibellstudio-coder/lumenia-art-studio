@@ -48,9 +48,7 @@ def banner_style(state_key: str, font_px: int = 10) -> str:
 
 def enable_capture() -> None:
     """Liga a coleta de métricas no motor (as telas de telemetria só leem)."""
-    backend = EngineRegistry.instance().get_backend()
-    if backend is not None:
-        backend.set_telemetry_enabled(True)
+    TelemetryTracker.instance().enable_capture()
 
 
 def copy_report(parent: QtWidgets.QWidget, stay_on_top: Optional[bool] = None) -> str:

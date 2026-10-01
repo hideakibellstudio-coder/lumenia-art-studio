@@ -15,8 +15,9 @@ em grade tinha uma segunda cópia inteira deste estado (e do relatório).
 from __future__ import annotations
 
 import time
-from typing import Optional
+from typing import Callable, Optional
 
+from .backend_protocols import TelemetryProtocol
 from .telemetry_dto import TelemetrySnapshot
 from .telemetry_meters import presentation_ms
 
@@ -62,8 +63,19 @@ def _empty_pen() -> dict[str, float]:
     return {"raw_pressure": 0.0, "dynamic_pressure": 0.0, "velocity": 0.0, "stabilizer_lag": 0.0}
 
 
+def _registered_engine() -> Optional[TelemetryProtocol]:
+    from ui.core.engine.registry import EngineRegistry
+    return EngineRegistry.instance().get_backend()
+
+
 class TelemetryTracker:
-    """Singleton de rastreamento e auditoria de telemetria em tempo real."""
+    """Singleton de rastreamento e auditoria de telemetria em tempo real.
+
+    É também a única porta das telas de telemetria até o motor: ligar a coleta, ler o instantâneo,
+    zerar os contadores e as chaves de log passam por aqui, e o motor é pedido por um provedor
+    (`engine`, que devolve só o papel `TelemetryProtocol`). Até 2026-10-01 o painel, o cockpit, o
+    diagnóstico e o próprio tracker pediam o motor inteiro ao registro global, 14 vezes em 7 arquivos.
+    """
 
     _instance: Optional[TelemetryTracker] = None
 
@@ -73,7 +85,8 @@ class TelemetryTracker:
             cls._instance = cls()
         return cls._instance
 
-    def __init__(self) -> None:
+    def __init__(self, engine: Callable[[], Optional[TelemetryProtocol]] = _registered_engine) -> None:
+        self._engine = engine
         self._last_snap = TelemetrySnapshot()
         self._last_vp: dict = {}
         self._start("Inicialização do Sistema de Telemetria")
@@ -121,6 +134,43 @@ class TelemetryTracker:
     @property
     def last_active_pen(self) -> dict[str, float]:
         return dict(self._last_active_pen)
+
+    # ── O motor ───────────────────────────────────────────────────────────
+
+    def read_snapshot(self) -> Optional[TelemetrySnapshot]:
+        """O instantâneo atual do motor; None sem motor."""
+        engine = self._engine()
+        return engine.get_telemetry_snapshot() if engine is not None else None
+
+    def enable_capture(self, enabled: bool = True) -> None:
+        """Liga ou desliga a coleta de métricas no motor (as telas só leem)."""
+        engine = self._engine()
+        if engine is not None:
+            engine.set_telemetry_enabled(enabled)
+
+    def reset_engine(self) -> None:
+        """Zera os contadores acumulados no motor (o estado do tracker se zera com `reset`)."""
+        engine = self._engine()
+        if engine is not None:
+            engine.reset_telemetry()
+
+    def stroke_summary_enabled(self) -> bool:
+        engine = self._engine()
+        return bool(engine and engine.is_telemetry_enabled())
+
+    def set_stroke_summary(self, enabled: bool) -> None:
+        """Uma linha de resumo no terminal ao soltar a caneta."""
+        self.enable_capture(enabled)
+
+    def detailed_log_enabled(self) -> bool:
+        engine = self._engine()
+        return bool(engine and engine.is_detailed_logging_enabled())
+
+    def set_detailed_log(self, enabled: bool) -> None:
+        """Telemetria contínua no console (amostragem limitada a 5 Hz)."""
+        engine = self._engine()
+        if engine is not None:
+            engine.set_detailed_logging_enabled(enabled)
 
     # ── Escrita ───────────────────────────────────────────────────────────
 
@@ -193,7 +243,6 @@ class TelemetryTracker:
         from ui.core.engine.registry import EngineRegistry
         from .telemetry_report import build_report
 
-        backend = EngineRegistry.instance().get_backend()
-        snap = backend.get_telemetry_snapshot() if backend is not None else self._last_snap
+        snap = self.read_snapshot() or self._last_snap
         vp = EngineRegistry.get_viewport_telemetry() or self._last_vp
         return build_report(self, snap, vp, stay_on_top)

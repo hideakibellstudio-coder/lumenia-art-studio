@@ -76,18 +76,17 @@
  },
  "ui/core/dialogs/telemetry_common.py": {
   "door_bypass": 3,
-  "registry_lookup": 2
+  "registry_lookup": 1
  },
  "ui/core/dialogs/telemetry_diagnostics_cards.py": {
   "door_bypass": 1
  },
  "ui/core/dialogs/telemetry_diagnostics_dialog.py": {
   "door_bypass": 3,
-  "registry_lookup": 5
+  "registry_lookup": 1
  },
  "ui/core/dialogs/telemetry_grid_window.py": {
-  "door_bypass": 3,
-  "registry_lookup": 2
+  "door_bypass": 3
  },
  "ui/core/dialogs/telemetry_state_history_dialog.py": {
   "door_bypass": 1
@@ -426,8 +425,7 @@
   "door_bypass": 3
  },
  "ui/plugins/panels/telemetry_plugin/panel.py": {
-  "door_bypass": 2,
-  "registry_lookup": 3
+  "door_bypass": 2
  },
  "ui/plugins/panels/telemetry_plugin/panel_theme.py": {
   "door_bypass": 1

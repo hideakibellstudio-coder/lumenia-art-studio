@@ -203,12 +203,12 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         lo_grp_logs.setSpacing(8)
 
         self.chk_stroke_summary = QtWidgets.QCheckBox("Log Sumarizado por Traço no Terminal (1 linha ao soltar a caneta)")
-        backend = EngineRegistry.instance().get_backend()
-        self.chk_stroke_summary.setChecked(bool(backend and backend.is_telemetry_enabled()))
+        tracker = TelemetryTracker.instance()
+        self.chk_stroke_summary.setChecked(tracker.stroke_summary_enabled())
         self.chk_stroke_summary.toggled.connect(self._on_toggle_stroke_summary)
 
         self.chk_detailed_log = QtWidgets.QCheckBox("Streaming de Telemetria Contínuo no Console (Amostragem Throttled 5Hz)")
-        self.chk_detailed_log.setChecked(bool(backend and backend.is_detailed_logging_enabled()))
+        self.chk_detailed_log.setChecked(tracker.detailed_log_enabled())
         self.chk_detailed_log.toggled.connect(self._on_toggle_detailed_log)
 
         lo_grp_logs.addWidget(self.chk_stroke_summary)
@@ -304,10 +304,9 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.btn_close.setText(tr("dialogs.close", "Fechar"))
 
     def _refresh_metrics(self) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        if backend is None:
+        snap = TelemetryTracker.instance().read_snapshot()
+        if snap is None:
             return
-        snap = backend.get_telemetry_snapshot()
         # Contrato do núcleo (o canvas registra o provedor); o núcleo nunca
         # importa o plugin do workspace.
         vp = EngineRegistry.get_viewport_telemetry()
@@ -347,14 +346,10 @@ class TelemetryDiagnosticsDialog(BaseFramelessDialog):
         self.card_lag.set_value(f"{snap.stabilizer_lag_px:.1f} px")
 
     def _on_toggle_stroke_summary(self, checked: bool) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        if backend is not None:
-            backend.set_telemetry_enabled(checked)
+        TelemetryTracker.instance().set_stroke_summary(checked)
 
     def _on_toggle_detailed_log(self, checked: bool) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        if backend is not None:
-            backend.set_detailed_logging_enabled(checked)
+        TelemetryTracker.instance().set_detailed_log(checked)
 
     def _run_benchmark(self) -> None:
         backend = EngineRegistry.instance().get_backend()

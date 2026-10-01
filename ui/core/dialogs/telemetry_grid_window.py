@@ -194,9 +194,7 @@ class TelemetryGridWindow(BaseFramelessDialog):
         TelemetryStateHistoryDialog(self._tracker.state_counts, self._tracker.state_history, parent=self).exec()
 
     def reset_metrics(self) -> None:
-        backend = EngineRegistry.instance().get_backend()
-        if backend is not None:
-            backend.reset_telemetry()
+        self._tracker.reset_engine()
         self._tracker.reset()
         self.refresh()
 
@@ -208,10 +206,9 @@ class TelemetryGridWindow(BaseFramelessDialog):
 
     def refresh(self) -> None:
         """Lê o motor e a viewport, atualiza o tracker e mostra."""
-        backend = EngineRegistry.instance().get_backend()
-        if backend is None:
+        snap = self._tracker.read_snapshot()
+        if snap is None:
             return
-        snap = backend.get_telemetry_snapshot()
         vp = EngineRegistry.get_viewport_telemetry()
         self._tracker.update(snap, vp)
         self.show_readings(snap, vp)

@@ -159,6 +159,7 @@
 | `test_stroke_characterization.py` | Caracterização do traço — fixa o comportamento ANTES de mexer no motor. |
 | `test_stroke_pipeline_integrity.py` | Pipeline do traço do canvas: toque isolado, atualização contínua, inclinação/rotação da caneta, direções variadas. |
 | `test_stroke_preview_native.py` | Prévia nativa do pincel (render_stroke_preview) -- regressão de 2026-08-25. |
+| `test_telemetry_tracker_engine_access.py` | O `TelemetryTracker` é a porta das telas de telemetria até o motor e só conhece o papel `TelemetryProtocol`: as chaves e o instantâneo passam pelo provedor, sem motor tudo é um não-fazer-nada silencioso, o relatório cai na última leitura; o dublê tem de cobrir todo membro do papel. |
 | `test_telemetry_contract.py` | Contrato da telemetria com o motor nativo e o "Limpar Undo" de verdade. |
 | `test_telemetry_views.py` | Telas de telemetria (cockpit, painel, diagnóstico) como views do `TelemetryTracker`. |
 | `test_test_report_measured.py` | Relatório de testes com números medidos (JUnit XML), não fixos. |

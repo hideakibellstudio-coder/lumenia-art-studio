@@ -7,7 +7,7 @@ implementa de fato cada papel.
 
 Por que dois niveis de prova:
     `isinstance(obj, Protocol)` so verifica se o atributo EXISTE. Como
-    EngineBackend declara os 172 metodos com corpo padrao (retorna None/False),
+    EngineBackend declara os seus metodos com corpo padrao (retorna None/False),
     qualquer subclasse passaria nesse teste mesmo sem implementar nada -- a
     prova seria vazia. Por isso o segundo teste exige que cada membro de cada
     Protocol seja definido por uma classe DIFERENTE de EngineBackend na MRO do

@@ -66,9 +66,9 @@ def _saved_document(session, tmp_path, layers=3):
         engine.select_layer(layer)
         engine.set_brush_size(26.0)
         x, y = rng.uniform(30, WIDTH - 30), rng.uniform(30, HEIGHT - 30)
-        engine.begin_stroke_raw(x, y, 0.9, 0.0)
+        engine.start_stroke(x, y, 0.9, 0.0)
         for step in range(1, 14):
-            engine.update_stroke_raw(x + step * rng.uniform(-9, 12), y + step * rng.uniform(-9, 12), 0.9, step * 0.01)
+            engine.paint_stroke(x + step * rng.uniform(-9, 12), y + step * rng.uniform(-9, 12), 0.9, step * 0.01)
         engine.end_stroke()
     pixels = [np.frombuffer(engine.get_layer_pixel_buffer(i), dtype=np.uint8).reshape(HEIGHT, WIDTH, 4).copy() for i in range(layers)]
     return DocumentSerializer.save(doc, engine, tmp_path / "source.lmn"), pixels

@@ -17,11 +17,6 @@ class AladynGeometryMixin(AladynBackendBase):
                 int(mode), float(cx), float(cy), float(angle_rad), int(segments), bool(stop_at_center)
             )
 
-    def clear_symmetry(self) -> None:
-        """Desativa a simetria ativa no motor C++."""
-        if self._facade:
-            self._facade.clear_symmetry()
-
     def set_guide_config(
         self, guide_type: int, p0x: float = 0.0, p0y: float = 0.0, p1x: float = 100.0, p1y: float = 100.0,
         p2x: float = 200.0, p2y: float = 200.0, p3x: float = 300.0, p3y: float = 300.0,
@@ -38,11 +33,6 @@ class AladynGeometryMixin(AladynBackendBase):
                 float(vp_cx), float(vp_cy), float(cx), float(cy),
                 float(fov), float(pitch), float(yaw), float(snap_radius)
             )
-
-    def clear_guide(self) -> None:
-        """Desativa as réguas ativas no motor C++."""
-        if self._facade:
-            self._facade.clear_guide()
 
     def snap_point(
         self,

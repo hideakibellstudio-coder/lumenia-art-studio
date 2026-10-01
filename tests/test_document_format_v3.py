@@ -57,9 +57,9 @@ def _paint(engine, rng: random.Random, strokes: int = 4, size: float = 22.0) -> 
     engine.set_brush_size(size)
     for _ in range(strokes):
         x, y = rng.uniform(20, WIDTH - 20), rng.uniform(20, HEIGHT - 20)
-        engine.begin_stroke_raw(x, y, 0.9, 0.0)
+        engine.start_stroke(x, y, 0.9, 0.0)
         for step in range(1, 16):
-            engine.update_stroke_raw(x + step * rng.uniform(-8, 12), y + step * rng.uniform(-8, 12), 0.9, step * 0.01)
+            engine.paint_stroke(x + step * rng.uniform(-8, 12), y + step * rng.uniform(-8, 12), 0.9, step * 0.01)
         engine.end_stroke()
 
 

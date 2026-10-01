@@ -180,10 +180,8 @@ def test_selection_and_transform_dirty_tracking():
     backend.commit_transform(0, 0, 1, 1, 0, 0, 0)
     assert "transform" in backend.dirty_reasons
 
-    # Flip & Rotate
-    backend.flip_active_layer(True)
+    # Rotate
     backend.rotate_active_layer_90(True)
-    assert "flip" in backend.dirty_reasons
     assert "rotate" in backend.dirty_reasons
 
     # Paste

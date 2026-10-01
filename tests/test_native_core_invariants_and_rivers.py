@@ -238,9 +238,8 @@ def test_river_4_selection_and_transform_loop():
     assert bounds[2] > 0 and bounds[3] > 0
 
     # 3. Buffer de máscara para formigas marchantes
-    mask_img = backend.get_selection_mask_qimage()
-    assert mask_img is not None
-    assert mask_img.format() == QtGui.QImage.Format_Grayscale8
+    mask = backend.get_selection_mask_buffer()
+    assert mask is not None and any(mask)
 
     # 4. Preenchimento de seleção
     backend._mark_document_dirty.reset_mock()
@@ -268,7 +267,7 @@ def test_river_5_color_coercion_and_pipeline_loop():
     assert c2.a == 255
 
     # 2. Balde de tinta no motor C++ aciona dirty tracking
-    ok = backend.flood_fill(50, 50, QtGui.QColor(0, 255, 0, 255), tolerance=30)
+    ok = backend.fill_area(50, 50, QtGui.QColor(0, 255, 0, 255), tolerance=30)
     assert ok is True
     backend._mark_document_dirty.assert_called_with("flood_fill")
 

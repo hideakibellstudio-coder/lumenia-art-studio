@@ -30,10 +30,10 @@ class Test5ObservationsAudit(unittest.TestCase):
     def test_undo_limit_cpp_and_backend(self):
         # Testa getters e setters dinâmicos de memória e passos
         self.backend.set_undo_memory_limit_mb(512)
-        self.assertEqual(self.backend.get_undo_memory_limit_mb(), 512)
-
         self.backend.set_undo_max_steps(100)
-        self.assertEqual(self.backend.get_undo_max_steps(), 100)
+        facade = self.backend._facade  # o contrato só grava os limites; o motor é quem os guarda
+        self.assertEqual(facade.get_undo_memory_limit_mb(), 512)
+        self.assertEqual(facade.get_undo_max_steps(), 100)
 
         # Testa persistência de configurações de renderização
         cfg = {"undo_limit_mb": 1024, "undo_max_steps": 200, "low_latency": True, "linear_gamma": False, "deep_color": True, "profile_id": 0}

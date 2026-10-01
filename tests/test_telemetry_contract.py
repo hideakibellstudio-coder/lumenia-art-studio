@@ -27,11 +27,18 @@ from ui.infrastructure.bridge_client.aladyn import AladynBackend
 app = QApplication.instance() or QApplication(["--platform", "offscreen"])
 
 
-def stroke(backend_or_facade, x0=10.0):
-    backend_or_facade.begin_stroke_raw(x0, 10.0, 1.0)
+def stroke(facade, x0=10.0):
+    facade.begin_stroke_raw(x0, 10.0, 1.0)
     for i in range(1, 12):
-        backend_or_facade.update_stroke_raw(x0 + i * 3, 10.0 + i * 3, 0.9)
-    backend_or_facade.end_stroke_raw()
+        facade.update_stroke_raw(x0 + i * 3, 10.0 + i * 3, 0.9)
+    facade.end_stroke_raw()
+
+
+def backend_stroke(backend, x0=10.0):
+    backend.start_stroke(x0, 10.0, 1.0)
+    for i in range(1, 12):
+        backend.paint_stroke(x0 + i * 3, 10.0 + i * 3, 0.9)
+    backend.end_stroke()
 
 
 def test_todo_campo_do_dto_existe_na_struct_nativa():
@@ -93,7 +100,7 @@ def session(monkeypatch):
 
 def test_limpar_undo_descarta_o_historico_do_documento(session):
     document, backend = session
-    stroke(backend)
+    backend_stroke(backend)
     with document.history.transaction(backend):
         assert backend.duplicate_layer(0) >= 0
         document.layer_manager.duplicate_layer(document.layer_manager.get_active_layer().uid)

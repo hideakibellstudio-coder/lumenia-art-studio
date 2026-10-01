@@ -194,9 +194,9 @@ class TestLowLevelBrushRaster(unittest.TestCase):
 
         # 1. Desenha sem textura
         backend.set_brush_grain_enabled(False)
-        backend.begin_stroke_raw(50.0, 50.0, 0.6)
-        backend.end_stroke_raw()
-        buf_no_grain = backend.get_pixel_buffer()
+        backend.start_stroke(50.0, 50.0, 0.6)
+        backend.end_stroke()
+        buf_no_grain = backend.get_display_pixel_buffer()
         arr_no_grain = np.frombuffer(buf_no_grain, dtype=np.uint8).reshape((200, 200, 4))
         drawn_no_grain = np.count_nonzero(arr_no_grain[:, :, 0] < 250)
 
@@ -204,10 +204,10 @@ class TestLowLevelBrushRaster(unittest.TestCase):
         backend.clear_canvas()
         backend.set_brush_grain_enabled(True)
         backend.set_brush_height_preset(3)  # NoiseGrain
-        backend.set_brush_grain_contrast(1.5)
-        backend.begin_stroke_raw(50.0, 50.0, 0.6)
-        backend.end_stroke_raw()
-        buf_grain = backend.get_pixel_buffer()
+        backend.set_brush_contrast(1.5)
+        backend.start_stroke(50.0, 50.0, 0.6)
+        backend.end_stroke()
+        buf_grain = backend.get_display_pixel_buffer()
         arr_grain = np.frombuffer(buf_grain, dtype=np.uint8).reshape((200, 200, 4))
         drawn_grain = np.count_nonzero(arr_grain[:, :, 0] < 250)
 

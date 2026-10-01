@@ -83,9 +83,9 @@ def _open_document_with_ink(window):
     backend = EngineRegistry.instance().get_backend()
     previous = window.dm.new_document(200, 100, "previous")
     backend.select_layer(0)
-    backend.begin_stroke_raw(30, 30, 0.8, 0.0)
+    backend.start_stroke(30, 30, 0.8, 0.0)
     for i in range(1, 20):
-        backend.update_stroke_raw(30 + i * 6, 30 + i * 2, 0.8, i * 0.004)
+        backend.paint_stroke(30 + i * 6, 30 + i * 2, 0.8, i * 0.004)
     backend.end_stroke()
     return backend, previous, _digest(backend.get_layer_pixel_buffer(0))
 

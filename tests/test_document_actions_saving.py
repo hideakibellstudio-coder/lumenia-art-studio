@@ -84,9 +84,9 @@ def session(qapp, tmp_path, monkeypatch):
         doc = manager.new_document(SIZE, SIZE, name)
         backend.set_active_document_context(doc.uid, SIZE, SIZE)
         backend.select_layer(0)
-        backend.begin_stroke_raw(10, 10, 0.9, 0.0)
+        backend.start_stroke(10, 10, 0.9, 0.0)
         for step in range(1, 12):
-            backend.update_stroke_raw(10 + step * 5, 10 + step * 4, 0.9, step * 0.01)
+            backend.paint_stroke(10 + step * 5, 10 + step * 4, 0.9, step * 0.01)
         backend.end_stroke()
         doc.mark_dirty("stroke")
         return doc

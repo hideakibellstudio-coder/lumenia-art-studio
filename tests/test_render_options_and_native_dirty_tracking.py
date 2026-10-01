@@ -196,14 +196,7 @@ class _MockStrokeBackend(AladynStrokeMixin):
 def test_stroke_mixin_mark_document_dirty():
     backend = _MockStrokeBackend()
 
-    # flood_fill bem-sucedido
-    backend._facade.flood_fill.return_value = True
-    res = backend.flood_fill(10, 10, (255, 0, 0, 255))
-    assert res is True
-    assert "flood_fill" in backend.dirty_reasons
-
     # fill_area bem-sucedido
-    backend.dirty_reasons.clear()
     backend._facade.flood_fill.return_value = True
     res = backend.fill_area(20, 20, (0, 255, 0, 255))
     assert res is True

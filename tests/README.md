@@ -18,6 +18,7 @@
 | `persistence_doubles.py` | Dublês da gravação: um motor que responde o que `capture_document` pergunta (instantâneo com blocos de tiles vazios e válidos), sem o módulo nativo. |
 | `recording_doubles.py` | Dublês compartilhados pelos testes do plugin de gravação (canvas, backend, workspace e motor de teste). |
 | `arccc_coupling_metrics.py` | Mede, arquivo por arquivo, os padrões de acoplamento que transformaram a UI em espaguete, e mantém a catraca (`arccc_coupling_baseline.json`) usada por `tests/test_arccc_coupling_ratchet.py`. |
+| `arccc_engine_roles.py` | Mede a superfície do contrato do motor: os métodos do `EngineBackend` que nenhum código de produção chama e, por papel (`Protocol`), quem o consome. `python -m tests.arccc_engine_roles` imprime; `tests/test_engine_contract_surface.py` barra a piora. |
 | `arccc_identifier_language.py` | Conta identificadores com palavra em português por arquivo e mantém a catraca `arccc_identifier_baseline.json` (seção 14 do ARCcC). |
 | `arccc_governance_rules.py` | FONTE ÚNICA das regras quantitativas ARCcC usadas pelos testes de governança. |
 | `arccc_package_docs.py` | Documentação por pasta (ARCcC): TODA pasta do repositório tem README.md. |
@@ -82,6 +83,7 @@
 | `test_engine_benchmark_runner.py` | O runner de benchmarks do motor exporta a linha de base em formato legível por máquina. |
 | `test_engine_boundary_color_and_signals.py` | Test Engine Boundary Round 11 — Validação da Fronteira Nativa C++ / Python. |
 | `test_engine_document_boundary.py` | Fronteira motor ↔ documento: um caminho só, sem o motor conhecer o modelo. |
+| `test_engine_contract_surface.py` | O contrato do motor só tem o que a interface chama: nenhum método do `EngineBackend` sem chamador em `ui/` (19 de 178 saíram em 2026-10-01), com o detector testado contra o que não pode deixar passar. |
 | `test_engine_type_contract.py` | `EngineType` é o enum canônico do motor de pincel: mesmos membros e valores do nativo, e nenhum número solto de motor em `ui/` (S0.1, D1). |
 | `test_floating_toolbar_structure.py` | Testes de Regressão e Contrato para a Decomposição da Fase 2 da Camada 5 (ARCcC v2) Valida o desacoplamento de ToolbarLivePreview, ToolToggleCard e FloatingToolbarSettingsDialog. |
 | `test_fullscreen_mode.py` | Tela cheia pelo F11 e pelo menu: entrar, sair e restaurar o estado anterior da janela. |

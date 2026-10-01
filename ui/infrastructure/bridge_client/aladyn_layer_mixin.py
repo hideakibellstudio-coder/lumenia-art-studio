@@ -188,16 +188,6 @@ class AladynLayerMixin(AladynBackendBase):
             self._facade.set_layer_lock(index, bool(locked))
             self._mark_document_dirty("layer_lock")
 
-    def is_layer_alpha_locked(self, index: int) -> bool:
-        if self._facade:
-            return self._facade.is_layer_alpha_locked(index)
-        return False
-
-    def is_layer_clipping_mask(self, index: int) -> bool:
-        if self._facade:
-            return self._facade.is_layer_clipping_mask(index)
-        return False
-
     def get_active_layer_index(self) -> int:
         if self._facade:
             return self._facade.get_active_layer_index()
@@ -245,11 +235,6 @@ class AladynLayerMixin(AladynBackendBase):
             if fac:
                 fac.set_undo_memory_limit_mb(int(mb))
 
-    def get_undo_memory_limit_mb(self) -> int:
-        if self._facade:
-            return self._facade.get_undo_memory_limit_mb()
-        return self._undo_memory_limit_mb
-
     def set_undo_max_steps(self, steps: int) -> None:
         self._undo_max_steps = int(steps)
         if self._facade:
@@ -264,27 +249,12 @@ class AladynLayerMixin(AladynBackendBase):
             return False
         return True
 
-    def get_undo_max_steps(self) -> int:
-        if self._facade:
-            return self._facade.get_undo_max_steps()
-        return self._undo_max_steps
-
-    def get_undo_count(self) -> int:
-        if self._facade:
-            return self._facade.get_undo_count()
-        return 0
-
-    def get_redo_count(self) -> int:
-        if self._facade:
-            return self._facade.get_redo_count()
-        return 0
-
     def can_undo(self) -> bool:
         if self._facade:
             return self._facade.can_undo()
-        return self.get_undo_count() > 0
+        return False
 
     def can_redo(self) -> bool:
         if self._facade:
             return self._facade.can_redo()
-        return self.get_redo_count() > 0
+        return False

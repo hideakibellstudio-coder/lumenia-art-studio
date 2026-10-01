@@ -133,10 +133,6 @@ class EngineBackend(ABC):
         """Snapshot para viewport, válido após mutações e fechamento do documento."""
         return None
 
-    def get_pixel_buffer(self) -> Optional[bytes]:
-        """Snapshot RGBA imutável e independente do armazenamento do motor."""
-        return None
-
     def get_display_pixel_buffer(self) -> Optional[bytes]:
         """Snapshot RGBA de exibição, válido após render/resize/fechamento."""
         return None
@@ -149,9 +145,6 @@ class EngineBackend(ABC):
     def get_display_image(self, zoom: float, region: Any) -> Optional[DisplayImage]:
         """A imagem que a tela pinta: só a `region` (QRect em pixels do canvas), no nível que o zoom pede."""
         return None
-
-    def get_dirty_tile_indices(self) -> List[Tuple[int, int]]: return []
-    def clear_dirty_tiles(self) -> None: ...
 
     def get_document_generation(self) -> int:
         return 0
@@ -176,10 +169,6 @@ class EngineBackend(ABC):
 
         Retorna o retângulo sujo [x, y, w, h] no espaço do canvas, ou vazio.
         """
-
-    def begin_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None: pass
-    def update_stroke_raw(self, x: float, y: float, pressure: float = 1.0, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> List[float]: return [0.0, 0.0, 0.0]
-    def end_stroke_raw(self) -> List[float]: return []
 
     # ── Parâmetros Básicos de Pincel ──────────────────────────────────────
 
@@ -220,7 +209,6 @@ class EngineBackend(ABC):
     def set_shape_preset(self, preset_id: int) -> None: ...
     def set_brush_height_preset(self, preset_id: int) -> None: ...
     def set_brush_grain_enabled(self, enabled: bool) -> None: ...
-    def set_brush_grain_contrast(self, contrast: float) -> None: ...
     def set_brush_grain_scale(self, scale: float) -> None: ...
 
     # ── Papel & Textura do Canvas ─────────────────────────────────────────
@@ -258,16 +246,13 @@ class EngineBackend(ABC):
     def reorder_layers(self, new_order: List[int]) -> bool: return False
     def set_layer_parents(self, parent_indices: List[int]) -> bool: return False
     def set_layer_name(self, index: int, name: str) -> None: ...
-    def get_layer_name(self, index: int) -> str: return ""
     def get_layer_info(self, index: int) -> Dict[str, Any]: return {}
     def set_layer_opacity(self, index: int, opacity: float) -> None: ...
     def set_layer_blend_mode(self, index: int, blend_mode_id: int) -> None: ...
     def set_layer_visibility(self, index: int, visible: bool) -> None: ...
     def set_layer_lock(self, index: int, locked: bool) -> None: ...
     def set_layer_alpha_lock(self, index: int, locked: bool) -> None: ...
-    def is_layer_alpha_locked(self, index: int) -> bool: return False
     def set_layer_clipping_mask(self, index: int, clipped: bool) -> None: ...
-    def is_layer_clipping_mask(self, index: int) -> bool: return False
     def flatten_group(self, index: int) -> bool: return False
     def merge_layer_down(self, index: int) -> bool: return False
     def clear_layer(self, index: int) -> None: ...
@@ -297,7 +282,6 @@ class EngineBackend(ABC):
     def fill_selection_on_active_layer(self, fill_color: Any) -> bool: return False
     def get_selection_bounds(self) -> List[int]: return [0, 0, 0, 0]
     def get_selection_contour_loops(self) -> List[List[int]]: return []
-    def get_selection_mask_qimage(self) -> Optional[Any]: return None
 
     def begin_transform(self) -> bool: return False
     def is_transform_active(self) -> bool: return False
@@ -306,24 +290,18 @@ class EngineBackend(ABC):
     def commit_transform(self, dx: float, dy: float, scale_x: float, scale_y: float, rotation_deg: float, pivot_x: float, pivot_y: float, flip_h: bool, flip_v: bool, interp_mode: int = 2) -> bool: return False
     def commit_transform_distort(self, corners: List[float], interp_mode: int = 2) -> bool: return False
     def cancel_transform(self) -> bool: return False
-    def flip_active_layer(self, horizontal: bool) -> bool: return False
     def rotate_active_layer_90(self, clockwise: bool) -> bool: return False
     def get_transform_source_qimage(self) -> Optional[Any]: return None
 
     # ── Preenchimento (Flood Fill) & Colagem de Buffers ───────────────────
 
-    def flood_fill(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, sample_all_layers: bool = True) -> bool: return False
-    def fill_area(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, sample_all_layers: bool = True, *, sample_all: Optional[bool] = None) -> bool:
-        if sample_all is not None: sample_all_layers = sample_all
-        return self.flood_fill(seed_x, seed_y, fill_color, tolerance, contiguous, expand_px, sample_all_layers)
+    def fill_area(self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20, contiguous: bool = True, expand_px: int = 1, sample_all_layers: bool = True, *, sample_all: Optional[bool] = None) -> bool: return False
     def paste_rgba_buffer_on_active_layer(self, x: int, y: int, width: int, height: int, buffer: bytes, blend_mode_id: int = 0, opacity: float = 1.0) -> bool: return False
 
     # ── Simetria & Guias/Réguas ───────────────────────────────────────────
 
     def set_symmetry_config(self, mode: int, cx: float, cy: float, angle_rad: float, segments: int, stop_at_center: bool) -> None: ...
-    def clear_symmetry(self) -> None: ...
     def set_guide_config(self, type_id: int, p0x: float, p0y: float, p1x: float, p1y: float, p2x: float, p2y: float, p3x: float, p3y: float, vp_ax: float, vp_ay: float, vp_bx: float, vp_by: float, vp_cx: float, vp_cy: float, cx: float, cy: float, fov: float, pitch: float, yaw: float, snap_radius: float) -> None: ...
-    def clear_guide(self) -> None: ...
     def snap_point(self, raw_x: float, raw_y: float, last_x: float = 0.0, last_y: float = 0.0, has_last: bool = False) -> List[float]: return [raw_x, raw_y]
 
     # ── Curvilinear (6P fisheye) — Fase C2b ─────────────────────────────
@@ -395,14 +373,10 @@ class EngineBackend(ABC):
     def get_redo_step_id(self) -> int: return 0
     def get_history_step_ids(self) -> list[int]: return []
     def redo(self) -> bool: return False
-    def get_undo_count(self) -> int: return 0
-    def get_redo_count(self) -> int: return 0
     def can_undo(self) -> bool: return False
     def can_redo(self) -> bool: return False
     def set_undo_memory_limit_mb(self, mb: int) -> None: ...
-    def get_undo_memory_limit_mb(self) -> int: return 512
     def set_undo_max_steps(self, steps: int) -> None: ...
-    def get_undo_max_steps(self) -> int: return 50
     def clear_history(self) -> bool: return False
 
     # ── Viewport / Câmera ────────────────────────────────────────────────

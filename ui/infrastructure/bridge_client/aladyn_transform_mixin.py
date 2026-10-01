@@ -70,14 +70,6 @@ class AladynTransformMixin(AladynBackendBase):
             return self._facade.cancel_transform()
         return False
 
-    def flip_active_layer(self, horizontal: bool) -> bool:
-        if self._facade:
-            res = self._facade.flip_active_layer(bool(horizontal))
-            if res:
-                self._mark_document_dirty("flip")
-            return res
-        return False
-
     def rotate_active_layer_90(self, clockwise: bool) -> bool:
         if self._facade:
             res = self._facade.rotate_active_layer_90(bool(clockwise))

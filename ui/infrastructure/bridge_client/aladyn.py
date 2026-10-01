@@ -195,11 +195,6 @@ class AladynBackend(
 
     # ── Buffer de Pixels & QImage ────────────────────────────────────────
 
-    def get_pixel_buffer(self) -> Optional[bytes]:
-        if self._facade:
-            return bytes(self._facade.get_pixel_buffer())
-        return None
-
     def get_display_pixel_buffer(self) -> Optional[bytes]:
         if self._facade:
             if native_has(self._facade, "get_display_pixel_buffer", "a tela mostra o buffer bruto, sem cache de exibição"):
@@ -227,11 +222,6 @@ class AladynBackend(
         if self._facade:
             return int(self._facade.get_document_generation())
         return 0
-
-    def get_layer_name(self, index: int) -> str:
-        if self._facade:
-            return str(self._facade.get_layer_name(int(index)))
-        return ""
 
     def begin_layer_transaction(self) -> bool:
         return bool(self._facade and self._facade.begin_layer_transaction())
@@ -296,11 +286,3 @@ class AladynBackend(
         image = QImage(pixels, area.width(), area.height(), area.width() * 4, QImage.Format_RGBA8888)
         return DisplayImage(image, scale, (area.x(), area.y()), pixels)
 
-    def get_dirty_tile_indices(self) -> list[tuple[int, int]]:
-        if self._facade:
-            return self._facade.get_dirty_tile_indices()
-        return []
-
-    def clear_dirty_tiles(self) -> None:
-        if self._facade:
-            self._facade.clear_dirty_tiles()

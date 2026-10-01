@@ -112,7 +112,7 @@ def test_merge_rename_order_branch_and_filter(session):
         assert manager.merge_down(manager.layers[1].uid)
     assert document.history.undo(backend)
     assert pixels(backend) == before
-    assert backend.get_layer_name(1) == manager.layers[1].name == "changed"
+    assert backend.get_layer_info(1)["name"] == manager.layers[1].name == "changed"
     with document.history.transaction(backend):
         backend.reorder_layers([1, 0])
         manager.move_layer_down(manager.layers[1].uid)
@@ -217,12 +217,11 @@ def test_native_history_limit_prunes_model_metadata(session):
         with document.history.transaction(backend):
             backend.set_layer_name(0, str(index))
             document.layer_manager.set_layer_name(0, str(index))
-    assert backend.get_undo_count() == 2
     assert len(document.history.entries) == 2
     assert document.history.undo(backend)
     assert document.history.undo(backend)
     assert not document.history.undo(backend)
-    assert backend.get_layer_name(0) == document.layer_manager.layers[0].name == "2"
+    assert backend.get_layer_info(0)["name"] == document.layer_manager.layers[0].name == "2"
 
 
 def test_explicit_interactive_cancel_restores_native_and_model_without_step(session):

@@ -1,7 +1,6 @@
 """Selection operations mixin for AladynBackend."""
 
 from typing import Optional, Any
-from PySide6.QtGui import QImage
 from .aladyn_buffers import to_native_color_rgba
 from .aladyn_base import AladynBackendBase
 
@@ -104,14 +103,6 @@ class AladynSelectionMixin(AladynBackendBase):
         if self._facade:
             return self._facade.get_selection_contour_loops()
         return []
-
-    def get_selection_mask_qimage(self) -> Optional[QImage]:
-        if self._facade:
-            memview = self._facade.get_selection_mask_buffer()
-            if memview:
-                w, h = self._facade.get_width(), self._facade.get_height()
-                return QImage(memview, w, h, w, QImage.Format_Grayscale8).copy()
-        return None
 
     def get_selection_mask_buffer(self) -> Optional[bytes]:
         if self._facade:

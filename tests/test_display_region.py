@@ -228,7 +228,7 @@ def test_painting_at_working_zoom_never_copies_the_whole_canvas(viewport):
     widget.publish_view(zoom_changed=True)
     assert widget.zoom == 1.0
     whole_canvas_calls = []
-    for name in ("get_qimage", "get_display_pixel_buffer", "get_pixel_buffer"):
+    for name in ("get_qimage", "get_display_pixel_buffer"):
         original = getattr(backend, name)
         setattr(backend, name, lambda *args, _n=name, _o=original, **kwargs: (whole_canvas_calls.append(_n), _o(*args, **kwargs))[1])
     _paint(widget, None)

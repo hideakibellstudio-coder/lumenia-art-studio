@@ -21,9 +21,9 @@ EXTRA_LAYERS = 19
 
 
 def _stroke(backend, origin_x: float = 100.0, origin_y: float = 100.0) -> None:
-    backend.begin_stroke_raw(origin_x, origin_y, 0.8, 0.0)
+    backend.start_stroke(origin_x, origin_y, 0.8, 0.0)
     for i in range(1, STROKE_SAMPLES + 1):
-        backend.update_stroke_raw(origin_x + i * 8, origin_y + (i % 20) * 6, 0.8, i * 0.004)
+        backend.paint_stroke(origin_x + i * 8, origin_y + (i % 20) * 6, 0.8, i * 0.004)
     backend.end_stroke()
 
 
@@ -31,9 +31,9 @@ def _add_dense_layers(backend) -> None:
     for i in range(EXTRA_LAYERS):
         backend.add_layer(f"bench-{i}", -1)
         backend.select_layer(backend.get_drawing_layer_count() - 1)
-        backend.begin_stroke_raw(50 + i * 30, 50, 0.8, 0.0)
+        backend.start_stroke(50 + i * 30, 50, 0.8, 0.0)
         for j in range(30):
-            backend.update_stroke_raw(50 + i * 30 + j * 20, 50 + j * 25, 0.8, j * 0.004)
+            backend.paint_stroke(50 + i * 30 + j * 20, 50 + j * 25, 0.8, j * 0.004)
         backend.end_stroke()
 
 

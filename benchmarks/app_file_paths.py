@@ -30,9 +30,9 @@ STROKE_SAMPLES = 40
 def _fill_layers(backend, layers: int) -> None:
     for i in range(layers):
         backend.select_layer(i)
-        backend.begin_stroke_raw(100 + i * 50, 100, 0.8, 0.0)
+        backend.start_stroke(100 + i * 50, 100, 0.8, 0.0)
         for j in range(STROKE_SAMPLES):
-            backend.update_stroke_raw(100 + i * 50 + j * 30, 100 + j * 20, 0.8, j * 0.004)
+            backend.paint_stroke(100 + i * 50 + j * 30, 100 + j * 20, 0.8, j * 0.004)
         backend.end_stroke()
 
 

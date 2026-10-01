@@ -104,14 +104,15 @@ def test_backend_images_and_buffers_survive_mdi_close():
     backend.set_active_document_context("buffer-owner", 8, 8)
     assert backend.paste_rgba_buffer_on_active_layer(0, 0, 8, 8, bytes([90, 60, 30, 255]) * 64)
     backend.select_rect(1, 1, 4, 4)
-    raw = backend.get_pixel_buffer()
+    raw = backend.get_display_pixel_buffer()
+    mask = backend.get_selection_mask_buffer()
     display = backend.get_display_image(0.25, QRect(0, 0, 8, 8))  # the image points into display.pixels: keep both
-    images = [backend.get_qimage(), display.image,
-              backend.get_selection_mask_qimage()]
+    images = [backend.get_qimage(), display.image]
     assert backend.begin_transform()
     images.append(backend.get_transform_source_qimage())
     expected = [bytes(image.constBits()) for image in images]
     raw_expected = bytes(bytearray(raw))
+    mask_expected = bytes(bytearray(mask))
     assert backend.cancel_transform()
     backend.clear_selection()
     backend.resize(5, 7)
@@ -122,6 +123,7 @@ def test_backend_images_and_buffers_survive_mdi_close():
     del backend
     gc.collect()
     assert bytes(raw) == raw_expected
+    assert bytes(mask) == mask_expected
     assert [bytes(image.constBits()) for image in images] == expected
 
 

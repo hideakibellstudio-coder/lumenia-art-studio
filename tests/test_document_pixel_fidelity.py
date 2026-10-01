@@ -112,9 +112,9 @@ def test_a_document_with_soft_strokes_opens_again(backend, tmp_path):
         doc.layer_manager.add_layer(f"L{i}")
     for layer in range(3):
         engine.select_layer(layer)
-        engine.begin_stroke_raw(30 + layer * 30, 30, 0.8, 0.0)
+        engine.start_stroke(30 + layer * 30, 30, 0.8, 0.0)
         for j in range(20):
-            engine.update_stroke_raw(30 + layer * 30 + j * 6, 30 + j * 5, 0.8, j * 0.004)
+            engine.paint_stroke(30 + layer * 30 + j * 6, 30 + j * 5, 0.8, j * 0.004)
         engine.end_stroke()
     wanted_layers = [bytes(engine.get_layer_pixel_buffer(index)) for index in range(3)]
     path = tmp_path / "fidelity.lmn"

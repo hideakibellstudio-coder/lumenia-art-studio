@@ -2,8 +2,7 @@
 AladynStrokeMixin — Gerenciador Atômico de Traços, Fast-Path e Telemetria para o AladynBackend.
 ================================================================================================
 Isola todo o pipeline de execução de pinceladas (start_stroke, paint_stroke, end_stroke),
-o fast-path de bypass (begin_stroke_raw, update_stroke_raw, end_stroke_raw), preenchimento
-por balde de tinta (flood_fill, fill_area) e telemetria de latência do C++.
+o preenchimento por balde de tinta (fill_area) e telemetria de latência do C++.
 """
 
 from __future__ import annotations
@@ -119,54 +118,6 @@ class AladynStrokeMixin(AladynBackendBase):
 
         self._mark_document_dirty("stroke")
         return res or []
-
-    def begin_stroke_raw(
-        self,
-        x: float,
-        y: float,
-        pressure: float = 1.0,
-        timestamp: float = 0.0,
-        tilt_x: float = 0.0,
-        tilt_y: float = 0.0,
-        twist: float = 0.0,
-    ) -> None:
-        self.start_stroke(x, y, pressure, timestamp, tilt_x, tilt_y, twist)
-
-    def update_stroke_raw(
-        self,
-        x: float,
-        y: float,
-        pressure: float = 1.0,
-        timestamp: float = 0.0,
-        tilt_x: float = 0.0,
-        tilt_y: float = 0.0,
-        twist: float = 0.0,
-    ) -> list[float]:
-        return self.paint_stroke(x, y, pressure, timestamp, tilt_x, tilt_y, twist)
-
-    def end_stroke_raw(self) -> list[float]:
-        return self.end_stroke()
-
-    def flood_fill(
-        self,
-        seed_x: int,
-        seed_y: int,
-        fill_color: Any,
-        tolerance: int = 20,
-        contiguous: bool = True,
-        expand_px: int = 1,
-        sample_all_layers: bool = True,
-    ) -> bool:
-        if self._facade and self._native:
-            c = to_native_color_rgba(self._native, fill_color)
-            res = self._facade.flood_fill(
-                int(seed_x), int(seed_y), c, int(tolerance), bool(contiguous),
-                int(expand_px), bool(sample_all_layers)
-            )
-            if res:
-                self._mark_document_dirty("flood_fill")
-            return res
-        return False
 
     def fill_area(
         self, seed_x: int, seed_y: int, fill_color: Any, tolerance: int = 20,

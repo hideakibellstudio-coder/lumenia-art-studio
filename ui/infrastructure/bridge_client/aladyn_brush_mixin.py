@@ -217,10 +217,6 @@ class AladynBrushMixin(AladynBackendBase):
         if self._facade:
             self._facade.get_brush_profile().brush_grain_enabled = bool(enabled)
 
-    def set_brush_grain_contrast(self, contrast: float) -> None:
-        if self._facade:
-            self._facade.get_brush_profile().brush_grain_contrast = float(contrast)
-
     def set_brush_grain_scale(self, scale: float) -> None:
         if self._facade:
             self._facade.get_brush_profile().brush_grain_scale = float(scale)

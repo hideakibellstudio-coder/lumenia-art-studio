@@ -129,6 +129,14 @@ fechar os selos do `08-analise-arccc-v1-1-e-forma-de-trabalho.md`):
   aviso e precisa recompilar. Os caminhos de `native_fallback.py`, que toleravam
   binário antigo método a método, deixam de ser alcançáveis com binário real:
   candidatos à remoção.)* **S0.2 completo (D2, D13, D17).**
+- **Defeito achado no S0.4 e corrigido** (2026-10-01): o `.pyi` mentia sobre 11
+  assinaturas (de 192 métodos). `BezierCurve.set_control_points` aceita 4 `Point2D` e o
+  stub dizia 4 `float`; `commit_transform`, `DynamicStabilizer.reset/update/flush/
+  get_taper_points`, `end_stroke_raw`, `apply_prepared_geometry` e três métodos do
+  `ViewportTransform` tinham argumentos a mais ou a menos. O teste de contrato só
+  comparava nomes. `tests/test_pyi_signatures_match_binary.py` lê a assinatura que o
+  pybind11 publica e compara quantidade e tipo dos argumentos; o contrato subiu para a
+  versão 2.
 - Ordem: S0.6 ✅, S0.8 ✅, S0.1–S0.5 e S0.7, S1.
 - Os 4 pontos de decisão da Seção 8 do documento 08 foram aplicados: ciclo no
   `AGENTS.md` (5.0), assunto de commit em inglês, limiar de complexidade 20

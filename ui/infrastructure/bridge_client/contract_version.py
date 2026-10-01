@@ -8,4 +8,4 @@ letting it fail one call at a time. Bump both when the `.pyi` changes;
 moved without the bump.
 """
 
-EXPECTED_CONTRACT_VERSION = 1
+EXPECTED_CONTRACT_VERSION = 2

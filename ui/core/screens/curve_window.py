@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import math
 from PySide6 import QtWidgets, QtCore, QtGui
+from ui.core.state import BrushCurve, BrushState, CurveSetting
+from ui.core.state.brush_curves import LINEAR_POINTS
 from ui.infrastructure.theme.manager import ThemeManager
 
 
@@ -23,7 +25,7 @@ class CurveWidget(QtWidgets.QWidget):
     PAD = 22
 
     PRESETS = {
-        'linear': [(0.0, 0.0), (0.33, 0.33), (0.66, 0.66), (1.0, 1.0)],
+        'linear': list(LINEAR_POINTS),
         'soft':   [(0.0, 0.0), (0.12, 0.52), (0.50, 0.88), (1.0, 1.0)],
         'hard':   [(0.0, 0.0), (0.45, 0.10), (0.85, 0.45), (1.0, 1.0)],
         's':      [(0.0, 0.0), (0.18, 0.04), (0.82, 0.96), (1.0, 1.0)],
@@ -54,6 +56,11 @@ class CurveWidget(QtWidgets.QWidget):
 
     def get_control_points(self):
         return [(p.x(), p.y()) for p in self._pts]
+
+    def set_control_points(self, points) -> None:
+        """Mostra estes pontos. Não emite `curveChanged`: quem chama já os tem no estado."""
+        self._pts = [QtCore.QPointF(x, y) for x, y in points]
+        self.update()
 
     def set_preset(self, key: str):
         if key in self.PRESETS:
@@ -222,6 +229,9 @@ class CurveSection(QtWidgets.QFrame):
         ef.setOpacity(opacity)
         self.curve.setGraphicsEffect(ef)
 
+    def set_active(self, active: bool) -> None:
+        self.chk.setChecked(bool(active))
+
     @property
     def active(self) -> bool:
         return self.chk.isChecked()
@@ -263,29 +273,34 @@ from ui.core.dialogs.base_dialog import BaseFramelessDialog
 class CurveWindow(BaseFramelessDialog):
     """Janela flutuante de Perfis e Curvas do Pincel (C++ ALADYN ENGINE)."""
 
-    def __init__(self, parent=None):
+    def __init__(self, brush_state: BrushState, parent=None):
+        """`brush_state` é o dono das curvas: a janela edita e mostra o estado, e só o
+        `BrushEngineSync` escreve no motor (a janela não conhece o motor)."""
         from ui.infrastructure.i18n import tr, I18nManager
         super().__init__(title=tr("curves.window_title", "Perfis & Curvas LUT"), icon_name="curve", parent=parent, modal=False)
+        self._state = brush_state
         self.setMinimumWidth(310)
 
         self.pressure_sec = CurveSection("Perfil de Tamanho (Ponta)", label_x="Pressão")
         self.flow_sec = CurveSection("Perfil de Fluxo (Esmaecer)", label_x="Pressão")
         self.velocity_sec = CurveSection("Modificador por Velocidade", label_x="Velocidade")
 
-        self.flow_sec.chk.setChecked(True)
-        self.velocity_sec.chk.setChecked(False)
+        self._sections = {
+            BrushCurve.PRESSURE_SIZE: self.pressure_sec,
+            BrushCurve.PRESSURE_FLOW: self.flow_sec,
+            BrushCurve.VELOCITY_SIZE: self.velocity_sec,
+        }
 
         self.content_layout.addWidget(self.pressure_sec)
         self.content_layout.addWidget(self.flow_sec)
         self.content_layout.addWidget(self.velocity_sec)
 
-        self.pressure_sec.curve.curveChanged.connect(self.sync_to_engine)
-        self.flow_sec.curve.curveChanged.connect(self.sync_to_engine)
-        self.velocity_sec.curve.curveChanged.connect(self.sync_to_engine)
-
-        self.pressure_sec.chk.toggled.connect(self.sync_to_engine)
-        self.flow_sec.chk.toggled.connect(self.sync_to_engine)
-        self.velocity_sec.chk.toggled.connect(self.sync_to_engine)
+        for curve in self._sections:
+            self._show(curve, self._state.curve(curve))
+        for curve, section in self._sections.items():
+            section.curve.curveChanged.connect(lambda curve=curve: self._write(curve))
+            section.chk.toggled.connect(lambda _checked, curve=curve: self._write(curve))
+        self._state.curveChanged.connect(self._show)
 
         ThemeManager.instance().themeChanged.connect(self.apply_theme)
         self.apply_theme()
@@ -294,7 +309,6 @@ class CurveWindow(BaseFramelessDialog):
         self.retranslate_ui()
 
         self.adjustSize()
-        self.sync_to_engine()
 
     def retranslate_ui(self):
         from ui.infrastructure.i18n import tr
@@ -318,20 +332,16 @@ class CurveWindow(BaseFramelessDialog):
             tr("curves.output", "Saída")
         )
 
-    def sync_to_engine(self):
-        from ui.core.engine.registry import EngineRegistry
-        backend = EngineRegistry.instance().get_backend()
-        if not backend:
-            return
+    def _write(self, curve: BrushCurve) -> None:
+        """O usuário mexeu numa seção: o estado passa a valer (valor igual não emite)."""
+        section = self._sections[curve]
+        self._state.set_curve(curve, CurveSetting(tuple(section.curve.get_control_points()), section.active))
 
-        pts_p = self.pressure_sec.curve.get_control_points()
-        backend.set_curve_control_points("pressure_size", pts_p, self.pressure_sec.active)
-
-        pts_f = self.flow_sec.curve.get_control_points()
-        backend.set_curve_control_points("pressure_flow", pts_f, self.flow_sec.active)
-
-        pts_v = self.velocity_sec.curve.get_control_points()
-        backend.set_curve_control_points("velocity_size", pts_v, self.velocity_sec.active)
+    def _show(self, curve: BrushCurve, setting: CurveSetting) -> None:
+        """O estado mudou (aqui ou em outro lugar): a seção passa a mostrar o valor dele."""
+        section = self._sections[BrushCurve(curve)]
+        section.curve.set_control_points(setting.points)
+        section.set_active(setting.enabled)
 
     def apply_theme(self):
         tm = ThemeManager.instance()

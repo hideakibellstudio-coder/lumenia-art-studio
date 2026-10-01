@@ -13,6 +13,7 @@ import pytest
 from PySide6 import QtWidgets
 
 from ui.boundary.orchestrator.dialog_actions import DialogActions
+from ui.core.state import BrushState
 from ui.boundary.orchestrator.shell_actions import ShellActions
 from ui.boundary.orchestrator.workspace_port import SHELL_CANVAS_MEMBERS, SHELL_WORKSPACE_MEMBERS
 
@@ -51,7 +52,7 @@ def test_dialog_actions_apply_shortcuts_and_language(qapp):
     window = QtWidgets.QMainWindow()
     menu = MenuBar(window)
     registry = ShortcutRegistry(window, menu, lambda tool: None)
-    dialogs = DialogActions(window, lambda: None, None, registry)
+    dialogs = DialogActions(window, lambda: None, None, registry, BrushState())
     messages = []
     dialogs.statusMessage.connect(lambda text, _ms: messages.append(text))
     try:

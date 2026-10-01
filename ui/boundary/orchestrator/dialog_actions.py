@@ -14,6 +14,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.runtime_paths import resource_path
+from ui.core.state import BrushState
 from ui.core.shortcut_registry import ShortcutRegistry
 from ui.infrastructure.theme import ThemeManager
 
@@ -28,12 +29,14 @@ class DialogActions(ShellActions):
         backend: BackendProvider,
         workspace: Optional[ShellWorkspace],
         shortcuts: ShortcutRegistry,
+        brush: BrushState,
     ) -> None:
         super().__init__(window)
         self._window = window
         self._backend = backend
         self._workspace = workspace
         self._shortcuts = shortcuts
+        self._brush = brush
         self.telemetry_window: Optional[QtWidgets.QWidget] = None
         self.curve_window: Optional[QtWidgets.QWidget] = None
 
@@ -151,7 +154,7 @@ class DialogActions(ShellActions):
     def open_curve_window(self) -> None:
         if self.curve_window is None:
             from ui.core.screens.curve_window import CurveWindow
-            self.curve_window = CurveWindow(self._window)
+            self.curve_window = CurveWindow(self._brush, self._window)
         self._raise(self.curve_window)
 
     def open_telemetry_window(self) -> None:

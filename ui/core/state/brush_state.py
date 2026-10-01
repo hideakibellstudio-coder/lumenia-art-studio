@@ -23,6 +23,7 @@ from typing import Any
 
 from PySide6 import QtCore, QtGui
 
+from .brush_curves import BrushCurve, CurveSetting, default_curve
 from .brush_params import BRUSH_PARAM_DEFAULTS, BrushParam, coerce_param, quick_params_from_preset
 
 
@@ -32,12 +33,15 @@ class BrushState(QtCore.QObject):
     paramChanged = QtCore.Signal(object, object)
     # (tool_id, preset_name, preset_data)
     presetSelected = QtCore.Signal(str, str, dict)
+    # (BrushCurve, CurveSetting)
+    curveChanged = QtCore.Signal(object, object)
 
     def __init__(self, parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self._color = QtGui.QColor(QtCore.Qt.GlobalColor.black)  # tinta padrão: conteúdo, não tema
         self._params: dict[BrushParam, float | bool] = dict(BRUSH_PARAM_DEFAULTS)
         self._presets: dict[str, tuple[str, dict[str, Any]]] = {}
+        self._curves: dict[BrushCurve, CurveSetting] = {}  # só as que o usuário editou
 
     # ── Cor ───────────────────────────────────────────────────────────────
 
@@ -69,6 +73,26 @@ class BrushState(QtCore.QObject):
 
     def snapshot(self) -> dict[BrushParam, float | bool]:
         return dict(self._params)
+
+    # ── Curvas Bézier ─────────────────────────────────────────────────────
+
+    def curve(self, curve: BrushCurve) -> CurveSetting:
+        """A curva que vale agora: a editada pelo usuário ou a padrão."""
+        curve = BrushCurve(curve)
+        return self._curves.get(curve) or default_curve(curve)
+
+    def set_curve(self, curve: BrushCurve, setting: CurveSetting) -> None:
+        curve = BrushCurve(curve)
+        if not isinstance(setting, CurveSetting):
+            raise ValueError(f"curva inválida: {setting!r}")
+        if self.curve(curve) == setting:
+            return
+        self._curves[curve] = setting
+        self.curveChanged.emit(curve, setting)
+
+    def edited_curves(self) -> dict[BrushCurve, CurveSetting]:
+        """As curvas que o usuário mexeu; as outras ficam como o preset ou o motor as deixam."""
+        return dict(self._curves)
 
     # ── Preset por ferramenta (brush / eraser / smudge) ───────────────────
 

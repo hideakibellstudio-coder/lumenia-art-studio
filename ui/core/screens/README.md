@@ -41,6 +41,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/screens/new_document`
 - `ui/core/screens/plugins`
 - `ui/core/screens/settings`
+- `ui/core/state`
 - `ui/core/widgets/toggle`
 - `ui/infrastructure`
 - `ui/infrastructure/config`

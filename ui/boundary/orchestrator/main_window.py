@@ -100,7 +100,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.edit_actions = EditActions(self, backend, self.app_state.brush, self.canvas_widget,
                                         self.layer_actions.commands)
         self.image_actions = ImageActions(self, self.dm, backend, self.workspace)
-        self.dialogs = DialogActions(self, backend, self.workspace, self.shortcut_registry)
+        self.dialogs = DialogActions(self, backend, self.workspace, self.shortcut_registry,
+                                     self.app_state.brush)
         self.recovery = RecoveryController(self, self.dm, backend, self.canvas_widget, self.documents)
         for collaborator in (self.documents, self.layer_actions, self.edit_actions,
                              self.image_actions, self.dialogs, self.recovery):

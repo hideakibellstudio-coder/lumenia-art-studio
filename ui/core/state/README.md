@@ -42,6 +42,7 @@ podem mudar sem aviso.
 | `brush_params.py` | Enum `BrushParam`, tipos e valores padrão dos parâmetros rápidos; `quick_params_from_preset`. |
 | `brush_state.py` | `BrushState`: cor, parâmetros rápidos e preset lembrado por ferramenta. |
 | `brush_engine_sync.py` | `BrushEngineSync`: único escritor `BrushState → motor`; `resync()` após trocar de documento. |
+| `brush_curves.py` | `BrushCurve` (pressão→tamanho, pressão→fluxo, velocidade→tamanho) e `CurveSetting` (4 pontos de controle e se está ligada); o valor é do `BrushState`, o motor só o recebe pelo `BrushEngineSync`. |
 | `geometry_state.py` | `GeometryState`: guias e simetria do documento ativo; regras de ângulo por modo, campos do diálogo avançado (`apply_advanced`), centro no documento e troca de documento (`load`). |
 | `tool_state.py` | `ToolState`: ferramenta ativa e opções normalizadas por ferramenta; `options_key`, `is_shape_tool`. |
 | `state_links.py` | Regras entre estados: `ShapeColorLink` (formas usam a cor do pincel) e `ToolEngineSync` (Smudge → motor). |

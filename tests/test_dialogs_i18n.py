@@ -285,7 +285,8 @@ class TestDialogsI18nRetranslation(unittest.TestCase):
         from ui.core.screens.about_dialog import AboutDialog
         from ui.core.screens.filters.filter_adjustment_dialog import FilterAdjustmentDialog
 
-        cw = CurveWindow()
+        from ui.core.state import BrushState
+        cw = CurveWindow(BrushState())
         pw = PluginsWindow()
         cs = CanvasSizeDialog(current_w=800, current_h=600)
         lp = LayerPropertiesDialog(name="Layer 1")

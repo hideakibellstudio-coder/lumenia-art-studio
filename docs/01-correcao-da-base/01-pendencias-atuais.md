@@ -37,7 +37,14 @@ fechada: só diminui.
      é capacidade do motor com teste e fica sem chamador de produção de propósito,
      registrado em `bridge/README.md`: a política de quando comprimir só entra com
      benchmark.)*
-   - S0.4: curvas Bézier fora do `BrushState` (D5).
+   - ~~S0.4: curvas Bézier fora do `BrushState` (D5).~~ *(feito em 2026-10-01:
+     `ui/core/state/brush_curves.py` (`BrushCurve`, `CurveSetting`); o `BrushState`
+     guarda as curvas editadas, o `BrushEngineSync` é o único escritor no motor (inclui
+     a troca de documento e a seleção de preset, que não apaga mais a curva do
+     usuário) e a `CurveWindow` só edita e mostra o estado, sem conhecer o motor.
+     Abrir a janela deixou de empurrar os padrões dela para o motor. Colocar a
+     curva dentro de um preset em arquivo fica para a feature de biblioteca de
+     pincéis (ponto de extensão registrado no relatório 08).)*
    - ~~S0.5: documento do framework ARCcC desatualizado (D10).~~ *(feito em
      2026-10-01: `01-framework-arccc.md` reescrito; método universal v1.1.0 em
      `08-arccc-metodologia-universal.md`; ciclo de construção no `AGENTS.md`,

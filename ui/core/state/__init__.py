@@ -22,6 +22,7 @@ from dataclasses import dataclass
 
 from ui.core.plugins.registry import ServiceRegistry
 
+from .brush_curves import BrushCurve, CurveSetting
 from .brush_engine_sync import BackendProvider, BrushEngineSync
 from .brush_params import BRUSH_PARAM_DEFAULTS, BrushParam, quick_params_from_preset
 from .brush_state import BrushState
@@ -82,9 +83,11 @@ __all__ = [
     "AppState",
     "BRUSH_PARAM_DEFAULTS",
     "BackendProvider",
+    "BrushCurve",
     "BrushEngineSync",
     "BrushParam",
     "BrushState",
+    "CurveSetting",
     "GeometryState",
     "ShapeColorLink",
     "ToolEngineSync",

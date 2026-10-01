@@ -20,6 +20,7 @@ from PySide6 import QtCore, QtGui
 
 from ui.core.engine.backend import EngineBackend
 
+from .brush_curves import BrushCurve, CurveSetting
 from .brush_params import BrushParam
 from .brush_state import BrushState
 
@@ -52,6 +53,7 @@ class BrushEngineSync(QtCore.QObject):
         brush_state.colorChanged.connect(self._push_color)
         brush_state.paramChanged.connect(self._push_param)
         brush_state.presetSelected.connect(self._push_preset)
+        brush_state.curveChanged.connect(self._push_curve)
 
     def resync(self) -> None:
         """Reenvia parâmetros rápidos e cor ao backend (usar após trocar o documento ativo).
@@ -68,6 +70,7 @@ class BrushEngineSync(QtCore.QObject):
         for param, value in self._state.snapshot().items():
             _SETTERS[param](backend, value)
         self._apply_color(backend, self._state.color)
+        self._apply_edited_curves(backend)
 
     def _push_color(self, color: QtGui.QColor) -> None:
         backend = self._backend_provider()
@@ -83,6 +86,21 @@ class BrushEngineSync(QtCore.QObject):
         backend = self._backend_provider()
         if backend is not None:
             backend.apply_brush_preset_dict(data)
+            # O preset não carrega curvas: as que o usuário editou valem por cima dele.
+            self._apply_edited_curves(backend)
+
+    def _push_curve(self, curve: BrushCurve, setting: CurveSetting) -> None:
+        backend = self._backend_provider()
+        if backend is not None:
+            self._apply_curve(backend, curve, setting)
+
+    def _apply_edited_curves(self, backend: EngineBackend) -> None:
+        for curve, setting in self._state.edited_curves().items():
+            self._apply_curve(backend, curve, setting)
+
+    @staticmethod
+    def _apply_curve(backend: EngineBackend, curve: BrushCurve, setting: CurveSetting) -> None:
+        backend.set_curve_control_points(curve.value, [tuple(point) for point in setting.points], setting.enabled)
 
     @staticmethod
     def _apply_color(backend: EngineBackend, color: QtGui.QColor) -> None:

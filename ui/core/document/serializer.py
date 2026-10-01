@@ -14,6 +14,7 @@ import os
 import tempfile
 import shutil
 import zipfile
+import zlib
 from pathlib import Path
 from typing import Any
 from .document import Document
@@ -213,7 +214,7 @@ class DocumentSerializer:
                 if unexpected:
                     raise DocumentFormatError("arquivo contém entradas ZIP não declaradas no manifesto")
                 return manifest, payloads
-        except (zipfile.BadZipFile, zipfile.LargeZipFile, OSError, EOFError,
+        except (zipfile.BadZipFile, zipfile.LargeZipFile, OSError, EOFError, zlib.error,
                 RuntimeError, RecursionError, NotImplementedError) as exc:
             raise DocumentFormatError("arquivo .lmn corrompido") from exc
         except (TypeError, ValueError, OverflowError) as exc:

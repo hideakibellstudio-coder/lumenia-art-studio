@@ -70,6 +70,7 @@
 | `test_document_actions_saving.py` | Salvar pela interface (S1.2): começa na hora e o documento só fica limpo com o arquivo gravado e conferido; edição feita durante a gravação o mantém sujo; falha mantém o documento aberto e sujo e avisa; "salvar e fechar" só fecha depois do arquivo; sair espera a gravação e não sai por documento não salvo; um segundo Ctrl+S antes do arquivo existir não pede nome de novo; fechar durante a gravação é inofensivo. |
 | `test_document_format_fuzz.py` | Deterministic malformed-file fuzzing for the untrusted LMN reader. |
 | `test_document_format_v3.py` | O `.lmn` v3 (S1.2): camada = bloco de tiles, abre aos mesmos pixels visíveis e propriedades; v2 com payload cru escrito à mão segue abrindo e salvar de novo vira v3; o arquivo custa o que está pintado (8 camadas 4000×3000 vazias: 24 bytes cada); o leitor recusa payload mentiroso e a restauração recusa bloco que não bate; e a segunda metade de salvar roda em outra thread enquanto se pinta e grava o documento como estava na captura. |
+| `test_document_hostile_manifest.py` | Manifesto hostil (tipo errado, textura do papel fora do `int`, entrada deflate danificada) é recusado como `DocumentFormatError`, nunca como `OverflowError` ou `zlib.error`; o manifesto gravado não leva o caminho absoluto do autor. |
 | `test_document_history_integration.py` | Exercise native pixels and document UIDs in the same history timeline. |
 | `test_document_open_actions.py` | As ações que abrem documentos: abrir `.lmn` funciona (quebrado de 24/09 a 01/10 por um argumento removido) e o que o motor não consegue hospedar é recusado sem tocar o documento aberto (S0.2, D2). |
 | `test_document_pixel_fidelity.py` | Abrir um documento salvo reproduz os pixels gravados: colar sobre camada vazia é exato e o restore ignora o RGB de pixel transparente. |
@@ -153,6 +154,7 @@
 | `test_runner_coverage_contract.py` | O runner grava a cobertura da fronteira de documento. |
 | `test_runner_suite_selection.py` | As suítes nomeadas do runner apontam para arquivos de teste existentes e únicos. |
 | `test_runtime_paths.py` | Raiz de recursos em desenvolvimento (repositório) e empacotado (pasta do executável). |
+| `test_scratch_disk_unicode_path.py` | O arquivo de paginação do desfazer abre, lê e é removido numa pasta com acento, espaço e caracteres fora do ANSI (no Windows o `std::string` do caminho seria reinterpretado em cp1252). |
 | `test_secondary_toolbar_structure.py` | Contrato da barra secundária (ui/plugins/system/workspace_core/workspace/secondary_tool_bar). |
 | `test_selection_extreme_coordinates.py` | Retângulo, elipse e polígono de seleção sobrevivem a qualquer coordenada que o `int` carrega (antes, `select_rect(2**31 - 1, 0, 1, 1)` derrubava o processo): as chamadas extremas rodam num processo filho, e 800 cenários sãos conferem o hash da implementação de 32 bits. |
 | `test_selection_modify.py` | Seleção -> Modificar (Expandir, Contrair, Suavizar Borda) -- 2026-09-23. |

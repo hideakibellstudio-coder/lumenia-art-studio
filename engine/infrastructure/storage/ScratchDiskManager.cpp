@@ -60,14 +60,19 @@ bool ScratchDiskManager::ensureFileOpen() {
                       static_cast<unsigned long long>(rnd));
 
         const auto fullPath = tempDir / filename;
+        // No Windows `path::string()` converte para a pagina de codigo ANSI: uma pasta temporaria com nome fora dela
+        // (usuario "田中", "Łukasz") virava "?" e o arquivo nao abria, o disco de rascunho ficava desligado em silencio
+        // e o historico passava a ser podado em vez de paginado. Toda operacao usa o `path`; a `string` e' so a
+        // leitura que `getFilePath()` entrega.
+        m_path = fullPath;
         m_filePath = fullPath.string();
 
-        m_file.open(m_filePath, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
+        m_file.open(m_path, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
         if (!m_file.is_open()) {
             // Tenta criar primeiro
-            std::ofstream create(m_filePath, std::ios::binary | std::ios::trunc);
+            std::ofstream create(m_path, std::ios::binary | std::ios::trunc);
             create.close();
-            m_file.open(m_filePath, std::ios::in | std::ios::out | std::ios::binary);
+            m_file.open(m_path, std::ios::in | std::ios::out | std::ios::binary);
         }
 
         m_currentWriteOffset = 0;
@@ -85,7 +90,7 @@ std::optional<uint64_t> ScratchDiskManager::writeBlock(const uint8_t* data, size
     const auto limit = static_cast<uint64_t>(std::numeric_limits<std::streamoff>::max());
     if (size > limit || m_currentWriteOffset > limit - size) return std::nullopt;
     std::error_code ec;
-    if (!std::filesystem::exists(m_filePath, ec)) return std::nullopt;
+    if (!std::filesystem::exists(m_path, ec)) return std::nullopt;
 
     m_file.clear();
     m_file.seekp(static_cast<std::streamoff>(m_currentWriteOffset));
@@ -119,7 +124,7 @@ bool ScratchDiskManager::readBlock(uint64_t offset, size_t size, std::vector<uin
     const auto record = m_records.find(offset);
     std::error_code ec;
     if (record == m_records.end() || size != record->second.size ||
-        !m_file.is_open() || !std::filesystem::exists(m_filePath, ec)) return false;
+        !m_file.is_open() || !std::filesystem::exists(m_path, ec)) return false;
 
     // Reject truncated/corrupt records before touching the caller buffer.
     // The stream's eofbit alone is insufficient because a short read can
@@ -154,8 +159,10 @@ void ScratchDiskManager::purge() {
     if (m_file.is_open()) {
         m_file.close();
     }
-    if (!m_filePath.empty()) {
-        std::remove(m_filePath.c_str());
+    if (!m_path.empty()) {
+        std::error_code ec;
+        std::filesystem::remove(m_path, ec);
+        m_path.clear();
         m_filePath.clear();
     }
     m_currentWriteOffset = 0;

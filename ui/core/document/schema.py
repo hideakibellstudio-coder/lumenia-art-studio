@@ -81,6 +81,21 @@ def validate_auxiliary(manifest):  # noqa: C901 -- dívida registrada (pendênci
     dpi = manifest.get("dpi", 300)
     if type(dpi) is not int or not 1 <= dpi <= 100000:
         raise DocumentFormatError("resolução (DPI) inválida")
+    paper = manifest.get("paper", {})
+    if not isinstance(paper, dict):
+        raise DocumentFormatError("papel inválido")
+    # Os campos do papel chegam ao motor como `int`/`bool` da ponte: um valor fora disso era um TypeError
+    # com a assinatura do pybind na mensagem em vez de um arquivo recusado (achado por mutação do manifesto).
+    texture = paper.get("texture_id", 0)
+    if type(texture) is not int or not 0 <= texture <= 1_000_000:
+        raise DocumentFormatError("textura do papel inválida")
+    for key in ("visible", "texture_enabled"):
+        if key in paper and type(paper[key]) is not bool:
+            raise DocumentFormatError(f"flag do papel inválido: {key}")
+    paper_color = paper.get("color", [255, 255, 255, 255])
+    if not (isinstance(paper_color, (list, tuple)) and len(paper_color) in (3, 4)
+            and all(type(c) is int and 0 <= c <= 255 for c in paper_color)):
+        raise DocumentFormatError("cor do papel inválida")
     profile = manifest.get("color_profile_id", 0)
     if type(profile) is not int or type(profile) is bool:
         raise DocumentFormatError("perfil de cor não suportado")

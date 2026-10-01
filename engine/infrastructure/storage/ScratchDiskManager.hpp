@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -53,7 +54,8 @@ private:
     bool ensureFileOpen();
 
     bool m_enabled{true};
-    std::string m_filePath;
+    std::filesystem::path m_path;  // o que abre, confere e apaga o arquivo (sem passar pela pagina de codigo ANSI)
+    std::string m_filePath;        // so para `getFilePath()`
     std::fstream m_file;
     std::mutex m_mutex;
     uint64_t m_currentWriteOffset{0};

@@ -143,7 +143,6 @@ def capture_document(document: Document, backend: CaptureEngine, path: str | os.
         "width": int(document.width),
         "height": int(document.height),
         "dpi": int(document.dpi),
-        "file_path": str(target),
         "paper": {
             "color": _color_tuple(document.paper_color),
             "visible": bool(document.paper_visible),

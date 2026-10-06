@@ -1,30 +1,45 @@
 #include "VelocityTracker.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace aladyn::engine::stroke {
 
-VelocityTracker::VelocityTracker(double smoothingFactor) noexcept
-    : m_smoothingFactor(smoothingFactor) {}
+VelocityTracker::VelocityTracker(double smoothingSeconds) noexcept
+    : m_smoothingSeconds(std::max(smoothingSeconds, 1e-6)) {}
 
 void VelocityTracker::reset(utils::Point2D initialPosition, double timestamp) noexcept {
     m_lastPosition = initialPosition;
-    m_lastTimestamp = timestamp;
+    m_windowStart = timestamp;
+    m_windowDistance = 0.0;
     m_smoothedVelocity = 0.0;
+    m_hasReading = false;
 }
 
 double VelocityTracker::update(utils::Point2D currentPosition, double timestamp) noexcept {
-    const double dt = timestamp - m_lastTimestamp;
-    if (dt > 0.0) {
-        const double distance = m_lastPosition.distanceTo(currentPosition);
-        // Piso temporal de 0.8ms (~1250Hz) para blindar contra rajadas de fila do SO (queue bursting)
-        // sem achatar a velocidade física de mesas digitalizadoras e mouses gamer de alta taxa (500Hz-1000Hz)
-        const double effectiveDt = std::max(dt, 0.0008);
-        // Teto de velocidade física humana para evitar contaminação do rastreador
-        const double immediateVelocity = std::clamp(distance / effectiveDt, 0.0, 3500.0);
-        m_smoothedVelocity = (m_smoothedVelocity * (1.0 - m_smoothingFactor)) + (immediateVelocity * m_smoothingFactor);
-    }
+    // O caminho acumula a cada evento, inclusive os de timestamp repetido: a mesa gravada
+    // (Windows Ink, 59,94 Hz) entrega ~6 eventos por timestamp, e medir só o último passo
+    // lia ~1/6 da velocidade real.
+    m_windowDistance += m_lastPosition.distanceTo(currentPosition);
     m_lastPosition = currentPosition;
-    m_lastTimestamp = timestamp;
+
+    const double elapsed = timestamp - m_windowStart;
+    if (elapsed < 0.0) {
+        // Relógio voltou (timestamp fora de ordem): reancora a janela sem inventar velocidade.
+        m_windowStart = timestamp;
+        return m_smoothedVelocity;
+    }
+    if (elapsed < kMinWindowSeconds) return m_smoothedVelocity;
+
+    const double measured = std::clamp(m_windowDistance / elapsed, 0.0, kMaxVelocity);
+    if (m_hasReading) {
+        const double weight = 1.0 - std::exp(-elapsed / m_smoothingSeconds);
+        m_smoothedVelocity += (measured - m_smoothedVelocity) * weight;
+    } else {
+        m_smoothedVelocity = measured;
+        m_hasReading = true;
+    }
+    m_windowStart = timestamp;
+    m_windowDistance = 0.0;
     return m_smoothedVelocity;
 }
 

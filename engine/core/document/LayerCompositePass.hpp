@@ -3,6 +3,7 @@
 
 #include "CompositeRegionSupport.hpp"
 #include "FilterLayer.hpp"
+#include "GroupBlender.hpp"
 #include "Layer.hpp"
 #include "../canvas/PixelBuffer.hpp"
 #include "../canvas/TileGrid.hpp"
@@ -29,6 +30,8 @@ struct ScratchOverlay {
 // Uma passada de composição: recebe as camadas de baixo para cima e as compõe no buffer de saída,
 // com o estado de grupo isolado e de filtro que a passada carrega de uma camada para a seguinte.
 // Antes de 2026-10-01 este laço existia duas vezes, uma em cada sobrecarga do compositor.
+// `Pixel` é o pixel do formato do documento (`GroupBlender.hpp`); as duas instâncias moram em LayerCompositePass.cpp.
+template <typename Pixel>
 class LayerCompositePass {
 public:
     LayerCompositePass(canvas::PixelBuffer& outputBuffer, const RegionBounds& bounds, bool linearGamma, bool deepColor);
@@ -47,9 +50,12 @@ private:
 
     canvas::PixelBuffer& m_outputBuffer;
     const RegionBounds& m_bounds;
-    GroupBlender m_blender;
+    GroupBlender<Pixel> m_blender;
     const Layer* m_activeGroup{nullptr};
 };
+
+extern template class LayerCompositePass<utils::ColorRGBA>;
+extern template class LayerCompositePass<utils::ColorRGBA16>;
 
 } // namespace aladyn::engine::document::internal
 

@@ -5,7 +5,7 @@
 namespace aladyn::engine::raster {
 
 DabFootprint::DabFootprint(const utils::Dab& dab, double reach, double aspect, canvas::TileGrid& grid)
-    : m_center(dab.position) {
+    : m_center(dab.position), m_format(grid.getFormat()) {
     // A caixa envolvente cobre a ponta achatada e girada; o raio máximo, a elipse inteira.
     const double maxR = reach / aspect + 2.0;
     m_bounds = utils::Rect2D{dab.position.x - maxR, dab.position.y - maxR, maxR * 2.0, maxR * 2.0};

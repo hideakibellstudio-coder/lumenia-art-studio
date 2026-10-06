@@ -37,6 +37,10 @@ class EngineType(IntEnum):
     Watercolor = 7
     OilImpasto = 8
 
+class GrainMode(IntEnum):
+    Moving = 0
+    Fixed = 1
+
 class DabBlendMode(IntEnum):
     Normal = 0
     Multiply = 1
@@ -51,6 +55,19 @@ class LayerBlendMode(IntEnum):
     Darken = 4
     Lighten = 5
     Erase = 6
+    PassThrough = 7
+    ColorDodge = 8
+    ColorBurn = 9
+    Difference = 10
+    Exclusion = 11
+    Add = 12
+    SoftLight = 13
+    HardLight = 14
+    VividLight = 15
+    LinearLight = 16
+    PinLight = 17
+    HardMix = 18
+    Subtract = 19
 
 class SelectionMode(IntEnum):
     New = 0
@@ -121,6 +138,16 @@ class DynamicStabilizer:
     def get_stabilized_position(self) -> Point2D: ...
     def get_last_movement_delta(self) -> Point2D: ...
 
+class PressureCalibration:
+    """Curva global de entrada da pressão: lido = ((bruto - floor) / (ceiling - floor)) ** gamma, preso em 0..1.
+    O padrão (0, 1, 1) é a identidade."""
+    floor: float
+    ceiling: float
+    gamma: float
+    def __init__(self) -> None: ...
+    def is_identity(self) -> bool: ...
+    def apply(self, raw: float) -> float: ...
+
 class BrushTip:
     angle: float
     aspect_ratio: float
@@ -132,8 +159,10 @@ class BrushTip:
     jitter_saturation: float
     jitter_brightness: float
     use_twist_for_angle: bool
-    tilt_to_angle: bool
-    tilt_to_aspect: bool
+    tilt_to_angle: float
+    tilt_to_aspect: float
+    tilt_to_size: float
+    tilt_to_flow: float
     def __init__(self) -> None: ...
 
 class PencilParams:
@@ -183,7 +212,8 @@ class BrushProfile:
     engine_type: int
     brush_size: float
     min_size_percent: float
-    opacity: float
+    opacity: float  # teto do traço inteiro (0..1)
+    flow: float  # o que cada carimbo deposita (0..1)
     min_opacity_percent: float
     hardness: float
     blend_mode: int
@@ -196,6 +226,7 @@ class BrushProfile:
     scatter_count: int
     pressure_to_angle: float
     pressure_to_aspect: float
+    velocity_to_flow: float
     pressure_size_curve: BezierCurve
     pressure_flow_curve: BezierCurve
     velocity_size_curve: BezierCurve
@@ -203,6 +234,7 @@ class BrushProfile:
     time_spacing_enabled: bool
     dabs_per_second: float
     brush_grain_enabled: bool
+    brush_grain_mode: GrainMode
     brush_grain_scale: float
     brush_grain_contrast: float
     brush_grain_invert: bool
@@ -262,6 +294,7 @@ class RealTimeStrokeMetrics:
 
 class ViewportTransform:
     zoom: float
+    is_exact_pixel_zoom: bool
     pan_x: float
     pan_y: float
     rotation_deg: float

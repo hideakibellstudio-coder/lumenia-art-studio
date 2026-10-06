@@ -1,9 +1,28 @@
 #include "FilterApplier.hpp"
 #include "FilterKernels.hpp"
+#include "FilterKernels16.hpp"
 
 #include <algorithm>
 
 namespace aladyn::engine::document::filters {
+
+namespace {
+
+// Os mesmos sete filtros, para um buffer de 16 bits.
+void applyKernel16(FilterType type, const FilterSettings& filter, const FilterRegion& region) {
+    switch (type) {
+        case FilterType::BrightnessContrast: applyBrightnessContrast16(filter, region); break;
+        case FilterType::ColorBalance:       applyColorBalance16(filter, region);       break;
+        case FilterType::InvertThreshold:    applyInvertThreshold16(filter, region);    break;
+        case FilterType::HueSat:             applyHueSat16(filter, region);             break;
+        case FilterType::Pixelate:           applyPixelate16(filter, region);           break;
+        case FilterType::GaussianBlur:       applyGaussianBlur16(filter, region);       break;
+        case FilterType::SharpenVignette:    applySharpenVignette16(filter, region);    break;
+        default: break;
+    }
+}
+
+} // namespace
 
 void FilterApplier::apply(const FilterSettings& filter, canvas::PixelBuffer& buffer, int minX, int maxX, int minY, int maxY) {
     const double opacity = filter.opacity;
@@ -23,6 +42,11 @@ void FilterApplier::apply(const FilterSettings& filter, canvas::PixelBuffer& buf
     const FilterRegion region{
         buffer.getData(), w, h, startX, endX, startY, endY, opacity, (opacity >= 0.999)
     };
+
+    if (buffer.getFormat() == canvas::PixelFormat::RGBA16) {
+        applyKernel16(type, filter, region);
+        return;
+    }
 
     switch (type) {
         case FilterType::BrightnessContrast: applyBrightnessContrast(filter, region); break;

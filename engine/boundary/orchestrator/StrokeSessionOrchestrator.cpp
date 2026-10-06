@@ -1,6 +1,8 @@
 #include "StrokeSessionOrchestrator.hpp"
+#include "PixelFormatGuard.hpp"
 
 #include "../../core/brush/DynamicMapper.hpp"
+#include "../../core/document/blending/BlendKernel.hpp"
 #include <cmath>
 
 namespace aladyn::engine::boundary::orchestrator {
@@ -18,15 +20,28 @@ namespace {
         MemorySample s{};
         if (const auto* layer = stack.getActiveLayer()) {
             s.activeTiles = static_cast<uint32_t>(layer->getTileGrid().getActiveTilesCount());
+            const size_t bpp = canvas::bytesPerPixel(layer->getTileGrid().getFormat());
+            s.tileMemMB = (s.activeTiles * canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * bpp) / (1024.0 * 1024.0);
         }
-        s.tileMemMB = (s.activeTiles * canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * 4) / (1024.0 * 1024.0);
         s.undoMemMB = undoManager.getMemoryUsageBytes() / (1024.0 * 1024.0);
         s.undoSteps = static_cast<uint32_t>(undoManager.getUndoCount());
         return s;
     }
 }
 
-void StrokeSessionOrchestrator::beginStroke(RawStrokeContext& ctx, const stroke::PointerEvent& event) {
+// Opacidade < 100% = teto do traço: o traço pinta numa cópia de trabalho da camada ativa e a camada recebe a
+// mistura (StrokeOpacityMix). Camada travada, grupo ou filtro não recebem traço, então não ganham cópia.
+static void beginOpacityCap(RawStrokeContext& ctx) {
+    ctx.strokeMix.end();
+    if (!raster::StrokeOpacityMix::needed(ctx.brushProfile.opacity)) return;
+    document::Layer* layer = ctx.layerStack.getActiveLayer();
+    if (!layer || layer->isLocked() || layer->isGroup() || layer->isFilter()) return;
+    ctx.strokeMix.begin(layer->getTileGrid(), ctx.brushProfile.opacity, ctx.layerStack.getActiveIndex());
+}
+
+void StrokeSessionOrchestrator::beginStroke(RawStrokeContext& ctx, const stroke::PointerEvent& rawEvent) {
+    stroke::PointerEvent event = rawEvent;
+    event.pressure = ctx.pressureCalibration.apply(rawEvent.pressure);
     ctx.isDrawing = true;
     ctx.segmentsRenderedInStroke = 0;
     ctx.pendingFirstSegment = false;
@@ -36,9 +51,11 @@ void StrokeSessionOrchestrator::beginStroke(RawStrokeContext& ctx, const stroke:
     ctx.stabilizer.reset(event.position, event.pressure);
     ctx.velocityTracker.reset(event.position, event.timestamp);
     ctx.undoManager.beginStep("Stroke");
+    beginOpacityCap(ctx);
     if (ctx.activeEngine) ctx.activeEngine->onBeginStroke();
+    ctx.lastPose = {event.altitude, event.azimuth, event.twist};
     auto mapped = brush::DynamicMapper::map(
-        ctx.brushProfile, event.position, event.pressure, 0.0, 0.0,
+        ctx.brushProfile, event.position, event.pressure, 0.0,
         event.twist, event.altitude, event.azimuth
     );
     ctx.lastDab = utils::Dab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
@@ -48,8 +65,10 @@ void StrokeSessionOrchestrator::beginStroke(RawStrokeContext& ctx, const stroke:
 }
 
 
-StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& ctx, const stroke::PointerEvent& event) {
+StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& ctx, const stroke::PointerEvent& rawEvent) {
     if (!ctx.isDrawing) return {0.0, 0.0, 0.0};
+    stroke::PointerEvent event = rawEvent;
+    event.pressure = ctx.pressureCalibration.apply(rawEvent.pressure);
     ++ctx.segmentsRenderedInStroke;
     ctx.lastRawPressure = event.pressure;
     const double currentVelocity = ctx.velocityTracker.update(event.position, event.timestamp);
@@ -62,16 +81,9 @@ StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& 
     const utils::Point2D pos = shortcut ? event.position : ctx.stabilizer.update(event.position, event.pressure, normVel);
     const double effectivePressure = shortcut ? event.pressure : ctx.stabilizer.getStabilizedPressure();
 
-    double strokeAngle = 0.0;
-    const double dx = pos.x - ctx.lastDab.position.x;
-    const double dy = pos.y - ctx.lastDab.position.y;
-    if (dx * dx + dy * dy > 0.01) {
-        strokeAngle = std::atan2(dy, dx) * (180.0 / 3.14159265358979323846);
-        if (strokeAngle < 0.0) strokeAngle += 360.0;
-    }
-
+    ctx.lastPose = {event.altitude, event.azimuth, event.twist};
     auto mapped = brush::DynamicMapper::map(
-        ctx.brushProfile, pos, effectivePressure, normVel, strokeAngle,
+        ctx.brushProfile, pos, effectivePressure, normVel,
         event.twist, event.altitude, event.azimuth
     );
     utils::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
@@ -89,11 +101,13 @@ bool StrokeSessionOrchestrator::endStroke(RawStrokeContext& ctx) {
             ctx.lastDab, ctx.lastDab, ctx.brushProfile, ctx.canvasTexture,
             ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
             ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
-            ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered
+            ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered,
+            nullptr, true, &ctx.strokeMix
         );
         ctx.segmentsRenderedInStroke = 1;
     }
     if (ctx.activeEngine) ctx.activeEngine->onEndStroke();
+    ctx.strokeMix.end();
     ctx.undoManager.commitStep(ctx.layerStack);
     ctx.isDrawing = false;
     ctx.distanceCarryover = 0.0;
@@ -117,7 +131,7 @@ void StrokeSessionOrchestrator::renderSegment(RawStrokeContext& ctx, const utils
         ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
         ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
         ctx.distanceCarryover,
-        ctx.symmetryConfig, &ctx.strokeStartPoint
+        ctx.symmetryConfig, &ctx.strokeStartPoint, nullptr, nullptr, nullptr, true, &ctx.strokeMix
     );
 }
 
@@ -127,7 +141,10 @@ telemetry::RealTimeStrokeMetrics StrokeSessionOrchestrator::telemetrySnapshot(
     const telemetry::EngineTelemetryManager& telemetryManager
 ) {
     const MemorySample s = sampleMemory(stack, undoManager);
-    return telemetryManager.getSnapshot(s.activeTiles, s.tileMemMB, s.undoMemMB, s.undoSteps);
+    telemetry::RealTimeStrokeMetrics metrics = telemetryManager.getSnapshot(s.activeTiles, s.tileMemMB, s.undoMemMB, s.undoSteps);
+    // O nível que a mesclagem usa de verdade (BlendKernel escolhe pela CPU na hora de rodar), não o do build.
+    metrics.simdActive = document::blending::BlendKernel::activeLevel() == document::blending::BlendSimdLevel::Avx2;
+    return metrics;
 }
 
 } // namespace aladyn::engine::boundary::orchestrator

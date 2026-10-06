@@ -22,7 +22,7 @@ namespace aladyn::engine::document {
 // ───────────────────────────────────────────────────────────────────────────
 class LayerStack {
 public:
-    LayerStack(int width, int height);
+    LayerStack(int width, int height, canvas::PixelFormat format = canvas::PixelFormat::RGBA8);
     LayerStack(const LayerStack& other);
     void restore(const LayerStack& other);
     void swap(LayerStack& other) noexcept;
@@ -61,6 +61,8 @@ public:
 
     [[nodiscard]] int getWidth() const noexcept { return m_width; }
     [[nodiscard]] int getHeight() const noexcept { return m_height; }
+    // O formato de pixel do documento: o de todas as camadas e tiles.
+    [[nodiscard]] canvas::PixelFormat getPixelFormat() const noexcept { return m_format; }
 
     // Retorna todos os ponteiros de camadas na ordem de composição (Background + Drawing Layers)
     [[nodiscard]] std::vector<const Layer*> getAllLayersForComposition() const;
@@ -68,6 +70,7 @@ public:
 private:
     int m_width;
     int m_height;
+    canvas::PixelFormat m_format{canvas::PixelFormat::RGBA8};
     int m_activeIndex{0};
 
     std::unique_ptr<Layer> m_backgroundLayer;

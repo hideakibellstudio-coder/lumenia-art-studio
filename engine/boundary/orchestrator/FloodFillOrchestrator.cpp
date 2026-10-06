@@ -1,5 +1,6 @@
 #include "FloodFillOrchestrator.hpp"
 #include "LayerSampleSource.hpp"
+#include "PixelFormatGuard.hpp"
 #include "../../core/raster/FloodFill.hpp"
 #include "../../core/raster/PixelContext.hpp"
 
@@ -21,6 +22,8 @@ bool FloodFillOrchestrator::floodFill(
     // Clipping Mask é 100% não-destrutivo: o preenchimento atua no espaço da camada e o recorte é visual
     const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &selectionMask };
     std::unique_ptr<canvas::PixelBuffer> activeLayerPixels;
+    // O balde sobre todas as camadas lê as cores da composição, que pode ter tiles velhos.
+    if (sampleAllLayers) compositor.ensureAllFresh(layerStack.getAllLayersForComposition(), outputBuffer, bgColor);
     const canvas::PixelBuffer* source =
         LayerSampleSource::select(sampleAllLayers, outputBuffer, layerStack, activeLayerPixels);
     if (!source) return false;

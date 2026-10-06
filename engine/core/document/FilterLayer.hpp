@@ -12,7 +12,8 @@ using filters::FilterType;
 
 class FilterLayer : public Layer {
 public:
-    FilterLayer(const std::string& name, FilterType type, int width = 1, int height = 1);
+    FilterLayer(const std::string& name, FilterType type, int width = 1, int height = 1,
+                canvas::PixelFormat format = canvas::PixelFormat::RGBA8);
 
     [[nodiscard]] FilterType getFilterType() const noexcept { return m_filterType; }
     /// O que o filtro precisa desta camada para rodar (filters::FilterApplier).

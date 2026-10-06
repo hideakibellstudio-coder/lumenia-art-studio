@@ -6,8 +6,12 @@
 
 namespace aladyn::engine::boundary {
 
+// O formato de pixel é o que o bloco declara; quem adota o bloco confere que é o do documento.
 DecodedLayer::DecodedLayer(int width, int height, const uint8_t* data, size_t size)
-    : m_grid(canvas::checkedCanvasDimension(width), canvas::checkedCanvasDimension(height)) {
+    : DecodedLayer(width, height, data, size, canvas::TileGridCodec::peekFormat(data, size)) {}
+
+DecodedLayer::DecodedLayer(int width, int height, const uint8_t* data, size_t size, canvas::PixelFormat format)
+    : m_grid(canvas::checkedCanvasDimension(width, format), canvas::checkedCanvasDimension(height, format), format) {
     canvas::TileGridCodec::decode(data, size, m_grid);
 }
 

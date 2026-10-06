@@ -14,7 +14,7 @@ bindings.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `BufferContract.hpp` | Validação de dimensões e tamanho de buffers RGBA/cinza antes de chegar ao motor, e cópia imutável dos pixels que voltam ao Python. |
+| `BufferContract.hpp` | Validação de dimensões e tamanho de buffers RGBA/cinza antes de chegar ao motor, cópia imutável dos pixels que voltam ao Python, e o id de formato de pixel (`checkedPixelFormatId`: 0 = 8 bits, 1 = 16, o resto é `ValueError`). |
 | `ContractVersion.hpp` | `kContractVersion`: a versão do contrato Python ↔ motor, exposta como `aladyn_engine_native.CONTRACT_VERSION`. Sobe quando o `.pyi` muda (`tests/test_bridge_contract_version.py` trava). |
 
 ## Regras

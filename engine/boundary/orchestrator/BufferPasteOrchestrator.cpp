@@ -1,4 +1,5 @@
 #include "BufferPasteOrchestrator.hpp"
+#include "PixelFormatGuard.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -10,6 +11,18 @@ namespace {
 // saved document did not reproduce the pixels that were saved.
 uint8_t toByte(double value) {
     return static_cast<uint8_t>(std::clamp(std::lround(value), 0L, 255L));
+}
+uint16_t toWord(double value) {
+    return static_cast<uint16_t>(std::clamp(std::lround(value), 0L, 65535L));
+}
+
+inline int divFloor(int a, int b) noexcept {
+    int res = a / b;
+    int rem = a % b;
+    if (rem != 0 && ((a < 0) ^ (b < 0))) {
+        --res;
+    }
+    return res;
 }
 } // namespace
 
@@ -31,23 +44,26 @@ bool BufferPasteOrchestrator::paste(
         return false;
     }
 
-    int dstX0 = std::max(0, x);
-    int dstY0 = std::max(0, y);
-    int dstX1 = std::min(canvasWidth, x + width);
-    int dstY1 = std::min(canvasHeight, y + height);
+    int dstX0 = x;
+    int dstY0 = y;
+    int dstX1 = x + width;
+    int dstY1 = y + height;
 
-    if (dstX0 >= dstX1 || dstY0 >= dstY1) {
+    constexpr int kMinCoord = -32768 * canvas::Tile::TILE_SIZE;
+    constexpr int kMaxCoord =  32767 * canvas::Tile::TILE_SIZE;
+    if (dstX1 < kMinCoord || dstX0 > kMaxCoord || dstY1 < kMinCoord || dstY0 > kMaxCoord) {
         return false;
     }
 
     int activeIdx = layerStack.getActiveIndex();
     undoManager.beginStep("Paste Buffer");
-    auto& grid = activeLayer->getTileGrid();
+    auto& grid = activeLayer->getTargetGrid();
+    const bool is16 = (grid.getFormat() == canvas::PixelFormat::RGBA16);
 
-    int minTx = dstX0 / canvas::Tile::TILE_SIZE;
-    int maxTx = (dstX1 - 1) / canvas::Tile::TILE_SIZE;
-    int minTy = dstY0 / canvas::Tile::TILE_SIZE;
-    int maxTy = (dstY1 - 1) / canvas::Tile::TILE_SIZE;
+    int minTx = divFloor(dstX0, canvas::Tile::TILE_SIZE);
+    int maxTx = divFloor(dstX1 - 1, canvas::Tile::TILE_SIZE);
+    int minTy = divFloor(dstY0, canvas::Tile::TILE_SIZE);
+    int maxTy = divFloor(dstY1 - 1, canvas::Tile::TILE_SIZE);
 
     double layerAlpha = std::clamp(opacity, 0.0, 1.0);
 
@@ -93,33 +109,66 @@ bool BufferPasteOrchestrator::paste(
                         }
                     }
 
-                    auto cur = buf.getPixel(px, py);
+                    if (is16) {
+                        uint16_t srcR16 = canvas::widenChannel(srcR);
+                        uint16_t srcG16 = canvas::widenChannel(srcG);
+                        uint16_t srcB16 = canvas::widenChannel(srcB);
+                        auto cur = buf.getPixel16(px, py);
 
-                    if (activeLayer->isAlphaLocked()) {
-                        if (cur.a > 0) {
-                            cur.r = toByte(cur.r * (1.0 - srcA) + srcR * srcA);
-                            cur.g = toByte(cur.g * (1.0 - srcA) + srcG * srcA);
-                            cur.b = toByte(cur.b * (1.0 - srcA) + srcB * srcA);
-                            buf.setPixel(px, py, cur);
-                            modified = true;
+                        if (activeLayer->isAlphaLocked()) {
+                            if (cur.a > 0) {
+                                cur.r = toWord(cur.r * (1.0 - srcA) + srcR16 * srcA);
+                                cur.g = toWord(cur.g * (1.0 - srcA) + srcG16 * srcA);
+                                cur.b = toWord(cur.b * (1.0 - srcA) + srcB16 * srcA);
+                                buf.setPixel16(px, py, cur);
+                                modified = true;
+                            }
+                        } else {
+                            double dstA = cur.a / 65535.0;
+                            double outA = srcA + dstA * (1.0 - srcA);
+                            if (outA > 0) {
+                                if (cur.a == 0) {
+                                    cur.r = srcR16;
+                                    cur.g = srcG16;
+                                    cur.b = srcB16;
+                                } else {
+                                    cur.r = toWord((srcR16 * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
+                                    cur.g = toWord((srcG16 * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
+                                    cur.b = toWord((srcB16 * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
+                                }
+                                cur.a = toWord(outA * 65535.0);
+                                buf.setPixel16(px, py, cur);
+                                modified = true;
+                            }
                         }
                     } else {
-                        double dstA = cur.a / 255.0;
-                        double outA = srcA + dstA * (1.0 - srcA);
-                        if (outA > 0) {
-                            if (cur.a == 0) {
-                                // Nothing underneath: the source colour is the result, bit for bit.
-                                cur.r = srcR;
-                                cur.g = srcG;
-                                cur.b = srcB;
-                            } else {
-                                cur.r = toByte((srcR * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
-                                cur.g = toByte((srcG * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
-                                cur.b = toByte((srcB * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
+                        auto cur = buf.getPixel(px, py);
+
+                        if (activeLayer->isAlphaLocked()) {
+                            if (cur.a > 0) {
+                                cur.r = toByte(cur.r * (1.0 - srcA) + srcR * srcA);
+                                cur.g = toByte(cur.g * (1.0 - srcA) + srcG * srcA);
+                                cur.b = toByte(cur.b * (1.0 - srcA) + srcB * srcA);
+                                buf.setPixel(px, py, cur);
+                                modified = true;
                             }
-                            cur.a = toByte(outA * 255.0);
-                            buf.setPixel(px, py, cur);
-                            modified = true;
+                        } else {
+                            double dstA = cur.a / 255.0;
+                            double outA = srcA + dstA * (1.0 - srcA);
+                            if (outA > 0) {
+                                if (cur.a == 0) {
+                                    cur.r = srcR;
+                                    cur.g = srcG;
+                                    cur.b = srcB;
+                                } else {
+                                    cur.r = toByte((srcR * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
+                                    cur.g = toByte((srcG * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
+                                    cur.b = toByte((srcB * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
+                                }
+                                cur.a = toByte(outA * 255.0);
+                                buf.setPixel(px, py, cur);
+                                modified = true;
+                            }
                         }
                     }
                 }

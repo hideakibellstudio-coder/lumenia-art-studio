@@ -36,11 +36,6 @@ struct DocumentContext {
     const utils::ColorRGBA& bgColor;
     uint64_t&                documentGeneration;
     canvas::MipmapPyramid&   mipmapPyramid;
-    // Composicao em lote (beginBatch/endBatch da fachada): com `compositeHold` > 0 as
-    // composicoes ficam pendentes e uma so roda no fim. Abrir um arquivo muda dezenas de
-    // propriedades de camada em sequencia, e cada uma recompunha o canvas inteiro.
-    int&                     compositeHold;
-    bool&                    compositePending;
     bool                     linearGamma{true};
     bool                     deepColor{false};
 
@@ -52,14 +47,17 @@ struct DocumentContext {
         ++documentGeneration;
     }
 
+    // O documento mudou em todo o canvas / em `dirty`: o buffer composto ali fica VELHO e quem for ler
+    // (a tela, a pirâmide, a varinha, a exportação) recompõe só o que lê (Compositor::ensureFresh).
+    // Até 2026-10-03 estas duas recompunham na hora, mesmo quando a tela mostrava um pedaço do canvas;
+    // por isso também não existe mais "composição em lote": mudar dez propriedades seguidas marca
+    // tiles dez vezes e não compõe nada.
     void compositeAll() const {
-        if (compositeHold > 0) { compositePending = true; return; }
-        compositor.composite(layerStack.getAllLayersForComposition(), outputBuffer, bgColor);
+        compositor.invalidateAll();
     }
 
     void compositeRegion(const utils::Rect2D& dirty) const {
-        if (compositeHold > 0) { compositePending = true; return; }
-        compositor.compositeRegion(layerStack.getAllLayersForComposition(), dirty, outputBuffer, bgColor);
+        compositor.invalidate(layerStack.getAllLayersForComposition(), dirty);
     }
 };
 

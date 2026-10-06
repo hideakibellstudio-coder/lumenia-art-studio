@@ -20,7 +20,14 @@ enum class LayerBlendMode {
     ColorBurn   = 9,  // Superexposição de cor / Contraste denso
     Difference  = 10, // Diferença / Inversão cromática
     Exclusion   = 11, // Exclusão
-    Add         = 12  // Adicionar / Luz Pura
+    Add         = 12, // Adicionar / Luz Pura
+    SoftLight   = 13, // Luz Suave
+    HardLight   = 14, // Luz Direta
+    VividLight  = 15, // Luz Brilhante
+    LinearLight = 16, // Luz Linear
+    PinLight    = 17, // Luz Pontual
+    HardMix     = 18, // Mistura Sólida
+    Subtract    = 19  // Subtrair
 };
 
 } // namespace aladyn::engine::document::blending

@@ -1,10 +1,13 @@
 #ifndef ALADYN_ENGINE_BLEND_EQUATIONS_HPP
 #define ALADYN_ENGINE_BLEND_EQUATIONS_HPP
 
+#include "ChannelBlend.hpp"
 #include "LayerBlendMode.hpp"
 #include "../../../utils/ColorRGBA.hpp"
+#include "../../color/DeepColorLut.hpp"
 #include "../../color/LinearColorSpace.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace aladyn::engine::document::blending {
@@ -25,8 +28,17 @@ inline uint8_t quantize(double value, bool deepColor) noexcept {
     return static_cast<uint8_t>(deepColor ? std::lround(scaled) : scaled);
 }
 
+// c / 255.0 para cada valor de canal, calculado na compilação: a divisão IEEE é a mesma em tempo de
+// compilação e de execução, então a tabela dá o mesmo double que a conta, sem a divisão (o Overlay gastava
+// seis por pixel).
+inline constexpr std::array<double, 256> kUnitOfChannel = [] {
+    std::array<double, 256> table{};
+    for (int channel = 0; channel < 256; ++channel) table[static_cast<size_t>(channel)] = static_cast<double>(channel) / 255.0;
+    return table;
+}();
+
 inline double toUnit(uint8_t channel) noexcept {
-    return static_cast<double>(channel) / 255.0;
+    return kUnitOfChannel[channel];
 }
 
 // Resultado exato do Normal com opacidade total, sem Deep Color. `false` quando o caso
@@ -79,7 +91,7 @@ inline utils::ColorRGBA normalBlend(
     utils::ColorRGBA src, double srcA, utils::ColorRGBA dst, bool linearGamma, bool deepColor
 ) noexcept {
     if (!linearGamma) return normalEncoded(src, srcA, dst, deepColor);
-    if (deepColor) return color::blendLinearNormalHighPrecision(src, srcA, dst);
+    if (deepColor) return color::blendLinearNormalDeep(color::deepColorLut(), src, srcA, dst);
     if (dst.a == 255) return color::blendLinearNormalOpaque(src, static_cast<float>(srcA), dst);
     return color::blendLinearNormal(src, static_cast<float>(srcA), dst);
 }
@@ -108,37 +120,13 @@ inline utils::ColorRGBA overWith(
     };
 }
 
-// Um caso por modo separável; um modo sem equação própria (PassThrough) usa a cor da camada.
+// Um caso por modo separável (a equação de canal mora em `ChannelBlend.hpp`, a mesma que a mesclagem de 16 bits usa).
 inline utils::ColorRGBA separableBlend(
     LayerBlendMode mode, utils::ColorRGBA src, double srcA, utils::ColorRGBA dst, bool deepColor
 ) noexcept {
-    switch (mode) {
-        case LayerBlendMode::Multiply:
-            return overWith([](double s, double d) noexcept { return s * d; }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Screen:
-            return overWith([](double s, double d) noexcept { return 1.0 - (1.0 - s) * (1.0 - d); }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Overlay:
-            return overWith([](double s, double d) noexcept {
-                return (d < 0.5) ? (2.0 * d * s) : (1.0 - 2.0 * (1.0 - d) * (1.0 - s));
-            }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Darken:
-            return overWith([](double s, double d) noexcept { return std::min(s, d); }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Lighten:
-            return overWith([](double s, double d) noexcept { return std::max(s, d); }, src, srcA, dst, deepColor);
-        case LayerBlendMode::ColorDodge:
-            return overWith([](double s, double d) noexcept { return std::min(1.0, d / (1.0 - s + 1e-5)); }, src, srcA, dst, deepColor);
-        case LayerBlendMode::ColorBurn:
-            return overWith([](double s, double d) noexcept { return 1.0 - std::min(1.0, (1.0 - d) / (s + 1e-5)); }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Difference:
-            return overWith([](double s, double d) noexcept { return std::abs(d - s); }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Exclusion:
-            return overWith([](double s, double d) noexcept { return d + s - 2.0 * d * s; }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Add:
-            return overWith([](double s, double d) noexcept { return std::min(1.0, d + s); }, src, srcA, dst, deepColor);
-        case LayerBlendMode::Normal:
-        default:
-            return overWith([](double s, double) noexcept { return s; }, src, srcA, dst, deepColor);
-    }
+    return dispatchChannelBlend(mode, [&](auto blend) noexcept {
+        return overWith(blend, src, srcA, dst, deepColor);
+    });
 }
 
 } // namespace detail

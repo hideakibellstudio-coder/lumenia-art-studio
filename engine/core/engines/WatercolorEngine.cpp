@@ -1,6 +1,8 @@
 #include "WatercolorEngine.hpp"
 #include "../raster/DabFootprint.hpp"
 #include "../raster/PixelPermission.hpp"
+#include "../raster/StrokeInkLedger.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -11,11 +13,15 @@ namespace {
 constexpr double kPi = 3.14159265358979323846;
 
 uint8_t toByte(double unit) {
-    return static_cast<uint8_t>(std::clamp(unit * 255.0, 0.0, 255.0));
+    return utils::MathUtils::unitToByte(unit);
 }
 
 // Uma mancha de aquarela: miolo aquoso, anel escuro de secagem na borda (Coffee Ring), pigmento
 // que se acumula nos vales do papel (granulação) e uma veladura subtrativa ao compor.
+//
+// A cor sai do pixel como ele era ANTES do traço (`StrokeInkLedger`) e da cobertura que o traço já
+// alcançou: o pigmento filtra o fundo uma vez só. Até 2026-10-02 cada carimbo filtrava o resultado do
+// anterior, e o miolo de um traço azul (30, 90, 170) chegava a (2, 7, 31).
 class WatercolorWash {
 public:
     WatercolorWash(const utils::Dab& dab, const brush::BrushProfile& profile, const canvas::CanvasTexture& paper)
@@ -32,10 +38,13 @@ public:
           m_srcB(static_cast<double>(dab.color.b) / 255.0) {}
 
     // No modo Wet-on-Wet (sangramento alto) o raio de expansão cresce com pigmentBleed e a água.
-    static double reach(const utils::Dab& dab, const brush::BrushProfile& profile) {
+    static double reachScale(const brush::BrushProfile& profile) {
         const double bleed = std::clamp(profile.watercolorParams.pigmentBleed, 0.0, 1.0);
         const double water = std::clamp(profile.watercolorParams.waterLevel, 0.0, 1.0);
-        return dab.radius * (1.0 + bleed * water * 0.4);
+        return 1.0 + bleed * water * 0.4;
+    }
+    static double reach(const utils::Dab& dab, const brush::BrushProfile& profile) {
+        return dab.radius * reachScale(profile);
     }
 
     // A opacidade da mancha neste pixel; 0 quando ele não é tocado.
@@ -55,29 +64,81 @@ public:
             0.0, 1.0);
     }
 
-    // Veladura translúcida: a tinta tinge o que está embaixo em vez de cobri-lo. true se mudou o pixel.
-    bool blend(utils::ColorRGBA& dst, double strength, bool alphaLocked) const {
-        if (!alphaLocked && dst.a == 0) {
-            dst = utils::ColorRGBA{m_color.r, m_color.g, m_color.b, toByte(strength)};
-            return true;
-        }
+    // Veladura translúcida: a tinta tinge o que está embaixo em vez de cobri-lo. O alfa acumula carimbo a
+    // carimbo; a cor vem da base do traço e da cobertura. true se mudou o pixel.
+    bool blend(utils::ColorRGBA& dst, raster::StrokeInkLedger<utils::ColorRGBA>::Cell& cell, double strength, bool alphaLocked) const {
         if (alphaLocked && dst.a == 0) return false;
+        const bool firstTouch = cell.coverage <= 0.0f;
+        if (firstTouch) cell.base = dst;
+        const double covered = firstTouch ? 0.0 : static_cast<double>(cell.coverage);
+        const double coverage = firstTouch ? strength : std::clamp(covered + strength * (1.0 - covered) * kBuildUp, 0.0, 1.0);
+        cell.coverage = static_cast<float>(coverage);
 
-        const double dstR = static_cast<double>(dst.r) / 255.0;
-        const double dstG = static_cast<double>(dst.g) / 255.0;
-        const double dstB = static_cast<double>(dst.b) / 255.0;
-        const double dstA = static_cast<double>(dst.a) / 255.0;
-        const auto mix = [&](double src, double under) {
-            // Com Alpha Lock, só o filtro do pigmento; fora dele, a diluição pela água.
-            const double glaze = alphaLocked ? src * under : dilutedGlaze(src, under);
-            return under * (1.0 - strength) + glaze * strength;
+        uint8_t alpha = dst.a;
+        if (!alphaLocked) {
+            const double dstA = static_cast<double>(dst.a) / 255.0;  // dst.a == 0: primeiro depósito
+            alpha = toByte(dst.a == 0 ? strength : std::clamp(dstA + strength * (1.0 - dstA) * kBuildUp, 0.0, 1.0));
+        }
+        const double baseAlpha = static_cast<double>(cell.base.a) / 255.0;
+        dst = utils::ColorRGBA{
+            washed(cell.base.r, m_srcR, baseAlpha, coverage, alphaLocked),
+            washed(cell.base.g, m_srcG, baseAlpha, coverage, alphaLocked),
+            washed(cell.base.b, m_srcB, baseAlpha, coverage, alphaLocked),
+            alpha
         };
-        const uint8_t alpha = alphaLocked ? dst.a : toByte(std::clamp(dstA + strength * (1.0 - dstA) * 0.4, 0.0, 1.0));
-        dst = utils::ColorRGBA{toByte(mix(m_srcR, dstR)), toByte(mix(m_srcG, dstG)), toByte(mix(m_srcB, dstB)), alpha};
+        return true;
+    }
+
+    bool blend16(utils::ColorRGBA16& dst, raster::StrokeInkLedger<utils::ColorRGBA16>::Cell& cell, double strength, bool alphaLocked) const {
+        if (alphaLocked && dst.a == 0) return false;
+        const bool firstTouch = cell.coverage <= 0.0f;
+        if (firstTouch) cell.base = dst;
+        const double covered = firstTouch ? 0.0 : static_cast<double>(cell.coverage);
+        const double coverage = firstTouch ? strength : std::clamp(covered + strength * (1.0 - covered) * kBuildUp, 0.0, 1.0);
+        cell.coverage = static_cast<float>(coverage);
+
+        uint16_t alpha = dst.a;
+        if (!alphaLocked) {
+            const double dstA = static_cast<double>(dst.a) / 65535.0;  // dst.a == 0: primeiro depósito
+            alpha = toWord(dst.a == 0 ? strength : std::clamp(dstA + strength * (1.0 - dstA) * kBuildUp, 0.0, 1.0));
+        }
+        const double baseAlpha = static_cast<double>(cell.base.a) / 65535.0;
+        dst = utils::ColorRGBA16{
+            washed16(cell.base.r, m_srcR, baseAlpha, coverage, alphaLocked),
+            washed16(cell.base.g, m_srcG, baseAlpha, coverage, alphaLocked),
+            washed16(cell.base.b, m_srcB, baseAlpha, coverage, alphaLocked),
+            alpha
+        };
         return true;
     }
 
 private:
+    // Quanto do alfa novo vem de cada carimbo depois do primeiro (a mancha deposita devagar).
+    static constexpr double kBuildUp = 0.4;
+
+    static uint16_t toWord(double unit) {
+        return static_cast<uint16_t>(std::clamp(std::lround(unit * 65535.0), 0L, 65535L));
+    }
+
+    // Um canal da cor: sobre pixel sem tinta a cor é a do pigmento (o alfa leva a cobertura); sobre tinta
+    // ou papel, o pigmento filtra a base (com Alpha Lock só o filtro; fora dele, diluído pela água) e a
+    // cobertura decide quanto disso aparece.
+    uint8_t washed(uint8_t base, double src, double baseAlpha, double coverage, bool alphaLocked) const {
+        if (baseAlpha <= 0.0) return toByte(src);
+        const double under = static_cast<double>(base) / 255.0;
+        const double glaze = alphaLocked ? src * under : dilutedGlaze(src, under);
+        const double target = src + (glaze - src) * baseAlpha;
+        return toByte(under + (target - under) * coverage);
+    }
+
+    uint16_t washed16(uint16_t base, double src, double baseAlpha, double coverage, bool alphaLocked) const {
+        if (baseAlpha <= 0.0) return toWord(src);
+        const double under = static_cast<double>(base) / 65535.0;
+        const double glaze = alphaLocked ? src * under : dilutedGlaze(src, under);
+        const double target = src + (glaze - src) * baseAlpha;
+        return toWord(under + (target - under) * coverage);
+    }
+
     // Coffee Ring Effect: anel escuro de secagem no bordo capilar da mancha.
     double fringe(double normalizedDist) const {
         if (!(m_fringe > 0.0 && normalizedDist >= 0.6)) return 1.0;
@@ -112,6 +173,10 @@ private:
 
 } // namespace
 
+double WatercolorEngine::reachScale(const brush::BrushProfile& profile) const noexcept {
+    return WatercolorWash::reachScale(profile);
+}
+
 void WatercolorEngine::renderDab(
     const utils::Dab& dab,
     const brush::BrushProfile& profile,
@@ -121,17 +186,27 @@ void WatercolorEngine::renderDab(
 ) {
     if (dab.radius <= 0.0 || dab.color.a == 0) return;
 
-    const double aspect = std::max(0.05, profile.tip.aspectRatio);
+    const double aspect = raster::tipAspect(dab);
     const raster::DabFootprint footprint(dab, WatercolorWash::reach(dab, profile), aspect, tileGrid);
     if (footprint.empty()) return;
 
     const WatercolorWash wash(dab, profile, canvasTexture);
     const raster::PixelPermission permission(ctx);
-    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
-        double strength = wash.strengthAt(pixel);
-        if (strength <= 0.0 || !permission.apply(pixel.gx, pixel.gy, strength) || strength <= 0.0) return false;
-        return wash.blend(dst, strength, ctx.alphaLocked);
-    });
+    if (tileGrid.getFormat() == canvas::PixelFormat::RGBA16) {
+        m_ledger16.prepare(footprint.bounds(), tileGrid);
+        footprint.forEachPixel<utils::ColorRGBA16>(6, [&](utils::ColorRGBA16& dst, const raster::DabPixel& pixel) {
+            double strength = wash.strengthAt(pixel);
+            if (strength <= 0.0 || !permission.apply(pixel.gx, pixel.gy, strength) || strength <= 0.0) return false;
+            return wash.blend16(dst, m_ledger16.at(pixel.gx, pixel.gy), strength, ctx.alphaLocked);
+        });
+    } else {
+        m_ledger.prepare(footprint.bounds(), tileGrid);
+        footprint.forEachPixel<utils::ColorRGBA>(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+            double strength = wash.strengthAt(pixel);
+            if (strength <= 0.0 || !permission.apply(pixel.gx, pixel.gy, strength) || strength <= 0.0) return false;
+            return wash.blend(dst, m_ledger.at(pixel.gx, pixel.gy), strength, ctx.alphaLocked);
+        });
+    }
 }
 
 } // namespace aladyn::engine::engines

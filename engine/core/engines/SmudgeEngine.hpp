@@ -2,7 +2,7 @@
 #define ALADYN_ENGINE_SMUDGE_ENGINE_HPP
 
 #include "IBrushEngine.hpp"
-#include "../canvas/GridSnapshot.hpp"
+#include "SmearPatch.hpp"
 #include "../../utils/Point2D.hpp"
 
 namespace aladyn::engine::document { class Layer; }
@@ -11,16 +11,17 @@ namespace aladyn::engine::engines {
 
 // ─── MINI-MOTOR DE SMUDGE / ARRASTO (SmudgeEngine) ──────────────────────────
 //
-// Física: Coleta a cor existente sob o primeiro dab do traço e a arrasta
-// pela tela, misturando gradualmente com as cores do caminho.
+// Física: o pincel carrega um pedaço da imagem (`SmearPatch`, do tamanho do dab) e o arrasta pela tela:
+// a cada carimbo o que está sob o pincel vira o carregado, na força do carimbo, e o carregado se mistura
+// aos poucos ao que o pincel pisa. Linha fina arrastada continua linha, com a forma que tinha.
 //
 // Parâmetros exclusivos usados:
-//   profile.smudgeParams.colorPickup    (quantidade de cor coletada da tela)
-//   profile.smudgeParams.mixRatio       (mistura entre cor mantida vs cor de destino)
-//   profile.smudgeParams.smudgeStretch  (fator de retenção/alongamento do arrasto)
+//   profile.smudgeParams.colorPickup    (quanto o pincel se limpa pisando: menos coleta, arrasto mais longo)
+//   profile.smudgeParams.mixRatio       (a força: quanto do carregado substitui o que está sob o pincel)
+//   profile.smudgeParams.smudgeStretch  (alonga o arrasto: o pincel demora mais a se limpar)
 //
 // Parâmetros comuns usados:
-//   brushSize, minSizePercent, opacity, hardness, spacingFactor, tip.
+//   brushSize, minSizePercent, opacity/flow, hardness, spacingFactor, tip.
 // ───────────────────────────────────────────────────────────────────────────
 class SmudgeEngine final : public IBrushEngine {
 public:
@@ -42,18 +43,14 @@ public:
     [[nodiscard]] bool usesScratchLayer() const noexcept override { return false; }
 
     void onBeginStroke() noexcept override {
-        m_hasCarriedColor = false;
-        m_lastPosition    = {0.0, 0.0};
+        m_patch.reset();
+        m_hasStarted = false;
     }
 
 private:
-    // Coleta da tela a cor sob o dab e a mistura à que o pincel já carrega; sem cor sob ele, a carregada esmaece.
-    void carryColor(const utils::ColorRGBA& sampled, double pickup, double stretch) noexcept;
-
-    bool              m_hasCarriedColor{false};
-    utils::ColorRGBA m_carriedColor{0, 0, 0, 0};
-    utils::Point2D     m_lastPosition{0.0, 0.0};
-    canvas::GridSnapshot m_trailSource; // a grade antes do dab: o rastro lê dela, não da grade viva
+    SmearPatch     m_patch;
+    bool           m_hasStarted{false};
+    utils::Point2D m_lastPosition{0.0, 0.0};
 };
 
 } // namespace aladyn::engine::engines

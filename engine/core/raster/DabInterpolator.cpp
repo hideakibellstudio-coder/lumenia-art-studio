@@ -2,10 +2,27 @@
 #include "LargeBrushOptimizer.hpp"
 #include "../brush/BrushProfile.hpp"
 #include "../brush/DynamicMapper.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <cmath>
 #include <algorithm>
 
 namespace aladyn::engine::raster {
+
+namespace {
+
+constexpr double kRadiansToDegrees = 180.0 / 3.14159265358979323846;
+
+double wrapDegrees(double angle) {
+    angle = std::fmod(angle, 360.0);
+    return angle < 0.0 ? angle + 360.0 : angle;
+}
+
+// A direção do traço é do caminho, não da amostra: os carimbos a somam ao ângulo da ponta só com "seguir o traço".
+// Até 2026-10-02 a spline trocava o ângulo do carimbo pela tangente em todo traço, e o ângulo da ponta, a torção, a
+// inclinação e a pressão-para-ângulo nunca chegavam ao desenho do corpo do traço.
+bool followsStroke(const brush::BrushProfile* profile) { return profile && profile->tip.followStroke; }
+
+} // namespace
 
 std::vector<utils::Dab> DabInterpolator::interpolate(
     const utils::Dab& startDab,
@@ -34,6 +51,9 @@ std::vector<utils::Dab> DabInterpolator::interpolate(
 
     // Calcula o menor arco angular (shortest angular path)
     const double diffAngle = std::fmod((endDab.angle - startDab.angle) + 540.0, 360.0) - 180.0;
+    const double travelAngle = followsStroke(profile)
+        ? std::atan2(endDab.position.y - startDab.position.y, endDab.position.x - startDab.position.x) * kRadiansToDegrees
+        : 0.0;
 
     // Passo inicial estimado via LargeBrushOptimizer (isolamento completo de traço fino vs gigante)
     const double initRadius = std::max(0.001, startDab.radius);
@@ -69,13 +89,13 @@ std::vector<utils::Dab> DabInterpolator::interpolate(
         const double radius = startDab.radius + (endDab.radius - startDab.radius) * t;
         const double opacity = startDab.opacity + (endDab.opacity - startDab.opacity) * t;
         const double pressure = startDab.pressure + (endDab.pressure - startDab.pressure) * t;
-        const double angle = std::fmod(startDab.angle + diffAngle * t + 360.0, 360.0);
+        const double angle = wrapDegrees(startDab.angle + diffAngle * t + travelAngle);
         const double aspect = startDab.aspectRatio + (endDab.aspectRatio - startDab.aspectRatio) * t;
 
-        const uint8_t r = static_cast<uint8_t>(std::clamp(startDab.color.r + (endDab.color.r - startDab.color.r) * t, 0.0, 255.0));
-        const uint8_t g = static_cast<uint8_t>(std::clamp(startDab.color.g + (endDab.color.g - startDab.color.g) * t, 0.0, 255.0));
-        const uint8_t b = static_cast<uint8_t>(std::clamp(startDab.color.b + (endDab.color.b - startDab.color.b) * t, 0.0, 255.0));
-        const uint8_t a = static_cast<uint8_t>(std::clamp(startDab.color.a + (endDab.color.a - startDab.color.a) * t, 0.0, 255.0));
+        const uint8_t r = utils::MathUtils::roundToByte(startDab.color.r + (endDab.color.r - startDab.color.r) * t);
+        const uint8_t g = utils::MathUtils::roundToByte(startDab.color.g + (endDab.color.g - startDab.color.g) * t);
+        const uint8_t b = utils::MathUtils::roundToByte(startDab.color.b + (endDab.color.b - startDab.color.b) * t);
+        const uint8_t a = utils::MathUtils::roundToByte(startDab.color.a + (endDab.color.a - startDab.color.a) * t);
 
         utils::Dab dab(pos, radius, opacity, pressure, angle, startDab.blendMode, utils::ColorRGBA{r, g, b, a}, aspect);
         // Correção B2: Aplica jitters individualmente por carimbo emitido
@@ -205,6 +225,7 @@ std::vector<utils::Dab> DabInterpolator::interpolateSpline(
     dabs.reserve(std::min(static_cast<size_t>(std::ceil(arcLength / curStep) + 2), static_cast<size_t>(256)));
 
     const double diffAngle = std::fmod((p2.angle - p1.angle) + 540.0, 360.0) - 180.0;
+    const bool follows = followsStroke(profile);
     double lastDabPos = 0.0;
 
     while (d <= arcLength) {
@@ -223,19 +244,17 @@ std::vector<utils::Dab> DabInterpolator::interpolateSpline(
         const utils::Point2D pBehind = evalCurve(std::max(t1, t - dtStep));
         const utils::Point2D tangent = pAhead - pBehind;
 
-        double angle;
-        if (tangent.x * tangent.x + tangent.y * tangent.y > 1e-6) {
-            angle = std::atan2(tangent.y, tangent.x) * (180.0 / 3.14159265358979323846);
-            if (angle < 0.0) angle += 360.0;
-        } else {
-            angle = std::fmod(p1.angle + diffAngle * u + 360.0, 360.0);
+        double angle = p1.angle + diffAngle * u;
+        if (follows && tangent.x * tangent.x + tangent.y * tangent.y > 1e-6) {
+            angle += std::atan2(tangent.y, tangent.x) * kRadiansToDegrees;
         }
+        angle = wrapDegrees(angle);
 
 
-        const uint8_t r = static_cast<uint8_t>(std::clamp(p1.color.r + (p2.color.r - p1.color.r) * u, 0.0, 255.0));
-        const uint8_t g = static_cast<uint8_t>(std::clamp(p1.color.g + (p2.color.g - p1.color.g) * u, 0.0, 255.0));
-        const uint8_t b = static_cast<uint8_t>(std::clamp(p1.color.b + (p2.color.b - p1.color.b) * u, 0.0, 255.0));
-        const uint8_t a = static_cast<uint8_t>(std::clamp(p1.color.a + (p2.color.a - p1.color.a) * u, 0.0, 255.0));
+        const uint8_t r = utils::MathUtils::roundToByte(p1.color.r + (p2.color.r - p1.color.r) * u);
+        const uint8_t g = utils::MathUtils::roundToByte(p1.color.g + (p2.color.g - p1.color.g) * u);
+        const uint8_t b = utils::MathUtils::roundToByte(p1.color.b + (p2.color.b - p1.color.b) * u);
+        const uint8_t a = utils::MathUtils::roundToByte(p1.color.a + (p2.color.a - p1.color.a) * u);
 
         utils::Dab dab(pos, radius, opacity, pressure, angle, p1.blendMode, utils::ColorRGBA{r, g, b, a}, aspect);
         if (profile) {

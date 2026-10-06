@@ -17,10 +17,12 @@ using detail::useLatencyShortcut;
 
 std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     RawStrokeContext& ctx,
-    double x, double y, double pressure, double timestamp,
+    double x, double y, double rawPressure, double timestamp,
     double tiltX, double tiltY, double twist
 ) {
     if (!ctx.isDrawing) return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    // Curva global de entrada: tudo daqui para frente (estabilizador, curvas do pincel) lê a pressão calibrada.
+    const double pressure = ctx.pressureCalibration.apply(rawPressure);
     ctx.lastRawPoint = {x, y};
     ctx.hasLastRawPoint = true;
     ctx.lastRawPressure = pressure;
@@ -53,16 +55,9 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
         azimuth = az;
     }
 
-    double strokeAngle = 0.0;
-    const double dx = pos.x - ctx.lastDab.position.x;
-    const double dy = pos.y - ctx.lastDab.position.y;
-    if (dx * dx + dy * dy > 0.01) {
-        strokeAngle = std::atan2(dy, dx) * (180.0 / 3.14159265358979323846);
-        if (strokeAngle < 0.0) strokeAngle += 360.0;
-    }
-
+    ctx.lastPose = {altitude, azimuth, twist};
     auto mapped = brush::DynamicMapper::map(
-        ctx.brushProfile, pos, effectivePressure, normVel, strokeAngle, twist, altitude, azimuth
+        ctx.brushProfile, pos, effectivePressure, normVel, twist, altitude, azimuth
     );
     utils::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
 
@@ -119,7 +114,7 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
                 ctx.strokeStartPoint = alignedP0;
                 if (!shortcut) ctx.stabilizer.reanchorInitialPosition(alignedP0);
 
-                auto mappedP0 = brush::DynamicMapper::map(ctx.brushProfile, alignedP0, ctx.lastDab.pressure, 0.0, 0.0);
+                auto mappedP0 = brush::DynamicMapper::map(ctx.brushProfile, alignedP0, ctx.lastDab.pressure, 0.0, ctx.lastPose.twist, ctx.lastPose.altitude, ctx.lastPose.azimuth);
                 ctx.splineP0 = utils::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color, mappedP0.aspectRatio);
                 ctx.lastDab = ctx.splineP0;
             }
@@ -187,7 +182,8 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
                     currentDab, currentDab, ctx.brushProfile, ctx.canvasTexture,
                     ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
                     ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
-                    stationaryCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirtyStationary, &dabsStationary
+                    stationaryCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirtyStationary, &dabsStationary,
+                    nullptr, true, &ctx.strokeMix
                 );
                 if (dirtyStationary.width > 0 && dirtyStationary.height > 0) {
                     dirtyCurrent = (dirtyCurrent.width > 0 && dirtyCurrent.height > 0) ? dirtyCurrent.united(dirtyStationary) : dirtyStationary;

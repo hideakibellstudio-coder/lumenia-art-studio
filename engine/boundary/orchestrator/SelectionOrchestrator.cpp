@@ -1,5 +1,6 @@
 #include "SelectionOrchestrator.hpp"
 #include "LayerSampleSource.hpp"
+#include "PixelFormatGuard.hpp"
 
 namespace aladyn::engine::boundary::orchestrator {
 
@@ -114,6 +115,7 @@ bool SelectionOrchestrator::deleteSelectionOnActiveLayer(
     undoManager.beginStep("Delete Selection");
 
     auto& grid = activeLayer->getTileGrid();
+    const bool is16 = (grid.getFormat() == canvas::PixelFormat::RGBA16);
     int minTx = static_cast<int>(bounds.getLeft()) / canvas::Tile::TILE_SIZE;
     int maxTx = static_cast<int>(bounds.getRight()) / canvas::Tile::TILE_SIZE;
     int minTy = static_cast<int>(bounds.getTop()) / canvas::Tile::TILE_SIZE;
@@ -139,17 +141,29 @@ bool SelectionOrchestrator::deleteSelectionOnActiveLayer(
                     uint8_t selVal = selectionMask.getValue(gx, gy);
                     if (selVal == 0) continue;
 
-                    auto cur = buf.getPixel(px, py);
-                    if (cur.a == 0) continue;
-
-                    if (selVal == 255) {
-                        cur.a = 0;
+                    if (is16) {
+                        auto cur = buf.getPixel16(px, py);
+                        if (cur.a == 0) continue;
+                        if (selVal == 255) {
+                            cur.a = 0;
+                        } else {
+                            double factor = 1.0 - (selVal / 255.0);
+                            cur.a = static_cast<uint16_t>(cur.a * factor);
+                        }
+                        buf.setPixel16(px, py, cur);
+                        modified = true;
                     } else {
-                        double factor = 1.0 - (selVal / 255.0);
-                        cur.a = static_cast<uint8_t>(cur.a * factor);
+                        auto cur = buf.getPixel(px, py);
+                        if (cur.a == 0) continue;
+                        if (selVal == 255) {
+                            cur.a = 0;
+                        } else {
+                            double factor = 1.0 - (selVal / 255.0);
+                            cur.a = static_cast<uint8_t>(cur.a * factor);
+                        }
+                        buf.setPixel(px, py, cur);
+                        modified = true;
                     }
-                    buf.setPixel(px, py, cur);
-                    modified = true;
                 }
             }
 
@@ -186,6 +200,8 @@ bool SelectionOrchestrator::fillSelectionOnActiveLayer(
     undoManager.beginStep("Fill Selection");
 
     auto& grid = activeLayer->getTileGrid();
+    const bool is16 = (grid.getFormat() == canvas::PixelFormat::RGBA16);
+    const utils::ColorRGBA16 fill16 = canvas::widen(fillColor);
     int minTx = static_cast<int>(bounds.getLeft()) / canvas::Tile::TILE_SIZE;
     int maxTx = static_cast<int>(bounds.getRight()) / canvas::Tile::TILE_SIZE;
     int minTy = static_cast<int>(bounds.getTop()) / canvas::Tile::TILE_SIZE;
@@ -211,27 +227,53 @@ bool SelectionOrchestrator::fillSelectionOnActiveLayer(
                     uint8_t selVal = selectionMask.getValue(gx, gy);
                     if (selVal == 0) continue;
 
-                    double srcA = (fillColor.a / 255.0) * (selVal / 255.0);
-                    auto cur = buf.getPixel(px, py);
+                    if (is16) {
+                        double srcA = (fill16.a / 65535.0) * (selVal / 255.0);
+                        auto cur = buf.getPixel16(px, py);
 
-                    if (activeLayer->isAlphaLocked()) {
-                        if (cur.a > 0) {
-                            cur.r = static_cast<uint8_t>(cur.r * (1.0 - srcA) + fillColor.r * srcA);
-                            cur.g = static_cast<uint8_t>(cur.g * (1.0 - srcA) + fillColor.g * srcA);
-                            cur.b = static_cast<uint8_t>(cur.b * (1.0 - srcA) + fillColor.b * srcA);
-                            buf.setPixel(px, py, cur);
-                            modified = true;
+                        if (activeLayer->isAlphaLocked()) {
+                            if (cur.a > 0) {
+                                cur.r = static_cast<uint16_t>(cur.r * (1.0 - srcA) + fill16.r * srcA);
+                                cur.g = static_cast<uint16_t>(cur.g * (1.0 - srcA) + fill16.g * srcA);
+                                cur.b = static_cast<uint16_t>(cur.b * (1.0 - srcA) + fill16.b * srcA);
+                                buf.setPixel16(px, py, cur);
+                                modified = true;
+                            }
+                        } else {
+                            double dstA = cur.a / 65535.0;
+                            double outA = srcA + dstA * (1.0 - srcA);
+                            if (outA > 0.00001) {
+                                cur.r = static_cast<uint16_t>((fill16.r * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
+                                cur.g = static_cast<uint16_t>((fill16.g * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
+                                cur.b = static_cast<uint16_t>((fill16.b * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
+                                cur.a = static_cast<uint16_t>(outA * 65535.0);
+                                buf.setPixel16(px, py, cur);
+                                modified = true;
+                            }
                         }
                     } else {
-                        double dstA = cur.a / 255.0;
-                        double outA = srcA + dstA * (1.0 - srcA);
-                        if (outA > 0) {
-                            cur.r = static_cast<uint8_t>((fillColor.r * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
-                            cur.g = static_cast<uint8_t>((fillColor.g * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
-                            cur.b = static_cast<uint8_t>((fillColor.b * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
-                            cur.a = static_cast<uint8_t>(outA * 255.0);
-                            buf.setPixel(px, py, cur);
-                            modified = true;
+                        double srcA = (fillColor.a / 255.0) * (selVal / 255.0);
+                        auto cur = buf.getPixel(px, py);
+
+                        if (activeLayer->isAlphaLocked()) {
+                            if (cur.a > 0) {
+                                cur.r = static_cast<uint8_t>(cur.r * (1.0 - srcA) + fillColor.r * srcA);
+                                cur.g = static_cast<uint8_t>(cur.g * (1.0 - srcA) + fillColor.g * srcA);
+                                cur.b = static_cast<uint8_t>(cur.b * (1.0 - srcA) + fillColor.b * srcA);
+                                buf.setPixel(px, py, cur);
+                                modified = true;
+                            }
+                        } else {
+                            double dstA = cur.a / 255.0;
+                            double outA = srcA + dstA * (1.0 - srcA);
+                            if (outA > 0) {
+                                cur.r = static_cast<uint8_t>((fillColor.r * srcA + cur.r * dstA * (1.0 - srcA)) / outA);
+                                cur.g = static_cast<uint8_t>((fillColor.g * srcA + cur.g * dstA * (1.0 - srcA)) / outA);
+                                cur.b = static_cast<uint8_t>((fillColor.b * srcA + cur.b * dstA * (1.0 - srcA)) / outA);
+                                cur.a = static_cast<uint8_t>(outA * 255.0);
+                                buf.setPixel(px, py, cur);
+                                modified = true;
+                            }
                         }
                     }
                 }

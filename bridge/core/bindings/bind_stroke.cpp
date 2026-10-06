@@ -118,6 +118,9 @@ void bind_stroke(py::module_& m, FacadeClass& facade) {
         .def("get_stabilizer", [](boundary::PaintEngineFacade& self) -> stroke::DynamicStabilizer& {
             return self.getStabilizer();
         }, py::return_value_policy::reference_internal)
+        .def("get_pressure_calibration", [](boundary::PaintEngineFacade& self) -> stroke::PressureCalibration& {
+            return self.getPressureCalibration();
+        }, py::return_value_policy::reference_internal)
         // ─── TELEMETRIA E DIAGNÓSTICO EM TEMPO REAL ──────────────────────────
         .def("set_telemetry_enabled", &boundary::PaintEngineFacade::setTelemetryEnabled)
         .def("is_telemetry_enabled", &boundary::PaintEngineFacade::isTelemetryEnabled)

@@ -118,9 +118,62 @@ public:
     static void setLayerClippingMask(const DocumentContext& ctx, int index, bool clipped) {
         if (auto* l = ctx.layerStack.getDrawingLayer(index)) {
             l->setClippingMask(clipped);
-            ctx.compositeRegion(LayerDirtyRegion::computeLayerVisualDirtyRegion(ctx.layerStack, index));
+            // Não é só a área da camada: recortar ou soltar a camada muda a BASE das camadas recortadas acima dela
+            // (a base é a primeira camada não recortada abaixo), e o que elas mostram fora da área desta camada
+            // muda junto. Até 2026-10-03 a região era só a desta camada e a tela ficava com o recorte antigo.
+            ctx.compositeAll();
         }
         ctx.touch();
+    }
+
+    // ─── Mascara de camada (S9) ──────────────────────────────────────────
+    static bool addLayerMask(const DocumentContext& ctx, int index) {
+        auto* l = ctx.layerStack.getDrawingLayer(index);
+        if (!l || l->isGroup() || l->isFilter() || l->hasMask()) return false;
+        l->createMask();
+        ctx.compositeAll();
+        ctx.touch();
+        return true;
+    }
+
+    static bool removeLayerMask(const DocumentContext& ctx, int index) {
+        auto* l = ctx.layerStack.getDrawingLayer(index);
+        if (!l || !l->hasMask()) return false;
+        l->removeMask();
+        ctx.compositeAll();
+        ctx.touch();
+        return true;
+    }
+
+    static bool hasLayerMask(const document::LayerStack& stack, int index) {
+        const auto* l = stack.getDrawingLayer(index);
+        return l ? l->hasMask() : false;
+    }
+
+    static void setLayerMaskEnabled(const DocumentContext& ctx, int index, bool enabled) {
+        if (auto* l = ctx.layerStack.getDrawingLayer(index)) {
+            if (l->hasMask() && l->isMaskEnabled() != enabled) {
+                l->setMaskEnabled(enabled);
+                ctx.compositeAll();
+                ctx.touch();
+            }
+        }
+    }
+
+    static bool isLayerMaskEnabled(const document::LayerStack& stack, int index) {
+        const auto* l = stack.getDrawingLayer(index);
+        return l ? (l->hasMask() && l->isMaskEnabled()) : false;
+    }
+
+    static void setLayerMaskEditTarget(const DocumentContext& ctx, int index, bool targetMask) {
+        if (auto* l = ctx.layerStack.getDrawingLayer(index)) {
+            l->setMaskEditTarget(targetMask && l->hasMask());
+        }
+    }
+
+    static bool isLayerMaskEditTarget(const document::LayerStack& stack, int index) {
+        const auto* l = stack.getDrawingLayer(index);
+        return l ? l->isMaskEditTarget() : false;
     }
 
     // ─── Propriedades sem efeito visual (nao recompoem) ───────────────────

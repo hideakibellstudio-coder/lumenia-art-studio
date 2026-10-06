@@ -64,7 +64,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
 
             // 1. Catch-up para alcançar a posição real de soltura quando o estabilizador ficou para trás
             if (!shortcut && distToRaw > 1.0) {
-                auto mappedCatchup = brush::DynamicMapper::map(ctx.brushProfile, ctx.lastRawPoint, ctx.lastRawPressure, 0.0, 0.0);
+                auto mappedCatchup = brush::DynamicMapper::map(ctx.brushProfile, ctx.lastRawPoint, ctx.lastRawPressure, 0.0, ctx.lastPose.twist, ctx.lastPose.altitude, ctx.lastPose.azimuth);
                 utils::Dab catchupDab(mappedCatchup.position, mappedCatchup.radius, mappedCatchup.opacity, mappedCatchup.pressure, mappedCatchup.angle, ctx.brushProfile.blendMode, mappedCatchup.color, mappedCatchup.aspectRatio);
                 utils::Rect2D dirty{0, 0, 0, 0};
                 uint32_t dabsRendered = 0;
@@ -73,7 +73,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
                     ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
                     ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
                     ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered,
-                    &stagesCatchup
+                    &stagesCatchup, true, &ctx.strokeMix
                 );
                 if (dirty.width > 0 && dirty.height > 0) {
                     totalCatchupDirty = (totalCatchupDirty.width > 0) ? totalCatchupDirty.united(dirty) : dirty;
@@ -91,7 +91,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
                     : 20.0;
                 const utils::Point2D targetPt = ctx.lastDab.position + (dir * taperLen);
 
-                auto mapped = brush::DynamicMapper::map(ctx.brushProfile, targetPt, 0.0, 0.0, 0.0);
+                auto mapped = brush::DynamicMapper::map(ctx.brushProfile, targetPt, 0.0, 0.0, ctx.lastPose.twist, ctx.lastPose.altitude, ctx.lastPose.azimuth);
                 mapped.radius *= 0.05;
                 mapped.opacity = 0.0;
                 utils::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
@@ -102,7 +102,7 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
                     ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
                     ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
                     ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered,
-                    &stagesCatchup
+                    &stagesCatchup, true, &ctx.strokeMix
                 );
                 if (dirty.width > 0 && dirty.height > 0) {
                     totalCatchupDirty = (totalCatchupDirty.width > 0) ? totalCatchupDirty.united(dirty) : dirty;

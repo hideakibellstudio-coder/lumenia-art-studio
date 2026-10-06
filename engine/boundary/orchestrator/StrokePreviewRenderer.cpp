@@ -3,6 +3,7 @@
 #include "../../core/canvas/CanvasTexture.hpp"
 #include "../../core/canvas/TileGrid.hpp"
 #include "../../core/canvas/Tile.hpp"
+#include "../../core/brush/DynamicMapper.hpp"
 #include "../../core/raster/DabInterpolator.hpp"
 #include "../../core/raster/DabRenderer.hpp"
 #include "../../core/raster/LargeBrushOptimizer.hpp"
@@ -112,7 +113,11 @@ std::vector<uint8_t> renderStrokePreview(const brush::BrushProfile& profile, int
         currDab.position = {x, y};
         currDab.radius = std::max(0.5, targetMaxRadius * pressure);
         currDab.pressure = pressure;
-        currDab.angle = angle;
+        // A ponta da prévia é a que o traço teria: o ângulo (da ponta, e o do traço só com "seguir o traço") e a
+        // proporção saem do mesmo mapeador do traço, em vez de um carimbo sempre redondo virado para onde o traço vai.
+        const brush::MappedBrushState tip = brush::DynamicMapper::map(profile, currDab.position, pressure, 0.0);
+        currDab.angle = std::fmod(tip.angle + (profile.tip.followStroke ? angle + 360.0 : 0.0), 360.0);
+        currDab.aspectRatio = tip.aspectRatio;
 
         const utils::Dab& from = hasPrev ? prevDab : currDab;
         for (const auto& d : raster::DabInterpolator::interpolate(from, currDab, profile.spacingFactor, carryover)) {

@@ -88,9 +88,6 @@ void TileUndoManager::commitStep(document::LayerStack& stack) {
     std::vector<TileSnapshot> keptSnapshots;
     keptSnapshots.reserve(m_currentStep.snapshots.size());
 
-    static const uint8_t s_emptyTileData[canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * sizeof(utils::ColorRGBA)] = {0};
-    constexpr size_t s_emptyTileBytes = sizeof(s_emptyTileData);
-
     for (auto& snap : m_currentStep.snapshots) {
         document::Layer* layer = stack.getDrawingLayer(snap.layerIndex);
         if (!layer) continue;
@@ -104,8 +101,8 @@ void TileUndoManager::commitStep(document::LayerStack& stack) {
             currentData = buf.getData();
             currentSize = buf.getSizeInBytes();
         } else {
-            currentData = s_emptyTileData;
-            currentSize = s_emptyTileBytes;
+            currentData = canvas::zeroTileData();
+            currentSize = canvas::Tile::bytesFor(layer->getTileGrid().getFormat());
         }
 
         // Se o tile não foi alterado de fato, descarta

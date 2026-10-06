@@ -12,14 +12,18 @@ namespace aladyn::engine::canvas {
 
 struct TileIndexHash {
     std::size_t operator()(const TileIndex& idx) const noexcept {
-        return (static_cast<std::size_t>(idx.x) << 32) ^ static_cast<std::size_t>(idx.y);
+        const uint64_t ux = static_cast<uint32_t>(idx.x);
+        const uint64_t uy = static_cast<uint32_t>(idx.y);
+        return static_cast<std::size_t>((ux << 32) | uy);
     }
 };
 
 class TileGrid {
 public:
-    TileGrid(int width, int height);
+    TileGrid(int width, int height, PixelFormat format = PixelFormat::RGBA8);
 
+    // O formato dos tiles desta grade: todos os que ela cria, adota ou copia têm este formato.
+    [[nodiscard]] PixelFormat getFormat() const noexcept { return m_format; }
     [[nodiscard]] int getWidth() const noexcept { return m_width; }
     [[nodiscard]] int getHeight() const noexcept { return m_height; }
     [[nodiscard]] int getTilesCountX() const noexcept { return m_tilesX; }
@@ -28,7 +32,8 @@ public:
     Tile* getTile(int tileX, int tileY);
     Tile* getOrCreateTile(int tileX, int tileY);
     // Coloca na grade um tile que já tem o buffer pronto (a abertura de um arquivo decodifica
-    // os buffers em paralelo e só aqui os insere). Fora da grade: nullptr, nada é inserido.
+    // os buffers em paralelo e só aqui os insere). Fora da grade, ou com buffer de outro formato:
+    // nullptr, nada é inserido.
     Tile* adoptTile(int tileX, int tileY, std::shared_ptr<PixelBuffer> buffer);
 
     void clearAll(utils::ColorRGBA color = {0, 0, 0, 0});
@@ -39,7 +44,7 @@ public:
     void clearTiles();
     // Remove tiles 100% transparentes (liberação de RAM pós-borracha)
     size_t pruneEmptyTiles();
-    // Copia com Copy-on-Write (compartilha buffers imutáveis sem clonar 64KB)
+    // Copia com Copy-on-Write (compartilha buffers imutáveis sem clonar 64KB). A grade passa a ter o formato da origem.
     void copyFrom(const TileGrid& src);
     [[nodiscard]] size_t getActiveTilesCount() const noexcept { return m_tiles.size(); }
 
@@ -73,6 +78,7 @@ public:
 private:
     int m_width{0};
     int m_height{0};
+    PixelFormat m_format{PixelFormat::RGBA8};
     int m_tilesX{0};
     int m_tilesY{0};
     std::unordered_map<TileIndex, std::unique_ptr<Tile>, TileIndexHash> m_tiles;

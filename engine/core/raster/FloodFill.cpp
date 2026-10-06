@@ -57,7 +57,9 @@ bool FloodFill::execute(
     const uint8_t* srcRaw = sourceBuffer.getData();
     if (!srcRaw) return false;
 
+    const bool srcIs16 = (sourceBuffer.getFormat() == canvas::PixelFormat::RGBA16);
     auto getSrcPixel = [&](int x, int y) noexcept -> utils::ColorRGBA {
+        if (srcIs16) return sourceBuffer.getPixel(x, y);
         size_t off = static_cast<size_t>(y * width + x) * 4;
         return utils::ColorRGBA{srcRaw[off + 0], srcRaw[off + 1], srcRaw[off + 2], srcRaw[off + 3]};
     };
@@ -218,6 +220,9 @@ bool FloodFill::execute(
     const int endTileY   = maxY / canvas::Tile::TILE_SIZE;
 
     // Registra o estado 'before' dos tiles no UndoManager
+    const uint8_t* emptyData = canvas::zeroTileData();
+    const size_t emptyBytes = canvas::Tile::bytesFor(targetGrid.getFormat());
+
     for (int ty = startTileY; ty <= endTileY; ++ty) {
         for (int tx = startTileX; tx <= endTileX; ++tx) {
             canvas::Tile* tile = targetGrid.getTile(tx, ty);
@@ -225,11 +230,13 @@ bool FloodFill::execute(
                 const auto& buf = tile->getBuffer();
                 undoManager.recordTileBefore(activeLayerIndex, tx, ty, buf.getData(), buf.getSizeInBytes());
             } else {
-                canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
-                undoManager.recordTileBefore(activeLayerIndex, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
+                undoManager.recordTileBefore(activeLayerIndex, tx, ty, emptyData, emptyBytes);
             }
         }
     }
+
+    const bool is16 = (targetGrid.getFormat() == canvas::PixelFormat::RGBA16);
+    const utils::ColorRGBA16 fill16 = canvas::widen(fillColor);
 
     // Escreve os pixels de preenchimento nos tiles
     for (int ty = startTileY; ty <= endTileY; ++ty) {
@@ -258,29 +265,56 @@ bool FloodFill::execute(
                     }
 
                     if (m > 0) {
-                        size_t off = static_cast<size_t>(rowTile + lx) * 4;
-                        double srcA = (fillColor.a / 255.0) * (m / 255.0);
-
-                        if (pCtx.alphaLocked) {
-                            if (tileRaw[off + 3] > 0) {
-                                tileRaw[off + 0] = static_cast<uint8_t>(tileRaw[off + 0] * (1.0 - srcA) + fillColor.r * srcA);
-                                tileRaw[off + 1] = static_cast<uint8_t>(tileRaw[off + 1] * (1.0 - srcA) + fillColor.g * srcA);
-                                tileRaw[off + 2] = static_cast<uint8_t>(tileRaw[off + 2] * (1.0 - srcA) + fillColor.b * srcA);
+                        if (is16) {
+                            double srcA = (fill16.a / 65535.0) * (m / 255.0);
+                            auto cur = tile->getBuffer().getPixel16(lx, ly);
+                            if (pCtx.alphaLocked) {
+                                if (cur.a > 0) {
+                                    cur.r = static_cast<uint16_t>(cur.r * (1.0 - srcA) + fill16.r * srcA);
+                                    cur.g = static_cast<uint16_t>(cur.g * (1.0 - srcA) + fill16.g * srcA);
+                                    cur.b = static_cast<uint16_t>(cur.b * (1.0 - srcA) + fill16.b * srcA);
+                                    tile->getBuffer().setPixel16(lx, ly, cur);
+                                }
+                            } else {
+                                if (m == 255 && fill16.a == 65535) {
+                                    tile->getBuffer().setPixel16(lx, ly, fill16);
+                                } else {
+                                    double dstA = cur.a / 65535.0;
+                                    double outA = srcA + dstA * (1.0 - srcA);
+                                    if (outA > 0.00001) {
+                                        cur.r = static_cast<uint16_t>(std::clamp((fill16.r * srcA + cur.r * dstA * (1.0 - srcA)) / outA, 0.0, 65535.0));
+                                        cur.g = static_cast<uint16_t>(std::clamp((fill16.g * srcA + cur.g * dstA * (1.0 - srcA)) / outA, 0.0, 65535.0));
+                                        cur.b = static_cast<uint16_t>(std::clamp((fill16.b * srcA + cur.b * dstA * (1.0 - srcA)) / outA, 0.0, 65535.0));
+                                        cur.a = static_cast<uint16_t>(std::clamp(outA * 65535.0, 0.0, 65535.0));
+                                        tile->getBuffer().setPixel16(lx, ly, cur);
+                                    }
+                                }
                             }
                         } else {
-                            if (m == 255 && fillColor.a == 255) {
-                                tileRaw[off + 0] = fillColor.r;
-                                tileRaw[off + 1] = fillColor.g;
-                                tileRaw[off + 2] = fillColor.b;
-                                tileRaw[off + 3] = 255;
+                            size_t off = static_cast<size_t>(rowTile + lx) * 4;
+                            double srcA = (fillColor.a / 255.0) * (m / 255.0);
+
+                            if (pCtx.alphaLocked) {
+                                if (tileRaw[off + 3] > 0) {
+                                    tileRaw[off + 0] = static_cast<uint8_t>(tileRaw[off + 0] * (1.0 - srcA) + fillColor.r * srcA);
+                                    tileRaw[off + 1] = static_cast<uint8_t>(tileRaw[off + 1] * (1.0 - srcA) + fillColor.g * srcA);
+                                    tileRaw[off + 2] = static_cast<uint8_t>(tileRaw[off + 2] * (1.0 - srcA) + fillColor.b * srcA);
+                                }
                             } else {
-                                double dstA = tileRaw[off + 3] / 255.0;
-                                double outA = srcA + dstA * (1.0 - srcA);
-                                if (outA > 0.001) {
-                                    tileRaw[off + 0] = static_cast<uint8_t>(std::clamp((fillColor.r * srcA + tileRaw[off + 0] * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
-                                    tileRaw[off + 1] = static_cast<uint8_t>(std::clamp((fillColor.g * srcA + tileRaw[off + 1] * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
-                                    tileRaw[off + 2] = static_cast<uint8_t>(std::clamp((fillColor.b * srcA + tileRaw[off + 2] * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
-                                    tileRaw[off + 3] = static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0));
+                                if (m == 255 && fillColor.a == 255) {
+                                    tileRaw[off + 0] = fillColor.r;
+                                    tileRaw[off + 1] = fillColor.g;
+                                    tileRaw[off + 2] = fillColor.b;
+                                    tileRaw[off + 3] = 255;
+                                } else {
+                                    double dstA = tileRaw[off + 3] / 255.0;
+                                    double outA = srcA + dstA * (1.0 - srcA);
+                                    if (outA > 0.001) {
+                                        tileRaw[off + 0] = static_cast<uint8_t>(std::clamp((fillColor.r * srcA + tileRaw[off + 0] * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
+                                        tileRaw[off + 1] = static_cast<uint8_t>(std::clamp((fillColor.g * srcA + tileRaw[off + 1] * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
+                                        tileRaw[off + 2] = static_cast<uint8_t>(std::clamp((fillColor.b * srcA + tileRaw[off + 2] * dstA * (1.0 - srcA)) / outA, 0.0, 255.0));
+                                        tileRaw[off + 3] = static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0));
+                                    }
                                 }
                             }
                         }

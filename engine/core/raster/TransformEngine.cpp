@@ -51,6 +51,7 @@ bool TransformEngine::beginTransform(
     } else {
         // Encontra o bounding box dos pixels desenhados na camada ativa
         const auto& grid = activeLayer->getTileGrid();
+        const bool is16 = (grid.getFormat() == canvas::PixelFormat::RGBA16);
         for (int ty = 0; ty < grid.getTilesCountY(); ++ty) {
             for (int tx = 0; tx < grid.getTilesCountX(); ++tx) {
                 const auto* tile = const_cast<canvas::TileGrid&>(grid).getTile(tx, ty);
@@ -61,7 +62,8 @@ bool TransformEngine::beginTransform(
 
                     for (int ly = 0; ly < canvas::Tile::TILE_SIZE && tpy + ly < canvasHeight; ++ly) {
                         for (int lx = 0; lx < canvas::Tile::TILE_SIZE && tpx + lx < canvasWidth; ++lx) {
-                            if (buf.getPixel(lx, ly).a > 0) {
+                            const bool hasPixel = is16 ? (buf.getPixel16(lx, ly).a > 0) : (buf.getPixel(lx, ly).a > 0);
+                            if (hasPixel) {
                                 int gx = tpx + lx;
                                 int gy = tpy + ly;
                                 if (gx < minX) minX = gx;
@@ -100,10 +102,11 @@ bool TransformEngine::beginTransform(
     m_state.flipH = false;
     m_state.flipV = false;
 
-    m_sourceBuffer = std::make_unique<canvas::PixelBuffer>(bw, bh, utils::ColorRGBA{0, 0, 0, 0});
+    auto& grid = activeLayer->getTileGrid();
+    const bool is16 = (grid.getFormat() == canvas::PixelFormat::RGBA16);
+    m_sourceBuffer = std::make_unique<canvas::PixelBuffer>(bw, bh, grid.getFormat(), utils::ColorRGBA{0, 0, 0, 0});
 
     // Copia os pixels da camada ativa para o sourceBuffer
-    auto& grid = activeLayer->getTileGrid();
     for (int y = 0; y < bh; ++y) {
         int gy = minY + y;
         for (int x = 0; x < bw; ++x) {
@@ -114,17 +117,30 @@ bool TransformEngine::beginTransform(
             if (tile) {
                 int lx = gx % canvas::Tile::TILE_SIZE;
                 int ly = gy % canvas::Tile::TILE_SIZE;
-                auto col = tile->getBuffer().getPixel(lx, ly);
 
-                if (m_state.isFromSelection && selectionMask) {
-                    uint8_t sVal = selectionMask->getValue(gx, gy);
-                    if (sVal == 0) {
-                        col = {0, 0, 0, 0};
-                    } else if (sVal < 255) {
-                        col.a = static_cast<uint8_t>((static_cast<int>(col.a) * sVal) / 255);
+                if (is16) {
+                    auto col = tile->getBuffer().getPixel16(lx, ly);
+                    if (m_state.isFromSelection && selectionMask) {
+                        uint8_t sVal = selectionMask->getValue(gx, gy);
+                        if (sVal == 0) {
+                            col = {0, 0, 0, 0};
+                        } else if (sVal < 255) {
+                            col.a = static_cast<uint16_t>((static_cast<uint32_t>(col.a) * sVal) / 255);
+                        }
                     }
+                    m_sourceBuffer->setPixel16(x, y, col);
+                } else {
+                    auto col = tile->getBuffer().getPixel(lx, ly);
+                    if (m_state.isFromSelection && selectionMask) {
+                        uint8_t sVal = selectionMask->getValue(gx, gy);
+                        if (sVal == 0) {
+                            col = {0, 0, 0, 0};
+                        } else if (sVal < 255) {
+                            col.a = static_cast<uint8_t>((static_cast<int>(col.a) * sVal) / 255);
+                        }
+                    }
+                    m_sourceBuffer->setPixel(x, y, col);
                 }
-                m_sourceBuffer->setPixel(x, y, col);
             }
         }
     }
@@ -137,6 +153,9 @@ bool TransformEngine::beginTransform(
 
     undoManager.beginStep("Transform");
 
+    const uint8_t* emptyData = canvas::zeroTileData();
+    const size_t emptyBytes = canvas::Tile::bytesFor(grid.getFormat());
+
     for (int ty = startTileY; ty <= endTileY; ++ty) {
         for (int tx = startTileX; tx <= endTileX; ++tx) {
             canvas::Tile* tile = grid.getTile(tx, ty);
@@ -144,8 +163,7 @@ bool TransformEngine::beginTransform(
                 const auto& buf = tile->getBuffer();
                 undoManager.recordTileBefore(activeLayerIndex, tx, ty, buf.getData(), buf.getSizeInBytes());
             } else {
-                canvas::PixelBuffer emptyBuf(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, {0, 0, 0, 0});
-                undoManager.recordTileBefore(activeLayerIndex, tx, ty, emptyBuf.getData(), emptyBuf.getSizeInBytes());
+                undoManager.recordTileBefore(activeLayerIndex, tx, ty, emptyData, emptyBytes);
             }
         }
     }
@@ -164,17 +182,31 @@ bool TransformEngine::beginTransform(
                 if (m_state.isFromSelection && selectionMask) {
                     uint8_t sVal = selectionMask->getValue(gx, gy);
                     if (sVal > 0) {
-                        auto cur = tile->getBuffer().getPixel(lx, ly);
-                        if (sVal == 255) {
-                            cur.a = 0;
+                        if (is16) {
+                            auto cur = tile->getBuffer().getPixel16(lx, ly);
+                            if (sVal == 255) {
+                                cur.a = 0;
+                            } else {
+                                cur.a = static_cast<uint16_t>((static_cast<uint32_t>(cur.a) * (255 - sVal)) / 255);
+                            }
+                            tile->getBuffer().setPixel16(lx, ly, cur);
                         } else {
-                            cur.a = static_cast<uint8_t>(std::clamp((static_cast<int>(cur.a) * (255 - sVal)) / 255, 0, 255));
+                            auto cur = tile->getBuffer().getPixel(lx, ly);
+                            if (sVal == 255) {
+                                cur.a = 0;
+                            } else {
+                                cur.a = static_cast<uint8_t>((static_cast<int>(cur.a) * (255 - sVal)) / 255);
+                            }
+                            tile->getBuffer().setPixel(lx, ly, cur);
                         }
-                        tile->getBuffer().setPixel(lx, ly, cur);
                         tile->setDirty(true);
                     }
                 } else {
-                    tile->getBuffer().setPixel(lx, ly, {0, 0, 0, 0});
+                    if (is16) {
+                        tile->getBuffer().setPixel16(lx, ly, {0, 0, 0, 0});
+                    } else {
+                        tile->getBuffer().setPixel(lx, ly, {0, 0, 0, 0});
+                    }
                     tile->setDirty(true);
                 }
             }

@@ -1,9 +1,11 @@
 #include "DabRenderer.hpp"
+#include "BrushGrain.hpp"
 #include "DabFootprint.hpp"
 #include "PixelPermission.hpp"
 #include "TipShape.hpp"
 #include "../../utils/MathUtils.hpp"
 #include "../color/LinearColorSpace.hpp"
+#include "../color/LinearColorSpace16.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -28,17 +30,15 @@ double dabAspect(const utils::Dab& dab, const brush::BrushProfile& profile) {
 class DabInk {
 public:
     DabInk(const utils::Dab& dab, const brush::BrushProfile& profile, const canvas::CanvasTexture& paper)
-        : m_profile(profile), m_paper(paper),
-          m_brushTexture(profile.brushHeightTexture.get()),
+        : m_paper(paper),
+          m_grain(profile),
           m_paperTexture(paper.canvasHeightTexture.get()),
           m_safeRadius(std::max(0.001, dab.radius)),
           m_invTwoSafeRadius(0.5 / m_safeRadius),
           m_baseAlpha((static_cast<double>(dab.color.a) / 255.0) * dab.opacity),
           m_threshold(1.0 - dab.pressure),
-          m_invBrushContrast((profile.brushGrainContrast != 1.0 && profile.brushGrainContrast > 0.0)
-                                 ? (0.5 / profile.brushGrainContrast) : 0.0),
           m_paperScale(0.002 * paper.canvasGrainScale) {
-        m_brushGrain = profile.brushGrainEnabled && m_brushTexture;
+        m_brushGrain = m_grain.enabled();
         m_paperGrain = paper.canvasGrainEnabled && m_paperTexture;
         m_textured = m_brushGrain || m_paperGrain;
         // Sem textura o depósito é analítico e igual em todo o dab.
@@ -63,13 +63,7 @@ private:
         if (!m_brushGrain) return 1.0;
         const double u = (pixel.rotX + m_safeRadius) * m_invTwoSafeRadius;
         const double v = (pixel.scaledY + m_safeRadius) * m_invTwoSafeRadius;
-        double height = m_brushTexture->sampleNormalized(
-            u * m_profile.brushGrainScale, v * m_profile.brushGrainScale, texture::TextureWrapMode::Repeat);
-        if (m_profile.brushGrainInvert) height = 1.0 - height;
-        if (m_invBrushContrast > 0.0) {
-            height = utils::MathUtils::smoothstep(0.5 - m_invBrushContrast, 0.5 + m_invBrushContrast, height);
-        }
-        return m_profile.brushTextureCurve.sample(height);
+        return m_grain.height(pixel, u, v);
     }
 
     double paperHeight(const DabPixel& pixel) const {
@@ -79,15 +73,13 @@ private:
         return m_paper.sampleLUT(m_paperTexture->sampleNormalizedFastByte(u, v));
     }
 
-    const brush::BrushProfile& m_profile;
     const canvas::CanvasTexture& m_paper;
-    const texture::Texture2D* m_brushTexture;
+    BrushGrain m_grain;
     const texture::Texture2D* m_paperTexture;
     double m_safeRadius;
     double m_invTwoSafeRadius;
     double m_baseAlpha;
     double m_threshold;
-    double m_invBrushContrast;
     double m_paperScale;
     double m_flatAlpha{0.0};
     bool m_brushGrain{false};
@@ -97,7 +89,11 @@ private:
 };
 
 uint8_t toByte(double unit) {
-    return static_cast<uint8_t>(std::clamp(unit * 255.0, 0.0, 255.0));
+    return utils::MathUtils::unitToByte(unit);
+}
+
+uint16_t toWord(double unit) {
+    return static_cast<uint16_t>(std::clamp(std::lround(unit * 65535.0), 0L, 65535L));
 }
 
 bool depositNormal(utils::ColorRGBA& dst, utils::ColorRGBA color, double alpha) {
@@ -111,23 +107,52 @@ bool depositNormal(utils::ColorRGBA& dst, utils::ColorRGBA color, double alpha) 
     return true;
 }
 
+bool depositNormal16(utils::ColorRGBA16& dst, utils::ColorRGBA16 color, double alpha) {
+    if (dst.a == 0) {
+        dst = utils::ColorRGBA16{color.r, color.g, color.b, toWord(alpha)};
+    } else if (dst.a == 65535) {
+        dst = color::blendLinearNormalOpaque16(color, static_cast<float>(alpha), dst);
+    } else {
+        dst = color::blendLinearNormal16(color, static_cast<float>(alpha), dst);
+    }
+    return true;
+}
+
 // Modo Canetinha / Marker: escurece o destino pela cor do dab, sem mexer no alfa.
 bool depositMultiply(utils::ColorRGBA& dst, utils::ColorRGBA color, double alpha) {
     const auto channel = [alpha](uint8_t src, uint8_t under) {
         const double s = static_cast<double>(src) / 255.0;
         const double d = static_cast<double>(under) / 255.0;
-        return static_cast<uint8_t>(std::clamp(d * (1.0 - alpha * (1.0 - s)) * 255.0, 0.0, 255.0));
+        return utils::MathUtils::unitToByte(d * (1.0 - alpha * (1.0 - s)));
     };
     dst = utils::ColorRGBA{channel(color.r, dst.r), channel(color.g, dst.g), channel(color.b, dst.b), dst.a};
+    return true;
+}
+
+bool depositMultiply16(utils::ColorRGBA16& dst, utils::ColorRGBA16 color, double alpha) {
+    const auto channel = [alpha](uint16_t src, uint16_t under) {
+        const double s = static_cast<double>(src) / 65535.0;
+        const double d = static_cast<double>(under) / 65535.0;
+        return toWord(d * (1.0 - alpha * (1.0 - s)));
+    };
+    dst = utils::ColorRGBA16{channel(color.r, dst.r), channel(color.g, dst.g), channel(color.b, dst.b), dst.a};
     return true;
 }
 
 // Modo Luz / Glow: soma a cor do dab ao destino e o deixa opaco.
 bool depositAdditive(utils::ColorRGBA& dst, utils::ColorRGBA color, double alpha) {
     const auto channel = [alpha](uint8_t src, uint8_t under) {
-        return static_cast<uint8_t>(std::clamp(static_cast<double>(under) + static_cast<double>(src) * alpha, 0.0, 255.0));
+        return utils::MathUtils::roundToByte(static_cast<double>(under) + static_cast<double>(src) * alpha);
     };
     dst = utils::ColorRGBA{channel(color.r, dst.r), channel(color.g, dst.g), channel(color.b, dst.b), 255};
+    return true;
+}
+
+bool depositAdditive16(utils::ColorRGBA16& dst, utils::ColorRGBA16 color, double alpha) {
+    const auto channel = [alpha](uint16_t src, uint16_t under) {
+        return static_cast<uint16_t>(std::clamp(std::lround(static_cast<double>(under) + static_cast<double>(src) * alpha), 0L, 65535L));
+    };
+    dst = utils::ColorRGBA16{channel(color.r, dst.r), channel(color.g, dst.g), channel(color.b, dst.b), 65535};
     return true;
 }
 
@@ -144,6 +169,23 @@ bool deposit(utils::ColorRGBA& dst, const utils::Dab& dab, double alpha, bool al
         case utils::DabBlendMode::Multiply: return depositMultiply(dst, dab.color, alpha);
         case utils::DabBlendMode::Additive: return depositAdditive(dst, dab.color, alpha);
         case utils::DabBlendMode::Erase:    return false;  // a borracha pinta sozinha (EraserEngine)
+    }
+    return false;
+}
+
+bool deposit16(utils::ColorRGBA16& dst, const utils::Dab& dab, utils::ColorRGBA16 dabColor16, double alpha, bool alphaLocked) {
+    if (alphaLocked) {
+        if (dst.a == 0) return false;
+        const uint16_t originalAlpha = dst.a;
+        dst = color::blendLinearNormal16(dabColor16, static_cast<float>(alpha), dst);
+        dst.a = originalAlpha;
+        return true;
+    }
+    switch (dab.blendMode) {
+        case utils::DabBlendMode::Normal:   return depositNormal16(dst, dabColor16, alpha);
+        case utils::DabBlendMode::Multiply: return depositMultiply16(dst, dabColor16, alpha);
+        case utils::DabBlendMode::Additive: return depositAdditive16(dst, dabColor16, alpha);
+        case utils::DabBlendMode::Erase:    return false;
     }
     return false;
 }
@@ -167,14 +209,26 @@ void DabRenderer::renderDab(
 
     const TipShape tip(profile, dab.radius);
     const PixelPermission permission(ctx);
-    footprint.forEachPixel(4, [&](utils::ColorRGBA& dst, const DabPixel& pixel) {
-        const double shape = tip.alphaAt(pixel);
-        if (shape <= 0.0) return false;
+    if (tileGrid.getFormat() == canvas::PixelFormat::RGBA16) {
+        const utils::ColorRGBA16 color16 = canvas::widen(dab.color);
+        footprint.forEachPixel<utils::ColorRGBA16>(4, [&](utils::ColorRGBA16& dst, const DabPixel& pixel) {
+            const double shape = tip.alphaAt(pixel);
+            if (shape <= 0.0) return false;
 
-        double alpha = ink.alphaAt(pixel, shape);
-        if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
-        return deposit(dst, dab, alpha, ctx.alphaLocked);
-    });
+            double alpha = ink.alphaAt(pixel, shape);
+            if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
+            return deposit16(dst, dab, color16, alpha, ctx.alphaLocked);
+        });
+    } else {
+        footprint.forEachPixel<utils::ColorRGBA>(4, [&](utils::ColorRGBA& dst, const DabPixel& pixel) {
+            const double shape = tip.alphaAt(pixel);
+            if (shape <= 0.0) return false;
+
+            double alpha = ink.alphaAt(pixel, shape);
+            if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
+            return deposit(dst, dab, alpha, ctx.alphaLocked);
+        });
+    }
 }
 
 } // namespace aladyn::engine::raster

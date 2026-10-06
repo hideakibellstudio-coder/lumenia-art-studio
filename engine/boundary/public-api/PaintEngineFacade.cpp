@@ -12,6 +12,7 @@
 #include "../orchestrator/StrokeSessionOrchestrator.hpp"
 #include "../orchestrator/TransformOrchestrator.hpp"
 #include "../../core/selection/SelectionMorphology.hpp"
+#include "../../core/texture/ProceduralTextures.hpp"
 #include <cstdlib>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,12 +37,12 @@
 
 namespace aladyn::engine::boundary {
 
-PaintEngineFacade::PaintEngineFacade(int width, int height)
-    : m_width(canvas::checkedCanvasDimension(width)), m_height(canvas::checkedCanvasDimension(height)),
-      m_layerStack(width, height),
-      m_compositor(width, height),
+PaintEngineFacade::PaintEngineFacade(int width, int height, canvas::PixelFormat format)
+    : m_width(canvas::checkedCanvasDimension(width, format)), m_height(canvas::checkedCanvasDimension(height, format)),
+      m_layerStack(width, height, format),
+      m_compositor(width, height, format),
       m_outputBuffer(width, height, {255, 255, 255, 255}),
-      m_displayBuffer(width, height, {255, 255, 255, 255}),
+      m_displayBuffer(0, 0),
       m_selectionMask(width, height) {
 
     // Keep the display/mipmap buffers coherent from the first frame.
@@ -52,7 +53,7 @@ PaintEngineFacade::PaintEngineFacade(int width, int height)
 
     m_firstSample = std::make_unique<orchestrator::TouchdownSample>();
     initEngine(brush::EngineType::Brush);
-    m_compositor.composite(m_layerStack.getAllLayersForComposition(), m_outputBuffer, m_canvasTexture.backgroundColor);
+    // Nada é composto aqui: o compositor nasce com o buffer todo velho e o primeiro leitor recompõe o que lê.
 }
 
 PaintEngineFacade::~PaintEngineFacade() = default;
@@ -65,7 +66,7 @@ PaintEngineFacade::~PaintEngineFacade() = default;
 orchestrator::DocumentContext PaintEngineFacade::docContext() noexcept {
     return orchestrator::DocumentContext{
         m_layerStack, m_compositor, m_outputBuffer, m_canvasTexture.backgroundColor,
-        m_documentGeneration, m_mipmapPyramid, m_compositeHold, m_compositePending, m_linearGamma, m_deepColor
+        m_documentGeneration, m_mipmapPyramid, m_linearGamma, m_deepColor
     };
 }
 
@@ -79,9 +80,9 @@ orchestrator::RawStrokeContext PaintEngineFacade::strokeContext() noexcept {
     return orchestrator::RawStrokeContext{
         m_isDrawing, m_segmentsRenderedInStroke, m_pendingFirstSegment, *m_firstSample,
         m_strokeStartPoint, m_lastRawPoint, m_lastRawPressure, m_hasLastRawPoint,
-        m_distanceCarryover, m_timeCarryover, m_lastTimestamp, m_lastDab, m_velocityTracker, m_stabilizer,
+        m_distanceCarryover, m_timeCarryover, m_lastTimestamp, m_lastDab, m_lastPose, m_velocityTracker, m_stabilizer, m_pressureCalibration,
         m_brushProfile, m_canvasTexture, m_activeEngine.get(), m_layerStack,
-        m_selectionMask, m_undoManager, m_compositor, m_outputBuffer,
+        m_selectionMask, m_undoManager, m_compositor, m_outputBuffer, m_strokeMix,
         m_symmetryConfig, m_telemetryManager, m_lowLatency,
         m_splineP0, m_splineP1, m_splineP2, m_splineCount
     };
@@ -103,36 +104,7 @@ void PaintEngineFacade::setEngineType(int engineTypeId) {
 }
 
 // ─── GERENCIAMENTO DE CAMADAS ─────────────────────────────────────────────
-// NOTA (Achado #4 da mesma auditoria): as 9 chamadas a m_undoManager.clear()
-// que existiam nestas operacoes eram vestigiais -- ja eram no-ops em producao
-// (TileUndoManager::clear() tem guard `if (recordingStructure()) return;` e
-// toda mutacao estrutural roda dentro de uma transacao aberta) e eram uma
-// armadilha para qualquer chamada futura fora de transacao. Nao as
-// reintroduza.
-
-int PaintEngineFacade::addLayer(const std::string& name, int insertIndex) { return orchestrator::LayerStackOrchestrator::addLayer(docContext(), name, insertIndex); }
-int PaintEngineFacade::addGroup(const std::string& name, int insertIndex) { return orchestrator::LayerStackOrchestrator::addGroup(docContext(), name, insertIndex); }
-int PaintEngineFacade::addFilterLayer(const std::string& name, int filterTypeId, int insertIndex) { return orchestrator::LayerStackOrchestrator::addFilterLayer(docContext(), name, filterTypeId, insertIndex); }
-bool PaintEngineFacade::removeLayer(int index) { return orchestrator::LayerStackOrchestrator::removeLayer(docContext(), index); }
-int PaintEngineFacade::duplicateLayer(int index) { return orchestrator::LayerStackOrchestrator::duplicateLayer(docContext(), index); }
-bool PaintEngineFacade::reorderLayer(int fromIndex, int toIndex) { return orchestrator::LayerStackOrchestrator::reorderLayer(docContext(), fromIndex, toIndex); }
-bool PaintEngineFacade::reorderLayers(const std::vector<int>& newOrder) { return orchestrator::LayerStackOrchestrator::reorderLayers(docContext(), newOrder); }
-bool PaintEngineFacade::setLayerParents(const std::vector<int>& parentIndices) { return orchestrator::LayerStackOrchestrator::setLayerParents(docContext(), parentIndices); }
-bool PaintEngineFacade::flattenGroup(int index) { return orchestrator::LayerStackOrchestrator::flattenGroup(docContext(), index); }
-bool PaintEngineFacade::mergeLayerDown(int index) { return orchestrator::LayerStackOrchestrator::mergeLayerDown(docContext(), index); }
-bool PaintEngineFacade::setGroupPassThrough(int index, bool passThrough) { return orchestrator::LayerStackOrchestrator::setGroupPassThrough(docContext(), index, passThrough); }
-void PaintEngineFacade::clearLayer(int index) { orchestrator::LayerStackOrchestrator::clearLayer(docContext(), index); }
-
-void PaintEngineFacade::setLayerOpacity(int index, double opacity) { orchestrator::LayerStackOrchestrator::setLayerOpacity(docContext(), index, opacity); }
-void PaintEngineFacade::setLayerBlendMode(int index, int blendModeId) { orchestrator::LayerStackOrchestrator::setLayerBlendMode(docContext(), index, blendModeId); }
-void PaintEngineFacade::setLayerVisibility(int index, bool visible) { orchestrator::LayerStackOrchestrator::setLayerVisibility(docContext(), index, visible); }
-void PaintEngineFacade::setLayerClippingMask(int index, bool clipped) { orchestrator::LayerStackOrchestrator::setLayerClippingMask(docContext(), index, clipped); }
-void PaintEngineFacade::setLayerLock(int index, bool locked) { orchestrator::LayerStackOrchestrator::setLayerLock(docContext(), index, locked); }
-void PaintEngineFacade::setLayerAlphaLock(int index, bool locked) { orchestrator::LayerStackOrchestrator::setLayerAlphaLock(docContext(), index, locked); }
-
-void PaintEngineFacade::setFilterParams(int index, const std::vector<float>& params) { orchestrator::LayerStackOrchestrator::setFilterParams(docContext(), index, params); }
-std::vector<float> PaintEngineFacade::getFilterParams(int index) const { return orchestrator::LayerStackOrchestrator::getFilterParams(m_layerStack, index); }
-int PaintEngineFacade::getFilterType(int index) const { return orchestrator::LayerStackOrchestrator::getFilterType(m_layerStack, index); }
+// Os métodos de camadas e máscaras de PaintEngineFacade vivem em PaintEngineFacadeLayers.cpp.
 
 void PaintEngineFacade::setBackgroundVisibility(bool visible) {
     m_layerStack.getBackgroundLayer().setVisible(visible);
@@ -236,6 +208,7 @@ bool PaintEngineFacade::floodFill(
 
 // ─── MÉTODOS DE SELEÇÃO & CONTORNOS ────────────────────────────────────────
 bool PaintEngineFacade::magicWandSelect(int seedX, int seedY, int tolerance, bool contiguous, int expandPx, bool antiAliasing, int mode, bool sampleAllLayers) {
+    if (sampleAllLayers) ensureAllFresh();  // a varinha lê as cores da composição
     return orchestrator::SelectionOrchestrator::magicWandSelect(seedX, seedY, tolerance, contiguous, expandPx, antiAliasing, mode, sampleAllLayers, m_width, m_height, m_outputBuffer, m_layerStack, m_selectionMask);
 }
 bool PaintEngineFacade::selectRect(int x, int y, int w, int h, int mode, int featherPx, int cornerRadiusPx) {
@@ -322,6 +295,22 @@ bool PaintEngineFacade::pasteRgbaBufferOnActiveLayer(int x, int y, int width, in
 }
 
 // ─── PRESETS E TEXTURAS PROCEDURAIS ────────────────────────────────────────
+
+void PaintEngineFacade::setShapePreset(int presetId) {
+    if (presetId <= 1) {
+        m_brushProfile.shapeTexture = nullptr;
+        if (presetId == 0) m_brushProfile.hardness = 0.2;
+        else if (presetId == 1) m_brushProfile.hardness = 0.95;
+    } else {
+        m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(presetId));
+    }
+}
+void PaintEngineFacade::setBrushHeightPreset(int presetId) {
+    m_brushProfile.brushHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId));
+}
+void PaintEngineFacade::setCanvasHeightPreset(int presetId) {
+    m_canvasTexture.canvasHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId));
+}
 
 void PaintEngineFacade::loadShapeTextureFromBuffer(int w, int h, const uint8_t* buf) {
     if (buf && w > 0 && h > 0) m_brushProfile.shapeTexture = std::make_shared<texture::Texture2D>(w, h, std::vector<uint8_t>(buf, buf + static_cast<size_t>(w * h)));

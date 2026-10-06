@@ -1,6 +1,6 @@
 # `engine/utils/` — tipos de valor do motor
 
-**Responsabilidade:** os tipos de dado puro que todas as camadas do motor usam — ponto, retângulo, cor RGBA8, o dab (a unidade de tinta depositada) — e funções numéricas (clamp, interpolação).
+**Responsabilidade:** os tipos de dado puro que todas as camadas do motor usam — ponto, retângulo, cor RGBA8 e RGBA16, o dab (a unidade de tinta depositada) — e funções numéricas (clamp, interpolação).
 
 ## Porta de entrada
 
@@ -13,8 +13,9 @@ Não há porta única: cada tipo tem o seu cabeçalho (`Point2D.hpp`, `Rect2D.hp
 | `Point2D.hpp` | Ponto 2D com operações vetoriais. |
 | `Rect2D.hpp` | Retângulo alinhado aos eixos. |
 | `ColorRGBA.hpp` | Cor RGBA8 (sRGB, alfa reto): o tipo de pixel do motor inteiro. |
+| `ColorRGBA16.hpp` | Cor RGBA16 (sRGB, alfa reto, canais `uint16_t`): o pixel de um documento de 16 bits por canal. A conversão com a de 8 bits mora em `canvas/PixelFormat.hpp`. |
 | `Dab.hpp` | `Dab` (posição, raio, opacidade, pressão, ângulo, cor, achatamento) e `DabBlendMode`. |
-| `MathUtils.hpp` | Funções numéricas: clamp, lerp, smoothstep. |
+| `MathUtils.hpp` | Funções numéricas: clamp, lerp, smoothstep e `roundToByte`/`unitToByte` (conversão para byte pelo valor mais próximo, usada no caminho de traço). |
 
 ## Regras
 

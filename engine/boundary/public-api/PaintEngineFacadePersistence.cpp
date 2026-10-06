@@ -39,6 +39,9 @@ void PaintEngineFacade::adoptDecodedLayer(int layerIndex, DecodedLayer& decoded)
     if (decoded.width() != m_width || decoded.height() != m_height) {
         throw std::invalid_argument("decoded layer has another canvas size");
     }
+    if (decoded.pixelFormat() != layer->getTileGrid().getFormat()) {
+        throw std::invalid_argument("decoded layer has another pixel format");
+    }
     layer->getTileGrid() = decoded.take();
     const auto ctx = docContext();
     ctx.compositeAll();
@@ -46,12 +49,9 @@ void PaintEngineFacade::adoptDecodedLayer(int layerIndex, DecodedLayer& decoded)
 }
 
 void PaintEngineFacade::endBatch() {
-    if (m_compositeHold == 0) throw std::logic_error("endBatch without beginBatch");
-    if (--m_compositeHold > 0 || !m_compositePending) return;
-    m_compositePending = false;
-    const auto ctx = docContext();
-    ctx.compositeAll();
-    ctx.touch();
+    if (m_batchDepth == 0) throw std::logic_error("endBatch without beginBatch");
+    // Nada a compor no fim: dentro do lote as operações só marcaram tiles velhos, e quem lê recompõe o que lê.
+    --m_batchDepth;
 }
 
 } // namespace aladyn::engine::boundary

@@ -7,18 +7,20 @@ namespace aladyn::engine::boundary::orchestrator {
 
 void DocumentStateOrchestrator::resizeCanvas(const EngineStateContext& ctx, int width, int height) {
     // Refuse before touching anything: a canvas outside the limit leaves the document as it was.
-    canvas::checkedCanvasDimension(width);
-    canvas::checkedCanvasDimension(height);
+    const canvas::PixelFormat format = ctx.doc.layerStack.getPixelFormat();
+    canvas::checkedCanvasDimension(width, format);
+    canvas::checkedCanvasDimension(height, format);
     ctx.width = width;
     ctx.height = height;
     ctx.doc.layerStack.resize(width, height);
     // Snapshots antigos tem dimensoes incompativeis com a nova grade.
     ctx.undoManager.clear();
-    ctx.doc.compositor = document::Compositor(width, height);
+    ctx.doc.compositor = document::Compositor(width, height, format);
     ctx.doc.compositor.setLinearGamma(ctx.doc.linearGamma);
     ctx.doc.compositor.setDeepColor(ctx.doc.deepColor);
     ctx.doc.outputBuffer.resize(width, height, ctx.doc.bgColor);
-    ctx.displayBuffer.resize(width, height, ctx.doc.bgColor);
+    // Só quem já tem buffer de exibição (perfil de cor ativo) o redimensiona; no sRGB ele segue vazio.
+    if (ctx.displayBuffer.getWidth() > 0) ctx.displayBuffer.resize(width, height, ctx.doc.bgColor);
     ctx.selectionMask.resize(width, height);
     ctx.doc.compositeAll();
     ctx.doc.touch();
@@ -37,8 +39,8 @@ void DocumentStateOrchestrator::syncHistoryGeometry(const EngineStateContext& ct
     const int width = ctx.doc.layerStack.getWidth(), height = ctx.doc.layerStack.getHeight();
     if (width == ctx.width && height == ctx.height) return;
     canvas::PixelBuffer output(width, height, ctx.doc.bgColor);
-    canvas::PixelBuffer display(width, height, ctx.doc.bgColor);
-    document::Compositor compositor(width, height);
+    canvas::PixelBuffer display = ctx.displayBuffer.getWidth() > 0 ? canvas::PixelBuffer(width, height, ctx.doc.bgColor) : canvas::PixelBuffer(0, 0);
+    document::Compositor compositor(width, height, ctx.doc.layerStack.getPixelFormat());
     compositor.setLinearGamma(ctx.doc.linearGamma);
     compositor.setDeepColor(ctx.doc.deepColor);
     ctx.doc.outputBuffer = std::move(output);

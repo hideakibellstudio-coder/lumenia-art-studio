@@ -20,10 +20,13 @@ public:
 
     [[nodiscard]] int width() const noexcept { return m_grid.getWidth(); }
     [[nodiscard]] int height() const noexcept { return m_grid.getHeight(); }
+    [[nodiscard]] canvas::PixelFormat pixelFormat() const noexcept { return m_grid.getFormat(); }
     // Entrega os pixels, uma vez só: depois disto o objeto está vazio (std::logic_error se repetir).
     [[nodiscard]] canvas::TileGrid take();
 
 private:
+    DecodedLayer(int width, int height, const uint8_t* data, size_t size, canvas::PixelFormat format);
+
     canvas::TileGrid m_grid;
     bool m_taken{false};
 };

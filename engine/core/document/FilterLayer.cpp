@@ -2,8 +2,8 @@
 
 namespace aladyn::engine::document {
 
-FilterLayer::FilterLayer(const std::string& name, FilterType type, int width, int height)
-    : Layer(name, LayerNodeType::FilterLayer, width, height), m_filterType(type), m_params(8, 0.0f) {
+FilterLayer::FilterLayer(const std::string& name, FilterType type, int width, int height, canvas::PixelFormat format)
+    : Layer(name, LayerNodeType::FilterLayer, width, height, false, format), m_filterType(type), m_params(8, 0.0f) {
     
     // Define valores padrão de inicialização baseados no tipo do filtro
     switch (type) {

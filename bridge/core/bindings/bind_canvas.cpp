@@ -8,7 +8,12 @@ using namespace aladyn::engine;
 void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
     facade
         .def("resize_canvas", &boundary::PaintEngineFacade::resizeCanvas)
-        .def_static("max_canvas_dimension", &boundary::PaintEngineFacade::maxCanvasDimension)
+        .def_static("max_canvas_dimension", [](int pixelFormat) {
+            return canvas::maxCanvasDimension(static_cast<canvas::PixelFormat>(checkedPixelFormatId(pixelFormat)));
+        }, py::arg("pixel_format") = 0)
+        .def("get_pixel_format", [](boundary::PaintEngineFacade& self) {
+            return static_cast<int>(self.getLayerStack().getPixelFormat());
+        })
         .def("clear_canvas",  &boundary::PaintEngineFacade::clearCanvas)
         .def("get_width",     &boundary::PaintEngineFacade::getWidth)
         .def("get_height",    &boundary::PaintEngineFacade::getHeight)
@@ -51,9 +56,11 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
         .def("get_pixel_buffer", [](boundary::PaintEngineFacade& self) {
             return pixelSnapshot(self.getRawPixelData(), self.getPixelDataSize());
         })
-        .def("refresh_display", [](boundary::PaintEngineFacade& self) {
-            // Refresh composition without allocating a discarded Python snapshot.
-            [[maybe_unused]] const auto* display = self.getDisplayRawPixelData();
+        .def("refresh_display", [](boundary::PaintEngineFacade&) {
+            // Nada a fazer: o motor só compõe o que alguém lê (get_display_region, a pirâmide, get_pixel_buffer),
+            // e cada leitor recompõe os tiles velhos da área que lê. A tela chama isto a cada evento de câmera;
+            // até 2026-10-03 isto resolvia o buffer de exibição inteiro (100 a 175 ms em 4096² com perfil de cor
+            // que não é sRGB) para a tela depois pedir só a janela.
         })
         .def("get_display_pixel_buffer", [](boundary::PaintEngineFacade& self) {
             return pixelSnapshot(self.getDisplayRawPixelData(), self.getDisplayPixelDataSize());
@@ -75,6 +82,25 @@ void bind_canvas(py::module_& /*m*/, FacadeClass& facade) {
             self.getLodSize(level, w, h);
             return py::make_tuple(w, h);
         }, py::arg("level"))
+        .def("get_composite_pixel_buffer16", [](boundary::PaintEngineFacade& self) {
+            // The whole composite of a 16-bit document, 8 bytes a pixel (RuntimeError in an 8-bit one).
+            const int w = self.getWidth(), h = self.getHeight();
+            return filledBytes(checkedRasterBytes(w, h, 8), [&](uint8_t* dst, size_t size) {
+                self.copyComposite16(0, 0, w, h, dst, size);
+            });
+        })
+        .def("get_composite_region16", [](boundary::PaintEngineFacade& self, int x, int y, int w, int h) {
+            return filledBytes(checkedRasterBytes(w, h, 8), [&](uint8_t* dst, size_t size) {
+                self.copyComposite16(x, y, w, h, dst, size);
+            });
+        }, py::arg("x"), py::arg("y"), py::arg("width"), py::arg("height"))
+        .def("get_layer_pixel_buffer16", [](boundary::PaintEngineFacade& self, int layerIdx) {
+            // One layer at the size of the canvas, 8 bytes a pixel; ValueError for a layer that holds no 16-bit pixels.
+            const int w = self.getWidth(), h = self.getHeight();
+            return filledBytes(checkedRasterBytes(w, h, 8), [&](uint8_t* dst, size_t size) {
+                self.copyLayer16(layerIdx, dst, size);
+            });
+        }, py::arg("layer_index"))
         .def("get_layer_pixel_buffer", [](boundary::PaintEngineFacade& self, int layerIdx) -> py::object {
             auto data = self.getLayerPixelBuffer(layerIdx);
             if (data.empty()) return py::none();

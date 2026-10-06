@@ -2,6 +2,7 @@
 #define ALADYN_ENGINE_MARKER_ENGINE_HPP
 
 #include "IBrushEngine.hpp"
+#include "../raster/StrokeInkLedger.hpp"
 
 namespace aladyn::engine::document { class Layer; }
 
@@ -35,6 +36,17 @@ public:
     [[nodiscard]] brush::EngineType getType() const noexcept override {
         return brush::EngineType::Marker;
     }
+
+    [[nodiscard]] double reachScale(const brush::BrushProfile& profile) const noexcept override;
+
+    // A memória do traço (base de cada pixel e cobertura) vale por um traço só.
+    void onActivate(const brush::BrushProfile& /*profile*/) noexcept override { m_ledger.clear(); m_ledger16.clear(); }
+    void onBeginStroke() noexcept override { m_ledger.clear(); m_ledger16.clear(); }
+    void onEndStroke() noexcept override { m_ledger.clear(); m_ledger16.clear(); }
+
+private:
+    raster::StrokeInkLedger<utils::ColorRGBA> m_ledger;
+    raster::StrokeInkLedger<utils::ColorRGBA16> m_ledger16;
 };
 
 } // namespace aladyn::engine::engines

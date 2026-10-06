@@ -31,13 +31,19 @@ uint32_t getU32(const uint8_t* p) {
 }
 
 // Um tile sem nenhum pixel visível não é dado: os pixels de alfa 0 não carregam cor.
+template <class Pixel>
 bool hasVisiblePixel(const PixelBuffer& buffer) noexcept {
-    const uint8_t* data = buffer.getData();
-    const size_t size = buffer.getSizeInBytes();
-    for (size_t i = 3; i < size; i += 4) {
-        if (data[i] != 0) return true;
+    const Pixel* pixels = buffer.pixels<Pixel>();
+    const size_t count = buffer.getSizeInBytes() / sizeof(Pixel);
+    for (size_t i = 0; i < count; ++i) {
+        if (pixels[i].a != 0) return true;
     }
     return false;
+}
+
+bool hasVisiblePixel(const PixelBuffer& buffer) noexcept {
+    return buffer.getFormat() == PixelFormat::RGBA16 ? hasVisiblePixel<utils::ColorRGBA16>(buffer)
+                                                     : hasVisiblePixel<utils::ColorRGBA>(buffer);
 }
 
 struct EntryView {
@@ -57,29 +63,34 @@ std::vector<uint8_t> encode(const TileGrid& grid) {
     std::vector<Source> sources;
     sources.reserve(grid.getActiveTilesCount());
     grid.forEachTile([&](const TileIndex& index, const Tile& tile) {
-        if (hasVisiblePixel(tile.getBuffer())) sources.push_back({index.x, index.y, &tile});
+        if (index.x >= 0 && index.x < grid.getTilesCountX() &&
+            index.y >= 0 && index.y < grid.getTilesCountY() &&
+            hasVisiblePixel(tile.getBuffer())) {
+            sources.push_back({index.x, index.y, &tile});
+        }
     });
     std::sort(sources.begin(), sources.end(), [](const Source& a, const Source& b) {
         return a.ty != b.ty ? a.ty < b.ty : a.tx < b.tx;
     });
 
+    const size_t tileBytes = Tile::bytesFor(grid.getFormat());
     std::vector<uint8_t> out;
-    out.reserve(kHeaderBytes + sources.size() * (kEntryHeaderBytes + Tile::TILE_BYTES / 2));
+    out.reserve(kHeaderBytes + sources.size() * (kEntryHeaderBytes + tileBytes / 2));
     out.insert(out.end(), kMagic, kMagic + 4);
     putU16(out, kFormat);
     putU16(out, static_cast<uint16_t>(Tile::TILE_SIZE));
     putU32(out, static_cast<uint32_t>(grid.getWidth()));
     putU32(out, static_cast<uint32_t>(grid.getHeight()));
     putU32(out, static_cast<uint32_t>(sources.size()));
-    putU32(out, 0);
+    putU32(out, static_cast<uint32_t>(grid.getFormat()));
 
-    std::vector<uint8_t> packed(compression::Lz4Codec::maxCompressedSize(Tile::TILE_BYTES));
+    std::vector<uint8_t> packed(compression::Lz4Codec::maxCompressedSize(tileBytes));
     for (const Source& source : sources) {
         const PixelBuffer& buffer = source.tile->getBuffer();
-        size_t stored = compression::Lz4Codec::compressBlock(buffer.getData(), Tile::TILE_BYTES, packed.data(), packed.size());
-        const bool useLz4 = stored != 0 && stored < Tile::TILE_BYTES;
+        size_t stored = compression::Lz4Codec::compressBlock(buffer.getData(), tileBytes, packed.data(), packed.size());
+        const bool useLz4 = stored != 0 && stored < tileBytes;
         const uint8_t* payload = useLz4 ? packed.data() : buffer.getData();
-        if (!useLz4) stored = Tile::TILE_BYTES;
+        if (!useLz4) stored = tileBytes;
 
         putU16(out, static_cast<uint16_t>(source.tx));
         putU16(out, static_cast<uint16_t>(source.ty));
@@ -91,17 +102,24 @@ std::vector<uint8_t> encode(const TileGrid& grid) {
     return out;
 }
 
-void decode(const uint8_t* data, size_t size, TileGrid& grid) {
+PixelFormat peekFormat(const uint8_t* data, size_t size) {
     if (!data || size < kHeaderBytes) bad("shorter than its header");
     if (std::memcmp(data, kMagic, 4) != 0) bad("not a layer tile block");
     if (getU16(data + 4) != kFormat) bad("unknown format version");
+    const uint32_t id = getU32(data + 20);
+    if (!isPixelFormatId(id)) bad("unknown pixel format");
+    return static_cast<PixelFormat>(id);
+}
+
+void decode(const uint8_t* data, size_t size, TileGrid& grid) {
+    const PixelFormat format = peekFormat(data, size);
     if (getU16(data + 6) != Tile::TILE_SIZE) bad("tile size does not match this engine");
     const uint32_t width = getU32(data + 8);
     const uint32_t height = getU32(data + 12);
     const uint32_t count = getU32(data + 16);
-    if (getU32(data + 20) != 0) bad("reserved field is not zero");
-    if (width < 1 || height < 1 || width > static_cast<uint32_t>(kMaxCanvasDimension) ||
-        height > static_cast<uint32_t>(kMaxCanvasDimension)) {
+    if (format != grid.getFormat()) bad("pixel format differs from the layer it is restored into");
+    if (width < 1 || height < 1 || width > static_cast<uint32_t>(maxCanvasDimension(format)) ||
+        height > static_cast<uint32_t>(maxCanvasDimension(format))) {
         bad("canvas size out of range");
     }
     if (static_cast<int>(width) != grid.getWidth() || static_cast<int>(height) != grid.getHeight()) {
@@ -111,6 +129,7 @@ void decode(const uint8_t* data, size_t size, TileGrid& grid) {
     if (count > capacity) bad("more tiles than the canvas holds");
 
     // First pass: the structure, without touching the grid or decoding anything.
+    const size_t tileBytes = Tile::bytesFor(format);
     std::vector<EntryView> entries;
     entries.reserve(count);
     size_t offset = kHeaderBytes;
@@ -130,9 +149,9 @@ void decode(const uint8_t* data, size_t size, TileGrid& grid) {
         if (key <= previous) bad("tiles out of order or repeated");
         previous = key;
         if (entry.codec == kCodecRaw) {
-            if (entry.size != Tile::TILE_BYTES) bad("raw tile has the wrong size");
+            if (entry.size != tileBytes) bad("raw tile has the wrong size");
         } else if (entry.codec == kCodecLz4) {
-            if (entry.size == 0 || entry.size > compression::Lz4Codec::maxCompressedSize(Tile::TILE_BYTES)) {
+            if (entry.size == 0 || entry.size > compression::Lz4Codec::maxCompressedSize(tileBytes)) {
                 bad("compressed tile has an impossible size");
             }
         } else {
@@ -154,19 +173,19 @@ void decode(const uint8_t* data, size_t size, TileGrid& grid) {
     #pragma omp parallel for schedule(static) if(total >= 16)
     for (int i = 0; i < total; ++i) {
         const EntryView& entry = entries[static_cast<size_t>(i)];
-        auto buffer = std::make_shared<PixelBuffer>(Tile::TILE_SIZE, Tile::TILE_SIZE, utils::ColorRGBA{0, 0, 0, 0});
+        auto buffer = std::make_shared<PixelBuffer>(Tile::TILE_SIZE, Tile::TILE_SIZE, format, utils::ColorRGBA{0, 0, 0, 0});
         bool ok = true;
         if (entry.codec == kCodecRaw) {
-            std::memcpy(buffer->getData(), entry.data, Tile::TILE_BYTES);
+            std::memcpy(buffer->getData(), entry.data, tileBytes);
         } else {
-            ok = compression::Lz4Codec::decompressBlock(entry.data, entry.size, buffer->getData(), Tile::TILE_BYTES);
+            ok = compression::Lz4Codec::decompressBlock(entry.data, entry.size, buffer->getData(), tileBytes);
         }
         buffers[static_cast<size_t>(i)] = std::move(buffer);
         decodedOk[static_cast<size_t>(i)] = ok ? 1 : 0;
     }
     if (std::find(decodedOk.begin(), decodedOk.end(), 0) != decodedOk.end()) bad("compressed tile is corrupt");
 
-    TileGrid decoded(grid.getWidth(), grid.getHeight());
+    TileGrid decoded(grid.getWidth(), grid.getHeight(), format);
     for (size_t i = 0; i < entries.size(); ++i) {
         if (!decoded.adoptTile(entries[i].tx, entries[i].ty, std::move(buffers[i]))) bad("tile could not be created");
     }

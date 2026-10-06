@@ -1,4 +1,5 @@
 #include "TransformOrchestrator.hpp"
+#include "PixelFormatGuard.hpp"
 
 namespace aladyn::engine::boundary::orchestrator {
 

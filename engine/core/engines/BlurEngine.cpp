@@ -1,7 +1,10 @@
 #include "BlurEngine.hpp"
+#include "../canvas/PixelFormat.hpp"
 #include "../raster/DabFootprint.hpp"
 #include "../raster/LargeBrushOptimizer.hpp"
 #include "../raster/PixelPermission.hpp"
+#include "../../utils/ColorRGBA16.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -11,7 +14,8 @@ namespace aladyn::engine::engines {
 namespace {
 
 // Amostra segura na TileGrid da camada ativa
-utils::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
+template <class Pixel>
+Pixel getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
     if (globalX < 0 || globalX >= tileGrid.getWidth() || globalY < 0 || globalY >= tileGrid.getHeight()) {
         return {0, 0, 0, 0};
     }
@@ -21,7 +25,12 @@ utils::ColorRGBA getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int
     const int lpy = globalY % canvas::Tile::TILE_SIZE;
 
     const canvas::Tile* t = const_cast<canvas::TileGrid&>(tileGrid).getTile(tx, ty);
-    return t ? t->getBuffer().getPixel(lpx, lpy) : utils::ColorRGBA{0, 0, 0, 0};
+    if (!t) return {0, 0, 0, 0};
+    if constexpr (std::is_same_v<Pixel, utils::ColorRGBA16>) {
+        return t->getBuffer().getPixel16(lpx, lpy);
+    } else {
+        return t->getBuffer().getPixel(lpx, lpy);
+    }
 }
 
 struct Region {
@@ -41,6 +50,7 @@ struct HorizontalSum {
 // O desfoque gaussiano de uma região: uma cópia contígua da área da camada (com a borda do kernel),
 // o passe horizontal já feito e `blurredAt`, que faz o vertical de um pixel. Lê só da cópia: o resultado
 // de um pixel não depende de os vizinhos já terem sido pintados.
+template <class Pixel = utils::ColorRGBA>
 class BlurredRegion {
 public:
     BlurredRegion(const canvas::TileGrid& grid, const Region& roi, int kernelRadius, double sigma)
@@ -59,7 +69,7 @@ public:
     [[nodiscard]] bool empty() const { return m_snap.empty(); }
 
     // O pixel original, na cópia.
-    [[nodiscard]] utils::ColorRGBA originalAt(int globalX, int globalY) const {
+    [[nodiscard]] Pixel originalAt(int globalX, int globalY) const {
         return m_source[static_cast<size_t>((globalY - m_snap.minY) * m_width + (globalX - m_snap.minX))];
     }
 
@@ -92,7 +102,7 @@ private:
         m_source.resize(static_cast<size_t>(m_width * m_height));
         for (int sy = 0; sy < m_height; ++sy) {
             for (int sx = 0; sx < m_width; ++sx) {
-                m_source[static_cast<size_t>(sy * m_width + sx)] = getTilePixel(grid, m_snap.minX + sx, m_snap.minY + sy);
+                m_source[static_cast<size_t>(sy * m_width + sx)] = getTilePixel<Pixel>(grid, m_snap.minX + sx, m_snap.minY + sy);
             }
         }
     }
@@ -120,9 +130,10 @@ private:
         for (int k = -m_kernelRadius; k <= m_kernelRadius; ++k) {
             const int kx = std::clamp(sx + k, 0, m_width - 1);
             const float w = m_weights[static_cast<size_t>(k + m_kernelRadius)];
-            const utils::ColorRGBA px = m_source[static_cast<size_t>(sy * m_width + kx)];
+            const Pixel px = m_source[static_cast<size_t>(sy * m_width + kx)];
 
-            const float alpha = static_cast<float>(px.a) / 255.0f;
+            constexpr float kMaxA = static_cast<float>(canvas::PixelTraits<Pixel>::kMax);
+            const float alpha = static_cast<float>(px.a) / kMaxA;
             if (px.a > 0) {
                 sum.r += static_cast<float>(px.r) * alpha * w;
                 sum.g += static_cast<float>(px.g) * alpha * w;
@@ -139,14 +150,14 @@ private:
     Region m_snap;
     int m_width{0};
     int m_height{0};
-    std::vector<utils::ColorRGBA> m_source;
+    std::vector<Pixel> m_source;
     std::vector<float> m_weights;
     std::vector<HorizontalSum> m_rows;
 };
 
 // Mistura o pixel original com o desfocado na proporção `mix`; com Alpha Lock o alfa fica.
 utils::ColorRGBA mixTowardBlur(
-    utils::ColorRGBA original, const BlurredRegion::Blurred& blurred, double mix, bool alphaLocked
+    utils::ColorRGBA original, const BlurredRegion<utils::ColorRGBA>::Blurred& blurred, double mix, bool alphaLocked
 ) {
     float targetR = static_cast<float>(original.r);
     float targetG = static_cast<float>(original.g);
@@ -165,9 +176,34 @@ utils::ColorRGBA mixTowardBlur(
                                                               : static_cast<double>(original.a);
         outA = static_cast<double>(original.a) * (1.0 - mix) + smoothedA * mix;
     }
-    const auto byte = [](double v) { return static_cast<uint8_t>(std::clamp(v, 0.0, 255.0)); };
+    const auto byte = [](double v) { return utils::MathUtils::roundToByte(v); };
     return utils::ColorRGBA{byte(toward(original.r, targetR)), byte(toward(original.g, targetG)),
                             byte(toward(original.b, targetB)), byte(outA)};
+}
+
+utils::ColorRGBA16 mixTowardBlur16(
+    utils::ColorRGBA16 original, const BlurredRegion<utils::ColorRGBA16>::Blurred& blurred, double mix, bool alphaLocked
+) {
+    float targetR = static_cast<float>(original.r);
+    float targetG = static_cast<float>(original.g);
+    float targetB = static_cast<float>(original.b);
+    if (blurred.alphaWeight > 0.0f) {
+        targetR = blurred.r / blurred.alphaWeight;
+        targetG = blurred.g / blurred.alphaWeight;
+        targetB = blurred.b / blurred.alphaWeight;
+    }
+    const auto toward = [mix](uint16_t from, float to) {
+        return static_cast<double>(from) * (1.0 - mix) + static_cast<double>(to) * mix;
+    };
+    double outA = static_cast<double>(original.a);
+    if (!alphaLocked) {
+        const double smoothedA = (blurred.totalWeight > 0.0f) ? static_cast<double>(blurred.a / blurred.totalWeight)
+                                                              : static_cast<double>(original.a);
+        outA = static_cast<double>(original.a) * (1.0 - mix) + smoothedA * mix;
+    }
+    const auto word = [](double v) { return static_cast<uint16_t>(std::clamp(std::lround(v), 0L, 65535L)); };
+    return utils::ColorRGBA16{word(toward(original.r, targetR)), word(toward(original.g, targetG)),
+                              word(toward(original.b, targetB)), word(outA)};
 }
 
 } // namespace
@@ -201,9 +237,6 @@ void BlurEngine::renderDab(
         std::min(tileGrid.getHeight() - 1, static_cast<int>(std::ceil(dab.position.y + maxR)))};
     if (roi.empty()) return;
 
-    const BlurredRegion region(tileGrid, roi, kernelRadius, sigma);
-    if (region.empty()) return;
-
     // O desfoque ignora a rotação e o achatamento da ponta: o dab é sempre um círculo.
     utils::Dab disc = dab;
     disc.angle = 0.0;
@@ -213,26 +246,46 @@ void BlurEngine::renderDab(
     const double hardSpan = std::clamp(profile.hardness, 0.0, 0.99) * r;
     const double spanInv  = 1.0 / std::max(0.001, r - hardSpan);
     const raster::PixelPermission permission(ctx);
-    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
-        if (!roi.contains(pixel.gx, pixel.gy)) return false;  // fora da cópia e do canvas
 
-        // Falloff smoothstep
-        const double dist = std::sqrt(pixel.distSq);
-        const double shape = dist > hardSpan ? raster::LargeBrushOptimizer::smoothHermite((r - dist) * spanInv) : 1.0;
-        double mix = dab.opacity * shape * strength;
-        if (shape <= 0.0 || mix <= 0.0) return false;
+    if (tileGrid.getFormat() == canvas::PixelFormat::RGBA16) {
+        const BlurredRegion<utils::ColorRGBA16> region(tileGrid, roi, kernelRadius, sigma);
+        if (region.empty()) return;
+        footprint.forEachPixel<utils::ColorRGBA16>(6, [&](utils::ColorRGBA16& dst, const raster::DabPixel& pixel) {
+            if (!roi.contains(pixel.gx, pixel.gy)) return false;
+            const double dist = std::sqrt(pixel.distSq);
+            const double shape = dist > hardSpan ? raster::LargeBrushOptimizer::smoothHermite((r - dist) * spanInv) : 1.0;
+            double mix = dab.opacity * shape * strength;
+            if (shape <= 0.0 || mix <= 0.0) return false;
 
-        // Pixel fora da cópia (borda do canvas) não existe; um pixel vazio sem tinta em volta não muda
-        const utils::ColorRGBA original = region.originalAt(pixel.gx, pixel.gy);
-        const BlurredRegion::Blurred blurred = region.blurredAt(pixel.gx, pixel.gy);
-        if (original.a == 0 && blurred.alphaWeight <= 0.0f) return false;
-        if (ctx.alphaLocked && original.a == 0) return false;
+            const utils::ColorRGBA16 original = region.originalAt(pixel.gx, pixel.gy);
+            const auto blurred = region.blurredAt(pixel.gx, pixel.gy);
+            if (original.a == 0 && blurred.alphaWeight <= 0.0f) return false;
+            if (ctx.alphaLocked && original.a == 0) return false;
 
-        if (!permission.apply(pixel.gx, pixel.gy, mix) || mix <= 0.0) return false;
+            if (!permission.apply(pixel.gx, pixel.gy, mix) || mix <= 0.0) return false;
+            dst = mixTowardBlur16(original, blurred, mix, ctx.alphaLocked);
+            return true;
+        });
+    } else {
+        const BlurredRegion<utils::ColorRGBA> region(tileGrid, roi, kernelRadius, sigma);
+        if (region.empty()) return;
+        footprint.forEachPixel<utils::ColorRGBA>(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+            if (!roi.contains(pixel.gx, pixel.gy)) return false;
+            const double dist = std::sqrt(pixel.distSq);
+            const double shape = dist > hardSpan ? raster::LargeBrushOptimizer::smoothHermite((r - dist) * spanInv) : 1.0;
+            double mix = dab.opacity * shape * strength;
+            if (shape <= 0.0 || mix <= 0.0) return false;
 
-        dst = mixTowardBlur(original, blurred, mix, ctx.alphaLocked);
-        return true;
-    });
+            const utils::ColorRGBA original = region.originalAt(pixel.gx, pixel.gy);
+            const auto blurred = region.blurredAt(pixel.gx, pixel.gy);
+            if (original.a == 0 && blurred.alphaWeight <= 0.0f) return false;
+            if (ctx.alphaLocked && original.a == 0) return false;
+
+            if (!permission.apply(pixel.gx, pixel.gy, mix) || mix <= 0.0) return false;
+            dst = mixTowardBlur(original, blurred, mix, ctx.alphaLocked);
+            return true;
+        });
+    }
 }
 
 } // namespace aladyn::engine::engines

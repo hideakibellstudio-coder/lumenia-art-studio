@@ -39,6 +39,13 @@ void bind_layers(py::module_& /*m*/, FacadeClass& facade) {
         .def("is_layer_alpha_locked",   &boundary::PaintEngineFacade::isLayerAlphaLocked)
         .def("set_layer_clipping_mask", &boundary::PaintEngineFacade::setLayerClippingMask)
         .def("is_layer_clipping_mask",  &boundary::PaintEngineFacade::isLayerClippingMask)
+        .def("add_layer_mask",            &boundary::PaintEngineFacade::addLayerMask)
+        .def("remove_layer_mask",         &boundary::PaintEngineFacade::removeLayerMask)
+        .def("has_layer_mask",            &boundary::PaintEngineFacade::hasLayerMask)
+        .def("set_layer_mask_enabled",    &boundary::PaintEngineFacade::setLayerMaskEnabled)
+        .def("is_layer_mask_enabled",     &boundary::PaintEngineFacade::isLayerMaskEnabled)
+        .def("set_layer_mask_edit_target",&boundary::PaintEngineFacade::setLayerMaskEditTarget)
+        .def("is_layer_mask_edit_target", &boundary::PaintEngineFacade::isLayerMaskEditTarget)
         .def("flatten_group",           &boundary::PaintEngineFacade::flattenGroup)
         .def("merge_layer_down",        &boundary::PaintEngineFacade::mergeLayerDown)
         .def("clear_layer",             &boundary::PaintEngineFacade::clearLayer)
@@ -57,6 +64,9 @@ void bind_layers(py::module_& /*m*/, FacadeClass& facade) {
                 d["locked"] = l->isLocked();
                 d["alpha_locked"] = l->isAlphaLocked();
                 d["clipping_mask"] = l->isClippingMask();
+                d["has_mask"] = l->hasMask();
+                d["mask_enabled"] = l->isMaskEnabled();
+                d["mask_edit_target"] = l->isMaskEditTarget();
                 d["blend_mode"] = static_cast<int>(l->getBlendMode());
                 d["is_group"] = l->isGroup();
                 d["is_filter"] = l->isFilter();

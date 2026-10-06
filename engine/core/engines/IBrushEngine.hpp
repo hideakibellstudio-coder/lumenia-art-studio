@@ -51,6 +51,11 @@ public:
     // Hook opcional chamado ao terminar um traço.
     virtual void onEndStroke() noexcept {}
 
+    // Quantas vezes o raio do dab o motor realmente alcança (a mancha úmida da aquarela passa de 1). O
+    // orquestrador usa isto para a área suja: desfazer, mistura de opacidade e recomposição precisam cobrir
+    // todo pixel que o motor toca, não só o círculo do dab.
+    [[nodiscard]] virtual double reachScale(const brush::BrushProfile& /*profile*/) const noexcept { return 1.0; }
+
     // Retorna true se este motor deve renderizar dabs no scratch layer temporário
     // (ao invés de direto na camada ativa). Blur e Smudge retornam false porque
     // precisam ler e escrever diretamente na camada.

@@ -35,6 +35,12 @@ inline pybind11::bytes filledBytes(size_t size, Fill&& fill) {
     return out;
 }
 
+// The pixel format a Python integer names (0 = 8 bits per channel, 1 = 16); anything else is a ValueError.
+inline uint8_t checkedPixelFormatId(int id) {
+    if (id < 0 || id > 1) throw pybind11::value_error("Unknown pixel format id (0 = RGBA8, 1 = RGBA16)");
+    return static_cast<uint8_t>(id);
+}
+
 // Python owns the immutable copy; no facade pointer can escape through a view.
 inline pybind11::bytes pixelSnapshot(const uint8_t* data, size_t size) {
     if (size == 0) return pybind11::bytes();

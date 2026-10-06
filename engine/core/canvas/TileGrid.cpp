@@ -5,8 +5,8 @@
 
 namespace aladyn::engine::canvas {
 
-TileGrid::TileGrid(int width, int height)
-    : m_width(width), m_height(height) {
+TileGrid::TileGrid(int width, int height, PixelFormat format)
+    : m_width(width), m_height(height), m_format(format) {
     m_tilesX = static_cast<int>(std::ceil(static_cast<double>(width) / Tile::TILE_SIZE));
     m_tilesY = static_cast<int>(std::ceil(static_cast<double>(height) / Tile::TILE_SIZE));
 }
@@ -20,8 +20,21 @@ Tile* TileGrid::getTile(int tileX, int tileY) {
     return nullptr;
 }
 
+namespace {
+constexpr int kMaxTileCoord = 32767;
+
+inline int divFloor(int a, int b) noexcept {
+    int res = a / b;
+    int rem = a % b;
+    if (rem != 0 && ((a < 0) ^ (b < 0))) {
+        --res;
+    }
+    return res;
+}
+} // namespace
+
 Tile* TileGrid::getOrCreateTile(int tileX, int tileY) {
-    if (tileX < 0 || tileX >= m_tilesX || tileY < 0 || tileY >= m_tilesY) {
+    if (tileX < -kMaxTileCoord || tileX > kMaxTileCoord || tileY < -kMaxTileCoord || tileY > kMaxTileCoord) {
         return nullptr;
     }
     const TileIndex idx{tileX, tileY};
@@ -29,14 +42,15 @@ Tile* TileGrid::getOrCreateTile(int tileX, int tileY) {
     if (it != m_tiles.end()) {
         return it->second.get();
     }
-    auto tile = std::make_unique<Tile>(tileX, tileY);
+    auto tile = std::make_unique<Tile>(tileX, tileY, m_format);
     Tile* ptr = tile.get();
     m_tiles[idx] = std::move(tile);
     return ptr;
 }
 
 Tile* TileGrid::adoptTile(int tileX, int tileY, std::shared_ptr<PixelBuffer> buffer) {
-    if (tileX < 0 || tileX >= m_tilesX || tileY < 0 || tileY >= m_tilesY) return nullptr;
+    if (tileX < -kMaxTileCoord || tileX > kMaxTileCoord || tileY < -kMaxTileCoord || tileY > kMaxTileCoord) return nullptr;
+    if (!buffer || buffer->getFormat() != m_format) return nullptr;
     auto tile = std::make_unique<Tile>(tileX, tileY, std::move(buffer));
     Tile* ptr = tile.get();
     m_tiles[TileIndex{tileX, tileY}] = std::move(tile);
@@ -50,6 +64,25 @@ void TileGrid::clearAll(utils::ColorRGBA color) {
     }
 }
 
+namespace {
+
+constexpr int kTile = Tile::TILE_SIZE;
+
+// O bloco [x0, x1) x [y0, y1) do tile `data` (de `pixelBytes` bytes por pixel) é só transparente-preto (todos os
+// canais em 0)? Um pixel de alfa 0 que ainda tem cor NÃO é: é o que a borracha deixa, e a redimensão o preserva.
+bool blockIsAllZero(const uint8_t* data, size_t pixelBytes, int x0, int x1, int y0, int y1) noexcept {
+    const uint8_t* zeros = zeroTileData();
+    const size_t rowBytes = static_cast<size_t>(x1 - x0) * pixelBytes;
+    for (int y = y0; y < y1; ++y) {
+        if (std::memcmp(data + (static_cast<size_t>(y) * kTile + static_cast<size_t>(x0)) * pixelBytes, zeros, rowBytes) != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
 void TileGrid::resizePreserve(int width, int height, int offsetX, int offsetY) {
     width = std::max(1, width);
     height = std::max(1, height);
@@ -58,7 +91,7 @@ void TileGrid::resizePreserve(int width, int height, int offsetX, int offsetY) {
     }
 
     // Move a grade antiga para preservar todos os tiles sem perder metadados da
-    // camada. A operação ocorre fora do caminho de pintura e pode ser mais lenta.
+    // camada. A operação ocorre fora do caminho de pintura.
     TileGrid old = std::move(*this);
     m_width = width;
     m_height = height;
@@ -66,36 +99,41 @@ void TileGrid::resizePreserve(int width, int height, int offsetX, int offsetY) {
     m_tilesY = static_cast<int>(std::ceil(static_cast<double>(height) / Tile::TILE_SIZE));
     m_tiles.clear();
 
-    for (const auto& [idx, sourceTile] : old.m_tiles) {
+    if (offsetX == 0 && offsetY == 0) {
+        m_tiles = std::move(old.m_tiles);
+        for (auto& [idx, sourceTile] : m_tiles) {
+            if (sourceTile) sourceTile->setDirty(true);
+        }
+        return;
+    }
+
+    const size_t pixelBytes = bytesPerPixel(m_format);
+    PixelBuffer scratch(kTile, kTile, m_format, utils::ColorRGBA{0, 0, 0, 0});
+    for (auto& [idx, sourceTile] : old.m_tiles) {
         if (!sourceTile) continue;
-        const PixelBuffer& src = sourceTile->getBuffer();
         const int srcBaseX = sourceTile->getPixelX() + offsetX;
         const int srcBaseY = sourceTile->getPixelY() + offsetY;
 
-        const int minX = std::max(0, srcBaseX);
-        const int minY = std::max(0, srcBaseY);
-        const int maxX = std::min(width, srcBaseX + Tile::TILE_SIZE);
-        const int maxY = std::min(height, srcBaseY + Tile::TILE_SIZE);
-        if (minX >= maxX || minY >= maxY) continue;
+        const int minX = srcBaseX;
+        const int minY = srcBaseY;
+        const int maxX = srcBaseX + kTile;
+        const int maxY = srcBaseY + kTile;
 
-        const auto* srcData = reinterpret_cast<const uint8_t*>(src.getData());
-        for (int y = minY; y < maxY; ++y) {
-            const int localY = y - srcBaseY;
-            for (int x = minX; x < maxX; ++x) {
-                const int localX = x - srcBaseX;
-                const size_t srcOffset = static_cast<size_t>(localY * Tile::TILE_SIZE + localX) * 4u;
-                // Não aloca tiles para pixels transparentes durante expansão.
-                if (srcData[srcOffset + 3] == 0 && srcData[srcOffset] == 0 &&
-                    srcData[srcOffset + 1] == 0 && srcData[srcOffset + 2] == 0) {
-                    continue;
-                }
-                Tile* destinationTile = getOrCreateTile(x / Tile::TILE_SIZE, y / Tile::TILE_SIZE);
+        const uint8_t* srcData = sourceTile->view(scratch).getData();
+        for (int destTileY = divFloor(minY, kTile); destTileY <= divFloor(maxY - 1, kTile); ++destTileY) {
+            for (int destTileX = divFloor(minX, kTile); destTileX <= divFloor(maxX - 1, kTile); ++destTileX) {
+                const int x0 = std::max(minX, destTileX * kTile), x1 = std::min(maxX, (destTileX + 1) * kTile);
+                const int y0 = std::max(minY, destTileY * kTile), y1 = std::min(maxY, (destTileY + 1) * kTile);
+                if (blockIsAllZero(srcData, pixelBytes, x0 - srcBaseX, x1 - srcBaseX, y0 - srcBaseY, y1 - srcBaseY)) continue;
+                Tile* destinationTile = getOrCreateTile(destTileX, destTileY);
                 if (!destinationTile) continue;
-                auto* dstData = reinterpret_cast<uint8_t*>(destinationTile->getBuffer().getData());
-                const int dstLocalX = x % Tile::TILE_SIZE;
-                const int dstLocalY = y % Tile::TILE_SIZE;
-                const size_t dstOffset = static_cast<size_t>(dstLocalY * Tile::TILE_SIZE + dstLocalX) * 4u;
-                std::memcpy(dstData + dstOffset, srcData + srcOffset, 4u);
+                uint8_t* dstData = destinationTile->getBuffer().getData();
+                const size_t rowBytes = static_cast<size_t>(x1 - x0) * pixelBytes;
+                for (int y = y0; y < y1; ++y) {
+                    const size_t srcOffset = (static_cast<size_t>(y - srcBaseY) * kTile + static_cast<size_t>(x0 - srcBaseX)) * pixelBytes;
+                    const size_t dstOffset = (static_cast<size_t>(y - destTileY * kTile) * kTile + static_cast<size_t>(x0 - destTileX * kTile)) * pixelBytes;
+                    std::memcpy(dstData + dstOffset, srcData + srcOffset, rowBytes);
+                }
                 destinationTile->setDirty(true);
             }
         }
@@ -122,6 +160,7 @@ size_t TileGrid::pruneEmptyTiles() {
 
 void TileGrid::copyFrom(const TileGrid& src) {
     m_tiles.clear();
+    m_format = src.m_format;
     for (const auto& [idx, tile] : src.m_tiles) {
         if (tile) {
             // Um tile comprimido não tem buffer para compartilhar (o buffer foi liberado):
@@ -211,7 +250,7 @@ const uint8_t* TileGrid::getTileData(int tileX, int tileY) const noexcept {
 }
 
 size_t TileGrid::getTileDataSize() const noexcept {
-    return Tile::TILE_BYTES;
+    return Tile::bytesFor(m_format);
 }
 
 } // namespace aladyn::engine::canvas

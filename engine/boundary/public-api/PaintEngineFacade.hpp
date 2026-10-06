@@ -5,6 +5,8 @@
 #include "../../core/stroke/PointerEvent.hpp"
 #include "../../core/stroke/VelocityTracker.hpp"
 #include "../../core/stroke/DynamicStabilizer.hpp"
+#include "../../core/stroke/PressureCalibration.hpp"
+#include "../../core/stroke/PenPose.hpp"
 #include "../../core/brush/BrushProfile.hpp"
 #include "../../core/canvas/CanvasLimits.hpp"
 #include "../../core/canvas/CanvasTexture.hpp"
@@ -19,6 +21,7 @@
 #include "../../core/selection/SelectionMask.hpp"
 #include "../../core/color/ColorProfile.hpp"
 #include "../../core/raster/TransformEngine.hpp"
+#include "../../core/raster/StrokeOpacityMix.hpp"
 #include "../../core/math/SymmetryEngine.hpp"
 #include "../../core/math/GuideSnapEngine.hpp"
 #include "../../core/math/CurvilinearSnapEngine.hpp"
@@ -50,8 +53,9 @@ struct TelemetryData {
 
 class PaintEngineFacade {
 public:
-    // Throws std::invalid_argument when a side is outside 1..maxCanvasDimension().
-    PaintEngineFacade(int width, int height);
+    // Throws std::invalid_argument when a side is outside 1..canvas::maxCanvasDimension(format). `format` is the pixel
+    // format of the whole document (8 bits per channel, or 16: the screen buffers stay 8-bit either way).
+    PaintEngineFacade(int width, int height, canvas::PixelFormat format = canvas::PixelFormat::RGBA8);
     ~PaintEngineFacade();
 
     // Largest canvas side the engine accepts; the interface asks, never repeats the number.
@@ -81,16 +85,24 @@ public:
     bool reorderLayers(const std::vector<int>& newOrder);
     bool setLayerParents(const std::vector<int>& parentIndices);
     bool setLayerDocumentUid(int index, uint64_t uid);
-    void setLayerName(int index, const std::string& name) { if (auto* l = m_layerStack.getDrawingLayer(index)) { l->setName(name); touchDocument(); } }
-    [[nodiscard]] std::string getLayerName(int index) const { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->getName() : std::string{}; }
+    void setLayerName(int index, const std::string& name);
+    [[nodiscard]] std::string getLayerName(int index) const;
     void setLayerOpacity(int index, double opacity);
     void setLayerBlendMode(int index, int blendModeId);
     void setLayerVisibility(int index, bool visible);
     void setLayerLock(int index, bool locked);
     void setLayerAlphaLock(int index, bool locked);
-    [[nodiscard]] bool isLayerAlphaLocked(int index) const noexcept { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->isAlphaLocked() : false; }
+    [[nodiscard]] bool isLayerAlphaLocked(int index) const noexcept;
     void setLayerClippingMask(int index, bool clipped);
-    [[nodiscard]] bool isLayerClippingMask(int index) const noexcept { const auto* l = m_layerStack.getDrawingLayer(index); return l ? l->isClippingMask() : false; }
+    [[nodiscard]] bool isLayerClippingMask(int index) const noexcept;
+    // S9: Máscara de camada
+    bool addLayerMask(int index);
+    bool removeLayerMask(int index);
+    [[nodiscard]] bool hasLayerMask(int index) const noexcept;
+    void setLayerMaskEnabled(int index, bool enabled);
+    [[nodiscard]] bool isLayerMaskEnabled(int index) const noexcept;
+    void setLayerMaskEditTarget(int index, bool targetMask);
+    [[nodiscard]] bool isLayerMaskEditTarget(int index) const noexcept;
     bool flattenGroup(int index);
     bool mergeLayerDown(int index);
     void clearLayer(int index);
@@ -186,67 +198,51 @@ public:
     }
     void clearSymmetry() { m_symmetryConfig.mode = math::SymmetryMode::None; }
 
-    void setGuideConfig(int type, double p0x, double p0y, double p1x, double p1y,
-                        double p2x, double p2y, double p3x, double p3y,
-                        double vpAx, double vpAy, double vpBx, double vpBy,
-                        double vpCx, double vpCy, double cx, double cy,
-                        double fov, double pitch, double yaw, double snapRadius);
+    void setGuideConfig(int type, double p0x, double p0y, double p1x, double p1y, double p2x, double p2y, double p3x, double p3y,
+                        double vpAx, double vpAy, double vpBx, double vpBy, double vpCx, double vpCy, double cx, double cy, double fov, double pitch, double yaw, double snapRadius);
     void clearGuide() { m_guideConfig.type = math::GuideType::None; }
     [[nodiscard]] std::vector<double> snapPoint(double rawX, double rawY, double lastX = 0.0, double lastY = 0.0, bool hasLast = false) const;
 
     // ── Curvilinear (6P fisheye) — Fase C2b ──────────────────────────────
     // Completa os campos de GuideConfig usados apenas por Curvilinear
     // (os demais — cx/cy/fov/pitch/yaw/snapRadius — já chegam via setGuideConfig).
-    void setCurvilinearGuideConfig(double baseRadius, double density,
-                                    bool showV, bool showH, bool showD,
-                                    bool showGround, bool showCeiling,
-                                    bool showGroundVerticals, bool showCeilingVerticals,
-                                    bool showStraightVerticals,
-                                    int snapMode, double snapSensitivity);
+    void setCurvilinearGuideConfig(double baseRadius, double density, bool showV, bool showH, bool showD, bool showGround,
+                                    bool showCeiling, bool showGroundVerticals, bool showCeilingVerticals, bool showStraightVerticals, int snapMode, double snapSensitivity);
 
-    // Candidatas curvilíneas (V/H/D) passando por (clickX,clickY), cada uma
-    // codificada em 11 doubles: [kind, family, p1x,p1y, p2x,p2y, dirx,diry, cx,cy,radius].
-    // Puro: não lê nem escreve estado de traço — quem chama decide quando gerar
-    // (tipicamente uma vez, no início do traço) e reaproveita o resultado.
+    // Candidatas curvilíneas (V/H/D) passando por (clickX,clickY), cada uma em 11 doubles:
+    // [kind, family, p1x,p1y, p2x,p2y, dirx,diry, cx,cy,radius]. Puro: não lê nem escreve estado de traço;
+    // quem chama decide quando gerar (tipicamente uma vez, no início do traço) e reaproveita o resultado.
     [[nodiscard]] std::vector<double> getCurvilinearCandidates(double clickX, double clickY) const;
 
     // Curva primária (grade) mais próxima de (x,y); vetor vazio se nada dentro de maxDist.
     [[nodiscard]] std::vector<double> getNearestPrimaryGridCurve(double x, double y, double maxDist) const;
 
-    // Snap curvilíneo sem estado: candidates é a lista plana já congelada pelo
-    // chamador (mesma codificação de getCurvilinearCandidates); lockedIndex é
-    // a curva travada na chamada anterior (-1 = nenhuma). Retorna
-    // [snappedX, snappedY, newLockedIndex] — o índice deve ser persistido pelo
-    // chamador e devolvido na próxima chamada.
+    // Snap curvilíneo sem estado: candidates é a lista plana já congelada pelo chamador (mesma codificação de
+    // getCurvilinearCandidates); lockedIndex é a curva travada na chamada anterior (-1 = nenhuma). Retorna
+    // [snappedX, snappedY, newLockedIndex]; o índice o chamador persiste e devolve na próxima chamada.
     [[nodiscard]] std::vector<double> snapCurvilinear(
         double rawX, double rawY, double startX, double startY,
         const std::vector<double>& candidates, int lockedIndex, bool isStroking, double zoom
     ) const;
 
     // -- Perspectiva (1P/2P/3P/Isometric) -- Fase C3.1 -----------------------
-    // Sem estado, mesmo contrato de snapCurvilinear: hasLockedDir/lockedDirX/Y
-    // e a direcao travada na chamada anterior (hasLockedDir=false = nenhuma).
-    // Retorna [snappedX, snappedY, newHasLockedDir(0/1), newLockedDirX, newLockedDirY]
-    // -- os 3 ultimos devem ser persistidos pelo chamador e devolvidos na
-    // proxima chamada.
+    // Sem estado, mesmo contrato de snapCurvilinear: hasLockedDir/lockedDirX/Y é a direção travada na chamada anterior
+    // (hasLockedDir=false = nenhuma). Retorna [snappedX, snappedY, newHasLockedDir(0/1), newLockedDirX, newLockedDirY];
+    // os 3 últimos o chamador persiste e devolve na próxima chamada.
     [[nodiscard]] std::vector<double> snapPerspective(
         double rawX, double rawY, double startX, double startY,
         bool hasLockedDir, double lockedDirX, double lockedDirY, double zoom
     ) const;
 
-    // -- Fase D0 (redesign do motor de snap) -----------------------------
-    // Componentes genericos e sem estado (SnapCandidate/TrajectoryEstimator/
-    // SnapLockStateMachine), ainda nao ligados a nenhum tipo de guia real --
-    // expostos aqui so para permitir cobertura de teste via pytest contra o
-    // facade, mesma convencao ja usada para snapCurvilinear/snapPerspective.
-    // Ver claude/proposta-redesign-motor-snap-guias.md no projeto.
+    // -- Fase D0 (redesign do motor de snap): componentes genericos e sem estado (SnapCandidate/TrajectoryEstimator/
+    // SnapLockStateMachine), ainda nao ligados a nenhum guia real; expostos so para cobertura de teste via pytest
+    // (mesma convencao de snapCurvilinear/snapPerspective). Ver claude/proposta-redesign-motor-snap-guias.md.
 
     // Estima direcao+confianca a partir de uma janela de pontos recentes
     // (recentPoints, mais antigo primeiro): [x0,y0, x1,y1, ...]. Retorna
     // [dirX, dirY, confidence].
-    // Instância (não static) só por consistência de chamada com o resto do
-    // facade (self.facade.metodo(...) em todo teste existente) -- não lê
-    // nenhum estado de m_guideConfig nem de nenhum outro membro.
+    // Instância (não static) só por consistência de chamada com o resto do facade
+    // (self.facade.metodo(...) nos testes) -- não lê nenhum estado de m_guideConfig nem de outro membro.
     [[nodiscard]] std::vector<double> estimateTrajectory(
         const std::vector<double>& recentPoints, double zoom
     ) const;
@@ -268,17 +264,9 @@ public:
 
     bool pasteRgbaBufferOnActiveLayer(int x, int y, int width, int height, const uint8_t* buffer, int blendModeId = 0, double opacity = 1.0);
 
-    void setShapePreset(int presetId) {
-        if (presetId <= 1) {
-            m_brushProfile.shapeTexture = nullptr;
-            if (presetId == 0) m_brushProfile.hardness = 0.2;
-            else if (presetId == 1) m_brushProfile.hardness = 0.95;
-        } else {
-            m_brushProfile.shapeTexture = texture::ProceduralTextures::createShapePreset(static_cast<texture::ShapePreset>(presetId));
-        }
-    }
-    void setBrushHeightPreset(int presetId) { m_brushProfile.brushHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId)); }
-    void setCanvasHeightPreset(int presetId) { m_canvasTexture.canvasHeightTexture = texture::ProceduralTextures::createHeightPreset(static_cast<texture::HeightPreset>(presetId)); }
+    void setShapePreset(int presetId);
+    void setBrushHeightPreset(int presetId);
+    void setCanvasHeightPreset(int presetId);
 
     void loadShapeTextureFromBuffer(int width, int height, const uint8_t* buffer);
     void loadBrushHeightTextureFromBuffer(int width, int height, const uint8_t* buffer);
@@ -306,6 +294,7 @@ public:
     [[nodiscard]] const canvas::CanvasTexture& getCanvasTexture() const noexcept { return m_canvasTexture; }
 
     [[nodiscard]] stroke::DynamicStabilizer& getStabilizer() noexcept { return m_stabilizer; }
+    [[nodiscard]] stroke::PressureCalibration& getPressureCalibration() noexcept { return m_pressureCalibration; }  // a mesa -> o que o motor lê; padrão: identidade
     [[nodiscard]] const stroke::DynamicStabilizer& getStabilizer() const noexcept { return m_stabilizer; }
 
     [[nodiscard]] document::LayerStack& getLayerStack() noexcept { return m_layerStack; }
@@ -315,15 +304,17 @@ public:
     [[nodiscard]] int getHeight() const noexcept { return m_height; }
     [[nodiscard]] uint64_t getDocumentGeneration() const noexcept { return m_documentGeneration; }
 
-    [[nodiscard]] uint8_t* getRawPixelData() noexcept { return m_outputBuffer.getData(); }
-    [[nodiscard]] const uint8_t* getRawPixelData() const noexcept { return m_outputBuffer.getData(); }
+    [[nodiscard]] uint8_t* getRawPixelData();  // recompõe o que está velho (Compositor::ensureFresh): pode lançar
     [[nodiscard]] size_t getPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
 
-    [[nodiscard]] uint8_t* getDisplayRawPixelData() noexcept;
+    [[nodiscard]] uint8_t* getDisplayRawPixelData();  // com perfil de cor aloca o buffer de exibição: pode lançar
     [[nodiscard]] size_t getDisplayPixelDataSize() const noexcept { return m_outputBuffer.getSizeInBytes(); }
     // So o retangulo pedido, com o perfil de cor aplicado (S1.1). Fora do canvas: std::invalid_argument.
-    void copyDisplayRegion(int x, int y, int w, int h, uint8_t* dst, size_t dstSize) const;
-    [[nodiscard]] std::vector<uint8_t> getLayerPixelBuffer(int layerIndex) const;
+    void copyDisplayRegion(int x, int y, int w, int h, uint8_t* dst, size_t dstSize);
+    [[nodiscard]] std::vector<uint8_t> getLayerPixelBuffer(int layerIndex) const;  // 8 bits (estreitado num documento de 16)
+    // ─── 16 BITS (PaintEngineFacadeRgba16.cpp): so num documento de 16 bits, senao std::logic_error/invalid_argument ──
+    void copyComposite16(int x, int y, int w, int h, uint8_t* dst, size_t dstSize);  // w*h*8 bytes; recompoe o que le
+    void copyLayer16(int layerIndex, uint8_t* dst, size_t dstSize) const;            // w*h*8 bytes, a camada inteira
 
     // ─── TELEMETRIA E DIAGNÓSTICO EM TEMPO REAL ──────────────────────────
     void setTelemetryEnabled(bool enabled) noexcept { m_telemetryManager.setEnabled(enabled); }
@@ -345,12 +336,12 @@ public:
     [[nodiscard]] std::shared_ptr<LayerSnapshot> snapshotLayers() const;
     void restoreLayerTiles(int layerIndex, const uint8_t* data, size_t size);
     void adoptDecodedLayer(int layerIndex, DecodedLayer& decoded);  // O(1): os tiles ja foram decodificados em outra thread
-    void beginBatch() noexcept { ++m_compositeHold; }
+    void beginBatch() noexcept { ++m_batchDepth; }
     void endBatch();
     // ─── SAIDA PARA A TELA: TILES SUJOS E LOD (PaintEngineFacadeDisplay.cpp) ──
     [[nodiscard]] std::vector<std::pair<int, int>> getDirtyTileIndices() const;
     void clearDirtyTiles() noexcept;
-    [[nodiscard]] uint8_t* getDisplayPixelBufferLOD(int level, int& outW, int& outH) noexcept;
+    [[nodiscard]] uint8_t* getDisplayPixelBufferLOD(int level, int& outW, int& outH);
     // So o retangulo de um nivel (1..3), em pixels do nivel (D18). Invalido: std::invalid_argument.
     void copyDisplayLodRegion(int level, int x, int y, int w, int h, uint8_t* dst, size_t dstSize);
     void getLodSize(int level, int& outW, int& outH) const noexcept;
@@ -359,11 +350,9 @@ public:
     void markLODDirty() noexcept { m_mipmapPyramid.markDirty(); }
 
 private:
-    // Contextos agregados que este facade entrega aos orquestradores de
-    // orchestrator/. Declarados com tipo de retorno incompleto de proposito: o
-    // header publico nao inclui orchestrator/ -- so o .cpp, que e' quem constroi e
-    // consome os contextos. Nunca armazene um deles: resizeCanvas() e o resync
-    // de historico trocam buffers e compositor por instancias novas.
+    // Contextos agregados entregues aos orquestradores de orchestrator/: tipo de retorno incompleto de
+    // proposito (o header publico nao inclui orchestrator/; so o .cpp constroi e consome). Nunca armazene
+    // um: resizeCanvas() e o resync de historico trocam buffers e compositor por instancias novas.
     orchestrator::DocumentContext    docContext() noexcept;
     orchestrator::EngineStateContext stateContext() noexcept;
     orchestrator::RawStrokeContext   strokeContext() noexcept;
@@ -379,26 +368,30 @@ private:
     bool m_linearGamma{true};
     bool m_deepColor{false};
     uint64_t m_documentGeneration{0};
-    int m_compositeHold{0};
-    bool m_compositePending{false};
+    int m_batchDepth{0};
+    void ensureAllFresh();  // o buffer composto inteiro em dia, para quem lê tudo (PaintEngineFacadeDisplay.cpp)
+    uint8_t* refreshLodLevel(int level, int& outW, int& outH);  // a pirâmide em dia com o que o compositor escreveu
 
     stroke::VelocityTracker   m_velocityTracker;
     stroke::DynamicStabilizer m_stabilizer;
+    stroke::PressureCalibration m_pressureCalibration;
     brush::BrushProfile       m_brushProfile;
     canvas::CanvasTexture     m_canvasTexture;
 
     std::unique_ptr<engines::IBrushEngine> m_activeEngine;
 
     utils::Dab m_lastDab;
+    stroke::PenPose m_lastPose;
 
     document::LayerStack m_layerStack;
     document::Compositor m_compositor;
     canvas::PixelBuffer  m_outputBuffer;
-    mutable canvas::PixelBuffer m_displayBuffer;
+    mutable canvas::PixelBuffer m_displayBuffer;  // 0x0 no perfil sRGB; só existe com outro perfil de cor
     canvas::MipmapPyramid m_mipmapPyramid;
     selection::SelectionMask m_selectionMask;
     raster::TransformEngine m_transformEngine;
     history::TileUndoManager m_undoManager;
+    raster::StrokeOpacityMix m_strokeMix;
 
     math::SymmetryConfig m_symmetryConfig;
     math::GuideConfig    m_guideConfig;
@@ -414,9 +407,7 @@ private:
     bool                                         m_pendingFirstSegment{false};
     std::unique_ptr<orchestrator::TouchdownSample>   m_firstSample;
 
-    utils::Dab m_splineP0;
-    utils::Dab m_splineP1;
-    utils::Dab m_splineP2;
+    utils::Dab m_splineP0, m_splineP1, m_splineP2;
     uint32_t    m_splineCount{0};
 
     telemetry::EngineTelemetryManager m_telemetryManager;

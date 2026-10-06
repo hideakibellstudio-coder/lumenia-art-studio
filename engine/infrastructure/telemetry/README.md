@@ -10,7 +10,7 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `EngineTelemetry.hpp` | Métricas por etapa e do traço, e o gerenciador que as acumula; `simdActive` reflete o build (AVX2 ou escalar). |
+| `EngineTelemetry.hpp` | Métricas por etapa e do traço, e o gerenciador que as acumula; `simdActive` nasce falso e quem monta o snapshot (o orquestrador de traço) o preenche com o nível de SIMD que a mesclagem usa de verdade, escolhido pela CPU na hora de rodar. |
 
 ## Regras
 

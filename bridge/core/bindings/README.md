@@ -13,9 +13,9 @@
 | `engine_bindings.cpp` | `PYBIND11_MODULE(aladyn_engine_native)`: cria a classe `PaintEngineFacade` e chama os `bind_*`. |
 | `BindingsCommon.hpp` | Inclui a porta única do motor (`AladynEngine.hpp`); declara os `bind_*` e o alias `FacadeClass`. |
 | `bind_math_brush.cpp` | Tipos de matemática e pincel (`Point2D`, curvas, perfil, parâmetros por motor) e a prévia do traço. |
-| `bind_canvas.cpp` | Canvas: redimensionar, limpar, papel, perfis de cor, buffers de exibição e exportação. |
+| `bind_canvas.cpp` | Canvas: redimensionar, limpar, papel, perfis de cor, buffers de exibição e exportação; o formato de pixel do documento (`get_pixel_format`, `max_canvas_dimension(pixel_format)`) e as leituras de 16 bits (`get_composite_pixel_buffer16`, `get_composite_region16`, `get_layer_pixel_buffer16`: 8 bytes por pixel, S5). `refresh_display` não faz nada de propósito: a tela o chama a cada evento de câmera e o motor compõe só o que `get_display_region` e os LODs leem. |
 | `bind_layers.cpp` | Camadas: adicionar, grupos, camadas de ajuste, reordenar, propriedades. |
-| `bind_persistence.cpp` | Persistência (S1.2): `LayerSnapshot` (o instantâneo das camadas; `encode_layer` roda sem o GIL), `snapshot_layers`, `restore_layer_tiles`, `DecodedLayer` com `decode_layer_tiles`/`adopt_decoded_layer` (decodificar fora do documento, adotar em tempo constante) e a composição em lote (`begin_batch`/`end_batch`). |
+| `bind_persistence.cpp` | Persistência (S1.2): `LayerSnapshot` (o instantâneo das camadas; `encode_layer` roda sem o GIL), `snapshot_layers`, `restore_layer_tiles`, `DecodedLayer` com `decode_layer_tiles`/`adopt_decoded_layer` (decodificar fora do documento, adotar em tempo constante) e o par `begin_batch`/`end_batch` (contrato sem efeito desde a S3: o motor só compõe o que alguém lê). |
 | `bind_stroke.cpp` | Traço, texturas e prévias da ponta, telemetria (métricas em tempo real, diagnóstico). |
 | `bind_tools.cpp` | Ferramentas: balde, seleção, transformação, guias e snap. |
 

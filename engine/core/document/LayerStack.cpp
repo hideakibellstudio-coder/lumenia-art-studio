@@ -6,13 +6,14 @@
 namespace aladyn::engine::document {
 
 static std::unique_ptr<Layer> cloneLayer(const Layer& source, int w, int h) {
+    const canvas::PixelFormat format = source.getTileGrid().getFormat();
     std::unique_ptr<Layer> result;
     if (const auto* filter = dynamic_cast<const FilterLayer*>(&source)) {
-        auto copy = std::make_unique<FilterLayer>(source.getName(), filter->getFilterType(), w, h);
+        auto copy = std::make_unique<FilterLayer>(source.getName(), filter->getFilterType(), w, h, format);
         copy->setParams(filter->getParams());
         result = std::move(copy);
     } else {
-        result = std::make_unique<Layer>(source.getName(), source.getType(), w, h, source.isBackground());
+        result = std::make_unique<Layer>(source.getName(), source.getType(), w, h, source.isBackground(), format);
     }
     result->setOpacity(source.getOpacity());
     result->setDocumentUid(source.getDocumentUid());
@@ -23,11 +24,17 @@ static std::unique_ptr<Layer> cloneLayer(const Layer& source, int w, int h) {
     result->setBlendMode(source.getBlendMode());
     result->setEffectiveOpacity(source.getEffectiveOpacity());
     result->getTileGrid().copyFrom(source.getTileGrid());
+    if (source.hasMask()) {
+        result->createMask();
+        result->setMaskEnabled(source.isMaskEnabled());
+        result->setMaskEditTarget(source.isMaskEditTarget());
+        if (source.getMaskGrid()) result->getMaskGrid()->copyFrom(*source.getMaskGrid());
+    }
     return result;
 }
 
 LayerStack::LayerStack(const LayerStack& other)
-    : m_width(other.m_width), m_height(other.m_height), m_activeIndex(other.m_activeIndex),
+    : m_width(other.m_width), m_height(other.m_height), m_format(other.m_format), m_activeIndex(other.m_activeIndex),
       m_backgroundLayer(cloneLayer(*other.m_backgroundLayer, m_width, m_height)) {
     for (const auto& layer : other.m_drawingLayers)
         m_drawingLayers.push_back(cloneLayer(*layer, m_width, m_height));
@@ -47,6 +54,7 @@ void LayerStack::restore(const LayerStack& other) {
 void LayerStack::swap(LayerStack& prepared) noexcept {
     std::swap(m_width, prepared.m_width);
     std::swap(m_height, prepared.m_height);
+    std::swap(m_format, prepared.m_format);
     std::swap(m_activeIndex, prepared.m_activeIndex);
     m_backgroundLayer.swap(prepared.m_backgroundLayer);
     m_drawingLayers.swap(prepared.m_drawingLayers);
@@ -59,10 +67,10 @@ size_t LayerStack::snapshotBytes() const noexcept {
     return bytes;
 }
 
-LayerStack::LayerStack(int width, int height)
-    : m_width(width), m_height(height) {
+LayerStack::LayerStack(int width, int height, canvas::PixelFormat format)
+    : m_width(width), m_height(height), m_format(format) {
     // 1. Background Layer (Layer 0) — Preenchida com papel branco por padrão
-    m_backgroundLayer = std::make_unique<Layer>("Background", width, height, true);
+    m_backgroundLayer = std::make_unique<Layer>("Background", width, height, true, format);
     m_backgroundLayer->getTileGrid().clearAll({255, 255, 255, 255});
 
     // 2. Camada 1 inicial de desenho (Transparente)
@@ -100,7 +108,7 @@ int LayerStack::addLayer(const std::string& name, int insertIndex) {
         layerName = "Camada " + std::to_string(m_drawingLayers.size() + 1);
     }
 
-    auto layer = std::make_unique<Layer>(layerName, m_width, m_height, false);
+    auto layer = std::make_unique<Layer>(layerName, m_width, m_height, false, m_format);
     // As camadas de desenho nascem com transparência pura
     layer->getTileGrid().clearAll({0, 0, 0, 0});
 
@@ -121,7 +129,7 @@ int LayerStack::addGroup(const std::string& name, int insertIndex) {
     }
 
     // Cria camada com LayerNodeType::Group para que isGroup() retorne true corretamente
-    auto layer = std::make_unique<Layer>(groupName, LayerNodeType::Group, m_width, m_height, false);
+    auto layer = std::make_unique<Layer>(groupName, LayerNodeType::Group, m_width, m_height, false, m_format);
     layer->getTileGrid().clearAll({0, 0, 0, 0});
     layer->setBlendMode(LayerBlendMode::PassThrough);
 
@@ -141,7 +149,7 @@ int LayerStack::addFilterLayer(const std::string& name, FilterType type, int ins
         layerName = "Filtro " + std::to_string(m_drawingLayers.size() + 1);
     }
 
-    auto filterLayer = std::make_unique<FilterLayer>(layerName, type, m_width, m_height);
+    auto filterLayer = std::make_unique<FilterLayer>(layerName, type, m_width, m_height, m_format);
     if (insertIndex >= 0 && insertIndex < static_cast<int>(m_drawingLayers.size())) {
         m_drawingLayers.insert(m_drawingLayers.begin() + insertIndex, std::move(filterLayer));
         m_activeIndex = insertIndex;
@@ -251,19 +259,6 @@ bool LayerStack::reorderLayers(const std::vector<int>& newOrder) {
         }
     }
     return true;
-}
-
-static bool wouldCreateCycle(const LayerNode* child, const LayerNode* newParent) noexcept {
-    if (!child || !newParent) return false;
-    if (child == newParent) return true;
-    const LayerNode* curr = newParent;
-    int depth = 0;
-    while (curr && depth < 64) {
-        if (curr == child) return true;
-        curr = curr->getParent();
-        ++depth;
-    }
-    return false;
 }
 
 bool LayerStack::setLayerParents(const std::vector<int>& parentIndices) {

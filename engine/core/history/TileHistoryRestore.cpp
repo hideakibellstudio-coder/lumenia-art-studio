@@ -30,14 +30,15 @@ bool TileUndoManager::moveStep(document::LayerStack& stack, selection::Selection
         } else {
             // Only affected layer grids are cloned. COW keeps other pixels shared.
             std::map<int, canvas::TileGrid> prepared;
-            constexpr size_t tileBytes = canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * sizeof(utils::ColorRGBA);
             for (const auto& snap : step.snapshots) {
                 auto* layer = stack.getDrawingLayer(snap.layerIndex);
                 if (!layer) return fail("history_invalid_snapshot");
                 const auto& original = layer->getTileGrid();
-                if (snap.tileX < 0 || snap.tileX >= original.getTilesCountX() ||
-                    snap.tileY < 0 || snap.tileY >= original.getTilesCountY())
+                constexpr int kMaxTileCoord = 32767;
+                if (snap.tileX < -kMaxTileCoord || snap.tileX > kMaxTileCoord ||
+                    snap.tileY < -kMaxTileCoord || snap.tileY > kMaxTileCoord)
                     return fail("history_invalid_snapshot");
+                const size_t tileBytes = canvas::Tile::bytesFor(original.getFormat());
                 const auto bytes = redo ? snap.uncompressedAfterBytes : snap.uncompressedBeforeBytes;
                 if (bytes != tileBytes) return fail("history_invalid_snapshot");
                 std::vector<uint8_t> disk;
@@ -57,7 +58,8 @@ bool TileUndoManager::moveStep(document::LayerStack& stack, selection::Selection
                     if (encoded->size() != tileBytes) return fail("history_invalid_snapshot");
                     decoded = *encoded;
                 }
-                auto [it, inserted] = prepared.try_emplace(snap.layerIndex, original.getWidth(), original.getHeight());
+                auto [it, inserted] = prepared.try_emplace(snap.layerIndex, original.getWidth(), original.getHeight(),
+                                                     original.getFormat());
                 if (inserted) it->second.copyFrom(original);
                 auto* tile = it->second.getOrCreateTile(snap.tileX, snap.tileY);
                 std::memcpy(tile->getBuffer().getData(), decoded.data(), tileBytes);

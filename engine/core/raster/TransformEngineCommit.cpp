@@ -12,6 +12,17 @@ namespace aladyn::engine::raster {
 
 static constexpr double PI = 3.14159265358979323846;
 
+namespace {
+inline int divFloor(int a, int b) noexcept {
+    int res = a / b;
+    int rem = a % b;
+    if (rem != 0 && ((a < 0) ^ (b < 0))) {
+        --res;
+    }
+    return res;
+}
+} // namespace
+
 bool TransformEngine::commitTransform(
     document::Layer* activeLayer,
     double dx, double dy,
@@ -33,10 +44,12 @@ bool TransformEngine::commitTransform(
 
     auto destBounds = calculateDestBounds(dx, dy, scaleX, scaleY, rotationDeg, pivotX, pivotY, flipH, flipV);
 
-    int minDx = std::clamp(static_cast<int>(destBounds.x), 0, canvasWidth - 1);
-    int minDy = std::clamp(static_cast<int>(destBounds.y), 0, canvasHeight - 1);
-    int maxDx = std::clamp(static_cast<int>(destBounds.x + destBounds.width), 0, canvasWidth - 1);
-    int maxDy = std::clamp(static_cast<int>(destBounds.y + destBounds.height), 0, canvasHeight - 1);
+    constexpr int kMinCoord = -32768 * canvas::Tile::TILE_SIZE;
+    constexpr int kMaxCoord =  32767 * canvas::Tile::TILE_SIZE;
+    int minDx = std::clamp(static_cast<int>(std::floor(destBounds.x)), kMinCoord, kMaxCoord);
+    int minDy = std::clamp(static_cast<int>(std::floor(destBounds.y)), kMinCoord, kMaxCoord);
+    int maxDx = std::clamp(static_cast<int>(std::ceil(destBounds.x + destBounds.width)), kMinCoord, kMaxCoord);
+    int maxDy = std::clamp(static_cast<int>(std::ceil(destBounds.y + destBounds.height)), kMinCoord, kMaxCoord);
 
     if (minDx > maxDx || minDy > maxDy) {
         reset();
@@ -108,20 +121,29 @@ bool TransformEngine::cancelTransform(
     const int bh = m_sourceBuffer->getHeight();
 
     auto& grid = activeLayer->getTileGrid();
+    const bool is16 = (grid.getFormat() == canvas::PixelFormat::RGBA16);
 
     for (int y = 0; y < bh; ++y) {
         int gy = minY + y;
+        int ty = divFloor(gy, canvas::Tile::TILE_SIZE);
+        int ly = gy - ty * canvas::Tile::TILE_SIZE;
         for (int x = 0; x < bw; ++x) {
             int gx = minX + x;
-            int tx = gx / canvas::Tile::TILE_SIZE;
-            int ty = gy / canvas::Tile::TILE_SIZE;
+            int tx = divFloor(gx, canvas::Tile::TILE_SIZE);
+            int lx = gx - tx * canvas::Tile::TILE_SIZE;
             auto* tile = grid.getOrCreateTile(tx, ty);
-            int lx = gx % canvas::Tile::TILE_SIZE;
-            int ly = gy % canvas::Tile::TILE_SIZE;
-            auto col = m_sourceBuffer->getPixel(x, y);
-            if (col.a > 0) {
-                tile->getBuffer().setPixel(lx, ly, col);
-                tile->setDirty(true);
+            if (is16) {
+                auto col = m_sourceBuffer->getPixel16(x, y);
+                if (col.a > 0) {
+                    tile->getBuffer().setPixel16(lx, ly, col);
+                    tile->setDirty(true);
+                }
+            } else {
+                auto col = m_sourceBuffer->getPixel(x, y);
+                if (col.a > 0) {
+                    tile->getBuffer().setPixel(lx, ly, col);
+                    tile->setDirty(true);
+                }
             }
         }
     }

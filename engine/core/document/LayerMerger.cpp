@@ -1,7 +1,7 @@
 #include "LayerMerger.hpp"
 #include "FilterLayer.hpp"
 #include "Compositor.hpp"
-#include "blending/BlendEquations.hpp"
+#include "CompositePixel.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -9,8 +9,43 @@ namespace aladyn::engine::document {
 
 namespace {
 
-// Compõe `source` sobre `target` pixel a pixel, tile a tile. Com `clipToBase`, só mexe onde o
-// destino já tem tile e pixel (máscara de recorte); sem ele, cria os tiles que faltarem.
+// Compõe `source` sobre `target` pixel a pixel, tile a tile, no pixel `Pixel` do formato das duas grades. Com
+// `clipToBase`, só mexe onde o destino já tem tile e pixel (máscara de recorte); sem ele, cria os tiles que faltarem.
+template <typename Pixel>
+void blendGridAs(
+    canvas::TileGrid& source,
+    canvas::TileGrid& target,
+    double opacity,
+    LayerBlendMode mode,
+    bool clipToBase,
+    bool linearGamma,
+    bool deepColor
+) {
+    using Ops = internal::CompositePixel<Pixel>;
+    for (int ty = 0; ty < source.getTilesCountY(); ++ty) {
+        for (int tx = 0; tx < source.getTilesCountX(); ++tx) {
+            canvas::Tile* sourceTile = source.getTile(tx, ty);
+            if (!sourceTile) continue;
+
+            canvas::Tile* targetTile = clipToBase ? target.getTile(tx, ty) : target.getOrCreateTile(tx, ty);
+            if (!targetTile) continue;
+
+            const Pixel* sourcePixels = sourceTile->getBuffer().template pixels<Pixel>();
+            Pixel* targetPixels = targetTile->getBuffer().template pixels<Pixel>();
+            for (int i = 0; i < canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE; ++i) {
+                const Pixel src = sourcePixels[i];
+                if (src.a == 0) continue;
+
+                const Pixel dst = targetPixels[i];
+                // Não mescla fora da silhueta da camada base
+                if (clipToBase && dst.a == 0) continue;
+
+                targetPixels[i] = Ops::blendPixel(src, opacity, dst, mode, linearGamma, deepColor);
+            }
+        }
+    }
+}
+
 void blendGridInto(
     canvas::TileGrid& source,
     canvas::TileGrid& target,
@@ -20,29 +55,10 @@ void blendGridInto(
     bool linearGamma,
     bool deepColor
 ) {
-    for (int ty = 0; ty < source.getTilesCountY(); ++ty) {
-        for (int tx = 0; tx < source.getTilesCountX(); ++tx) {
-            canvas::Tile* sourceTile = source.getTile(tx, ty);
-            if (!sourceTile) continue;
-
-            canvas::Tile* targetTile = clipToBase ? target.getTile(tx, ty) : target.getOrCreateTile(tx, ty);
-            if (!targetTile) continue;
-
-            canvas::PixelBuffer& sourceBuffer = sourceTile->getBuffer();
-            canvas::PixelBuffer& targetBuffer = targetTile->getBuffer();
-            for (int py = 0; py < canvas::Tile::TILE_SIZE; ++py) {
-                for (int px = 0; px < canvas::Tile::TILE_SIZE; ++px) {
-                    const utils::ColorRGBA src = sourceBuffer.getPixel(px, py);
-                    if (src.a == 0) continue;
-
-                    const utils::ColorRGBA dst = targetBuffer.getPixel(px, py);
-                    // Não mescla fora da silhueta da camada base
-                    if (clipToBase && dst.a == 0) continue;
-
-                    targetBuffer.setPixel(px, py, blending::blendPixel(src, opacity, dst, mode, linearGamma, deepColor));
-                }
-            }
-        }
+    if (source.getFormat() == canvas::PixelFormat::RGBA16) {
+        blendGridAs<utils::ColorRGBA16>(source, target, opacity, mode, clipToBase, linearGamma, deepColor);
+    } else {
+        blendGridAs<utils::ColorRGBA>(source, target, opacity, mode, clipToBase, linearGamma, deepColor);
     }
 }
 
@@ -76,7 +92,7 @@ double opacityWithinGroup(const Layer& layer, const LayerNode* group) {
 // A camada raster que ocupa o lugar do grupo: mesmo nome, opacidade, visibilidade e pai; o modo
 // Atravessar (padrão dos grupos) vira Normal porque agora há uma imagem só.
 std::unique_ptr<Layer> emptyLayerLike(const Layer& group, int width, int height) {
-    auto flattened = std::make_unique<Layer>(group.getName(), width, height, false);
+    auto flattened = std::make_unique<Layer>(group.getName(), width, height, false, group.getTileGrid().getFormat());
     flattened->setOpacity(group.getOpacity());
     flattened->setVisible(group.isVisible());
     flattened->setParent(const_cast<LayerNode*>(group.getParent()));
@@ -113,6 +129,18 @@ void rasterizeFilterInto(const FilterLayer& filter, Layer& target) {
     });
 }
 
+// A pilha tem um formato de pixel só; uma camada de outro formato seria misturada como lixo, então a mesclagem
+// recusa (devolve false, sem tocar em nada) a pilha em que as camadas não concordam.
+bool sameFormat(const std::vector<std::unique_ptr<Layer>>& layers) {
+    const Layer* first = nullptr;
+    for (const auto& layer : layers) {
+        if (!layer) continue;
+        if (!first) first = layer.get();
+        if (layer->getTileGrid().getFormat() != first->getTileGrid().getFormat()) return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 bool LayerMerger::flattenGroup(
@@ -127,6 +155,7 @@ bool LayerMerger::flattenGroup(
     const int count = static_cast<int>(drawingLayers.size());
     if (index < 0 || index >= count) return false;
     if (!drawingLayers[index] || !drawingLayers[index]->isGroup()) return false;
+    if (!sameFormat(drawingLayers)) return false;
 
     const Layer* groupNode = drawingLayers[index].get();
     const LayerNode* groupParent = groupNode->getParent();
@@ -169,6 +198,7 @@ bool LayerMerger::mergeLayerDown(
 ) {
     const int count = static_cast<int>(drawingLayers.size());
     if (index <= 0 || index >= count) return false;
+    if (!sameFormat(drawingLayers)) return false;
 
     // Group flattening can remove the upper index as a descendant. Require
     // callers to flatten explicitly before resolving the next merge indices.

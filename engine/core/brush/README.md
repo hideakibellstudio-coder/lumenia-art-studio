@@ -12,8 +12,9 @@
 |---|---|
 | `BrushProfile.hpp` | Perfil completo do pincel: `EngineType`, parâmetros de cada motor (`PencilParams`, `InkerParams`, `MarkerParams`, `BlurParams`, `SmudgeParams`...), curvas e texturas. |
 | `BrushTip.hpp` | Geometria da ponta: ângulo, achatamento, seguir o traço e jitters. |
-| `DynamicMapper.hpp` | `DynamicMapper`/`MappedBrushState`: estado do dab a partir de pressão, velocidade e perfil. |
-| `DynamicMapper.cpp` | Implementação do mapeamento dinâmico e da dispersão (scatter). |
+| `DynamicMapper.hpp` | `DynamicMapper`/`MappedBrushState`: estado do dab (tamanho, fluxo, ângulo da ponta, achatamento) a partir de pressão, velocidade, inclinação e perfil. A direção do traço não entra aqui: é do caminho e o interpolador a soma. |
+| `DynamicMapper.cpp` | Implementação do mapeamento dinâmico e da dispersão (scatter), com os controles escalares de 0 a 1 `velocityToFlow` (traço rápido deposita menos), `tip.tiltToSize` (caneta deitada dobra o diâmetro com 1,0) e `tip.tiltToFlow` (caneta deitada apaga com 1,0), todos desligados no padrão. |
+| `TiltShading.hpp` | A inclinação da caneta (`pen_tilt::lean`: 0 em pé ou com mouse, 1 deitada) e, sobre ela, o lado do grafite: com o interruptor do Lápis ligado e a caneta deitada, a marca se alonga no sentido em que a caneta pende e deposita menos por área. Só o cabeçalho. |
 
 ## Regras
 

@@ -1,6 +1,8 @@
 #include "MarkerEngine.hpp"
 #include "../raster/DabFootprint.hpp"
 #include "../raster/PixelPermission.hpp"
+#include "../raster/StrokeInkLedger.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -11,8 +13,12 @@ namespace {
 constexpr double kPi = 3.14159265358979323846;
 
 // A tinta de um marcador de álcool: borda suave com um leve escurecimento no anel externo, e uma
-// veladura que escurece o que já está embaixo sem nunca passar de 70% da cor da tinta (um vermelho
-// não vira preto). `strengthAt` é a opacidade do pixel; `blend` põe a tinta no destino.
+// veladura que multiplica a cor do que já está embaixo sem nunca passar de 70% da cor da tinta (um
+// vermelho não vira preto). `strengthAt` é a opacidade do pixel; `blend` põe a tinta no destino.
+//
+// A cor sai do pixel como ele era ANTES do traço (`StrokeInkLedger`) e da cobertura que o traço já
+// alcançou: o miolo de um traço tem a cor da tinta, uma vez só; carimbo sobre carimbo não escurece.
+// Só um traço novo por cima multiplica a cor de novo (até o piso de 70%).
 class MarkerInk {
 public:
     MarkerInk(const utils::Dab& dab, const brush::BrushProfile& profile)
@@ -30,8 +36,11 @@ public:
     }
 
     // Expansão sutil de solvente de álcool no papel.
+    static double reachScale(const brush::BrushProfile& profile) {
+        return 1.0 + std::clamp(profile.markerParams.solventWetness, 0.0, 1.0) * 0.12;
+    }
     static double reach(const utils::Dab& dab, const brush::BrushProfile& profile) {
-        return dab.radius * (1.0 + std::clamp(profile.markerParams.solventWetness, 0.0, 1.0) * 0.12);
+        return dab.radius * reachScale(profile);
     }
 
     // 0 quando o pixel não recebe tinta.
@@ -60,36 +69,79 @@ public:
         return std::clamp(m_opacity * shape * edge * (1.0 - m_wetness * 0.2), 0.0, 1.0);
     }
 
-    // Veladura translúcida contínua sem colapso de cor. true quando o pixel mudou.
-    bool blend(utils::ColorRGBA& dst, double strength, bool alphaLocked) const {
-        if (alphaLocked) return absorbInto(dst, strength * 0.08, dst.a);
-        if (dst.a == 0) {
-            // Primeiro depósito: veladura translúcida da tinta do marcador
-            dst = utils::ColorRGBA{m_color.r, m_color.g, m_color.b, quantize(strength)};
-            return true;
+    // Veladura translúcida: o alfa acumula carimbo a carimbo; a cor vem da base do traço e da cobertura.
+    // true quando o pixel mudou.
+    bool blend(utils::ColorRGBA& dst, raster::StrokeInkLedger<utils::ColorRGBA>::Cell& cell, double strength, bool alphaLocked) const {
+        if (alphaLocked && dst.a == 0) return false;
+        const bool firstTouch = cell.coverage <= 0.0f;
+        if (firstTouch) cell.base = dst;
+        const double covered = firstTouch ? 0.0 : static_cast<double>(cell.coverage);
+        const double coverage = firstTouch ? strength : std::clamp(covered + strength * (1.0 - covered) * kBuildUp, 0.0, 1.0);
+        cell.coverage = static_cast<float>(coverage);
+
+        uint8_t alpha = dst.a;
+        if (!alphaLocked) {
+            const double dstA = static_cast<double>(dst.a) / 255.0;  // dst.a == 0: primeiro depósito
+            alpha = quantize(dst.a == 0 ? strength : std::clamp(dstA + strength * (1.0 - dstA) * kBuildUp, 0.0, 1.0));
         }
-        // Opacidade cumulativa suave do marcador
-        const double dstA = static_cast<double>(dst.a) / 255.0;
-        const double outA = std::clamp(dstA + strength * (1.0 - dstA) * 0.5, 0.0, 1.0);
-        // Absorção luminosa (Beer-Lambert modificada: saturação rica sem colapso de cor)
-        return absorbInto(dst, strength * 0.06, quantize(outA));
-    }
-
-private:
-    static uint8_t quantize(double unit) { return static_cast<uint8_t>(std::clamp(unit * 255.0, 0.0, 255.0)); }
-
-    bool absorbInto(utils::ColorRGBA& dst, double absorb, uint8_t alpha) const {
-        if (dst.a == 0) return false;
-        const double dstR = static_cast<double>(dst.r) / 255.0;
-        const double dstG = static_cast<double>(dst.g) / 255.0;
-        const double dstB = static_cast<double>(dst.b) / 255.0;
+        const double baseAlpha = static_cast<double>(cell.base.a) / 255.0;
         dst = utils::ColorRGBA{
-            quantize(std::max(m_minR, dstR * (1.0 - absorb * (1.0 - m_srcR)))),
-            quantize(std::max(m_minG, dstG * (1.0 - absorb * (1.0 - m_srcG)))),
-            quantize(std::max(m_minB, dstB * (1.0 - absorb * (1.0 - m_srcB)))),
+            inked(cell.base.r, m_srcR, m_minR, baseAlpha, coverage),
+            inked(cell.base.g, m_srcG, m_minG, baseAlpha, coverage),
+            inked(cell.base.b, m_srcB, m_minB, baseAlpha, coverage),
             alpha
         };
         return true;
+    }
+
+    bool blend16(utils::ColorRGBA16& dst, raster::StrokeInkLedger<utils::ColorRGBA16>::Cell& cell, double strength, bool alphaLocked) const {
+        if (alphaLocked && dst.a == 0) return false;
+        const bool firstTouch = cell.coverage <= 0.0f;
+        if (firstTouch) cell.base = dst;
+        const double covered = firstTouch ? 0.0 : static_cast<double>(cell.coverage);
+        const double coverage = firstTouch ? strength : std::clamp(covered + strength * (1.0 - covered) * kBuildUp, 0.0, 1.0);
+        cell.coverage = static_cast<float>(coverage);
+
+        uint16_t alpha = dst.a;
+        if (!alphaLocked) {
+            const double dstA = static_cast<double>(dst.a) / 65535.0;
+            alpha = quantize16(dst.a == 0 ? strength : std::clamp(dstA + strength * (1.0 - dstA) * kBuildUp, 0.0, 1.0));
+        }
+        const double baseAlpha = static_cast<double>(cell.base.a) / 65535.0;
+        dst = utils::ColorRGBA16{
+            inked16(cell.base.r, m_srcR, m_minR, baseAlpha, coverage),
+            inked16(cell.base.g, m_srcG, m_minG, baseAlpha, coverage),
+            inked16(cell.base.b, m_srcB, m_minB, baseAlpha, coverage),
+            alpha
+        };
+        return true;
+    }
+
+private:
+    // Quanto do alfa novo vem de cada carimbo depois do primeiro (o marcador deposita devagar).
+    static constexpr double kBuildUp = 0.5;
+
+    static uint8_t quantize(double unit) { return utils::MathUtils::unitToByte(unit); }
+    static uint16_t quantize16(double unit) {
+        return static_cast<uint16_t>(std::clamp(std::lround(unit * 65535.0), 0L, 65535L));
+    }
+
+    // Um canal da cor: sobre pixel sem tinta a cor é a da tinta (o alfa leva a cobertura); sobre tinta ou
+    // papel, a tinta multiplica a base (com o piso) e a cobertura decide quanto disso aparece.
+    static uint8_t inked(uint8_t base, double ink, double floor, double baseAlpha, double coverage) {
+        if (baseAlpha <= 0.0) return quantize(ink);
+        const double under = static_cast<double>(base) / 255.0;
+        const double glaze = std::max(floor, under * ink);
+        const double target = ink + (glaze - ink) * baseAlpha;
+        return quantize(under + (target - under) * coverage);
+    }
+
+    static uint16_t inked16(uint16_t base, double ink, double floor, double baseAlpha, double coverage) {
+        if (baseAlpha <= 0.0) return quantize16(ink);
+        const double under = static_cast<double>(base) / 65535.0;
+        const double glaze = std::max(floor, under * ink);
+        const double target = ink + (glaze - ink) * baseAlpha;
+        return quantize16(under + (target - under) * coverage);
     }
 
     utils::ColorRGBA m_color;
@@ -104,6 +156,10 @@ private:
 
 } // namespace
 
+double MarkerEngine::reachScale(const brush::BrushProfile& profile) const noexcept {
+    return MarkerInk::reachScale(profile);
+}
+
 void MarkerEngine::renderDab(
     const utils::Dab& dab,
     const brush::BrushProfile& profile,
@@ -113,17 +169,27 @@ void MarkerEngine::renderDab(
 ) {
     if (dab.radius <= 0.0 || dab.color.a == 0) return;
 
-    const double aspect = std::max(0.05, profile.tip.aspectRatio);
+    const double aspect = raster::tipAspect(dab);
     const raster::DabFootprint footprint(dab, MarkerInk::reach(dab, profile), aspect, tileGrid);
     if (footprint.empty()) return;
 
     const MarkerInk ink(dab, profile);
     const raster::PixelPermission permission(ctx);
-    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
-        double strength = ink.strengthAt(pixel);
-        if (strength <= 0.0 || !permission.apply(pixel.gx, pixel.gy, strength) || strength <= 0.0) return false;
-        return ink.blend(dst, strength, ctx.alphaLocked);
-    });
+    if (tileGrid.getFormat() == canvas::PixelFormat::RGBA16) {
+        m_ledger16.prepare(footprint.bounds(), tileGrid);
+        footprint.forEachPixel<utils::ColorRGBA16>(6, [&](utils::ColorRGBA16& dst, const raster::DabPixel& pixel) {
+            double strength = ink.strengthAt(pixel);
+            if (strength <= 0.0 || !permission.apply(pixel.gx, pixel.gy, strength) || strength <= 0.0) return false;
+            return ink.blend16(dst, m_ledger16.at(pixel.gx, pixel.gy), strength, ctx.alphaLocked);
+        });
+    } else {
+        m_ledger.prepare(footprint.bounds(), tileGrid);
+        footprint.forEachPixel<utils::ColorRGBA>(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+            double strength = ink.strengthAt(pixel);
+            if (strength <= 0.0 || !permission.apply(pixel.gx, pixel.gy, strength) || strength <= 0.0) return false;
+            return ink.blend(dst, m_ledger.at(pixel.gx, pixel.gy), strength, ctx.alphaLocked);
+        });
+    }
 }
 
 } // namespace aladyn::engine::engines

@@ -1,4 +1,5 @@
 #include "PencilEngine.hpp"
+#include "../raster/BrushGrain.hpp"
 #include "../raster/DabFootprint.hpp"
 #include "../raster/LargeBrushOptimizer.hpp"
 #include "../raster/PixelPermission.hpp"
@@ -16,7 +17,7 @@ namespace {
 class GraphiteDeposit {
 public:
     GraphiteDeposit(const utils::Dab& dab, const brush::BrushProfile& profile, const canvas::CanvasTexture& paper)
-        : m_profile(profile), m_paper(paper),
+        : m_profile(profile), m_paper(paper), m_grain(profile),
           m_radius(dab.radius),
           m_safeRadius(std::max(0.001, dab.radius)),
           m_baseAlpha((static_cast<double>(dab.color.a) / 255.0) * dab.opacity) {
@@ -38,7 +39,7 @@ public:
         const double globalX = static_cast<double>(pixel.gx) + 0.5;
         const double globalY = static_cast<double>(pixel.gy) + 0.5;
         const double paperHeight = paperRelief(globalX, globalY);
-        const double combined = graphiteRelief(u, v) * (paperHeight * paperHeight);
+        const double combined = m_grain.height(pixel, u, v) * (paperHeight * paperHeight);
         const double ink = utils::MathUtils::smoothstep(m_threshold - 0.14, m_threshold + 0.14, combined);
 
         // Subpixel anti-aliasing na borda extrema do dab
@@ -54,16 +55,6 @@ private:
         const double hardSpan = std::clamp(m_profile.hardness, 0.0, 0.99) * m_safeRadius;
         if (dist <= hardSpan) return 1.0;
         return raster::LargeBrushOptimizer::smoothHermite((m_safeRadius - dist) / std::max(0.001, m_safeRadius - hardSpan));
-    }
-
-    // Textura de altura do grafite, móvel com o dab.
-    double graphiteRelief(double u, double v) const {
-        if (!(m_profile.brushGrainEnabled && m_profile.brushHeightTexture)) return 1.0;
-        double height = m_profile.brushHeightTexture->sampleNormalized(
-            u * m_profile.brushGrainScale, v * m_profile.brushGrainScale, texture::TextureWrapMode::Repeat);
-        if (m_profile.brushGrainInvert) height = 1.0 - height;
-        height = withContrast(height, m_profile.brushGrainContrast);
-        return m_profile.brushTextureCurve.sample(height);
     }
 
     // Textura de altura do papel, fixa no canvas (central no lápis).
@@ -85,6 +76,7 @@ private:
 
     const brush::BrushProfile& m_profile;
     const canvas::CanvasTexture& m_paper;
+    raster::BrushGrain m_grain;  // o relevo do grafite: móvel com o dab ou fixo no canvas, conforme o modo do grão
     double m_radius;
     double m_safeRadius;
     double m_baseAlpha;
@@ -103,17 +95,26 @@ void PencilEngine::renderDab(
 ) {
     if (dab.radius <= 0.0 || dab.color.a == 0) return;
 
-    const double aspect = std::max(0.05, profile.tip.aspectRatio);
+    const double aspect = raster::tipAspect(dab);
     const raster::DabFootprint footprint(dab, dab.radius, aspect, tileGrid);
     if (footprint.empty()) return;
 
     const GraphiteDeposit graphite(dab, profile, canvasTexture);
     const raster::PixelPermission permission(ctx);
-    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
-        double alpha = graphite.alphaAt(pixel);
-        if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
-        return raster::straightOver(dst, dab.color, alpha, ctx.alphaLocked);
-    });
+    if (tileGrid.getFormat() == canvas::PixelFormat::RGBA16) {
+        const utils::ColorRGBA16 color16 = canvas::widen(dab.color);
+        footprint.forEachPixel<utils::ColorRGBA16>(6, [&](utils::ColorRGBA16& dst, const raster::DabPixel& pixel) {
+            double alpha = graphite.alphaAt(pixel);
+            if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
+            return raster::straightOver(dst, color16, alpha, ctx.alphaLocked);
+        });
+    } else {
+        footprint.forEachPixel<utils::ColorRGBA>(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+            double alpha = graphite.alphaAt(pixel);
+            if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
+            return raster::straightOver(dst, dab.color, alpha, ctx.alphaLocked);
+        });
+    }
 }
 
 } // namespace aladyn::engine::engines

@@ -5,6 +5,7 @@
 #include <random>
 #include <cstring>
 #include <limits>
+#include <exception>
 
 #ifdef _WIN32
 #include <process.h>
@@ -65,7 +66,16 @@ bool ScratchDiskManager::ensureFileOpen() {
         // e o historico passava a ser podado em vez de paginado. Toda operacao usa o `path`; a `string` e' so a
         // leitura que `getFilePath()` entrega.
         m_path = fullPath;
-        m_filePath = fullPath.string();
+        // `path::string()` LANCA (system_error, ERROR_NO_UNICODE_TRANSLATION) no MSVC quando o caminho tem caractere fora
+        // da pagina ANSI. Estava dentro do `try`: o `catch (...)` devolvia false e o disco de rascunho ficava desligado em
+        // silencio justamente na pasta que este conserto devia atender (achado no Windows, 2026-10-01). Nesse caso a
+        // leitura de `getFilePath()` vira UTF-8; quem abre o arquivo continua usando `m_path`.
+        try {
+            m_filePath = fullPath.string();
+        } catch (const std::exception&) {
+            const auto utf8 = fullPath.u8string();
+            m_filePath.assign(reinterpret_cast<const char*>(utf8.data()), utf8.size());
+        }
 
         m_file.open(m_path, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
         if (!m_file.is_open()) {

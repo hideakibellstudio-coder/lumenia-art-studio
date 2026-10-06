@@ -30,7 +30,8 @@ static void renderDabsPipeline(
     uint32_t* outDabsRendered,
     telemetry::StageMetrics* outStages,
     bool performComposite,
-    double timeInterpolationUs
+    double timeInterpolationUs,
+    raster::StrokeOpacityMix* strokeMix
 ) {
     document::Layer* activeLayer = layerStack.getActiveLayer();
     if (!activeLayer || activeLayer->isLocked() || activeLayer->isGroup() || activeLayer->isFilter()) {
@@ -40,8 +41,8 @@ static void renderDabsPipeline(
 
     // Clipping Mask é 100% não-destrutivo: a grade de tiles armazena o traço completo.
     // O recorte é aplicado dinamicamente pelo Compositor durante a renderização.
-    const raster::PixelContext pCtx{ activeLayer->isAlphaLocked(), nullptr, &selectionMask, nullptr };
-    auto& grid = activeLayer->getTileGrid();
+    const raster::PixelContext pCtx{ activeLayer->isMaskEditTarget() ? false : activeLayer->isAlphaLocked(), nullptr, &selectionMask, nullptr };
+    auto& grid = activeLayer->getTargetGrid();
     const int activeIdx = layerStack.getActiveIndex();
 
     static thread_local std::mt19937 rng(777);
@@ -49,6 +50,8 @@ static void renderDabsPipeline(
 
     double boundMinX = 1e9, boundMaxX = -1e9;
     double boundMinY = 1e9, boundMaxY = -1e9;
+    // A área suja cobre tudo o que o motor toca; a aquarela molhada passa do raio do dab (1,4x).
+    const double reachScale = activeEngine ? std::max(1.0, activeEngine->reachScale(brushProfile)) : 1.0;
 
     std::vector<utils::Dab> finalDabs;
     finalDabs.reserve(interpolatedDabs.size() * (symmetryConfig.mode == math::SymmetryMode::None ? 1 : 8));
@@ -68,7 +71,7 @@ static void renderDabsPipeline(
                 math::SymmetryEngine::apply(symmetryConfig, renderDab, strokeStart, symDabs);
                 for (const auto& sd : symDabs) {
                     finalDabs.push_back(sd);
-                    const double dabPad = sd.radius + 2.5;
+                    const double dabPad = sd.radius * reachScale + 2.5;
                     boundMinX = std::min(boundMinX, sd.position.x - dabPad);
                     boundMaxX = std::max(boundMaxX, sd.position.x + dabPad);
                     boundMinY = std::min(boundMinY, sd.position.y - dabPad);
@@ -76,7 +79,7 @@ static void renderDabsPipeline(
                 }
             } else {
                 finalDabs.push_back(renderDab);
-                const double dabPad = renderDab.radius + 2.5;
+                const double dabPad = renderDab.radius * reachScale + 2.5;
                 boundMinX = std::min(boundMinX, renderDab.position.x - dabPad);
                 boundMaxX = std::max(boundMaxX, renderDab.position.x + dabPad);
                 boundMinY = std::min(boundMinY, renderDab.position.y - dabPad);
@@ -100,8 +103,8 @@ static void renderDabsPipeline(
     const int startTileY = static_cast<int>(std::floor(boundMinY / canvas::Tile::TILE_SIZE));
     const int endTileY   = static_cast<int>(std::floor(boundMaxY / canvas::Tile::TILE_SIZE));
 
-    static const uint8_t s_emptyTileData[canvas::Tile::TILE_SIZE * canvas::Tile::TILE_SIZE * sizeof(utils::ColorRGBA)] = {0};
-    constexpr size_t s_emptyTileBytes = sizeof(s_emptyTileData);
+    const uint8_t* emptyTileData = canvas::zeroTileData();
+    const size_t emptyTileBytes = canvas::Tile::bytesFor(grid.getFormat());
 
     auto tUndo0 = std::chrono::high_resolution_clock::now();
     uint32_t tilesCount = 0;
@@ -113,20 +116,26 @@ static void renderDabsPipeline(
                 const auto& buf = tile->getBuffer();
                 undoManager.recordTileBefore(activeIdx, tx, ty, buf.getData(), buf.getSizeInBytes());
             } else {
-                undoManager.recordTileBefore(activeIdx, tx, ty, s_emptyTileData, s_emptyTileBytes);
+                undoManager.recordTileBefore(activeIdx, tx, ty, emptyTileData, emptyTileBytes);
             }
         }
     }
     auto tUndo1 = std::chrono::high_resolution_clock::now();
 
+    // Opacidade < 100%: o motor pinta na cópia de trabalho e a camada recebe a mistura base <-> trabalho
+    // (o teto do traço). A cópia só vale para a camada em que o traço começou.
+    const bool capped = strokeMix && strokeMix->active() && strokeMix->layerIndex() == activeIdx;
+    canvas::TileGrid& target = capped ? strokeMix->work() : grid;
+
     auto tRaster0 = std::chrono::high_resolution_clock::now();
     for (const auto& rDab : finalDabs) {
         if (activeEngine) {
-            activeEngine->renderDab(rDab, brushProfile, canvasTexture, grid, pCtx);
+            activeEngine->renderDab(rDab, brushProfile, canvasTexture, target, pCtx);
         } else {
-            raster::DabRenderer::renderDab(rDab, brushProfile, canvasTexture, grid, pCtx);
+            raster::DabRenderer::renderDab(rDab, brushProfile, canvasTexture, target, pCtx);
         }
     }
+    if (capped) strokeMix->mergeInto(grid, startTileX, startTileY, endTileX, endTileY);
     auto tRaster1 = std::chrono::high_resolution_clock::now();
 
     const utils::Rect2D dirtyBounds{
@@ -179,7 +188,8 @@ void StrokeOrchestrator::renderSegment(
     utils::Rect2D* outDirtyBounds,
     uint32_t* outDabsRendered,
     telemetry::StageMetrics* outStages,
-    bool performComposite
+    bool performComposite,
+    raster::StrokeOpacityMix* strokeMix
 ) {
     auto tInterp0 = std::chrono::high_resolution_clock::now();
     const auto interpolatedDabs = raster::DabInterpolator::interpolate(
@@ -192,7 +202,7 @@ void StrokeOrchestrator::renderSegment(
         interpolatedDabs, brushProfile, canvasTexture, activeEngine, layerStack,
         selectionMask, undoManager, compositor, outputBuffer, bgColor,
         symmetryConfig, strokeStart, outDirtyBounds, outDabsRendered, outStages,
-        performComposite, timeInterpUs
+        performComposite, timeInterpUs, strokeMix
     );
 }
 
@@ -218,7 +228,7 @@ void StrokeOrchestrator::renderSplineSegment(
         interpolatedDabs, ctx.brushProfile, ctx.canvasTexture, ctx.activeEngine, ctx.layerStack,
         ctx.selectionMask, ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
         ctx.symmetryConfig, &ctx.strokeStartPoint, outDirtyBounds, outDabsRendered, outStages,
-        performComposite, timeInterpUs
+        performComposite, timeInterpUs, &ctx.strokeMix
     );
 }
 

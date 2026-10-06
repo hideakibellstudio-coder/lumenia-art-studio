@@ -3,12 +3,14 @@
 
 namespace aladyn::engine::document::internal {
 
-LayerCompositePass::LayerCompositePass(
+template <typename Pixel>
+LayerCompositePass<Pixel>::LayerCompositePass(
     canvas::PixelBuffer& outputBuffer, const RegionBounds& bounds, bool linearGamma, bool deepColor
 )
     : m_outputBuffer(outputBuffer), m_bounds(bounds), m_blender(outputBuffer, bounds, linearGamma, deepColor) {}
 
-void LayerCompositePass::add(const Layer* layer, const ScratchOverlay* scratch) {
+template <typename Pixel>
+void LayerCompositePass<Pixel>::add(const Layer* layer, const ScratchOverlay* scratch) {
     if (!layer || !layer->isVisible() || layer->getEffectiveOpacity() <= 0.0) return;
 
     enterGroupOf(layer);
@@ -19,12 +21,14 @@ void LayerCompositePass::add(const Layer* layer, const ScratchOverlay* scratch) 
     composeLayer(*layer, scratch);
 }
 
-void LayerCompositePass::finish() {
+template <typename Pixel>
+void LayerCompositePass<Pixel>::finish() {
     if (m_activeGroup != nullptr) m_blender.blendGroupToDestination(m_activeGroup);
 }
 
 // Ao mudar de grupo isolado, funde o anterior no destino e abre o novo.
-void LayerCompositePass::enterGroupOf(const Layer* layer) {
+template <typename Pixel>
+void LayerCompositePass<Pixel>::enterGroupOf(const Layer* layer) {
     const Layer* isolatedGroup = getIsolatedGroupAncestor(layer);
     if (isolatedGroup == m_activeGroup) return;
     if (m_activeGroup != nullptr) m_blender.blendGroupToDestination(m_activeGroup);
@@ -32,7 +36,8 @@ void LayerCompositePass::enterGroupOf(const Layer* layer) {
     m_activeGroup = isolatedGroup;
 }
 
-void LayerCompositePass::applyFilter(const FilterLayer& filter) {
+template <typename Pixel>
+void LayerCompositePass<Pixel>::applyFilter(const FilterLayer& filter) {
     if (m_activeGroup != nullptr) {
         m_blender.applyFilterToGroup(filter);
     } else {
@@ -40,16 +45,21 @@ void LayerCompositePass::applyFilter(const FilterLayer& filter) {
     }
 }
 
-void LayerCompositePass::composeLayer(const Layer& layer, const ScratchOverlay* scratch) {
+template <typename Pixel>
+void LayerCompositePass<Pixel>::composeLayer(const Layer& layer, const ScratchOverlay* scratch) {
     const bool toGroup = m_activeGroup != nullptr;
     const double opacity = toGroup ? getRelativeOpacity(&layer, m_activeGroup) : layer.getEffectiveOpacity();
     const Layer* clipBase = resolveClipBase(layer);
+    const canvas::TileGrid* maskGrid = (layer.hasMask() && layer.isMaskEnabled()) ? layer.getMaskGrid() : nullptr;
 
-    m_blender.composeTileGrid(layer.getTileGrid(), opacity, layer.getBlendMode(), clipBase, toGroup);
+    m_blender.composeTileGrid(layer.getTileGrid(), opacity, layer.getBlendMode(), clipBase, maskGrid, toGroup);
 
     if (scratch != nullptr && &layer == scratch->target && scratch->opacity > 0.0) {
-        m_blender.composeTileGrid(scratch->grid, scratch->opacity, scratch->mode, clipBase, toGroup);
+        m_blender.composeTileGrid(scratch->grid, scratch->opacity, scratch->mode, clipBase, maskGrid, toGroup);
     }
 }
+
+template class LayerCompositePass<utils::ColorRGBA>;
+template class LayerCompositePass<utils::ColorRGBA16>;
 
 } // namespace aladyn::engine::document::internal

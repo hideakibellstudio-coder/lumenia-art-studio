@@ -2,7 +2,10 @@
 #define ALADYN_ENGINE_STRAIGHT_OVER_HPP
 
 #include "../../utils/ColorRGBA.hpp"
+#include "../../utils/ColorRGBA16.hpp"
+#include "../../utils/MathUtils.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 namespace aladyn::engine::raster {
@@ -23,9 +26,9 @@ namespace aladyn::engine::raster {
         const double denominator = strength + dstA * inverse;
         if (denominator <= 0.0) return false;
         dst = utils::ColorRGBA{
-            static_cast<uint8_t>(std::clamp((color.r * strength + dst.r * dstA * inverse) / denominator, 0.0, 255.0)),
-            static_cast<uint8_t>(std::clamp((color.g * strength + dst.g * dstA * inverse) / denominator, 0.0, 255.0)),
-            static_cast<uint8_t>(std::clamp((color.b * strength + dst.b * dstA * inverse) / denominator, 0.0, 255.0)),
+            utils::MathUtils::roundToByte((color.r * strength + dst.r * dstA * inverse) / denominator),
+            utils::MathUtils::roundToByte((color.g * strength + dst.g * dstA * inverse) / denominator),
+            utils::MathUtils::roundToByte((color.b * strength + dst.b * dstA * inverse) / denominator),
             dst.a
         };
         return true;
@@ -34,10 +37,44 @@ namespace aladyn::engine::raster {
     const double outA = strength + dstA * inverse;
     if (outA <= 0.0) return false;
     dst = utils::ColorRGBA{
-        static_cast<uint8_t>(std::clamp((color.r * strength + dst.r * dstA * inverse) / outA, 0.0, 255.0)),
-        static_cast<uint8_t>(std::clamp((color.g * strength + dst.g * dstA * inverse) / outA, 0.0, 255.0)),
-        static_cast<uint8_t>(std::clamp((color.b * strength + dst.b * dstA * inverse) / outA, 0.0, 255.0)),
-        static_cast<uint8_t>(std::clamp(outA * 255.0, 0.0, 255.0))
+        utils::MathUtils::roundToByte((color.r * strength + dst.r * dstA * inverse) / outA),
+        utils::MathUtils::roundToByte((color.g * strength + dst.g * dstA * inverse) / outA),
+        utils::MathUtils::roundToByte((color.b * strength + dst.b * dstA * inverse) / outA),
+        utils::MathUtils::roundToByte(outA * 255.0)
+    };
+    return true;
+}
+
+[[nodiscard]] inline bool straightOver(
+    utils::ColorRGBA16& dst, utils::ColorRGBA16 color, double strength, bool alphaLocked
+) noexcept {
+    const double dstA = static_cast<double>(dst.a) / 65535.0;
+    const double inverse = 1.0 - strength;
+
+    const auto roundToWord = [](double val) noexcept -> uint16_t {
+        return static_cast<uint16_t>(std::clamp(std::lround(val), 0L, 65535L));
+    };
+
+    if (alphaLocked) {
+        if (dst.a == 0) return false;
+        const double denominator = strength + dstA * inverse;
+        if (denominator <= 0.0) return false;
+        dst = utils::ColorRGBA16{
+            roundToWord((color.r * strength + dst.r * dstA * inverse) / denominator),
+            roundToWord((color.g * strength + dst.g * dstA * inverse) / denominator),
+            roundToWord((color.b * strength + dst.b * dstA * inverse) / denominator),
+            dst.a
+        };
+        return true;
+    }
+
+    const double outA = strength + dstA * inverse;
+    if (outA <= 0.0) return false;
+    dst = utils::ColorRGBA16{
+        roundToWord((color.r * strength + dst.r * dstA * inverse) / outA),
+        roundToWord((color.g * strength + dst.g * dstA * inverse) / outA),
+        roundToWord((color.b * strength + dst.b * dstA * inverse) / outA),
+        roundToWord(outA * 65535.0)
     };
     return true;
 }

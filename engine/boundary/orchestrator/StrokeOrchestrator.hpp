@@ -10,8 +10,11 @@
 #include "../../core/selection/SelectionMask.hpp"
 #include "../../core/engines/IBrushEngine.hpp"
 #include "../../core/math/SymmetryEngine.hpp"
+#include "../../core/raster/StrokeOpacityMix.hpp"
 #include "../../core/stroke/VelocityTracker.hpp"
 #include "../../core/stroke/DynamicStabilizer.hpp"
+#include "../../core/stroke/PenPose.hpp"
+#include "../../core/stroke/PressureCalibration.hpp"
 #include "../../core/stroke/PointerEvent.hpp"
 #include "../../infrastructure/telemetry/EngineTelemetry.hpp"
 #include <functional>
@@ -46,8 +49,10 @@ struct RawStrokeContext {
     double& timeCarryover;
     double& lastTimestamp;
     utils::Dab& lastDab;
+    stroke::PenPose& lastPose;
     stroke::VelocityTracker& velocityTracker;
     stroke::DynamicStabilizer& stabilizer;
+    const stroke::PressureCalibration& pressureCalibration;
     const brush::BrushProfile& brushProfile;
     const canvas::CanvasTexture& canvasTexture;
     engines::IBrushEngine* activeEngine;
@@ -56,6 +61,7 @@ struct RawStrokeContext {
     history::TileUndoManager& undoManager;
     document::Compositor& compositor;
     canvas::PixelBuffer& outputBuffer;
+    raster::StrokeOpacityMix& strokeMix;
     const math::SymmetryConfig& symmetryConfig;
     telemetry::EngineTelemetryManager& telemetryManager;
     bool lowLatency{false};
@@ -85,7 +91,8 @@ public:
         utils::Rect2D* outDirtyBounds = nullptr,
         uint32_t* outDabsRendered = nullptr,
         telemetry::StageMetrics* outStages = nullptr,
-        bool performComposite = true
+        bool performComposite = true,
+        raster::StrokeOpacityMix* strokeMix = nullptr
     );
 
     static void renderSplineSegment(

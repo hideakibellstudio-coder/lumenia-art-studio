@@ -21,6 +21,8 @@ struct BrushTip {
     bool   useTwistForAngle{false}; // Ângulo sincronizado com Barrel Roll / Twist da caneta
     double tiltToAngle{0.0};        // Modulação de rotação por azimute de inclinação (0.0 a 1.0)
     double tiltToAspect{0.0};       // Achatamento da ponta conforme caneta se deita (0.0 a 1.0)
+    double tiltToSize{0.0};         // Crescimento do tamanho conforme a caneta se deita: 1.0 dobra o diâmetro (0.0 a 1.0)
+    double tiltToFlow{0.0};         // Perda de fluxo conforme a caneta se deita: 1.0 apaga com a caneta deitada (0.0 a 1.0)
 };
 
 } // namespace aladyn::engine::brush

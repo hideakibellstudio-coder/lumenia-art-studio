@@ -8,16 +8,20 @@
 
 namespace aladyn::engine::boundary::orchestrator {
 
-std::vector<uint8_t> RasterExportOrchestrator::getLayerPixelBuffer(
-    const document::LayerStack& stack, int layerIndex, int width, int height
-) {
-    const auto* layer = stack.getDrawingLayer(layerIndex);
-    if (!layer || layer->isGroup() || layer->isFilter()) return {};
+namespace {
 
-    std::vector<uint8_t> out(static_cast<size_t>(width) * static_cast<size_t>(height) * 4u, 0u);
-    const auto& grid = layer->getTileGrid();
+// A camada que tem pixels para ler, ou nullptr (grupo, filtro, indice fora da pilha).
+const document::Layer* pixelLayer(const document::LayerStack& stack, int layerIndex) {
+    const auto* layer = stack.getDrawingLayer(layerIndex);
+    return (!layer || layer->isGroup() || layer->isFilter()) ? nullptr : layer;
+}
+
+// Passa por cada tile da camada que cai dentro de width x height, com a leitura dele (um tile comprimido segue
+// comprimido: ler a camada para fora nao o descomprime de vez) e o retangulo dele recortado ao canvas.
+template <typename Visit>
+void forEachTileInCanvas(const canvas::TileGrid& grid, int width, int height, Visit&& visit) {
+    canvas::PixelBuffer scratch(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, grid.getFormat(), utils::ColorRGBA{0, 0, 0, 0});
     grid.forEachTile([&](const canvas::TileIndex&, const canvas::Tile& tile) {
-        const auto& src = tile.getBuffer();
         const int baseX = tile.getPixelX();
         const int baseY = tile.getPixelY();
         const int minX = std::max(0, baseX);
@@ -25,19 +29,56 @@ std::vector<uint8_t> RasterExportOrchestrator::getLayerPixelBuffer(
         const int maxX = std::min(width, baseX + canvas::Tile::TILE_SIZE);
         const int maxY = std::min(height, baseY + canvas::Tile::TILE_SIZE);
         if (minX >= maxX || minY >= maxY) return;
+        visit(tile.view(scratch), baseX, baseY, minX, maxX, minY, maxY);
+    });
+}
 
-        const auto* srcData = reinterpret_cast<const uint8_t*>(src.getData());
+} // namespace
+
+std::vector<uint8_t> RasterExportOrchestrator::getLayerPixelBuffer(
+    const document::LayerStack& stack, int layerIndex, int width, int height
+) {
+    const auto* layer = pixelLayer(stack, layerIndex);
+    if (!layer) return {};
+
+    std::vector<uint8_t> out(static_cast<size_t>(width) * static_cast<size_t>(height) * 4u, 0u);
+    forEachTileInCanvas(layer->getTileGrid(), width, height, [&](const canvas::PixelBuffer& src, int baseX, int baseY, int minX, int maxX, int minY, int maxY) {
+        const size_t rowPixels = static_cast<size_t>(maxX - minX);
         for (int y = minY; y < maxY; ++y) {
-            const int localY = y - baseY;
-            for (int x = minX; x < maxX; ++x) {
-                const int localX = x - baseX;
-                const size_t srcOffset = static_cast<size_t>(localY * canvas::Tile::TILE_SIZE + localX) * 4u;
-                const size_t dstOffset = static_cast<size_t>(y * width + x) * 4u;
-                std::memcpy(out.data() + dstOffset, srcData + srcOffset, 4u);
+            const size_t srcPixel = static_cast<size_t>(y - baseY) * canvas::Tile::TILE_SIZE + static_cast<size_t>(minX - baseX);
+            uint8_t* dstRow = out.data() + (static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(minX)) * 4u;
+            if (src.getFormat() == canvas::PixelFormat::RGBA16) {
+                const utils::ColorRGBA16* in = src.pixels<utils::ColorRGBA16>() + srcPixel;
+                utils::ColorRGBA* narrowed = reinterpret_cast<utils::ColorRGBA*>(dstRow);
+                for (size_t i = 0; i < rowPixels; ++i) narrowed[i] = canvas::narrow(in[i]);
+            } else {
+                std::memcpy(dstRow, src.getData() + srcPixel * 4u, rowPixels * 4u);
             }
         }
     });
     return out;
+}
+
+void RasterExportOrchestrator::copyLayerPixels16(
+    const document::LayerStack& stack, int layerIndex, int width, int height, uint8_t* dst, size_t dstSize
+) {
+    const auto* layer = pixelLayer(stack, layerIndex);
+    if (!layer || layer->getTileGrid().getFormat() != canvas::PixelFormat::RGBA16) {
+        throw std::invalid_argument("layer has no 16-bit pixels to read");
+    }
+    const size_t pixelBytes = canvas::bytesPerPixel(canvas::PixelFormat::RGBA16);
+    if (!dst || dstSize != static_cast<size_t>(width) * static_cast<size_t>(height) * pixelBytes) {
+        throw std::invalid_argument("16-bit layer buffer does not match the canvas size");
+    }
+    std::memset(dst, 0, dstSize);
+    forEachTileInCanvas(layer->getTileGrid(), width, height, [&](const canvas::PixelBuffer& src, int baseX, int baseY, int minX, int maxX, int minY, int maxY) {
+        const size_t rowBytes = static_cast<size_t>(maxX - minX) * pixelBytes;
+        for (int y = minY; y < maxY; ++y) {
+            const size_t srcOffset = (static_cast<size_t>(y - baseY) * canvas::Tile::TILE_SIZE + static_cast<size_t>(minX - baseX)) * pixelBytes;
+            const size_t dstOffset = (static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(minX)) * pixelBytes;
+            std::memcpy(dst + dstOffset, src.getData() + srcOffset, rowBytes);
+        }
+    });
 }
 
 std::vector<uint8_t> RasterExportOrchestrator::getLayerThumbnailBuffer(
@@ -56,6 +97,10 @@ std::vector<uint8_t> RasterExportOrchestrator::getLayerThumbnailBuffer(
 
     float scaleX = static_cast<float>(srcW) / thumbW;
     float scaleY = static_cast<float>(srcH) / thumbH;
+    // Pixels vizinhos da miniatura caem quase sempre no mesmo tile: guarda a leitura do último, sem descomprimi-lo de vez.
+    canvas::PixelBuffer scratch(canvas::Tile::TILE_SIZE, canvas::Tile::TILE_SIZE, grid.getFormat(), utils::ColorRGBA{0, 0, 0, 0});
+    const canvas::Tile* lastTile = nullptr;
+    const canvas::PixelBuffer* lastPixels = nullptr;
 
     for (int dy = 0; dy < thumbH; ++dy) {
         int sy = static_cast<int>(dy * scaleY);
@@ -70,7 +115,11 @@ std::vector<uint8_t> RasterExportOrchestrator::getLayerThumbnailBuffer(
             int localY = sy % canvas::Tile::TILE_SIZE;
 
             const auto* tile = const_cast<canvas::TileGrid&>(grid).getTile(tileX, tileY);
-            utils::ColorRGBA px = tile ? tile->getBuffer().getPixel(localX, localY) : utils::ColorRGBA{0, 0, 0, 0};
+            if (tile && tile != lastTile) {
+                lastPixels = &tile->view(scratch);
+                lastTile = tile;
+            }
+            utils::ColorRGBA px = tile ? lastPixels->getPixel(localX, localY) : utils::ColorRGBA{0, 0, 0, 0};
 
             size_t outIdx = static_cast<size_t>((dy * thumbW + dx) * 4);
             out[outIdx + 0] = px.r;
@@ -113,10 +162,16 @@ void RasterExportOrchestrator::applyColorProfile(uint8_t* targetBuffer, size_t n
     );
 }
 
+void RasterExportOrchestrator::ensureDisplayBuffer(const canvas::PixelBuffer& outputBuffer, canvas::PixelBuffer& displayBuffer) {
+    if (displayBuffer.getWidth() == outputBuffer.getWidth() && displayBuffer.getHeight() == outputBuffer.getHeight()) return;
+    displayBuffer.resize(outputBuffer.getWidth(), outputBuffer.getHeight(), utils::ColorRGBA{0, 0, 0, 0});
+}
+
 uint8_t* RasterExportOrchestrator::resolveDisplayBuffer(
     int colorProfileId, canvas::PixelBuffer& outputBuffer, canvas::PixelBuffer& displayBuffer
 ) {
     if (colorProfileId == 0) return outputBuffer.getData();
+    ensureDisplayBuffer(outputBuffer, displayBuffer);
     const size_t totalBytes = outputBuffer.getSizeInBytes();
     std::memcpy(displayBuffer.getData(), outputBuffer.getData(), totalBytes);
     applyColorProfile(displayBuffer.getData(), totalBytes / 4, colorProfileId);
@@ -145,20 +200,20 @@ void RasterExportOrchestrator::convertDisplayRegion(
 
 void RasterExportOrchestrator::copyBufferRegion(
     const uint8_t* src, int srcW, int srcH,
-    int x, int y, int w, int h, uint8_t* dst, size_t dstSize
+    int x, int y, int w, int h, uint8_t* dst, size_t dstSize, size_t pixelBytes
 ) {
     if (w <= 0 || h <= 0 || x < 0 || y < 0 || x > srcW - w || y > srcH - h) {
         throw std::invalid_argument("Display region lies outside the canvas");
     }
-    const size_t rowBytes = static_cast<size_t>(w) * 4u;
+    const size_t rowBytes = static_cast<size_t>(w) * pixelBytes;
     if (!src || !dst || dstSize != rowBytes * static_cast<size_t>(h)) {
         throw std::invalid_argument("Display region buffer does not match the region size");
     }
-    const size_t srcRowBytes = static_cast<size_t>(srcW) * 4u;
+    const size_t srcRowBytes = static_cast<size_t>(srcW) * pixelBytes;
     for (int row = 0; row < h; ++row) {
         std::memcpy(
             dst + static_cast<size_t>(row) * rowBytes,
-            src + static_cast<size_t>(y + row) * srcRowBytes + static_cast<size_t>(x) * 4u,
+            src + static_cast<size_t>(y + row) * srcRowBytes + static_cast<size_t>(x) * pixelBytes,
             rowBytes);
     }
 }

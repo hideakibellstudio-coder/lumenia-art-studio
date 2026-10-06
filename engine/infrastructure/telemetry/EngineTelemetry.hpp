@@ -60,11 +60,7 @@ struct RealTimeStrokeMetrics {
 
     // 🎨 Mini-Motor & SIMD
     int activeEngineId{0};               // ID do mini-motor em uso
-#if defined(__AVX2__)
-    bool simdActive{true};               // Compilado com AVX2 (SimdSpanBlender vetorizado)
-#else
-    bool simdActive{false};              // Build escalar (padrão de scripts/build_native.py)
-#endif
+    bool simdActive{false};              // O compositor usa AVX2 agora (quem monta o snapshot preenche: a CPU decide na hora de rodar, não o build)
 };
 
 class EngineTelemetryManager {

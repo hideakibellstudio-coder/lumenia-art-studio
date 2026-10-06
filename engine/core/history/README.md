@@ -11,14 +11,14 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `TileUndoManager.hpp` | Histórico por tile e por estrutura: `beginStep`/`recordTileBefore`/`commitStep`, `undo`/`redo`, limites de memória (declaração). |
-| `TileUndoManager.cpp` | Implementação: passos, compressão LZ4 e paginação para o disco de rascunho. |
-| `TileHistoryRestore.cpp` | Restauração de tiles a partir do histórico, alocando tudo antes de publicar o estado. |
+| `TileUndoManager.cpp` | Implementação: passos, compressão LZ4 e paginação para o disco de rascunho. O tamanho de um tile do passo é o do formato da camada (`Tile::bytesFor`), e o "antes" de um tile que não existia é `canvas::zeroTileData()`. |
+| `TileHistoryRestore.cpp` | Restauração de tiles a partir do histórico, alocando tudo antes de publicar o estado; um registro com o tamanho de tile de outro formato é recusado (`history_invalid_snapshot`), nunca escrito pela metade. |
 
 ## Regras
 
 - Alteração de pixel passa por `TileUndoManager::recordTileBefore` antes de escrever.
 - Veio de `canvas/` em 2026-09-25: o histórico conhece a pilha de camadas e a seleção, que ficam acima dos tiles.
-- Falhas de disco e de codec: `tests/native/history_faults.cpp`.
+- Falhas de disco e de codec: `tests/native/history_faults.cpp`. Histórico de tile e de estrutura de um documento de 16 bits: `tests/native/pixel_format_document_checks.cpp`.
 
 ## Dependências internas
 

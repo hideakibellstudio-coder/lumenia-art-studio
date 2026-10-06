@@ -1,6 +1,7 @@
 #ifndef ALADYN_ENGINE_CANVAS_LIMITS_HPP
 #define ALADYN_ENGINE_CANVAS_LIMITS_HPP
 
+#include "PixelFormat.hpp"
 #include <stdexcept>
 #include <string>
 
@@ -15,12 +16,21 @@ namespace aladyn::engine::canvas {
 // and never repeats the number.
 inline constexpr int kMaxCanvasDimension = 16384;
 
+// A 16-bit document is limited to 8192 px a side: its composite buffer is 8 bytes a pixel (512 MiB at the limit,
+// plus the 8-bit display buffer), and a 16384 x 16384 buffer would be 2^31 bytes, more than the bridge hands out in one
+// piece. An 8-bit document keeps 16384.
+inline constexpr int kMaxCanvasDimensionRgba16 = 8192;
+
+[[nodiscard]] constexpr int maxCanvasDimension(PixelFormat format) noexcept {
+    return format == PixelFormat::RGBA16 ? kMaxCanvasDimensionRgba16 : kMaxCanvasDimension;
+}
+
 // Returns `value` when it is a legal canvas side; throws std::invalid_argument
 // otherwise (the bridge turns it into ValueError). Called before any allocation.
-inline int checkedCanvasDimension(int value) {
-    if (value < 1 || value > kMaxCanvasDimension) {
+inline int checkedCanvasDimension(int value, PixelFormat format = PixelFormat::RGBA8) {
+    if (value < 1 || value > maxCanvasDimension(format)) {
         throw std::invalid_argument("canvas dimension out of range (1 to " +
-                                    std::to_string(kMaxCanvasDimension) + " px)");
+                                    std::to_string(maxCanvasDimension(format)) + " px)");
     }
     return value;
 }

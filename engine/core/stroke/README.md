@@ -11,8 +11,10 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `PointerEvent.hpp` | Evento de ponteiro (posição, pressão, inclinação, tempo, tipo). |
-| `VelocityTracker.hpp` | Velocidade suavizada do traço (declaração). |
-| `VelocityTracker.cpp` | Implementação com piso temporal contra rajadas da fila do sistema. |
+| `VelocityTracker.hpp` | Velocidade do traço em px/s: caminho numa janela de tempo, suavização por constante de tempo (declaração). |
+| `VelocityTracker.cpp` | Implementação: acumula o caminho de todos os eventos (rajadas com o mesmo timestamp inclusive) e só recalcula quando a janela tem 0,8 ms ou mais. |
+| `PenPose.hpp` | A posição da caneta (altitude, azimute, torção) na última amostra do traço: os carimbos criados sem amostra (alcance do estabilizador, afunilamento) a herdam. Só o cabeçalho. |
+| `PressureCalibration.hpp` | Curva global de entrada da pressão (zona morta, pressão total, gama): o que a mesa entrega vira o que o motor lê, antes do estabilizador. Padrão: identidade. |
 | `DynamicStabilizer.hpp` | Estabilizador adaptativo (média ponderada com bypass por velocidade) (declaração). |
 | `DynamicStabilizer.cpp` | Implementação. |
 

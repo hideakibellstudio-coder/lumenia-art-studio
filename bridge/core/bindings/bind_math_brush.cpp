@@ -77,6 +77,7 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def("get_visible_tile_range", &math::ViewportTransform::getVisibleTileRange)
         .def("is_tile_visible", &math::ViewportTransform::isTileVisible)
         .def_property_readonly("zoom", &math::ViewportTransform::getZoom)
+        .def_property_readonly("is_exact_pixel_zoom", &math::ViewportTransform::isExactPixelZoom)
         .def_property_readonly("pan_x", &math::ViewportTransform::getPanX)
         .def_property_readonly("pan_y", &math::ViewportTransform::getPanY)
         .def_property_readonly("rotation_deg", &math::ViewportTransform::getRotationDeg);
@@ -92,6 +93,12 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .value("Smudge", brush::EngineType::Smudge)
         .value("Watercolor", brush::EngineType::Watercolor)
         .value("OilImpasto", brush::EngineType::OilImpasto)
+        .export_values();
+
+    // ─── MODO DO GRÃO DO PINCEL ──────────────────────────────────────────────
+    py::enum_<brush::GrainMode>(m, "GrainMode")
+        .value("Moving", brush::GrainMode::Moving)
+        .value("Fixed",  brush::GrainMode::Fixed)
         .export_values();
 
     // ─── DAB BLEND MODE (APENAS O QUE O MOTOR SUPORTA) ──────────────────────
@@ -125,6 +132,13 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .value("Difference",  document::LayerBlendMode::Difference)
         .value("Exclusion",   document::LayerBlendMode::Exclusion)
         .value("Add",         document::LayerBlendMode::Add)
+        .value("SoftLight",   document::LayerBlendMode::SoftLight)
+        .value("HardLight",   document::LayerBlendMode::HardLight)
+        .value("VividLight",  document::LayerBlendMode::VividLight)
+        .value("LinearLight", document::LayerBlendMode::LinearLight)
+        .value("PinLight",    document::LayerBlendMode::PinLight)
+        .value("HardMix",     document::LayerBlendMode::HardMix)
+        .value("Subtract",    document::LayerBlendMode::Subtract)
         .export_values();
 
     // ─── SELECTION MODE ──────────────────────────────────────────────────────
@@ -185,6 +199,14 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def("get_stabilized_pressure", &stroke::DynamicStabilizer::getStabilizedPressure)
         .def("get_last_movement_delta", &stroke::DynamicStabilizer::getLastMovementDelta);
 
+    py::class_<stroke::PressureCalibration>(m, "PressureCalibration")
+        .def(py::init<>())
+        .def_readwrite("floor",   &stroke::PressureCalibration::floor)
+        .def_readwrite("ceiling", &stroke::PressureCalibration::ceiling)
+        .def_readwrite("gamma",   &stroke::PressureCalibration::gamma)
+        .def("is_identity", &stroke::PressureCalibration::isIdentity)
+        .def("apply", &stroke::PressureCalibration::apply, py::arg("raw"));
+
     // ─── BRUSH TIP GEOMETRY ──────────────────────────────────────────────────
     py::class_<brush::BrushTip>(m, "BrushTip")
         .def(py::init<>())
@@ -199,7 +221,9 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readwrite("jitter_brightness",   &brush::BrushTip::jitterBrightness)
         .def_readwrite("use_twist_for_angle", &brush::BrushTip::useTwistForAngle)
         .def_readwrite("tilt_to_angle",       &brush::BrushTip::tiltToAngle)
-        .def_readwrite("tilt_to_aspect",      &brush::BrushTip::tiltToAspect);
+        .def_readwrite("tilt_to_aspect",      &brush::BrushTip::tiltToAspect)
+        .def_readwrite("tilt_to_size",        &brush::BrushTip::tiltToSize)
+        .def_readwrite("tilt_to_flow",        &brush::BrushTip::tiltToFlow);
 
     // ─── PARÂMETROS EXCLUSIVOS POR MOTOR ─────────────────────────────────────
     py::class_<brush::PencilParams>(m, "PencilParams")
@@ -240,7 +264,9 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readwrite("impasto_depth",       &brush::OilParams::impastoDepth)
         .def_readwrite("bristle_grooves",     &brush::OilParams::bristleGrooves)
         .def_readwrite("viscosity",           &brush::OilParams::viscosity)
-        .def_readwrite("specular_brilliance", &brush::OilParams::specularBrilliance);
+        .def_readwrite("specular_brilliance", &brush::OilParams::specularBrilliance)
+        .def_readwrite("wet_mix_factor",      &brush::OilParams::wetMixFactor)
+        .def_readwrite("paint_depletion",     &brush::OilParams::paintDepletion);
 
     // ─── BRUSH PROFILE COMPLETO ───────────────────────────────────────────────
     py::class_<brush::BrushProfile>(m, "BrushProfile")
@@ -254,6 +280,7 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readwrite("brush_size",            &brush::BrushProfile::brushSize)
         .def_readwrite("min_size_percent",      &brush::BrushProfile::minSizePercent)
         .def_readwrite("opacity",               &brush::BrushProfile::opacity)
+        .def_readwrite("flow",                  &brush::BrushProfile::flow)
         .def_readwrite("min_opacity_percent",   &brush::BrushProfile::minOpacityPercent)
         .def_readwrite("hardness",              &brush::BrushProfile::hardness)
         .def_readwrite("blend_mode",            &brush::BrushProfile::blendMode)
@@ -273,12 +300,14 @@ void bind_math_brush(py::module_& m, FacadeClass& /*facade*/) {
         .def_readwrite("tip",                   &brush::BrushProfile::tip)
         .def_readwrite("pressure_to_angle",     &brush::BrushProfile::pressureToAngle)
         .def_readwrite("pressure_to_aspect",    &brush::BrushProfile::pressureToAspect)
+        .def_readwrite("velocity_to_flow",      &brush::BrushProfile::velocityToFlow)
         .def_readwrite("scatter_count",         &brush::BrushProfile::scatterCount)
         // Emissão temporal
         .def_readwrite("time_spacing_enabled",  &brush::BrushProfile::timeSpacingEnabled)
         .def_readwrite("dabs_per_second",       &brush::BrushProfile::dabsPerSecond)
         // Textura do pincel
         .def_readwrite("brush_grain_enabled",   &brush::BrushProfile::brushGrainEnabled)
+        .def_readwrite("brush_grain_mode",      &brush::BrushProfile::brushGrainMode)
         .def_readwrite("brush_grain_scale",     &brush::BrushProfile::brushGrainScale)
         .def_readwrite("brush_grain_contrast",  &brush::BrushProfile::brushGrainContrast)
         .def_readwrite("brush_grain_invert",    &brush::BrushProfile::brushGrainInvert)

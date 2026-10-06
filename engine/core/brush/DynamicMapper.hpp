@@ -23,7 +23,6 @@ public:
         utils::Point2D position,
         double rawPressure,
         double normalizedVelocity,
-        double strokeAngle = 0.0,
         double twist = 0.0,
         double altitude = 90.0,
         double azimuth = 0.0
@@ -34,7 +33,6 @@ public:
         utils::Point2D position,
         double rawPressure,
         double normalizedVelocity,
-        double strokeAngle = 0.0,
         double twist = 0.0,
         double altitude = 90.0,
         double azimuth = 0.0

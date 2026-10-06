@@ -23,6 +23,12 @@ enum class EngineType {
     OilImpasto= 8    // Óleo 3D (Fase 5 — requer LayerStack + NormalMap)
 };
 
+// ─── MODO DO GRÃO DO PINCEL ─────────────────────────────────────────────────
+enum class GrainMode {
+    Moving = 0,  // a textura acompanha o carimbo (gira e escala com ele)
+    Fixed  = 1   // a textura fica presa ao canvas, como o grão do papel
+};
+
 // ─── PARÂMETROS EXCLUSIVOS — LÁPIS & CARVÃO ────────────────────────────────
 struct PencilParams {
     // graphiteHardness: 0.0 = 6B ultra mole (deposita muito com pouca pressão)
@@ -87,8 +93,9 @@ public:
     double minSizePercent{0.0};     // Tamanho mínimo em % a 0% de pressão (0.0 a 1.0)
 
     // ─── 2. FLUXO, OPACIDADE E MODO DE MESCLAGEM ─────────────────────────────
-    double opacity{1.0};            // Opacidade máxima nominal (0.0 a 1.0)
-    double minOpacityPercent{0.0};  // Opacidade mínima em % a 0% de pressão
+    double opacity{1.0};            // TETO do traço inteiro (0.0 a 1.0): o máximo que ele pode cobrir (StrokeOpacityMix)
+    double flow{1.0};               // Fluxo (0.0 a 1.0): o que cada carimbo deposita; acumula sob o teto
+    double minOpacityPercent{0.0};  // Fluxo mínimo em % a 0% de pressão
     double hardness{1.0};           // Dureza da borda procedural (0.0=macio, 1.0=duro)
     utils::DabBlendMode blendMode{utils::DabBlendMode::Normal};
 
@@ -109,6 +116,7 @@ public:
     BrushTip tip;
     double pressureToAngle{0.0};
     double pressureToAspect{0.0};
+    double velocityToFlow{0.0};     // Perda de fluxo com a velocidade: 1.0 apaga o traço na velocidade máxima (0.0 a 1.0)
     int    scatterCount{1};
 
     // ─── 4. EMISSÃO TEMPORAL (AIRBRUSH) ──────────────────────────────────────
@@ -117,6 +125,7 @@ public:
 
     // ─── 5. TEXTURA INTERNA DO PINCEL (BRUSH HEIGHTMAP) ─────────────────────
     bool   brushGrainEnabled{false};
+    GrainMode brushGrainMode{GrainMode::Moving};  // a textura acompanha o carimbo ou fica presa ao canvas
     double brushGrainScale{1.0};
     double brushGrainContrast{1.0};
     bool   brushGrainInvert{false};

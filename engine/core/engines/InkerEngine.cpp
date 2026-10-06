@@ -57,17 +57,26 @@ void InkerEngine::renderDab(
 ) {
     if (dab.radius <= 0.0) return;
 
-    const double aspect = std::max(0.05, profile.tip.aspectRatio);
+    const double aspect = raster::tipAspect(dab);
     const raster::DabFootprint footprint(dab, dab.radius, aspect, tileGrid);
     if (footprint.empty()) return;
 
     const InkEdge ink(dab, profile);
     const raster::PixelPermission permission(ctx);
-    footprint.forEachPixel(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
-        double alpha = ink.alphaAt(pixel);
-        if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
-        return raster::straightOver(dst, dab.color, alpha, ctx.alphaLocked);
-    });
+    if (tileGrid.getFormat() == canvas::PixelFormat::RGBA16) {
+        const utils::ColorRGBA16 color16 = canvas::widen(dab.color);
+        footprint.forEachPixel<utils::ColorRGBA16>(6, [&](utils::ColorRGBA16& dst, const raster::DabPixel& pixel) {
+            double alpha = ink.alphaAt(pixel);
+            if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
+            return raster::straightOver(dst, color16, alpha, ctx.alphaLocked);
+        });
+    } else {
+        footprint.forEachPixel<utils::ColorRGBA>(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
+            double alpha = ink.alphaAt(pixel);
+            if (alpha <= 0.0 || !permission.apply(pixel.gx, pixel.gy, alpha) || alpha <= 0.0) return false;
+            return raster::straightOver(dst, dab.color, alpha, ctx.alphaLocked);
+        });
+    }
 }
 
 } // namespace aladyn::engine::engines

@@ -17,7 +17,8 @@ namespace aladyn::engine::engines {
 //
 // Parâmetros exclusivos usados:
 //   profile.pencilParams.graphiteHardness  (0.0 = 6B mole, 1.0 = 2H duro)
-//   profile.pencilParams.tiltShadingEnabled (expansão lateral por inclinação)
+//   profile.pencilParams.tiltShadingEnabled (lado do grafite: lido pelo DynamicMapper, que alonga o carimbo
+//                                            com a caneta deitada; o motor recebe a elipse já pronta em dab.aspectRatio)
 //
 // Parâmetros comuns usados:
 //   brushSize, minSizePercent, opacity, hardness, spacingFactor,

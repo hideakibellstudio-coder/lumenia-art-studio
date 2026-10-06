@@ -41,6 +41,7 @@ public:
     [[nodiscard]] bool isTileVisible(int tx, int ty, int tileSize) const noexcept;
 
     [[nodiscard]] double getZoom() const noexcept { return m_zoom; }
+    [[nodiscard]] bool isExactPixelZoom() const noexcept { return m_zoom >= 4.0; }
     [[nodiscard]] double getPanX() const noexcept { return m_panX; }
     [[nodiscard]] double getPanY() const noexcept { return m_panY; }
     [[nodiscard]] double getRotationDeg() const noexcept { return m_rotationDeg; }

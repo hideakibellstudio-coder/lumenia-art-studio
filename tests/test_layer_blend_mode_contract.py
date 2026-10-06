@@ -32,7 +32,7 @@ native = pytest.importorskip(
 
 
 @pytest.mark.parametrize("member", list(LayerBlendMode))
-def test_all_13_modes_match_native(member):
+def test_all_20_modes_match_native(member):
     native_member = getattr(native.LayerBlendMode, member.name.title().replace("_", ""), None)
     assert native_member is not None, (
         f"native.LayerBlendMode não tem {member.name} -- binding incompleto "

@@ -125,6 +125,77 @@ class TestLowLevelBlendModes(unittest.TestCase):
         outside = arr[20, 20]
         self.assertEqual(outside[3], 0, f"Clipping mask deve bloquear renderização fora da base, obtido alpha={outside[3]}")
 
+    # ── 5. Blend Mode: Subtract (Subtrair) ────────────────────────────────────
+    def test_05_blend_mode_subtract(self):
+        """Valida que Subtract realiza: max(0, D - S)."""
+        self.facade.add_layer("Base")
+        self._fill_rect_on_layer(0, 20, 20, 60, 60, aen.ColorRGBA(200, 150, 100, 255))
+
+        self.facade.add_layer("Topo Subtract")
+        self.facade.set_layer_blend_mode(1, int(aen.LayerBlendMode.Subtract))
+        self._fill_rect_on_layer(1, 20, 20, 60, 60, aen.ColorRGBA(50, 100, 150, 255))
+
+        arr = self._get_canvas_array()
+        center = arr[50, 50]
+        # 200 - 50 = 150, 150 - 100 = 50, max(0, 100 - 150) = 0
+        self.assertAlmostEqual(int(center[0]), 150, delta=2)
+        self.assertAlmostEqual(int(center[1]), 50, delta=2)
+        self.assertAlmostEqual(int(center[2]), 0, delta=2)
+        self.assertEqual(int(center[3]), 255)
+
+    # ── 6. Blend Mode: Linear Light (Luz Linear) ─────────────────────────────
+    def test_06_blend_mode_linear_light(self):
+        """Valida que LinearLight realiza: clamp(D + 2S - 255, 0, 255)."""
+        self.facade.add_layer("Base")
+        self._fill_rect_on_layer(0, 20, 20, 60, 60, aen.ColorRGBA(100, 100, 100, 255))
+
+        self.facade.add_layer("Topo LinearLight")
+        self.facade.set_layer_blend_mode(1, int(aen.LayerBlendMode.LinearLight))
+        self._fill_rect_on_layer(1, 20, 20, 60, 60, aen.ColorRGBA(150, 150, 150, 255))
+
+        arr = self._get_canvas_array()
+        center = arr[50, 50]
+        # d + 2s - 1 = 100/255 + 300/255 - 1 = 145/255 -> ~145
+        self.assertAlmostEqual(int(center[0]), 145, delta=3)
+        self.assertEqual(int(center[3]), 255)
+
+    # ── 7. Blend Mode: Hard Light (Luz Direta) ────────────────────────────────
+    def test_07_blend_mode_hard_light(self):
+        """Valida que HardLight realiza Overlay invertido."""
+        self.facade.add_layer("Base")
+        self._fill_rect_on_layer(0, 20, 20, 60, 60, aen.ColorRGBA(128, 128, 128, 255))
+
+        self.facade.add_layer("Topo HardLight")
+        self.facade.set_layer_blend_mode(1, int(aen.LayerBlendMode.HardLight))
+        self._fill_rect_on_layer(1, 20, 20, 60, 60, aen.ColorRGBA(64, 192, 128, 255))
+
+        arr = self._get_canvas_array()
+        center = arr[50, 50]
+        # s=64 <= 128: 2 * s * d = 2 * (64/255) * (128/255) = ~64
+        self.assertAlmostEqual(int(center[0]), 64, delta=3)
+        # s=192 > 128: 1 - 2*(1-s)*(1-d) = 1 - 2*(63/255)*(127/255) = ~192
+        self.assertAlmostEqual(int(center[1]), 192, delta=3)
+        self.assertEqual(int(center[3]), 255)
+
+    # ── 8. Blend Mode: Pin Light (Luz Pontual) ────────────────────────────────
+    def test_08_blend_mode_pin_light(self):
+        """Valida que PinLight seleciona min(d, 2s) ou max(d, 2(s-0.5))."""
+        self.facade.add_layer("Base")
+        self._fill_rect_on_layer(0, 20, 20, 60, 60, aen.ColorRGBA(100, 100, 100, 255))
+
+        self.facade.add_layer("Topo PinLight")
+        self.facade.set_layer_blend_mode(1, int(aen.LayerBlendMode.PinLight))
+        # R: s=30 < 128 -> min(100, 60) = 60
+        # G: s=200 > 128 -> max(100, 2*(200-128)=144) = 144
+        self._fill_rect_on_layer(1, 20, 20, 60, 60, aen.ColorRGBA(30, 200, 100, 255))
+
+        arr = self._get_canvas_array()
+        center = arr[50, 50]
+        self.assertAlmostEqual(int(center[0]), 60, delta=3)
+        self.assertAlmostEqual(int(center[1]), 145, delta=3)
+        self.assertEqual(int(center[3]), 255)
+
 
 if __name__ == "__main__":
     unittest.main()
+

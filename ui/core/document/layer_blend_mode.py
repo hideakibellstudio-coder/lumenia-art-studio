@@ -63,6 +63,13 @@ class LayerBlendMode(IntEnum):
     DIFFERENCE = 10
     EXCLUSION = 11
     ADD = 12
+    SOFT_LIGHT = 13
+    HARD_LIGHT = 14
+    VIVID_LIGHT = 15
+    LINEAR_LIGHT = 16
+    PIN_LIGHT = 17
+    HARD_MIX = 18
+    SUBTRACT = 19
 
     @property
     def label(self) -> str:
@@ -119,6 +126,13 @@ _LABELS = {
     LayerBlendMode.DIFFERENCE: "Diferença",
     LayerBlendMode.EXCLUSION: "Exclusão",
     LayerBlendMode.ADD: "Adicionar",
+    LayerBlendMode.SOFT_LIGHT: "Luz Suave",
+    LayerBlendMode.HARD_LIGHT: "Luz Direta",
+    LayerBlendMode.VIVID_LIGHT: "Luz Brilhante",
+    LayerBlendMode.LINEAR_LIGHT: "Luz Linear",
+    LayerBlendMode.PIN_LIGHT: "Luz Pontual",
+    LayerBlendMode.HARD_MIX: "Mistura Sólida",
+    LayerBlendMode.SUBTRACT: "Subtrair",
 }
 
 # Toda forma de string já observada no código ou em documentos salvos,
@@ -147,6 +161,19 @@ _LABEL_TO_MODE = {
     "Exclusion": LayerBlendMode.EXCLUSION,
     "Add": LayerBlendMode.ADD,
     "Additive": LayerBlendMode.ADD,
+    "SoftLight": LayerBlendMode.SOFT_LIGHT,
+    "Soft Light": LayerBlendMode.SOFT_LIGHT,
+    "HardLight": LayerBlendMode.HARD_LIGHT,
+    "Hard Light": LayerBlendMode.HARD_LIGHT,
+    "VividLight": LayerBlendMode.VIVID_LIGHT,
+    "Vivid Light": LayerBlendMode.VIVID_LIGHT,
+    "LinearLight": LayerBlendMode.LINEAR_LIGHT,
+    "Linear Light": LayerBlendMode.LINEAR_LIGHT,
+    "PinLight": LayerBlendMode.PIN_LIGHT,
+    "Pin Light": LayerBlendMode.PIN_LIGHT,
+    "HardMix": LayerBlendMode.HARD_MIX,
+    "Hard Mix": LayerBlendMode.HARD_MIX,
+    "Subtract": LayerBlendMode.SUBTRACT,
     # Português -- rótulos atuais da UI (header.py._all_blend_modes)
     "Atravessar": LayerBlendMode.PASS_THROUGH,
     "Multiplicar": LayerBlendMode.MULTIPLY,
@@ -159,6 +186,13 @@ _LABEL_TO_MODE = {
     "Diferença": LayerBlendMode.DIFFERENCE,
     "Exclusão": LayerBlendMode.EXCLUSION,
     "Adicionar": LayerBlendMode.ADD,
+    "Luz Suave": LayerBlendMode.SOFT_LIGHT,
+    "Luz Direta": LayerBlendMode.HARD_LIGHT,
+    "Luz Brilhante": LayerBlendMode.VIVID_LIGHT,
+    "Luz Linear": LayerBlendMode.LINEAR_LIGHT,
+    "Luz Pontual": LayerBlendMode.PIN_LIGHT,
+    "Mistura Sólida": LayerBlendMode.HARD_MIX,
+    "Subtrair": LayerBlendMode.SUBTRACT,
     "Borracha": LayerBlendMode.ERASE,
     # Português -- variantes legadas (legacy_map antigo de header.py, e
     # rótulos usados em versões anteriores do diálogo de propriedades)
@@ -167,6 +201,9 @@ _LABEL_TO_MODE = {
     "Subexposição (Dodge)": LayerBlendMode.COLOR_DODGE,
     "Superexposição (Burn)": LayerBlendMode.COLOR_BURN,
     "Adicionar (Add)": LayerBlendMode.ADD,
+    "Mistura Solida": LayerBlendMode.HARD_MIX,
+    "Subtração": LayerBlendMode.SUBTRACT,
+    "Subtracao": LayerBlendMode.SUBTRACT,
 }
 
 # Ordem de exibição do combo de camadas (Atravessar logo após Normal --
@@ -185,5 +222,12 @@ DISPLAY_ORDER = (
     LayerBlendMode.DIFFERENCE,
     LayerBlendMode.EXCLUSION,
     LayerBlendMode.ADD,
+    LayerBlendMode.SOFT_LIGHT,
+    LayerBlendMode.HARD_LIGHT,
+    LayerBlendMode.VIVID_LIGHT,
+    LayerBlendMode.LINEAR_LIGHT,
+    LayerBlendMode.PIN_LIGHT,
+    LayerBlendMode.HARD_MIX,
+    LayerBlendMode.SUBTRACT,
     LayerBlendMode.ERASE,
 )

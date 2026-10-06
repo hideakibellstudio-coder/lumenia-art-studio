@@ -36,6 +36,24 @@ class TipGeometrySection(AdvancedSection):
         self.chk_follow = self.engine_check(
             tr("brush.follow_stroke", "Seguir Direção do Traço (Follow Stroke)"),
             "follow_stroke", lambda on: writer.tip("follow_stroke", on))
+        self.sl_press_aspect = self.engine_slider(
+            tr("brush.pressure_aspect", "Achatamento por Pressão"), 0, 100, 0, "%",
+            "pressure_to_aspect", 100.0, lambda v: writer.root("pressure_to_aspect", v))
+        self.sl_tilt_angle = self.engine_slider(
+            tr("brush.tilt_angle", "Ângulo por Inclinação"), 0, 100, 0, "%",
+            "tilt_to_angle", 100.0, lambda v: writer.tip("tilt_to_angle", v))
+        self.sl_tilt_aspect = self.engine_slider(
+            tr("brush.tilt_aspect", "Achatamento por Inclinação"), 0, 100, 0, "%",
+            "tilt_to_aspect", 100.0, lambda v: writer.tip("tilt_to_aspect", v))
+        self.sl_tilt_size = self.engine_slider(
+            tr("brush.tilt_size", "Aumento por Inclinação"), 0, 100, 0, "%",
+            "tilt_to_size", 100.0, lambda v: writer.tip("tilt_to_size", v))
+        self.sl_tilt_flow = self.engine_slider(
+            tr("brush.tilt_flow", "Perda de Fluxo por Inclinação"), 0, 100, 0, "%",
+            "tilt_to_flow", 100.0, lambda v: writer.tip("tilt_to_flow", v))
+        self.chk_twist = self.engine_check(
+            tr("brush.twist_angle", "Torção da Caneta Gira a Ponta"),
+            "use_twist_for_angle", lambda on: writer.tip("use_twist_for_angle", on))
 
     def _on_shape_preset(self, index: int) -> None:
         self._writer.shape_preset(index)

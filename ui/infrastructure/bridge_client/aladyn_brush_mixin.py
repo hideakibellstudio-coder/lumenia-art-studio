@@ -194,6 +194,10 @@ class AladynBrushMixin(AladynBackendBase):
         if self._facade:
             self._facade.get_brush_profile().opacity = float(opacity)
 
+    def set_brush_flow(self, flow: float) -> None:
+        if self._facade:
+            self._facade.get_brush_profile().flow = float(flow)
+
     def set_brush_spacing(self, spacing: float) -> None:
         if self._facade:
             self._facade.get_brush_profile().spacing_factor = float(spacing)

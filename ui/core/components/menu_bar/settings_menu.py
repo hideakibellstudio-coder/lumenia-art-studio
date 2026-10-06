@@ -15,6 +15,7 @@ class SettingsMenu(QtWidgets.QMenu):
     renderSettingsRequested = QtCore.Signal()
     curvesLutRequested = QtCore.Signal()
     cursorSettingsRequested = QtCore.Signal()
+    penCalibrationRequested = QtCore.Signal()
     shortcutsRequested = QtCore.Signal()
     themeSettingsRequested = QtCore.Signal()
     managePluginsRequested = QtCore.Signal()
@@ -36,6 +37,8 @@ class SettingsMenu(QtWidgets.QMenu):
                                        self.curvesLutRequested)
         self.act_cursor = self._action("cursor", "menu.settings.cursor", "Configurações de Cursor e Ponteiro...",
                                        self.cursorSettingsRequested)
+        self.act_pen = self._action("brush", "menu.settings.pen", "Calibrar Caneta (Pressão)...",
+                                    self.penCalibrationRequested)
         self.act_shortcuts = self._action("keyboard", "menu.settings.shortcuts", "Atalhos de Teclado...",
                                           self.shortcutsRequested)
         self.act_theme = self._action("palette", "menu.settings.theme", "Personalização de Tema...",

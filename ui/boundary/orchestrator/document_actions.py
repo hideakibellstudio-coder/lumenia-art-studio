@@ -67,6 +67,7 @@ class DocumentActions(ShellActions):
         params = dialog.get_document_params()
         name, w, h = params["name"], params["width"], params["height"]
         dpi = params.get("dpi", 300)
+        pixel_format = params.get("pixel_format", 0)
         color_prof = params.get("color_profile_id", 0)
         bg_color = params.get("bg_color", (255, 255, 255, 255))
         paper_tex = params.get("paper_texture_id", 0)
@@ -74,7 +75,7 @@ class DocumentActions(ShellActions):
         # Ativar o documento abre o contexto dele no motor e leva o papel
         # (DocumentViewSync). Até 2026-09-24 esta ação também escrevia o papel
         # direto no motor e limpava a tela nova, e o documento nascia sujo.
-        doc = self._dm.new_document(width=w, height=h, name=name, bg_color=bg_color, dpi=dpi)
+        doc = self._dm.new_document(width=w, height=h, name=name, bg_color=bg_color, dpi=dpi, pixel_format=pixel_format)
         if not self._hosted(doc):
             return
         if paper_tex > 0:
@@ -186,11 +187,13 @@ class DocumentActions(ShellActions):
         previous = self._dm.active_document()
         paper = manifest.get("paper", {})
         color = paper.get("color", [255, 255, 255, 255])
+        pixel_format = int(manifest.get("pixel_format", 0))
         doc: Document = self._dm.new_document(
             width=int(manifest.get("width", 1)),
             height=int(manifest.get("height", 1)),
             name=str(manifest.get("name", os.path.basename(filename))),
             bg_color=tuple(int(x) for x in color[:4]),
+            pixel_format=pixel_format,
         )  # a textura do papel vem do arquivo, em restore_document
         if not self._hosted(doc):
             return

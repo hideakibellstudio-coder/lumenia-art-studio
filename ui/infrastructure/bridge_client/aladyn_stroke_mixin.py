@@ -20,6 +20,18 @@ logger = logging.getLogger(__name__)
 class AladynStrokeMixin(AladynBackendBase):
     """Mixin responsável pelo ciclo de vida do traço e telemetria no AladynBackend."""
 
+    def set_pressure_calibration(self, floor: float, ceiling: float, gamma: float) -> None:
+        """Guarda a curva e a aplica em TODAS as facades abertas (a caneta é uma só)."""
+        self._pressure_calibration = (float(floor), float(ceiling), float(gamma))
+        for facade in self._doc_facades.values():
+            self._push_pressure_calibration(facade)
+
+    def get_pressure_calibration(self) -> tuple[float, float, float]:
+        if self._facade:
+            curve = self._facade.get_pressure_calibration()
+            return (float(curve.floor), float(curve.ceiling), float(curve.gamma))
+        return self._pressure_calibration
+
     def start_stroke(
         self,
         x: float,

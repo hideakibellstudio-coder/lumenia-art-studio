@@ -237,7 +237,8 @@ def _corruptions():
     yield "other canvas width", _with(blob, 8, struct.pack("<I", 302))
     yield "other canvas height", _with(blob, 12, struct.pack("<I", 100))
     yield "more tiles than the canvas", _with(blob, 16, struct.pack("<I", 1000))
-    yield "reserved header field", _with(blob, 20, struct.pack("<I", 1))
+    yield "unknown pixel format", _with(blob, 20, struct.pack("<I", 2))
+    yield "16-bit block in an 8-bit document", _with(blob, 20, struct.pack("<I", 1))
     yield "count too high for the data", _with(blob, 16, struct.pack("<I", count + 1))
     yield "count too low: bytes after the last tile", _with(blob, 16, struct.pack("<I", count - 1))
     yield "truncated in a record", blob[: first_entry + 5]
@@ -288,28 +289,32 @@ def _change_properties(engine) -> None:
     engine.set_layer_name(1, "renamed")
 
 
-def test_a_batch_composites_once_at_the_end_and_gives_the_same_picture():
+def test_a_batch_gives_the_same_picture_and_never_shows_a_stale_one():
+    # Since S3 nothing is composited when a property changes, only when something reads: a batch has nothing
+    # left to defer, and a read inside it shows the picture as it is now (it used to show the old one).
     plain, batched = _two_layer_scene(), _two_layer_scene()
     _change_properties(plain)
-    stale = bytes(batched.get_pixel_buffer())
+    before = bytes(batched.get_pixel_buffer())
     batched.begin_batch()
     _change_properties(batched)
-    assert bytes(batched.get_pixel_buffer()) == stale, "the canvas was recomposited inside the batch"
+    inside = bytes(batched.get_pixel_buffer())
     batched.end_batch()
-    assert bytes(batched.get_pixel_buffer()) == bytes(plain.get_pixel_buffer())
-    assert bytes(batched.get_pixel_buffer()) != stale
+    assert inside == bytes(plain.get_pixel_buffer()), "a read inside the batch showed a stale canvas"
+    assert inside != before
+    assert bytes(batched.get_pixel_buffer()) == inside
 
 
 def test_batches_nest_and_an_unmatched_end_is_an_error():
     engine = _two_layer_scene()
-    stale = bytes(engine.get_pixel_buffer())
+    before = bytes(engine.get_pixel_buffer())
     engine.begin_batch()
     engine.begin_batch()
     engine.set_layer_opacity(1, 0.2)
     engine.end_batch()
-    assert bytes(engine.get_pixel_buffer()) == stale, "the inner end_batch composited"
+    inner = bytes(engine.get_pixel_buffer())
+    assert inner != before
     engine.end_batch()
-    assert bytes(engine.get_pixel_buffer()) != stale
+    assert bytes(engine.get_pixel_buffer()) == inner
     with pytest.raises(RuntimeError):
         engine.end_batch()
 
@@ -322,13 +327,13 @@ def test_a_batch_with_nothing_to_composite_leaves_the_canvas_alone():
     assert bytes(engine.get_pixel_buffer()) == before
 
 
-def test_restoring_tiles_inside_a_batch_composites_at_the_end():
+def test_restoring_tiles_inside_a_batch_shows_the_restored_picture_at_once():
     source = _painted(200, 150, seed=40)
     blob = source.snapshot_layers().encode_layer(0)
     target = native.PaintEngineFacade(200, 150)
     target.begin_batch()
     target.restore_layer_tiles(0, blob)
-    assert bytes(target.get_pixel_buffer()) != bytes(source.get_pixel_buffer())
+    assert bytes(target.get_pixel_buffer()) == bytes(source.get_pixel_buffer())
     target.end_batch()
     assert bytes(target.get_pixel_buffer()) == bytes(source.get_pixel_buffer())
 

@@ -66,9 +66,10 @@ def restore_document(document: Document, backend: RestoreEngine, manifest, paylo
     `prepared` são as camadas de tiles já decodificadas em outra thread (`document_loader`),
     pelo nome do payload; as que faltam aí são decodificadas aqui, a partir de `payloads`.
 
-    Tudo dentro de um lote do motor: abrir um arquivo muda dezenas de propriedades de
+    Tudo dentro de um lote do motor. Abrir um arquivo muda dezenas de propriedades de
     camada em sequência e cada uma recompunha o canvas inteiro (50 recomposições, 0,6 s
-    num 4K de dez camadas); no lote o canvas é composto uma vez, no fim.
+    num 4K de dez camadas); o lote juntava isso numa composição no fim. Desde a S3 o motor
+    só compõe o que alguém lê e o lote ficou como contrato, sem nada a adiar.
     """
     if not backend or not backend.available:
         raise DocumentFormatError("motor indisponível para restaurar os pixels")
@@ -117,6 +118,7 @@ def _restore_into_engine(document: Document, backend: RestoreEngine, manifest, p
     document.layer_manager.set_active_layer(active)
     backend.select_layer(indices[active])
     document.dpi = manifest.get("dpi", document.dpi)
+    document.pixel_format = int(manifest.get("pixel_format", document.pixel_format))
     paper = manifest.get("paper", {})
     document.paper_color = QColor(*paper.get("color", document.paper_color.getRgb()))
     document.paper_visible = paper.get("visible", document.paper_visible)

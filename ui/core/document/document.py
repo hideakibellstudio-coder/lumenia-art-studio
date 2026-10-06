@@ -60,7 +60,12 @@ class Document(QtCore.QObject):
             self.width, self.height = width, height
             self.geometry_changed.emit(width, height)
 
-    def __init__(self, uid: str, name: str, width: int = 1920, height: int = 1080):
+    @property
+    def rgba16_document(self) -> bool:
+        """True quando o documento é 16 bits por canal (RGBA16)."""
+        return self.pixel_format == 1
+
+    def __init__(self, uid: str, name: str, width: int = 1920, height: int = 1080, pixel_format: int = 0):
         super().__init__()
         self.uid = uid
         self.name = name
@@ -68,6 +73,7 @@ class Document(QtCore.QObject):
         self.format_id: str = "lmn"
         from .schema import CURRENT_VERSION
         self.format_version: int = CURRENT_VERSION
+        self.pixel_format: int = int(pixel_format)
         self.width = max(1, width)
         self.height = max(1, height)
         # Resolução de impressão (pontos por polegada); vai no arquivo .lmn.

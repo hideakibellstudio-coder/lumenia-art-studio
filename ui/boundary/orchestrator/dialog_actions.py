@@ -8,13 +8,13 @@ curvas, telemetria (F12), feedback e "sobre". Colaborador da `MainWindow`
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Protocol
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.infrastructure.i18n import I18nManager, tr
 from ui.infrastructure.runtime_paths import resource_path
-from ui.core.engine.backend_protocols import RoleProvider
+from ui.core.engine.backend_protocols import RoleProvider, StrokeProtocol
 from ui.core.state import BrushState
 from ui.core.shortcut_registry import ShortcutRegistry
 from ui.infrastructure.theme import ThemeManager
@@ -25,12 +25,15 @@ from .workspace_port import ShellWorkspace
 if TYPE_CHECKING:  # o diálogo só é importado quando o usuário o abre
     from ui.core.dialogs.render_settings_dialog import RenderSettingsEngine
 
+    class DialogsEngine(RenderSettingsEngine, StrokeProtocol, Protocol):
+        """O que os diálogos pedem ao motor: o que a renderização pede e a pressão da caneta (`Stroke`)."""
+
 
 class DialogActions(ShellActions):
     def __init__(
         self,
         window: QtWidgets.QWidget,
-        backend: RoleProvider[RenderSettingsEngine],
+        backend: RoleProvider[DialogsEngine],
         workspace: Optional[ShellWorkspace],
         shortcuts: ShortcutRegistry,
         brush: BrushState,
@@ -120,6 +123,13 @@ class DialogActions(ShellActions):
     def open_plugins_dialog(self) -> None:
         from ui.core.screens import PluginsWindow
         PluginsWindow(self._window).exec()
+
+    def open_pen_calibration(self) -> None:
+        from ui.core.dialogs.pen_calibration_dialog import PenCalibrationDialog
+        dialog = PenCalibrationDialog(self._backend, self._window)
+        dialog.calibrationApplied.connect(
+            lambda: self._say(tr("status.pen_applied", "Calibração da caneta aplicada."), 3000))
+        dialog.exec()
 
     def open_render_settings(self) -> None:
         from ui.core.dialogs.render_settings_dialog import RenderSettingsDialog

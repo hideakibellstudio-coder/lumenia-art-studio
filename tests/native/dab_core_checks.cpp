@@ -177,9 +177,9 @@ void checkStraightOver() {
           "Alpha Lock does not paint on empty pixels");
 
     dst = utils::ColorRGBA{0, 0, 0, 0};
-    check(raster::straightOver(dst, utils::ColorRGBA{100, 150, 200, 255}, 0.5, false) && dst.a == 127 &&
+    check(raster::straightOver(dst, utils::ColorRGBA{100, 150, 200, 255}, 0.5, false) && dst.a == 128 &&
               std::abs(static_cast<int>(dst.r) - 100) <= 1 && std::abs(static_cast<int>(dst.b) - 200) <= 1,
-          "paint on an empty pixel keeps the colour and takes the strength as alpha");
+          "paint on an empty pixel keeps the colour and takes the strength as alpha (127.5 rounds to 128)");
 }
 
 // -- tip shape ---------------------------------------------------------------------------------

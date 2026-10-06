@@ -61,6 +61,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "undo_max_steps": 50,
         "undo_limit_mb": 512,
     },
+    "pen": {
+        "floor": 0.0,
+        "ceiling": 1.0,
+        "gamma": 1.0,
+    },
     "shortcuts": {},
 }
 

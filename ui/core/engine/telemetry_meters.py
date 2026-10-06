@@ -63,7 +63,7 @@ def presentation_ms(vp: dict) -> float:
 
 
 def simd_text(snap: TelemetrySnapshot) -> str:
-    """O motor informa se foi compilado com AVX2 (`simd_active`)."""
+    """O motor informa se a mesclagem das camadas usa AVX2 agora (`simd_active`): a CPU decide na hora de rodar."""
     return "AVX2 (vetorizado)" if snap.simd_active else "Escalar (sem AVX2)"
 
 

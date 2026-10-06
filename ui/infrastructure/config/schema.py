@@ -35,6 +35,15 @@ def normalize_section(section, data):
                 low, high = (0, 13) if key == "profile_id" else (1, 2**31 - 1)
                 if type(value) is not int or not low <= value <= high:
                     raise ValueError(f"render.{key} fora do intervalo suportado")
+    if section == "pen":
+        # Só tipo e finitude: as faixas do produto vivem em `ui.core.state.pen_calibration`
+        # (esta pasta não depende do resto da interface) e o motor ainda corrige o que sobrar.
+        for key, (low, high) in {"floor": (0.0, 1.0), "ceiling": (0.0, 1.0), "gamma": (0.1, 5.0)}.items():
+            if key in result:
+                value = result[key]
+                if type(value) not in (int, float) or value != value or not low <= value <= high:
+                    raise ValueError(f"pen.{key} fora do intervalo suportado")
+                result[key] = float(value)
     return result
 
 
@@ -56,7 +65,7 @@ def migrate_config(data):
     while version < SCHEMA_VERSION:
         result = MIGRATIONS[version](result)
         version = result["schema_version"]
-    for section in ("render", "dock", "floating_toolbar"):
+    for section in ("render", "pen", "dock", "floating_toolbar"):
         values = result.get(section)
         if not isinstance(values, dict):
             result.pop(section, None)

@@ -17,7 +17,7 @@ PENCIL_CATEGORY = {
         {
             "label": "Lápis 2H (Duro)",
             "brush_size": 4.0, "min_size_percent": 0.0,
-            "opacity": 0.65, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.65, "min_opacity_percent": 0.0,
             "hardness": 0.9, "spacing_factor": 0.08,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "pencil_graphite_hardness": 0.9,  # 2H
@@ -30,7 +30,7 @@ PENCIL_CATEGORY = {
         {
             "label": "Lápis HB (Médio)",
             "brush_size": 6.0, "min_size_percent": 0.0,
-            "opacity": 0.75, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.75, "min_opacity_percent": 0.0,
             "hardness": 0.8, "spacing_factor": 0.07,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "pencil_graphite_hardness": 0.5,  # HB
@@ -43,7 +43,7 @@ PENCIL_CATEGORY = {
         {
             "label": "Lápis 6B (Mole)",
             "brush_size": 8.0, "min_size_percent": 0.0,
-            "opacity": 0.90, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.90, "min_opacity_percent": 0.0,
             "hardness": 0.6, "spacing_factor": 0.06,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "pencil_graphite_hardness": 0.1,  # 6B ultra mole
@@ -56,7 +56,7 @@ PENCIL_CATEGORY = {
         {
             "label": "Carvão Vegetal",
             "brush_size": 16.0, "min_size_percent": 0.0,
-            "opacity": 0.80, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.80, "min_opacity_percent": 0.0,
             "hardness": 0.4, "spacing_factor": 0.09,
             "tip_angle": 0.0, "tip_aspect": 0.7, "follow_stroke": True,
             "pencil_graphite_hardness": 0.15,
@@ -69,7 +69,7 @@ PENCIL_CATEGORY = {
         {
             "label": "Giz de Pastel",
             "brush_size": 20.0, "min_size_percent": 0.0,
-            "opacity": 0.70, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.70, "min_opacity_percent": 0.0,
             "hardness": 0.3, "spacing_factor": 0.09,
             "tip_angle": 0.0, "tip_aspect": 0.6, "follow_stroke": True,
             "pencil_graphite_hardness": 0.2,
@@ -94,7 +94,7 @@ INKER_CATEGORY = {
         {
             "label": "G-Pen (Mangá)",
             "brush_size": 6.0, "min_size_percent": 0.0,
-            "opacity": 1.0, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 1.0, "min_opacity_percent": 0.0,
             "hardness": 1.0, "spacing_factor": 0.035,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "inker_flow_rate": 1.0, "inker_taper_smoothing": 0.7,
@@ -103,7 +103,7 @@ INKER_CATEGORY = {
         {
             "label": "Pena Redonda",
             "brush_size": 4.0, "min_size_percent": 0.0,
-            "opacity": 1.0, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 1.0, "min_opacity_percent": 0.0,
             "hardness": 1.0, "spacing_factor": 0.035,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "inker_flow_rate": 1.0, "inker_taper_smoothing": 0.5,
@@ -112,7 +112,7 @@ INKER_CATEGORY = {
         {
             "label": "Nanquim Técnico",
             "brush_size": 3.0, "min_size_percent": 0.8,
-            "opacity": 1.0, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 1.0, "min_opacity_percent": 0.0,
             "hardness": 1.0, "spacing_factor": 0.035,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "inker_flow_rate": 1.0, "inker_taper_smoothing": 0.0,
@@ -121,7 +121,7 @@ INKER_CATEGORY = {
         {
             "label": "Caneta Tinteiro",
             "brush_size": 5.0, "min_size_percent": 0.0,
-            "opacity": 0.95, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.95, "min_opacity_percent": 0.0,
             "hardness": 0.95, "spacing_factor": 0.035,
             "tip_angle": 45.0, "tip_aspect": 0.6, "follow_stroke": True,
             "inker_flow_rate": 0.9, "inker_taper_smoothing": 0.4,

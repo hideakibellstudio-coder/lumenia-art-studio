@@ -72,8 +72,8 @@ COLOR_PROFILES = [
 ]
 
 
-def estimate_ram_usage_mb(width: int, height: int, num_layers: int = 3) -> float:
-    bytes_per_pixel = 4
+def estimate_ram_usage_mb(width: int, height: int, num_layers: int = 3, pixel_format: int = 0) -> float:
+    bytes_per_pixel = 8 if int(pixel_format) == 1 else 4
     canvas_bytes = float(width) * float(height) * bytes_per_pixel
     total_bytes = canvas_bytes * (num_layers + 1.5)
     return total_bytes / (1024.0 * 1024.0)

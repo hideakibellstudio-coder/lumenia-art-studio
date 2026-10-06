@@ -38,26 +38,33 @@ def to_bool(value: Any, _native: Any) -> bool:
     return bool(value)
 
 
-def to_blend_mode(value: Any, native: Any) -> Any:
-    """A interface guarda o índice da combo; o motor exige o enum DabBlendMode.
+def _enum_by_index(value: Any, enum_cls: Any, label: str) -> Any:
+    """A interface guarda o índice da combo; o motor exige o enum.
 
     A faixa é validada aqui, contra `__members__`, ANTES de construir o enum.
-    `DabBlendMode(9)` não levanta nada no PyBind11 — devolve um enum com valor
-    9, que o motor recebe e usa. Delegar a validação ao construtor deixaria
-    passar exatamente o tipo de lixo que esta tabela existe para barrar.
+    `Enum(9)` não levanta nada no PyBind11 — devolve um enum com valor 9, que o
+    motor recebe e usa. Delegar a validação ao construtor deixaria passar
+    exatamente o tipo de lixo que esta tabela existe para barrar.
     """
-    enum_cls = native.DabBlendMode
     if isinstance(value, enum_cls):
         return value
     index = int(value)
     members = list(enum_cls.__members__.values())
     if not 0 <= index < len(members):
         raise ValueError(
-            f"blend_mode fora da faixa: {index} "
+            f"{label} fora da faixa: {index} "
             f"(o motor declara {len(members)} modos: "
             f"{', '.join(enum_cls.__members__)})"
         )
     return members[index]
+
+
+def to_blend_mode(value: Any, native: Any) -> Any:
+    return _enum_by_index(value, native.DabBlendMode, "blend_mode")
+
+
+def to_grain_mode(value: Any, native: Any) -> Any:
+    return _enum_by_index(value, native.GrainMode, "grain_mode")
 
 
 def from_enum(value: Any) -> int:
@@ -108,6 +115,7 @@ BRUSH_PARAMS: tuple[BrushParamSpec, ...] = (
     # ── Raiz do perfil ──────────────────────────────────────────────────────
     BrushParamSpec("brush_size", "", "brush_size", default=20.0),
     BrushParamSpec("opacity", "", "opacity", default=1.0),
+    BrushParamSpec("flow", "", "flow", default=1.0),
     BrushParamSpec("hardness", "", "hardness", default=0.85),
     BrushParamSpec("spacing_factor", "", "spacing_factor", default=0.08),
     BrushParamSpec("min_size_percent", "", "min_size_percent", default=0.0),
@@ -128,10 +136,13 @@ BRUSH_PARAMS: tuple[BrushParamSpec, ...] = (
                   to_engine=to_blend_mode, to_preset=from_enum, default=0),
     BrushParamSpec("pressure_to_angle", "", "pressure_to_angle", default=0.0),
     BrushParamSpec("pressure_to_aspect", "", "pressure_to_aspect", default=0.0),
+    BrushParamSpec("velocity_to_flow", "", "velocity_to_flow", default=0.0),
     BrushParamSpec("scatter_count", "", "scatter_count",
                   to_engine=to_int, default=1),
     BrushParamSpec("brush_grain_enabled", "", "brush_grain_enabled",
                   to_engine=to_bool, default=False),
+    BrushParamSpec("brush_grain_mode", "", "brush_grain_mode",
+                  to_engine=to_grain_mode, to_preset=from_enum, default=0),
     BrushParamSpec("brush_grain_scale", "", "brush_grain_scale", default=1.0),
     BrushParamSpec("brush_grain_contrast", "", "brush_grain_contrast", default=1.0),
     BrushParamSpec("brush_grain_invert", "", "brush_grain_invert",
@@ -143,6 +154,12 @@ BRUSH_PARAMS: tuple[BrushParamSpec, ...] = (
     BrushParamSpec("tip_angle", "tip", "angle", default=0.0),
     BrushParamSpec("tip_aspect", "tip", "aspect_ratio", default=1.0),
     BrushParamSpec("follow_stroke", "tip", "follow_stroke",
+                  to_engine=to_bool, default=False),
+    BrushParamSpec("tilt_to_angle", "tip", "tilt_to_angle", default=0.0),
+    BrushParamSpec("tilt_to_aspect", "tip", "tilt_to_aspect", default=0.0),
+    BrushParamSpec("tilt_to_size", "tip", "tilt_to_size", default=0.0),
+    BrushParamSpec("tilt_to_flow", "tip", "tilt_to_flow", default=0.0),
+    BrushParamSpec("use_twist_for_angle", "tip", "use_twist_for_angle",
                   to_engine=to_bool, default=False),
     BrushParamSpec("jitter_size", "tip", "jitter_size", default=0.0),
     BrushParamSpec("jitter_angle", "tip", "jitter_angle", default=0.0),
@@ -169,6 +186,8 @@ BRUSH_PARAMS: tuple[BrushParamSpec, ...] = (
     BrushParamSpec("oil_bristle_grooves", "oil", "bristle_grooves", default=0.5),
     BrushParamSpec("oil_viscosity", "oil", "viscosity", default=0.6),
     BrushParamSpec("oil_specular_brilliance", "oil", "specular_brilliance", default=0.5),
+    BrushParamSpec("oil_wet_mix_factor", "oil", "wet_mix_factor", default=0.35),
+    BrushParamSpec("oil_paint_depletion", "oil", "paint_depletion", default=0.0),
 )
 
 

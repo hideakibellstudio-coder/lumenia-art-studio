@@ -81,6 +81,9 @@ def validate_auxiliary(manifest):  # noqa: C901 -- dívida registrada (pendênci
     dpi = manifest.get("dpi", 300)
     if type(dpi) is not int or not 1 <= dpi <= 100000:
         raise DocumentFormatError("resolução (DPI) inválida")
+    pixel_format = manifest.get("pixel_format", 0)
+    if type(pixel_format) is not int or pixel_format not in (0, 1):
+        raise DocumentFormatError("formato de pixel inválido")
     paper = manifest.get("paper", {})
     if not isinstance(paper, dict):
         raise DocumentFormatError("papel inválido")

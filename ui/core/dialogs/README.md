@@ -20,6 +20,8 @@ Importados por módulo: `base_dialog.BaseFramelessDialog`,
 | `floating_tool_window.py` | FloatingToolWindow — Base compartilhada para janelas-ferramenta flutuantes sobre o canvas. |
 | `layer_properties_dialog.py` | Layer Properties Dialog — Diálogo de Propriedades e Ajuste da Camada. |
 | `modify_selection_dialog.py` | Modify Selection Dialog — Diálogo para Expandir, Contrair e Suavizar Seleção (ARCcC i18n). |
+| `pen_calibration_dialog.py` | `PenCalibrationDialog`: calibra a pressão da caneta (zona morta, pressão total, gama) à mão ou pela sugestão medida no quadro; grava no motor e na configuração (`pen`). |
+| `pen_calibration_pad.py` | `PressurePad`: quadro onde o artista desenha para o assistente medir a pressão bruta da caneta (o mouse não conta). |
 | `render_color_management_components.py` | ColorManagementGroup — Componente UI de Gestão Profissional de Cor e Soft-Proofing. |
 | `render_settings_components.py` | Components for RenderSettingsDialog (ProofingPreviewBar, ProfileCard, EnginePipelineGroup). |
 | `render_settings_dialog.py` | RenderSettingsDialog — Central de Renderização, Perfis de Cor & Prova de Impressão (Lumenia V2). |
@@ -56,6 +58,7 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/color`
 - `ui/core/document`
 - `ui/core/engine`
+- `ui/core/state`
 - `ui/core/widgets`
 - `ui/core/widgets/toggle`
 - `ui/infrastructure`

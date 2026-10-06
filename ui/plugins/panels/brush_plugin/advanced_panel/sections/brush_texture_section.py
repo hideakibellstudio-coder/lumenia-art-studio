@@ -1,6 +1,8 @@
 """Seções 4 e 5 do painel avançado: textura (matéria) do pincel e espaçamento."""
 from __future__ import annotations
 
+from PySide6 import QtWidgets
+
 from ui.infrastructure.i18n import tr
 from ui.core.state import BrushParam, BrushState
 
@@ -24,6 +26,12 @@ class BrushTextureSection(AdvancedSection):
         self.chk_b_grain = self.engine_check(
             tr("brush.enable_brush_texture", "Ativar Textura no Pincel"),
             "brush_grain_enabled", writer.grain_enabled, checked=True)
+        self.body.addWidget(QtWidgets.QLabel(f"{tr('brush.grain_mode', 'Modo do Grão')}:"))
+        self.cmb_grain_mode = self.engine_combo([
+            tr("brush.grain_moving", "Móvel (acompanha o carimbo)"),
+            tr("brush.grain_fixed", "Fixo (preso à tela, como o papel)"),
+        ], lambda idx: writer.root("brush_grain_mode", int(idx)), profile_key="brush_grain_mode")
+        self.body.addWidget(self.cmb_grain_mode)
         self.sl_b_scale = self.engine_slider(
             tr("brush.texture_scale", "Escala da Textura"), 10, 500, 100, "%",
             "brush_grain_scale", 100.0, writer.grain_scale, profile_default=1.0)

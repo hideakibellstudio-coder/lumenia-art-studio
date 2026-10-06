@@ -17,7 +17,7 @@ BRUSH_CATEGORY = {
         {
             "label": "Pincel Redondo",
             "brush_size": 20.0, "min_size_percent": 0.0,
-            "opacity": 1.0, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 1.0, "min_opacity_percent": 0.0,
             "hardness": 0.85, "spacing_factor": 0.08,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "brush_grain_enabled": False,
@@ -26,7 +26,7 @@ BRUSH_CATEGORY = {
         {
             "label": "Pincel Suave",
             "brush_size": 30.0, "min_size_percent": 0.1,
-            "opacity": 0.85, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.85, "min_opacity_percent": 0.0,
             "hardness": 0.2, "spacing_factor": 0.08,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "brush_grain_enabled": False,
@@ -35,7 +35,7 @@ BRUSH_CATEGORY = {
         {
             "label": "Pincel Chato (Flat)",
             "brush_size": 24.0, "min_size_percent": 0.05,
-            "opacity": 1.0, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 1.0, "min_opacity_percent": 0.0,
             "hardness": 0.9, "spacing_factor": 0.06,
             "tip_angle": 0.0, "tip_aspect": 0.3, "follow_stroke": True,
             "brush_grain_enabled": False,
@@ -44,7 +44,7 @@ BRUSH_CATEGORY = {
         {
             "label": "Aerógrafo",
             "brush_size": 40.0, "min_size_percent": 0.2,
-            "opacity": 0.4, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.4, "min_opacity_percent": 0.0,
             "hardness": 0.0, "spacing_factor": 0.05,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "brush_grain_enabled": False,
@@ -66,7 +66,7 @@ ERASER_CATEGORY = {
         {
             "label": "Borracha Dura",
             "brush_size": 16.0, "min_size_percent": 0.5,
-            "opacity": 1.0, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 1.0, "min_opacity_percent": 0.0,
             "hardness": 0.95, "spacing_factor": 0.04,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "stabilizer_weight": 0.20, "stroke_taper_enabled": False,
@@ -74,7 +74,7 @@ ERASER_CATEGORY = {
         {
             "label": "Borracha Mole",
             "brush_size": 24.0, "min_size_percent": 0.2,
-            "opacity": 0.8, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.8, "min_opacity_percent": 0.0,
             "hardness": 0.2, "spacing_factor": 0.04,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "stabilizer_weight": 0.10, "stroke_taper_enabled": False,
@@ -82,7 +82,7 @@ ERASER_CATEGORY = {
         {
             "label": "Borracha de Aerógrafo",
             "brush_size": 40.0, "min_size_percent": 0.0,
-            "opacity": 0.3, "min_opacity_percent": 0.0,
+            "opacity": 1.0, "flow": 0.3, "min_opacity_percent": 0.0,
             "hardness": 0.0, "spacing_factor": 0.025,
             "tip_angle": 0.0, "tip_aspect": 1.0, "follow_stroke": False,
             "stabilizer_weight": 0.05, "stroke_taper_enabled": False,

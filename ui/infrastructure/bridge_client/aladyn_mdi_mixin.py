@@ -42,13 +42,20 @@ class AladynMdiMixin(AladynBackendBase):
             if setter:
                 setter(value)
 
-    def max_canvas_dimension(self) -> int:
+    def max_canvas_dimension(self, pixel_format: int = 0) -> int:
         """O maior lado de canvas que o motor aceita (`PaintEngineFacade.maxCanvasDimension`)."""
         if self._native is None:
             return SHELL_MODE_MAX_CANVAS_DIMENSION
-        return int(self._native.PaintEngineFacade.max_canvas_dimension())
+        return int(self._native.PaintEngineFacade.max_canvas_dimension(int(pixel_format)))
 
-    def set_active_document_context(self, uid: str, width: int, height: int) -> None:
+    def get_pixel_format(self) -> int:
+        """Formato de pixel do documento ativo (0 = RGBA8, 1 = RGBA16)."""
+        facade = self._facade
+        if facade is None:
+            return 0
+        return int(facade.get_pixel_format())
+
+    def set_active_document_context(self, uid: str, width: int, height: int, pixel_format: int = 0) -> None:
         """
         Alterna o contexto ativo de execução C++ para o documento especificado em tempo O(1).
         Se a PaintEngineFacade para o documento ainda não existir, ela é alocada imediatamente.
@@ -65,10 +72,14 @@ class AladynMdiMixin(AladynBackendBase):
 
         if uid not in self._doc_facades:
             try:
-                facade = self._native.PaintEngineFacade(w, h)
+                if int(pixel_format) != 0:
+                    facade = self._native.PaintEngineFacade(w, h, int(pixel_format))
+                else:
+                    facade = self._native.PaintEngineFacade(w, h)
                 facade.set_undo_memory_limit_mb(self._undo_memory_limit_mb)
                 facade.set_undo_max_steps(self._undo_max_steps)
                 self._push_render_options(facade)
+                self._push_pressure_calibration(facade)
                 # O motor cria a camada inicial com nome fixo ("Camada 1",
                 # LayerStack.cpp); o documento dá à dele o nome padrão do
                 # idioma (DocumentManager.new_document). Direto na facade:
@@ -125,6 +136,7 @@ class AladynMdiMixin(AladynBackendBase):
         # salvar outro documento gravava o perfil errado no arquivo.
         self._color_profile_id = self._doc_profiles.get(uid, 0)
         self._push_render_options(self._facade)
+        self._push_pressure_calibration(self._facade)
         if self._last_brush_preset:
             self.apply_brush_preset_dict(self._last_brush_preset)
         if uid != PLACEHOLDER_CONTEXT:

@@ -66,7 +66,8 @@ def _check_ready(document: Document, backend: CaptureEngine) -> None:
         document.history.assert_projection(backend)
     except RuntimeError as exc:
         raise DocumentFormatError(str(exc)) from exc
-    if document.width * document.height * 4 > min(MAX_PAYLOAD_BYTES, 2**31 - 1):
+    bpp = 8 if document.rgba16_document else 4
+    if document.width * document.height * bpp > min(MAX_PAYLOAD_BYTES, 2**31 - 1):
         raise DocumentFormatError("dimensões excedem o limite do motor")
 
 
@@ -143,6 +144,7 @@ def capture_document(document: Document, backend: CaptureEngine, path: str | os.
         "width": int(document.width),
         "height": int(document.height),
         "dpi": int(document.dpi),
+        "pixel_format": int(document.pixel_format),
         "paper": {
             "color": _color_tuple(document.paper_color),
             "visible": bool(document.paper_visible),

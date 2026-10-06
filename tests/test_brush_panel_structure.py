@@ -36,8 +36,9 @@ def test_tool_selection_column(qapp):
 
 def test_quick_sliders_section_edits_and_shows_in_engine_units(qapp):
     sec = QuickSlidersSection()
-    assert len(sec.all_sliders) == 8
+    assert len(sec.all_sliders) == 9
     assert isinstance(sec.slider(BrushParam.SIZE), CompactSlider)
+    assert isinstance(sec.slider(BrushParam.FLOW), CompactSlider)
 
     edited = []
     sec.paramEdited.connect(lambda p, v: edited.append((p, v)))
@@ -46,6 +47,8 @@ def test_quick_sliders_section_edits_and_shows_in_engine_units(qapp):
     sec.slider(BrushParam.OPACITY).setValue(80)
     assert (BrushParam.SIZE, 120.0) in edited
     assert (BrushParam.OPACITY, 0.8) in edited
+    sec.slider(BrushParam.FLOW).setValue(35)
+    assert (BrushParam.FLOW, 0.35) in edited
 
     # show_value não emite (é o caminho estado -> view).
     edited.clear()

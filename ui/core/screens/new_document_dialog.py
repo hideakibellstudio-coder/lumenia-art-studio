@@ -36,6 +36,7 @@ class NewDocumentDialog(BaseFramelessDialog):
         super().__init__(title=tr("dialogs.new_document_title", "Novo Documento"), icon_name="document", parent=parent, modal=True)
         self.resize(780, 540)
         self.setMinimumSize(720, 490)
+        self.cmb_pixel_format: QtWidgets.QComboBox | None = None
 
         self._build_ui()
         self._update_ram_estimate()
@@ -155,6 +156,20 @@ class NewDocumentDialog(BaseFramelessDialog):
         row_prof.addWidget(self.cmb_color_prof, 1)
         lay_dim.addLayout(row_prof)
 
+        # Formato de Pixel (Profundidade de Cor)
+        row_fmt = QtWidgets.QHBoxLayout()
+        row_fmt.setSpacing(8)
+        lbl_fmt = QtWidgets.QLabel(f"{tr('dialogs.pixel_format', 'Profundidade')}:")
+        lbl_fmt.setStyleSheet("font-size: 10px;")
+        self.cmb_pixel_format = QtWidgets.QComboBox()
+        self.cmb_pixel_format.setFixedHeight(24)
+        self.cmb_pixel_format.addItem(tr("dialogs.pixel_format_8bit", "8-bit (RGBA8) - Padrão"), 0)
+        self.cmb_pixel_format.addItem(tr("dialogs.pixel_format_16bit", "16-bit (RGBA16) - Ampla Precisão"), 1)
+        self.cmb_pixel_format.currentIndexChanged.connect(self._on_pixel_format_changed)
+        row_fmt.addWidget(lbl_fmt)
+        row_fmt.addWidget(self.cmb_pixel_format, 1)
+        lay_dim.addLayout(row_fmt)
+
         right_col.addWidget(grp_dim)
 
         # 3. Grupo: Papel de Fundo (Layer 0)
@@ -244,12 +259,25 @@ class NewDocumentDialog(BaseFramelessDialog):
         self.spn_width.setValue(h)
         self.spn_height.setValue(w)
 
+    def _on_pixel_format_changed(self):
+        fmt = self.cmb_pixel_format.currentData()
+        max_dim = max_canvas_dimension(fmt)
+        self.spn_width.setMaximum(max_dim)
+        self.spn_height.setMaximum(max_dim)
+        if self.spn_width.value() > max_dim:
+            self.spn_width.setValue(max_dim)
+        if self.spn_height.value() > max_dim:
+            self.spn_height.setValue(max_dim)
+        self._update_ram_estimate()
+
     def _update_ram_estimate(self):
         w = self.spn_width.value()
         h = self.spn_height.value()
-        mb = estimate_ram_usage_mb(w, h, num_layers=3)
+        fmt = self.cmb_pixel_format.currentData() if self.cmb_pixel_format is not None else 0
+        mb = estimate_ram_usage_mb(w, h, num_layers=3, pixel_format=fmt)
         mp = (float(w) * float(h)) / 1_000_000.0
-        self.lbl_ram_estimate.setText(f"{mp:.1f} Megapixels  •  RAM estimada: ~{mb:.1f} MB (3 camadas)")
+        fmt_label = "16-bit" if fmt == 1 else "8-bit"
+        self.lbl_ram_estimate.setText(f"{mp:.1f} Megapixels ({fmt_label})  •  RAM estimada: ~{mb:.1f} MB (3 camadas)")
 
     def get_document_params(self) -> Dict[str, Any]:
         """Retorna todos os parâmetros de criação do documento para inicialização do motor."""
@@ -258,6 +286,7 @@ class NewDocumentDialog(BaseFramelessDialog):
             "width": self.spn_width.value(),
             "height": self.spn_height.value(),
             "dpi": self.spn_dpi.value(),
+            "pixel_format": self.cmb_pixel_format.currentData(),
             "color_profile_id": self.cmb_color_prof.currentData(),
             "bg_color": self.cmb_bg_color.currentData(),
             "paper_texture_id": self.cmb_paper_tex.currentData(),

@@ -84,6 +84,8 @@ LAYER_PROPERTIES: tuple[LayerProperty, ...] = (
                   group_default=LayerBlendMode.PASS_THROUGH, validate=lambda value: True),
     LayerProperty("alpha_locked", False, _flag, engine_setter="set_layer_alpha_lock", reason="alpha_lock", is_flag=True),
     LayerProperty("clipping_mask", False, _flag, engine_setter="set_layer_clipping_mask", is_flag=True),
+    LayerProperty("has_mask", False, _flag, is_flag=True),
+    LayerProperty("mask_enabled", True, _flag, engine_setter="set_layer_mask_enabled", is_flag=True),
     LayerProperty("collapsed", False, _flag, saved=False, duplicated=False),
 )
 

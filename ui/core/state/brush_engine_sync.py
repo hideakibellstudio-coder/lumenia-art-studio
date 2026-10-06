@@ -29,6 +29,7 @@ BackendProvider = RoleProvider[BrushProtocol]
 _SETTERS: dict[BrushParam, Callable[[BrushProtocol, float | bool], None]] = {
     BrushParam.SIZE: lambda b, v: b.set_brush_size(float(v)),
     BrushParam.OPACITY: lambda b, v: b.set_brush_opacity(float(v)),
+    BrushParam.FLOW: lambda b, v: b.set_brush_flow(float(v)),
     BrushParam.PRESSURE: lambda b, v: b.set_brush_pressure(float(v)),
     BrushParam.PRESSURE_CURVE: lambda b, v: b.set_pressure_curve_power(float(v)),
     BrushParam.STABILIZER: lambda b, v: b.set_stabilizer_weight(float(v)),

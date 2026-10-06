@@ -45,6 +45,7 @@ podem mudar sem aviso.
 | `brush_curves.py` | `BrushCurve` (pressão→tamanho, pressão→fluxo, velocidade→tamanho) e `CurveSetting` (4 pontos de controle e se está ligada); o valor é do `BrushState`, o motor só o recebe pelo `BrushEngineSync`. |
 | `geometry_state.py` | `GeometryState`: guias e simetria do documento ativo; regras de ângulo por modo, campos do diálogo avançado (`apply_advanced`), centro no documento e troca de documento (`load`). |
 | `tool_state.py` | `ToolState`: ferramenta ativa e opções normalizadas por ferramenta; `options_key`, `is_shape_tool`. |
+| `pen_calibration.py` | `PenCalibration`: a curva global de entrada da pressão (zona morta, pressão total, gama) lida e escrita na configuração, `summarize_pressures` (amostras, pico e aperto habitual) e `suggest_from_pressures`, a sugestão do assistente (p95 dos traços medidos). Exportados pela porta com as faixas aceitas. A conta mora no motor. |
 | `state_links.py` | Regras entre estados: `ShapeColorLink` (formas usam a cor do pincel) e `ToolEngineSync` (Smudge → motor). |
 
 ## Fluxo

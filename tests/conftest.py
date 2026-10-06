@@ -21,6 +21,21 @@ os.environ.setdefault("LUMENIA_DISABLE_OPENGL", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "2")
 
 
+# O pytest copia o nome de cada teste em PYTEST_CURRENT_TEST, e o Windows recusa variável de ambiente acima de
+# 32767 caracteres. O id automático de um parâmetro `bytes`/`str` é o conteúdo inteiro: um bloco de 80 MiB virou
+# um nome de ~84 MB que só quebrava no Windows (achado 2026-10-01). Aqui quebra em qualquer sistema, na coleta.
+MAX_NODEID_CHARS = 1000
+
+
+def pytest_collection_modifyitems(items):
+    too_long = [item.nodeid for item in items if len(item.nodeid) > MAX_NODEID_CHARS]
+    if too_long:
+        raise pytest.UsageError(
+            f"{len(too_long)} teste(s) com nome acima de {MAX_NODEID_CHARS} caracteres; dê `ids=[...]` ao "
+            f"parametrize. Primeiro: {too_long[0][:160]!r} ({len(too_long[0])} caracteres)"
+        )
+
+
 @pytest.fixture(scope="session")
 def qapp():
     """QApplication única da sessão de testes.

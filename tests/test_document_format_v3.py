@@ -251,7 +251,14 @@ def test_an_undeclared_entry_is_refused(saved):
         DocumentSerializer.read(path)
 
 
-@pytest.mark.parametrize("block", [b"", b"LMNT", b"XXXX" + bytes(40), b"LMNT" + bytes(20) + b"x" * (2 * 1024 * 1024 * 40)])
+# `ids` explícito: o id automático de um `bytes` é o conteúdo escapado, e o bloco de 80 MiB virava um nome de teste de
+# ~84 MB. O pytest copia o nome em PYTEST_CURRENT_TEST e o Windows recusa variável de ambiente acima de 32767
+# caracteres (ValueError: 1 falha e 2 erros de setup/teardown); o cache do pytest também crescia ~84 MB por arquivo.
+@pytest.mark.parametrize(
+    "block",
+    [b"", b"LMNT", b"XXXX" + bytes(40), b"LMNT" + bytes(20) + b"x" * (2 * 1024 * 1024 * 40)],
+    ids=["empty", "magic_only", "wrong_magic", "oversized_80mib"],
+)
 def test_a_tile_block_with_the_wrong_size_or_magic_is_refused(saved, block):
     _engine, _manager, path = saved
     name = _layer_records(path)[0]["tiles_payload"]

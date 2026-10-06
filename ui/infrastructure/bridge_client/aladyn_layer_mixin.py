@@ -38,6 +38,46 @@ class AladynLayerMixin(AladynBackendBase):
             self._facade.set_layer_clipping_mask(index, clipped)
             self._mark_document_dirty("clipping_mask")
 
+    def add_layer_mask(self, index: int) -> bool:
+        if self._facade:
+            ok = self._facade.add_layer_mask(index)
+            if ok:
+                self._mark_document_dirty("add_mask")
+            return ok
+        return False
+
+    def remove_layer_mask(self, index: int) -> bool:
+        if self._facade:
+            ok = self._facade.remove_layer_mask(index)
+            if ok:
+                self._mark_document_dirty("remove_mask")
+            return ok
+        return False
+
+    def has_layer_mask(self, index: int) -> bool:
+        if self._facade:
+            return self._facade.has_layer_mask(index)
+        return False
+
+    def set_layer_mask_enabled(self, index: int, enabled: bool) -> None:
+        if self._facade:
+            self._facade.set_layer_mask_enabled(index, enabled)
+            self._mark_document_dirty("mask_enabled")
+
+    def is_layer_mask_enabled(self, index: int) -> bool:
+        if self._facade:
+            return self._facade.is_layer_mask_enabled(index)
+        return False
+
+    def set_layer_mask_edit_target(self, index: int, target_mask: bool) -> None:
+        if self._facade:
+            self._facade.set_layer_mask_edit_target(index, target_mask)
+
+    def is_layer_mask_edit_target(self, index: int) -> bool:
+        if self._facade:
+            return self._facade.is_layer_mask_edit_target(index)
+        return False
+
     def set_layer_blend_mode(self, index: int, mode_val: Any) -> None:
         if self._facade:
             # Passa int puro (contrato de `.pyi`: `blend_mode_id: int`), nunca

@@ -44,6 +44,7 @@ TEST_VALUES = {
     "to_int": 7,
     "to_bool": True,
     "to_blend_mode": 1,
+    "to_grain_mode": 1,
 }
 
 

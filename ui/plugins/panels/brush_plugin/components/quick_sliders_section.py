@@ -22,6 +22,7 @@ from ui.infrastructure.i18n import tr
 _SLIDERS: dict[BrushParam, tuple[str, str, int, int, str, float, bool]] = {
     BrushParam.SIZE: ("brush.size_short", "Tam:", 1, 500, "px", 1.0, True),
     BrushParam.OPACITY: ("brush.opacity_short", "Opac:", 0, 100, "%", 100.0, True),
+    BrushParam.FLOW: ("brush.flow_short", "Fluxo:", 0, 100, "%", 100.0, True),
     BrushParam.CONTRAST: ("brush.hardness_short", "Dur:", 1, 30, "", 10.0, False),
     BrushParam.PRESSURE: ("brush.pressure_short", "Press:", 1, 100, "%", 100.0, False),
     BrushParam.PRESSURE_CURVE: ("brush.curve_short", "Curv:", 1, 40, "", 10.0, False),
@@ -34,6 +35,7 @@ _SLIDERS: dict[BrushParam, tuple[str, str, int, int, str, float, bool]] = {
 PIN_NAMES: dict[str, BrushParam] = {
     "size": BrushParam.SIZE,
     "opacity": BrushParam.OPACITY,
+    "flow": BrushParam.FLOW,
     "contrast": BrushParam.CONTRAST,
     "pressure": BrushParam.PRESSURE,
     "pressure_curve": BrushParam.PRESSURE_CURVE,

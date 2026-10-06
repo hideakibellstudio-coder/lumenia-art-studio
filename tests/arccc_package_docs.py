@@ -46,7 +46,10 @@ CXX_SUFFIXES = (".hpp", ".cpp", ".h")
 # Arquivos que o README cita um a um (código e documentos). Dados não.
 CITED_SUFFIXES = (".py", ".pyi", *CXX_SUFFIXES, ".md", ".ps1", ".iss", ".yml", ".bat", ".vbs")
 SKIPPED_DIRS = {".git", "__pycache__", "build", "dist", ".pytest_cache", ".mypy_cache",
-                ".ruff_cache", ".venv", "venv", "env", "node_modules"}
+                ".ruff_cache", ".venv", "venv", "env", "node_modules",
+                # Saída de execução ignorada pelo .gitignore: só existe depois de rodar o app ou a suíte
+                # (logs/ falhava este teste no Windows, onde a suíte já tinha rodado).
+                "logs", "scratch", "dist_nuitka", "theme_icon_cache"}
 _INCLUDE = re.compile(r'#include\s+"([^"]+)"')
 DEPS_BLOCK = re.compile(r"<!--\s*arccc:deps\s*-->(.*?)<!--\s*/arccc:deps\s*-->", re.S)
 DRAFT_MARK = "A PREENCHER"

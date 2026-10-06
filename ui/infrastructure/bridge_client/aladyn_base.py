@@ -40,6 +40,11 @@ class AladynBackendBase:
     _last_x: Optional[float]
     _last_y: Optional[float]
 
+    # ── Caneta ────────────────────────────────────────────────────────────
+    # (floor, ceiling, gamma) da curva global de pressão; vale para todos os documentos
+    # e é reaplicada a cada facade, como as opções de render.
+    _pressure_calibration: tuple[float, float, float]
+
     # ── Render e cor ──────────────────────────────────────────────────────
     _render_options: dict[str, bool]
     _view_state: tuple[float, float, float, float]
@@ -68,12 +73,20 @@ class AladynBackendBase:
         self._last_x: Optional[float] = None
         self._last_y: Optional[float] = None
 
+        self._pressure_calibration = (0.0, 1.0, 1.0)
         self._render_options = {"low_latency": True, "linear_gamma": False, "deep_color": False}
         self._view_state = (0.0, 0.0, 1.0, 0.0)
         self._soft_proof_config = SoftProofConfig()
         self._color_profile_id = 0
         self._doc_profiles = {}
         self.last_telemetry = (0.0, 0.0, 0.0)
+
+    def _push_pressure_calibration(self, facade: Any) -> None:
+        """Aplica a curva global de pressão guardada numa facade (nova, trocada ou já aberta)."""
+        if not facade:
+            return
+        curve = facade.get_pressure_calibration()
+        curve.floor, curve.ceiling, curve.gamma = self._pressure_calibration
 
     def _mark_document_dirty(self, reason: str) -> None:
         """Avisa que o documento ativo mudou (o DocumentManager escuta pelo EngineRegistry)."""

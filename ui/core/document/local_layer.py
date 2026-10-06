@@ -27,6 +27,8 @@ class LocalLayer:
     blend_mode: LayerBlendMode
     alpha_locked: bool
     clipping_mask: bool
+    has_mask: bool
+    mask_enabled: bool
     collapsed: bool
 
     def __init__(self, uid: int, name: str, parent_uid=None, is_group=False, is_filter=False):

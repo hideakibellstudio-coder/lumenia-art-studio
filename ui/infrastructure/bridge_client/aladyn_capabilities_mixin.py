@@ -17,6 +17,9 @@ class AladynCapabilitiesMixin(AladynBackendBase):
         def has(*methods: str) -> bool:
             return native and all(hasattr(facade, method) for method in methods)
 
+        fmt = int(facade.get_pixel_format()) if (native and facade) else 0
+        is_rgba16 = (fmt == 1)
+
         return {
             "native_engine": native,
             "render": has("refresh_display", "get_display_pixel_buffer"),
@@ -43,9 +46,9 @@ class AladynCapabilitiesMixin(AladynBackendBase):
             "color_profiles": has("set_color_profile", "get_available_color_profiles"),
             "color_profile_preview": has("transform_rgba_for_profile"),
             "embedded_icc_profiles": False,
-            "rgba16_document": False,
+            "rgba16_document": is_rgba16,
             "export_image": native,
-            "document_pixel_format": "RGBA8",
+            "document_pixel_format": "RGBA16" if is_rgba16 else "RGBA8",
             "soft_proofing": True,
             "custom_color_profiles": True,
         }
@@ -58,24 +61,30 @@ class AladynCapabilitiesMixin(AladynBackendBase):
         target_path = Path(path)
         ext = target_path.suffix.lower()
 
+        image = self.get_qimage()
+        if not image or image.isNull():
+            return False
+
         # Exportação enriquecida com perfil ICC para PNG, JPEG, TIFF e WebP
         if embed_icc and ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp"}:
             icc_bytes = self.get_active_profile_icc_bytes()
             if icc_bytes:
-                image = self.get_qimage()
-                if image and not image.isNull():
-                    try:
-                        from PIL import Image
-                        w, h = image.width(), image.height()
+                try:
+                    from PIL import Image
+                    from PySide6.QtGui import QImage
+                    w, h = image.width(), image.height()
+                    if image.format() == QImage.Format_RGBA64:
+                        img = Image.frombuffer("RGBA;16", (w, h), bytes(image.bits()), "raw", "RGBA;16", 0, 1)
+                    else:
                         img = Image.frombuffer("RGBA", (w, h), bytes(image.bits()), "raw", "RGBA", 0, 1)
-                        if ext in {".jpg", ".jpeg"}:
-                            img = img.convert("RGB")
-                        target_path.parent.mkdir(parents=True, exist_ok=True)
-                        img.save(str(target_path), icc_profile=icc_bytes)
-                        return True
-                    except Exception:
-                        # Qualquer anomalia no Pillow: registra e usa o fallback QImage abaixo.
-                        logging.getLogger(__name__).debug("Export via Pillow falhou; usando QImage.", exc_info=True)
+                    if ext in {".jpg", ".jpeg"}:
+                        img = img.convert("RGB")
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    img.save(str(target_path), icc_profile=icc_bytes)
+                    return True
+                except Exception:
+                    # Qualquer anomalia no Pillow: registra e usa o fallback QImage abaixo.
+                    logging.getLogger(__name__).debug("Export via Pillow falhou; usando QImage.", exc_info=True)
 
-        image = self.get_qimage()
-        return bool(image and not image.isNull() and image.save(str(target_path)))
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        return bool(image.save(str(target_path)))

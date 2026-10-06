@@ -14,7 +14,8 @@ replace the copies) must be checked against all nine.
 Each cell is one engine x one variant:
 
   plain         stroke over three coloured bars on layer 0
-  alpha_locked  the same, layer 0 alpha lock on
+  alpha_locked  the same plus a vertical bar of another colour across them (so the locked
+                layer has colour edges for Blur and Smudge to work on), layer 0 alpha lock on
   selected      the same, a rectangular selection over the left half
   clipped       layer 1 (clipping mask over layer 0) carries the bars; the
                 stroke goes on layer 1
@@ -36,13 +37,29 @@ hardness paths that no pin touched):
 The digest covers the composite and the active layer buffer. Delete
 `tests/golden/engines_golden.json` to record everything again, only when the
 pixel change is deliberate and you know what it is.
+
+Platforms. `engines_golden.json` was recorded on Linux (g++ -O2, scalar) and is
+the reference. The stroke math is pure float/double and ends in a byte conversion, so a last-bit difference in a libm call (`pow`, `atan2`,
+`tan`, `sin`) between the MSVC and glibc runtimes becomes one level of colour in
+a few percent of the stroke pixels (alpha stays identical). The stroke math converts to bytes by
+ROUNDING since 2026-10-02 (it truncated before); the divergence now needs a last-bit difference to
+cross a .5, which is rarer than crossing an integer, so expect the Windows override to shrink. Where a platform
+diverges, `engines_golden.<sys.platform>.json` holds ONLY the cells that differ,
+as an override of the reference; every other cell is still checked against the
+reference hash, which makes them bit-identical across platforms. The override
+file is never recorded by accident: set LUMENIA_RECORD_PLATFORM_PINS=1 and run
+this file on that platform. `test_platform_pins_are_real_divergences` keeps the
+override from drifting into a loophole (unknown cell, or a hash equal to the
+reference, both fail).
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
+import sys
 
 import pytest
 
@@ -51,6 +68,9 @@ native = pytest.importorskip(
 )
 
 GOLDEN = pathlib.Path(__file__).parent / "golden" / "engines_golden.json"
+REFERENCE_PLATFORM = "linux"  # where GOLDEN was recorded
+PLATFORM_GOLDEN = GOLDEN.with_name(f"engines_golden.{sys.platform}.json")
+RECORD_PLATFORM_ENV = "LUMENIA_RECORD_PLATFORM_PINS"
 WIDTH, HEIGHT = 128, 96
 
 ENGINES = {
@@ -88,6 +108,7 @@ BARS = (((220, 40, 40), 28), ((40, 80, 220), 48), ((230, 200, 40), 68))
 # Diagonal stroke across the bars, with varying pressure.
 SAMPLES = [(14.0 + i * 2.5, 12.0 + i * 1.85, 0.6 + 0.4 * ((i % 5) / 4.0)) for i in range(40)]
 TESTED_COLOR = (30, 160, 60)
+CROSS_BAR_COLOR, CROSS_BAR_X = (40, 200, 200), 60.0
 
 
 def _stroke(eng, points):
@@ -210,6 +231,11 @@ def _scenario(engine, variant):
         _paint_bars(eng, shift_x=18.0)
         eng.set_layer_clipping_mask(active, True)
     elif variant == "alpha_locked":
+        # Until 2026-10-02 the bars alone were enough: Blur "changed" the locked layer only by the
+        # one-level noise of the truncating byte conversion. With rounding a blur of flat colour is
+        # the identity, so the scene needs colour edges for the cell to characterize anything.
+        _use_engine(eng, native.EngineType.Inker, CROSS_BAR_COLOR, size=12.0)
+        _stroke(eng, [(CROSS_BAR_X, 6.0 + i * 5.0, 1.0) for i in range(18)])
         eng.set_layer_alpha_lock(active, True)
     elif variant == "selected":
         eng.select_rect(0, 0, WIDTH // 2, HEIGHT)
@@ -226,26 +252,55 @@ def _label(engine, variant):
     return f"{engine}__{variant}"
 
 
+def _read_pins(path: pathlib.Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def _write_pins(path: pathlib.Path, pins: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # newline="\n": on Windows the default would write CRLF into a file shared with Linux.
+    path.write_text(
+        json.dumps(pins, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
+    )
+
+
 @pytest.fixture(scope="module")
 def pins() -> dict:
-    """Load the pins, recording any that are missing.
+    """Load the pins: the reference, overridden by this platform's divergent cells.
 
-    Completing instead of failing matters: a new cell enters the matrix and is
-    recorded from the current binary instead of being skipped silently.
+    On the reference platform, cells missing from the reference are recorded from
+    the current binary instead of being skipped silently. Anywhere else a missing
+    reference cell is an error: recording it there would put a hash that Linux may
+    not reproduce into the file Linux checks.
     """
-    recorded = {}
-    if GOLDEN.exists():
-        recorded = json.loads(GOLDEN.read_text(encoding="utf-8"))
+    reference = _read_pins(GOLDEN)
+    on_reference = sys.platform == REFERENCE_PLATFORM
+
     missing = {
-        _label(*cell): _scenario(*cell) for cell in CELLS if _label(*cell) not in recorded
-    }
+        _label(*cell): _scenario(*cell) for cell in CELLS if _label(*cell) not in reference
+    } if on_reference else {}
     if missing:
-        recorded.update(missing)
-        GOLDEN.parent.mkdir(parents=True, exist_ok=True)
-        GOLDEN.write_text(
-            json.dumps(recorded, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        reference.update(missing)
+        _write_pins(GOLDEN, reference)
+    unrecorded = [_label(*cell) for cell in CELLS if _label(*cell) not in reference]
+    if unrecorded:
+        pytest.fail(
+            f"{len(unrecorded)} cell(s) have no reference pin (first: {unrecorded[0]}). "
+            f"Record them on {REFERENCE_PLATFORM}, the reference platform; this is {sys.platform}.",
+            pytrace=False,
         )
-    return recorded
+
+    if sys.platform == REFERENCE_PLATFORM:
+        return reference
+    if os.environ.get(RECORD_PLATFORM_ENV) == "1":
+        divergent = {}
+        for cell in CELLS:
+            digest = _scenario(*cell)
+            if digest != reference[_label(*cell)]:
+                divergent[_label(*cell)] = digest
+        _write_pins(PLATFORM_GOLDEN, divergent)
+        return {**reference, **divergent}
+    return {**reference, **_read_pins(PLATFORM_GOLDEN)}
 
 
 # -- 1. The pins -------------------------------------------------------------
@@ -254,13 +309,40 @@ def pins() -> dict:
 def test_cell_did_not_change(pins, cell):
     label = _label(*cell)
     assert _scenario(*cell) == pins[label], (
-        f"the pixels of {label} changed. If the change is deliberate, say what it "
-        f"is and record the pin again; if not, the edit leaked into an engine "
-        f"that should have stayed intact."
+        f"the pixels of {label} changed on {sys.platform}. If the change is deliberate, "
+        f"say what it is and record the pin again; if not, the edit leaked into an "
+        f"engine that should have stayed intact."
     )
 
 
 # -- 2. Guards: without them every hash above could be noise or a no-op ------
+
+@pytest.mark.parametrize(
+    "path", sorted(GOLDEN.parent.glob("engines_golden.*.json")), ids=lambda p: p.name
+)
+def test_platform_pins_are_real_divergences(path):
+    """A platform file may only hold cells that differ from the reference.
+
+    Without this, the override is a way to bless any hash: a typo in a label would
+    never be read, and a hash equal to the reference would hide that the platform
+    no longer diverges (the file should shrink when the math becomes bit-exact).
+    """
+    platform = path.name[len("engines_golden."):-len(".json")]
+    reference = _read_pins(GOLDEN)
+    overrides = _read_pins(path)
+    labels = {_label(*cell) for cell in CELLS}
+    assert platform != REFERENCE_PLATFORM, (
+        f"{path.name} is for the reference platform, whose pins are {GOLDEN.name}; it is never read"
+    )
+    assert not set(overrides) - labels, (
+        f"{path.name} pins cells that do not exist: {sorted(set(overrides) - labels)}"
+    )
+    redundant = sorted(k for k, v in overrides.items() if reference.get(k) == v)
+    assert not redundant, (
+        f"{path.name} repeats the reference hash for {redundant}; those cells no "
+        f"longer diverge, delete them from the file"
+    )
+
 
 @pytest.mark.parametrize("engine", list(ENGINES))
 def test_scenario_is_deterministic(engine):

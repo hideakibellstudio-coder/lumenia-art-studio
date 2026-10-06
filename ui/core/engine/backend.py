@@ -21,6 +21,7 @@ from ui.core.engine.engine_type import EngineType
 # mora em engine/core/canvas/CanvasLimits.hpp e `tests/test_canvas_limit_contract.py`
 # confere que esta constante é igual a ele.
 SHELL_MODE_MAX_CANVAS_DIMENSION = 16384
+SHELL_MODE_MAX_CANVAS_DIMENSION_RGBA16 = 8192
 
 
 @dataclass(frozen=True)
@@ -109,17 +110,21 @@ class EngineBackend(ABC):
     def render(self, pan_x: float, pan_y: float, zoom: float, rotation_rad: float) -> None:
         """Renderiza o quadro atual com a câmera informada."""
 
-    def max_canvas_dimension(self) -> int:
+    def max_canvas_dimension(self, pixel_format: int = 0) -> int:
         """Maior lado de canvas, em px, que o motor aceita. Diálogos e ações perguntam aqui."""
-        return SHELL_MODE_MAX_CANVAS_DIMENSION
+        return SHELL_MODE_MAX_CANVAS_DIMENSION_RGBA16 if int(pixel_format) == 1 else SHELL_MODE_MAX_CANVAS_DIMENSION
 
-    def set_active_document_context(self, uid: Any, width: int, height: int) -> None:
+    def set_active_document_context(self, uid: Any, width: int, height: int, pixel_format: int = 0) -> None:
         """Sincroniza o contexto de execução nativo com a aba/documento ativa.
 
         Levanta `EngineContextError` se o motor não conseguir criar o contexto
         (falta de memória); o contexto ativo antes da chamada continua ativo.
         """
         pass
+
+    def get_pixel_format(self) -> int:
+        """Formato de pixel do documento ativo (0 = RGBA8, 1 = RGBA16)."""
+        return 0
 
     def close_document_context(self, uid: Any) -> None:
         """Libera toda a memória nativa e buffers associados a um documento fechado."""
@@ -163,6 +168,14 @@ class EngineBackend(ABC):
     def paint_stroke(self, x: float, y: float, pressure: float, timestamp: float = 0.0, tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None:
         """Continua um traço em andamento."""
 
+    def set_pressure_calibration(self, floor: float, ceiling: float, gamma: float) -> None:
+        """Curva global da pressão da caneta (zona morta, pressão total, gama); vale para todo traço."""
+        pass
+
+    def get_pressure_calibration(self) -> Tuple[float, float, float]:
+        """(floor, ceiling, gamma) em vigor; a identidade quando nada foi calibrado."""
+        return (0.0, 1.0, 1.0)
+
     @abstractmethod
     def end_stroke(self, x: Optional[float] = None, y: Optional[float] = None) -> Any:
         """Finaliza o traço atual (no ponto dado, ou no último ponto recebido).
@@ -183,6 +196,7 @@ class EngineBackend(ABC):
     def set_brush_hardness(self, hardness: float) -> None: pass
     def set_brush_spacing(self, spacing: float) -> None: pass
     def set_brush_opacity(self, opacity: float) -> None: pass
+    def set_brush_flow(self, flow: float) -> None: pass
     def set_stabilizer_weight(self, weight: float) -> None: pass
     def set_min_density_active(self, active: bool) -> None: pass
     def set_min_density_value(self, value: float) -> None: pass
@@ -253,6 +267,13 @@ class EngineBackend(ABC):
     def set_layer_lock(self, index: int, locked: bool) -> None: ...
     def set_layer_alpha_lock(self, index: int, locked: bool) -> None: ...
     def set_layer_clipping_mask(self, index: int, clipped: bool) -> None: ...
+    def add_layer_mask(self, index: int) -> bool: return False
+    def remove_layer_mask(self, index: int) -> bool: return False
+    def has_layer_mask(self, index: int) -> bool: return False
+    def set_layer_mask_enabled(self, index: int, enabled: bool) -> None: ...
+    def is_layer_mask_enabled(self, index: int) -> bool: return False
+    def set_layer_mask_edit_target(self, index: int, target_mask: bool) -> None: ...
+    def is_layer_mask_edit_target(self, index: int) -> bool: return False
     def flatten_group(self, index: int) -> bool: return False
     def merge_layer_down(self, index: int) -> bool: return False
     def clear_layer(self, index: int) -> None: ...

@@ -73,7 +73,7 @@ class AladynBackend(
         # facade nova ao trocar de documento.
         self._init_backend_state()
         try:
-            from ui.infrastructure.config.manager import ConfigManager
+            from ui.infrastructure.config import ConfigManager
             saved_render = ConfigManager.instance().get_section("render")
             self._undo_memory_limit_mb = max(1, int(saved_render.get("undo_limit_mb", 512)))
             self._undo_max_steps = max(1, int(saved_render.get("undo_max_steps", 50)))
@@ -82,6 +82,13 @@ class AladynBackend(
                     self._render_options[key] = bool(saved_render[key])
         except Exception:
             logger.debug("[AladynBackend] Configuração de renderização indisponível; usando padrões.", exc_info=True)
+        try:
+            from ui.core.state import PenCalibration
+            from ui.infrastructure.config import ConfigManager
+            saved_pen = PenCalibration.from_config(ConfigManager.instance().get_section("pen"))
+            self._pressure_calibration = (saved_pen.floor, saved_pen.ceiling, saved_pen.gamma)
+        except Exception:
+            logger.debug("[AladynBackend] Calibração da caneta indisponível; usando a identidade.", exc_info=True)
 
         self._load_native_module()
 
@@ -204,9 +211,13 @@ class AladynBackend(
 
     def get_qimage(self) -> Optional[QImage]:
         if self._facade:
+            w, h = self._facade.get_width(), self._facade.get_height()
+            if self._facade.get_pixel_format() == 1:
+                memview16 = self._facade.get_composite_pixel_buffer16()
+                if memview16:
+                    return QImage(memview16, w, h, w * 8, QImage.Format_RGBA64).copy()
             memview = self.get_display_pixel_buffer()
             if memview:
-                w, h = self._facade.get_width(), self._facade.get_height()
                 # Detach from the native buffer; the facade may reuse it on the
                 # next render and QImage must remain valid for its full lifetime.
                 return QImage(memview, w, h, w * 4, QImage.Format_RGBA8888).copy()

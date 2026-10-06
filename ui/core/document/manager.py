@@ -38,6 +38,7 @@ class DocumentManager(QtCore.QObject):
         name: str = None,
         bg_color: tuple[int, int, int, int] | None = None,
         dpi: int = 300,
+        pixel_format: int = 0,
         activate: bool = True
     ) -> Document:
         self._counter += 1
@@ -45,7 +46,7 @@ class DocumentManager(QtCore.QObject):
         if not name:
             name = tr("dialogs.untitled_name", "Sem Título {n}", n=self._counter)
             
-        doc: Document = Document(uid, name, width, height)
+        doc: Document = Document(uid, name, width, height, pixel_format=pixel_format)
         doc.dpi = int(dpi)
 
         if bg_color is not None:

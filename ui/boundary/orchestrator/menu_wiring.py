@@ -119,6 +119,7 @@ def wire_menu_bar(menu: MenuBar, shell: "MainWindow", c: ShellCollaborators) -> 
     # 9. Configurações
     menu.curvesLutRequested.connect(dialogs.open_curve_window)
     menu.cursorSettingsRequested.connect(dialogs.open_cursor_settings)
+    menu.penCalibrationRequested.connect(dialogs.open_pen_calibration)
     menu.themeSettingsRequested.connect(dialogs.open_theme_dialog)
     menu.managePluginsRequested.connect(dialogs.open_plugins_dialog)
     menu.languageRequested.connect(dialogs.set_language)

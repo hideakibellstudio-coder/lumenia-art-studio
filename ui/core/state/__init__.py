@@ -27,6 +27,15 @@ from .brush_engine_sync import BackendProvider, BrushEngineSync
 from .brush_params import BRUSH_PARAM_DEFAULTS, BrushParam, quick_params_from_preset
 from .brush_state import BrushState
 from .geometry_state import GeometryState
+from .pen_calibration import (
+    CEILING_RANGE,
+    FLOOR_RANGE,
+    GAMMA_RANGE,
+    MIN_MEASURED_SAMPLES,
+    PenCalibration,
+    suggest_from_pressures,
+    summarize_pressures,
+)
 from .state_links import ShapeColorLink, ToolEngineSync
 from .tool_state import ToolState, is_shape_tool, options_key
 
@@ -87,8 +96,13 @@ __all__ = [
     "BrushEngineSync",
     "BrushParam",
     "BrushState",
+    "CEILING_RANGE",
     "CurveSetting",
+    "FLOOR_RANGE",
+    "GAMMA_RANGE",
     "GeometryState",
+    "MIN_MEASURED_SAMPLES",
+    "PenCalibration",
     "ShapeColorLink",
     "ToolEngineSync",
     "ToolState",
@@ -97,4 +111,6 @@ __all__ = [
     "options_key",
     "quick_params_from_preset",
     "require",
+    "suggest_from_pressures",
+    "summarize_pressures",
 ]

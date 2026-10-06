@@ -90,7 +90,7 @@ class DocumentViewSync(QtCore.QObject):
         backend = self._backend()
         if backend is not None:
             try:
-                backend.set_active_document_context(doc.uid, doc.width, doc.height)
+                backend.set_active_document_context(doc.uid, doc.width, doc.height, doc.pixel_format)
             except EngineContextError as exc:
                 self._reject_document(doc, exc)
                 return

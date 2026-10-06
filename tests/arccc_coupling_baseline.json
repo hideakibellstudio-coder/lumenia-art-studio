@@ -264,7 +264,7 @@
   "door_bypass": 1
  },
  "ui/infrastructure/bridge_client/aladyn.py": {
-  "door_bypass": 2
+  "door_bypass": 1
  },
  "ui/infrastructure/bridge_client/aladyn_base.py": {
   "door_bypass": 2

@@ -96,7 +96,7 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         self.active_tool, self.drawing, self._brush_size, self.manual_pressure = "brush", False, 60.0, 0.50
         self.is_panning, self.is_zoom_dragging, self.is_space_held = False, False, False
         self.last_mouse_pos, self.zoom_drag_start_pos = QtCore.QPointF(), QtCore.QPointF()
-        self.canvas_w, self.canvas_h, self.view_initialized = 1920, 1080, False
+        self.canvas_w, self.canvas_h, self.view_initialized, self.show_pixel_grid = 1920, 1080, False, True
         self._last_tablet_time, self._tablet_in_use = 0.0, False
         self._active_draw_color = QtGui.QColor(0, 0, 0, 255)
 
@@ -173,6 +173,12 @@ class RenderWidget(_BaseCanvasWidget, CanvasCameraProxies):
         visible = not guides.get("show_v", True)
         guides.update({"show_v": visible, "show_h": visible, "show_d": visible})  # motor e tela: pelo estado
         return visible
+
+    def toggle_pixel_grid(self) -> bool:
+        """Liga/desliga a grade de pixels (S11); devolve o novo estado."""
+        self.show_pixel_grid = not self.show_pixel_grid
+        self.update()
+        return self.show_pixel_grid
 
     def toggle_rulers(self) -> bool:
         """Liga (régua reta) ou desliga as réguas; devolve o novo estado."""

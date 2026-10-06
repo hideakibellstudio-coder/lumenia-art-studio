@@ -10,7 +10,10 @@ if str(ROOT) not in sys.path:
 from tests.native.harness_build import binary_path, build_harness  # noqa: E402
 
 BINARY = binary_path("blend_pixel_pins")
-SOURCES = ["tests/native/blend_pixel_pins.cpp"]  # header-only: no engine source
+SOURCES = [
+    "tests/native/blend_pixel_pins.cpp",
+    "engine/core/color/DeepColorLut.cpp",  # tabelas exatas do Deep Color usadas por blendPixel
+]
 
 
 def build():

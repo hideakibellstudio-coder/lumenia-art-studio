@@ -18,11 +18,22 @@ SOURCES = [
     "engine/infrastructure/compression/Lz4Codec.cpp", "engine/core/document/LayerStack.cpp",
     "engine/core/document/LayerMerger.cpp", "engine/core/document/FilterLayer.cpp",
     "engine/core/document/Compositor.cpp",
+    "engine/core/document/projection/CompositeProjection.cpp",
     "engine/core/document/CompositeRegionSupport.cpp",
+    "engine/core/document/GroupBlender.cpp",
+    "engine/core/document/RegionBuffer.cpp",
     "engine/core/document/LayerCompositePass.cpp",
+    "engine/core/document/blending/BlendKernel.cpp",
+    "engine/core/document/blending/BlendKernelAvx2.cpp",
+    "engine/core/document/blending/BlendKernel16.cpp",
+    "engine/core/document/blending/BlendKernel16Avx2.cpp",
+    "engine/core/color/DeepColorLut.cpp",
+    "engine/core/color/LinearColorSpace16.cpp",
     "engine/core/document/filters/FilterApplier.cpp",
     "engine/core/document/filters/PointFilters.cpp",
     "engine/core/document/filters/AreaFilters.cpp",
+    "engine/core/document/filters/AreaFilters16.cpp",
+    "engine/core/document/filters/PointFilters16.cpp",
 ]
 
 

@@ -58,5 +58,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/color`
 - `ui/core/document`
 - `ui/core/engine`
+- `ui/core/state`
 - `ui/infrastructure/config`
 <!-- /arccc:deps -->

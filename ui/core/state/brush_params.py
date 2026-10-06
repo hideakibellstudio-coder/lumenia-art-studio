@@ -7,7 +7,8 @@ que os sliders do painel de pincel mostram ao abrir; o preset inicial
 Unidades (as mesmas que o motor recebe em `EngineBackend.set_brush_*`):
 
 - SIZE ............... pixels do documento
-- OPACITY ............ 0.0 – 1.0
+- OPACITY ............ 0.0 – 1.0 (teto do traço inteiro)
+- FLOW ............... 0.0 – 1.0 (o que cada carimbo deposita; acumula sob o teto)
 - PRESSURE ........... 0.0 – 1.0 (pressão manual usada sem tablet)
 - PRESSURE_CURVE ..... expoente > 0 da curva de pressão (1.0 = linear)
 - STABILIZER ......... 0.0 – 0.98
@@ -27,6 +28,7 @@ from typing import Any
 class BrushParam(str, Enum):
     SIZE = "size"
     OPACITY = "opacity"
+    FLOW = "flow"
     PRESSURE = "pressure"
     PRESSURE_CURVE = "pressure_curve"
     STABILIZER = "stabilizer"
@@ -40,6 +42,7 @@ class BrushParam(str, Enum):
 BRUSH_PARAM_DEFAULTS: dict[BrushParam, float | bool] = {
     BrushParam.SIZE: 60.0,
     BrushParam.OPACITY: 1.0,
+    BrushParam.FLOW: 1.0,
     BrushParam.PRESSURE: 0.5,
     BrushParam.PRESSURE_CURVE: 1.0,
     BrushParam.STABILIZER: 0.35,
@@ -85,6 +88,8 @@ def quick_params_from_preset(data: dict) -> dict[BrushParam, float]:
         params[BrushParam.SIZE] = float(data["brush_size"])
     if "opacity" in data:
         params[BrushParam.OPACITY] = float(data["opacity"])
+    if "flow" in data:
+        params[BrushParam.FLOW] = float(data["flow"])
     if "stabilizer_weight" in data or "stabilizer" in data:
         params[BrushParam.STABILIZER] = float(data.get("stabilizer_weight", data.get("stabilizer", 0.35)))
     if "spacing_factor" in data:

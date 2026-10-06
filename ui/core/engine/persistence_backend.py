@@ -24,7 +24,8 @@ class PersistenceBackend(Protocol):
         """Coloca na camada `index` do documento ativo os pixels já decodificados, em tempo constante."""
 
     def begin_batch(self) -> None:
-        """Abre um lote: o canvas não é recomposto até o `end_batch` que o fecha."""
+        """Abre um lote. Desde a S3 o motor só compõe o que alguém lê, então o lote não adia nada: fica pelo contrato
+        (pares begin/end, o `end_batch` sem `begin_batch` é erro) e uma leitura dentro dele já vê o canvas de agora."""
 
     def end_batch(self) -> None:
-        """Fecha um lote; o último compõe uma vez."""
+        """Fecha um lote; não há o que compor no fim."""

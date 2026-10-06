@@ -253,7 +253,7 @@ class TestLowLevelBrushRaster(unittest.TestCase):
         backend = AladynBackend()
         backend.set_active_document_context("test_doc_all_presets", 128, 128)
         profile_keys = {
-            "brush_size", "opacity", "hardness", "spacing_factor", "min_size_percent",
+            "brush_size", "opacity", "flow", "hardness", "spacing_factor", "min_size_percent",
             "min_opacity_percent", "tip_aspect", "tip_angle", "follow_stroke",
             "pencil_graphite_hardness", "pencil_tilt_shading", "inker_flow_rate",
             "inker_taper_smoothing", "marker_solvent_wetness", "marker_edge_darkening",
@@ -279,6 +279,26 @@ class TestLowLevelBrushRaster(unittest.TestCase):
 
         finally:
             backend.close_document_context("test_doc_all_presets")
+
+    # ── 9b. Fluxo: preset e slider chegam ao perfil nativo, e cada preset o traz ──
+    def test_09b_flow_reaches_the_native_profile_and_every_preset_declares_it(self):
+        from ui.plugins.panels.brush_plugin.presets_data import BRUSH_CATEGORIES
+        from ui.infrastructure.bridge_client.aladyn import AladynBackend
+
+        for category in BRUSH_CATEGORIES:
+            for preset in category["presets"]:
+                self.assertIn("flow", preset, f"{preset['label']}: sem fluxo")
+                self.assertEqual(preset["opacity"], 1.0, f"{preset['label']}: a opacidade (teto) deveria ser 100%")
+
+        backend = AladynBackend()
+        backend.set_active_document_context("test_doc_flow", 64, 64)
+        try:
+            backend.set_brush_flow(0.35)
+            self.assertAlmostEqual(backend._facade.get_brush_profile().flow, 0.35, places=6)
+            backend.apply_brush_preset_dict({"engine_type": 0, "opacity": 1.0, "flow": 0.6})
+            self.assertAlmostEqual(backend.get_brush_profile_dict()["flow"], 0.6, places=6)
+        finally:
+            backend.close_document_context("test_doc_flow")
 
     # ── 10. Curva de pressão: UI -> ponte -> LUT nativa ────────────────────
     def test_10_pressure_curve_power_changes_native_lut(self):

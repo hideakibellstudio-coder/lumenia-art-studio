@@ -67,7 +67,7 @@ class TestI18nSystem(unittest.TestCase):
         self.assertEqual(get_preset_display_name("G-Pen (Mangá)"), "G-Pen (Mangá)")
         self.assertEqual(get_category_display_name("pencil"), "Lápis & Carvão")
         self.assertEqual(get_tool_name("eyedrop"), "Conta-Gotas (I)")
-        self.assertEqual(tr("brush.sec_size_opacity"), "1. Tamanho, Opacidade & Mesclagem")
+        self.assertEqual(tr("brush.sec_size_opacity"), "1. Tamanho, Opacidade, Fluxo & Mesclagem")
         self.assertEqual(tr("engine_params.pencil_hard"), "Dureza do Grafite (2H-6B)")
 
         # 2. Inglês
@@ -76,7 +76,7 @@ class TestI18nSystem(unittest.TestCase):
         self.assertEqual(get_preset_display_name("G-Pen (Mangá)"), "G-Pen (Manga)")
         self.assertEqual(get_category_display_name("pencil"), "Pencils & Charcoal")
         self.assertEqual(get_tool_name("eyedrop"), "Eyedropper (I)")
-        self.assertEqual(tr("brush.sec_size_opacity"), "1. Size, Opacity & Blending")
+        self.assertEqual(tr("brush.sec_size_opacity"), "1. Size, Opacity, Flow & Blending")
         self.assertEqual(tr("engine_params.pencil_hard"), "Graphite Hardness (2H-6B)")
 
         # 3. Espanhol
@@ -85,7 +85,7 @@ class TestI18nSystem(unittest.TestCase):
         self.assertEqual(get_preset_display_name("G-Pen (Mangá)"), "Pluma G (Manga)")
         self.assertEqual(get_category_display_name("pencil"), "Lápices y Carboncillo")
         self.assertEqual(get_tool_name("eyedrop"), "Cuentagotas (I)")
-        self.assertEqual(tr("brush.sec_size_opacity"), "1. Tamaño, Opacidad y Fusión")
+        self.assertEqual(tr("brush.sec_size_opacity"), "1. Tamaño, Opacidad, Flujo y Fusión")
         self.assertEqual(tr("engine_params.pencil_hard"), "Dureza del Grafito (2H-6B)")
 
         # 4. Japonês
@@ -94,7 +94,7 @@ class TestI18nSystem(unittest.TestCase):
         self.assertEqual(get_preset_display_name("G-Pen (Mangá)"), "Gペン (マンガ)")
         self.assertEqual(get_category_display_name("pencil"), "鉛筆・木炭")
         self.assertEqual(get_tool_name("eyedrop"), "スポイト (I)")
-        self.assertEqual(tr("brush.sec_size_opacity"), "1. サイズ・不透明度・合成")
+        self.assertEqual(tr("brush.sec_size_opacity"), "1. サイズ・不透明度・流量・合成")
         self.assertEqual(tr("engine_params.pencil_hard"), "芯の硬度 (2H-6B)")
 
 

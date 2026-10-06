@@ -148,6 +148,14 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
             sl_spec.valueChanged.connect(lambda v: self._set_oil_spec(v / 100.0))
             self.layout.addWidget(sl_spec)
 
+            sl_wet = LabeledSlider(f"{tr('engine_params.oil_wet_mix', 'Mistura Úmida (pega cor da tela)')}:", 0, 100, 35, "%")
+            sl_wet.valueChanged.connect(lambda v: self._set_oil_wet(v / 100.0))
+            self.layout.addWidget(sl_wet)
+
+            sl_dep = LabeledSlider(f"{tr('engine_params.oil_depletion', 'Esgotamento da Tinta (pincel seco)')}:", 0, 100, 0, "%")
+            sl_dep.valueChanged.connect(lambda v: self._set_oil_depletion(v / 100.0))
+            self.layout.addWidget(sl_dep)
+
         else:
             lbl = QtWidgets.QLabel(tr("engine_params.basic_scatter", "Parâmetros de Borrifo / Spray (Pincel Básico)"))
             lbl.setStyleSheet("font-weight: bold; font-size: 11px;")
@@ -241,3 +249,11 @@ class DynamicEngineParamsWidget(QtWidgets.QWidget):
     def _set_oil_spec(self, v):
         b = self._get_backend()
         if b: b.set_brush_param("oil", "specular_brilliance", float(v))
+
+    def _set_oil_wet(self, v):
+        b = self._get_backend()
+        if b: b.set_brush_param("oil", "wet_mix_factor", float(v))
+
+    def _set_oil_depletion(self, v):
+        b = self._get_backend()
+        if b: b.set_brush_param("oil", "paint_depletion", float(v))

@@ -2,13 +2,16 @@
 
 - todo campo do `TelemetrySnapshot` existe na struct nativa
   `RealTimeStrokeMetrics` (renomear no C++ quebra aqui, não vira zero na tela);
-- `simd_active` diz se o motor foi compilado com AVX2 (a tela afirmava
-  "AVX2 / SSE2 Ativo" até no build escalar, que é o padrão);
+- `simd_active` diz se a mesclagem das camadas usa AVX2 agora: o que a CPU
+  oferece, não o do build (a tela afirmava "AVX2 / SSE2 Ativo" até no build
+  escalar, que é o padrão; e o build escalar usa AVX2 onde ele existir);
 - o "Limpar Undo" das telas de telemetria descarta o histórico do motor e do
   documento (até 2026-09-24 esvaziava listas privadas do backend e dizia
   "limpa com sucesso" com a RAM do histórico intacta);
 - o benchmark do diagnóstico não pinta no documento do usuário.
 """
+import ctypes
+import sys
 from dataclasses import fields
 
 import pytest
@@ -47,6 +50,25 @@ def test_todo_campo_do_dto_existe_na_struct_nativa():
     assert not missing, f"campos do TelemetrySnapshot sem par nativo: {missing}"
     snap = TelemetrySnapshot.from_native(native)
     assert isinstance(snap.active_engine_id, int) and isinstance(snap.simd_active, bool)
+
+
+def cpu_has_avx2():
+    """O que o sistema diz da CPU (Linux: /proc/cpuinfo; Windows: PF_AVX2_INSTRUCTIONS_AVAILABLE); None se não sabe."""
+    if sys.platform.startswith("linux"):
+        with open("/proc/cpuinfo", encoding="utf-8") as handle:
+            return any(" avx2" in line for line in handle if line.startswith("flags"))
+    if sys.platform == "win32":
+        return bool(ctypes.windll.kernel32.IsProcessorFeaturePresent(40))
+    return None
+
+
+def test_simd_active_e_o_que_a_cpu_oferece_e_nao_o_do_build():
+    expected = cpu_has_avx2()
+    if expected is None:
+        pytest.skip("sem como perguntar ao sistema se a CPU tem AVX2")
+    facade = aen.PaintEngineFacade(64, 64)
+    facade.set_telemetry_enabled(True)
+    assert TelemetrySnapshot.from_native(facade.get_telemetry_snapshot()).simd_active is expected
 
 
 def test_from_native_nao_esconde_campo_sumido():

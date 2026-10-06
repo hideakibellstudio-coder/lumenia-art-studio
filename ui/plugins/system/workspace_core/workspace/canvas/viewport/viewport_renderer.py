@@ -54,6 +54,7 @@ class ViewportCanvas(Protocol):
     selection_ctrl: Any
     shape_ctrl: Any
     transform_ctrl: Any
+    show_pixel_grid: bool
 
     def canvas_transform(self) -> QtGui.QTransform: ...
     def rect(self) -> QtCore.QRect: ...
@@ -104,7 +105,8 @@ class ViewportRenderer:
 
         painter = QtGui.QPainter(widget)
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, True)
+        # S11: Zoom exato por pixel a partir de 400% (zoom >= 4.0).
+        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, widget.zoom < 4.0)
         painter.fillRect(event.rect(), QtGui.QColor(128, 128, 128))
 
         active_doc = DocumentManager.instance().active_document()
@@ -147,6 +149,9 @@ class ViewportRenderer:
                             t_blit_0 = time.perf_counter()
                             painter.drawImage(dirty_canvas, display.image, display.source_rect(dirty_canvas))
                             stats.draw_image_ms = (time.perf_counter() - t_blit_0) * 1000.0
+
+                        if widget.zoom >= 4.0 and widget.show_pixel_grid:
+                            self._render_pixel_grid(painter, dirty_canvas, widget.canvas_w, widget.canvas_h)
 
                 if backend and backend.has_selection():
                     OverlayRenderer.render_selection_overlay(
@@ -200,6 +205,29 @@ class ViewportRenderer:
                 dt = stats.timestamps[-1] - stats.timestamps[0]
                 if dt > 0.001:
                     stats.fps = (len(stats.timestamps) - 1) / dt
+
+    @staticmethod
+    def _render_pixel_grid(painter: QtGui.QPainter, dirty: QtCore.QRect, canvas_w: int, canvas_h: int) -> None:
+        """Renderiza grade sutil de 1px ao redor de cada pixel inteiro (S11)."""
+        x0 = max(0, dirty.left())
+        x1 = min(canvas_w, dirty.right() + 1)
+        y0 = max(0, dirty.top())
+        y1 = min(canvas_h, dirty.bottom() + 1)
+        if x0 >= x1 or y0 >= y1:
+            return
+
+        grid_hex = ThemeManager.instance().get_color("border_muted", "#808080")
+        grid_color = QtGui.QColor(grid_hex)
+        grid_color.setAlpha(55)
+        pen = QtGui.QPen(grid_color)
+        pen.setWidth(0)
+        pen.setCosmetic(True)
+        painter.setPen(pen)
+
+        for x in range(x0, x1 + 1):
+            painter.drawLine(QtCore.QPointF(x, y0), QtCore.QPointF(x, y1))
+        for y in range(y0, y1 + 1):
+            painter.drawLine(QtCore.QPointF(x0, y), QtCore.QPointF(x1, y))
 
     @staticmethod
     def get_canvas_image(widget: ViewportCanvas, apply_proofing: bool = True) -> QtGui.QImage | None:

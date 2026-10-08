@@ -1,4 +1,5 @@
 import os
+import sys
 
 from setuptools import setup
 from pybind11.setup_helpers import Pybind11Extension, build_ext
@@ -15,6 +16,14 @@ compile_args = ["/EHsc", "/bigobj", "/std:c++20", "/openmp", "/O2"]
 # artefatos separados.
 if SIMD_MODE == "avx2":
     compile_args.append("/arch:AVX2")
+
+# Release builds keep the debug symbols out of the tree (scripts/build_native.py --pdb):
+# a crash minidump from a user's machine is only readable with the PDB of the same build.
+link_args: list[str] = []
+PDB_DIR = os.environ.get("LUMENIA_PDB_DIR", "").strip()
+if PDB_DIR:
+    compile_args += ["/Zi", "/FS"]
+    link_args += ["/DEBUG:FULL", "/OPT:REF", "/OPT:ICF", f"/PDB:{os.path.join(PDB_DIR, 'aladyn_engine_native.pdb')}"]
 
 cpp_sources = [
     "engine/core/math/BezierCurve.cpp",
@@ -50,6 +59,11 @@ cpp_sources = [
     "engine/infrastructure/storage/ScratchDiskManager.cpp",
     "engine/core/canvas/MipmapPyramid.cpp",
     "engine/infrastructure/compression/Lz4Codec.cpp",
+    "engine/infrastructure/licensing/LicenseToken.cpp",
+    "engine/infrastructure/licensing/SignatureVerifier.cpp",
+    "engine/infrastructure/licensing/LicenseAuthority.cpp",
+    "engine/infrastructure/licensing/ExportWatermark.cpp",
+    "engine/infrastructure/crash/CrashHandler.cpp",
     "engine/core/document/Compositor.cpp",
     "engine/core/document/CompositeRegionSupport.cpp",
     "engine/core/document/GroupBlender.cpp",
@@ -107,6 +121,7 @@ cpp_sources = [
     "bridge/core/bindings/bind_persistence.cpp",
     "bridge/core/bindings/bind_stroke.cpp",
     "bridge/core/bindings/bind_tools.cpp",
+    "bridge/core/bindings/bind_runtime.cpp",
     "bridge/core/bindings/engine_bindings.cpp",
 ]
 
@@ -116,6 +131,10 @@ ext_modules = [
         cpp_sources,
         cxx_std=20,
         extra_compile_args=compile_args,
+        extra_link_args=link_args,
+        # bcrypt: license signature (CNG); dbghelp: crash minidumps. Both ship with Windows;
+        # elsewhere the engine compiles without them (no license verifier, no dumps).
+        libraries=["bcrypt", "dbghelp"] if sys.platform == "win32" else [],
     ),
 ]
 

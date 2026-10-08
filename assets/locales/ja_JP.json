@@ -135,7 +135,12 @@
       "shortcuts": "キーボードショートカット",
       "diagnostics": "エンジン診断＆テレメトリ",
       "feedback": "フィードバック・不具合報告...",
-      "about": "Lumenia について..."
+      "about": "Lumenia について...",
+      "diagnostic_report": "診断レポートを作成...",
+      "auto_report": "エラーレポートを自動送信",
+      "license": "ライセンス...",
+      "check_updates": "アップデートを確認...",
+      "auto_update": "アップデートを自動確認"
     }
   },
   "tools": {
@@ -1143,5 +1148,59 @@
     "worker_zip_ok": "連番画像を書き出しました:\n{path}",
     "worker_zip_fallback": "動画を作成できませんでした (FFmpeg が無いかエラー)。\n{n} フレームを次にまとめました:\n{path}",
     "worker_zip_failed": "連番画像をまとめられませんでした: {error}"
+  },
+  "distribution": {
+    "close": "閉じる",
+    "license": {
+      "title": "Lumenia ライセンス",
+      "licensed_to": "{name} にライセンス済み（{sku}、{until}）。",
+      "updates_until": "{date} までアップデート",
+      "updates_forever": "アップデート無期限",
+      "state_unlicensed": "無料モード：すべての機能が使えます。書き出した画像には透かしが入ります。",
+      "state_malformed": "これは Lumenia のキーではありません。",
+      "state_bad_signature": "無効なキー：Lumenia チームが発行したものではありません。",
+      "state_expired": "このライセンスは {date} に期限切れになりました。",
+      "state_revoked": "このライセンスは取り消されました。lumeniateam@protonmail.com にご連絡ください。",
+      "state_updates_expired": "このバージョンはライセンスのアップデート期間（{date}）より後のものです。",
+      "state_unsupported": "このインストールではライセンスを確認できませんでした。",
+      "paste_hint": "メールで受け取ったキー（LUMENIA1- で始まる）を下に貼り付けてください。",
+      "buy": "ライセンスを購入",
+      "remove": "ライセンスを削除",
+      "activate": "有効化",
+      "activated": "ライセンスが有効になりました。Lumenia へのご支援ありがとうございます！",
+      "remove_confirm": "このコンピューターからライセンスを削除しますか？同じキーで再度有効化できます。"
+    },
+    "crash": {
+      "title": "エラーレポート",
+      "native": "前回のセッションで Lumenia が予期せず終了しました。",
+      "python": "Lumenia で内部エラーが発生しました。",
+      "manual": "診断レポートを作成しました。",
+      "body": "レポートを送信すると問題の修正に役立ちます。バージョン（{version}）、システム、コールスタック、ログの末尾が含まれます。ユーザー名、メールアドレス、作品は含まれません。",
+      "always": "常に確認せずに送信",
+      "discard": "破棄",
+      "keep": "今はしない",
+      "send": "レポートを送信",
+      "sent": "レポートを送信しました。ありがとうございます！",
+      "send_failed": "今はレポートを送信できませんでした。保存されたままです。",
+      "attach": "ファイル {name} をメールに添付してください。"
+    },
+    "update": {
+      "title": "Lumenia アップデート",
+      "available": "バージョン {new} が利用可能です（現在 {old}）。",
+      "not_covered": "このバージョンはライセンスのアップデート期間の後に公開されました。インストールするにはライセンスを更新してください。現在のバージョンは引き続き使えます。",
+      "unknown_coverage": "ライセンスがこのバージョンを対象とするか確認できませんでした。",
+      "delta": "変更された部分だけがダウンロードされます。",
+      "no_notes": "リリースノートはありません。",
+      "later": "後で",
+      "on_exit": "終了時にインストール",
+      "restart_now": "更新して再起動",
+      "unavailable": "このコピーは Lumenia インストーラーで入れたものではありません。新しいバージョンをダウンロードして更新してください。",
+      "checking": "アップデートを確認中...",
+      "up_to_date": "すでに最新バージョンです。",
+      "downloading": "アップデートをダウンロード中：{percent}%",
+      "restarting": "更新のため再起動しています...",
+      "on_exit_ready": "Lumenia の終了時にバージョン {version} がインストールされます。",
+      "failed": "アップデートを確認できませんでした：{error}"
+    }
   }
 }

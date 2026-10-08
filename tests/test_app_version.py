@@ -3,7 +3,7 @@
 Até 2026-09-25 o app mostrava três versões inventadas ("Lumenia Brush Engine
 2.0" no título, "v2.0" na splash, "2.5.0 (Build 2026.08)" no "Sobre") enquanto
 instalador e EULA diziam 0.2.0. As cópias que ferramentas externas exigem
-(pip, setuptools, Inno Setup, README, EULA) são conferidas aqui.
+(pip, setuptools, README, EULA) são conferidas aqui.
 """
 from __future__ import annotations
 
@@ -38,8 +38,8 @@ def test_packaging_copies_match_app_info():
     with (ROOT / "pyproject.toml").open("rb") as stream:
         assert tomllib.load(stream)["project"]["version"] == APP_VERSION
     assert _setup_version() == APP_VERSION
-    installer = re.search(r'#define MyAppVersion "([^"]+)"', _read("scripts/lumenia_installer.iss"))
-    assert installer and installer.group(1) == APP_VERSION
+    # Since 2026-10-08 the installer is Velopack's: scripts/build_release.py packs with the
+    # pyproject version, so there is no other copy to keep in step (the Inno Setup script left).
 
 
 def test_readme_and_eula_show_the_same_version():

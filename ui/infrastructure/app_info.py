@@ -14,3 +14,11 @@ APP_NAME = "Lumenia"
 APP_VERSION = "0.2.0"
 APP_STAGE = "Alpha"
 APP_DISPLAY_VERSION = f"{APP_VERSION} {APP_STAGE}"
+
+# Distribution (2026-10-08). Updates come from the GitHub Releases of a PUBLIC repository
+# that holds only the installers and packages (the code repository is private, and a
+# private feed would need a token inside the program). Crash reports go to Sentry when a
+# DSN is set here or in LUMENIA_CRASH_DSN; empty = the user e-mails the report.
+APP_UPDATE_REPOSITORY = "https://github.com/hideakibellstudio-coder/lumenia-releases"
+CRASH_REPORT_DSN = ""
+SUPPORT_EMAIL = "lumeniateam@protonmail.com"

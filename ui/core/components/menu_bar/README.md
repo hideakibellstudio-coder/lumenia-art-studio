@@ -14,7 +14,7 @@
 | `edit_menu.py` | EditMenu — Menu Editar (Padrão Profissional da Indústria) — ARCcC i18n. |
 | `file_menu.py` | FileMenu — Menu de Arquivo (Padrão Profissional da Indústria) — ARCcC i18n. |
 | `filter_menu.py` | FilterMenu — Menu Filtros (Padrão Profissional da Indústria) — ARCcC i18n. |
-| `help_menu.py` | HelpMenu — Menu Ajuda — ARCcC i18n. |
+| `help_menu.py` | HelpMenu — Menu Ajuda — ARCcC i18n. Também licença, verificar atualizações, relatório de diagnóstico e as duas preferências (enviar relatórios, verificar atualizações automaticamente), mostradas sem reemitir (`set_auto_report_checked`, `set_auto_update_checked`). |
 | `image_menu.py` | ImageMenu — Menu Imagem (Padrão Profissional da Indústria) — ARCcC i18n. |
 | `layer_menu.py` | LayerMenu — Menu Camada (Padrão Profissional da Indústria) — ARCcC i18n. |
 | `menu_bar.py` | MenuBar — Barra de Menus Principal Profissional da Lumenia UI. |

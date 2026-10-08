@@ -1,6 +1,6 @@
 # `ui/core/` — núcleo compartilhado
 
-**Responsabilidade:** o núcleo que casca e plugins compartilham: catálogo de ferramentas e suas opções, atalhos; subpastas com estado, documento, contrato do motor, cor, geometria, plugins, componentes, widgets e telas.
+**Responsabilidade:** o núcleo que casca e plugins compartilham: catálogo de ferramentas e suas opções, atalhos; subpastas com estado, documento, contrato do motor, cor, geometria, plugins, componentes, widgets e telas, e as regras da distribuição (`licensing/`, `diagnostics/`, `updates/`).
 
 ## Porta de entrada
 

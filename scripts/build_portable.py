@@ -81,6 +81,7 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
         "--include-package=ui",
         "--include-package=ui.plugins",  # pastas de agrupamento sem __init__ (namespace)
         "--include-module=aladyn_engine_native",
+        "--include-package=velopack",  # installer hooks and delta updates (main.py, ui/infrastructure/updater)
         "--nofollow-import-to=numpy",
         "--nofollow-import-to=scipy",
         f"--include-data-dir={ROOT / 'assets'}=assets",

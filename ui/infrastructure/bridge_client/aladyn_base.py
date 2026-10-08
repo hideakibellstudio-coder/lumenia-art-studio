@@ -93,3 +93,21 @@ class AladynBackendBase:
         from ui.core.engine.registry import EngineRegistry
 
         EngineRegistry.instance().notify_document_modified(self._active_doc_uid, reason)
+
+    def _apply_export_policy(self, image):
+        """A imagem como pode sair do programa: intacta com licença, com marca d'água sem.
+
+        Quem decide é o motor (`apply_export_policy`): com licença ele devolve o mesmo
+        objeto bytes e a imagem original (inclusive de 16 bits) é exportada como está.
+        """
+        if image is None or image.isNull() or self._native is None:
+            return image
+        from PySide6.QtGui import QImage
+
+        rgba = image if image.format() == QImage.Format_RGBA8888 else image.convertToFormat(QImage.Format_RGBA8888)
+        width, height = rgba.width(), rgba.height()
+        raw = bytes(rgba.constBits())[: width * height * 4]
+        policed = self._native.apply_export_policy(raw, width, height)
+        if policed is raw:
+            return image
+        return QImage(policed, width, height, width * 4, QImage.Format_RGBA8888).copy()

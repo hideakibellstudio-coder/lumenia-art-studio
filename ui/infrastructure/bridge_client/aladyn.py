@@ -15,6 +15,7 @@ Herda recursivamente de mixins atômicos especializados por domínio:
 - AladynStrokeMixin: Ciclo de vida do traço, fast-path raw, flood fill e telemetria.
 - AladynColorMixin: Amostragem de cor e perfis ICC.
 - AladynPersistenceMixin: Instantâneo das camadas, restauração por tiles e composição em lote.
+- AladynRuntimeMixin: Serviços do processo (licença e minidump de queda).
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ from .aladyn_color_mixin import AladynColorMixin
 from .aladyn_resources_mixin import AladynResourcesMixin
 from .aladyn_persistence_mixin import AladynPersistenceMixin
 from .aladyn_capabilities_mixin import AladynCapabilitiesMixin
+from .aladyn_runtime_mixin import AladynRuntimeMixin
 from .native_fallback import native_has
 
 logger = logging.getLogger(__name__)
@@ -61,6 +63,7 @@ class AladynBackend(
     AladynResourcesMixin,
     AladynPersistenceMixin,
     AladynCapabilitiesMixin,
+    AladynRuntimeMixin,
     EngineBackend,
 ):
     """Backend nativo que encapsula e orquestra a PaintEngineFacade do ALADYN ENGINE."""

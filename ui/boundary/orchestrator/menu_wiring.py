@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from ui.core.components import MenuBar, ToolSidebar
 
 from .dialog_actions import DialogActions
+from .distribution_actions import DistributionActions
 from .document_actions import DocumentActions
 from .edit_actions import EditActions
 from .image_actions import ImageActions
@@ -29,6 +30,7 @@ class ShellCollaborators:
     layers: LayerActions
     image: ImageActions
     dialogs: DialogActions
+    distribution: DistributionActions
 
 
 def wire_menu_bar(menu: MenuBar, shell: "MainWindow", c: ShellCollaborators) -> None:
@@ -131,6 +133,13 @@ def wire_menu_bar(menu: MenuBar, shell: "MainWindow", c: ShellCollaborators) -> 
     menu.diagnosticsRequested.connect(dialogs.open_diagnostics)
     menu.feedbackRequested.connect(dialogs.open_feedback_form)
     menu.aboutRequested.connect(dialogs.open_about)
+    menu.licenseRequested.connect(c.distribution.open_license_dialog)
+    menu.updateCheckRequested.connect(lambda: c.distribution.check_for_updates(manual=True))
+    menu.diagnosticReportRequested.connect(c.distribution.create_diagnostic_report)
+    menu.help_menu.set_auto_report_checked(c.distribution.auto_send_reports)
+    menu.autoReportToggled.connect(c.distribution.set_auto_send_reports)
+    menu.help_menu.set_auto_update_checked(c.distribution.auto_check_updates)
+    menu.autoUpdateToggled.connect(c.distribution.set_auto_check_updates)
 
 
 def wire_tool_sidebar(sidebar: ToolSidebar, shell: "MainWindow", c: ShellCollaborators) -> None:

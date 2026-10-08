@@ -26,7 +26,7 @@
 | `test_accessibility_names.py` | Nomes acessíveis: botão só com ícone e controle deslizante recebem a dica ou o rótulo ligado como nome, acompanham a troca de idioma e não sobrescrevem nome dado à mão; na janela principal nenhum controle com dica fica sem nome. |
 | `test_advanced_geometry_dialog.py` | Tests for Phase 3: AdvancedGeometryDialog ARCcC v2 decomposition. |
 | `test_app_benchmark_runner.py` | O benchmark de aplicação exporta resultado comparável: formato, comparação e uma rodada rápida (S0.8). |
-| `test_app_version.py` | A versão do produto tem fonte única (`ui/infrastructure/app_info.py`): confere `pyproject.toml`, `setup.py`, instalador, README, EULA e a janela "Sobre", e barra versão escrita à mão na interface. |
+| `test_app_version.py` | A versão do produto tem fonte única (`ui/infrastructure/app_info.py`): confere `pyproject.toml`, `setup.py`, README, EULA (o instalador do Velopack usa a versão do `pyproject.toml`) e a janela "Sobre", e barra versão escrita à mão na interface. |
 | `test_arccc_architecture_invariants.py` | Guardrail de Governança Arquitetural ARCcC (Atomic Recursive Componentization by Contract). |
 | `test_arccc_coupling_ratchet.py` | Catraca de acoplamento da UI: nenhum arquivo de ui/ (plugins incluídos) pode ganhar mais `hasattr`, `getattr("literal")`, acesso a privado alheio, `except` silencioso, import de `ui.plugins.*` fora dos plugins e do carregador, pedido do motor ao registro global (`get_backend()`) ou importação que contorna a porta do pacote do que já tinha. |
 | `test_arccc_cpp_and_docs_governance.py` | Extensao do Guardrail de Governanca ARCcC para a camada nativa (C++). |
@@ -167,7 +167,12 @@
 | `test_river_ratchets.py` | Catracas das Leis do Leito do Rio: a contagem pode cair, nunca subir sem que alguém decida conscientemente (editando a lista abaixo, com motivo). |
 | `test_runner_coverage_contract.py` | O runner grava a cobertura da fronteira de documento. |
 | `test_runner_suite_selection.py` | As suítes nomeadas do runner apontam para arquivos de teste existentes e únicos. |
-| `test_runtime_paths.py` | Raiz de recursos em desenvolvimento (repositório) e empacotado (pasta do executável). |
+| `test_runtime_paths.py` | Raiz de recursos em desenvolvimento (repositório) e empacotado (pasta do executável); dados do programa instalado fora da pasta trocada pelas atualizações, cópia portátil com os dados ao lado, importação única dos dados do instalador antigo. |
+| `test_runtime_services_native.py` | Motor (caixa-branca de `bind_runtime.cpp`): licenças assinadas pela chave `test` do gerador (válida, expirada, fora do período de atualizações, presa a máquina, outra chave, byte trocado, lixo), licença ruim não substitui a boa, marca d'água na exportação sem licença e exportação intacta com licença, minidump. |
+| `test_license_service.py` | `LicenseService` com motor falso: só grava a chave aceita, `restore` na partida, `deactivate`; `LicenseStatus.covers_release`; gravação atômica do `LicenseStore`; o diálogo ativa pelo serviço. |
+| `test_update_policy.py` | Quando procurar atualização (a cada 20 h, desligável), data de lançamento nas notas e versão que a licença não cobre nunca oferecida; o diálogo esconde a instalação; o atualizador não existe fora de uma cópia instalada. |
+| `test_diagnostics_service.py` | Relatórios de erro: queda nativa vira pacote com pilha, log e dump; só a primeira exceção Python da sessão; relatório pedido; sem DSN nada sai; nome de usuário, pasta pessoal e e-mails removidos; poda; leitura do DSN. |
+| `test_build_release.py` | `scripts/build_release.py`: recusa a chave de licença de desenvolvimento, data de lançamento nas notas, comandos do `vpk` (canal, notas, prerelease) e token escondido. |
 | `test_scratch_disk_unicode_path.py` | O arquivo de paginação do desfazer abre, lê e é removido numa pasta com acento, espaço e caracteres fora do ANSI (no Windows o `std::string` do caminho seria reinterpretado em cp1252). |
 | `test_secondary_toolbar_structure.py` | Contrato da barra secundária (ui/plugins/system/workspace_core/workspace/secondary_tool_bar). |
 | `test_selection_extreme_coordinates.py` | Retângulo, elipse e polígono de seleção sobrevivem a qualquer coordenada que o `int` carrega (antes, `select_rect(2**31 - 1, 0, 1, 1)` derrubava o processo): as chamadas extremas rodam num processo filho, e 800 cenários sãos conferem o hash da implementação de 32 bits. |

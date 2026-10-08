@@ -15,8 +15,9 @@ Cada subpasta tem a sua (ver o README dela). Os mais usados:
 |---|---|
 | `__init__.py` | Marca o pacote. |
 | `accessibility.py` | Nomes acessíveis (leitor de tela): controle sem texto visível recebe a dica traduzida, ou o rótulo ligado por `setBuddy`, como nome. |
-| `app_info.py` | Nome e versão do produto, fonte única para a interface; `tests/test_app_version.py` confere as cópias do empacotamento. |
-| `runtime_paths.py` | Caminhos de recursos que funcionam no repositório e no executável empacotado (`resource_path`). |
+| `app_info.py` | Nome e versão do produto, fonte única para a interface; `tests/test_app_version.py` confere as cópias do empacotamento. Também o repositório público das atualizações, o DSN dos relatórios de erro (vazio = por e-mail) e o e-mail de suporte. |
+| `legacy_data.py` | Importação única dos dados que o instalador da Alpha deixava ao lado do executável (`<instalação>\data`) para a pasta de dados do usuário; não sobrescreve nem apaga. |
+| `runtime_paths.py` | Caminhos de recursos que funcionam no repositório e no executável empacotado (`resource_path`); dados do usuário em `%APPDATA%\Lumenia` quando instalado (a pasta do programa é trocada a cada atualização) ou ao lado do executável numa cópia portátil (`portable.flag`). |
 
 | Pasta | Responsabilidade |
 |---|---|
@@ -26,6 +27,9 @@ Cada subpasta tem a sua (ver o README dela). Os mais usados:
 | `theme/` | `ThemeManager`: paletas, QSS, escala e ajustes de interface. |
 | `icons/` | Catálogo SVG em código e `get_icon`. |
 | `logging/` | Logging da aplicação (console e arquivo). |
+| `licensing/` | O token da licença em disco (`LicenseStore`). |
+| `diagnostics/` | Pacotes de relatório de erro em disco e envio ao Sentry sem SDK. |
+| `updater/` | Atualização pelo Velopack (buscar, baixar o delta numa thread, aplicar ao fechar). |
 
 ## Regras
 

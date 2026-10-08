@@ -18,6 +18,7 @@ void bind_layers(py::module_& m, FacadeClass& facade);
 void bind_persistence(py::module_& m, FacadeClass& facade);
 void bind_stroke(py::module_& m, FacadeClass& facade);
 void bind_tools(py::module_& m, FacadeClass& facade);
+void bind_runtime(py::module_& m);  // license and crash dump: per process, not per document
 
 } // namespace aladyn::bridge
 

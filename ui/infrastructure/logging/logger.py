@@ -12,6 +12,7 @@ import time
 import functools
 import logging
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from PySide6 import QtCore
 from ui.infrastructure.runtime_paths import writable_data_dir
 from ui.infrastructure.logging.crash_log import enable_native_crash_log
@@ -142,13 +143,16 @@ def _qt_message_handler(mode, context, message):
         qt_logger.critical(f"Qt FATAL: {message} ({context.file}:{context.line})")
 
 
-def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
+def setup_senior_logging(log_level: int = logging.DEBUG) -> Path | None:
     """
     Inicializa o sistema completo de logging sênior da aplicação Lumenia V2.
     - Console Stream com ANSI Colors.
     - Arquivo com Rotação (5MB / 5 backups em logs/lumenia_latest.log).
     - Exception Hook Global.
     - Qt Message Handler.
+
+    Devolve o registro da queda nativa da sessão anterior (arquivado por `crash_log`), ou None:
+    o diagnóstico (`ui/core/diagnostics`) faz dele um relatório de erro.
     """
     if sys.platform == "win32":
         try:
@@ -184,7 +188,7 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
     # 2. Rotating File Handler
     logs_dir = None
     try:
-        logs_dir = writable_data_dir() / "logs"
+        logs_dir = logs_directory()
         logs_dir.mkdir(parents=True, exist_ok=True)
 
         log_file_path = str(logs_dir / "lumenia_latest.log")
@@ -205,6 +209,7 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
     logger.info("🚀 Senior Logging System initialized successfully (Console ANSI + File Rotating).")
 
     # 4. Quedas nativas (motor C++, Qt), que o excepthook não vê
+    previous_crash = None
     if logs_dir is not None:
         try:
             previous_crash = enable_native_crash_log(logs_dir)
@@ -213,3 +218,9 @@ def setup_senior_logging(log_level: int = logging.DEBUG) -> None:
         else:
             if previous_crash is not None:
                 logger.warning("A sessão anterior terminou com uma queda nativa; pilha em %s", previous_crash)
+    return previous_crash
+
+
+def logs_directory() -> Path:
+    """Onde `setup_senior_logging` grava o log (e o diagnóstico guarda os relatórios de erro)."""
+    return writable_data_dir() / "logs"

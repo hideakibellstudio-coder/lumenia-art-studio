@@ -135,7 +135,12 @@
       "shortcuts": "Atalhos de Teclado",
       "diagnostics": "Diagnósticos do Motor & Telemetria",
       "feedback": "Enviar Feedback / Relatório Alpha...",
-      "about": "Sobre o Lumenia..."
+      "about": "Sobre o Lumenia...",
+      "diagnostic_report": "Gerar Relatório de Diagnóstico...",
+      "auto_report": "Enviar Relatórios de Erro Automaticamente",
+      "license": "Licença...",
+      "check_updates": "Verificar Atualizações...",
+      "auto_update": "Verificar Atualizações Automaticamente"
     }
   },
   "tools": {
@@ -1143,5 +1148,59 @@
     "worker_zip_ok": "Sequência de quadros exportada com sucesso em:\n{path}",
     "worker_zip_fallback": "Não foi possível gerar o vídeo (FFmpeg ausente ou com erro).\nA sequência de {n} quadros foi empacotada em:\n{path}",
     "worker_zip_failed": "Falha ao empacotar sequência: {error}"
+  },
+  "distribution": {
+    "close": "Fechar",
+    "license": {
+      "title": "Licença do Lumenia",
+      "licensed_to": "Licenciado para {name} ({sku}, {until}).",
+      "updates_until": "atualizações até {date}",
+      "updates_forever": "atualizações sem prazo",
+      "state_unlicensed": "Modo gratuito: tudo funciona; imagens exportadas saem com marca d'água.",
+      "state_malformed": "Isso não é uma chave do Lumenia.",
+      "state_bad_signature": "Chave inválida: não foi emitida pela equipe do Lumenia.",
+      "state_expired": "Esta licença expirou em {date}.",
+      "state_revoked": "Esta licença foi revogada. Fale com lumeniateam@protonmail.com.",
+      "state_updates_expired": "Esta versão é posterior ao período de atualizações da licença ({date}).",
+      "state_unsupported": "Não foi possível conferir a licença nesta instalação.",
+      "paste_hint": "Cole abaixo a chave que você recebeu por e-mail (começa com LUMENIA1-).",
+      "buy": "Comprar uma licença",
+      "remove": "Remover licença",
+      "activate": "Ativar",
+      "activated": "Licença ativada. Obrigado por apoiar o Lumenia!",
+      "remove_confirm": "Remover a licença deste computador? Você pode ativá-la de novo com a mesma chave."
+    },
+    "crash": {
+      "title": "Relatório de erro",
+      "native": "O Lumenia fechou inesperadamente na última sessão.",
+      "python": "O Lumenia encontrou um erro interno.",
+      "manual": "Relatório de diagnóstico criado.",
+      "body": "Enviar o relatório ajuda a corrigir o problema. Ele contém a versão ({version}), o sistema, a pilha de chamadas e o final do registro, sem seu nome de usuário, sem e-mails e sem a sua arte.",
+      "always": "Enviar sempre, sem perguntar",
+      "discard": "Descartar",
+      "keep": "Agora não",
+      "send": "Enviar relatório",
+      "sent": "Relatório enviado. Obrigado!",
+      "send_failed": "Não foi possível enviar o relatório agora; ele fica salvo.",
+      "attach": "Anexe o arquivo {name} ao e-mail."
+    },
+    "update": {
+      "title": "Atualização do Lumenia",
+      "available": "Versão {new} disponível (você usa a {old}).",
+      "not_covered": "Esta versão foi lançada depois do período de atualizações da sua licença. Renove a licença para instalá-la; a versão atual continua funcionando.",
+      "unknown_coverage": "Não foi possível confirmar se sua licença cobre esta versão.",
+      "delta": "Só as partes que mudaram serão baixadas.",
+      "no_notes": "Sem notas de versão.",
+      "later": "Depois",
+      "on_exit": "Instalar ao fechar",
+      "restart_now": "Atualizar e reiniciar",
+      "unavailable": "Esta cópia não foi instalada pelo instalador do Lumenia: atualize baixando a versão nova.",
+      "checking": "Procurando atualizações...",
+      "up_to_date": "Você já tem a versão mais recente.",
+      "downloading": "Baixando atualização: {percent}%",
+      "restarting": "Reiniciando para atualizar...",
+      "on_exit_ready": "A versão {version} será instalada ao fechar o Lumenia.",
+      "failed": "Não foi possível procurar atualizações: {error}"
+    }
   }
 }

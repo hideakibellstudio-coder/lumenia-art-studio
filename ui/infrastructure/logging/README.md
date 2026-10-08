@@ -4,7 +4,7 @@
 
 ## Porta de entrada
 
-`from ui.infrastructure.logging import get_logger, setup_senior_logging, log_execution_time`.
+`from ui.infrastructure.logging import get_logger, setup_senior_logging, logs_directory, log_execution_time`. `setup_senior_logging` devolve o registro da queda nativa da sessão anterior (ou None), que o diagnóstico transforma em relatório de erro.
 
 ## Arquivos
 

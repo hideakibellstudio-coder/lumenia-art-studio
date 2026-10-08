@@ -13,7 +13,8 @@ from PySide6 import QtWidgets, QtGui, QtCore
 from ui.infrastructure.logging import setup_senior_logging, get_logger
 from ui.core.components.splash_screen import LumeniaSplashScreen
 from ui.infrastructure.app_info import APP_DISPLAY_VERSION, APP_NAME, APP_VERSION
-from ui.infrastructure.runtime_paths import resource_path
+from ui.infrastructure.legacy_data import import_legacy_data, legacy_candidates
+from ui.infrastructure.runtime_paths import app_root, is_packaged, is_portable, resource_path, writable_data_dir
 from ui.boundary.orchestrator.engine_failure import report_engine_failure
 from ui.boundary.orchestrator.main_window import MainWindow
 
@@ -23,9 +24,13 @@ def launch(args: list[str] | None = None) -> int:
     if args is None:
         args = sys.argv
 
-    # 1. Configuração do Logging Sênior
+    # 0. Programa instalado: traz os dados que o instalador antigo deixava ao lado do executável
+    if is_packaged() and not is_portable():
+        import_legacy_data(writable_data_dir(), legacy_candidates(app_root()))
+
+    # 1. Configuração do Logging Sênior (devolve a pilha da queda nativa da sessão anterior, se houve)
     log_level = logging.DEBUG if "--debug" in args else logging.INFO
-    setup_senior_logging(log_level)
+    previous_crash = setup_senior_logging(log_level)
 
     logger = get_logger("MainApp")
     logger.info("🎨 Inicializando %s %s...", APP_NAME, APP_DISPLAY_VERSION)
@@ -77,6 +82,8 @@ def launch(args: list[str] | None = None) -> int:
     window = MainWindow()
     splash.finish(window)
     report_engine_failure(window)
+    # Licença, relatórios de erro e atualizações: depois da janela, antes do primeiro evento
+    window.distribution.start(previous_crash)
 
     logger.info("✨ %s %s inicializado e pronto para interação do usuário.", APP_NAME, APP_VERSION)
     return app.exec()

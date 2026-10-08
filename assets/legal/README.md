@@ -2,7 +2,7 @@
 
 **Responsabilidade:** o que a distribuição precisa levar para cumprir as
 licenças dos componentes de terceiros (Qt/PySide6, Python, Pillow, NumPy,
-SciPy, pybind11, runtime do MSVC, ícones).
+SciPy, pybind11, Velopack, runtime do MSVC, ícones).
 
 ## Porta de entrada
 

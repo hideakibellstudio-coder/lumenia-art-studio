@@ -67,6 +67,16 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "gamma": 1.0,
     },
     "shortcuts": {},
+    # Distribution: update channel and check, and the answer about crash reports
+    # ("ask" every time, "always" send, "never"; see ui/core/diagnostics).
+    "updates": {
+        "channel": "stable",
+        "auto_check": True,
+        "last_check": "",
+    },
+    "diagnostics": {
+        "consent": "ask",
+    },
 }
 
 

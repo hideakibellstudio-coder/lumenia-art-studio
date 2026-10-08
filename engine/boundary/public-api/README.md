@@ -68,6 +68,8 @@ dependência nova entre pastas entra nesta lista no mesmo commit.
 - `engine/core/selection`
 - `engine/core/stroke`
 - `engine/core/texture`
+- `engine/infrastructure/crash`
+- `engine/infrastructure/licensing`
 - `engine/infrastructure/telemetry`
 - `engine/utils`
 <!-- /arccc:deps -->

@@ -18,6 +18,11 @@ class HelpMenu(QtWidgets.QMenu):
     diagnosticsRequested = QtCore.Signal()
     feedbackRequested    = QtCore.Signal()
     aboutRequested       = QtCore.Signal()
+    licenseRequested     = QtCore.Signal()
+    updateCheckRequested = QtCore.Signal()
+    diagnosticReportRequested = QtCore.Signal()
+    autoReportToggled    = QtCore.Signal(bool)
+    autoUpdateToggled    = QtCore.Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__("Ajuda", parent)
@@ -48,6 +53,30 @@ class HelpMenu(QtWidgets.QMenu):
         self.act_feedback.triggered.connect(self.feedbackRequested.emit)
         self.addAction(self.act_feedback)
 
+        self.act_diag_report = QtGui.QAction(get_icon("check"), "", self)
+        self.act_diag_report.triggered.connect(self.diagnosticReportRequested.emit)
+        self.addAction(self.act_diag_report)
+
+        self.act_auto_report = QtGui.QAction("", self)
+        self.act_auto_report.setCheckable(True)
+        self.act_auto_report.toggled.connect(self.autoReportToggled.emit)
+        self.addAction(self.act_auto_report)
+
+        self.addSeparator()
+
+        self.act_license = QtGui.QAction(get_icon("info"), "", self)
+        self.act_license.triggered.connect(self.licenseRequested.emit)
+        self.addAction(self.act_license)
+
+        self.act_updates = QtGui.QAction(get_icon("check"), "", self)
+        self.act_updates.triggered.connect(self.updateCheckRequested.emit)
+        self.addAction(self.act_updates)
+
+        self.act_auto_update = QtGui.QAction("", self)
+        self.act_auto_update.setCheckable(True)
+        self.act_auto_update.toggled.connect(self.autoUpdateToggled.emit)
+        self.addAction(self.act_auto_update)
+
         self.addSeparator()
 
         self.act_about = QtGui.QAction(get_icon("info"), "", self)
@@ -62,3 +91,21 @@ class HelpMenu(QtWidgets.QMenu):
         self.act_diag.setText(tr("menu.help.diagnostics", "Diagnósticos do Motor & Telemetria"))
         self.act_feedback.setText(tr("menu.help.feedback", "Enviar Feedback / Relatório Alpha..."))
         self.act_about.setText(tr("menu.help.about", "Sobre o Lumenia..."))
+        self.act_diag_report.setText(tr("menu.help.diagnostic_report", "Gerar Relatório de Diagnóstico..."))
+        self.act_auto_report.setText(tr("menu.help.auto_report", "Enviar Relatórios de Erro Automaticamente"))
+        self.act_license.setText(tr("menu.help.license", "Licença..."))
+        self.act_updates.setText(tr("menu.help.check_updates", "Verificar Atualizações..."))
+        self.act_auto_update.setText(tr("menu.help.auto_update", "Verificar Atualizações Automaticamente"))
+
+    def set_auto_report_checked(self, checked: bool) -> None:
+        """Mostra a preferência salva sem reemiti-la."""
+        self._show_checked(self.act_auto_report, checked)
+
+    def set_auto_update_checked(self, checked: bool) -> None:
+        self._show_checked(self.act_auto_update, checked)
+
+    @staticmethod
+    def _show_checked(action: QtGui.QAction, checked: bool) -> None:
+        blocked = action.blockSignals(True)
+        action.setChecked(checked)
+        action.blockSignals(blocked)

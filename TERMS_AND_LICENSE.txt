@@ -17,8 +17,17 @@ bound by the following terms. If you do not agree to these terms, do not use it.
 
 1. CONCESSÃO DE LICENÇA
 A equipe Lumenia concede a você uma licença não exclusiva e intransferível para
-usar esta versão Alpha do Software para trabalhos criativos pessoais,
-educacionais ou comerciais.
+usar o Software para trabalhos criativos pessoais, educacionais ou comerciais:
+• Modo gratuito (sem chave de licença): todos os recursos funcionam; as imagens
+  exportadas recebem uma marca d'água "LUMENIA FREE". Seus arquivos .lmn nunca
+  são alterados.
+• Licença paga: uma chave pessoal, emitida em seu nome, remove a marca d'água.
+  A chave vale para você, nos seus computadores; não pode ser revendida nem
+  publicada. Ela inclui atualizações até a data indicada nela; versões lançadas
+  depois dessa data exigem renovação, e a versão que você já tem continua
+  funcionando sem prazo.
+• Chaves compartilhadas publicamente, estornadas ou reembolsadas podem ser
+  revogadas em versões futuras.
 
 2. SUA ARTE É 100% SUA (PROPRIEDADE INTELECTUAL)
 • Propriedade Total: Você retém 100% de todos os direitos autorais, propriedade 
@@ -39,10 +48,22 @@ não serão responsáveis por quaisquer danos diretos, indiretos, incidentais ou
 perda de dados decorrentes do uso ou incapacidade de uso deste software. Sob qualquer
 circunstância, a responsabilidade máxima limita-se ao valor pago pelo software.
 
-5. PRIVACIDADE E TELEMETRIA
-O aplicativo desktop funciona 100% offline, não coleta dados pessoais identificáveis
-e não transmite arquivos do seu computador. O envio de relatórios de feedback é
-totalmente voluntário.
+5. PRIVACIDADE, RELATÓRIOS DE ERRO E ATUALIZAÇÕES
+• O Software funciona offline. A licença é conferida no seu computador, sem
+  conexão com servidor.
+• Relatórios de erro: quando o programa fecha inesperadamente, ele guarda um
+  relatório no seu computador e PERGUNTA se você quer enviá-lo. Nada é enviado
+  sem a sua escolha, que você pode mudar a qualquer momento no menu Ajuda. O
+  relatório contém a versão, o sistema operacional, a pilha de chamadas, um
+  despejo de memória do processo (minidump) e o final do registro de eventos;
+  seu nome de usuário e endereços de e-mail são removidos, e sua arte nunca é
+  incluída. Os relatórios enviados são processados pelo serviço de
+  monitoramento de erros usado pela equipe Lumenia (Sentry) apenas para
+  corrigir defeitos.
+• Atualizações: o programa consulta, no máximo uma vez por dia, a lista pública
+  de versões no GitHub para saber se há uma versão nova; nenhum dado seu é
+  enviado nessa consulta além do que qualquer download exige (endereço IP).
+  Você pode desligar a verificação automática.
 
 6. ATUALIZAÇÕES
 Os desenvolvedores reservam-se o direito de atualizar, aprimorar ou modificar
@@ -60,8 +81,15 @@ componentes.
 ================================================================================
 
 1. LICENSE GRANT
-Lumenia Team grants you a non-exclusive, non-transferable license to use this 
-Alpha build of the Software for personal, educational, and commercial creative work.
+Lumenia Team grants you a non-exclusive, non-transferable license to use the
+Software for personal, educational, and commercial creative work:
+• Free mode (no license key): every feature works; exported images carry a
+  "LUMENIA FREE" watermark. Your .lmn files are never altered.
+• Paid license: a personal key, issued in your name, removes the watermark. It
+  is for you, on your own computers; it may not be resold or published. It
+  includes updates until the date written in it; versions released after that
+  date require a renewal, and the version you already have keeps working forever.
+• Keys shared publicly, charged back or refunded may be revoked in future versions.
 
 2. USER ARTWORK & INTELLECTUAL PROPERTY (100% YOURS)
 • Full Ownership: You retain 100% full copyright, ownership, and commercial rights 
@@ -86,11 +114,19 @@ inability to use this Software.
 Under any circumstances, the developer's maximum liability shall not exceed the 
 amount actually paid by you for this Software.
 
-5. PRIVACY & TELEMETRY
-Lumenia respects your privacy. The standalone desktop application does NOT collect 
-personally identifiable information (PII) or transmit system files. Any telemetry 
-diagnostics are strictly local/offline, and feedback submitted via the optional 
-feedback form is 100% voluntary.
+5. PRIVACY, ERROR REPORTS & UPDATES
+• The Software works offline. The license is checked on your computer, with no
+  connection to any server.
+• Error reports: when the program closes unexpectedly, it keeps a report on your
+  computer and ASKS whether you want to send it. Nothing is sent without your
+  choice, which you can change at any time in the Help menu. A report contains
+  the version, the operating system, the call stack, a memory dump of the process
+  (minidump) and the end of the event log; your user name and e-mail addresses are
+  removed, and your artwork is never included. Reports you send are processed by
+  the error-monitoring service used by the Lumenia Team (Sentry) only to fix defects.
+• Updates: at most once a day the program reads the public list of versions on
+  GitHub to learn whether a new version exists; nothing about you is sent beyond
+  what any download requires (IP address). You can turn the automatic check off.
 
 6. MODIFICATIONS & UPDATES
 The developer reserves the right to update, modify, or enhance features in 

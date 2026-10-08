@@ -135,7 +135,12 @@
       "shortcuts": "Keyboard Shortcuts",
       "diagnostics": "Engine Diagnostics & Telemetry",
       "feedback": "Send Feedback / Alpha Report...",
-      "about": "About Lumenia..."
+      "about": "About Lumenia...",
+      "diagnostic_report": "Create Diagnostic Report...",
+      "auto_report": "Send Error Reports Automatically",
+      "license": "License...",
+      "check_updates": "Check for Updates...",
+      "auto_update": "Check for Updates Automatically"
     }
   },
   "tools": {
@@ -1143,5 +1148,59 @@
     "worker_zip_ok": "Frame sequence exported to:\n{path}",
     "worker_zip_fallback": "The video could not be created (FFmpeg missing or failed).\nThe {n} frames were packed into:\n{path}",
     "worker_zip_failed": "Could not pack the sequence: {error}"
+  },
+  "distribution": {
+    "close": "Close",
+    "license": {
+      "title": "Lumenia License",
+      "licensed_to": "Licensed to {name} ({sku}, {until}).",
+      "updates_until": "updates until {date}",
+      "updates_forever": "updates with no end date",
+      "state_unlicensed": "Free mode: everything works; exported images carry a watermark.",
+      "state_malformed": "This is not a Lumenia key.",
+      "state_bad_signature": "Invalid key: it was not issued by the Lumenia team.",
+      "state_expired": "This license expired on {date}.",
+      "state_revoked": "This license was revoked. Contact lumeniateam@protonmail.com.",
+      "state_updates_expired": "This version is newer than the license's update period ({date}).",
+      "state_unsupported": "The license could not be checked on this installation.",
+      "paste_hint": "Paste below the key you received by e-mail (it starts with LUMENIA1-).",
+      "buy": "Buy a license",
+      "remove": "Remove license",
+      "activate": "Activate",
+      "activated": "License activated. Thank you for supporting Lumenia!",
+      "remove_confirm": "Remove the license from this computer? You can activate it again with the same key."
+    },
+    "crash": {
+      "title": "Error report",
+      "native": "Lumenia closed unexpectedly in the last session.",
+      "python": "Lumenia ran into an internal error.",
+      "manual": "Diagnostic report created.",
+      "body": "Sending the report helps fix the problem. It contains the version ({version}), the system, the call stack and the end of the log, without your user name, without e-mail addresses and without your artwork.",
+      "always": "Always send, without asking",
+      "discard": "Discard",
+      "keep": "Not now",
+      "send": "Send report",
+      "sent": "Report sent. Thank you!",
+      "send_failed": "The report could not be sent now; it stays saved.",
+      "attach": "Attach the file {name} to the e-mail."
+    },
+    "update": {
+      "title": "Lumenia Update",
+      "available": "Version {new} is available (you have {old}).",
+      "not_covered": "This version was released after your license's update period. Renew the license to install it; the current version keeps working.",
+      "unknown_coverage": "It was not possible to confirm whether your license covers this version.",
+      "delta": "Only the parts that changed will be downloaded.",
+      "no_notes": "No release notes.",
+      "later": "Later",
+      "on_exit": "Install when closing",
+      "restart_now": "Update and restart",
+      "unavailable": "This copy was not installed by the Lumenia installer: update by downloading the new version.",
+      "checking": "Checking for updates...",
+      "up_to_date": "You already have the latest version.",
+      "downloading": "Downloading update: {percent}%",
+      "restarting": "Restarting to update...",
+      "on_exit_ready": "Version {version} will be installed when Lumenia closes.",
+      "failed": "Could not check for updates: {error}"
+    }
   }
 }

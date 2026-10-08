@@ -1,4 +1,12 @@
-"""Deterministic paths for source execution and a standalone Windows bundle."""
+"""Deterministic paths for source execution and a standalone Windows bundle.
+
+Installed builds keep the user's data (logs, plugins, license, crash reports) in
+`%APPDATA%\\Lumenia`, outside the program folder. Until 2026-10-08 they kept it in
+`data\\` beside the executable; with updates delivered by Velopack that folder is
+`current\\`, replaced on every update, so the data would vanish with each version.
+A portable copy (a `portable.flag` file beside the executable, or one level up)
+still keeps its data beside itself, so it travels on a USB stick.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +15,8 @@ from pathlib import Path
 import sys
 
 from ui.infrastructure.app_info import APP_NAME
+
+PORTABLE_MARKER = "portable.flag"
 
 
 def is_packaged() -> bool:
@@ -25,18 +35,22 @@ def resource_path(*parts: str) -> Path:
     return app_root().joinpath(*parts)
 
 
+def is_portable() -> bool:
+    """A packaged copy the user marked as portable (its data stays beside the executable)."""
+    root = app_root()
+    return is_packaged() and ((root / PORTABLE_MARKER).is_file() or (root.parent / PORTABLE_MARKER).is_file())
+
+
+def user_data_dir() -> Path:
+    """`%APPDATA%\\Lumenia` (the same folder as config.json); `~/Lumenia` without APPDATA."""
+    return Path(os.environ.get("APPDATA", Path.home())) / APP_NAME
+
+
 def writable_data_dir() -> Path:
-    """Prefer portable data beside the executable, then fall back to APPDATA."""
+    """Where the program writes: the repository in development, beside the executable when
+    portable, the user's data folder when installed."""
     if not is_packaged():
         return app_root()
-    portable = app_root() / "data"
-    try:
-        portable.mkdir(parents=True, exist_ok=True)
-        probe = portable / ".write-probe"
-        probe.write_text("ok", encoding="utf-8")
-        probe.unlink()
-        return portable
-    except OSError:
-        fallback = Path(os.environ.get("APPDATA", Path.home())) / APP_NAME
-        fallback.mkdir(parents=True, exist_ok=True)
-        return fallback
+    target = app_root() / "data" if is_portable() else user_data_dir()
+    target.mkdir(parents=True, exist_ok=True)
+    return target

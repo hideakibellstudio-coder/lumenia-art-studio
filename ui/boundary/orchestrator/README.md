@@ -11,7 +11,7 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Reexporta `MainWindow`. |
-| `app_runner.py` | Boot: logging, splash, ícones e troca para a `MainWindow`. |
+| `app_runner.py` | Boot: importa os dados do instalador antigo (programa instalado), logging, splash, ícones, troca para a `MainWindow` e `distribution.start(queda_anterior)`. |
 | `main_window.py` | `MainWindow`: cria MenuBar, ToolSidebar e StatusBar, instala o estado compartilhado antes dos plugins, recebe o workspace, cria os colaboradores e cuida de Desfazer/Refazer, câmera, tela cheia e eventos de janela. |
 | `workspace_port.py` | Contrato (`ShellWorkspace`, `ShellCanvas`): tudo que a casca usa do workspace e do canvas, conferido por teste. |
 | `shell_actions.py` | `ShellActions`: base dos colaboradores (sinal `statusMessage`) e `backend_ready`. |
@@ -21,6 +21,7 @@
 | `layer_actions.py` | `LayerActions`: menu Camada sobre o `LayerCommands` do documento ativo + diálogo de propriedades. |
 | `image_actions.py` | `ImageActions`: exportar, tamanho do canvas/imagem, recorte, rotação da camada, rotação/espelho da vista, grade, réguas, prova de cores. |
 | `dialog_actions.py` | `DialogActions`: diálogos e janelas auxiliares (filtros, atalhos, cursor, idioma, escala, tema, plugins, renderização, docas, barra flutuante, curvas, telemetria, ajuda). |
+| `distribution_actions.py` | `DistributionActions`: licença (`LicenseService`, Ajuda > Licença), relatórios de erro (`DiagnosticsService`: minidump, queda da sessão anterior, Ajuda > Relatório de diagnóstico, envio só com consentimento) e atualizações (`UpdateThread`: a cada 20 h ou sob pedido; versão que a licença não cobre não é instalada). |
 | `recovery_controller.py` | `RecoveryController`: cópias periódicas de recuperação e a oferta de reabri-las no início. |
 | `menu_wiring.py` | Liga os sinais da MenuBar e da ToolSidebar aos colaboradores (só conecta). |
 
@@ -56,17 +57,22 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 <!-- arccc:deps -->
 - `ui/core`
 - `ui/core/components`
+- `ui/core/diagnostics`
 - `ui/core/dialogs`
 - `ui/core/document`
 - `ui/core/engine`
+- `ui/core/licensing`
 - `ui/core/plugins`
 - `ui/core/screens`
 - `ui/core/screens/filters`
 - `ui/core/state`
+- `ui/core/updates`
 - `ui/infrastructure`
 - `ui/infrastructure/bridge_client`
 - `ui/infrastructure/config`
 - `ui/infrastructure/i18n`
+- `ui/infrastructure/licensing`
 - `ui/infrastructure/logging`
 - `ui/infrastructure/theme`
+- `ui/infrastructure/updater`
 <!-- /arccc:deps -->

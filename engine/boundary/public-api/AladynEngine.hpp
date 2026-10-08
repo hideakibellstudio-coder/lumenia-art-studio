@@ -19,5 +19,9 @@
 #include "../../core/stroke/PointerEvent.hpp"
 #include "../../core/stroke/DynamicStabilizer.hpp"
 #include "../../infrastructure/telemetry/EngineTelemetry.hpp"
+#include "../../infrastructure/licensing/LicenseAuthority.hpp"   // the license of this process
+#include "../../infrastructure/licensing/LicensePublicKey.hpp"   // kLicenseKeyId (which key the build trusts)
+#include "../../infrastructure/licensing/ExportWatermark.hpp"    // what an unlicensed export looks like
+#include "../../infrastructure/crash/CrashHandler.hpp"           // minidump on an unhandled exception
 
 #endif // ALADYN_ENGINE_PUBLIC_API_HPP

@@ -65,18 +65,36 @@ def artifact_metadata(simd: str) -> dict[str, str]:
     }
 
 
-def write_build_metadata(simd: str, build_dir: Path = DEFAULT_BUILD_DIR) -> Path:
+def write_build_metadata(simd: str, build_dir: Path = DEFAULT_BUILD_DIR, pdb_dir: Path | None = None) -> Path:
     output = build_dir / "native-build.json"
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(artifact_metadata(simd), indent=2) + "\n", encoding="utf-8")
+    metadata = artifact_metadata(simd)
+    if pdb_dir is not None:
+        metadata["pdb_file"] = str(keep_pdb(pdb_dir, metadata["extension_sha256"]))
+    output.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return output
 
 
-def build(simd: str, force: bool, build_dir: Path = DEFAULT_BUILD_DIR) -> None:
+def keep_pdb(pdb_dir: Path, extension_sha256: str) -> Path:
+    """Names the PDB after the binary it describes: a crash dump is matched to it by that hash."""
+    produced = pdb_dir / "aladyn_engine_native.pdb"
+    if not produced.is_file():
+        raise RuntimeError(f"o link não gravou o PDB em {produced}")
+    kept = pdb_dir / f"aladyn_engine_native-{extension_sha256[:16]}.pdb"
+    produced.replace(kept)
+    return kept
+
+
+def build(simd: str, force: bool, build_dir: Path = DEFAULT_BUILD_DIR, pdb: bool = False) -> None:
     _load_msvc_environment()
     environment = os.environ.copy()
     environment["LUMENIA_SIMD"] = simd
-    
+    pdb_dir = build_dir / "pdb" if pdb else None
+    if pdb_dir is not None:
+        pdb_dir.mkdir(parents=True, exist_ok=True)
+        environment["LUMENIA_PDB_DIR"] = str(pdb_dir)
+        force = True  # objects compiled without /Zi carry no symbols
+
     # Redireciona a compilação de temporários para a pasta build externa
     temp_dir = build_dir / "temp_native"
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -90,7 +108,7 @@ def build(simd: str, force: bool, build_dir: Path = DEFAULT_BUILD_DIR) -> None:
     if force:
         command.append("--force")
     subprocess.run(command, cwd=ROOT, env=environment, check=True)
-    metadata_path = write_build_metadata(simd, build_dir)
+    metadata_path = write_build_metadata(simd, build_dir, pdb_dir)
     print(f"Metadados do artefato: {metadata_path}")
 
 
@@ -99,8 +117,10 @@ def main() -> int:
     parser.add_argument("--simd", choices=("scalar", "avx2"), default="scalar")
     parser.add_argument("--force", action="store_true", help="recompila todos os objetos")
     parser.add_argument("--build-dir", type=Path, default=DEFAULT_BUILD_DIR, help="diretório para artefatos e metadados de build")
+    parser.add_argument("--pdb", action="store_true",
+                        help="grava o PDB (símbolos) em <build-dir>/pdb para ler minidumps de queda (build de release)")
     args = parser.parse_args()
-    build(args.simd, args.force, args.build_dir)
+    build(args.simd, args.force, args.build_dir, args.pdb)
     return 0
 
 

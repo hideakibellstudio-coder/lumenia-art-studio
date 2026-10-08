@@ -122,6 +122,11 @@ class MenuBar(QtWidgets.QMenuBar):
     diagnosticsRequested      = QtCore.Signal()
     feedbackRequested         = QtCore.Signal()
     aboutRequested            = QtCore.Signal()
+    licenseRequested          = QtCore.Signal()
+    updateCheckRequested      = QtCore.Signal()
+    diagnosticReportRequested = QtCore.Signal()
+    autoReportToggled         = QtCore.Signal(bool)
+    autoUpdateToggled         = QtCore.Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -259,6 +264,11 @@ class MenuBar(QtWidgets.QMenuBar):
         self.help_menu.diagnosticsRequested.connect(self.diagnosticsRequested.emit)
         self.help_menu.feedbackRequested.connect(self.feedbackRequested.emit)
         self.help_menu.aboutRequested.connect(self.aboutRequested.emit)
+        self.help_menu.licenseRequested.connect(self.licenseRequested.emit)
+        self.help_menu.updateCheckRequested.connect(self.updateCheckRequested.emit)
+        self.help_menu.diagnosticReportRequested.connect(self.diagnosticReportRequested.emit)
+        self.help_menu.autoReportToggled.connect(self.autoReportToggled.emit)
+        self.help_menu.autoUpdateToggled.connect(self.autoUpdateToggled.emit)
         self.addMenu(self.help_menu)
 
     def retranslate_ui(self):

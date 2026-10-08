@@ -34,6 +34,7 @@ from ui.core.engine.backend_protocols import (
     HistoryProtocol,
     LayerProtocol,
     RenderPipelineProtocol,
+    RuntimeServicesProtocol,
     SelectionTransformProtocol,
     StrokeProtocol,
     TelemetryProtocol,
@@ -54,6 +55,7 @@ ALL_PROTOCOLS = (
     ColorProtocol,
     RenderPipelineProtocol,
     HistoryProtocol,
+    RuntimeServicesProtocol,
 )
 
 

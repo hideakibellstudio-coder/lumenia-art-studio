@@ -13,6 +13,7 @@ dependencies = [
   "numpy>=1.26",
   "Pillow>=10.0",
   "pybind11>=2.12",
+  "velopack>=1.2",  # installer and delta updates (ui/infrastructure/updater)
 ]
 
 # The native extension is declared by setup.py; avoid accidental inclusion of

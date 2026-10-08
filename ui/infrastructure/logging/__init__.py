@@ -6,6 +6,7 @@ Exporta setup_senior_logging, get_logger e decoradores de medição.
 
 from .logger import (
     setup_senior_logging,
+    logs_directory,
     get_logger,
     log_execution_time,
     ANSI,
@@ -15,6 +16,7 @@ from .logger import (
 
 __all__ = [
     "setup_senior_logging",
+    "logs_directory",
     "get_logger",
     "log_execution_time",
     "ANSI",

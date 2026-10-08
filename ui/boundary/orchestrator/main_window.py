@@ -14,6 +14,7 @@ construtor o que usa e falando com a barra de status pelo sinal
   image_actions  ImageActions        tamanho, recorte, rotação, guias, prova de cor
   dialogs        DialogActions       diálogos e janelas auxiliares
   recovery       RecoveryController  cópias de recuperação
+  distribution   DistributionActions licença, relatórios de erro e atualizações
 
 O workspace e o canvas são alcançados só pelo contrato de `workspace_port.py`.
 Até 2026-09-24 a janela era a soma de seis mixins que se liam por `self`.
@@ -31,6 +32,7 @@ from ui.core.document.document import Document
 from ui.core.document.manager import DocumentManager
 from ui.core.engine.registry import EngineRegistry
 from ui.infrastructure.i18n import I18nManager, tr
+from ui.infrastructure.logging import logs_directory
 from ui.core.plugins.manager import PluginManager
 from ui.core.plugins.registry import ServiceRegistry
 from ui.infrastructure.accessibility import name_from_tooltips
@@ -40,6 +42,7 @@ from ui.core.shortcut_registry import ShortcutRegistry
 from ui.core.state import install_app_state
 
 from .dialog_actions import DialogActions
+from .distribution_actions import DistributionActions
 from ui.core.document.document_loader import DocumentLoader
 from ui.core.document.document_saver import DocumentSaver
 from .document_actions import DocumentActions
@@ -107,12 +110,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialogs = DialogActions(self, backend, self.workspace, self.shortcut_registry,
                                      self.app_state.brush)
         self.recovery = RecoveryController(self, self.dm, backend, self.canvas_widget, self.documents, self.saver)
+        self.distribution = DistributionActions(self, backend, ConfigManager.instance(), logs_directory())
         for collaborator in (self.documents, self.layer_actions, self.edit_actions,
-                             self.image_actions, self.dialogs, self.recovery):
+                             self.image_actions, self.dialogs, self.recovery, self.distribution):
             collaborator.statusMessage.connect(self.status_bar.showMessage)
         collaborators = ShellCollaborators(
             documents=self.documents, edit=self.edit_actions, layers=self.layer_actions,
-            image=self.image_actions, dialogs=self.dialogs,
+            image=self.image_actions, dialogs=self.dialogs, distribution=self.distribution,
         )
         wire_menu_bar(self.menu_bar, self, collaborators)
         wire_tool_sidebar(self.tool_sidebar, self, collaborators)
@@ -170,6 +174,7 @@ class MainWindow(QtWidgets.QMainWindow):
         event.accept()
         self.saver.wait_idle()  # uma cópia de recuperação em gravação termina antes de a sessão ser liberada
         self.recovery.close()
+        self.distribution.shutdown()
         super().closeEvent(event)
 
     def changeEvent(self, event: QtCore.QEvent) -> None:

@@ -38,6 +38,7 @@ void DynamicStabilizer::reset(utils::Point2D initialPosition, double initialPres
     m_updates = 0;
     m_lastNormalizedVelocity = 0.0;
     m_lastTime = timestamp > 0.0 ? timestamp : 0.0;
+    if (timestamp > 0.0) m_clock.begin(timestamp);
     m_samples[0] = {initialPosition, initialPressure, m_lastTime};
 }
 
@@ -52,13 +53,15 @@ void DynamicStabilizer::push(const Sample& sample) noexcept {
     m_lastTime = sample.time;
 }
 
-void DynamicStabilizer::fillStillGap(double until) noexcept {
+void DynamicStabilizer::fillGap(double until, utils::Point2D to, double toPressure) noexcept {
     if (m_count == 0 || until - m_lastTime <= kStillGapSeconds) return;
-    const Sample still = m_samples[m_head];
+    const Sample from = m_samples[m_head];
+    const double span = until - from.time;
     // Older than the window they would leave at once: start where they still count.
-    double t = std::max(m_lastTime + kStillStepSeconds, until - windowSeconds());
+    double t = std::max(from.time + kStillStepSeconds, until - windowSeconds());
     for (; t < until - kStillStepSeconds * 0.5; t += kStillStepSeconds) {
-        push({still.position, still.pressure, t});
+        const double k = (t - from.time) / span;
+        push({from.position + (to - from.position) * k, from.pressure + (toPressure - from.pressure) * k, t});
     }
 }
 
@@ -107,8 +110,8 @@ void DynamicStabilizer::reanchorInitialPosition(utils::Point2D newInitialPositio
 
 utils::Point2D DynamicStabilizer::updateAt(utils::Point2D rawPosition, double rawPressure,
                                            double normalizedVelocity, double timestamp) noexcept {
-    double now = timestamp > 0.0 ? timestamp : m_lastTime + kNominalEventSeconds;
-    now = std::max(now, m_lastTime);  // out-of-order timestamp: same instant as the last one
+    const double now = timestamp > 0.0 ? std::max(m_clock.place(timestamp), m_lastTime)
+                                       : m_lastTime + kNominalEventSeconds;
     if (!isActive()) {
         m_lastMovementDelta = rawPosition - m_stabilizedPosition;
         m_stabilizedPosition = rawPosition;
@@ -116,7 +119,7 @@ utils::Point2D DynamicStabilizer::updateAt(utils::Point2D rawPosition, double ra
         push({rawPosition, rawPressure, now});
         return rawPosition;
     }
-    fillStillGap(now);
+    fillGap(now, rawPosition, rawPressure);
     push({rawPosition, rawPressure, now});
     ++m_updates;
     m_lastNormalizedVelocity = normalizedVelocity;

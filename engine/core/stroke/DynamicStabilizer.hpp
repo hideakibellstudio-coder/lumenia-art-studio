@@ -2,6 +2,7 @@
 #define ALADYN_ENGINE_DYNAMIC_STABILIZER_HPP
 
 #include "../../utils/Point2D.hpp"
+#include "EventClock.hpp"
 #include <array>
 #include <vector>
 #include <cstddef>
@@ -19,18 +20,21 @@ namespace aladyn::engine::stroke {
 // spanned at the pen's rate, the same for every device, and a sample leaves it with
 // weight zero, so nothing bends when it goes.
 //
-// A gap with no events means the pointer stood still (a mouse sends nothing then):
-// `updateAt` fills it with samples at the last position, and `drain` does the same at
-// pen-up so the line reaches the release point along the path instead of a straight jump.
+// Event times go through an EventClock: Windows stamps input in ~15.6 ms ticks, and a
+// group of events with one time must not weigh the same (circles came out as polygons).
+// A gap with no events is filled with samples on the way from the last position to the new
+// one: a held mouse sends nothing and its next event lands next to where it stopped, so the
+// fill stands still there; an event that is merely late does not pull the line back.
+// `drain` holds the release point at pen-up so the line reaches it along the path.
 class DynamicStabilizer {
 public:
     // Ring capacity: 200 ms of a 1 kHz mouse fit with room to spare.
     static constexpr size_t MAX_SAMPLES = 512;
     // Event interval of the pen the count window was tuned on: window = events x this.
     static constexpr double kNominalEventSeconds = 1.0 / 360.0;
-    // Longer than this without events = the pointer stood still (a 60 Hz frame is 16.7 ms).
+    // Longer than this without events gets filled (a 60 Hz frame is 16.7 ms).
     static constexpr double kStillGapSeconds = 0.025;
-    // Spacing of the samples that stand for a pointer at rest.
+    // Spacing of the fill samples.
     static constexpr double kStillStepSeconds = 1.0 / 60.0;
 
     struct Node {
@@ -78,7 +82,7 @@ private:
     };
 
     void push(const Sample& sample) noexcept;
-    void fillStillGap(double until) noexcept;
+    void fillGap(double until, utils::Point2D to, double toPressure) noexcept;
     void expire(double now, double window) noexcept;
     void average(double now, double normalizedVelocity) noexcept;
     [[nodiscard]] const Sample& sampleAt(size_t fromOldest) const noexcept;
@@ -96,6 +100,7 @@ private:
     size_t m_updates{0};       // updates since reset (the velocity bypass waits for 5)
     double m_lastNormalizedVelocity{0.0};  // kept through the drain: same weights to the end
     double m_lastTime{0.0};    // time of the newest sample
+    EventClock m_clock;        // device stamps -> one increasing time per event
 };
 
 } // namespace aladyn::engine::stroke

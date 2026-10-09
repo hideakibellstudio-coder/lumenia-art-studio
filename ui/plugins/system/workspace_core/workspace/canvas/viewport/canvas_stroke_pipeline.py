@@ -22,6 +22,7 @@ from PySide6 import QtCore, QtGui
 from ui.core.engine.backend_protocols import StrokeProtocol
 
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
+from .still_pointer import HeldInput, StillPointerFeeder
 
 
 @runtime_checkable
@@ -45,6 +46,7 @@ class StrokeCanvas(Protocol):
     def to_canvas(self, screen_x: float, screen_y: float, pressure: float, timestamp: float) -> Any: ...
     def canvas_transform(self) -> QtGui.QTransform: ...
     def update(self, *args: Any) -> None: ...
+    def isVisible(self) -> bool: ...
 
 _MIN_PRESSURE = 0.02
 _DIRTY_MARGIN_PX = 6
@@ -60,6 +62,8 @@ class CanvasStrokePipeline:
         self.last_end_screen: Optional[QtCore.QPointF] = None
         self._last_ring_refresh_time = 0.0
         self._last_ring_refresh_pos: Optional[tuple[float, float]] = None
+        # Mouse held still: the last input keeps reaching the stabilizer (still_pointer.py).
+        self._still = StillPointerFeeder(self._feed_still, widget if isinstance(widget, QtCore.QObject) else None)
 
     def start(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0,
               tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None:
@@ -77,11 +81,24 @@ class CanvasStrokePipeline:
         cur_x, cur_y = w.geometry_ctrl.snap_point(evt.x, evt.y, w.zoom)
         self.last_draw_pos = (cur_x, cur_y)
         backend.start_stroke(cur_x, cur_y, safe_pressure, timestamp, tilt_x, tilt_y, twist)
+        self._still.start(HeldInput(screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist))
         w.update()
 
     def paint(self, screen_x: float, screen_y: float, pressure: float, timestamp: float = 0.0,
               tilt_x: float = 0.0, tilt_y: float = 0.0, twist: float = 0.0) -> None:
         """Alimenta o motor e repinta só a união (dabs novos ∪ anel antigo ∪ anel novo)."""
+        self._still.note(HeldInput(screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist))
+        self._send(screen_x, screen_y, pressure, timestamp, tilt_x, tilt_y, twist)
+
+    def _feed_still(self, held: HeldInput, timestamp: float) -> None:
+        # A canvas off screen has no one holding a mouse over it (and a hidden test widget
+        # must not keep painting into the shared engine after its test).
+        if not self._w.isVisible():
+            return
+        self._send(held.screen_x, held.screen_y, held.pressure, timestamp, held.tilt_x, held.tilt_y, held.twist)
+
+    def _send(self, screen_x: float, screen_y: float, pressure: float, timestamp: float,
+              tilt_x: float, tilt_y: float, twist: float) -> None:
         w = self._w
         if not w.drawing:
             return
@@ -131,6 +148,7 @@ class CanvasStrokePipeline:
 
     def end(self, screen_x: float | None = None, screen_y: float | None = None) -> None:
         """Termina o traço e repinta a área final (inclusive o toque isolado sem arrasto)."""
+        self._still.stop()
         w = self._w
         w.geometry_ctrl.mouse_release()
         backend = w.backend

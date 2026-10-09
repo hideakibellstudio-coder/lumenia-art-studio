@@ -1,5 +1,6 @@
 // StrokeOrchestrator::endStrokeRaw -- separado de StrokeOrchestrator.cpp em
-// 2026-09-22 (teto ARCcC de 450 linhas). Corpo movido sem alteração.
+// 2026-09-22 (teto ARCcC de 450 linhas). Desde 2026-10-09 o fim com estabilização
+// drena o estabilizador (renderReleaseTail) em vez do salto reto e da cauda extrapolada.
 #include "StrokeOrchestrator.hpp"
 #include "../../core/raster/DabInterpolator.hpp"
 #include "../../core/raster/DabRenderer.hpp"
@@ -14,6 +15,72 @@
 namespace aladyn::engine::boundary::orchestrator {
 
 using detail::useLatencyShortcut;
+
+namespace {
+
+void uniteDirty(utils::Rect2D& total, const utils::Rect2D& dirty) {
+    if (dirty.width > 0 && dirty.height > 0) {
+        total = (total.width > 0) ? total.united(dirty) : dirty;
+    }
+}
+
+// Pen-up with stabilization (2026-10-09). The stabilized line is still behind the pen
+// (tens of px with a mouse); until now a straight segment jumped to the release point
+// and a 20 px taper was extrapolated past it in the stale direction of the lagging point:
+// the "whip" that kept circles from closing. Here the stabilizer drains (the pen rests
+// on the release point while its window runs out), the line follows the path through
+// spline segments, and the taper thins the last `strokeTaperLength` px of that tail
+// without going one pixel beyond where the pen lifted.
+void renderReleaseTail(RawStrokeContext& ctx, bool splineReady, utils::Rect2D& totalDirty,
+                       telemetry::StageMetrics& stages) {
+    const auto nodes = ctx.stabilizer.drain(ctx.lastRawPoint, ctx.lastRawPressure);
+    double tailLength = 0.0;
+    utils::Point2D previous = ctx.lastDab.position;
+    for (const auto& node : nodes) {
+        tailLength += previous.distanceTo(node.position);
+        previous = node.position;
+    }
+    if (tailLength < 0.05) return;  // the line was already on the release point
+
+    const brush::BrushProfile& profile = ctx.brushProfile;
+    const double taperLength = std::min(tailLength, profile.strokeTaperLength > 0.0 ? profile.strokeTaperLength : 20.0);
+    const bool taper = profile.strokeTaperEnabled && taperLength > 0.5;
+    const double normVel = ctx.velocityTracker.getNormalizedVelocity(1500.0);
+    double walked = 0.0;
+    previous = ctx.lastDab.position;
+    for (const auto& node : nodes) {
+        walked += previous.distanceTo(node.position);
+        previous = node.position;
+        auto mapped = brush::DynamicMapper::map(profile, node.position, node.pressure, normVel,
+                                                ctx.lastPose.twist, ctx.lastPose.altitude, ctx.lastPose.azimuth);
+        if (taper) {
+            const double left = std::clamp((tailLength - walked) / taperLength, 0.0, 1.0);
+            mapped.radius *= 0.05 + 0.95 * left;
+            mapped.opacity *= left;
+        }
+        utils::Dab dab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle,
+                       profile.blendMode, mapped.color, mapped.aspectRatio);
+        utils::Rect2D dirty{0, 0, 0, 0};
+        uint32_t dabs = 0;
+        if (splineReady) {
+            utils::Dab forward = dab;
+            forward.position = dab.position * 2.0 - ctx.splineP1.position;
+            StrokeOrchestrator::renderSplineSegment(ctx.splineP0, ctx.splineP1, dab, forward, ctx, &dirty, &dabs, &stages);
+            ctx.splineP0 = ctx.splineP1;
+            ctx.splineP1 = dab;
+        } else {
+            StrokeOrchestrator::renderSegment(
+                ctx.lastDab, dab, profile, ctx.canvasTexture, ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
+                ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
+                ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabs, &stages, true,
+                &ctx.strokeMix);
+        }
+        uniteDirty(totalDirty, dirty);
+        ctx.lastDab = dab;
+    }
+}
+
+} // namespace
 
 std::vector<double> StrokeOrchestrator::endStrokeRaw(
     RawStrokeContext& ctx,
@@ -30,6 +97,9 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
             ctx.lastRawPoint = {endX, endY};
             ctx.hasLastRawPoint = true;
         }
+        // Read before the block below zeroes the spline state: the release tail continues the spline.
+        const bool splineReady = ctx.splineCount >= 3;
+        const bool stabilized = !shortcut && ctx.stabilizer.isActive();
 
         if (ctx.splineCount == 2) {
             // Apenas P0 e P1 foram capturados (1 único movimento): renderiza P0 -> P1 via Catmull-Rom centrípeta
@@ -55,7 +125,10 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
         }
 
 
-        if (ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
+        if (stabilized && ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
+            renderReleaseTail(ctx, splineReady, totalCatchupDirty, stagesCatchup);
+        } else if (ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
+            // Without stabilization (or below 0.5%) the line is already on the pen: unchanged since 2026-09-22.
             const utils::Point2D stabPos = shortcut ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
             const utils::Point2D v = shortcut ? (ctx.lastRawPoint - ctx.lastDab.position) : ctx.stabilizer.getLastMovementDelta();
             const double speed = v.length();

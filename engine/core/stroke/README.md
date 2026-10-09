@@ -15,8 +15,8 @@
 | `VelocityTracker.cpp` | Implementação: acumula o caminho de todos os eventos (rajadas com o mesmo timestamp inclusive) e só recalcula quando a janela tem 0,8 ms ou mais. |
 | `PenPose.hpp` | A posição da caneta (altitude, azimute, torção) na última amostra do traço: os carimbos criados sem amostra (alcance do estabilizador, afunilamento) a herdam. Só o cabeçalho. |
 | `PressureCalibration.hpp` | Curva global de entrada da pressão (zona morta, pressão total, gama): o que a mesa entrega vira o que o motor lê, antes do estabilizador. Padrão: identidade. |
-| `DynamicStabilizer.hpp` | Estabilizador adaptativo (média ponderada com bypass por velocidade) (declaração). |
-| `DynamicStabilizer.cpp` | Implementação. |
+| `DynamicStabilizer.hpp` | Estabilizador: média ponderada sobre uma janela de TEMPO (o peso cai com a idade da amostra até zero na borda), com bypass por velocidade; `drain` leva a linha até onde a caneta levantou (declaração). |
+| `DynamicStabilizer.cpp` | Implementação. Até 2026-10-09 a janela contava eventos: o atraso dependia da taxa do aparelho (mouse de 60 Hz atrasava 6 vezes mais que a caneta) e a linha dobrava quando a janela enchia. Intervalo sem eventos vira amostras paradas na última posição. |
 
 ## Regras
 

@@ -48,7 +48,7 @@ void StrokeSessionOrchestrator::beginStroke(RawStrokeContext& ctx, const stroke:
     ctx.strokeStartPoint = event.position;
     ctx.lastRawPressure = event.pressure;
     ctx.distanceCarryover = -1.0;
-    ctx.stabilizer.reset(event.position, event.pressure);
+    ctx.stabilizer.reset(event.position, event.pressure, event.timestamp);
     ctx.velocityTracker.reset(event.position, event.timestamp);
     ctx.undoManager.beginStep("Stroke");
     beginOpacityCap(ctx);
@@ -78,7 +78,7 @@ StrokeTelemetrySample StrokeSessionOrchestrator::updateStroke(RawStrokeContext& 
     // estabilizador, e como low_latency=True e' o padrao do backend o slider de
     // suavizacao nao tinha efeito nenhum neste caminho tambem.
     const bool shortcut = ctx.lowLatency && ctx.stabilizer.getStabilizationPercentage() <= 0.5;
-    const utils::Point2D pos = shortcut ? event.position : ctx.stabilizer.update(event.position, event.pressure, normVel);
+    const utils::Point2D pos = shortcut ? event.position : ctx.stabilizer.updateAt(event.position, event.pressure, normVel, event.timestamp);
     const double effectivePressure = shortcut ? event.pressure : ctx.stabilizer.getStabilizedPressure();
 
     ctx.lastPose = {event.altitude, event.azimuth, event.twist};

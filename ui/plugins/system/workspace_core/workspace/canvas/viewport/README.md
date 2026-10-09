@@ -17,6 +17,7 @@ Criados pelo `RenderWidget` (`camera`, `input_router`, `cursor_ctrl`, `stroke`, 
 | `cursor_controller.py` | CanvasCursorController — Controlador Modular do Cursor no Canvas (ARCcC). |
 | `input_router.py` | `CanvasInputRouter`: ponteiro (apertar, arrastar, soltar) → ferramentas; contrato `RouterCanvas`. |
 | `key_router.py` | `CanvasKeyRouter`: teclado (espaço, Delete, atalhos de seleção, teclas da transformação); contrato `KeyCanvas`. Separado de `input_router.py` em 2026-09-25. |
+| `still_pointer.py` | `StillPointerFeeder`: durante o traço, repete a última entrada a cada 16 ms quando nada chega há 20 ms (mouse parado), com o instante avançado; sem isso a linha estabilizada parava atrás do cursor. |
 | `pointer_sample.py` | `PointerSample` e `event_time`: posição, pressão, botão, inclinação, rotação, borracha e instante lidos de um evento de mouse ou caneta. |
 | `viewport_renderer.py` | ViewportRenderer — pinta o canvas: papel, pixels do motor, overlays e cursor. |
 

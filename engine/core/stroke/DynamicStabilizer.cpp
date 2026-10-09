@@ -4,6 +4,13 @@
 
 namespace aladyn::engine::stroke {
 
+namespace {
+    constexpr size_t kMinEvents = 3;
+    constexpr size_t kMaxEvents = 72;
+    // A drain step gives up this close to the release point and lands on it exactly.
+    constexpr double kArrivedPx = 0.35;
+}
+
 DynamicStabilizer::DynamicStabilizer(double stabilizationPercentage) noexcept
     : m_stabilizationPercentage(std::clamp(stabilizationPercentage, 0.0, 99.0)) {}
 
@@ -11,100 +18,152 @@ void DynamicStabilizer::setStabilizationPercentage(double percentage) noexcept {
     m_stabilizationPercentage = std::clamp(percentage, 0.0, 99.0);
 }
 
+double DynamicStabilizer::windowSeconds() const noexcept {
+    const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
+    const size_t events = std::clamp(
+        static_cast<size_t>(kMinEvents + static_cast<size_t>(std::lround(norm * 69.0))), kMinEvents, kMaxEvents);
+    return static_cast<double>(events) * kNominalEventSeconds;
+}
+
 void DynamicStabilizer::reset(utils::Point2D initialPosition, double initialPressure) noexcept {
+    reset(initialPosition, initialPressure, 0.0);
+}
+
+void DynamicStabilizer::reset(utils::Point2D initialPosition, double initialPressure, double timestamp) noexcept {
     m_stabilizedPosition = initialPosition;
     m_stabilizedPressure = initialPressure;
     m_lastMovementDelta = {0.0, 0.0};
-    m_historyCount = 1;
-    m_historyHead = 0;
-    m_historyBuffer[0] = initialPosition;
-    m_pressureHistoryBuffer[0] = initialPressure;
+    m_count = 1;
+    m_head = 0;
+    m_updates = 0;
+    m_lastNormalizedVelocity = 0.0;
+    m_lastTime = timestamp > 0.0 ? timestamp : 0.0;
+    m_samples[0] = {initialPosition, initialPressure, m_lastTime};
+}
+
+const DynamicStabilizer::Sample& DynamicStabilizer::sampleAt(size_t fromOldest) const noexcept {
+    return m_samples[(m_head + MAX_SAMPLES + 1 - m_count + fromOldest) % MAX_SAMPLES];
+}
+
+void DynamicStabilizer::push(const Sample& sample) noexcept {
+    m_head = (m_head + 1) % MAX_SAMPLES;
+    m_samples[m_head] = sample;
+    m_count = std::min(m_count + 1, MAX_SAMPLES);
+    m_lastTime = sample.time;
+}
+
+void DynamicStabilizer::fillStillGap(double until) noexcept {
+    if (m_count == 0 || until - m_lastTime <= kStillGapSeconds) return;
+    const Sample still = m_samples[m_head];
+    // Older than the window they would leave at once: start where they still count.
+    double t = std::max(m_lastTime + kStillStepSeconds, until - windowSeconds());
+    for (; t < until - kStillStepSeconds * 0.5; t += kStillStepSeconds) {
+        push({still.position, still.pressure, t});
+    }
+}
+
+void DynamicStabilizer::expire(double now, double window) noexcept {
+    while (m_count > 1 && now - sampleAt(0).time >= window) --m_count;
+}
+
+void DynamicStabilizer::average(double now, double normalizedVelocity) noexcept {
+    const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
+    double exponent = 2.4 - 1.3 * std::pow(norm, 0.85);
+    if (m_updates > 4 && normalizedVelocity > 0.50) {
+        exponent += std::clamp((normalizedVelocity - 0.50) / 0.50, 0.0, 1.0) * 0.4;
+    }
+    const double window = windowSeconds();
+    double sumX = 0.0, sumY = 0.0, sumPressure = 0.0, totalWeight = 0.0;
+    for (size_t i = 0; i < m_count; ++i) {
+        const Sample& s = sampleAt(i);
+        const double remaining = 1.0 - (now - s.time) / window;
+        if (remaining <= 0.0) continue;
+        const double w = std::pow(remaining, exponent);
+        sumX += s.position.x * w;
+        sumY += s.position.y * w;
+        sumPressure += s.pressure * w;
+        totalWeight += w;
+    }
+    const Sample& newest = m_samples[m_head];
+    const utils::Point2D next = totalWeight > 0.0
+        ? utils::Point2D{sumX / totalWeight, sumY / totalWeight} : newest.position;
+    m_stabilizedPressure = totalWeight > 0.0 ? sumPressure / totalWeight : newest.pressure;
+    const utils::Point2D delta = next - m_stabilizedPosition;
+    if (delta.length() > 0.05) m_lastMovementDelta = delta;
+    m_stabilizedPosition = next;
 }
 
 void DynamicStabilizer::reanchorInitialPosition(utils::Point2D newInitialPosition) noexcept {
-    if (m_historyCount == 0) {
+    if (m_count == 0) {
         reset(newInitialPosition, m_stabilizedPressure);
         return;
     }
-    const size_t oldestIdx = (m_historyHead + MAX_WINDOW_SIZE + 1 - m_historyCount) % MAX_WINDOW_SIZE;
-    m_historyBuffer[oldestIdx] = newInitialPosition;
-
-    if (m_historyCount == 2) {
-        const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
-        const double exponent = 2.4 - 1.3 * std::pow(norm, 0.85);
-        const double w0 = std::pow(1.0, exponent);
-        const double w1 = std::pow(2.0, exponent);
-        const double totalW = w0 + w1;
-        const auto& p1 = m_historyBuffer[m_historyHead];
-        m_stabilizedPosition = {
-            (newInitialPosition.x * w0 + p1.x * w1) / totalW,
-            (newInitialPosition.y * w0 + p1.y * w1) / totalW
-        };
+    m_samples[(m_head + MAX_SAMPLES + 1 - m_count) % MAX_SAMPLES].position = newInitialPosition;
+    if (m_count == 2) {
+        average(m_lastTime, 0.0);
         m_lastMovementDelta = m_stabilizedPosition - newInitialPosition;
     }
 }
 
-utils::Point2D DynamicStabilizer::update(utils::Point2D rawPosition, double rawPressure, double normalizedVelocity) noexcept {
-    if (m_stabilizationPercentage <= 0.5) {
+utils::Point2D DynamicStabilizer::updateAt(utils::Point2D rawPosition, double rawPressure,
+                                           double normalizedVelocity, double timestamp) noexcept {
+    double now = timestamp > 0.0 ? timestamp : m_lastTime + kNominalEventSeconds;
+    now = std::max(now, m_lastTime);  // out-of-order timestamp: same instant as the last one
+    if (!isActive()) {
         m_lastMovementDelta = rawPosition - m_stabilizedPosition;
         m_stabilizedPosition = rawPosition;
         m_stabilizedPressure = rawPressure;
+        push({rawPosition, rawPressure, now});
         return rawPosition;
     }
-
-    const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
-    const size_t maxWindow = std::clamp(
-        static_cast<size_t>(3 + static_cast<int>(std::round(norm * 69.0))),
-        static_cast<size_t>(3),
-        MAX_WINDOW_SIZE
-    );
-
-    // 1. Atualiza buffer circular de histórico
-    m_historyHead = (m_historyHead + 1) % MAX_WINDOW_SIZE;
-    m_historyBuffer[m_historyHead] = rawPosition;
-    m_pressureHistoryBuffer[m_historyHead] = rawPressure;
-    if (m_historyCount < maxWindow) {
-        ++m_historyCount;
-    } else {
-        m_historyCount = maxWindow;
-    }
-
-    // 2. Expoente de peso WMA adaptativo com Velocity Bypass
-    double exponent = 2.4 - 1.3 * std::pow(norm, 0.85);
-    if (m_historyCount > 4 && normalizedVelocity > 0.50) {
-        const double vFactor = std::clamp((normalizedVelocity - 0.50) / 0.50, 0.0, 1.0);
-        exponent += vFactor * 0.4;
-    }
-
-    // 3. Média Ponderada Temporal Pura (WMA - Padrão Paint Tool SAI)
-    // Sincroniza tanto a posição quanto a pressão para que o alívio de pressão
-    // coincida exatamente com a posição estabilizada (Correção A5).
-    double sumX = 0.0, sumY = 0.0, sumPressure = 0.0, totalWeight = 0.0;
-    for (size_t i = 0; i < m_historyCount; ++i) {
-        const double w = std::pow(static_cast<double>(i + 1), exponent);
-        const size_t idx = (m_historyHead + MAX_WINDOW_SIZE + 1 - (m_historyCount - i)) % MAX_WINDOW_SIZE;
-        sumX += m_historyBuffer[idx].x * w;
-        sumY += m_historyBuffer[idx].y * w;
-        sumPressure += m_pressureHistoryBuffer[idx] * w;
-        totalWeight += w;
-    }
-
-    const utils::Point2D newPos{
-        totalWeight > 0.0 ? (sumX / totalWeight) : rawPosition.x,
-        totalWeight > 0.0 ? (sumY / totalWeight) : rawPosition.y
-    };
-    m_stabilizedPressure = totalWeight > 0.0 ? (sumPressure / totalWeight) : rawPressure;
-
-    const utils::Point2D delta = newPos - m_stabilizedPosition;
-    if (delta.length() > 0.05) {
-        m_lastMovementDelta = delta;
-    }
-    m_stabilizedPosition = newPos;
+    fillStillGap(now);
+    push({rawPosition, rawPressure, now});
+    ++m_updates;
+    m_lastNormalizedVelocity = normalizedVelocity;
+    expire(now, windowSeconds());
+    average(now, normalizedVelocity);
     return m_stabilizedPosition;
 }
 
+utils::Point2D DynamicStabilizer::update(utils::Point2D rawPosition, double rawPressure, double normalizedVelocity) noexcept {
+    return updateAt(rawPosition, rawPressure, normalizedVelocity, 0.0);
+}
+
 utils::Point2D DynamicStabilizer::update(utils::Point2D rawPosition, double normalizedVelocity) noexcept {
-    return update(rawPosition, m_stabilizedPressure, normalizedVelocity);
+    return updateAt(rawPosition, m_stabilizedPressure, normalizedVelocity, 0.0);
+}
+
+std::vector<DynamicStabilizer::Node> DynamicStabilizer::drain(utils::Point2D endPosition, double endPressure,
+                                                              size_t maxNodes) noexcept {
+    std::vector<Node> nodes;
+    if (!isActive()) {
+        m_lastMovementDelta = endPosition - m_stabilizedPosition;
+        m_stabilizedPosition = endPosition;
+        m_stabilizedPressure = endPressure;
+        nodes.push_back({endPosition, endPressure});
+        return nodes;
+    }
+    const size_t steps = std::clamp(maxNodes, static_cast<size_t>(2), static_cast<size_t>(64));
+    const double window = windowSeconds();
+    const double step = window / static_cast<double>(steps);
+    nodes.reserve(steps + 1);
+    for (size_t k = 0; k < steps; ++k) {
+        if (m_stabilizedPosition.distanceTo(endPosition) < kArrivedPx) break;
+        const double now = m_lastTime + step;
+        push({endPosition, endPressure, now});
+        expire(now, window);
+        average(now, m_lastNormalizedVelocity);
+        nodes.push_back({m_stabilizedPosition, m_stabilizedPressure});
+    }
+    if (nodes.empty() || nodes.back().position != endPosition) {
+        const utils::Point2D delta = endPosition - m_stabilizedPosition;
+        if (delta.length() > 0.05) m_lastMovementDelta = delta;
+        m_stabilizedPosition = endPosition;
+        m_stabilizedPressure = endPressure;
+        if (!nodes.empty() && nodes.back().position.distanceTo(endPosition) < kArrivedPx) nodes.pop_back();
+        nodes.push_back({endPosition, endPressure});
+    }
+    return nodes;
 }
 
 std::vector<utils::Point2D> DynamicStabilizer::flush(utils::Point2D endPosition, size_t steps) noexcept {

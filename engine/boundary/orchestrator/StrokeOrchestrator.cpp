@@ -23,6 +23,10 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     if (!ctx.isDrawing) return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     // Curva global de entrada: tudo daqui para frente (estabilizador, curvas do pincel) lê a pressão calibrada.
     const double pressure = ctx.pressureCalibration.apply(rawPressure);
+    // The same sample again (the canvas repeats a mouse held still so the stabilizer keeps
+    // settling, 2026-10-09): it moves the stabilizer but must not stamp the same spot again.
+    const bool repeatedSample = ctx.hasLastRawPoint && ctx.lastRawPoint == utils::Point2D{x, y}
+        && ctx.lastRawPressure == pressure && !ctx.brushProfile.timeSpacingEnabled;
     ctx.lastRawPoint = {x, y};
     ctx.hasLastRawPoint = true;
     ctx.lastRawPressure = pressure;
@@ -38,8 +42,12 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     const double vel = ctx.velocityTracker.update({x, y}, t);
     const double normVel = ctx.velocityTracker.getNormalizedVelocity(1500.0);
     const bool shortcut = useLatencyShortcut(ctx);
-    const utils::Point2D pos = shortcut ? utils::Point2D{x, y} : ctx.stabilizer.update({x, y}, pressure, normVel);
+    const utils::Point2D pos = shortcut ? utils::Point2D{x, y} : ctx.stabilizer.updateAt({x, y}, pressure, normVel, t);
     const double effectivePressure = shortcut ? pressure : ctx.stabilizer.getStabilizedPressure();
+    if (repeatedSample && ctx.splineCount >= 3 && pos.distanceTo(ctx.lastDab.position) < 0.05) {
+        ctx.lastTimestamp = t;
+        return {0.0, 0.0, 0.0, 0.0, x, y, pressure, vel, ctx.lastDab.opacity};
+    }
 
     double altitude = 90.0;
     double azimuth = 0.0;

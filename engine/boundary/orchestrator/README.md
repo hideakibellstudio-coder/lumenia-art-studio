@@ -32,7 +32,7 @@ Não há porta única: cada orquestrador é incluído pela `PaintEngineFacade.cp
 | `StrokeLatencyPolicy.hpp` | Regra de baixa latência compartilhada pelos arquivos do `StrokeOrchestrator`. |
 | `StrokeOrchestrator.hpp` | Traço a partir de amostras brutas: interpolação por spline e deposição de dabs (declaração, `RawStrokeContext`). |
 | `StrokeOrchestrator.cpp` | `updateStrokeRaw`: cada amostra da caneta vira dabs e trechos de spline. |
-| `StrokeOrchestratorEnd.cpp` | `endStrokeRaw` (separado em 2026-09-22, teto de 450 linhas). |
+| `StrokeOrchestratorEnd.cpp` | `endStrokeRaw` (separado em 2026-09-22, teto de 450 linhas). Com estabilização, o fim drena o estabilizador e desenha a cauda pelo caminho, com o afunilamento dentro dela (`renderReleaseTail`, 2026-10-09); antes, um segmento reto até a caneta e uma cauda extrapolada além dela. |
 | `StrokeOrchestratorSegment.cpp` | Desenho de um segmento (`renderSegment`, `renderSplineSegment`): interpolação, histórico, rasterização e composição (separado em 2026-09-25, estava na parede dos 450). |
 | `StrokePreviewRenderer.hpp` | Prévias fora de documento: pincelada de demonstração e máscara da ponta redonda (declaração). |
 | `StrokePreviewRenderer.cpp` | Pincelada com o motor de pincel real do perfil; máscara da ponta com a queda do `LargeBrushOptimizer` (o laço morava na ponte até 2026-09-25). |

@@ -797,7 +797,9 @@
     "doc_context_failed": "O motor não conseguiu criar o documento '{name}' ({w}×{h} px): {reason}. O documento atual foi mantido.",
     "engine_out_of_memory": "memória insuficiente",
     "image_too_large": "A imagem '{name}' ({w}×{h} px) passa do tamanho máximo do canvas ({max}×{max} px).",
-    "pen_applied": "Calibração da caneta aplicada."
+    "pen_applied": "Calibração da caneta aplicada.",
+    "free_mode": "Versão gratuita · Ativar",
+    "free_mode_tip": "As imagens exportadas saem com marca d'água. Clique para ativar sua licença."
   },
   "tool_options": {
     "sample_size": "Tamanho da Amostra",
@@ -1201,6 +1203,13 @@
       "restarting": "Reiniciando para atualizar...",
       "on_exit_ready": "A versão {version} será instalada ao fechar o Lumenia.",
       "failed": "Não foi possível procurar atualizações: {error}"
+    },
+    "welcome": {
+      "title": "Bem-vindo ao Lumenia",
+      "heading": "Você está usando a versão gratuita.",
+      "body": "Todas as ferramentas funcionam. A única diferença: as imagens exportadas saem com a marca d'água \"LUMENIA FREE\".\n\nSe você comprou uma licença, ative agora com a chave que recebeu por e-mail. Também dá para ativar depois, em Ajuda > Licença.",
+      "free": "Continuar na versão gratuita",
+      "activate": "Ativar licença"
     }
   }
 }

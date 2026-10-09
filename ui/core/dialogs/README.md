@@ -38,6 +38,7 @@ Importados por módulo: `base_dialog.BaseFramelessDialog`,
 | `test_report_runner.py` | `TestRunnerThread`: executa `tests/run_all_tests.py --junit` sem travar a interface (XML na pasta temporária do sistema). |
 | `update_dialog.py` | `UpdateDialog`: versão nova e notas; atualizar e reiniciar, instalar ao fechar ou depois. Versão que a licença não cobre aparece sem botão de instalar. |
 | `user_guide_dialog.py` | User Guide Dialog — Diálogo de Visualização do Guia do Usuário e Documentação. |
+| `welcome_dialog.py` | `WelcomeDialog`: primeira abertura sem licença; explica o modo gratuito (marca d'água) e oferece ativar, comprar ou continuar. Só relata a escolha. |
 
 ## Regras
 

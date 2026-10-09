@@ -797,7 +797,9 @@
     "doc_context_failed": "The engine could not create the document '{name}' ({w}×{h} px): {reason}. The current document was kept.",
     "engine_out_of_memory": "not enough memory",
     "image_too_large": "The image '{name}' ({w}×{h} px) exceeds the maximum canvas size ({max}×{max} px).",
-    "pen_applied": "Pen calibration applied."
+    "pen_applied": "Pen calibration applied.",
+    "free_mode": "Free version · Activate",
+    "free_mode_tip": "Exported images carry a watermark. Click to activate your license."
   },
   "tool_options": {
     "sample_size": "Sample Size",
@@ -1201,6 +1203,13 @@
       "restarting": "Restarting to update...",
       "on_exit_ready": "Version {version} will be installed when Lumenia closes.",
       "failed": "Could not check for updates: {error}"
+    },
+    "welcome": {
+      "title": "Welcome to Lumenia",
+      "heading": "You are using the free version.",
+      "body": "Every tool works. The only difference: exported images carry the \"LUMENIA FREE\" watermark.\n\nIf you bought a license, activate it now with the key you received by e-mail. You can also activate it later in Help > License.",
+      "free": "Continue with the free version",
+      "activate": "Activate license"
     }
   }
 }

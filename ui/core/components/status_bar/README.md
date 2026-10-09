@@ -1,6 +1,8 @@
 # `ui/core/components/status_bar/` — barra de status
 
-**Responsabilidade:** a barra de status da janela principal (mensagens e zoom).
+**Responsabilidade:** a barra de status da janela principal (mensagens, zoom e o botão
+"Versão gratuita · Ativar" enquanto não há licença). Não conhece licença: a janela diz
+se a sessão está no modo gratuito (`show_free_mode`) e liga `activateRequested`.
 
 ## Porta de entrada
 
@@ -11,7 +13,7 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Reexporta `StatusBar`. |
-| `bar.py` | `StatusBar`: `QStatusBar` com o indicador de zoom. |
+| `bar.py` | `StatusBar`: `QStatusBar` com o indicador de zoom e o botão do modo gratuito. |
 
 ## Dependências internas
 

@@ -111,6 +111,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                      self.app_state.brush)
         self.recovery = RecoveryController(self, self.dm, backend, self.canvas_widget, self.documents, self.saver)
         self.distribution = DistributionActions(self, backend, ConfigManager.instance(), logs_directory())
+        self.distribution.freeModeChanged.connect(self.status_bar.show_free_mode)
+        self.status_bar.activateRequested.connect(self.distribution.open_license_dialog)
         for collaborator in (self.documents, self.layer_actions, self.edit_actions,
                              self.image_actions, self.dialogs, self.recovery, self.distribution):
             collaborator.statusMessage.connect(self.status_bar.showMessage)

@@ -25,7 +25,7 @@ Ambiente de desenvolvimento, compilação e distribuição.
 Formato de arquivo `.lmn` e gestão de cor (LittleCMS/ICC).
 
 ### `05-visao-e-futuro/` — visão estratégica e evolução de produto
-Visão estratégica de produto, benchmark competitivo de mercado (`03-benchmark-competitivo-e-rotas-de-produto.md`) e roadmap do pipeline de cor 16-bit/float. Norteia as decisões de refinamento da branch `feature/evolucao-produto`.
+Visão estratégica de produto, benchmark competitivo de mercado (`03-benchmark-competitivo-e-rotas-de-produto.md`), roadmap do pipeline de cor 16-bit/float e os módulos de distribuição (`04-modulos-de-distribuicao.md`: diagnóstico, licenciamento e atualização). Norteia as decisões de refinamento da branch `feature/evolucao-produto`.
 
 ### READMEs por pasta de código — leia antes de mexer
 Cada pasta do repositório (`ui/` com os plugins em `ui/plugins/`, `engine/`, `bridge/`, `tests/`, `docs/`...) tem um `README.md` com a responsabilidade,

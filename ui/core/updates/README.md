@@ -1,22 +1,21 @@
 # `ui/core/updates/` — regras das atualizações
 
-**Responsabilidade:** decidir quando procurar uma atualização (canal, verificação automática a cada 20 h) e se a versão encontrada pode ser oferecida, conforme a licença. Não baixa nem instala nada: isso é do `ui/infrastructure/updater/` (Velopack).
+**Responsabilidade:** decidir quando procurar uma atualização (canal, verificação automática a cada 20 h) e como a versão encontrada é apresentada. Não baixa nem instala nada: isso é do `ui/infrastructure/updater/` (Velopack).
 
 ## Porta de entrada
 
-`from ui.core.updates import UpdatePreferences, UpdateOffer, UpdateDecision, decide`
+`from ui.core.updates import UpdatePreferences, UpdateOffer`
 
 ## Arquivos
 
 | Arquivo | Responsabilidade |
 |---|---|
 | `__init__.py` | Porta do pacote. |
-| `update_policy.py` | `UpdateChannel`, `UpdatePreferences` (seção `updates` do `config.json`), `UpdateOffer` (versão e notas; a data de lançamento vem do comentário `<!-- released: AAAA-MM-DD -->` que o `scripts/build_release.py` escreve) e `decide`. |
+| `update_policy.py` | `UpdateChannel`, `UpdatePreferences` (seção `updates` do `config.json`), `UpdateOffer` (versão e notas; `readable_notes` tira comentários HTML, como o `<!-- released: AAAA-MM-DD -->` que as notas das versões feitas com licenciamento carregam). |
 
 ## Regras
 
-- Uma versão que a licença não cobre (`updates_until` anterior à data de lançamento) **nunca** é instalada: instalar transformaria quem pagou em usuário do modo gratuito. A interface só avisa.
-- Sem data de lançamento nas notas e com licença com prazo: `UNKNOWN_COVERAGE`, a interface pergunta em vez de instalar.
+- Toda versão encontrada é oferecida: o programa não tem licença nem período de atualizações (removidos em 2026-10-12; o código está na tag `archive/licensing-v1`).
 
 ## Dependências internas
 
@@ -24,5 +23,4 @@ Medidas pelo teste `tests/test_arccc_package_docs.py`: import novo entre
 pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 
 <!-- arccc:deps -->
-- `ui/core/licensing`
 <!-- /arccc:deps -->

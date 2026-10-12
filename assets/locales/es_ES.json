@@ -138,7 +138,6 @@
       "about": "Acerca de Lumenia...",
       "diagnostic_report": "Generar informe de diagnóstico...",
       "auto_report": "Enviar informes de error automáticamente",
-      "license": "Licencia...",
       "check_updates": "Buscar actualizaciones...",
       "auto_update": "Buscar actualizaciones automáticamente"
     }
@@ -797,9 +796,7 @@
     "doc_context_failed": "El motor no pudo crear el documento '{name}' ({w}×{h} px): {reason}. Se mantuvo el documento actual.",
     "engine_out_of_memory": "memoria insuficiente",
     "image_too_large": "La imagen '{name}' ({w}×{h} px) supera el tamaño máximo del lienzo ({max}×{max} px).",
-    "pen_applied": "Calibración del lápiz aplicada.",
-    "free_mode": "Versión gratuita · Activar",
-    "free_mode_tip": "Las imágenes exportadas llevan marca de agua. Haz clic para activar tu licencia."
+    "pen_applied": "Calibración del lápiz aplicada."
   },
   "tool_options": {
     "sample_size": "Tamaño de Muestra",
@@ -1153,25 +1150,6 @@
   },
   "distribution": {
     "close": "Cerrar",
-    "license": {
-      "title": "Licencia de Lumenia",
-      "licensed_to": "Con licencia para {name} ({sku}, {until}).",
-      "updates_until": "actualizaciones hasta {date}",
-      "updates_forever": "actualizaciones sin plazo",
-      "state_unlicensed": "Modo gratuito: todo funciona; las imágenes exportadas llevan marca de agua.",
-      "state_malformed": "Esto no es una clave de Lumenia.",
-      "state_bad_signature": "Clave no válida: no fue emitida por el equipo de Lumenia.",
-      "state_expired": "Esta licencia caducó el {date}.",
-      "state_revoked": "Esta licencia fue revocada. Escribe a lumeniateam@protonmail.com.",
-      "state_updates_expired": "Esta versión es posterior al período de actualizaciones de la licencia ({date}).",
-      "state_unsupported": "No se pudo verificar la licencia en esta instalación.",
-      "paste_hint": "Pega abajo la clave que recibiste por correo (empieza por LUMENIA1-).",
-      "buy": "Comprar una licencia",
-      "remove": "Quitar licencia",
-      "activate": "Activar",
-      "activated": "Licencia activada. ¡Gracias por apoyar Lumenia!",
-      "remove_confirm": "¿Quitar la licencia de este equipo? Puedes activarla de nuevo con la misma clave."
-    },
     "crash": {
       "title": "Informe de error",
       "native": "Lumenia se cerró inesperadamente en la última sesión.",
@@ -1189,8 +1167,6 @@
     "update": {
       "title": "Actualización de Lumenia",
       "available": "Versión {new} disponible (usas la {old}).",
-      "not_covered": "Esta versión salió después del período de actualizaciones de tu licencia. Renueva la licencia para instalarla; la versión actual sigue funcionando.",
-      "unknown_coverage": "No se pudo confirmar si tu licencia cubre esta versión.",
       "delta": "Solo se descargarán las partes que cambiaron.",
       "no_notes": "Sin notas de la versión.",
       "later": "Después",
@@ -1203,13 +1179,6 @@
       "restarting": "Reiniciando para actualizar...",
       "on_exit_ready": "La versión {version} se instalará al cerrar Lumenia.",
       "failed": "No se pudieron buscar actualizaciones: {error}"
-    },
-    "welcome": {
-      "title": "Bienvenido a Lumenia",
-      "heading": "Estás usando la versión gratuita.",
-      "body": "Todas las herramientas funcionan. La única diferencia: las imágenes exportadas llevan la marca de agua \"LUMENIA FREE\".\n\nSi compraste una licencia, actívala ahora con la clave que recibiste por correo. También puedes activarla después en Ayuda > Licencia.",
-      "free": "Continuar con la versión gratuita",
-      "activate": "Activar licencia"
     }
   }
 }

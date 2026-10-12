@@ -138,7 +138,6 @@
       "about": "About Lumenia...",
       "diagnostic_report": "Create Diagnostic Report...",
       "auto_report": "Send Error Reports Automatically",
-      "license": "License...",
       "check_updates": "Check for Updates...",
       "auto_update": "Check for Updates Automatically"
     }
@@ -797,9 +796,7 @@
     "doc_context_failed": "The engine could not create the document '{name}' ({w}×{h} px): {reason}. The current document was kept.",
     "engine_out_of_memory": "not enough memory",
     "image_too_large": "The image '{name}' ({w}×{h} px) exceeds the maximum canvas size ({max}×{max} px).",
-    "pen_applied": "Pen calibration applied.",
-    "free_mode": "Free version · Activate",
-    "free_mode_tip": "Exported images carry a watermark. Click to activate your license."
+    "pen_applied": "Pen calibration applied."
   },
   "tool_options": {
     "sample_size": "Sample Size",
@@ -1153,25 +1150,6 @@
   },
   "distribution": {
     "close": "Close",
-    "license": {
-      "title": "Lumenia License",
-      "licensed_to": "Licensed to {name} ({sku}, {until}).",
-      "updates_until": "updates until {date}",
-      "updates_forever": "updates with no end date",
-      "state_unlicensed": "Free mode: everything works; exported images carry a watermark.",
-      "state_malformed": "This is not a Lumenia key.",
-      "state_bad_signature": "Invalid key: it was not issued by the Lumenia team.",
-      "state_expired": "This license expired on {date}.",
-      "state_revoked": "This license was revoked. Contact lumeniateam@protonmail.com.",
-      "state_updates_expired": "This version is newer than the license's update period ({date}).",
-      "state_unsupported": "The license could not be checked on this installation.",
-      "paste_hint": "Paste below the key you received by e-mail (it starts with LUMENIA1-).",
-      "buy": "Buy a license",
-      "remove": "Remove license",
-      "activate": "Activate",
-      "activated": "License activated. Thank you for supporting Lumenia!",
-      "remove_confirm": "Remove the license from this computer? You can activate it again with the same key."
-    },
     "crash": {
       "title": "Error report",
       "native": "Lumenia closed unexpectedly in the last session.",
@@ -1189,8 +1167,6 @@
     "update": {
       "title": "Lumenia Update",
       "available": "Version {new} is available (you have {old}).",
-      "not_covered": "This version was released after your license's update period. Renew the license to install it; the current version keeps working.",
-      "unknown_coverage": "It was not possible to confirm whether your license covers this version.",
       "delta": "Only the parts that changed will be downloaded.",
       "no_notes": "No release notes.",
       "later": "Later",
@@ -1203,13 +1179,6 @@
       "restarting": "Restarting to update...",
       "on_exit_ready": "Version {version} will be installed when Lumenia closes.",
       "failed": "Could not check for updates: {error}"
-    },
-    "welcome": {
-      "title": "Welcome to Lumenia",
-      "heading": "You are using the free version.",
-      "body": "Every tool works. The only difference: exported images carry the \"LUMENIA FREE\" watermark.\n\nIf you bought a license, activate it now with the key you received by e-mail. You can also activate it later in Help > License.",
-      "free": "Continue with the free version",
-      "activate": "Activate license"
     }
   }
 }

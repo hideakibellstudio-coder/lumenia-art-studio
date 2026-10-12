@@ -18,7 +18,7 @@
 | `bind_persistence.cpp` | Persistência (S1.2): `LayerSnapshot` (o instantâneo das camadas; `encode_layer` roda sem o GIL), `snapshot_layers`, `restore_layer_tiles`, `DecodedLayer` com `decode_layer_tiles`/`adopt_decoded_layer` (decodificar fora do documento, adotar em tempo constante) e o par `begin_batch`/`end_batch` (contrato sem efeito desde a S3: o motor só compõe o que alguém lê). |
 | `bind_stroke.cpp` | Traço, texturas e prévias da ponta, telemetria (métricas em tempo real, diagnóstico). |
 | `bind_tools.cpp` | Ferramentas: balde, seleção, transformação, guias e snap. |
-| `bind_runtime.cpp` | Serviços do processo, não do documento: a licença (`license_apply`, `license_status`, `license_clear`, `license_evaluate` para testes com outra chave, `license_build_date`, `license_key_id`), a política da exportação (`apply_export_policy`: marca d'água sem licença) e o minidump de queda (`install_crash_handler`, `write_diagnostic_dump`). |
+| `bind_runtime.cpp` | Serviços do processo, não do documento: o minidump de queda (`install_crash_handler`, `write_diagnostic_dump`). |
 
 ## Regras
 

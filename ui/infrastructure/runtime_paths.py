@@ -1,6 +1,6 @@
 """Deterministic paths for source execution and a standalone Windows bundle.
 
-Installed builds keep the user's data (logs, plugins, license, crash reports) in
+Installed builds keep the user's data (logs, plugins, crash reports) in
 `%APPDATA%\\Lumenia`, outside the program folder. Until 2026-10-08 they kept it in
 `data\\` beside the executable; with updates delivered by Velopack that folder is
 `current\\`, replaced on every update, so the data would vanish with each version.

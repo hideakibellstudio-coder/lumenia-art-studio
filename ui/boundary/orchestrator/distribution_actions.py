@@ -1,10 +1,8 @@
-"""DistributionActions — license, crash reports and updates, wired to the window.
+"""DistributionActions — crash reports and updates, wired to the window.
 
-Collaborator of the `MainWindow` (see `shell_actions.py`). It builds the three
+Collaborator of the `MainWindow` (see `shell_actions.py`). It builds the two
 session services and asks the user when a decision is theirs:
 
-  license       LicenseService       restore at start, Help > License; in free mode a welcome
-                                     once and the status bar's "Free version · Activate"
   diagnostics   DiagnosticsService   minidump, last session's crash, Help > Diagnostic report
   updates       UpdateThread         look for a version (every 20 h or on request), download, apply
 
@@ -23,17 +21,12 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.core.diagnostics import AppFacts, CrashReport, DiagnosticsService, PythonErrorHandler, ReportConsent, SendResult
 from ui.core.dialogs.crash_report_dialog import CrashReportChoice, CrashReportDialog
-from ui.core.dialogs.license_dialog import PURCHASE_URL, LicenseDialog, describe
 from ui.core.dialogs.update_dialog import UpdateChoice, UpdateDialog
-from ui.core.dialogs.welcome_dialog import WelcomeChoice, WelcomeDialog
 from ui.core.engine.backend_protocols import RoleProvider, RuntimeServicesProtocol
-from ui.core.licensing import LicenseService, LicenseStatus
-from ui.core.updates import UpdateDecision, UpdateOffer, UpdatePreferences, decide
+from ui.core.updates import UpdateOffer, UpdatePreferences
 from ui.infrastructure.app_info import APP_UPDATE_REPOSITORY, APP_VERSION, CRASH_REPORT_DSN, SUPPORT_EMAIL
 from ui.infrastructure.config import ConfigManager
 from ui.infrastructure.i18n import tr
-from ui.infrastructure.licensing import LicenseStore
-from ui.infrastructure.runtime_paths import is_packaged, user_data_dir, writable_data_dir
 from ui.infrastructure.updater import FoundUpdate, UpdateThread, VelopackUpdater
 
 from .shell_actions import ShellActions
@@ -43,18 +36,12 @@ CRASH_LOGGER = "Lumenia.System.Crash"
 
 
 class DistributionActions(ShellActions):
-    freeModeChanged = QtCore.Signal(bool)   # True while exports carry the watermark
-
     def __init__(self, window: QtWidgets.QWidget, backend: RoleProvider[RuntimeServicesProtocol],
                  config: ConfigManager, logs_dir: Path) -> None:
         super().__init__(window)
         self._window = window
         self._config = config
         self._preferences = UpdatePreferences.from_config(config.get_section("updates"))
-        # Installed: the user's data folder (or beside a portable copy); development: %APPDATA%\\Lumenia, never the repository.
-        license_dir = writable_data_dir() if is_packaged() else user_data_dir()
-        self.license = LicenseService(backend, LicenseStore(license_dir), self)
-        self.license.statusChanged.connect(self._on_license_changed)
         self.diagnostics = DiagnosticsService(
             backend, logs_dir,
             AppFacts(APP_VERSION, self._preferences.channel.value, os.environ.get("LUMENIA_CRASH_DSN", CRASH_REPORT_DSN)),
@@ -71,13 +58,6 @@ class DistributionActions(ShellActions):
     # ── Partida e saída ───────────────────────────────────────────────────
 
     def start(self, previous_crash: Optional[Path]) -> None:
-        status = self.license.restore()
-        self._on_license_changed(status)
-        if status.is_licensed:
-            self._say(describe(status), 6000)
-        elif not self._config.get("licensing", "welcome_shown", False):
-            # After the crash question (queued just below), once the window is on screen.
-            QtCore.QTimer.singleShot(0, self, self.show_welcome)
         self.diagnostics.install()
         logging.getLogger(CRASH_LOGGER).addHandler(self._error_handler)
         self.diagnostics.collect_previous_session(previous_crash)
@@ -88,26 +68,6 @@ class DistributionActions(ShellActions):
     def shutdown(self) -> None:
         logging.getLogger(CRASH_LOGGER).removeHandler(self._error_handler)
         self.updates.stop()
-
-    # ── Licença ───────────────────────────────────────────────────────────
-
-    def open_license_dialog(self) -> None:
-        LicenseDialog(self.license, self._window).exec()
-
-    def show_welcome(self) -> None:
-        """First start without a license: explain free mode once and offer to activate."""
-        self._config.set("licensing", "welcome_shown", True)
-        if self.license.status.is_licensed:
-            return
-        dialog = WelcomeDialog(self._window)
-        dialog.exec()
-        if dialog.choice is WelcomeChoice.ACTIVATE:
-            self.open_license_dialog()
-        elif dialog.choice is WelcomeChoice.BUY:
-            QtGui.QDesktopServices.openUrl(QtCore.QUrl(PURCHASE_URL))
-
-    def _on_license_changed(self, status: LicenseStatus) -> None:
-        self.freeModeChanged.emit(not status.is_licensed)
 
     # ── Relatórios de erro ────────────────────────────────────────────────
 
@@ -193,10 +153,9 @@ class DistributionActions(ShellActions):
                 self._say(tr("distribution.update.up_to_date", "Você já tem a versão mais recente."), 4000)
             return
         offer = UpdateOffer(found.version, found.notes_markdown)
-        decision = decide(offer, self.license.status)
-        dialog = UpdateDialog(offer, decision, self.updates.updater.current_version(), self._window)
+        dialog = UpdateDialog(offer, self.updates.updater.current_version(), self._window)
         dialog.exec()
-        if decision is not UpdateDecision.NOT_COVERED and dialog.choice is not UpdateChoice.LATER:
+        if dialog.choice is not UpdateChoice.LATER:
             self._pending_choice = dialog.choice
             self.updates.download(found)
 

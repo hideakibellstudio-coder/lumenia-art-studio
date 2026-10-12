@@ -13,7 +13,7 @@ Cada script roda sozinho (`python scripts/<nome>.py`); os de build estão em AGE
 | `build_native.py` | Compila a extensão `aladyn_engine_native` (objetos em `../build/temp_native`). |
 | `check_windows_build.py` | Compila os `.cpp` do `setup.py` para o alvo Windows a partir do Linux (MinGW-w64, escalar e AVX2) com `-Wall -Wextra -Werror`: aviso novo reprova; o agente em Linux roda antes de commitar mudança em C++ (AGENTS.md, seção 5.1). |
 | `build_portable.py` | Gera e verifica a distribuição portátil com Nuitka (`../build/portable`, `../dist`), com os avisos de terceiros (`assets/legal/`) e os textos de licença dos pacotes embutidos em `licenses/`. |
-| `build_release.py` | Versão de distribuição: recusa motor com a chave de licença de desenvolvimento, motor com PDB, bundle Nuitka, `vpk pack` (instalador Velopack, pacote completo e delta) e, com `--upload`, publica no repositório público de releases. `--dry-run` mostra o plano. |
+| `build_release.py` | Versão de distribuição: motor com PDB, bundle Nuitka, `vpk pack` (instalador Velopack, pacote completo e delta) e, com `--upload`, publica no repositório público de releases. `--dry-run` mostra o plano. |
 | `generate_compile_commands.py` | Gera `compile_commands.json` capturando as chamadas reais do MSVC (para o ARCcC-Navigator). |
 | `boot_smoke.py` | Fumaça do boot da casca, sem janela real. |
 | `pre_commit.py` | Conferência rápida antes do commit (chamada por `.githooks/pre-commit`): catracas e testes de governança em segundos e, se o commit toca o motor, a compilação para Windows. |

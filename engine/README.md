@@ -16,7 +16,7 @@ o Python nunca inclui nada desta pasta — fala com o motor pelo módulo
 |---|---|
 | `boundary/` | Fronteira: a API pública (`public-api/`) e os orquestradores que ela usa (`orchestrator/`). |
 | `core/` | Núcleo: uma pasta por domínio (pixels, seleção, pincel, documento, histórico, rasterização...). |
-| `infrastructure/` | Serviços técnicos sem regra de pintura: compressão LZ4, disco de rascunho, telemetria, licença, minidump de queda. |
+| `infrastructure/` | Serviços técnicos sem regra de pintura: compressão LZ4, disco de rascunho, telemetria, minidump de queda. |
 | `utils/` | Tipos de valor usados pelo motor inteiro: ponto, retângulo, cor, dab e funções numéricas. |
 
 ## Camadas
@@ -24,7 +24,7 @@ o Python nunca inclui nada desta pasta — fala com o motor pelo módulo
 De baixo para cima; uma pasta só inclui as camadas abaixo dela (conferido por `tests/test_arccc_cxx_layers.py`):
 
 1. `utils/`
-2. `infrastructure/` (`compression`, `storage`, `telemetry`, `licensing`, `crash`, que não se incluem entre si)
+2. `infrastructure/` (`compression`, `storage`, `telemetry`, `crash`, que não se incluem entre si)
 3. `core/`, nesta ordem: `math` → `texture` → `color` → `stroke` → `canvas` → `selection` → `brush` → `document` → `history` → `raster` → `engines`
 4. `boundary/orchestrator/`
 5. `boundary/public-api/`

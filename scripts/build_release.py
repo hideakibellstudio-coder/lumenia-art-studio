@@ -5,63 +5,35 @@
     python scripts/build_release.py --channel alpha --dry-run                     # prints the plan
 
 Steps:
-  1. refuses an engine that still trusts the development license key
-     (engine/infrastructure/licensing/LicensePublicKey.hpp; `--allow-dev-key` for test builds);
-  2. `build_native.py --pdb` (the PDB stays in ../build/pdb for reading crash dumps);
-  3. `build_portable.py` (Lumenia.dist);
-  4. `vpk download github` brings the previous release of the channel, so `vpk pack` can make the delta;
-  5. `vpk pack` (Setup.exe, the full package, the delta, the feed) into ../dist/releases/<channel>;
-  6. with `--upload`, `vpk upload github` publishes them on the public releases repository.
+  1. `build_native.py --pdb` (the PDB stays in ../build/pdb for reading crash dumps);
+  2. `build_portable.py` (Lumenia.dist);
+  3. `vpk download github` brings the previous release of the channel, so `vpk pack` can make the delta;
+  4. `vpk pack` (Setup.exe, the full package, the delta, the feed) into ../dist/releases/<channel>;
+  5. with `--upload`, `vpk upload github` publishes them on the public releases repository.
 
 Requires the .NET SDK and `vpk` on the build machine only (`dotnet tool install -g vpk`);
-the user installs nothing. The release date goes into the notes as
-`<!-- released: YYYY-MM-DD -->`: the program reads it to know whether a license covers the version.
+the user installs nothing.
 """
 from __future__ import annotations
 
 import argparse
 import os
-import re
 import shutil
 import subprocess
 import sys
 import tomllib
-from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT.parent / "dist"
 PACK_ID = "LumeniaTeam.Lumenia"
 RELEASES_REPOSITORY = "https://github.com/hideakibellstudio-coder/lumenia-releases"
-PUBLIC_KEY_HEADER = ROOT / "engine" / "infrastructure" / "licensing" / "LicensePublicKey.hpp"
 CHANNELS = ("stable", "beta", "alpha")
 
 
 def project_version() -> str:
     with (ROOT / "pyproject.toml").open("rb") as stream:
         return str(tomllib.load(stream)["project"]["version"])
-
-
-def trusted_key_name(header_text: str) -> str:
-    match = re.search(r'kLicenseKeyName\s*=\s*"([^"]+)"', header_text)
-    if not match:
-        raise SystemExit(f"{PUBLIC_KEY_HEADER.name} sem kLicenseKeyName: rode o 'export' do gerador de licenças")
-    return match.group(1)
-
-
-def ensure_release_key(header_text: str, allow_dev_key: bool) -> str:
-    name = trusted_key_name(header_text)
-    if name == "dev" and not allow_dev_key:
-        raise SystemExit(
-            "o motor ainda confia na chave de DESENVOLVIMENTO. No gerador de licenças:\n"
-            "  python -m lumenia_licgen export --key prod --lumenia <este repositório>\n"
-            "e rode este script de novo (ou --allow-dev-key para um build de teste)."
-        )
-    return name
-
-
-def release_notes(text: str, released_on: date) -> str:
-    return f"<!-- released: {released_on.isoformat()} -->\n{text.strip()}\n"
 
 
 def vpk_download_command(channel: str, releases_dir: Path, token: str | None) -> list[str]:
@@ -102,25 +74,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--channel", choices=CHANNELS, default="stable")
     parser.add_argument("--notes", type=Path, help="notas da versão em Markdown")
     parser.add_argument("--upload", action="store_true", help="publica no GitHub (precisa de GITHUB_TOKEN)")
-    parser.add_argument("--allow-dev-key", action="store_true", help="build de teste com a chave de desenvolvimento")
     parser.add_argument("--dry-run", action="store_true", help="só mostra o que faria")
     args = parser.parse_args(argv)
 
     version = project_version()
-    key = ensure_release_key(PUBLIC_KEY_HEADER.read_text(encoding="utf-8"), args.allow_dev_key or args.dry_run)
     token = os.environ.get("GITHUB_TOKEN")
     if args.upload and not token and not args.dry_run:
         raise SystemExit("--upload precisa da variável GITHUB_TOKEN (permissão de escrever releases)")
     if not args.dry_run and not shutil.which("vpk"):
         raise SystemExit("vpk não encontrado: instale o .NET SDK e rode 'dotnet tool install -g vpk'")
-    print(f"Lumenia {version}, canal {args.channel}, licenças pela chave '{key}'")
+    print(f"Lumenia {version}, canal {args.channel}")
 
     releases_dir = DIST / "releases" / args.channel
     notes_path = DIST / "releases" / f"notes-{version}-{args.channel}.md"
     notes_text = args.notes.read_text(encoding="utf-8") if args.notes else f"Lumenia {version}"
     if not args.dry_run:
         releases_dir.mkdir(parents=True, exist_ok=True)
-        notes_path.write_text(release_notes(notes_text, date.today()), encoding="utf-8")
+        notes_path.write_text(f"{notes_text.strip()}\n", encoding="utf-8")
 
     _run([sys.executable, "scripts/build_native.py", "--simd", "scalar", "--pdb"], args.dry_run)
     _run([sys.executable, "scripts/build_portable.py"], args.dry_run)

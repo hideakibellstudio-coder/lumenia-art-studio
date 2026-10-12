@@ -1,10 +1,7 @@
-"""When to look for an update and whether an update found may be offered.
+"""When to look for an update, and what an update found looks like to the reader.
 
 Pure rules, no network and no Velopack: the updater (`ui/infrastructure/updater/`)
-fetches, this module decides. The release script writes the release date into the
-release notes (`<!-- released: YYYY-MM-DD -->`) so the license coverage is known
-before anything is downloaded: installing a version the license does not cover
-would turn a paying user into a free one.
+fetches, this module decides when.
 """
 
 from __future__ import annotations
@@ -15,22 +12,15 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Mapping
 
-from ui.core.licensing import LicenseStatus
-
 CHECK_INTERVAL = timedelta(hours=20)
-RELEASE_DATE = re.compile(r"<!--\s*released:\s*(\d{4}-\d{2}-\d{2})\s*-->")
+# Notes of releases made while licensing existed carry a `<!-- released: YYYY-MM-DD -->` marker.
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
 class UpdateChannel(str, Enum):
     STABLE = "stable"
     BETA = "beta"
     ALPHA = "alpha"
-
-
-class UpdateDecision(Enum):
-    OFFER = "offer"                    # download and ask to restart
-    NOT_COVERED = "not_covered"        # newer than the license's update period: tell, never install
-    UNKNOWN_COVERAGE = "unknown"       # no release date in the notes and the license has a limit
 
 
 @dataclass(frozen=True)
@@ -72,17 +62,5 @@ class UpdateOffer:
     notes_markdown: str = ""
 
     @property
-    def release_date(self) -> str:
-        match = RELEASE_DATE.search(self.notes_markdown)
-        return match.group(1) if match else ""
-
-    @property
     def readable_notes(self) -> str:
-        return RELEASE_DATE.sub("", self.notes_markdown).strip()
-
-
-def decide(offer: UpdateOffer, license_status: LicenseStatus) -> UpdateDecision:
-    covered = license_status.covers_release(offer.release_date)
-    if covered is None:
-        return UpdateDecision.UNKNOWN_COVERAGE
-    return UpdateDecision.OFFER if covered else UpdateDecision.NOT_COVERED
+        return HTML_COMMENT.sub("", self.notes_markdown).strip()

@@ -5,11 +5,9 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from ui.core.licensing import LicenseState, LicenseStatus
-from ui.core.updates import CHECK_INTERVAL, UpdateChannel, UpdateDecision, UpdateOffer, UpdatePreferences, decide
+from ui.core.updates import CHECK_INTERVAL, UpdateChannel, UpdateOffer, UpdatePreferences
 
 NOW = datetime(2026, 10, 8, 12, 0, 0)
-LICENSED = LicenseStatus(state=LicenseState.LICENSED, updates_until="2027-01-31")
 
 
 def test_preferences_round_trip_and_survive_bad_values():
@@ -32,35 +30,23 @@ def test_a_check_is_due_every_twenty_hours_when_enabled(last_check, auto, due):
     assert UpdatePreferences(auto_check=auto, last_check=last_check).is_check_due(NOW) is due
 
 
-def test_the_release_date_comes_from_the_notes_and_is_hidden_from_the_reader():
+def test_the_reader_never_sees_html_comments_in_the_notes():
+    # Releases made while licensing existed put their date in a comment; it is not for the reader.
     offer = UpdateOffer("0.3.0", "<!-- released: 2026-12-01 -->\n## Novidades\n- pincéis")
-    assert offer.release_date == "2026-12-01"
-    assert offer.readable_notes.startswith("## Novidades")
-    assert UpdateOffer("0.3.0", "sem data").release_date == ""
+    assert offer.readable_notes == "## Novidades\n- pincéis"
+    assert UpdateOffer("0.3.0", "  sem comentário  ").readable_notes == "sem comentário"
 
 
-@pytest.mark.parametrize("notes,status,decision", [
-    ("<!-- released: 2026-12-01 -->", LICENSED, UpdateDecision.OFFER),
-    ("<!-- released: 2027-02-01 -->", LICENSED, UpdateDecision.NOT_COVERED),
-    ("no date", LICENSED, UpdateDecision.UNKNOWN_COVERAGE),
-    ("<!-- released: 2030-01-01 -->", LicenseStatus(), UpdateDecision.OFFER),
-])
-def test_a_version_the_license_does_not_cover_is_never_offered(notes, status, decision):
-    assert decide(UpdateOffer("0.3.0", notes), status) is decision
-
-
-def test_the_dialog_hides_the_install_buttons_for_an_uncovered_version(qapp):
+def test_the_dialog_offers_installing_now_when_closing_or_later(qapp):
     from PySide6 import QtWidgets
 
     from ui.core.dialogs.update_dialog import UpdateDialog
 
-    covered = UpdateDialog(UpdateOffer("0.3.0", "x"), UpdateDecision.OFFER, "0.2.0")
-    uncovered = UpdateDialog(UpdateOffer("0.3.0", "x"), UpdateDecision.NOT_COVERED, "0.2.0")
+    dialog = UpdateDialog(UpdateOffer("0.3.0", "x"), "0.2.0")
     try:
-        assert len(covered.findChildren(QtWidgets.QPushButton)) > len(uncovered.findChildren(QtWidgets.QPushButton))
+        assert len(dialog.findChildren(QtWidgets.QPushButton)) >= 3
     finally:
-        covered.deleteLater()
-        uncovered.deleteLater()
+        dialog.deleteLater()
 
 
 def test_the_updater_is_unavailable_outside_an_installed_copy():

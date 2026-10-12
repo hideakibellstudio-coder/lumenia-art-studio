@@ -77,10 +77,6 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "diagnostics": {
         "consent": "ask",
     },
-    # The welcome dialog of free mode is shown once (ui/core/dialogs/welcome_dialog.py).
-    "licensing": {
-        "welcome_shown": False,
-    },
 }
 
 

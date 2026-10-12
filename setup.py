@@ -59,10 +59,6 @@ cpp_sources = [
     "engine/infrastructure/storage/ScratchDiskManager.cpp",
     "engine/core/canvas/MipmapPyramid.cpp",
     "engine/infrastructure/compression/Lz4Codec.cpp",
-    "engine/infrastructure/licensing/LicenseToken.cpp",
-    "engine/infrastructure/licensing/SignatureVerifier.cpp",
-    "engine/infrastructure/licensing/LicenseAuthority.cpp",
-    "engine/infrastructure/licensing/ExportWatermark.cpp",
     "engine/infrastructure/crash/CrashHandler.cpp",
     "engine/core/document/Compositor.cpp",
     "engine/core/document/CompositeRegionSupport.cpp",
@@ -132,9 +128,9 @@ ext_modules = [
         cxx_std=20,
         extra_compile_args=compile_args,
         extra_link_args=link_args,
-        # bcrypt: license signature (CNG); dbghelp: crash minidumps. Both ship with Windows;
-        # elsewhere the engine compiles without them (no license verifier, no dumps).
-        libraries=["bcrypt", "dbghelp"] if sys.platform == "win32" else [],
+        # dbghelp: crash minidumps. Ships with Windows; elsewhere the engine compiles
+        # without it (no dumps).
+        libraries=["dbghelp"] if sys.platform == "win32" else [],
     ),
 ]
 

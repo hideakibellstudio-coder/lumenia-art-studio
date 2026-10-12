@@ -84,23 +84,16 @@ mantendo a versão anterior se algo falhar. Os dados do usuário ficam em `%AppD
 Pré-requisitos só na máquina de build: .NET SDK e `vpk` (`dotnet tool install -g vpk`).
 
 ```powershell
-# 1. No gerador de licenças (repositório privado, fora deste): o motor passa a confiar na chave de produção
-python -m lumenia_licgen export --key prod --lumenia "<este repositório>"
-
-# 2. Release
 python scripts/build_release.py --channel stable --notes notas.md            # gera em ../dist/releases/stable
 python scripts/build_release.py --channel stable --notes notas.md --upload   # e publica (GITHUB_TOKEN)
 python scripts/build_release.py --channel alpha --dry-run                    # só mostra o plano
 ```
 
-- **Chave de licença**: o script recusa empacotar um motor que ainda confia na chave `dev`.
 - **Símbolos**: o motor é compilado com `--pdb`; o PDB fica em `../build/pdb/aladyn_engine_native-<hash>.pdb`
   (o hash é o do `.pyd`, registrado em `native-build.json`). Guarde-o: sem ele um minidump de queda não é legível.
 - **Feed**: as releases ficam no repositório **público** `lumenia-releases` (só instaladores e pacotes;
   o código continua privado). O programa lê dele (`APP_UPDATE_REPOSITORY` em `ui/infrastructure/app_info.py`).
 - **Canais**: `stable`, `beta`, `alpha`. Cada canal tem o próprio feed; o usuário escolhe na configuração (`updates.channel`).
-- **Data de lançamento**: o script grava `<!-- released: AAAA-MM-DD -->` nas notas; o programa não instala uma
-  versão lançada depois do período de atualizações da licença do usuário.
 - **Cópia portátil**: o `Portable.zip` gerado pelo `vpk` roda sem instalar; com um arquivo `portable.flag` ao lado
   do executável os dados ficam ao lado dele.
 

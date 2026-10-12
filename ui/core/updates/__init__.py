@@ -1,12 +1,10 @@
-"""Atualizações: quando procurar e se a versão encontrada pode ser oferecida."""
+"""Atualizações: quando procurar e como a versão encontrada é apresentada."""
 
 from ui.core.updates.update_policy import (
     CHECK_INTERVAL,
     UpdateChannel,
-    UpdateDecision,
     UpdateOffer,
     UpdatePreferences,
-    decide,
 )
 
-__all__ = ["CHECK_INTERVAL", "UpdateChannel", "UpdateDecision", "UpdateOffer", "UpdatePreferences", "decide"]
+__all__ = ["CHECK_INTERVAL", "UpdateChannel", "UpdateOffer", "UpdatePreferences"]

@@ -12,7 +12,7 @@ namespace aladyn::bridge {
 // Bump it whenever the .pyi changes (a method added counts: the interface would
 // call it on a binary that lacks it). tests/test_bridge_contract_version.py pins
 // the .pyi and fails if the contract changes without the bump.
-inline constexpr int kContractVersion = 13;
+inline constexpr int kContractVersion = 14;
 
 } // namespace aladyn::bridge
 

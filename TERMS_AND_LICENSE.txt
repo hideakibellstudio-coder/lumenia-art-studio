@@ -18,16 +18,9 @@ bound by the following terms. If you do not agree to these terms, do not use it.
 1. CONCESSÃO DE LICENÇA
 A equipe Lumenia concede a você uma licença não exclusiva e intransferível para
 usar o Software para trabalhos criativos pessoais, educacionais ou comerciais:
-• Modo gratuito (sem chave de licença): todos os recursos funcionam; as imagens
-  exportadas recebem uma marca d'água "LUMENIA FREE". Seus arquivos .lmn nunca
-  são alterados.
-• Licença paga: uma chave pessoal, emitida em seu nome, remove a marca d'água.
-  A chave vale para você, nos seus computadores; não pode ser revendida nem
-  publicada. Ela inclui atualizações até a data indicada nela; versões lançadas
-  depois dessa data exigem renovação, e a versão que você já tem continua
-  funcionando sem prazo.
-• Chaves compartilhadas publicamente, estornadas ou reembolsadas podem ser
-  revogadas em versões futuras.
+• Esta versão não exige chave de licença: todos os recursos funcionam e as
+  imagens exportadas não recebem marca d'água. Seus arquivos .lmn nunca são
+  alterados.
 
 2. SUA ARTE É 100% SUA (PROPRIEDADE INTELECTUAL)
 • Propriedade Total: Você retém 100% de todos os direitos autorais, propriedade 
@@ -49,8 +42,7 @@ perda de dados decorrentes do uso ou incapacidade de uso deste software. Sob qua
 circunstância, a responsabilidade máxima limita-se ao valor pago pelo software.
 
 5. PRIVACIDADE, RELATÓRIOS DE ERRO E ATUALIZAÇÕES
-• O Software funciona offline. A licença é conferida no seu computador, sem
-  conexão com servidor.
+• O Software funciona offline.
 • Relatórios de erro: quando o programa fecha inesperadamente, ele guarda um
   relatório no seu computador e PERGUNTA se você quer enviá-lo. Nada é enviado
   sem a sua escolha, que você pode mudar a qualquer momento no menu Ajuda. O
@@ -83,13 +75,8 @@ componentes.
 1. LICENSE GRANT
 Lumenia Team grants you a non-exclusive, non-transferable license to use the
 Software for personal, educational, and commercial creative work:
-• Free mode (no license key): every feature works; exported images carry a
-  "LUMENIA FREE" watermark. Your .lmn files are never altered.
-• Paid license: a personal key, issued in your name, removes the watermark. It
-  is for you, on your own computers; it may not be resold or published. It
-  includes updates until the date written in it; versions released after that
-  date require a renewal, and the version you already have keeps working forever.
-• Keys shared publicly, charged back or refunded may be revoked in future versions.
+• This version does not require a license key: every feature works and exported
+  images carry no watermark. Your .lmn files are never altered.
 
 2. USER ARTWORK & INTELLECTUAL PROPERTY (100% YOURS)
 • Full Ownership: You retain 100% full copyright, ownership, and commercial rights 
@@ -115,8 +102,7 @@ Under any circumstances, the developer's maximum liability shall not exceed the
 amount actually paid by you for this Software.
 
 5. PRIVACY, ERROR REPORTS & UPDATES
-• The Software works offline. The license is checked on your computer, with no
-  connection to any server.
+• The Software works offline.
 • Error reports: when the program closes unexpectedly, it keeps a report on your
   computer and ASKS whether you want to send it. Nothing is sent without your
   choice, which you can change at any time in the Help menu. A report contains

@@ -376,14 +376,8 @@ class HistoryProtocol(Protocol):
 
 @runtime_checkable
 class RuntimeServicesProtocol(Protocol):
-    """Papel "serviços do processo": a licença e o minidump de queda (5 metodos)."""
+    """Papel "serviços do processo": o minidump de queda (2 metodos)."""
 
-    def license_apply(self, token: str) -> Dict[str, str]:
-        ...
-    def license_status(self) -> Dict[str, str]:
-        ...
-    def license_clear(self) -> None:
-        ...
     def install_crash_handler(self, directory: str) -> bool:
         ...
     def write_diagnostic_dump(self, path: str) -> bool:

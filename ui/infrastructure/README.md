@@ -27,7 +27,6 @@ Cada subpasta tem a sua (ver o README dela). Os mais usados:
 | `theme/` | `ThemeManager`: paletas, QSS, escala e ajustes de interface. |
 | `icons/` | Catálogo SVG em código e `get_icon`. |
 | `logging/` | Logging da aplicação (console e arquivo). |
-| `licensing/` | O token da licença em disco (`LicenseStore`). |
 | `diagnostics/` | Pacotes de relatório de erro em disco e envio ao Sentry sem SDK. |
 | `updater/` | Atualização pelo Velopack (buscar, baixar o delta numa thread, aplicar ao fechar). |
 

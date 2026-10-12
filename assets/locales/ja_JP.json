@@ -138,7 +138,6 @@
       "about": "Lumenia について...",
       "diagnostic_report": "診断レポートを作成...",
       "auto_report": "エラーレポートを自動送信",
-      "license": "ライセンス...",
       "check_updates": "アップデートを確認...",
       "auto_update": "アップデートを自動確認"
     }
@@ -797,9 +796,7 @@
     "doc_context_failed": "エンジンがドキュメント「{name}」（{w}×{h} px）を作成できませんでした: {reason}。現在のドキュメントは保持されました。",
     "engine_out_of_memory": "メモリが不足しています",
     "image_too_large": "画像「{name}」（{w}×{h} px）はキャンバスの最大サイズ（{max}×{max} px）を超えています。",
-    "pen_applied": "ペンの調整を適用しました。",
-    "free_mode": "無料版 · 有効化",
-    "free_mode_tip": "書き出した画像に透かしが入ります。クリックしてライセンスを有効化します。"
+    "pen_applied": "ペンの調整を適用しました。"
   },
   "tool_options": {
     "sample_size": "サンプルサイズ",
@@ -1153,25 +1150,6 @@
   },
   "distribution": {
     "close": "閉じる",
-    "license": {
-      "title": "Lumenia ライセンス",
-      "licensed_to": "{name} にライセンス済み（{sku}、{until}）。",
-      "updates_until": "{date} までアップデート",
-      "updates_forever": "アップデート無期限",
-      "state_unlicensed": "無料モード：すべての機能が使えます。書き出した画像には透かしが入ります。",
-      "state_malformed": "これは Lumenia のキーではありません。",
-      "state_bad_signature": "無効なキー：Lumenia チームが発行したものではありません。",
-      "state_expired": "このライセンスは {date} に期限切れになりました。",
-      "state_revoked": "このライセンスは取り消されました。lumeniateam@protonmail.com にご連絡ください。",
-      "state_updates_expired": "このバージョンはライセンスのアップデート期間（{date}）より後のものです。",
-      "state_unsupported": "このインストールではライセンスを確認できませんでした。",
-      "paste_hint": "メールで受け取ったキー（LUMENIA1- で始まる）を下に貼り付けてください。",
-      "buy": "ライセンスを購入",
-      "remove": "ライセンスを削除",
-      "activate": "有効化",
-      "activated": "ライセンスが有効になりました。Lumenia へのご支援ありがとうございます！",
-      "remove_confirm": "このコンピューターからライセンスを削除しますか？同じキーで再度有効化できます。"
-    },
     "crash": {
       "title": "エラーレポート",
       "native": "前回のセッションで Lumenia が予期せず終了しました。",
@@ -1189,8 +1167,6 @@
     "update": {
       "title": "Lumenia アップデート",
       "available": "バージョン {new} が利用可能です（現在 {old}）。",
-      "not_covered": "このバージョンはライセンスのアップデート期間の後に公開されました。インストールするにはライセンスを更新してください。現在のバージョンは引き続き使えます。",
-      "unknown_coverage": "ライセンスがこのバージョンを対象とするか確認できませんでした。",
       "delta": "変更された部分だけがダウンロードされます。",
       "no_notes": "リリースノートはありません。",
       "later": "後で",
@@ -1203,13 +1179,6 @@
       "restarting": "更新のため再起動しています...",
       "on_exit_ready": "Lumenia の終了時にバージョン {version} がインストールされます。",
       "failed": "アップデートを確認できませんでした：{error}"
-    },
-    "welcome": {
-      "title": "Lumenia へようこそ",
-      "heading": "無料版をご利用中です。",
-      "body": "すべてのツールが使えます。違いは一つだけ：書き出した画像に「LUMENIA FREE」の透かしが入ります。\n\nライセンスを購入済みの場合は、メールで受け取ったキーで今すぐ有効化してください。あとから［ヘルプ］>［ライセンス］でも有効化できます。",
-      "free": "無料版で続ける",
-      "activate": "ライセンスを有効化"
     }
   }
 }

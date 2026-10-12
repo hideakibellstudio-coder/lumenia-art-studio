@@ -64,8 +64,6 @@ class AladynCapabilitiesMixin(AladynBackendBase):
         image = self.get_qimage()
         if not image or image.isNull():
             return False
-        # Sem licença o motor devolve a imagem com marca d'água (engine/infrastructure/licensing).
-        image = self._apply_export_policy(image)
 
         # Exportação enriquecida com perfil ICC para PNG, JPEG, TIFF e WebP
         if embed_icc and ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp"}:

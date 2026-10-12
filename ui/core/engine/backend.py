@@ -383,12 +383,9 @@ class EngineBackend(ABC):
         """Exporta a composição exibida pelo backend para um arquivo de imagem."""
         return False
 
-    # ── Serviços do processo: licença e minidump (do usuário, não do documento) ──
-    # Sem motor não há licença nem dump: "unsupported" e False.
+    # ── Serviços do processo: minidump (do usuário, não do documento) ──
+    # Sem motor não há dump: False.
 
-    def license_apply(self, token: str) -> Dict[str, str]: return {"state": "unsupported"}
-    def license_status(self) -> Dict[str, str]: return {"state": "unsupported"}
-    def license_clear(self) -> None: ...
     def install_crash_handler(self, directory: str) -> bool: return False
     def write_diagnostic_dump(self, path: str) -> bool: return False
 

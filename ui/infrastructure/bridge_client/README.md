@@ -12,7 +12,7 @@
 |---|---|
 | `__init__.py` | `create_backends()`: fábrica dos backends disponíveis para o `EngineRegistry`. |
 | `aladyn.py` | AladynBackend — Adaptador do ALADYN ENGINE (C++ PyBind11 / aladyn_engine_native). |
-| `aladyn_base.py` | AladynBackendBase — estado e serviços compartilhados por todos os mixins do AladynBackend (inclui `_apply_export_policy`: a imagem exportada passa pelo motor, que põe a marca d'água sem licença). |
+| `aladyn_base.py` | AladynBackendBase — estado e serviços compartilhados por todos os mixins do AladynBackend. |
 | `contract_version.py` | `EXPECTED_CONTRACT_VERSION`: a versão do contrato que esta interface espera; o `AladynBackend` recusa um binário de outra versão ao carregar. |
 | `aladyn_brush_mixin.py` | AladynBrushMixin — Mapeamento Atômico de Perfis, Presets e Parâmetros de Pincéis para o AladynBackend. |
 | `aladyn_brush_profiles.py` | AladynBrushProfiles — Serialização e Mapeamento de Parâmetros de Pincel. |
@@ -23,7 +23,7 @@
 | `aladyn_layer_mixin.py` | AladynLayerMixin — Gerenciador Atômico de Camadas, Grupos e Filtros para o AladynBackend. |
 | `aladyn_mdi_mixin.py` | AladynMdiMixin — Gerenciador de Contextos MDI Multi-Documento para o AladynBackend. |
 | `aladyn_persistence_mixin.py` | Persistência do documento ativo (S1.2): instantâneo das camadas, restauração de uma camada por bloco de tiles e o lote que compõe uma vez. |
-| `aladyn_runtime_mixin.py` | Serviços do processo, não do documento: licença (`license_apply`, `license_status`, `license_clear`) e minidump de queda (`install_crash_handler`, `write_diagnostic_dump`). |
+| `aladyn_runtime_mixin.py` | Serviços do processo, não do documento: minidump de queda (`install_crash_handler`, `write_diagnostic_dump`). |
 | `aladyn_resources_mixin.py` | Document-owned canvas assets crossing the canonical backend boundary. |
 | `aladyn_selection_mixin.py` | Selection operations mixin for AladynBackend. |
 | `aladyn_stroke_mixin.py` | AladynStrokeMixin — Gerenciador Atômico de Traços, Fast-Path e Telemetria para o AladynBackend. |

@@ -18,7 +18,6 @@ class HelpMenu(QtWidgets.QMenu):
     diagnosticsRequested = QtCore.Signal()
     feedbackRequested    = QtCore.Signal()
     aboutRequested       = QtCore.Signal()
-    licenseRequested     = QtCore.Signal()
     updateCheckRequested = QtCore.Signal()
     diagnosticReportRequested = QtCore.Signal()
     autoReportToggled    = QtCore.Signal(bool)
@@ -64,10 +63,6 @@ class HelpMenu(QtWidgets.QMenu):
 
         self.addSeparator()
 
-        self.act_license = QtGui.QAction(get_icon("info"), "", self)
-        self.act_license.triggered.connect(self.licenseRequested.emit)
-        self.addAction(self.act_license)
-
         self.act_updates = QtGui.QAction(get_icon("check"), "", self)
         self.act_updates.triggered.connect(self.updateCheckRequested.emit)
         self.addAction(self.act_updates)
@@ -93,7 +88,6 @@ class HelpMenu(QtWidgets.QMenu):
         self.act_about.setText(tr("menu.help.about", "Sobre o Lumenia..."))
         self.act_diag_report.setText(tr("menu.help.diagnostic_report", "Gerar Relatório de Diagnóstico..."))
         self.act_auto_report.setText(tr("menu.help.auto_report", "Enviar Relatórios de Erro Automaticamente"))
-        self.act_license.setText(tr("menu.help.license", "Licença..."))
         self.act_updates.setText(tr("menu.help.check_updates", "Verificar Atualizações..."))
         self.act_auto_update.setText(tr("menu.help.auto_update", "Verificar Atualizações Automaticamente"))
 

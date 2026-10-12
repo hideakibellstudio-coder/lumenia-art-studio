@@ -10,6 +10,13 @@ Para sair da Alpha e começar a vender, o Lumenia precisa de três módulos que 
 > assinatura é ECDSA P-256 pelo CNG do Windows, não Ed25519 com Monocypher, por exemplo), a seção
 > [Estado da implementação](#estado-da-implementação) diz o que existe de fato.
 
+> **Atualização em 2026-10-12.** O **licenciamento foi removido do programa** (decisão do dono do projeto, que vai
+> distribuir sem chave de ativação por enquanto). Saíram o verificador e a marca d'água do motor, o serviço, o diálogo de
+> licença, as boas-vindas do modo gratuito e o botão da barra de status; toda versão de atualização encontrada passa a
+> ser oferecida. O diagnóstico e a atualização ficaram como estão. O código removido está na tag `archive/licensing-v1`
+> e o gerador de licenças (repositório privado) não foi tocado. As partes deste texto sobre licença descrevem o que
+> existia até essa tag.
+
 ## Estado atual
 
 Análise feita no fork `lumenia-art-studio-main - fork antigravity`, versão 0.2.0 Alpha.
@@ -331,6 +338,8 @@ anunciado). Cada linha compara o que este documento recomendou com o que existe.
 
 ### Licenciamento e gerador
 
+**Removido do programa em 2026-10-12** (tag `archive/licensing-v1`); a tabela abaixo é o registro do que existia.
+
 | Tema | Recomendado acima | Implementado |
 | --- | --- | --- |
 | Assinatura | Ed25519, conferida com Monocypher no motor | **ECDSA P-256 sobre SHA-256 pelo CNG do Windows** (`bcrypt.dll`), sem criptografia escrita à mão. Fora do Windows toda licença é `unsupported`. O gerador usa a mesma curva, com `cryptography` |
@@ -361,7 +370,7 @@ Pastas: `ui/core/diagnostics/` (regras), `ui/infrastructure/diagnostics/` (arqui
 | --- | --- | --- |
 | Mecanismo | Velopack | Velopack, com o feed nas GitHub Releases. `VelopackUpdater` é o único lugar que importa a biblioteca; `UpdateWorker` e `UpdateThread` rodam fora da thread da interface e uma falha de rede vira o sinal `failed` |
 | Quando checar | Canais `alpha`, `beta`, `stable` | Verificação automática a cada 20 h, por canal (`UpdatePreferences`, seção `updates` do `config.json`) |
-| Licença × atualização | `upd_until` decide se a versão nova é oferecida | Uma versão lançada depois de `updates_until` **nunca é instalada**: a interface só avisa. A data vem do comentário `<!-- released: AAAA-MM-DD -->` que `scripts/build_release.py` escreve nas notas; sem ela e com licença com prazo, a interface pergunta em vez de instalar |
+| Licença × atualização | `upd_until` decide se a versão nova é oferecida | *(removido em 2026-10-12: toda versão encontrada é oferecida.)* Uma versão lançada depois de `updates_until` **nunca é instalada**: a interface só avisa. A data vem do comentário `<!-- released: AAAA-MM-DD -->` que `scripts/build_release.py` escreve nas notas; sem ela e com licença com prazo, a interface pergunta em vez de instalar |
 | Dados do usuário | Corrigir `writable_data_dir`, migrar a Alpha | Feito: o instalado grava em `%APPDATA%\Lumenia`, e `ui/infrastructure/legacy_data.py` copia uma única vez o que o instalador antigo deixou em `data\`, sem sobrescrever nem apagar nada |
 | Instalador | Inno Setup sai | `scripts/lumenia_installer.iss` foi removido; `scripts/build_release.py` o substitui |
 
@@ -369,8 +378,7 @@ Pastas: `ui/core/updates/` (regras), `ui/infrastructure/updater/` (Velopack).
 
 ### Interface e termos
 
-- Menu Ajuda (`ui/core/components/menu_bar/help_menu.py`), diálogos de crash, licença, atualização e boas-vindas
-  (`ui/core/dialogs/`) e a ligação deles em `ui/boundary/orchestrator/distribution_actions.py`.
+- Menu Ajuda (`ui/core/components/menu_bar/help_menu.py`), diálogos de crash e atualização (`ui/core/dialogs/`; os de licença e boas-vindas saíram em 2026-10-12) e a ligação deles em `ui/boundary/orchestrator/distribution_actions.py`.
 - `TERMS_AND_LICENSE.txt` reescrito em português e inglês (modo gratuito, privacidade e relatórios de erro,
   atualizações) e `assets/legal/THIRD_PARTY_NOTICES.txt` novo. A revisão jurídica que este documento pede antes de
   vender não faz parte desses commits.
@@ -379,7 +387,7 @@ Pastas: `ui/core/updates/` (regras), `ui/infrastructure/updater/` (Velopack).
 
 ### Decisões pendentes — situação
 
-- [x] Modelo de licença: perpétua com 12 meses de atualizações é o padrão dos tipos `pro`, `edu` e `gift`; `lifetime` não tem prazo.
+- [x] *(substituídas em 2026-10-12 pela remoção do licenciamento)* Modelo de licença: perpétua com 12 meses de atualizações é o padrão dos tipos `pro`, `edu` e `gift`; `lifetime` não tem prazo.
 - [x] Sem licença: modo gratuito, com a marca d'água na exportação como única restrição.
 - [x] Relatório de erros: compatível com Sentry, opcional e sem SDK; sem DSN o usuário envia o `.zip`.
 - [x] Hospedagem das atualizações: GitHub Releases.

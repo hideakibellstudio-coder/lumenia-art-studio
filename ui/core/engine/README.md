@@ -15,7 +15,7 @@
 |---|---|
 | `__init__.py` | ui.core.engine — Contratos de Motor (Shell Engine-Agnóstica). |
 | `backend.py` | ui.core.engine.backend — Contrato Canônico EngineBackend + PointerEvent. |
-| `backend_protocols.py` | ui.core.engine.backend_protocols -- EngineBackend decomposto em Protocols por papel (12 papéis, cada um com consumidor em produção; o 12º, `RuntimeServicesProtocol`, é a licença e o minidump, usados por `LicenseService` e `DiagnosticsService`) e `RoleProvider[Papel]`: o tipo de quem entrega o motor a um colaborador. |
+| `backend_protocols.py` | ui.core.engine.backend_protocols -- EngineBackend decomposto em Protocols por papel (12 papéis, cada um com consumidor em produção; o 12º, `RuntimeServicesProtocol`, é o minidump, usado pelo `DiagnosticsService`) e `RoleProvider[Papel]`: o tipo de quem entrega o motor a um colaborador. |
 | `backend_protocols_selection.py` | ui.core.engine.backend_protocols_selection -- papel "SelectionTransform". |
 | `engine_type.py` | `EngineType`: id canônico do motor de pincel (Brush, Pencil, Inker, Eraser, Marker, Blur, Smudge, Watercolor, OilImpasto), igual ao enum nativo; contrato em `tests/test_engine_type_contract.py`. |
 | `display_image.py` | `DisplayImage` (a imagem que a tela pinta, a escala e a origem dela no canvas) e `region_to_request`: o que o `EngineBackend.get_display_image` entrega à viewport em lugar do canvas inteiro. |

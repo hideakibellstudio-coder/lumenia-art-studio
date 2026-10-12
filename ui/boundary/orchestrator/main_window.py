@@ -14,7 +14,7 @@ construtor o que usa e falando com a barra de status pelo sinal
   image_actions  ImageActions        tamanho, recorte, rotação, guias, prova de cor
   dialogs        DialogActions       diálogos e janelas auxiliares
   recovery       RecoveryController  cópias de recuperação
-  distribution   DistributionActions licença, relatórios de erro e atualizações
+  distribution   DistributionActions relatórios de erro e atualizações
 
 O workspace e o canvas são alcançados só pelo contrato de `workspace_port.py`.
 Até 2026-09-24 a janela era a soma de seis mixins que se liam por `self`.
@@ -111,8 +111,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                      self.app_state.brush)
         self.recovery = RecoveryController(self, self.dm, backend, self.canvas_widget, self.documents, self.saver)
         self.distribution = DistributionActions(self, backend, ConfigManager.instance(), logs_directory())
-        self.distribution.freeModeChanged.connect(self.status_bar.show_free_mode)
-        self.status_bar.activateRequested.connect(self.distribution.open_license_dialog)
         for collaborator in (self.documents, self.layer_actions, self.edit_actions,
                              self.image_actions, self.dialogs, self.recovery, self.distribution):
             collaborator.statusMessage.connect(self.status_bar.showMessage)

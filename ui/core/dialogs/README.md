@@ -19,7 +19,6 @@ Importados por módulo: `base_dialog.BaseFramelessDialog`,
 | `diagnostics_dialog.py` | `DiagnosticsDialog`: informações do sistema (motor, documento, perfil de cor, RAM medida pelo motor, versões). |
 | `floating_panel_window.py` | `FloatingPanelWindow`: janela de ajustes avançados que arrasta pela própria janela e abre ao lado do canvas (área vinda de `WorkspaceService.canvas_area_rect`). |
 | `floating_tool_window.py` | FloatingToolWindow — Base compartilhada para janelas-ferramenta flutuantes sobre o canvas. |
-| `license_dialog.py` | `LicenseDialog`: mostra a licença (`describe`) e ativa ou remove uma chave pelo `LicenseService`; nunca julga a chave sozinho. |
 | `layer_properties_dialog.py` | Layer Properties Dialog — Diálogo de Propriedades e Ajuste da Camada. |
 | `modify_selection_dialog.py` | Modify Selection Dialog — Diálogo para Expandir, Contrair e Suavizar Seleção (ARCcC i18n). |
 | `pen_calibration_dialog.py` | `PenCalibrationDialog`: calibra a pressão da caneta (zona morta, pressão total, gama) à mão ou pela sugestão medida no quadro; grava no motor e na configuração (`pen`). |
@@ -36,9 +35,8 @@ Importados por módulo: `base_dialog.BaseFramelessDialog`,
 | `test_report_dialog.py` | `TestReportDialog`: roda a suíte com log ao vivo e mostra o resultado medido (cartões e seções). |
 | `test_report_model.py` | `parse_junit`: JUnit XML do pytest → contagens totais e por seção (`SECTIONS`). |
 | `test_report_runner.py` | `TestRunnerThread`: executa `tests/run_all_tests.py --junit` sem travar a interface (XML na pasta temporária do sistema). |
-| `update_dialog.py` | `UpdateDialog`: versão nova e notas; atualizar e reiniciar, instalar ao fechar ou depois. Versão que a licença não cobre aparece sem botão de instalar. |
+| `update_dialog.py` | `UpdateDialog`: versão nova e notas; atualizar e reiniciar, instalar ao fechar ou depois. |
 | `user_guide_dialog.py` | User Guide Dialog — Diálogo de Visualização do Guia do Usuário e Documentação. |
-| `welcome_dialog.py` | `WelcomeDialog`: primeira abertura sem licença; explica o modo gratuito (marca d'água) e oferece ativar, comprar ou continuar. Só relata a escolha. |
 
 ## Regras
 
@@ -63,7 +61,6 @@ pastas entra nesta lista no mesmo commit (é decisão de arquitetura).
 - `ui/core/diagnostics`
 - `ui/core/document`
 - `ui/core/engine`
-- `ui/core/licensing`
 - `ui/core/state`
 - `ui/core/updates`
 - `ui/core/widgets`

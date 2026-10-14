@@ -1,169 +1,386 @@
-# 🎨 LUMENIA — Digital Art & Paint Studio
+# 🎨 Lumenia Art Studio
 
 <div align="center">
   <img src="assets/images/icon_lumenia.png" alt="Lumenia Logo" width="128" height="128">
   <br>
-  <strong>Estúdio Desktop de Arte e Pintura Digital de Alta Performance</strong>
+  <strong>Estúdio desktop de arte e pintura digital</strong>
   <br>
-  <em>Desenvolvido com ALADYN C++20 Native Engine & PySide6</em>
+  <em>PySide6 + ALADYN Native Engine em C++20</em>
   <br><br>
   <img src="https://img.shields.io/badge/Versão-v0.2.0%20Alpha-9333ea?style=for-the-badge" alt="Versão Alpha">
+  <img src="https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge" alt="Python 3.11 ou superior">
   <img src="https://img.shields.io/badge/C%2B%2B-C%2B%2B20%20SIMD-blue?style=for-the-badge" alt="C++20 SIMD">
-  <img src="https://img.shields.io/badge/GUI-PySide6%206.11-success?style=for-the-badge" alt="PySide6">
-  <img src="https://img.shields.io/badge/Portátil-Pipeline%20de%20verificação-orange?style=for-the-badge" alt="Portátil">
+  <img src="https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-success?style=for-the-badge" alt="PySide6 Qt6">
 </div>
 
 ---
 
-## 📖 Visão Geral
+## 📖 Sobre o projeto
 
-O **Lumenia** é um software desktop para ilustração, arte conceitual, lineart e pintura digital, construído para priorizar resposta de caneta e um motor nativo eficiente. Metas de latência, inicialização e compatibilidade de hardware exigem homologação em cada ambiente de release.
+O **Lumenia Art Studio** é um aplicativo desktop para ilustração, concept art, lineart e pintura digital. A interface é construída com **Python/PySide6** e os trechos de processamento intensivo são executados pelo **ALADYN Engine**, um motor nativo em **C++20** conectado ao Python por meio de **pybind11**.
 
-O Lumenia combina um **motor C++20 com caminho SIMD opcional** (`aladyn_engine_native`) e interface modular baseada em **PySide6 (Qt6)** sob a arquitetura ARCcC. Consulte [docs/03-guias/02-build-e-release.md](docs/03-guias/02-build-e-release.md) para compilar o artefato x64 compatível e executar a validação.
+A arquitetura do projeto segue o modelo ARCcC, com separação entre interface, estado da aplicação, ponte Python/C++, motor nativo e infraestrutura. Consulte [`AGENTS.md`](AGENTS.md) antes de alterar a estrutura do projeto.
 
----
+> **Estado atual de compatibilidade:** o fluxo oficial de desenvolvimento e empacotamento é **Windows x64**. O código contém partes portáveis, mas o binário nativo `.pyd`, os vínculos do Windows e o pacote portátil precisam ser compilados para o sistema operacional, arquitetura e versão de Python de destino. Não é possível usar o mesmo `.pyd` em todas as máquinas.
 
-## ⚡ Recursos e Capacidades Implementadas
+## ✨ Principais recursos
 
-### 🖋️ 1. Motor de Pincéis ALADYN (Catmull-Rom Spline & WMA)
-*   **Inker Spline Contínuo:** Interpolação matemática Catmull-Rom nativa em C++ para estabilização de traços.
-*   **Dinâmica de Pressão & Stylus:** Curvas de pressão, suporte completo a inclinação (`xTilt`, `yTilt`) e rotação da caneta (`twist`) propagados do tablet ao motor nativo.
-*   **Estabilização Cinemática WMA:** `DynamicStabilizer` nativo C++ com escala configurável de 0% a 98%, compensação ponderada de latência e resposta instantânea para tap isolado (single-click).
-*   **Mídias Naturais:** Modos de Pincel de Tinta (Inker), Lápis de Esboço, Marcador com transparência, Aquarela com difusão e Óleo Impasto com relevo 3D processado em tempo real.
-*   **Borracha & Borrador Inteligente:** Apagamento suave, preservação perfeita de canais alfa e ferramenta borrador (`smudge`) com anel geométrico reativo.
-*   **Cursores Reativos & Feedback Tátil:** Redimensionamento de anel sob o ponteiro em tempo real (`brush_size`), hotspot milimétrico para conta-gotas e feedback de Pan (`ClosedHand`) e Zoom Drag (`SizeVer`).
+- Motor de pincéis nativo com estabilização, interpolação Catmull-Rom, pressão, inclinação e rotação de caneta.
+- Pincéis de tinta, lápis, marcador, aquarela, óleo, borracha, blur e smudge.
+- Camadas, grupos, clipping mask, alpha lock, opacidade e modos de mesclagem.
+- Seleções retangulares, elípticas, laço livre, laço poligonal e marching ants.
+- Varinha mágica e balde de tinta com tolerância configurável.
+- Transformação livre com alças, pivô central e interpolação nativa.
+- Simetrias, réguas, snapping e perspectivas de um, dois e três pontos.
+- Gerenciamento de cores, perfis ICC/LittleCMS, soft-proofing e temas visuais.
+- Formato nativo `.lmn` com documentos em camadas.
+- Distribuição portátil gerada com Nuitka.
 
-### 📐 2. Suíte de Seleção Inteligente & Balde de Tinta
-*   **Varinha Mágica (Magic Wand - `W`):** Preenchimento de seleção contígua com tolerância configurável e expansão de borda de 1px (evita frestas brancas sob a lineart).
-*   **Seleções Geométricas & Laço (`L`):** Retângulo, Elipse, Laço Livre e Laço Poligonal com suporte a operações booleanas (`Shift` para somar, `Alt` para subtrair).
-*   **Marching Ants Dinâmico:** Contorno pontilhado animado a 60 FPS com visibilidade em qualquer tom de fundo.
-*   **Balde de Tinta (`G`):** Preenchimento inteligente respeitando estritamente os limites da seleção ativa.
-
-### 🔄 3. Ferramenta de Transformação Livre (`Ctrl+T`)
-*   **Bounding Box com 8 Alças:** Redimensionamento livre, proporcional (`Shift`) e simétrico a partir do centro (`Alt`).
-*   **Pivô Central Móvel:** Âncora reposicionável permitindo rotações anatômicas realistas em torno de pontos de articulação (ombros, cotovelos, olhos).
-*   **Interpolação Bicúbica Nativa (C++):** Rotação e escala preservando a nitidez da arte sem pixelização ou borrados.
-*   **Seleção Flutuante:** Recorte automático e transformação isolada da área selecionada.
-
-### 📑 4. Sistema de Camadas & Grupos
-*   **Pilha Hierárquica:** Camadas normais, grupos de camadas expansíveis (com suporte a *Pass Through*) e reordenação intuitiva.
-*   **13 Modos de Mesclagem Matemáticos:** Normal, Multiply, Screen, Overlay, Darken, Lighten, Color Dodge, Color Burn, Hard Light, Soft Light, Difference, Exclusion e Pass Through, com suporte a Linear Gamma.
-*   **Controles de Precisão:** Alpha Lock, Clipping Mask (máscaras de recorte) e opacidade em ponto flutuante.
-*   **Duplicação & Merge Down:** Mesclagem descendente com preservação de blend modes e grupos.
-*   **Camada 0 (Cor de Papel):** Fundo base infinito customizável (branco, off-white, tom médio ou transparente).
-*   **Dirty Tracking Total:** 18 operações de camada integradas à notificação de documento modificado (`*`) e histórico nativo.
-
-### 🎨 5. Gerenciamento de Cores & Precisão Cromática
-*   **Perfis de Cor & LittleCMS:** Catálogo unificado de perfis (sRGB, Display P3, Adobe RGB, CMYK) com engine LittleCMS para Soft-Proofing e perfis ICC customizados.
-*   **Coerção Cromática Resiliente:** Função canônica `to_native_color_rgba` garantindo conversão segura entre QColor, tuplas e estruturas nativas C++.
-*   **Simulador de Daltonismo:** Prova em tempo real para Protanopia, Deuteranopia e Tritanopia.
-*   **Conta-Gotas com HUD Loupe 4x:** Lupa circular dinâmica com leitura matricial de pixels e captura precisa.
-*   **Temas Visuais:** *Lumenia Purple* oficial, *Obsidian Dark*, *OLED High Contrast* e temas customizáveis.
-
-### 📐 6. Suíte de Simetrias Dinâmicas, Réguas & Perspectiva
-*   **Simetrias em Tempo Real (C++ SIMD):** Espelho Livre, Espelho Vertical, Espelho Horizontal, Espelho Duplo (4 quadrantes), Simetria Radial (2 a 32 pontas) e Caleidoscópio.
-*   **Controle de Centro & Stop-at-Center:** Pivô e ângulo de rotação ajustáveis diretamente no canvas, com bloqueio opcional para impedir que o traço ultrapasse o eixo.
-*   **Atração Magnética (Snapping):** Réguas retas infinitas, curvas francesas Bézier com aproximação de Newton-Raphson e perspectivas de 1, 2 e 3 Pontos de Fuga e Isométrica.
-*   **Seletor Premium em Grid:** Menu popup intuitivo com 14 ícones vetorizados na gaveta de ferramentas.
-
-### 🛡️ 7. Arquitetura em 6 Camadas, Retorno dos 5 Rios & Confiabilidade Zero-Leak
-*   **Metodologia Concentric Satellite Peeling:** Arquitetura concêntrica de 6 camadas (UI $\to$ Plugins $\to$ Canvas Bridge $\to$ Python Backend $\to$ Fronteira PyBind11 $\to$ Núcleo Físico C++).
-*   **Retorno Ascendente dos 5 Rios:** Validação bidirecional de fluxo de dados de ponta a ponta (Traço, Câmera/Viewport, Camadas/Histórico, Seleção/Transformação e Cor/Perfis).
-*   **Qualidade e Zero Regressão:** **925 testes automatizados (920 passam, 5 pulados que exigem Windows ou perfis ICC instalados; medido em 2026-09-25 no Linux)** e portão de estresse de longa duração aprovado ($\Delta\text{GDI} = 0$, $\Delta\text{Handles} = 0$, Drift de Memória Privada = $0.00\text{ MB} / 100\text{ ciclos}$).
-*   **Governança ARCcC:** Limite estrito de < 450 linhas de código por arquivo (Zona Verde) em todo o código Python e C++.
-
----
-
-## 📂 Estrutura do Repositório
+## 🧱 Estrutura do repositório
 
 ```text
-Lumenia/
-├── bridge/                  # Ponte PyBind11 C++ ↔ Python
-│   ├── boundary/contracts/  # Contratos tipados (aladyn_engine_native.pyi)
-│   └── core/bindings/       # BufferContract.hpp (segurança de memória) e bind_*.cpp
-│
-├── engine/                  # ALADYN Native Engine (C++20 SIMD), em camadas
-│   ├── boundary/            # public-api/ (AladynEngine.hpp, PaintEngineFacade) e orchestrator/
-│   ├── core/                # Domínios: canvas, selection, document, history, raster, engines...
-│   ├── infrastructure/      # Compressão LZ4, disco de rascunho, telemetria
-│   └── utils/               # Tipos de valor: Point2D, Rect2D, ColorRGBA, Dab
-│
-├── ui/                      # Interface Gráfica PySide6
-│   ├── boundary/            # MainWindow, menus e coordenação de eventos
-│   ├── core/                # Estado, documento, contrato do motor, cor, geometria, telas
-│   ├── infrastructure/      # Cliente da ponte (AladynBackend), config, i18n, tema, ícones, log
-│   └── plugins/             # Plugins embutidos: system/ (workspace, canvas) e panels/ (pincel, cor, camadas...)
-│
-├── tests/                   # 111 arquivos de teste, 925 testes (medido em 2026-09-25)
-│
-├── docs/                    # Documentação Técnica Canônica (ver docs/README.md)
-│   ├── 01-correcao-da-base/ # Pendências vivas, auditoria orbital e simplificação da ponte
-│   ├── 02-arquitetura/      # Framework ARCcC, ALADYN engine, modelo de documento
-│   ├── 03-guias/            # Guias de desenvolvimento, build portátil e testes
-│   ├── 04-especificacoes/   # Formato .lmn e gestão cromática LittleCMS
-│   ├── 05-visao-e-futuro/   # Roadmap estratégico e pipeline HDR/Deep Color
-│   └── historico/           # Auditorias históricas encerradas (F-001 a F-031)
-│
-└── aladyn_engine_native.pyd # Binário C++20 compilado (Windows x64)
+lumenia-art-studio/
+├── engine/                  # Motor ALADYN em C++20
+│   ├── boundary/            # API pública e orquestradores
+│   ├── core/                # Matemática, raster, documento, camadas e pincéis
+│   ├── infrastructure/      # Disco, compressão, licenciamento e crash handling
+│   └── utils/               # Tipos e utilitários de baixo nível
+├── bridge/                  # Bindings pybind11 e contratos .pyi
+├── ui/                      # Interface, estado, infraestrutura e plugins PySide6
+├── assets/                  # Ícones, temas e avisos de terceiros
+├── docs/                    # Documentação técnica e guias de build/release
+├── scripts/                 # Automação de build, testes e validações
+├── tests/                   # Testes automatizados
+├── main.py                  # Entrada do aplicativo
+├── setup.py                 # Definição da extensão C++/pybind11
+├── pyproject.toml           # Metadados e dependências Python
+├── requirements-dev.lock    # Dependências travadas para Windows x64
+└── AGENTS.md                # Constituição arquitetural e regras operacionais
 ```
+
+## 🖥️ Plataformas e matriz de build
+
+| Plataforma | Execução Python | Extensão nativa | Pacote portátil | Status |
+|---|---:|---:|---:|---|
+| Windows x64 | Sim | Sim (`.pyd`) | Sim (`.exe`) | **Fluxo oficial** |
+| Linux x64 | Parcial, com adaptações | Não coberto pelo build oficial | Não | Experimental |
+| macOS | Não validado | Não validado | Não | Experimental |
+| Windows ARM64 | Não validado | Não validado | Não | Experimental |
+
+Para uma máquina diferente, compile o motor e o pacote **na própria máquina de destino**. A compatibilidade depende de:
+
+1. sistema operacional e arquitetura;
+2. versão/ABI do Python;
+3. compilador C++ e runtime instalados;
+4. instruções SIMD disponíveis na CPU;
+5. dependências Python e Qt instaladas.
+
+O build padrão `scalar` é o mais compatível. O build `avx2` só deve ser usado quando todas as máquinas de destino suportarem AVX2.
 
 ---
 
-## 🚀 Como Executar
+# 🚀 Compilação completa no Windows x64
 
-### Opção A: Executar em Modo de Desenvolvimento (Python)
+Esta é a sequência recomendada para uma máquina nova. Os comandos abaixo devem ser executados a partir da raiz do repositório.
 
-**Pré-requisitos:** Windows x64, Python 3.11+ (recomendado 3.14) e o Visual
-Studio Build Tools com a carga "Desenvolvimento para desktop com C++" (o
-script de build encontra o compilador sozinho).
+## 1. Instalar ferramentas do sistema
 
-1. Instale as dependências:
-   ```bash
-   pip install -r requirements-dev.lock
-   ```
-2. Compile o motor C++ (gera `aladyn_engine_native.*.pyd` na raiz; os objetos
-   intermediários vão para `../build`):
-   ```bash
-   python scripts/build_native.py --simd scalar
-   ```
-   Em CPU com AVX2 dá para usar `--simd avx2`. O binário não vai para o
-   repositório: sem este passo o aplicativo abre, mas sem motor (canvas vazio).
-3. Inicie o aplicativo:
-   ```bash
-   python main.py
-   ```
-   (ou `Launch_Lumenia.bat`). Para conferir a instalação:
-   `python tests/run_all_tests.py`.
+Instale:
 
-São os mesmos passos que o CI (`.github/workflows/ci.yml`) executa a partir de
-um clone limpo quando é disparado à mão (aba Actions → Lumenia CI → Run workflow).
+- [Git](https://git-scm.com/);
+- [Python 3.11 ou superior](https://www.python.org/downloads/windows/) — use Python x64 e habilite a opção **Add Python to PATH**;
+- [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/), selecionando:
+  - **Desktop development with C++**;
+  - MSVC x64/x86 build tools;
+  - Windows 10 ou Windows 11 SDK;
+  - C++ CMake tools, se oferecido pelo instalador.
 
-### Opção B: Versão Portátil Autônoma (Sem Instalação)
+O script `scripts/build_native.py` procura automaticamente o Visual Studio por meio do `vswhere`. Também é possível executar os comandos a partir de um **x64 Native Tools Command Prompt for Visual Studio**.
 
-Gere o bundle com Nuitka a partir do motor nativo compilado:
-```bash
+Confira as instalações:
+
+```powershell
+py --version
+git --version
+where.exe py
+```
+
+## 2. Clonar o repositório
+
+```powershell
+git clone https://github.com/hideakibellstudio-coder/lumenia-art-studio.git
+cd lumenia-art-studio
+```
+
+## 3. Criar um ambiente virtual isolado
+
+Não instale as dependências do projeto globalmente. O ambiente virtual evita conflitos com outras aplicações Python:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python --version
+python -m pip install --upgrade pip
+```
+
+Se o PowerShell bloquear a ativação, execute uma vez, como usuário atual:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Como alternativa, use o Prompt de Comando:
+
+```bat
+.venv\Scripts\activate.bat
+```
+
+## 4. Instalar dependências
+
+Para reproduzir exatamente o ambiente de desenvolvimento Windows x64:
+
+```powershell
+python -m pip install --requirement requirements-dev.lock
+```
+
+O arquivo de lock usa hashes e versões específicas. Se estiver usando uma versão de Python ou uma plataforma sem wheel compatível, o `pip` poderá rejeitar a instalação. Nesse caso, use Python x64 compatível ou instale as dependências declaradas no `pyproject.toml` sem o lock apenas para desenvolvimento experimental:
+
+```powershell
+python -m pip install --editable .
+python -m pip install pytest pytest-qt ruff nuitka
+```
+
+> O lock oficial é voltado para Windows x64 e para as versões de Python exercitadas pelo projeto. Não remova `--require-hashes` para gerar uma release reproduzível.
+
+## 5. Compilar a extensão nativa C++
+
+O motor precisa ser compilado antes de iniciar o aplicativo:
+
+```powershell
+python scripts/build_native.py --simd scalar
+```
+
+Esse comando:
+
+- configura o compilador MSVC automaticamente;
+- compila a extensão `aladyn_engine_native` em C++20;
+- coloca objetos e intermediários em `../build/temp_native`;
+- copia apenas o módulo `.pyd` final para a raiz, porque o Python precisa encontrá-lo;
+- grava metadados em `../build/native-build.json`.
+
+Para forçar uma recompilação completa:
+
+```powershell
+python scripts/build_native.py --simd scalar --force
+```
+
+Para uma build específica de máquinas que comprovadamente suportam AVX2:
+
+```powershell
+python scripts/build_native.py --simd avx2 --force
+```
+
+> **Importante:** não distribua um build AVX2 para uma CPU sem AVX2. Para maior compatibilidade, use sempre `scalar` como artefato público padrão.
+
+Para gerar símbolos PDB fora do repositório durante diagnóstico de crashes:
+
+```powershell
+python scripts/build_native.py --simd scalar --pdb
+```
+
+## 6. Validar a instalação
+
+Verifique se o módulo nativo foi carregado:
+
+```powershell
+python -c "import aladyn_engine_native; print(aladyn_engine_native.__file__)"
+```
+
+Execute os testes:
+
+```powershell
+python -m pytest
+```
+
+Para conferir apenas a coleta de testes:
+
+```powershell
+python -m pytest --collect-only -q
+```
+
+Execute o linter:
+
+```powershell
+ruff check .
+```
+
+## 7. Executar o aplicativo
+
+```powershell
+python main.py
+```
+
+Também é possível usar o lançador do Windows:
+
+```powershell
+.\Launch_Lumenia.bat
+```
+
+Se o aplicativo iniciar sem o canvas funcional, confirme primeiro se existe exatamente um arquivo `aladyn_engine_native*.pyd` na raiz e se ele foi compilado com a mesma versão/arquitetura do Python em uso.
+
+---
+
+# 📦 Gerar uma versão portátil `.exe`
+
+A distribuição portátil usa Nuitka e deve ser gerada depois de compilar o motor nativo.
+
+```powershell
 python scripts/build_portable.py
 ```
-O processo produz `build/portable/Lumenia.dist/Lumenia.exe` e um manifesto
-SHA-256 dos arquivos distribuídos. Antes de publicar, execute a validação do
-aplicativo e do instalador no ambiente de destino. Consulte [docs/03-guias/02-build-e-release.md](docs/03-guias/02-build-e-release.md)
-para gerar o instalador Inno Setup e para os requisitos de assinatura de release.
+
+A saída fica fora do repositório:
+
+```text
+../build/portable/Lumenia.dist/
+├── Lumenia.exe
+├── aladyn_engine_native.pyd
+├── assets/
+├── licenses/
+└── release-manifest.json
+```
+
+O script também inclui os recursos necessários, copia licenças de terceiros e cria um manifesto SHA-256. Para escolher outro diretório externo:
+
+```powershell
+python scripts/build_portable.py --output ..\build\portable-release
+```
+
+Teste o executável em uma máquina Windows limpa, sem o ambiente virtual do desenvolvedor. Isso confirma que todas as DLLs, plugins Qt, assets, fontes e licenças foram incluídos no bundle.
+
+> A distribuição portátil é específica para Windows x64 e para o conjunto de instruções com que o motor foi compilado. Para outra plataforma, é necessário um pipeline de build próprio para essa plataforma.
+
+## 🏗️ Gerar um instalador
+
+O repositório mantém o pipeline portátil separado do instalador. Depois de gerar e validar `Lumenia.dist`, siga o guia de release em [`docs/03-guias/02-build-e-release.md`](docs/03-guias/02-build-e-release.md) para gerar o instalador com Inno Setup/Velopack e revisar os avisos legais.
 
 ---
 
-## 🗺️ Roadmap de Próximas Implementações
+# 🧹 Política de build out-of-tree
 
-- [ ] **Item 9:** Formas Vetoriais / Primitivas Rápidas (Linhas, Retângulos, Círculos e Estrelas).
-- [ ] **Item 9.5:** Motor de Texto *In-Place* com tipografia editável direto no canvas.
-- [ ] **Item 10:** Harmonias e Modos de Cor do Infinite Painter.
-- [x] **Item 11:** Réguas, Simetrias Dinâmicas e Guias de Perspectiva (1, 2 e 3 Pontos de Fuga e Isométrica).
-- [x] **Item 12:** Formato de Arquivo Nativo com Camadas (`.lmn` v2 com integridade e fuzzing).
-- [x] **Item 13:** Consolidação da Base Primordial C++ e Retorno dos 5 Rios com Zero Regressão.
+Para manter o repositório leve e reproduzível:
+
+- não crie `build/`, `dist/`, `tmp/`, `temp/`, `scratch/`, `logs/` ou `test_outputs/` dentro do repositório;
+- os intermediários devem ficar em `../build`;
+- os entregáveis finais devem ficar em `../dist` ou em outro diretório externo;
+- não versione `.obj`, `.pdb`, `.ilk`, `.lib`, `.coverage`, relatórios de crash ou dumps;
+- imagens e relatórios temporários devem ser gravados no diretório temporário do sistema;
+- antes de finalizar uma alteração, confira:
+
+```powershell
+git status --short
+```
+
+A única exceção esperada é o módulo nativo `aladyn_engine_native*.pyd` na raiz, quando necessário para executar ou empacotar a aplicação localmente. Ele não deve ser usado como substituto de um build reproduzível.
 
 ---
 
-## 📄 Licença & Contato
+# 🧪 Desenvolvimento e validação
 
-*   **Desenvolvedor:** Equipe Lumenia / Maestros da IA
-*   **E-mail de Contato & Feedback:** `lumeniateam@protonmail.com`
-*   **Projeto:** Independente / Open Development
+Ative os hooks versionados uma vez por clone:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+Comandos úteis:
+
+```powershell
+# Suíte completa
+python -m pytest
+
+# Linter
+ruff check .
+
+# Conferência do layout e documentação ARCcC
+python -m tests.arccc_package_docs
+
+# Métricas de acoplamento
+python -m tests.arccc_coupling_metrics --top 20
+
+# Regras de build Windows a partir de Linux/CI, quando aplicável
+python scripts/check_windows_build.py
+```
+
+Consulte `AGENTS.md` para as regras de arquitetura, limites de LOC, contratos entre componentes, dependências permitidas e protocolo de higiene.
+
+---
+
+# 🛠️ Solução de problemas
+
+### `Microsoft Visual C++ is required`
+
+Instale o Visual Studio Build Tools com o workload **Desktop development with C++** e o Windows SDK. Depois reabra o terminal ou use o **x64 Native Tools Command Prompt**.
+
+### `vswhere.exe not found`
+
+O Visual Studio Installer não está instalado no caminho esperado. Abra o instalador do Visual Studio, adicione o workload C++, ou configure manualmente o ambiente executando o build em um prompt nativo do Visual Studio.
+
+### `No module named aladyn_engine_native`
+
+Compile o motor na raiz do projeto:
+
+```powershell
+python scripts/build_native.py --simd scalar --force
+```
+
+Depois confirme que o `.pyd` gerado corresponde ao Python ativo:
+
+```powershell
+python -c "import sys; print(sys.version); print(sys.executable)"
+```
+
+### `DLL load failed` ao importar o `.pyd`
+
+Verifique todos estes pontos:
+
+- Python x64 e compilador x64, não uma mistura x86/x64;
+- mesma versão/ABI de Python usada para compilar e executar;
+- runtime do Visual C++ instalado;
+- build `scalar` quando a CPU não oferece AVX2;
+- apenas um `aladyn_engine_native*.pyd` na raiz.
+
+### Falha no `pip install --requirement requirements-dev.lock`
+
+O lock contém hashes para wheels suportadas. Use Python x64 compatível com o lock e atualize o pip. Em outra plataforma, o lock oficial pode não conter wheels; nesse caso, siga a instalação experimental descrita na seção de dependências.
+
+### O portátil funciona no computador de build, mas não em outro
+
+Não copie apenas o `.exe`. Distribua a pasta `Lumenia.dist` completa. Gere novamente o bundle com `scripts/build_portable.py`, valide o manifesto e teste em uma máquina limpa.
+
+---
+
+# 📚 Documentação relacionada
+
+- [`AGENTS.md`](AGENTS.md) — constituição arquitetural e regras obrigatórias para agentes e desenvolvedores.
+- [`docs/README.md`](docs/README.md) — índice da documentação técnica.
+- [`docs/03-guias/02-build-e-release.md`](docs/03-guias/02-build-e-release.md) — build portátil, release e instalador.
+- [`pyproject.toml`](pyproject.toml) — metadados e dependências Python.
+- [`setup.py`](setup.py) — fontes C++ e configuração da extensão pybind11.
+- [`scripts/build_native.py`](scripts/build_native.py) — compilação do motor nativo.
+- [`scripts/build_portable.py`](scripts/build_portable.py) — geração e validação da distribuição portátil.
+
+# 🗺️ Roadmap
+
+- [ ] Formas vetoriais e primitivas rápidas.
+- [ ] Texto editável diretamente no canvas.
+- [ ] Mais harmonias e modos de cor.
+- [x] Réguas, simetrias e guias de perspectiva.
+- [x] Formato nativo `.lmn` com camadas.
+- [x] Consolidação da base C++ e integração ponta a ponta.
+
+# 📄 Licença e contato
+
+- **Projeto:** Lumenia Art Studio / ALADYN Engine
+- **Equipe:** Lumenia Team / Aladyn Team
+- **Contato:** `lumeniateam@protonmail.com`
+- **Licença:** consulte [`TERMS_AND_LICENSE.txt`](TERMS_AND_LICENSE.txt) e os avisos em `assets/legal/`.

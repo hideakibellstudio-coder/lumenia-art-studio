@@ -57,12 +57,16 @@ def test_a_quick_run_exports_every_scenario():
     pytest.importorskip("aladyn_engine_native", reason="native module not built in this environment")
     from benchmarks.run_app_benchmarks import run
 
-    result = run(["engine", "ui", "files"], sizes=None, quick=True)
+    result = run(["engine", "ui", "brush_engines", "guides", "files"], sizes=None, quick=True)
     assert result["schema_version"] == 1
     scenarios = result["scenarios"]
     assert scenarios["engine"]["get_qimage.256x256"]["p50_ms"] >= 0
     assert scenarios["engine"]["stroke120_20layers.256x256"]["samples"] >= 3
     assert scenarios["ui"]["boot_to_window_s"] > 0
     assert scenarios["ui"]["pen_move.256x256"]["samples"] == 120
+    assert scenarios["brush_engines"]["sample.blur.d48.256x256"]["samples"] >= 3
+    assert scenarios["brush_engines"]["dabs.brush.d12.256x256"] > 0
+    assert scenarios["guides"]["repaint_hover.isometric"]["samples"] >= 3
+    assert scenarios["guides"]["overlay_render.isometric"]["p50_ms"] > scenarios["guides"]["overlay_render.none"]["p50_ms"]
     assert scenarios["files"]["file_size_mb.256x256"] >= 0
     assert scenarios["files"]["open_restore_s.256x256"] >= 0

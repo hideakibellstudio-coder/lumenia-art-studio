@@ -1,6 +1,7 @@
 #ifndef ALADYN_ENGINE_BLUR_ENGINE_HPP
 #define ALADYN_ENGINE_BLUR_ENGINE_HPP
 
+#include "BlurScratch.hpp"
 #include "IBrushEngine.hpp"
 
 namespace aladyn::engine::document { class Layer; }
@@ -37,6 +38,9 @@ public:
 
     // Blur lê uma cópia da área da camada ativa e escreve direto nela — sem scratch.
     [[nodiscard]] bool usesScratchLayer() const noexcept override { return false; }
+
+private:
+    BlurScratch m_scratch;  // a memória de trabalho do desfoque, guardada entre carimbos
 };
 
 } // namespace aladyn::engine::engines

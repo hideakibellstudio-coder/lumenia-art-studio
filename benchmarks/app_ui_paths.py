@@ -11,14 +11,14 @@ import argparse
 import os
 import time
 
-from benchmarks.app_common import emit, parse_sizes, peak_memory_mb, repeat_ms, summary
+from benchmarks.app_common import emit, fit_window, parse_sizes, peak_memory_mb, repeat_ms, summary
 
 DEFAULT_SIZES = "1920x1080,3840x2160"
 STROKE_SAMPLES = 120
 REPAINT_EVERY = 4
 
 
-def _pen_strokes(canvas, strokes: int):
+def pen_strokes(canvas, strokes: int):
     """Pen samples through the input router; returns (move_ms, repaint_ms) lists."""
     from PySide6 import QtCore
 
@@ -63,9 +63,9 @@ def measure(sizes: list[tuple[int, int]], strokes: int) -> dict:
         metrics[f"new_document_s.{tag}"] = round(time.perf_counter() - opened, 3)
 
         canvas = window.workspace.canvas_widget
-        canvas.resize(1600, 900)
+        metrics[f"viewport.{tag}"] = "x".join(str(side) for side in fit_window(app, window))
         canvas.active_tool = "brush"
-        moves, repaints = _pen_strokes(canvas, strokes)
+        moves, repaints = pen_strokes(canvas, strokes)
         app.processEvents()
         metrics[f"pen_move.{tag}"] = summary(moves)
         metrics[f"repaint_during_stroke.{tag}"] = summary(repaints)

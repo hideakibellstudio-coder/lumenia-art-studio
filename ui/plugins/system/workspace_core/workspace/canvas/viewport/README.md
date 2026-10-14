@@ -19,6 +19,7 @@ Criados pelo `RenderWidget` (`camera`, `input_router`, `cursor_ctrl`, `stroke`, 
 | `key_router.py` | `CanvasKeyRouter`: teclado (espaço, Delete, atalhos de seleção, teclas da transformação); contrato `KeyCanvas`. Separado de `input_router.py` em 2026-09-25. |
 | `still_pointer.py` | `StillPointerFeeder`: durante o traço, repete a última entrada a cada 16 ms quando nada chega há 20 ms (mouse parado), com o instante avançado; sem isso a linha estabilizada parava atrás do cursor. |
 | `pointer_sample.py` | `PointerSample` e `event_time`: posição, pressão, botão, inclinação, rotação, borracha e instante lidos de um evento de mouse ou caneta. |
+| `guide_layer_cache.py` | `GuideLayerCache`: a camada estática das guias e da simetria (linhas, curvas, alças) pintada numa imagem e reaproveitada enquanto guia, simetria, câmera, tamanho e tema não mudam; a parte que segue o ponteiro continua ao vivo. Sem ela, cada movimento do mouse retraçava a guia inteira (curvilinear completa: 69 ms por repintura no Windows, 8 ms com o cache; medido em 2026-10-12, `benchmarks/app_guides_paths.py`). Zoom e pan repintam a camada a cada passo. |
 | `viewport_renderer.py` | ViewportRenderer — pinta o canvas: papel, pixels do motor, overlays e cursor. |
 
 ## Regras

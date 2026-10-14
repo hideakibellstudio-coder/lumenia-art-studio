@@ -21,6 +21,19 @@ def summary(samples_ms: list[float]) -> dict[str, float]:
     }
 
 
+def fit_window(app, window, size: tuple[int, int] = (1920, 1080)) -> tuple[int, int]:
+    """Give the main window a real screen size and return the canvas's visible size in pixels.
+
+    A paint event only covers what is visible, so a canvas resized inside the default offscreen
+    window (about 290x400 visible) repaints a fraction of what a real screen does and every repaint
+    figure comes out too low. The size actually painted goes into the result as `viewport`.
+    """
+    window.resize(*size)
+    app.processEvents()
+    visible = window.workspace.canvas_widget.visibleRegion().boundingRect()
+    return visible.width(), visible.height()
+
+
 def repeat_ms(action: Callable[[], object], repeats: int) -> list[float]:
     samples = []
     for _ in range(repeats):

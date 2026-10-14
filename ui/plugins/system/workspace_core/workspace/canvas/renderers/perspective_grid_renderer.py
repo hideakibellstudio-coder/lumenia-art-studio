@@ -23,8 +23,8 @@ class PerspectiveGridRenderer:
         return CurvilinearMeshBuilder.get_cached_curvilinear_data(guide)
 
     @staticmethod
-    def render_perspective(painter: QtGui.QPainter, gtype: str, guide: dict, line_w: float, handle_r: float, ctrl=None):
-        """Renders 1P, 2P, or 3P perspective vanishing points, horizon, and rays."""
+    def vanishing_points(gtype: str, guide: dict) -> list:
+        """The vanishing points the guide type uses (1, 2 or 3)."""
         vps = []
         if gtype in ("one_point", "two_point", "three_point"):
             vps.append(guide.get("vpA", QtCore.QPointF(400, 300)))
@@ -32,18 +32,18 @@ class PerspectiveGridRenderer:
             vps.append(guide.get("vpB", QtCore.QPointF(-600, 300)))
         if gtype == "three_point":
             vps.append(guide.get("vpC", QtCore.QPointF(400, -1200)))
+        return vps
+
+    @staticmethod
+    def render_perspective(painter: QtGui.QPainter, gtype: str, guide: dict, line_w: float, handle_r: float):
+        """Renders 1P, 2P, or 3P perspective vanishing points, horizon, and rays (what only the guide changes)."""
+        vps = PerspectiveGridRenderer.vanishing_points(gtype, guide)
 
         if len(vps) >= 2:
             painter.setPen(QtGui.QPen(QtGui.QColor(*OverlayPalette.HORIZON), line_w * 1.5))
             painter.drawLine(QtCore.QPointF(-8000, vps[0].y()), QtCore.QPointF(8000, vps[0].y()))
 
-        tm = ThemeManager.instance()
-        handle_border_col = QtGui.QColor(tm.get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
-        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
-        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
-        dist_base_col = QtGui.QColor(tm.get_color("GUIDE_DISTANCE_TEXT", "#ffffff"))
-        dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
-
+        handle_border_col = QtGui.QColor(ThemeManager.instance().get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
         for vp in vps:
             painter.setBrush(QtGui.QColor(*OverlayPalette.VANISHING_POINT))
             painter.setPen(QtGui.QPen(handle_border_col, line_w))
@@ -53,24 +53,35 @@ class PerspectiveGridRenderer:
                 rad = math.radians(deg)
                 painter.drawLine(vp, QtCore.QPointF(vp.x() + 4000.0 * math.cos(rad), vp.y() + 4000.0 * math.sin(rad)))
 
-        if ctrl and hasattr(ctrl, "hover_point") and ctrl.hover_point is not None:
-            hpt = ctrl.hover_point
-            pen_active = QtGui.QPen(QtGui.QColor(*OverlayPalette.SNAP_RAY_ACTIVE), line_w * 1.5, QtCore.Qt.DashLine)
-            painter.setPen(pen_active)
-            for vp in vps:
-                dx, dy = hpt.x() - vp.x(), hpt.y() - vp.y()
-                l = math.hypot(dx, dy)
-                if l > 1e-4:
-                    ux, uy = dx / l, dy / l
-                    painter.drawLine(vp, QtCore.QPointF(hpt.x() + ux * 4000.0, hpt.y() + uy * 4000.0))
-            painter.setBrush(QtCore.Qt.NoBrush)
-            painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
-            painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
-            if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
-                dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
-                painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                painter.setPen(QtGui.QPen(dist_text_col))
-                painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
+    @staticmethod
+    def render_perspective_hover(painter: QtGui.QPainter, gtype: str, guide: dict, line_w: float, handle_r: float, ctrl):
+        """Renders the snap rays from each vanishing point to the pointer, the target ring and the distance badge."""
+        if ctrl.hover_point is None:
+            return
+        vps = PerspectiveGridRenderer.vanishing_points(gtype, guide)
+        tm = ThemeManager.instance()
+        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
+        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
+        dist_base_col = QtGui.QColor(tm.get_color("GUIDE_DISTANCE_TEXT", "#ffffff"))
+        dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
+
+        hpt = ctrl.hover_point
+        pen_active = QtGui.QPen(QtGui.QColor(*OverlayPalette.SNAP_RAY_ACTIVE), line_w * 1.5, QtCore.Qt.DashLine)
+        painter.setPen(pen_active)
+        for vp in vps:
+            dx, dy = hpt.x() - vp.x(), hpt.y() - vp.y()
+            length = math.hypot(dx, dy)
+            if length > 1e-4:
+                ux, uy = dx / length, dy / length
+                painter.drawLine(vp, QtCore.QPointF(hpt.x() + ux * 4000.0, hpt.y() + uy * 4000.0))
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
+        painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
+        if ctrl.is_stroking and ctrl.snap_start_pt is not None:
+            dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
+            painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
+            painter.setPen(QtGui.QPen(dist_text_col))
+            painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
 
     @staticmethod
     def render_isometric(painter: QtGui.QPainter, line_w: float):

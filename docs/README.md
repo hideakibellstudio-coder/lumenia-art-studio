@@ -49,6 +49,74 @@ tarefas.
 > descrito, e qual era o objetivo declarado daquele documento. Não apague
 > entradas antigas — este arquivo é o rastro de decisão do projeto.
 
+### 2026-10-12 — Desempenho: Desfoque 4,1× mais rápido e a camada estática das guias em cache
+**Base:** o dono pediu medir traços rápidos em cada mini motor (Desfoque, Borrão
+e os demais) e o desempenho com todas as guias ativas, que às vezes quase travava
+o programa, e achar por que regredimos e o que faltou para otimizar.
+**Documento:** `claude/panorama-desempenho-motores-e-guias.md` (Claude Project
+"Lumenia Atualizado"), com as tabelas completas.
+**Feito, com a medição** (Windows, MSVC `/O2 /openmp` escalar, mediana em ms,
+janela 1920×1080 com canvas 1812×951, perfil isolado):
+- dois cenários novos em `benchmarks/`: `brush_engines` (9 motores, 3 tamanhos, 8 e
+  16 bits, traço de 40 px entre amostras a cada 4 ms) e `guides` (13 combinações de
+  guia e simetria, repintando com o mouse passando, traçando, parado e em zoom). O
+  cenário `ui` redimensionava só o canvas e a janela offscreen mostrava ~289×400 px
+  (cerca de 7% da área), por isso nunca viu o custo das guias; `fit_window` ajusta a
+  janela antes de medir;
+- Desfoque (`BlurEngine`): 19,82 → 4,78 ms por amostra com pincel de 150 px (4,1×;
+  48 px: 4,62 → 2,76; 12 px: 0,53 → 0,43), p95 36,6 → 9,3 ms e traço de 60 amostras
+  1444 → 360 ms (16 bits: 1398 → 379). A conta passou a correr por planos de ponto
+  flutuante, com o laço de dentro sobre pixels vizinhos (o MSVC o vetoriza), linhas em
+  paralelo e a memória de trabalho reaproveitada entre carimbos. Mesma ordem de soma:
+  167 traços de Desfoque (tamanho, dureza, força, raio, opacidade, trava de alfa,
+  seleção, 8 e 16 bits) dão o mesmo hash do motor anterior (conferido no Linux), e os
+  pinos de `tests/golden/engines_golden.json` não mudaram e passam no Windows;
+- demais motores (Pincel, Lápis, Nanquim, Borracha, Marcador, Borrão, Aquarela,
+  Óleo): medidos, nenhum passa de 5,2 ms por amostra a 150 px, em 8 e 16 bits
+  (Aquarela 4,83; Óleo 3,65; Borrão 2,93, em 8 bits), sem mudança de código. Com
+  amostras a cada 4 ms só Desfoque e Aquarela a 150 px ficam acima do intervalo;
+- guias: a pintura retraçava toda a guia a cada `paintEvent`, e com guia ou simetria
+  ligada cada movimento do mouse repinta o widget inteiro. Por repintura: isométrica
+  29,4 → 5,5 ms, curvilinear 21,6 → 7,7, curvilinear com tudo ligado 69,4 → 8,0,
+  tudo mais caleidoscópio 70,2 → 7,4 (sem guia: 5,1). `GuideLayerCache` pinta a camada
+  estática (linhas, curvas, alças, simetria) numa imagem e a reaproveita; a parte que
+  segue o ponteiro continua ao vivo. Zoom e pan continuam repintando a camada a cada
+  passo (23 a 75 ms nas guias pesadas): é decisão aberta no panorama;
+- a regressão não foi atribuída a um commit: não bisectei o histórico e não há
+  medição anterior. O que está medido é onde o custo está hoje; quando e por que ele
+  entrou segue como hipótese no panorama.
+**Validação:** `ruff check .` sem achados; 123/123 pastas documentadas; catraca de
+acoplamento apertada (`hasattr` 58 → 54, `getattr` literal 44 → 40; os demais contadores
+iguais); `check_windows_build.py` 91/93 em escalar e AVX2, e os 2 que falham
+(`TransformEngineCommit.cpp`, `BufferPasteOrchestrator.cpp`, parâmetro sem uso) não
+são arquivos tocados e falham sem as mudanças; suíte completa no Windows: 2303
+passaram, 2 ignorados, 4 falharam e 19 pararam no preparo porque o processo que
+rodou a suíte não tinha `ProgramFiles(x86)` (os testes que compilam harness nativo o
+exigem); com a variável definida, 18 dos 19 passam e 1 falha. As 5 falhas
+(`test_canvas_resize_preserve`, `test_composite_projection`,
+`test_engine_contract_surface`, `test_pixel_format_native` e o `.gz` em
+`test_windows_portability`) já existem: as quatro primeiras reproduzem numa
+extração limpa de `f08fd27` e de `d8840fa` (antes da remoção do licenciamento); a
+quinta é a fixture `pen_session_real.jsonl.gz`, de `b3fae07` (06/10), que o teste
+lê como texto.
+**Seis perguntas da 4.4.7:**
+- A responsabilidade ficou no lugar certo? Sim: o desfoque de uma região mora em
+  `BlurredRegion`, a memória de trabalho em `BlurScratch` (do `BlurEngine`), e a
+  camada estática das guias em `GuideLayerCache`, colaborador do `ViewportRenderer`
+  (a imagem não é estado do widget).
+- Algum contrato ficou grande demais? Não: nenhum método do `EngineBackend`, da ponte
+  ou do `.pyi` mudou; `GeometryOverlayRenderer` ganhou `render_guides_static` e
+  `render_guides_hover`, e `render_guides` virou fachada para quem só tem o dicionário.
+- Algum componente passou a conhecer o que não devia? Não: o cache recebe tudo por
+  `GuideLayerView`; a chave é o conteúdo, não um aviso de mudança.
+- Algum dado é convertido mais de uma vez? Sim, e é o custo conhecido: a camada das
+  guias é pintada numa imagem e copiada para a tela (zoom e pan pagam as duas).
+- Nasceu uma responsabilidade nova? `GuideLayerCache`, `BlurredRegion` e `BlurScratch`,
+  cada um com estado próprio e uma tarefa.
+- Alguma abstração criada antes deixou de fazer sentido? Não achei; o `hasattr` que
+  sobra em `render_guides` serve aos dois chamadores com dicionário
+  (`workspace_core/__init__.py` e `tests/test_geometry_structure.py`).
+
 ### 2026-10-01 — Segunda rodada de análise: os contratos falsificados por execução
 **Base:** o dono pediu uma segunda rodada, com o ARCcC aplicado à análise, para
 achar problemas escondidos e confirmar se já é hora de feature.

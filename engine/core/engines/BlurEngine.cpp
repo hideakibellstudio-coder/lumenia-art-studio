@@ -1,4 +1,5 @@
 #include "BlurEngine.hpp"
+#include "BlurredRegion.hpp"
 #include "../canvas/PixelFormat.hpp"
 #include "../raster/DabFootprint.hpp"
 #include "../raster/LargeBrushOptimizer.hpp"
@@ -7,153 +8,13 @@
 #include "../../utils/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
-#include <vector>
 
 namespace aladyn::engine::engines {
 
 namespace {
 
-// Amostra segura na TileGrid da camada ativa
-template <class Pixel>
-Pixel getTilePixel(const canvas::TileGrid& tileGrid, int globalX, int globalY) {
-    if (globalX < 0 || globalX >= tileGrid.getWidth() || globalY < 0 || globalY >= tileGrid.getHeight()) {
-        return {0, 0, 0, 0};
-    }
-    const int tx  = globalX / canvas::Tile::TILE_SIZE;
-    const int ty  = globalY / canvas::Tile::TILE_SIZE;
-    const int lpx = globalX % canvas::Tile::TILE_SIZE;
-    const int lpy = globalY % canvas::Tile::TILE_SIZE;
-
-    const canvas::Tile* t = const_cast<canvas::TileGrid&>(tileGrid).getTile(tx, ty);
-    if (!t) return {0, 0, 0, 0};
-    if constexpr (std::is_same_v<Pixel, utils::ColorRGBA16>) {
-        return t->getBuffer().getPixel16(lpx, lpy);
-    } else {
-        return t->getBuffer().getPixel(lpx, lpy);
-    }
-}
-
-struct Region {
-    int minX, maxX, minY, maxY;
-    [[nodiscard]] int width() const { return maxX - minX + 1; }
-    [[nodiscard]] int height() const { return maxY - minY + 1; }
-    [[nodiscard]] bool empty() const { return width() <= 0 || height() <= 0; }
-    [[nodiscard]] bool contains(int x, int y) const { return x >= minX && x <= maxX && y >= minY && y <= maxY; }
-};
-
-// Resultado do passe horizontal de um pixel do snapshot.
-struct HorizontalSum {
-    float r{0.0f}, g{0.0f}, b{0.0f}, a{0.0f};
-    float alphaWeight{0.0f}, totalWeight{0.0f};
-};
-
-// O desfoque gaussiano de uma região: uma cópia contígua da área da camada (com a borda do kernel),
-// o passe horizontal já feito e `blurredAt`, que faz o vertical de um pixel. Lê só da cópia: o resultado
-// de um pixel não depende de os vizinhos já terem sido pintados.
-template <class Pixel = utils::ColorRGBA>
-class BlurredRegion {
-public:
-    BlurredRegion(const canvas::TileGrid& grid, const Region& roi, int kernelRadius, double sigma)
-        : m_kernelRadius(kernelRadius),
-          m_snap{std::max(0, roi.minX - kernelRadius), std::min(grid.getWidth() - 1, roi.maxX + kernelRadius),
-                 std::max(0, roi.minY - kernelRadius), std::min(grid.getHeight() - 1, roi.maxY + kernelRadius)} {
-        m_width = m_snap.width();
-        m_height = m_snap.height();
-        if (m_snap.empty()) return;
-
-        copyFrom(grid);
-        buildWeights(sigma);
-        blurRows();
-    }
-
-    [[nodiscard]] bool empty() const { return m_snap.empty(); }
-
-    // O pixel original, na cópia.
-    [[nodiscard]] Pixel originalAt(int globalX, int globalY) const {
-        return m_source[static_cast<size_t>((globalY - m_snap.minY) * m_width + (globalX - m_snap.minX))];
-    }
-
-    struct Blurred {
-        float r, g, b, a;
-        float alphaWeight, totalWeight;
-    };
-
-    // Passe vertical sobre os resultados do horizontal.
-    [[nodiscard]] Blurred blurredAt(int globalX, int globalY) const {
-        const int snapX = globalX - m_snap.minX;
-        const int snapY = globalY - m_snap.minY;
-        Blurred sum{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-        for (int k = -m_kernelRadius; k <= m_kernelRadius; ++k) {
-            const int ky = std::clamp(snapY + k, 0, m_height - 1);
-            const float w = m_weights[static_cast<size_t>(k + m_kernelRadius)];
-            const HorizontalSum& sample = m_rows[static_cast<size_t>(ky * m_width + snapX)];
-            sum.r += sample.r * w;
-            sum.g += sample.g * w;
-            sum.b += sample.b * w;
-            sum.a += sample.a * w;
-            sum.alphaWeight += sample.alphaWeight * w;
-            sum.totalWeight += sample.totalWeight * w;
-        }
-        return sum;
-    }
-
-private:
-    void copyFrom(const canvas::TileGrid& grid) {
-        m_source.resize(static_cast<size_t>(m_width * m_height));
-        for (int sy = 0; sy < m_height; ++sy) {
-            for (int sx = 0; sx < m_width; ++sx) {
-                m_source[static_cast<size_t>(sy * m_width + sx)] = getTilePixel<Pixel>(grid, m_snap.minX + sx, m_snap.minY + sy);
-            }
-        }
-    }
-
-    // Pesos gaussianos 1D (LUT).
-    void buildWeights(double sigma) {
-        m_weights.resize(static_cast<size_t>(2 * m_kernelRadius + 1));
-        for (int k = -m_kernelRadius; k <= m_kernelRadius; ++k) {
-            m_weights[static_cast<size_t>(k + m_kernelRadius)] = static_cast<float>(std::exp(-(k * k) / (2.0 * sigma * sigma)));
-        }
-    }
-
-    // Convolução separável em dois passes: O(2K) em vez de O(K²).
-    void blurRows() {
-        m_rows.resize(static_cast<size_t>(m_width * m_height));
-        for (int sy = 0; sy < m_height; ++sy) {
-            for (int sx = 0; sx < m_width; ++sx) {
-                m_rows[static_cast<size_t>(sy * m_width + sx)] = horizontalSum(sx, sy);
-            }
-        }
-    }
-
-    HorizontalSum horizontalSum(int sx, int sy) const {
-        HorizontalSum sum;
-        for (int k = -m_kernelRadius; k <= m_kernelRadius; ++k) {
-            const int kx = std::clamp(sx + k, 0, m_width - 1);
-            const float w = m_weights[static_cast<size_t>(k + m_kernelRadius)];
-            const Pixel px = m_source[static_cast<size_t>(sy * m_width + kx)];
-
-            constexpr float kMaxA = static_cast<float>(canvas::PixelTraits<Pixel>::kMax);
-            const float alpha = static_cast<float>(px.a) / kMaxA;
-            if (px.a > 0) {
-                sum.r += static_cast<float>(px.r) * alpha * w;
-                sum.g += static_cast<float>(px.g) * alpha * w;
-                sum.b += static_cast<float>(px.b) * alpha * w;
-                sum.alphaWeight += alpha * w;
-            }
-            sum.a += static_cast<float>(px.a) * w;
-            sum.totalWeight += w;
-        }
-        return sum;
-    }
-
-    int m_kernelRadius;
-    Region m_snap;
-    int m_width{0};
-    int m_height{0};
-    std::vector<Pixel> m_source;
-    std::vector<float> m_weights;
-    std::vector<HorizontalSum> m_rows;
-};
+// Acima disto (16 MB por campo, um pincel de uns 600 px) a memória de trabalho não fica guardada entre carimbos.
+constexpr std::size_t kMaxRetainedFloats = 4u * 1024u * 1024u;
 
 // Mistura o pixel original com o desfocado na proporção `mix`; com Alpha Lock o alfa fica.
 utils::ColorRGBA mixTowardBlur(
@@ -217,9 +78,8 @@ void BlurEngine::renderDab(
 ) {
     if (dab.radius <= 0.0) return;
 
-    const double r      = dab.radius;
-    const double aspect = std::max(0.05, profile.tip.aspectRatio);
-    const double maxR   = r / aspect + 2.0;
+    const double r    = dab.radius;
+    const double maxR = r + 2.0;  // o desfoque ignora o achatamento da ponta: o dab é sempre um círculo
 
     const int blurRadiusSetting = std::clamp(profile.blurParams.blurRadius, 1, 5);
     const double strength       = std::clamp(profile.blurParams.blurStrength, 0.0, 1.0);
@@ -230,7 +90,7 @@ void BlurEngine::renderDab(
     const double sigma = std::max(0.8, static_cast<double>(kernelRadius) * (0.35 + strength * 0.45));
 
     // Caixa do dab com a margem do kernel, para a cópia da área
-    const Region roi{
+    const BlurBox roi{
         std::max(0, static_cast<int>(std::floor(dab.position.x - maxR))),
         std::min(tileGrid.getWidth() - 1, static_cast<int>(std::ceil(dab.position.x + maxR))),
         std::max(0, static_cast<int>(std::floor(dab.position.y - maxR))),
@@ -248,7 +108,7 @@ void BlurEngine::renderDab(
     const raster::PixelPermission permission(ctx);
 
     if (tileGrid.getFormat() == canvas::PixelFormat::RGBA16) {
-        const BlurredRegion<utils::ColorRGBA16> region(tileGrid, roi, kernelRadius, sigma);
+        const BlurredRegion<utils::ColorRGBA16> region(m_scratch, tileGrid, roi, kernelRadius, sigma);
         if (region.empty()) return;
         footprint.forEachPixel<utils::ColorRGBA16>(6, [&](utils::ColorRGBA16& dst, const raster::DabPixel& pixel) {
             if (!roi.contains(pixel.gx, pixel.gy)) return false;
@@ -257,7 +117,7 @@ void BlurEngine::renderDab(
             double mix = dab.opacity * shape * strength;
             if (shape <= 0.0 || mix <= 0.0) return false;
 
-            const utils::ColorRGBA16 original = region.originalAt(pixel.gx, pixel.gy);
+            const utils::ColorRGBA16 original = dst;  // ainda não escrito neste carimbo: cada pixel é visitado uma vez
             const auto blurred = region.blurredAt(pixel.gx, pixel.gy);
             if (original.a == 0 && blurred.alphaWeight <= 0.0f) return false;
             if (ctx.alphaLocked && original.a == 0) return false;
@@ -267,7 +127,7 @@ void BlurEngine::renderDab(
             return true;
         });
     } else {
-        const BlurredRegion<utils::ColorRGBA> region(tileGrid, roi, kernelRadius, sigma);
+        const BlurredRegion<utils::ColorRGBA> region(m_scratch, tileGrid, roi, kernelRadius, sigma);
         if (region.empty()) return;
         footprint.forEachPixel<utils::ColorRGBA>(6, [&](utils::ColorRGBA& dst, const raster::DabPixel& pixel) {
             if (!roi.contains(pixel.gx, pixel.gy)) return false;
@@ -276,7 +136,7 @@ void BlurEngine::renderDab(
             double mix = dab.opacity * shape * strength;
             if (shape <= 0.0 || mix <= 0.0) return false;
 
-            const utils::ColorRGBA original = region.originalAt(pixel.gx, pixel.gy);
+            const utils::ColorRGBA original = dst;  // ainda não escrito neste carimbo: cada pixel é visitado uma vez
             const auto blurred = region.blurredAt(pixel.gx, pixel.gy);
             if (original.a == 0 && blurred.alphaWeight <= 0.0f) return false;
             if (ctx.alphaLocked && original.a == 0) return false;
@@ -286,6 +146,7 @@ void BlurEngine::renderDab(
             return true;
         });
     }
+    m_scratch.releaseIfLarge(kMaxRetainedFloats);
 }
 
 } // namespace aladyn::engine::engines

@@ -31,6 +31,8 @@ from benchmarks.compare_runs import compare, format_report  # noqa: E402
 SCENARIOS = {
     "engine": "benchmarks.app_engine_paths",
     "ui": "benchmarks.app_ui_paths",
+    "brush_engines": "benchmarks.app_brush_engines",
+    "guides": "benchmarks.app_guides_paths",
     "files": "benchmarks.app_file_paths",
     "files_dense": "benchmarks.app_file_paths",
 }
@@ -41,6 +43,8 @@ SIZE_FLAG = "--sizes"
 QUICK_ARGS = {
     "engine": ["--sizes", "256x256", "--repeats", "2"],
     "ui": ["--sizes", "256x256", "--strokes", "1"],
+    "brush_engines": ["--sizes", "256x256", "--strokes", "1", "--engines", "brush,blur"],
+    "guides": ["--sizes", "256x256", "--strokes", "1", "--configs", "none,isometric,mirror"],
     "files": ["--sizes", "256x256", "--layers", "3"],
     "files_dense": ["--sizes", "256x256", "--layers", "3"],
 }

@@ -105,6 +105,7 @@
 | `test_geometry_structure.py` | Comprehensive unit tests for Camada 3 - Fase 1: Geometric Decomposition. |
 | `test_geometry_symmetry.py` | Modos de simetria, espelho vertical no traço, snap de régua reta e curvilínea, diálogos de geometria. |
 | `test_giant_brush_smoothness_and_throughput.py` | Pincéis gigantes: suavidade do falloff analítico e vazão do `LargeBrushOptimizer`. |
+| `test_guide_layer_cache.py` | `GuideLayerCache`: a camada estática das guias é pintada uma vez e reaproveitada; muda guia, simetria, câmera, tamanho ou tema, repinta; os pixels batem com a pintura direta; só a região suja é desenhada. |
 | `test_hardcoded_colors_ratchet.py` | Catraca da Lei 5 (zero hardcode de cores). |
 | `test_history_io_failures.py` | Real C++ I/O, codec and multi-tile history failure scenarios (no Python mocks). |
 | `test_i18n_keys_exist.py` | Toda chave literal passada a tr(...) ou Text(...) em ui/ (plugins incluídos) existe nos 4 locales. |

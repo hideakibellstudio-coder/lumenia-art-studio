@@ -26,8 +26,10 @@
 | `OilImpastoEngine.cpp` | A direção do traço, o avanço das cerdas a cada carimbo (esgotam, pegam a cor da tela como estava antes do traço, são repostas pela reserva) e a composição de cada pixel com a luz do relevo. |
 | `EraserEngine.hpp` | Borracha: reduz o alfa na área do dab (declaração). |
 | `EraserEngine.cpp` | Implementação (respeita Alpha Lock). |
-| `BlurEngine.hpp` | Desfoque local por vizinhança (declaração). |
-| `BlurEngine.cpp` | Implementação. |
+| `BlurEngine.hpp` | Desfoque local por vizinhança (declaração; guarda o `BlurScratch` entre carimbos). |
+| `BlurEngine.cpp` | Implementação: um carimbo calcula o desfoque gaussiano da área toda de uma vez (`BlurredRegion`) e cada pixel só lê o resultado e mistura. |
+| `BlurScratch.hpp` | Memória de trabalho do desfoque (três vetores de ponto flutuante) guardada entre carimbos: alocar e zerar a cada carimbo custava mais que a conta num pincel de 48 px. |
+| `BlurredRegion.hpp` | O desfoque gaussiano separável de uma região: passes horizontal e vertical sobre planos de ponto flutuante, linhas em paralelo; mesma ordem de soma do laço por pixel que substituiu, então o resultado é idêntico bit a bit. |
 | `SmearPatch.hpp` | O que o Borrar carrega: um pedaço da imagem do tamanho do dab (cada célula é um deslocamento em relação ao centro), em alfa pré-multiplicado e ponto flutuante (`PremultColor`). Só o cabeçalho. |
 | `SmudgeEngine.hpp` | Borrar: carrega um pedaço da imagem e o arrasta como um dedo (declaração). |
 | `SmudgeEngine.cpp` | Cada pixel mistura o que há com o carregado (força por distância, não por carimbo) e o carregado se mistura ao que o pincel pisa (comprimento do arrasto em diâmetros). |

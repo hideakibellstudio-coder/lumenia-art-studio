@@ -11,24 +11,25 @@ from PySide6 import QtCore, QtGui
 from ui.infrastructure.theme.manager import ThemeManager
 
 
+def _ray_direction(guide: dict) -> tuple[float, float]:
+    """Unit vector from the first handle to the second."""
+    p0 = guide.get("p0", QtCore.QPointF(0, 300))
+    p1 = guide.get("p1", QtCore.QPointF(800, 300))
+    dx, dy = p1.x() - p0.x(), p1.y() - p0.y()
+    length = math.hypot(dx, dy) or 1.0
+    return dx / length, dy / length
+
+
 class RulerGridRenderer:
     """Renders straight and Bézier rulers with interactive handles and snap feedback."""
 
     @staticmethod
-    def render_straight_ruler(painter: QtGui.QPainter, guide: dict, line_w: float, handle_r: float, ctrl=None):
-        """Renders infinite straight line guide with endpoint handles and parallel track feedback."""
+    def render_straight_ruler(painter: QtGui.QPainter, guide: dict, line_w: float, handle_r: float):
+        """Renders the infinite straight line guide and its endpoint handles (what only the guide changes)."""
         p0 = guide.get("p0", QtCore.QPointF(0, 300))
         p1 = guide.get("p1", QtCore.QPointF(800, 300))
-        dx, dy = p1.x() - p0.x(), p1.y() - p0.y()
-        length = math.hypot(dx, dy) or 1.0
-        ux, uy = dx / length, dy / length
-
-        tm = ThemeManager.instance()
-        handle_border_col = QtGui.QColor(tm.get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
-        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
-        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
-        dist_base_col = QtGui.QColor(tm.get_color("GUIDE_DISTANCE_TEXT", "#ffffff"))
-        dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
+        ux, uy = _ray_direction(guide)
+        handle_border_col = QtGui.QColor(ThemeManager.instance().get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
 
         # Infinite guide ray
         pen_guide = QtGui.QPen(QtGui.QColor(59, 130, 246, 200), line_w, QtCore.Qt.DashLine)
@@ -41,23 +42,33 @@ class RulerGridRenderer:
         painter.drawEllipse(p0, handle_r, handle_r)
         painter.drawEllipse(p1, handle_r, handle_r)
 
-        # Parallel track & distance badge
-        if ctrl and hasattr(ctrl, "hover_point") and ctrl.hover_point is not None:
-            hpt = ctrl.hover_point
-            painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 180), line_w * 1.3, QtCore.Qt.DashLine))
-            painter.drawLine(QtCore.QPointF(hpt.x() - 4000.0 * ux, hpt.y() - 4000.0 * uy), QtCore.QPointF(hpt.x() + 4000.0 * ux, hpt.y() + 4000.0 * uy))
-            painter.setBrush(QtCore.Qt.NoBrush)
-            painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
-            painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
-            if getattr(ctrl, "is_stroking", False) and getattr(ctrl, "snap_start_pt", None) is not None:
-                dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
-                painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
-                painter.setPen(QtGui.QPen(dist_text_col))
-                painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
+    @staticmethod
+    def render_straight_ruler_hover(painter: QtGui.QPainter, guide: dict, line_w: float, handle_r: float, ctrl):
+        """Renders the parallel track and distance badge that follow the pointer."""
+        if ctrl.hover_point is None:
+            return
+        ux, uy = _ray_direction(guide)
+        tm = ThemeManager.instance()
+        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
+        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
+        dist_base_col = QtGui.QColor(tm.get_color("GUIDE_DISTANCE_TEXT", "#ffffff"))
+        dist_text_col = QtGui.QColor(dist_base_col.red(), dist_base_col.green(), dist_base_col.blue(), 220)
+
+        hpt = ctrl.hover_point
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 125, 45, 180), line_w * 1.3, QtCore.Qt.DashLine))
+        painter.drawLine(QtCore.QPointF(hpt.x() - 4000.0 * ux, hpt.y() - 4000.0 * uy), QtCore.QPointF(hpt.x() + 4000.0 * ux, hpt.y() + 4000.0 * uy))
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
+        painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
+        if ctrl.is_stroking and ctrl.snap_start_pt is not None:
+            dist = math.hypot(hpt.x() - ctrl.snap_start_pt.x(), hpt.y() - ctrl.snap_start_pt.y())
+            painter.setFont(QtGui.QFont("Segoe UI", 8, QtGui.QFont.Bold))
+            painter.setPen(QtGui.QPen(dist_text_col))
+            painter.drawText(int(hpt.x() + 12), int(hpt.y() - 6), f"{int(dist)} px")
 
     @staticmethod
-    def render_curve_ruler(painter: QtGui.QPainter, guide: dict, line_w: float, handle_r: float, ctrl=None):
-        """Renders 4-point cubic Bézier ruler with control handles and tangent lines."""
+    def render_curve_ruler(painter: QtGui.QPainter, guide: dict, line_w: float, handle_r: float):
+        """Renders the 4-point cubic Bézier ruler with control handles and tangent lines."""
         p0 = guide.get("p0", QtCore.QPointF(100, 300))
         p1 = guide.get("p1", QtCore.QPointF(250, 150))
         p2 = guide.get("p2", QtCore.QPointF(550, 150))
@@ -75,18 +86,19 @@ class RulerGridRenderer:
         painter.drawLine(p0, p1)
         painter.drawLine(p3, p2)
 
-        tm = ThemeManager.instance()
-        handle_border_col = QtGui.QColor(tm.get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
-        hover_base_col = QtGui.QColor(tm.get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
-        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
-
+        handle_border_col = QtGui.QColor(ThemeManager.instance().get_color("GUIDE_HANDLE_BORDER", "#ffffff"))
         painter.setBrush(QtGui.QColor(59, 130, 246, 220))
         painter.setPen(QtGui.QPen(handle_border_col, line_w))
         for pt in (p0, p1, p2, p3):
             painter.drawEllipse(pt, handle_r, handle_r)
 
-        if ctrl and hasattr(ctrl, "hover_point") and ctrl.hover_point is not None:
-            hpt = ctrl.hover_point
-            painter.setBrush(QtCore.Qt.NoBrush)
-            painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
-            painter.drawEllipse(hpt, handle_r * 1.3, handle_r * 1.3)
+    @staticmethod
+    def render_curve_ruler_hover(painter: QtGui.QPainter, line_w: float, handle_r: float, ctrl):
+        """Renders the target ring at the pointer."""
+        if ctrl.hover_point is None:
+            return
+        hover_base_col = QtGui.QColor(ThemeManager.instance().get_color("GUIDE_HOVER_POINT", "#ff7d2d"))
+        hover_point_col = QtGui.QColor(hover_base_col.red(), hover_base_col.green(), hover_base_col.blue(), 230)
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setPen(QtGui.QPen(hover_point_col, line_w * 1.5))
+        painter.drawEllipse(ctrl.hover_point, handle_r * 1.3, handle_r * 1.3)

@@ -23,6 +23,7 @@ from ..renderers.overlay_renderer import OverlayRenderer
 from ..renderers.geometry_overlay_renderer import GeometryOverlayRenderer
 from ..renderers.canvas_background_renderer import CanvasBackgroundRenderer
 from ..renderers.tool_cursor_renderer import ToolCursorRenderer
+from .guide_layer_cache import GuideLayerCache, GuideLayerView
 
 
 
@@ -58,6 +59,8 @@ class ViewportCanvas(Protocol):
 
     def canvas_transform(self) -> QtGui.QTransform: ...
     def rect(self) -> QtCore.QRect: ...
+    def size(self) -> QtCore.QSize: ...
+    def devicePixelRatioF(self) -> float: ...
 
 
 @dataclass
@@ -95,6 +98,7 @@ class ViewportRenderer:
         self._w = widget
         self.stats = ViewportPaintStats()
         self._checker_brush = CanvasBackgroundRenderer.create_checker_brush()
+        self._guide_layer = GuideLayerCache()
 
     def render(self, event: QtGui.QPaintEvent) -> None:
         widget = self._w
@@ -170,8 +174,7 @@ class ViewportRenderer:
                     OverlayRenderer.render_shape_drag_preview(painter, widget.shape_ctrl)
 
                 if not (widget.drawing and widget.geometry_ctrl.guide_state.get("hidden", False)):
-                    GeometryOverlayRenderer.render_symmetry(painter, widget.geometry_ctrl.sym_state, widget.zoom)
-                    GeometryOverlayRenderer.render_guides(painter, widget.geometry_ctrl, widget.zoom)
+                    self._render_guides(painter, t, event.rect())
             finally:
                 painter.restore()
 
@@ -205,6 +208,17 @@ class ViewportRenderer:
                 dt = stats.timestamps[-1] - stats.timestamps[0]
                 if dt > 0.001:
                     stats.fps = (len(stats.timestamps) - 1) / dt
+
+    def _render_guides(self, painter: QtGui.QPainter, transform: QtGui.QTransform, dirty: QtCore.QRect) -> None:
+        """Simetria e guias: a camada estática vem do cache, a que segue o ponteiro é pintada na hora."""
+        widget = self._w
+        geometry = widget.geometry_ctrl
+        view = GuideLayerView(
+            size=widget.size(), pixel_ratio=widget.devicePixelRatioF(), transform=transform, zoom=widget.zoom,
+            theme=ThemeManager.instance().current_theme, guide=geometry.guide_state, symmetry=geometry.sym_state,
+        )
+        self._guide_layer.draw(painter, view, dirty)
+        GeometryOverlayRenderer.render_guides_hover(painter, geometry, widget.zoom)
 
     @staticmethod
     def _render_pixel_grid(painter: QtGui.QPainter, dirty: QtCore.QRect, canvas_w: int, canvas_h: int) -> None:

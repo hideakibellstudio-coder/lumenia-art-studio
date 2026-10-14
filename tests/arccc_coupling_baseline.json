@@ -431,17 +431,14 @@
   "registry_lookup": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/geometry_overlay_renderer.py": {
-  "hasattr": 2
+  "hasattr": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/perspective_grid_renderer.py": {
   "door_bypass": 1,
-  "getattr_literal": 4,
-  "hasattr": 1
+  "getattr_literal": 2
  },
  "ui/plugins/system/workspace_core/workspace/canvas/renderers/ruler_grid_renderer.py": {
-  "door_bypass": 1,
-  "getattr_literal": 2,
-  "hasattr": 2
+  "door_bypass": 1
  },
  "ui/plugins/system/workspace_core/workspace/canvas/tools/geometry_tool_controller.py": {
   "door_bypass": 1

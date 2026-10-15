@@ -1,6 +1,7 @@
 """SidebarButton component for Workspace Dock System."""
 
 from __future__ import annotations
+import time
 from typing import Optional
 from PySide6 import QtCore, QtGui, QtWidgets
 from ui.infrastructure.theme.manager import ThemeManager
@@ -96,6 +97,7 @@ class SidebarButton(QtWidgets.QToolButton):
         self.setToolTip(self.title)
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self._drag_start_pos: QtCore.QPoint | None = None
+        self._last_tablet_time: float = 0.0
 
         self.toggled.connect(self._apply_style)
         ThemeManager.instance().themeChanged.connect(self._apply_style)
@@ -186,12 +188,29 @@ class SidebarButton(QtWidgets.QToolButton):
             }}
         """)
 
+    def _is_synthesized_or_recent_tablet(self, event: QtGui.QMouseEvent) -> bool:
+        if event.source() == QtCore.Qt.MouseEventSource.MouseEventSynthesizedBySystem:
+            return True
+        return (time.monotonic() - self._last_tablet_time) < 0.25
+
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if self._is_synthesized_or_recent_tablet(event):
+            event.accept()
+            return
         if event.button() == QtCore.Qt.LeftButton:
             self._drag_start_pos = event.position().toPoint()
         super().mousePressEvent(event)
 
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        if self._is_synthesized_or_recent_tablet(event):
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        if self._is_synthesized_or_recent_tablet(event):
+            event.accept()
+            return
         if (
             event.buttons() & QtCore.Qt.LeftButton
             and self._drag_start_pos is not None
@@ -203,6 +222,7 @@ class SidebarButton(QtWidgets.QToolButton):
         super().mouseMoveEvent(event)
 
     def tabletEvent(self, event: QtGui.QTabletEvent) -> None:
+        self._last_tablet_time = time.monotonic()
         et = event.type()
         if et == QtCore.QEvent.TabletPress:
             self._drag_start_pos = event.position().toPoint()

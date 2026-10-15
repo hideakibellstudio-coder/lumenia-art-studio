@@ -174,7 +174,8 @@ class DockAnimator:
         self._on_sidebar_resized()
 
     def _on_sidebar_anim_finished(self) -> None:
-        if self.dock.sidebar.width() == 0:
+        if self._sidebar_anim.endValue() == 0:
+            self.dock.sidebar.setFixedWidth(0)
             self.dock.sidebar.hide()
             self.show_pill()
         else:
@@ -200,22 +201,29 @@ class DockAnimator:
 
     def close_drawer_anim(self) -> None:
         current = self.dock.drawer_container.maximumWidth()
-        if current == 0:
-            self.dock.drawer_container.hide()
-            return
         self.dock.drawer_container.setMinimumWidth(0)
+        if current == 0:
+            self.dock.drawer_container.setMaximumWidth(0)
+            self.dock.drawer_container.hide()
+            self.dock.drawer_container.hide_all_panels()
+            return
         self._drawer_anim.stop()
         self._drawer_anim.setStartValue(current)
         self._drawer_anim.setEndValue(0)
         self._drawer_anim.start()
 
     def _on_drawer_anim_value_changed(self, value: int) -> None:
-        self.dock.drawer_container.setMinimumWidth(value)
+        if self.dock.is_open and self._drawer_anim.endValue() > 0:
+            self.dock.drawer_container.setMinimumWidth(value)
+        else:
+            self.dock.drawer_container.setMinimumWidth(0)
         if not self.dock.is_pinned and self.dock.drawer_container.isVisible():
             self.dock.update_unpinned_position()
 
     def _on_drawer_anim_finished(self) -> None:
-        if self.dock.drawer_container.maximumWidth() == 0:
+        if not self.dock.is_open or self._drawer_anim.endValue() == 0:
+            self.dock.drawer_container.setMinimumWidth(0)
+            self.dock.drawer_container.setMaximumWidth(0)
             self.dock.drawer_container.hide()
             self.dock.drawer_container.hide_all_panels()
         else:

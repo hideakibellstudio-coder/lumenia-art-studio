@@ -84,6 +84,7 @@ def nuitka_command(output_dir: Path | None = None) -> list[str]:
         "--include-package=velopack",  # installer hooks and delta updates (main.py, ui/infrastructure/updater)
         "--nofollow-import-to=numpy",
         "--nofollow-import-to=scipy",
+        "--no-deployment-flag=excluded-module-usage",
         f"--include-data-dir={ROOT / 'assets'}=assets",
         f"--include-data-dir={theme_dir}=ui/infrastructure/theme/themes",
         f"--include-data-files={ROOT / 'Send_Feedback.html'}=Send_Feedback.html",

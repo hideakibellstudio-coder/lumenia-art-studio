@@ -73,6 +73,7 @@
 | `test_dialogs_i18n.py` | Test Suite: Dialogs & Configuration I18n Retranslation Valida se todos os diálogos de preferências e configurações de sistema acompanham a mudança de idioma em tempo real (pt_BR, en_US, es_ES, ja_JP). |
 | `test_dialogs_theme_and_docs.py` | Diálogos principais reagem à troca de tema e de idioma; guia do usuário nos 4 idiomas. |
 | `test_dirty_tracking_layers_and_navigator_flip.py` | Sincronização viewport/navegador (incluindo espelhamento) e marcação de alterações nas camadas. |
+| `test_dock_animator_and_stylus.py` | Confiabilidade de recolhimento das gavetas e sidebars com mouse e stylus: anti-duplo-clique sintetizado, fechamento forçado no final da animação e fechamento de gavetas despinadas por TabletPress. |
 | `test_dock_system_structure.py` | Comprehensive unit tests for Camada 3 - Fase 3: Dock System Decomposition. |
 | `test_document_close_releases_memory.py` | Fechar um documento libera o documento e os widgets da aba. |
 | `test_document_actions_saving.py` | Salvar pela interface (S1.2): começa na hora e o documento só fica limpo com o arquivo gravado e conferido; edição feita durante a gravação o mantém sujo; falha mantém o documento aberto e sujo e avisa; "salvar e fechar" só fecha depois do arquivo; sair espera a gravação e não sai por documento não salvo; um segundo Ctrl+S antes do arquivo existir não pede nome de novo; fechar durante a gravação é inofensivo. |

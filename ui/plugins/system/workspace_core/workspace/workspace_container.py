@@ -179,14 +179,18 @@ class WorkspaceContainer(QtWidgets.QWidget):
         canvas.strokeStarted.connect(self.layout_ctrl.close_unpinned_drawers)
         canvas.strokeFinished.connect(lambda: self.layout_ctrl.set_painting(False))
         canvas.strokeFinished.connect(self._preview_sync.schedule)
-        # Clique no canvas fecha gavetas despinadas (filtro de eventos).
+        # Clique no canvas ou viewport fecha gavetas despinadas (mouse e stylus).
         canvas.installEventFilter(self)
+        self.viewport_container.installEventFilter(self)
 
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if (watched is self.canvas_widget and event.type() == QtCore.QEvent.MouseButtonPress
-                and self.layout_ctrl.has_unpinned_open):
+        if (
+            event.type() in (QtCore.QEvent.MouseButtonPress, QtCore.QEvent.TabletPress, QtCore.QEvent.TouchBegin)
+            and self.layout_ctrl.has_unpinned_open
+            and watched in (self.canvas_widget, self.viewport_container)
+        ):
             self.layout_ctrl.close_unpinned_drawers()
-            return True  # o clique que fecha a gaveta não começa um traço
+            return True  # o clique/toque de stylus que fecha a gaveta não começa um traço
         return super().eventFilter(watched, event)
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:

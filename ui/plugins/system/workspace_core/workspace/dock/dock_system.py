@@ -125,11 +125,10 @@ class AdvancedDockSystem(QtWidgets.QWidget):
     # ── Event Filter — Hover da Sidebar ──
     def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if watched is self.sidebar:
-            if event.type() == QtCore.QEvent.Leave:
+            if event.type() in (QtCore.QEvent.Leave, QtCore.QEvent.HoverLeave):
                 if not (self.is_open and not self.is_pinned) and (self.animator.auto_collapse or self.is_pinned):
-                    if not self.sidebar.underMouse():
-                        self.animator.schedule_collapse()
-            elif event.type() == QtCore.QEvent.Enter:
+                    self.animator.schedule_collapse()
+            elif event.type() in (QtCore.QEvent.Enter, QtCore.QEvent.HoverEnter):
                 self.animator.cancel_collapse()
         return super().eventFilter(watched, event)
 
@@ -220,7 +219,7 @@ class AdvancedDockSystem(QtWidgets.QWidget):
         self.drawer_container.update_spacer(self.active_panel_ids)
         self.resolve_state()
         self.drawer_closed.emit()
-        if (self.animator.auto_collapse or self.is_pinned) and not self.sidebar.underMouse():
+        if self.animator.auto_collapse or self.is_pinned:
             self.animator.schedule_collapse()
 
     def set_pinned(self, pinned: bool) -> None:

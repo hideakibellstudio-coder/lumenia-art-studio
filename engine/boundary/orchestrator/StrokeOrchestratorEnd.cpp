@@ -62,19 +62,11 @@ void renderReleaseTail(RawStrokeContext& ctx, bool splineReady, utils::Rect2D& t
                        profile.blendMode, mapped.color, mapped.aspectRatio);
         utils::Rect2D dirty{0, 0, 0, 0};
         uint32_t dabs = 0;
-        if (splineReady) {
-            utils::Dab forward = dab;
-            forward.position = dab.position * 2.0 - ctx.splineP1.position;
-            StrokeOrchestrator::renderSplineSegment(ctx.splineP0, ctx.splineP1, dab, forward, ctx, &dirty, &dabs, &stages);
-            ctx.splineP0 = ctx.splineP1;
-            ctx.splineP1 = dab;
-        } else {
-            StrokeOrchestrator::renderSegment(
-                ctx.lastDab, dab, profile, ctx.canvasTexture, ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
-                ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
-                ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabs, &stages, true,
-                &ctx.strokeMix);
-        }
+        StrokeOrchestrator::renderSegment(
+            ctx.lastDab, dab, profile, ctx.canvasTexture, ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
+            ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
+            ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabs, &stages, true,
+            &ctx.strokeMix);
         uniteDirty(totalDirty, dirty);
         ctx.lastDab = dab;
     }
@@ -97,45 +89,33 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
             ctx.lastRawPoint = {endX, endY};
             ctx.hasLastRawPoint = true;
         }
-        // Read before the block below zeroes the spline state: the release tail continues the spline.
         const bool splineReady = ctx.splineCount >= 3;
         const bool stabilized = !shortcut && ctx.stabilizer.isActive();
 
-        if (ctx.splineCount == 2) {
-            // Apenas P0 e P1 foram capturados (1 único movimento): renderiza P0 -> P1 via Catmull-Rom centrípeta
-            utils::Dab dNeg1 = ctx.splineP0;
-            dNeg1.position = ctx.splineP0.position * 2.0 - ctx.splineP1.position;
-            utils::Dab dPlus2 = ctx.splineP1;
-            dPlus2.position = ctx.splineP1.position * 2.0 - ctx.splineP0.position;
+        ctx.splineCount = 0;
+        ctx.pendingFirstSegment = false;
 
-            utils::Rect2D dirty1{0, 0, 0, 0};
-            uint32_t dabs1 = 0;
-            telemetry::StageMetrics stages1{};
-            renderSplineSegment(dNeg1, ctx.splineP0, ctx.splineP1, dPlus2, ctx, &dirty1, &dabs1, &stages1);
-            if (dirty1.width > 0 && dirty1.height > 0) {
-                totalCatchupDirty = dirty1;
-            }
-            ctx.lastDab = ctx.splineP1;
-            ctx.splineCount = 0;
-            ctx.pendingFirstSegment = false;
-        } else {
-            // splineCount >= 3 ou 1: Todos os segmentos até o último ponto já foram renderizados durante updateStrokeRaw
-            ctx.splineCount = 0;
-            ctx.pendingFirstSegment = false;
-        }
-
-
-        if (stabilized && ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
+        if (ctx.segmentsRenderedInStroke == 0) {
+            // Toque isolado (click / tap): carimba o ponto inicial do traço
+            utils::Rect2D dirty{0, 0, 0, 0};
+            uint32_t dabsRendered = 0;
+            renderSegment(
+                ctx.lastDab, ctx.lastDab, ctx.brushProfile, ctx.canvasTexture,
+                ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
+                ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
+                ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered,
+                &stagesCatchup, true, &ctx.strokeMix
+            );
+            uniteDirty(totalCatchupDirty, dirty);
+        } else if (stabilized && ctx.hasLastRawPoint) {
             renderReleaseTail(ctx, splineReady, totalCatchupDirty, stagesCatchup);
-        } else if (ctx.hasLastRawPoint && ctx.segmentsRenderedInStroke > 0) {
-            // Without stabilization (or below 0.5%) the line is already on the pen: unchanged since 2026-09-22.
+        } else if (ctx.hasLastRawPoint) {
+            // Sem estabilização (ou baixa latência): o traço já acompanha a caneta.
             const utils::Point2D stabPos = shortcut ? ctx.lastRawPoint : ctx.stabilizer.getStabilizedPosition();
-            const utils::Point2D v = shortcut ? (ctx.lastRawPoint - ctx.lastDab.position) : ctx.stabilizer.getLastMovementDelta();
-            const double speed = v.length();
             const utils::Point2D toRaw = ctx.lastRawPoint - stabPos;
             const double distToRaw = toRaw.length();
 
-            // 1. Catch-up para alcançar a posição real de soltura quando o estabilizador ficou para trás
+            // Catch-up seguro para alcançar a posição real de soltura se o ponteiro ficou levemente atrasado
             if (!shortcut && distToRaw > 1.0) {
                 auto mappedCatchup = brush::DynamicMapper::map(ctx.brushProfile, ctx.lastRawPoint, ctx.lastRawPressure, 0.0, ctx.lastPose.twist, ctx.lastPose.altitude, ctx.lastPose.azimuth);
                 utils::Dab catchupDab(mappedCatchup.position, mappedCatchup.radius, mappedCatchup.opacity, mappedCatchup.pressure, mappedCatchup.angle, ctx.brushProfile.blendMode, mappedCatchup.color, mappedCatchup.aspectRatio);
@@ -148,39 +128,8 @@ std::vector<double> StrokeOrchestrator::endStrokeRaw(
                     ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered,
                     &stagesCatchup, true, &ctx.strokeMix
                 );
-                if (dirty.width > 0 && dirty.height > 0) {
-                    totalCatchupDirty = (totalCatchupDirty.width > 0) ? totalCatchupDirty.united(dirty) : dirty;
-                }
+                uniteDirty(totalCatchupDirty, dirty);
                 ctx.lastDab = catchupDab;
-            }
-
-            // 2. Afunilamento final com comprimento fixo configurável (Decisão D3 / Correção B1)
-            // Funciona tanto com estabilização quanto no atalho de baixa latência, desde que a caneta
-            // estivesse em movimento no momento da soltura (speed > 0.1).
-            if (ctx.brushProfile.strokeTaperEnabled && speed > 0.1) {
-                const utils::Point2D dir = v * (1.0 / speed);
-                const double taperLen = (ctx.brushProfile.strokeTaperLength > 0.0)
-                    ? ctx.brushProfile.strokeTaperLength
-                    : 20.0;
-                const utils::Point2D targetPt = ctx.lastDab.position + (dir * taperLen);
-
-                auto mapped = brush::DynamicMapper::map(ctx.brushProfile, targetPt, 0.0, 0.0, ctx.lastPose.twist, ctx.lastPose.altitude, ctx.lastPose.azimuth);
-                mapped.radius *= 0.05;
-                mapped.opacity = 0.0;
-                utils::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
-                utils::Rect2D dirty{0, 0, 0, 0};
-                uint32_t dabsRendered = 0;
-                renderSegment(
-                    ctx.lastDab, currentDab, ctx.brushProfile, ctx.canvasTexture,
-                    ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
-                    ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
-                    ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirty, &dabsRendered,
-                    &stagesCatchup, true, &ctx.strokeMix
-                );
-                if (dirty.width > 0 && dirty.height > 0) {
-                    totalCatchupDirty = (totalCatchupDirty.width > 0) ? totalCatchupDirty.united(dirty) : dirty;
-                }
-                ctx.lastDab = currentDab;
             }
         }
     }

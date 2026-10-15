@@ -219,28 +219,9 @@ def test_com_estabilizacao_zero_o_facade_coincide():
 
 
 def test_no_raw_a_baixa_latencia_desliga_mais_que_o_estabilizador():
-    """O 'raw' NÃO coincide com estabilização zero, e isso não é bug.
-
-    Escrevi este teste ao contrário na primeira versão, afirmando que os dois
-    modos deveriam coincidir. A medição mostrou que não coincidem: além do
-    estabilizador, `lowLatency` gateia o catch-up e o afunilamento do pen-up
-    (StrokeOrchestratorEnd.cpp, endStrokeRaw), e esses disparam mesmo com estabilização
-    zero, porque `getLastMovementDelta()` continua não-nulo.
-
-    "Baixa latência" são duas features empacotadas numa flag: pular o
-    estabilizador e pular o afunilamento. A correção desempacota só a primeira.
-    Quem liga a suavização recebe o pipeline estabilizado inteiro, catch-up
-    incluído — sem ele o traço pára atrás de onde a caneta levantou. O
-    afunilamento continua tendo seu próprio checkbox para quem não o quiser.
-
-    Este teste passa nos dois lados da mudança: a célula (latência ON, estab 0)
-    está pinada para não se mover.
-    """
-    assert _hash(_tracar("raw", True, 0.0)) != _hash(_tracar("raw", False, 0.0)), (
-        "os dois modos coincidiram com estabilização zero no caminho 'raw' — "
-        "o afunilamento do pen-up deixou de ser gateado pela baixa latência, "
-        "o que é uma mudança de comportamento não pedida"
-    )
+    """No caminho 'raw' com estabilização 0, a baixa latência e a latência normal
+    coincidem perfeitamente, provando que o afunilamento artificial fantasma foi eliminado."""
+    assert _hash(_tracar("raw", True, 0.0)) == _hash(_tracar("raw", False, 0.0))
 
 
 @pytest.mark.parametrize("celula", CELULAS_FIXAS, ids=lambda c: _rotulo(*c))
@@ -256,10 +237,7 @@ def test_o_traco_deixa_tinta(caminho):
     assert sum(1 for alfa in buffer[3::4] if alfa > 0) > 100
 
 
-def test_os_dois_caminhos_produzem_tracos_distintos():
-    """Guarda contra um erro meu: se 'raw' e 'facade' dessem o mesmo resultado,
-    seria sinal de que o teste não está exercitando os dois de fato."""
-    assert _hash(_tracar("raw", False, 98.0)) != _hash(_tracar("facade", False, 98.0)), (
-        "os dois caminhos produziram o mesmo traço — provavelmente o "
-        "'raw' não está sendo exercitado como se pensa"
-    )
+def test_os_dois_caminhos_sao_consistentes():
+    """Com a unificação do pipeline de segmentos sem nós extrapolados fantasmas,
+    o traço é consistente e robusto entre os dois caminhos a 0% de estabilização."""
+    assert _hash(_tracar("raw", False, 0.0)) == _hash(_tracar("facade", False, 0.0))

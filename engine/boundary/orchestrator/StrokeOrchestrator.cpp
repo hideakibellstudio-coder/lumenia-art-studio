@@ -70,25 +70,6 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     );
     utils::Dab currentDab(mapped.position, mapped.radius, mapped.opacity, mapped.pressure, mapped.angle, ctx.brushProfile.blendMode, mapped.color, mapped.aspectRatio);
 
-    // Amostra 1 do movimento (P1): Reter para confirmar alinhamento direcional com P2
-    if (ctx.splineCount <= 1) {
-        ctx.splineP1 = currentDab;
-        ctx.firstSample.rawPoint = {x, y};
-        ctx.firstSample.pressure = pressure;
-        ctx.firstSample.timestamp = t;
-        ctx.firstSample.stabilizedPos = pos;
-        ctx.firstSample.normVel = normVel;
-        ctx.firstSample.vel = vel;
-        ctx.firstSample.tiltX = tiltX;
-        ctx.firstSample.tiltY = tiltY;
-        ctx.firstSample.twist = twist;
-        ctx.firstSample.altitude = altitude;
-        ctx.firstSample.azimuth = azimuth;
-        ctx.splineCount = 2;
-        ctx.segmentsRenderedInStroke = 1;
-        return { 0.0, 0.0, 0.0, 0.0, x, y, pressure, vel, ctx.lastDab.opacity };
-    }
-
     auto tKinematicsEnd = std::chrono::high_resolution_clock::now();
     double timeKinematicsUs = std::chrono::duration<double, std::micro>(tKinematicsEnd - tKinematicsStart).count();
 
@@ -101,73 +82,20 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     uint32_t dabsCurrent = 0;
     telemetry::StageMetrics stagesCurrent{};
 
-    // Amostra 2 do movimento (P2 com P0 e P1 em buffer):
-    if (ctx.splineCount == 2) {
-        ctx.splineP2 = currentDab;
-        const utils::Point2D p0 = ctx.strokeStartPoint;
-        const utils::Point2D p1 = ctx.splineP1.position;
-        const utils::Point2D p2 = currentDab.position;
-
-        const utils::Point2D v01 = p1 - p0;
-        const utils::Point2D v12 = p2 - p1;
-        const double len01 = v01.length();
-        const double len12 = v12.length();
-
-        // Correção A7: Restringe a correção de deflexão de impacto a deslizes minúsculos (<= 3px ou meio raio)
-        const double maxSlipDist = std::min(3.0, ctx.lastDab.radius * 0.5);
-        if (len01 > 0.5 && len01 <= maxSlipDist && len12 > 0.5) {
-            const double dot = (v01.x * v12.x + v01.y * v12.y) / (len01 * len12);
-            if (dot < 0.4) {
-                const utils::Point2D u12 = v12 * (1.0 / len12);
-                const utils::Point2D alignedP0 = p1 - (u12 * len01);
-                ctx.strokeStartPoint = alignedP0;
-                if (!shortcut) ctx.stabilizer.reanchorInitialPosition(alignedP0);
-
-                auto mappedP0 = brush::DynamicMapper::map(ctx.brushProfile, alignedP0, ctx.lastDab.pressure, 0.0, ctx.lastPose.twist, ctx.lastPose.altitude, ctx.lastPose.azimuth);
-                ctx.splineP0 = utils::Dab(mappedP0.position, mappedP0.radius, mappedP0.opacity, mappedP0.pressure, mappedP0.angle, ctx.brushProfile.blendMode, mappedP0.color, mappedP0.aspectRatio);
-                ctx.lastDab = ctx.splineP0;
-            }
-        }
-
-        // Renderiza segmento P0 -> P1 via Catmull-Rom centrípeta com currentDab (P2) como nó à frente
-        utils::Dab dNeg1 = ctx.splineP0;
-        dNeg1.position = ctx.splineP0.position * 2.0 - ctx.splineP1.position;
-        renderSplineSegment(dNeg1, ctx.splineP0, ctx.splineP1, currentDab, ctx, &dirtyCurrent, &dabsCurrent, &stagesCurrent);
-
-        // Renderiza segmento P1 -> P2 imediatamente via Catmull-Rom centrípeta com nó extrapolado
-        utils::Dab dForward2 = currentDab;
-        dForward2.position = currentDab.position * 2.0 - ctx.splineP1.position;
-        utils::Rect2D dirtySeg2{0, 0, 0, 0};
-        uint32_t dabsSeg2 = 0;
-        telemetry::StageMetrics stagesSeg2{};
-        renderSplineSegment(ctx.splineP0, ctx.splineP1, currentDab, dForward2, ctx, &dirtySeg2, &dabsSeg2, &stagesSeg2);
-
-        if (dirtySeg2.width > 0 && dirtySeg2.height > 0) {
-            dirtyCurrent = (dirtyCurrent.width > 0 && dirtyCurrent.height > 0) ? dirtyCurrent.united(dirtySeg2) : dirtySeg2;
-        }
-        dabsCurrent += dabsSeg2;
-        stagesCurrent.timeInterpolationUs += stagesSeg2.timeInterpolationUs;
-        stagesCurrent.timeRasterDabUs += stagesSeg2.timeRasterDabUs;
-        stagesCurrent.timeUndoRecordUs += stagesSeg2.timeUndoRecordUs;
-        stagesCurrent.timeCompositeUs += stagesSeg2.timeCompositeUs;
-        stagesCurrent.tilesRecorded += stagesSeg2.tilesRecorded;
-        stagesCurrent.tilesComposited += stagesSeg2.tilesComposited;
-
-        ctx.splineP0 = ctx.splineP1;
-        ctx.splineP1 = currentDab;
-        ctx.lastDab = currentDab;
-        ctx.splineCount = 3;
-        ctx.pendingFirstSegment = false;
-    } else {
-        // Amostras subsequentes (P3, P4, ...): renderiza splineP1 -> currentDab com controle (splineP0, splineP1, currentDab, dForward)
-        utils::Dab dForward = currentDab;
-        dForward.position = currentDab.position * 2.0 - ctx.splineP1.position;
-        renderSplineSegment(ctx.splineP0, ctx.splineP1, currentDab, dForward, ctx, &dirtyCurrent, &dabsCurrent, &stagesCurrent);
-
-        ctx.splineP0 = ctx.splineP1;
-        ctx.splineP1 = currentDab;
-        ctx.lastDab = currentDab;
-    }
+    // Interpolação linear de alta fidelidade entre dabs consecutivos.
+    // Elimina arestas poligonais, overshoots e o ziguezague agressivo em curvas gerado pelo
+    // 4º nó extrapolado (2*P2 - P1), e elimina o gancho inicial provocado pelo desalinhamento artificial de P0.
+    renderSegment(
+        ctx.lastDab, currentDab, ctx.brushProfile, ctx.canvasTexture,
+        ctx.activeEngine, ctx.layerStack, ctx.selectionMask,
+        ctx.undoManager, ctx.compositor, ctx.outputBuffer, ctx.canvasTexture.backgroundColor,
+        ctx.distanceCarryover, ctx.symmetryConfig, &ctx.strokeStartPoint, &dirtyCurrent, &dabsCurrent,
+        &stagesCurrent, true, &ctx.strokeMix
+    );
+    ctx.splineP0 = ctx.lastDab;
+    ctx.splineP1 = currentDab;
+    ctx.splineCount = 3;
+    ctx.pendingFirstSegment = false;
 
 
     // Emissão temporal (Aerógrafo acumula tinta com a caneta parada - Correção B3 / Decisão D4)

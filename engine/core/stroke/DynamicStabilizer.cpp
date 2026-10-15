@@ -20,9 +20,10 @@ void DynamicStabilizer::setStabilizationPercentage(double percentage) noexcept {
 
 double DynamicStabilizer::windowSeconds() const noexcept {
     const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
-    const size_t events = std::clamp(
-        static_cast<size_t>(kMinEvents + static_cast<size_t>(std::lround(norm * 69.0))), kMinEvents, kMaxEvents);
-    return static_cast<double>(events) * kNominalEventSeconds;
+    // Janela temporal calibrada: ~17 ms (0%) até ~260 ms (99%).
+    // Proporciona filtragem progressiva e profunda na faixa 25%-70% sem cortar curvas.
+    const double events = 6.0 + 84.0 * std::pow(norm, 1.25);
+    return events * kNominalEventSeconds;
 }
 
 void DynamicStabilizer::reset(utils::Point2D initialPosition, double initialPressure) noexcept {
@@ -71,9 +72,11 @@ void DynamicStabilizer::expire(double now, double window) noexcept {
 
 void DynamicStabilizer::average(double now, double normalizedVelocity) noexcept {
     const double norm = std::clamp(m_stabilizationPercentage / 100.0, 0.0, 1.0);
-    double exponent = 2.4 - 1.3 * std::pow(norm, 0.85);
-    if (m_updates > 4 && normalizedVelocity > 0.50) {
-        exponent += std::clamp((normalizedVelocity - 0.50) / 0.50, 0.0, 1.0) * 0.4;
+    // Expoente progressivo: a ponta recente sempre tem peso dominante (>= 2.2).
+    // Evita o arrasto lento e pegajoso de peso morto ao aumentar a estabilização.
+    double exponent = 2.2 + 0.6 * norm;
+    if (m_updates > 4 && normalizedVelocity > 0.40) {
+        exponent += std::clamp((normalizedVelocity - 0.40) / 0.60, 0.0, 1.0) * 0.5;
     }
     const double window = windowSeconds();
     double sumX = 0.0, sumY = 0.0, sumPressure = 0.0, totalWeight = 0.0;

@@ -34,9 +34,10 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     auto tKinematicsStart = std::chrono::high_resolution_clock::now();
 
     double t = timestamp;
-    if (t <= 0.0) {
-        auto now = std::chrono::high_resolution_clock::now();
-        t = std::chrono::duration<double>(now.time_since_epoch()).count();
+    if (t <= 0.0 || (ctx.lastTimestamp > 0.0 && t < ctx.lastTimestamp - 1.0)) {
+        t = (ctx.lastTimestamp > 0.0)
+            ? (ctx.lastTimestamp + stroke::DynamicStabilizer::kNominalEventSeconds)
+            : std::chrono::duration<double>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     }
 
     const double vel = ctx.velocityTracker.update({x, y}, t);
@@ -44,7 +45,7 @@ std::vector<double> StrokeOrchestrator::updateStrokeRaw(
     const bool shortcut = useLatencyShortcut(ctx);
     const utils::Point2D pos = shortcut ? utils::Point2D{x, y} : ctx.stabilizer.updateAt({x, y}, pressure, normVel, t);
     const double effectivePressure = shortcut ? pressure : ctx.stabilizer.getStabilizedPressure();
-    if (repeatedSample && ctx.splineCount >= 3 && pos.distanceTo(ctx.lastDab.position) < 0.05) {
+    if (repeatedSample && ctx.splineCount >= 3 && pos.distanceTo(ctx.lastDab.position) < 0.35) {
         ctx.lastTimestamp = t;
         return {0.0, 0.0, 0.0, 0.0, x, y, pressure, vel, ctx.lastDab.opacity};
     }

@@ -13,10 +13,21 @@ from dataclasses import dataclass
 from PySide6 import QtCore, QtGui
 
 
+_last_known_offset: float | None = None
+
+
 def event_time(event: QtGui.QInputEvent) -> float:
-    """Instante do evento em segundos; relógio do processo se o Qt não informar."""
+    """Instante do evento em segundos com alinhamento monotônico entre Qt e perf_counter."""
+    global _last_known_offset
     stamp = event.timestamp()
-    return stamp / 1000.0 if stamp > 0 else time.perf_counter()
+    now_perf = time.perf_counter()
+    if stamp > 0:
+        stamp_sec = stamp / 1000.0
+        _last_known_offset = stamp_sec - now_perf
+        return stamp_sec
+    if _last_known_offset is not None:
+        return now_perf + _last_known_offset
+    return now_perf
 
 
 @dataclass(frozen=True)
